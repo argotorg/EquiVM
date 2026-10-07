@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flopper
 /-! ## `ttl()` getter -/
 
 def ttlWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flopperUint48Offset0Word ⟨6⟩ σ I
+  uint48Offset0Word ⟨6⟩ σ I
 
 theorem flopperDecode_ttl {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (ttlTransition.params.map Param.name)
@@ -70,7 +70,7 @@ theorem flopperTtlBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (ttlWord σ I).toNat))])) := by
-    simpa [ttlTransition, ttlWord, flopperUint48Offset0Word, initState,
+    simpa [ttlTransition, ttlWord, uint48Offset0Word, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       flopperUint48GetterBodyReturns_offset0
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -86,19 +86,18 @@ theorem flopperTtlBodyCore
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)
     (by
-      unfold flopperUint48Offset0SlotGetterWf
+      unfold solcUint48Offset0SlotGetterWf
       repeat' first | apply And.intro | native_decide)
     (by jump_dest)
     (by jump_dest)
     (by
-      unfold flopperReturnUint48FromMemWf
+      unfold solcReturnUint48FromMemWf
       repeat' first | apply And.intro | native_decide)
     (by rfl) (by simpa [ttlWord] using hbody)
 
 theorem flopperTtlBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 15)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

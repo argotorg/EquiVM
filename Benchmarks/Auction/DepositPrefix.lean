@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Auction.CallMemory
 import Benchmarks.Auction.CallBridge
 
@@ -6,17 +7,8 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Auction
 
 def wethWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (storedWord σ I ⟨202⟩) solcAddrMask
+  UInt256.land (solcSlotWord σ I ⟨202⟩) solcAddrMask
 
-theorem word_add_sub_left (a b : UInt256) : UInt256.sub (a + b) a = b := by
-  apply u256_inj
-  change ((a.val + b.val) - a.val).val = b.val.val
-  rw [add_sub_cancel_left]
-
-theorem word_div_one (word : UInt256) : UInt256.div word ⟨1⟩ = word := by
-  apply u256_inj
-  rw [udiv_toNat]
-  exact Nat.div_one word.toNat
 
 theorem depositPrefix {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
@@ -81,7 +73,7 @@ theorem depositNoCode {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
     RDrev auctionBytecode g s0 := by
   obtain ⟨_, _, rd3424⟩ := depositCodeGuard h hm hb (by omega)
   exact evm_run rd3424 with [jumpiNT (by rw [hno]; decide),
-    raw auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)]
+    raw solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)]
 
 theorem depositCallPrefix {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)

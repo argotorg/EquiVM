@@ -168,9 +168,9 @@ theorem catBiteReachGuardDunkRoomWad {σ σ₀ A I} {g : UInt256}
     rw [uadd_toNat, show (⟨64⟩ : UInt256).toNat = 64 from by decide, Nat.add_comm,
       Nat.mod_eq_of_lt (by omega)]
   have hChopAw : UInt256.ofNat (MachineState.M aw.toNat (⟨32⟩ + q).toNat 32) = aw :=
-    catBiteAwMInv32 aw (by rw [e32q]; omega)
+    awInv32 aw (by rw [e32q]; omega)
   have hDunkAw : UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ + q).toNat 32) = aw :=
-    catBiteAwMInv32 aw (by rw [e64q]; omega)
+    awInv32 aw (by rw [e64q]; omega)
   have rd1811 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1814 := rd1811.push2 ⟨1872⟩ (by native_decide) (by evm_ov)
   have rd1815 := rd1814.dup5 (by native_decide) (by evm_ov)
@@ -318,7 +318,7 @@ theorem catBiteReachGuardTabBase {σ σ₀ A I} {g : UInt256}
       mem aw o σ' k' C' := by
   have e32q : (⟨32⟩ + q).toNat = q.toNat + 32 := uadd_lit32_toNat q (by omega)
   have hChopAw : UInt256.ofNat (MachineState.M aw.toNat (⟨32⟩ + q).toNat 32) = aw :=
-    catBiteAwMInv32 aw (by rw [e32q]; omega)
+    awInv32 aw (by rw [e32q]; omega)
   have rd2321 := rd.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd2323 := RD.push8 rd2321 ⟨1000000000000000000⟩ (by native_decide) (by evm_ov)
   have rd2332 := rd2323.push2 ⟨2354⟩ (by native_decide) (by evm_ov)
@@ -386,20 +386,20 @@ theorem catBiteReachGuardRoomSub {σ σ₀ A I} {g : UInt256}
   have eq64 : (q + ⟨64⟩).toNat = q.toNat + 64 := by
     rw [uadd_toNat, show (⟨64⟩ : UInt256).toNat = 64 from by decide, Nat.mod_eq_of_lt (by omega)]
   -- active-words invariance witnesses
-  have hM0 : UInt256.ofNat (MachineState.M aw.toNat 0 32) = aw := catBiteAwMInv32 aw (by omega)
-  have hM32 : UInt256.ofNat (MachineState.M aw.toNat 32 32) = aw := catBiteAwMInv32 aw (by omega)
-  have hM64 : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw := catBiteAwMInv32 aw (by omega)
-  have hMfp : UInt256.ofNat (MachineState.M aw.toNat fp.toNat 32) = aw := catBiteAwMInv32 aw (by omega)
+  have hM0 : UInt256.ofNat (MachineState.M aw.toNat 0 32) = aw := awInv32 aw (by omega)
+  have hM32 : UInt256.ofNat (MachineState.M aw.toNat 32 32) = aw := awInv32 aw (by omega)
+  have hM64 : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw := awInv32 aw (by omega)
+  have hMfp : UInt256.ofNat (MachineState.M aw.toNat fp.toNat 32) = aw := awInv32 aw (by omega)
   have hM32fp : UInt256.ofNat (MachineState.M aw.toNat (⟨32⟩ + fp).toNat 32) = aw :=
-    catBiteAwMInv32 aw (by omega)
+    awInv32 aw (by omega)
   have hM64fp : UInt256.ofNat (MachineState.M aw.toNat (⟨32⟩ + (⟨32⟩ + fp)).toNat 32) = aw :=
-    catBiteAwMInv32 aw (by omega)
-  have hMq : UInt256.ofNat (MachineState.M aw.toNat q.toNat 32) = aw := catBiteAwMInv32 aw (by omega)
+    awInv32 aw (by omega)
+  have hMq : UInt256.ofNat (MachineState.M aw.toNat q.toNat 32) = aw := awInv32 aw (by omega)
   have hMq32 : UInt256.ofNat (MachineState.M aw.toNat (q + ⟨32⟩).toNat 32) = aw :=
-    catBiteAwMInv32 aw (by omega)
+    awInv32 aw (by omega)
   have hMq64 : UInt256.ofNat (MachineState.M aw.toNat (q + ⟨64⟩).toNat 32) = aw :=
-    catBiteAwMInv32 aw (by omega)
-  have hMkec : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw := catBiteAwMInv64 aw (by omega)
+    awInv32 aw (by omega)
+  have hMkec : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw := awInv64 aw (by omega)
   have hmask0 : UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) ⟨0⟩ = ⟨0⟩ :=
     by native_decide
   -- 1620 → 3818 (call the 96-byte allocator)
@@ -467,7 +467,7 @@ theorem catBiteReachGuardRoomSub {σ σ₀ A I} {g : UInt256}
   have rd1645 := rd1644.dup1 (by native_decide) (by evm_ov)
   have rd1646 := rd1645.dup5 (by native_decide) (by evm_ov)
   have rd1647 := rd1646.keccak256 0 (solcMappingSlot ⟨1⟩ ilk) aw (by native_decide)
-    (catBiteKeccakCost0 hMkec)
+    (memoryCost_zero_of_M_eq' hMkec)
     (by simp only [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide, hKec]; exact mappingSlot_single ilk ⟨1⟩)
     hMkec (by evm_ov)
@@ -584,9 +584,9 @@ theorem catBiteReachGuardMilkChopZero {σ σ₀ A I} {g : UInt256}
     rw [uadd_toNat, show (⟨64⟩ : UInt256).toNat = 64 from by decide, Nat.add_comm,
       Nat.mod_eq_of_lt (by omega)]
   have hChopAw : UInt256.ofNat (MachineState.M aw.toNat (⟨32⟩ + q).toNat 32) = aw :=
-    catBiteAwMInv32 aw (by rw [e32q]; omega)
+    awInv32 aw (by rw [e32q]; omega)
   have hDunkAw : UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ + q).toNat 32) = aw :=
-    catBiteAwMInv32 aw (by rw [e64q]; omega)
+    awInv32 aw (by rw [e64q]; omega)
   have rd1811 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1814 := rd1811.push2 ⟨1872⟩ (by native_decide) (by evm_ov)
   have rd1815 := rd1814.dup5 (by native_decide) (by evm_ov)
@@ -650,14 +650,14 @@ theorem catBiteReachGuardLive {σ σ₀ A I} {g : UInt256}
     (hov : R.length + 11 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1458⟩
-      (UInt256.eq ⟨1⟩ (catSlotWord ⟨2⟩ σ' I) :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
+      (UInt256.eq ⟨1⟩ (solcSlotWordAt ⟨2⟩ σ' I) :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
         urn :: ilk :: R)
       mem aw o σ' k' C' := by
   have rd1449 := rd.push1 ⟨2⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1450, C1450, rd1450raw⟩ := rd1449.sload (by native_decide) (by evm_ov)
   have rd1450 : RD catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1450⟩
-      (catSlotWord ⟨2⟩ σ' I :: art :: ink :: ⟨0⟩ :: ⟨0⟩ :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
+      (solcSlotWordAt ⟨2⟩ σ' I :: art :: ink :: ⟨0⟩ :: ⟨0⟩ :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
         urn :: ilk :: R) mem aw o σ' k1450 C1450 := rd1450raw
   have rd1451 := rd1450.swap2 (by native_decide) (by evm_ov)
   have rd1452 := rd1451.swap4 (by native_decide) (by evm_ov)

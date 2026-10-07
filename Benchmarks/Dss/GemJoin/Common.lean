@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.GemJoin.Bytecode
 import Reasoning.ABI
 import Reasoning.Stepping
@@ -42,30 +43,6 @@ def gemJoinSelBytes : ℕ → ByteArray
   | 9 => ⟨#[0x36, 0x56, 0x9e, 0x77]⟩ -- vat()
   | _ => ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩ -- wards(address)
 
-def gemJoinSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  solcSlotWord σ I slot
-
-abbrev gemJoinAddressReturnWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (gemJoinSlotWord slot σ I) solcAddrMask
-
-theorem gemJoinStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (addrLoc slot) =
-      .address (AccountAddress.ofNat
-        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-          solcAddrMask).toNat) := by
-  simpa [addrLoc, addressOffset0Loc] using storageLocLoad_address_offset0 evm slot
-
-theorem gemJoinStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (wordLoc slot) =
-      .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
-
-theorem gemJoinStorageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (bytes32Loc slot) =
-      .fixedBytes bytes32Width
-        (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)) := by
-  simpa [bytes32Loc, Reasoning.Theory.bytes32Loc, bytes32Width] using
-    Reasoning.Theory.storageLocLoad_bytes32 evm slot
 
 /-! ## Auth helpers -/
 
@@ -79,7 +56,7 @@ def relyAuthStorageSlot (I : ExecutionEnv) : UInt256 :=
   wardsSlot (relyAuthKey I)
 
 def relyAuthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  gemJoinSlotWord (relyAuthStorageSlot I) σ I
+  solcSlotWordAt (relyAuthStorageSlot I) σ I
 
 abbrev relyAuthEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "wards", steps := [.mindex (relyAuthKey I)] }
@@ -89,9 +66,6 @@ theorem relyAuthStorageSlot_eq_mapSlot_source (I : ExecutionEnv) :
   unfold relyAuthStorageSlot wardsSlot relyAuthKey relySourceWord
   rw [keyValueToWord_address]
 
-theorem uint256_toNat_eq_one {a : UInt256} (h : a.toNat = 1) : a = ⟨1⟩ := by
-  apply u256_inj
-  simpa using h
 
 theorem evalStorageRef_auth_of_wards_none (evm : EVM.State) (I : ExecutionEnv)
     (locals : Store)
@@ -127,7 +101,7 @@ theorem evalExpr_auth_true_of_wards_none (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using gemJoinStorageLocLoad_uint256 evm (relyAuthStorageSlot I))]
+        simpa [hload] using storageLocLoad_uint256 evm (relyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -156,7 +130,7 @@ theorem evalExpr_auth_false_of_wards_none (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_auth_of_wards_none evm I locals hwards hsrc)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact gemJoinStorageLocLoad_uint256 evm (relyAuthStorageSlot I))
+      (hload := by exact storageLocLoad_uint256 evm (relyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -164,7 +138,7 @@ theorem evalExpr_auth_false_of_wards_none (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact uint256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -192,76 +166,6 @@ theorem relyAuthHashMem_read64 (I : ExecutionEnv) :
 
 /-! ## LOG2 reach helper -/
 
-def stLog2 (s : State) (a b c d : UInt256) (t : List UInt256) : State :=
-  { s with
-    substate.logSeries := s.substate.logSeries.push
-      ⟨s.executionEnv.codeOwner, #[c, d], s.machineState.memory.readWithPadding a.toNat b.toNat⟩
-    machineState.stack := t
-    machineState.activeWords :=
-      UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat b.toNat)
-    machineState.gasAvailable :=
-      (s.machineState.gasAvailable.subNat (memoryExpansionCost s .LOG2)).subNat
-        (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 2 * GasConstants.Glogtopic)
-    machineState.pc := s.machineState.pc + ⟨1⟩
-    machineState.execLength := s.machineState.execLength + 1 }
-
-theorem log2_xstep {s : State} {code : ByteArray} {pcv a b c d : UInt256}
-    {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.LOG2, .none)) (hperm : s.executionEnv.perm = true)
-    (hstk : s.machineState.stack = a :: b :: c :: d :: t) (hov : t.length ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < memoryExpansionCost s .LOG2 +
-            (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 2 * GasConstants.Glogtopic)
-       then .error .OutOfGass else .ok (stLog2 s a b c d t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.LOG2, .none) := by
-    rw [hcode, hpc]; exact hdec
-  rw [← hcode, step_log2 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: t).length - 4 + 0 > 1024) := by
-    simp only [List.length_cons]; omega
-  have hpermF : (¬ s.executionEnv.perm = true) = False := eq_false (by simp [hperm])
-  simp only [collapse_two_stage, if_neg hov', hpermF, if_false, stLog2]
-
-theorem RD.log2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.LOG2, .none)) (hperm : ee.perm = true)
-    (hmc : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = a :: b :: c :: d :: t →
-        memoryExpansionCost s .LOG2 = mcost)
-    (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
-    (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
-      (C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat
-        + 2 * GasConstants.Glogtopic))) := by
-  unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc,
-      hee, hworld⟩
-  · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .LOG2 = mcost := hmc s haw hstk
-    have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
-    have st := log2_xstep hcode hpc hdec hperms hstk hov
-    rw [hmcS] at st
-    by_cases gg : g.toNat < C + (mcost
-        + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 2 * GasConstants.Glogtopic))
-    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨stLog2 s a b c d t,
-        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
-          (by have : 1 ≤ GasConstants.Glog := (by decide); omega), by omega,
-          ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [stLog2]; exact hcode
-      · simp only [stLog2]; rw [hpc]
-      · simp only [stLog2]
-      · simp only [stLog2, hmcS]
-        rw [hgas, Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [stLog2]; exact hmem
-      · simp only [stLog2]; rw [haw, hawout]
-      · simp only [stLog2]; exact hrdata
-      · simp only [stLog2]; exact hacc
-      · simp only [stLog2]; exact hee
-      · simp only [stLog2]; exact hworld
 
 /-! ## Inline `Error(string)` revert tail -/
 
@@ -413,7 +317,7 @@ theorem gemJoinAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (gemJoinStorageLocLoad_address_offset0 evm slot))
+      exact congrArg EvalResult.ok (storageLocLoad_address_offset0 evm slot))
 
 theorem gemJoinUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -429,7 +333,7 @@ theorem gemJoinUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (gemJoinStorageLocLoad_uint256 evm slot))
+      exact congrArg EvalResult.ok (storageLocLoad_uint256 evm slot))
 
 theorem gemJoinBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -445,7 +349,7 @@ theorem gemJoinBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (gemJoinStorageLocLoad_bytes32 evm slot))
+      exact congrArg EvalResult.ok (storageLocLoad_bytes32 evm slot))
 
 theorem gemJoinAddressGetterBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -470,27 +374,27 @@ theorem gemJoinAddressGetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (gemJoinAddressReturnWord slot σ I).toNat))]))) :
+            (solcAddressSlotWord slot σ I).toNat))]))) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hval :
-      some [Value.address (AccountAddress.ofNat (gemJoinAddressReturnWord slot σ I).toNat)] =
-        some [Value.address (AccountAddress.ofNat (gemJoinAddressReturnWord slot σ I).toNat)] := rfl
+      some [Value.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat)] =
+        some [Value.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat)] := rfl
   have henc :
-      returnEquiv (UInt256.toByteArray (gemJoinAddressReturnWord slot σ I))
-        (some [(.address (AccountAddress.ofNat (gemJoinAddressReturnWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcAddressSlotWord slot σ I))
+        (some [(.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
-    simpa [gemJoinAddressReturnWord] using
+    simpa [solcAddressSlotWord] using
       (returnEquiv_of_encode
-        (solcAddressReturnEncoding (addrTy := addr) rfl (gemJoinSlotWord slot σ I)))
+        (solcAddressReturnEncoding (addrTy := addr) rfl (solcSlotWordAt slot σ I)))
   have hret := RD.solcAddressGetterExternal (code := gemJoinBytecode)
     (g := Sat256.ofUInt256 g) (returnPc := returnPc) (entry := entry) (routine := routine)
     (slot := slot) hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret gemJoinBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (gemJoinAddressReturnWord slot σ I)) := by
-    simpa [gemJoinAddressReturnWord, gemJoinSlotWord] using hret
+        (UInt256.toByteArray (solcAddressSlotWord slot σ I)) := by
+    simpa [solcAddressSlotWord, solcSlotWordAt] using hret
   exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 theorem gemJoinUint256GetterBodyCore
@@ -515,27 +419,27 @@ theorem gemJoinUint256GetterBodyCore
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (gemJoinSlotWord slot σ I).toNat))]))) :
+          (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hval :
-      some [Value.int (Int.ofNat (gemJoinSlotWord slot σ I).toNat)] =
-        some [Value.int (Int.ofNat (gemJoinSlotWord slot σ I).toNat)] := by
+      some [Value.int (Int.ofNat (solcSlotWordAt slot σ I).toNat)] =
+        some [Value.int (Int.ofNat (solcSlotWordAt slot σ I).toNat)] := by
     rfl
   have henc :
-      returnEquiv (UInt256.toByteArray (gemJoinSlotWord slot σ I))
-        (some [(.int (Int.ofNat (gemJoinSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (gemJoinSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   have hret := RD.solcWordGetterExternal (code := gemJoinBytecode)
     (g := Sat256.ofUInt256 g) (returnPc := returnPc) (entry := entry) (routine := routine)
     (slot := slot) hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret gemJoinBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (gemJoinSlotWord slot σ I)) := by
-    simpa [gemJoinSlotWord] using hret
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
+    simpa [solcSlotWordAt] using hret
   exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 theorem gemJoinBytes32GetterBodyCore
@@ -561,27 +465,27 @@ theorem gemJoinBytes32GetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.fixedBytes bytes32Width
-            (EVM.Word.toBytesBE (gemJoinSlotWord slot σ I)))]))) :
+            (EVM.Word.toBytesBE (solcSlotWordAt slot σ I)))]))) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hval :
-      some [Value.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord slot σ I))] =
-        some [Value.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord slot σ I))] := by
+      some [Value.fixedBytes bytes32Width (EVM.Word.toBytesBE (solcSlotWordAt slot σ I))] =
+        some [Value.fixedBytes bytes32Width (EVM.Word.toBytesBE (solcSlotWordAt slot σ I))] := by
     rfl
   have henc :
-      returnEquiv (UInt256.toByteArray (gemJoinSlotWord slot σ I))
-        (some [(.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord slot σ I)))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.fixedBytes bytes32Width (EVM.Word.toBytesBE (solcSlotWordAt slot σ I)))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [bytes32, bytes32Width] using bytes32ReturnEncoding (gemJoinSlotWord slot σ I))
+      (by simpa [bytes32, bytes32Width] using bytes32ReturnEncoding (solcSlotWordAt slot σ I))
   have hret := RD.solcWordGetterExternal (code := gemJoinBytecode)
     (g := Sat256.ofUInt256 g) (returnPc := returnPc) (entry := entry) (routine := routine)
     (slot := slot) hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret gemJoinBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (gemJoinSlotWord slot σ I)) := by
-    simpa [gemJoinSlotWord] using hret
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
+    simpa [solcSlotWordAt] using hret
   exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 @[reducible] def gemJoinZeroSlotMappingGetterWf (code : ByteArray) (pc : UInt256) : Prop :=

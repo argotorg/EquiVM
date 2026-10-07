@@ -1,3 +1,5 @@
+import Reasoning.SolcRoutines
+import Reasoning.ABIViews
 import Benchmarks.Dss.Vat.Dispatch
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -66,74 +68,6 @@ theorem gemStorageSlot_eq (I : ExecutionEnv) (hsz68 : 68 ≤ I.calldata.size) :
   unfold gemStorageSlot gemSlot gemIlkSlot gemUsrKey gemUsrMaskedWord mapSlot solcMappingSlot
   rw [gemIlkKeyWord_eq I (by omega), keyValueToWord_address_ofNat_mask]
 
-theorem decodeABIValues_bytes32_address_ok_legacy {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32) :
-    decodeABIValues? [bytes32, addr] bytes 0 0 64 64 DecodeMode.legacySolc05 =
-      some ([.fixedBytes bytes32Width (bytes.take 32),
-        .address (AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)], 64) := by
-  have hge32 : 32 ≤ bytes.length - 32 := by
-    rw [List.length_take, List.length_drop] at hlen32
-    omega
-  have htakeBytes32 :
-      List.take (↑bytes32Width + 1) (List.take 32 bytes) = List.take 32 bytes := by
-    simp [bytes32Width]
-  simp [decodeABIValues?, decodeABIValue?, readBytes?, readWord?, decodeABIWord?,
-    bytes32, addr, isDynamicABIType, staticABIEncodedSize?, hlen0, hge32,
-    htakeBytes32, max, UInt256.toNat]
-
-theorem decodeCalldata_legacyBytes32_legacyAddress_ok {cd : ByteArray} {x y : Solm.Ident}
-    (hsz68 : 68 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [bytes32, addr] cd =
-      some (((∅ : Store).insert x
-        (.fixedBytes bytes32Width ((cd.toList.drop 4).take 32))).insert y
-        (.address (AccountAddress.ofNat (calldataWord cd 36).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
-  simp only
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (cd.toList.drop 4).length < 64)]
-  rw [decodeABIValues_bytes32_address_ok_legacy
-    (bytes := cd.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-      using htake36)]
-  rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
-      calldataWord cd 36 from by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36]
-  simp [decodeCalldata.insertValues]
-
-theorem decodeCalldata_legacyBytes32_legacyAddress_none_short {cd : ByteArray}
-    {x y : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 68) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [bytes32, addr] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
-  simp only
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [if_pos (by rw [List.length_drop, htlen]; omega :
-    (cd.toList.drop 4).length < 64)]
 
 theorem vatDecode_gem_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (gemTransition.params.map Param.name)
@@ -150,7 +84,7 @@ theorem vatDecode_gem_none_short {I : ExecutionEnv}
       (transitionSignature gemTransition).paramTypes I.calldata = none := by
   show decodeCalldataWithMode config.abiDecodeMode ["arg0", "arg1"] [bytes32, addr]
     I.calldata = none
-  simpa [config] using decodeCalldata_legacyBytes32_legacyAddress_none_short
+  simpa [config] using decodeCalldata_legacyBytes32_address_none_short
     (cd := I.calldata) (x := "arg0") (y := "arg1") hsz4 hshort
 
 theorem vatDispatchGem {I : ExecutionEnv}
@@ -199,86 +133,6 @@ theorem vatReachGemBody {σ σ₀ A I} {g : Sat256}
   exact vatReachArms419Body 2 (by omega) ⟨526⟩ hcode hwv hsz hsize
     hroot hlow hlowlow heq0 htake (by jump_dest) (by native_decide)
 
-set_option maxHeartbeats 1000000 in
-theorem RD.solcBytes32AddressExternalMaskAndJump {code : ByteArray} {g : Sat256}
-    {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
-    {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {acc : AccountMap}
-    (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
-    (hd0 : decode code decoded = some (.JUMPDEST, .none))
-    (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
-    (hd2 : decode code (decoded + ⟨1⟩ + ⟨1⟩) = some (.DUP1, .none))
-    (hd3 : decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.CALLDATALOAD, .none))
-    (hd4 : decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.SWAP1, .none))
-    (hd5 : decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.Push .PUSH1, some (⟨32⟩, 1)))
-    (hd7 : decode code
-        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) =
-        some (.ADD, .none))
-    (hd8 : decode code
-        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) =
-        some (.CALLDATALOAD, .none))
-    (hd9 : decode code
-        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
-        some (.Push .PUSH1, some (⟨1⟩, 1)))
-    (hd11 : decode code
-        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-          UInt256.ofNat 2) =
-        some (.Push .PUSH1, some (⟨1⟩, 1)))
-    (hd13 : decode code
-        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-          UInt256.ofNat 2 + UInt256.ofNat 2) =
-        some (.Push .PUSH1, some (⟨160⟩, 1)))
-    (hd15 : decode code
-        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-          UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2) =
-        some (.SHL, .none))
-    (hd16 : decode code
-        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-          UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩) =
-        some (.SUB, .none))
-    (hd17 : decode code
-        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-          UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
-        some (.AND, .none))
-    (hd18 : decode code
-        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-          UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
-        some (.Push .PUSH2, some (routine, 2)))
-    (hd21 : decode code
-        ((decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
-          UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) +
-          UInt256.ofNat 3) =
-        some (.JUMP, .none))
-    (hroutine : (D_J code 0).contains routine = true)
-    (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 routine
-      (UInt256.land solcAddrMask (calldataWord ee.calldata 36) ::
-        calldataWord ee.calldata 4 :: ret :: R)
-      mem aw rdata acc k' C' := by
-  have rd1 := h.jumpdest hd0 (by evm_ov)
-  have rd2 := rd1.pop hd1 (by evm_ov)
-  have rd3 := rd2.dup1 hd2 (by evm_ov)
-  have rd4 := rd3.calldataload hd3 (by evm_ov)
-  have rd5 := rd4.swap1 hd4 (by evm_ov)
-  have rd7 := rd5.push1 ⟨32⟩ hd5 (by evm_ov)
-  have rd8 := rd7.add hd7 (by evm_ov)
-  have rd9 := rd8.calldataload hd8 (by evm_ov)
-  have rd11 := rd9.push1 ⟨1⟩ hd9 (by evm_ov)
-  have rd13 := rd11.push1 ⟨1⟩ hd11 (by evm_ov)
-  have rd15 := rd13.push1 ⟨160⟩ hd13 (by evm_ov)
-  have rd16 := rd15.shl hd15 (by evm_ov)
-  have rd17 := rd16.sub hd16 (by evm_ov)
-  have rd18 := rd17.and hd17 (by evm_ov)
-  have rd21 := rd18.push2 routine hd18 (by evm_ov)
-  exact ⟨_, _, by
-    simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide,
-      show ((⟨32⟩ : UInt256) + ⟨4⟩).toNat = 36 from by decide,
-      show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-        solcAddrMask from by decide, u256_land_comm]
-      using rd21.jump hd21 hroutine (by evm_ov)⟩
 
 theorem vatGemBodyCoreOk
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -307,8 +161,8 @@ theorem vatGemBodyCoreOk
         gemTransition.body
         (.returned { contract := contract, locals := gemStore I }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (vatSlotWord (gemStorageSlot I) σ I).toNat))])) := by
-    simpa [gemTransition, gemStorageSlot, vatSlotWord, initState, Solm.EVM.storageLoad,
+          (some [(.int (Int.ofNat (solcSlotWordAt (gemStorageSlot I) σ I).toNat))])) := by
+    simpa [gemTransition, gemStorageSlot, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vatUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (gemStore I)
@@ -350,13 +204,13 @@ theorem vatGemBodyCoreOk
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (vatSlotWord slot σ I)) := by
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨465⟩) (val := vatSlotWord slot σ I) (ret := ⟨465⟩) (R := [sel])
+      (pc := ⟨465⟩) (val := solcSlotWordAt slot σ I) (ret := ⟨465⟩) (R := [sel])
       (memout := solcScratchReturnMem
         (solcNestedMappingHashMem ⟨4⟩ (gemIlkWord I) (gemUsrMaskedWord I))
-        (vatSlotWord slot σ I))
-      (by simpa [slot, vatSlotWord] using hretPc)
+        (solcSlotWordAt slot σ I))
+      (by simpa [slot, solcSlotWordAt] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
         repeat' first | apply And.intro | native_decide)
@@ -365,22 +219,22 @@ theorem vatGemBodyCoreOk
           solcNestedMappingHashMem_mload64 ⟨4⟩ (gemIlkWord I) (gemUsrMaskedWord I))
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (vatSlotWord slot σ I)
+        exact solcScratchReturnMem_mload64 (solcSlotWordAt slot σ I)
           (solcNestedMappingHashMem_size ⟨4⟩ (gemIlkWord I) (gemUsrMaskedWord I))
           (solcNestedMappingHashMem_read64 ⟨4⟩ (gemIlkWord I) (gemUsrMaskedWord I)))
       (by
-        exact solcScratchReturnMem_read128 (vatSlotWord slot σ I)
+        exact solcScratchReturnMem_read128 (solcSlotWordAt slot σ I)
           (solcNestedMappingHashMem_size ⟨4⟩ (gemIlkWord I) (gemUsrMaskedWord I)))
       (by simp)
-    simpa [slot, vatSlotWord] using hret'
+    simpa [slot, solcSlotWordAt] using hret'
   rw [hslot] at hbody
   have henc :
-      returnEquiv (UInt256.toByteArray (vatSlotWord slot σ I))
-        (some [(.int (Int.ofNat (vatSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         gemTransition.returnType := by
     rw [show gemTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (vatSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem vatGemBodyCoreDecodeFailed_short
@@ -409,8 +263,8 @@ theorem vatGemBodyCoreDecodeFailed_short
     (by native_decide) (by native_decide) (by native_decide) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch hdec
 
-theorem vatGemBodyCore : VatBodyTheorem 12 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatGemBodyCore : VatBodyTheoremAnyPerm 12 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 12) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some gemTransition :=

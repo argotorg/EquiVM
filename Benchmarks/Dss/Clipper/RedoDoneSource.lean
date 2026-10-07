@@ -1,3 +1,5 @@
+import Reasoning.Storage
+import Reasoning.EVMWord
 import Benchmarks.Dss.Clipper.Redo
 import Benchmarks.Dss.Clipper.GetFeedPrice
 import Benchmarks.Dss.Clipper.StatusPriceCall
@@ -368,7 +370,7 @@ theorem clipperEvalRedoSalesTabAfterStatusTrue (v : ClipperImmutables)
       storageDecls, SaleStructTy, uint256St])
     (by rfl)
     (by simpa [clipperRedoSalesTabEVMWord, clipperRedoSalesTabSlot, wordLoc, uint256Loc]
-      using clipperStorageLocLoad_uint256 evmRead (clipperRedoSalesTabSlot I))
+      using storageLocLoad_uint256 evmRead (clipperRedoSalesTabSlot I))
 
 theorem clipperEvalRedoSalesLotAfterTab (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv) (price : UInt256) :
@@ -393,7 +395,7 @@ theorem clipperEvalRedoSalesLotAfterTab (v : ClipperImmutables)
       storageDecls, SaleStructTy, uint256St])
     (by rfl)
     (by simpa [clipperRedoSalesLotEVMWord, clipperRedoSalesLotSlot, wordLoc, uint256Loc]
-      using clipperStorageLocLoad_uint256 evmRead (clipperRedoSalesLotSlot I))
+      using storageLocLoad_uint256 evmRead (clipperRedoSalesLotSlot I))
 
 theorem clipperEvalRedoTimestamp96 (v : ClipperImmutables)
     (evm : EVM.State) (locals : Store) :
@@ -403,19 +405,12 @@ theorem clipperEvalRedoTimestamp96 (v : ClipperImmutables)
         (2 ^ 96)))) := by
   simp [wrap96, evalExpr?, evalBinaryOp?, envValue, uint96Modulus, bind, EvalResult.bind, pure]
 
-private theorem clipperNatLandLowMaskMod (n k : Nat) :
-    Nat.land n (2 ^ k - 1) = n % 2 ^ k := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  change (n &&& (2 ^ k - 1)).testBit i = (n % 2 ^ k).testBit i
-  rw [Nat.testBit_land, Nat.testBit_two_pow_sub_one, Nat.testBit_mod_two_pow]
-  cases decide (i < k) <;> simp
 
 private theorem clipperUInt256LandSalesUint96Mask_toNat (w : UInt256) :
     (UInt256.land w clipperSalesUint96Mask).toNat = w.toNat % 2 ^ 96 := by
   rw [u256_land_toNat]
   have hmask : clipperSalesUint96Mask.toNat = 2 ^ 96 - 1 := by native_decide
-  rw [hmask, clipperNatLandLowMaskMod]
+  rw [hmask, nat_land_mask_eq_mod]
   have hlt : w.toNat % 2 ^ 96 < UInt256.size := by
     exact lt_of_lt_of_le (Nat.mod_lt _ (by norm_num)) (by norm_num [UInt256.size])
   rw [Nat.mod_eq_of_lt hlt]
@@ -519,17 +514,6 @@ abbrev clipperRedoPostTicState (evm : EVM.State) (I : ExecutionEnv) : EVM.State 
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (clipperRedoSalesPackedSlot I)
     (clipperRedoPostTicPackedWord evm I)
 
-theorem clipperStorageStore_σ₀
-    (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
-
-theorem clipperStorageStore_executionEnv
-    (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).executionEnv = evm.executionEnv := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
 
 theorem clipperRedoPostTicAccountMap_eq
     {σ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
@@ -568,7 +552,7 @@ theorem clipperRedoPostTicSpotterAddress_eq_of_accountMap_eq
   simp [clipperGetFeedPriceSpotterAddress, clipperRedoPostTicState,
     clipperRedoPostTicPackedWord, clipperSpotterTarget, storageStore_accountMap,
     solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-    clipperStorageStore_executionEnv]
+    storageStore_executionEnv]
 
 theorem clipperRedoPostTicNoCode_of_accountMap_eq
     {σ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
@@ -605,7 +589,7 @@ theorem clipperRedoPostTicNoCode_of_accountMap_eq
     simp [clipperGetFeedPriceSpotterAddress, clipperRedoPostTicState,
       clipperRedoPostTicPackedWord, clipperSpotterTarget, storageStore_accountMap,
       solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-      clipperStorageStore_executionEnv]
+      storageStore_executionEnv]
   have hzero' :
       Reasoning.Theory.extCodeSizeWord
         (clipperRedoPostTicState evm evm.executionEnv).accountMap
@@ -615,7 +599,7 @@ theorem clipperRedoPostTicNoCode_of_accountMap_eq
       storageStore_accountMap, solcSlotWord, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage] using hzero
   simpa [State.lookupAccount, haddr] using
-    clipperExtCodeSizeWord_zero_lookup_code_zero rfl hzero'
+    extCodeSizeWord_zero_lookup_code_zero rfl hzero'
 
 theorem clipperRedoPostTicCode_of_accountMap_eq
     {σ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
@@ -652,7 +636,7 @@ theorem clipperRedoPostTicCode_of_accountMap_eq
     simp [clipperGetFeedPriceSpotterAddress, clipperRedoPostTicState,
       clipperRedoPostTicPackedWord, clipperSpotterTarget, storageStore_accountMap,
       solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-      clipperStorageStore_executionEnv]
+      storageStore_executionEnv]
   have hcode' :
       Reasoning.Theory.extCodeSizeWord
         (clipperRedoPostTicState evm evm.executionEnv).accountMap
@@ -662,7 +646,7 @@ theorem clipperRedoPostTicCode_of_accountMap_eq
       storageStore_accountMap, solcSlotWord, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage] using hcode
   simpa [State.lookupAccount, haddr] using
-    clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+    extCodeSizeWord_ne_zero_lookup_code_pos
       (target := clipperSpotterTarget
         (clipperRedoPostTicState evm evm.executionEnv).accountMap evm.executionEnv)
       (addr := clipperGetFeedPriceSpotterAddress (clipperRedoPostTicState evm evm.executionEnv))

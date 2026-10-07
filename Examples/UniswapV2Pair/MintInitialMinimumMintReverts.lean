@@ -369,7 +369,7 @@ theorem uniswapMintInitialAfterMintFeeMinimumMintTotalSupplyOverflowRevertCase
     (hsourceOverflow :
       UInt256.size ≤ mintFunctionTotalSupplyNewNat evmAfter (⟨1000⟩ : UInt256))
     (hruntimeOverflow :
-      UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat)
+      UInt256.size ≤ (solcSlotWordAt ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -530,13 +530,13 @@ theorem uniswapMintInitialAfterMintFeeMinimumMintBalanceOverflowRevertCase
       UInt256.size ≤
         mintFunctionToBalanceNewNat evmAfter (AccountAddress.ofNat 0) (⟨1000⟩ : UInt256))
     (hruntimeSupplyFit :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
         UInt256.size)
     (hruntimeOverflow :
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem)).toNat +
           (⟨1000⟩ : UInt256).toNat)
     (hperm : I.perm = true)

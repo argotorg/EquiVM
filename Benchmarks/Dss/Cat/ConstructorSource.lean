@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Cat.ConstructorBase
 
 /-!
@@ -32,10 +33,6 @@ abbrev catCtorAfterLiveState (evm : EVM.State) : EVM.State :=
 abbrev catCtorPostState (evm : EVM.State) (vat : AccountAddress) : EVM.State :=
   catCtorAfterLiveState (catCtorAfterVatState (catCtorAfterWardsState evm) vat)
 
-private theorem accountAddress_of_word_val (a : AccountAddress) :
-    AccountAddress.ofNat (EVM.word a.val).toNat = a := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
-  exact accountAddress_roundtrip a
 
 theorem evalExpr_catCtorLocalVat {evm : EVM.State} (vat : AccountAddress) :
     evalExpr? config { contract := contract, locals := catCtorLocals vat } evm (.var "vat_") =

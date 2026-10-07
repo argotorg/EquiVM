@@ -119,7 +119,7 @@ theorem evalExpr_mintFunction_totalSupply
     (her := evalStorageRef_mintFunction_totalSupply evm recipient value)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm ⟨0⟩)
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm ⟨0⟩)
 
 set_option maxHeartbeats 1000000 in
 theorem evalExpr_mintFunction_totalSupply_add
@@ -175,7 +175,7 @@ theorem mintFunctionAssignTotalSupply
       (her := evalStorageRef_mintFunction_totalSupply evm recipient value)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [mintFunctionAfterTotalSupplyState, mintFunctionTotalSupplyNewWord]
 
 theorem mintFunctionAfterTotalSupply_codeOwner (evm : EVM.State) (value : UInt256) :
@@ -207,7 +207,8 @@ theorem evalExpr_mintFunction_to_balance
     (hty := by simp [storageTypeAt?, mintFunctionToEvaledRef, contract, storageDecls,
       uint256St, storageTypeStep?])
     (hloc := by rfl)]
-  simp [mintFunctionToSlot, mintFunctionToBalanceWord, uniswapStorageLocLoad_uint256,
+  simp [mintFunctionToSlot, mintFunctionToBalanceWord, show wordLoc = uint256Loc from rfl,
+    storageLocLoad_uint256,
     mintFunctionAfterTotalSupply_codeOwner]
 
 set_option maxHeartbeats 1000000 in
@@ -274,7 +275,7 @@ theorem mintFunctionAssignToBalance
       (hty := by simp [storageTypeAt?, mintFunctionToEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
       (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [mintFunctionPostState, mintFunctionToSlot, mintFunctionToBalanceNewWord,
     mintFunctionAfterTotalSupply_codeOwner]
 

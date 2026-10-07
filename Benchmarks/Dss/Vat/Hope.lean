@@ -102,7 +102,7 @@ theorem hopeAssign (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
         hopeSourceKey, hopeUsrKey, uint256St])
       (hloc := by rfl)
-  simpa [hopePostState] using vatStorageLocStore_uint256 evm (hopeStorageSlot I) ⟨1⟩
+  simpa [hopePostState] using storageLocStore_uint256 evm (hopeStorageSlot I) ⟨1⟩
 
 theorem vatHopeBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -115,6 +115,18 @@ theorem vatHopeBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       ExecBlock.consNormal
         (ExecStmt.assign (by simp [evalExpr?, pure]) (hopeAssign evm I hsrc)) <|
         ExecBlock.nil
+
+theorem vatHopeBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (hopeStore I) hopeTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  simpa [hopeTransition, nonpayable] using
+    ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
+      ExecBlock.consStatic
+        (ExecStmt.assignStatic (by simp [evalExpr?, pure]) (hopeAssign evm I hsrc) hperm)
 
 theorem vatDispatchHope {I : ExecutionEnv}
     (hsel : selIs I (vatSelBytes 15)) :
@@ -234,14 +246,16 @@ theorem vatHopeX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 set_option maxHeartbeats 1000000 in
-theorem vatHopeX_storeOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem vatHopeX_storeOkSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (h : RD vatBytecode I g s0 ⟨5540⟩
       [hopeUsrMaskedWord I, ⟨524⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
     RDret vatBytecode g s0
       (sstoreAccountMap I.codeOwner σ (hopeStorageSlot I) ⟨1⟩)
-      ByteArray.empty := by
+      ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic vatBytecode g s0) := by
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((hopeInnerMem I).readWithPadding 0 64))) =
@@ -317,10 +331,25 @@ theorem vatHopeX_storeOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd5579 := rd5578pre.keccak256 0
     (mapSlot (hopeUsrMaskedWord I) (hopeInnerSlot I)) (UInt256.ofNat 3)
     (by native_decide) mem_cost houterSlot (by native_decide) (by evm_ov)
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd5579.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd5580raw⟩ := rd5579.sstore hperm (by native_decide) (by evm_ov)
   have rd524 := rd5580raw.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd525 := rd524.jumpdest (by native_decide) (by evm_ov)
   simpa [hopeStorageSlot_eq_innerSlot I] using RD.stop rd525 (by native_decide) (by evm_ov)
+
+theorem vatHopeX_storeOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hperm : I.perm = true)
+    (h : RD vatBytecode I g s0 ⟨5540⟩
+      [hopeUsrMaskedWord I, ⟨524⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret vatBytecode g s0
+      (sstoreAccountMap I.codeOwner σ (hopeStorageSlot I) ⟨1⟩)
+      ByteArray.empty :=
+  permSplit_true hperm (vatHopeX_storeOkSplit h)
 
 theorem vatHopeBodyCoreOk
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -355,6 +384,33 @@ theorem vatHopeBodyCoreOk
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
             (dvs := []) rfl (by native_decide) (by native_decide)))
 
+theorem vatHopeBodyCoreStatic
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hdispatch : dispatchMsg contract I.calldata = some hopeTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (hopeTransition.params.map Param.name)
+        (transitionSignature hopeTransition).paramTypes I.calldata = some (hopeStore I))
+    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1207⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hbody :
+      ExecTransitionBody config contract evmSolm (hopeStore I)
+        hopeTransition.body .staticViolation := by
+    simpa [evmSolm] using
+      vatHopeBodyStatic evmSolm I
+        (by simp only [evmSolm, initState]; exact hwv)
+        (by simp [evmSolm, initState])
+        (by simp only [evmSolm, initState]; exact hperm)
+  obtain ⟨_, _, rd5540⟩ := vatHopeX_decoded (g := Sat256.ofUInt256 g)
+    hsz36 hsize hreach
+  exact (permSplit_false hperm (vatHopeX_storeOkSplit (I := I) rd5540))
+    |>.reEquivStaticHalt hcode hdispatch hdecode hbody
+
 theorem vatHopeBodyCoreDecodeFailed_short
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
@@ -378,6 +434,25 @@ theorem vatHopeBodyCore : VatBodyTheorem 15 := by
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact vatHopeBodyCoreOk hcode hsize hperm hwv hsz36 hdispatch
+      (vatDecode_hope_ok hsz36) hreach
+  · exact vatHopeBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
+      hdispatch hreach
+
+/-- `hope` with any call permission; a static call halts at the `can` `SSTORE`. -/
+theorem vatHopeBodyCoreAnyPerm : VatBodyTheoremAnyPerm 15 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
+  by_cases hperm : I.perm = true
+  · exact vatHopeBodyCore hcode hsize hperm hwv hsel
+  replace hperm : I.perm = false := by simpa using hperm
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I (vatSelBytes 15) rfl hsel
+  have hdispatch : dispatchMsg contract I.calldata = some hopeTransition :=
+    vatDispatchHope hsel
+  have hreach := vatReachHopeBody (σ := σ)
+    (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz4 hsize hsel
+  by_cases hsz36 : 36 ≤ I.calldata.size
+  · exact vatHopeBodyCoreStatic hcode hsize hperm hwv hsz36 hdispatch
       (vatDecode_hope_ok hsz36) hreach
   · exact vatHopeBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach

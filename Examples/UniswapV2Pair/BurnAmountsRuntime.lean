@@ -13,7 +13,7 @@ theorem uniswapBurnRuntimeTotalSupplyLoaded
     (rd4472 : RD uniswapV2PairBytecode I g s0 ⟨4472⟩ (feeOn :: ⟨0⟩ :: R)
       mem aw rdata σ k C) (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4479⟩
-      (uniswapSlotWord ⟨0⟩ σ I :: feeOn :: R) mem aw rdata σ k' C' := by
+      (solcSlotWordAt ⟨0⟩ σ I :: feeOn :: R) mem aw rdata σ k' C' := by
   have rd4475 := evm_run rd4472 with [jumpdest, push1 ⟨0⟩]
   obtain ⟨_, _, rd4476⟩ := rd4475.sload (by native_decide)
     (by simp only [List.length_cons]; omega)

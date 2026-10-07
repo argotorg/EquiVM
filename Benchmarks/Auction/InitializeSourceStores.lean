@@ -62,6 +62,36 @@ theorem initializeParamsSource (evm : EVM.State) (args : InitializeArgs) (top : 
       (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 _ ⟨206⟩ args.duration)))
   exact ExecBlock.nil
 
+theorem initializeSetupSourceSplit (evm : EVM.State) (locals : Store)
+    (hp : locals.get? "_paused" = none) (hs : locals.get? "_status" = none)
+    (ho : locals.get? "_owner" = none) :
+    (ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+      [.assign .storage pausedRef (.boolLit false), .assign .storage statusRef notEntered,
+        .assign .storage ownerRef sender]
+      (.ok { contract := auctionContract, locals := locals }
+        (initializerOwnerState (initializerStatusState (initializerPauseState evm))))) ∧
+      (evm.executionEnv.perm = false →
+        ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
+        [.assign .storage pausedRef (.boolLit false), .assign .storage statusRef notEntered,
+          .assign .storage ownerRef sender] .staticViolation) := by
+  have hvalue : evalExpr? auctionConfig { contract := auctionContract, locals := locals }
+      evm (.boolLit false) = .ok (.bool false) := by simp only [evalExpr?, pure]
+  have hassign := scalarWrite evm _ locals "_paused" (.elem .bool) (auctionBoolLoc ⟨51⟩) _
+    hp (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_bool_false_offset0 evm ⟨51⟩)
+  constructor
+  · apply ExecBlock.consNormal (ExecStmt.assign hvalue hassign)
+    apply ExecBlock.consNormal (ExecStmt.assign (value := .int 1)
+      (by simp [notEntered, evalExpr?, pure])
+      (scalarWrite _ _ locals "_status" (.elem (.int uint256Int)) (auctionUint256Loc ⟨101⟩) _
+        hs (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 _ ⟨101⟩ ⟨1⟩)))
+    exact assignStorageBlock (value := .address (.ofNat
+        (solcSourceWord (initializerStatusState (initializerPauseState evm)).executionEnv).toNat))
+      (by rw [solcSource_ofNat]; simp [sender, evalExpr?, envValue, pure,
+        initializerStatusState, initializerPauseState])
+      (assignOwner _ locals _ ho (solcSourceWord_canonical _))
+  · intro hperm
+    exact ExecBlock.consStatic (ExecStmt.assignStatic hvalue hassign hperm)
+
 theorem initializeSetupSource (evm : EVM.State) (locals : Store)
     (hp : locals.get? "_paused" = none) (hs : locals.get? "_status" = none)
     (ho : locals.get? "_owner" = none) :
@@ -69,20 +99,8 @@ theorem initializeSetupSource (evm : EVM.State) (locals : Store)
       [.assign .storage pausedRef (.boolLit false), .assign .storage statusRef notEntered,
         .assign .storage ownerRef sender]
       (.ok { contract := auctionContract, locals := locals }
-        (initializerOwnerState (initializerStatusState (initializerPauseState evm)))) := by
-  apply ExecBlock.consNormal (ExecStmt.assign (value := .bool false)
-    (by simp [evalExpr?, pure])
-    (scalarWrite evm _ locals "_paused" (.elem .bool) (auctionBoolLoc ⟨51⟩) _
-      hp (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_bool_false_offset0 evm ⟨51⟩)))
-  apply ExecBlock.consNormal (ExecStmt.assign (value := .int 1)
-    (by simp [notEntered, evalExpr?, pure])
-    (scalarWrite _ _ locals "_status" (.elem (.int uint256Int)) (auctionUint256Loc ⟨101⟩) _
-      hs (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 _ ⟨101⟩ ⟨1⟩)))
-  exact assignStorageBlock (value := .address (.ofNat
-      (solcSourceWord (initializerStatusState (initializerPauseState evm)).executionEnv).toNat))
-    (by rw [solcSource_ofNat]; simp [sender, evalExpr?, envValue, pure,
-      initializerStatusState, initializerPauseState])
-    (assignOwner _ locals _ ho (solcSourceWord_canonical _))
+        (initializerOwnerState (initializerStatusState (initializerPauseState evm)))) :=
+  (initializeSetupSourceSplit evm locals hp hs ho).1
 
 theorem initializerExitSource (evm : EVM.State) (locals : Store) (top : Bool)
     (hi : locals.get? "_initializing" = none)

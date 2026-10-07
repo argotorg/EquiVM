@@ -114,7 +114,7 @@ theorem clipperEvalVow (v : ClipperImmutables) (evm : EVM.State) (locals : Store
   have hloc : (config v).storageBackend.locate? er = some (.leaf (addrLoc ⟨2⟩)) := by
     rfl
   exact evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
-    (clipperStorageLocLoad_address evm ⟨2⟩)
+    (storageLocLoad_address_offset0 evm ⟨2⟩)
 
 theorem clipperVowBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "vow" = none) :
@@ -139,7 +139,7 @@ theorem clipperReachVowBody {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperVowSelectorWord hsz hsel
-  have h260 := clipperSplitTaken (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
         change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none)
@@ -162,7 +162,7 @@ theorem clipperReachVowBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
     (by simp)
-  have h272 := clipperSplitNotTaken (pc := (⟨261⟩ : UInt256))
+  have h272 := RD.selectorSplitNotTakenPush2 (pc := (⟨261⟩ : UInt256))
     (next := (⟨272⟩ : UInt256)) (pivot := clipperSelNat 9)
     (tgt := (⟨369⟩ : UInt256))
     (h260.jumpdest
@@ -191,7 +191,7 @@ theorem clipperReachVowBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h283 := clipperSplitNotTaken (pc := (⟨272⟩ : UInt256))
+  have h283 := RD.selectorSplitNotTakenPush2 (pc := (⟨272⟩ : UInt256))
     (next := (⟨283⟩ : UInt256)) (pivot := clipperSelNat 6)
     (tgt := (⟨331⟩ : UInt256)) h272
     (by
@@ -215,7 +215,7 @@ theorem clipperReachVowBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h294 := clipperArmNotTaken (pc := (⟨283⟩ : UInt256))
+  have h294 := RD.selectorArmNotTakenPush2 (pc := (⟨283⟩ : UInt256))
     (next := (⟨294⟩ : UInt256)) (sel := clipperSelNat 6)
     (tgt := (⟨752⟩ : UInt256)) h283
     (by
@@ -239,7 +239,7 @@ theorem clipperReachVowBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h305 := clipperArmNotTaken (pc := (⟨294⟩ : UInt256))
+  have h305 := RD.selectorArmNotTakenPush2 (pc := (⟨294⟩ : UInt256))
     (next := (⟨305⟩ : UInt256)) (sel := clipperSelNat 11)
     (tgt := (⟨760⟩ : UInt256)) h294
     (by
@@ -263,7 +263,7 @@ theorem clipperReachVowBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h829 := clipperArmTaken (pc := (⟨305⟩ : UInt256)) (sel := clipperSelNat 26)
+  have h829 := RD.selectorArmTakenPush2 (pc := (⟨305⟩ : UInt256)) (sel := clipperSelNat 26)
     (tgt := (⟨829⟩ : UInt256)) h305
     (by
         change decode code (⟨305⟩ : UInt256) = some (.DUP1, .none)
@@ -305,7 +305,7 @@ theorem clipperVowPatchesWindowDisjoint32 (v : ClipperImmutables) (lo hi : Nat)
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk
   · simp [hIlk] at hlo hhi ⊢
   · simp [hIlk] at hlo hhi ⊢
     omega
@@ -331,7 +331,7 @@ theorem clipperJumpDest3325 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -343,7 +343,7 @@ theorem clipperVowBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 26)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=

@@ -1,3 +1,4 @@
+import Reasoning.Reach
 import Examples.Ballot.DelegateChain
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -9,46 +10,6 @@ namespace Reasoning.Reach
 
 /-! ## Local cost monotonicity helper -/
 
-/-- Local wrapper for `RD.sload` that preserves the consumed-cost lower bound. -/
-theorem RD.sloadMono {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {σ : AccountMap} {k C : ℕ}
-    {a : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: t) mem aw rdata σ k C)
-    (hdec : decode code pc = some (.SLOAD, .none)) (hov : t.length + 1 ≤ 1024) :
-    ∃ k' C',
-      C ≤ C' ∧
-        RD code ee g s0 (pc + ⟨1⟩)
-          ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD a ⟨0⟩)) :: t)
-          mem aw rdata σ k' C' := by
-  unfold RD at h
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata,
-      hacc, hee, hworld⟩
-  · exact ⟨k, C, le_rfl, Or.inl hoog⟩
-  · have st := sload_xstep hcode hpc hdec hstk hov
-    have hσ : s.accountMap = σ := hacc
-    have hco : s.executionEnv.codeOwner = ee.codeOwner := by rw [hee]
-    by_cases gg : g.toNat < C + Csload (a :: t) s.substate s.executionEnv
-    · exact ⟨k, C, le_rfl, Or.inl (hX.trans (stepOOG hgas st hk hC gg))⟩
-    · refine ⟨k + 1, C + Csload (a :: t) s.substate s.executionEnv, ?_, Or.inr ?_⟩
-      · omega
-      · refine ⟨stSload s a t,
-          hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
-          ?_, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
-        · simp only [stSload]; exact hcode
-        · simp only [stSload]; rw [hpc]
-        · simp only [stSload]; rw [hσ, hco]
-        · simp only [stSload]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
-        · have : 1 ≤ Csload (a :: t) s.substate s.executionEnv := by
-            unfold Csload
-            split <;> decide
-          omega
-        · simp only [stSload]; exact hmem
-        · simp only [stSload]; exact haw
-        · simp only [stSload]; exact hrdata
-        · simp only [stSload]; rw [hσ]
-        · simp only [stSload]; exact hee
-        · simp only [stSload]; exact hworld
 
 end Reasoning.Reach
 

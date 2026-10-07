@@ -1,3 +1,4 @@
+import Reasoning.SolmBody
 import Benchmarks.Dss.Clipper.Guards
 import Benchmarks.Dss.Clipper.TakeStatus
 import Benchmarks.Dss.Clipper.Vat
@@ -34,7 +35,7 @@ theorem evalExpr_clipperTakeStopped_lt_three_false (v : ClipperImmutables)
       (her := evalStorageRef_clipperTakeStopped v evm locals)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by simpa using clipperStorageLocLoad_uint256 evm ⟨14⟩)
+      (hload := by simpa using storageLocLoad_uint256 evm ⟨14⟩)
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   change evalBinaryOp? BinaryOp.lt
       (Value.int (Int.ofNat
@@ -64,7 +65,7 @@ theorem evalExpr_clipperTakeStopped_lt_three_true (v : ClipperImmutables)
       (her := evalStorageRef_clipperTakeStopped v evm locals)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by simpa using clipperStorageLocLoad_uint256 evm ⟨14⟩)
+      (hload := by simpa using storageLocLoad_uint256 evm ⟨14⟩)
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   change evalBinaryOp? BinaryOp.lt
       (Value.int (Int.ofNat
@@ -97,14 +98,16 @@ theorem clipperTakeBodyRevertsLocked {σ σ₀ A I} {g : UInt256}
         exact ExecBlock.consRevert (ExecStmt.requireFalse hlockedEval))
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem clipperTakeStoppedSourceReverts {σ σ₀ A I} {g : UInt256}
+theorem clipperTakeStoppedSourceRevertsSplit {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
-    (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
-    (hstopped :
-      3 ≤ (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat) :
+    (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩) :
     let locals := clipperTakeStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted := by
+    (3 ≤ (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat →
+    ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted) ∧
+    (I.perm = false →
+      ExecTransitionBody (config v) (contract v) evm0 locals
+        (takeTransition v).body .staticViolation) := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hlockedEval :
@@ -122,25 +125,48 @@ theorem clipperTakeStoppedSourceReverts {σ σ₀ A I} {g : UInt256}
           .ok ({ contract := contract v, locals := locals }, evmLock) := by
     simpa [locals, evmLock] using
       assign_clipperLocked v evm0 locals (by simp [locals]) ⟨1⟩
-  have hstoppedEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
-        (.binary .lt (.storage stoppedRef) (.intLit 3)) = .ok (.bool false) := by
-    apply evalExpr_clipperTakeStopped_lt_three_false
-    · simp [locals]
-    · simpa [evmLock, evm0, initState, solcSlotWord, Solm.EVM.storageLoad,
-        State.lookupAccount, storageStore_accountMap, storageStore_executionEnv] using
-        hstopped
-  have hblock :
+  have hprefix {result : ExecResult}
+      (hrest : ExecBlock (config v) { contract := contract v, locals := locals } evm0
+        ((takeTransition v).body.drop 2) result) :
       ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        (takeTransition v).body .reverted := by
-    simpa [takeTransition, nonpayable, lockPrefix, isStopped] using
-      (by
-        refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-        · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-        refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
-        refine ExecBlock.consNormal (ExecStmt.assign hlockRhs hlockAssign) ?_
-        exact ExecBlock.consRevert (ExecStmt.requireFalse hstoppedEval))
-  simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
+        (takeTransition v).body result := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
+    exact hrest
+  constructor
+  · intro hstopped
+    have hstoppedEval :
+        evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+          (.binary .lt (.storage stoppedRef) (.intLit 3)) = .ok (.bool false) := by
+      apply evalExpr_clipperTakeStopped_lt_three_false
+      · simp [locals]
+      · simpa [evmLock, evm0, initState, solcSlotWord, Solm.EVM.storageLoad,
+          State.lookupAccount, storageStore_accountMap, storageStore_executionEnv] using
+          hstopped
+    have hblock :
+        ExecBlock (config v) { contract := contract v, locals := locals } evm0
+          (takeTransition v).body .reverted := by
+      apply hprefix
+      simpa [takeTransition, nonpayable, lockPrefix, isStopped] using
+        (by
+          refine ExecBlock.consNormal (ExecStmt.assign hlockRhs hlockAssign) ?_
+          exact ExecBlock.consRevert (ExecStmt.requireFalse hstoppedEval))
+    simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic (hprefix
+      (ExecBlock.consStatic (ExecStmt.assignStatic hlockRhs hlockAssign
+        (by simpa [evm0, initState] using hperm))))
+
+theorem clipperTakeStoppedSourceReverts {σ σ₀ A I} {g : UInt256}
+    (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
+    (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
+    (hstopped :
+      3 ≤ (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat) :
+    let locals := clipperTakeStore I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted :=
+  (clipperTakeStoppedSourceRevertsSplit v hwv hlocked).1 hstopped
 
 theorem clipperTakeInactiveSourceReverts {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
@@ -877,7 +903,7 @@ theorem clipperTakeOweGtTabIte (v : ClipperImmutables)
     subst price
     have hzero : UInt256.mul slice ⟨0⟩ = ⟨0⟩ := by
       rw [u256_mul_comm slice ⟨0⟩]
-      exact Reasoning.Theory.clipperMul_zero_left slice
+      exact Reasoning.Theory.mul_zero_left slice
     simp [hzero] at hgt
   let oweFrame : Frame :=
     Frame.mk (contract v)
@@ -1309,50 +1335,6 @@ theorem clipperTakeVatFluxBuyerNoCodeBlock (v : ClipperImmutables)
   simpa [checkedExternalCallStmts] using
     (ExecBlock.consRevert (ExecStmt.requireFalse hguard))
 
--- LIBRARY CANDIDATE: compose an `ExecBlock` prefix that reaches `.ok` with a reverting suffix.
-theorem execBlockAppendRevert {cfg : Config} {solm solm' : Frame} {evm evm' : EVM.State}
-    {pref suff : List Stmt}
-    (hp : ExecBlock cfg solm evm pref (.ok solm' evm'))
-    (hs : ExecBlock cfg solm' evm' suff .reverted) :
-    ExecBlock cfg solm evm (pref ++ suff) .reverted := by
-  induction pref generalizing solm evm with
-  | nil =>
-      cases hp
-      simpa using hs
-  | cons stmt rest ih =>
-      cases hp with
-      | consNormal hstmt hrest =>
-          simpa using ExecBlock.consNormal hstmt (ih hrest)
-
--- LIBRARY CANDIDATE: compose an `ExecBlock` prefix that reaches `.ok` with any suffix.
-theorem execBlockAppendOk {cfg : Config} {solm solm' : Frame} {evm evm' : EVM.State}
-    {pref suff : List Stmt} {res : ExecResult}
-    (hp : ExecBlock cfg solm evm pref (.ok solm' evm'))
-    (hs : ExecBlock cfg solm' evm' suff res) :
-    ExecBlock cfg solm evm (pref ++ suff) res := by
-  induction pref generalizing solm evm with
-  | nil =>
-      cases hp
-      simpa using hs
-  | cons _ _ ih =>
-      cases hp with
-      | consNormal hstmt hrest =>
-          simpa using ExecBlock.consNormal hstmt (ih hrest)
-
--- LIBRARY CANDIDATE: a reverting `ExecBlock` remains reverting with any statement suffix.
-theorem execBlockAppendReverted {cfg : Config} {solm : Frame} {evm : EVM.State}
-    {pref suff : List Stmt}
-    (hp : ExecBlock cfg solm evm pref .reverted) :
-    ExecBlock cfg solm evm (pref ++ suff) .reverted := by
-  induction pref generalizing solm evm with
-  | nil =>
-      cases hp
-  | cons stmt rest ih =>
-      cases hp with
-      | consNormal hstmt hrest =>
-          simpa using ExecBlock.consNormal hstmt (ih hrest)
-      | consRevert hstmt =>
-          exact ExecBlock.consRevert hstmt
 
 theorem clipperTakeOweGtTabVatFluxNoCodeTailBlock (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv) (price slice : UInt256)

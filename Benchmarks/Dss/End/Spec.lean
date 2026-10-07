@@ -6,7 +6,8 @@ import Solm.SolidityLayout
 # MakerDAO/Sky DSS End benchmark spec
 
 Faithful Solm benchmark spec for upstream `dss/src/end.sol` (global settlement engine).
-Events are omitted, matching the existing event-bearing DSS benchmarks.
+Events are omitted except `Free`: `free` writes no storage, so under a static call its log is
+the first forbidden operation. Every other event follows a storage write.
 
 Two modelling notes, both behaviour-preserving:
 * `u256 e = .inRange uint256Int e` reverts on overflow, so the DSS `add/sub/mul` checks are
@@ -582,7 +583,8 @@ def freeTransition : TransitionDecl :=
         .require (.binary .le (.var "ink") (.intLit int256Limit)) ] ++
       checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
         [.var "ilk", sender, sender, vowAddr, asInt256 (.unary .neg (asInt256 (.var "ink"))), .intLit 0]
-        "_grab" }
+        "_grab" ++
+      [ .emit "Free" [.var "ilk", sender, .var "ink"] ] }
 
 def thawTransition : TransitionDecl :=
   { name := "thaw"

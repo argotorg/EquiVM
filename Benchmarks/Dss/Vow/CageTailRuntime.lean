@@ -12,8 +12,8 @@ theorem cageSourceSecondDaiNoCode
     {σ σ₀ A I} {g flapperDai : UInt256}
     {evmDai evmFlap evmFlop : EVM.State} {outDai outFlap outFlop : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
@@ -126,8 +126,8 @@ theorem cageSourceSecondDaiCallFailure
     {evmDai evmFlap evmFlop evmDai2 : EVM.State}
     {outDai outFlap outFlop outDai2 : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
@@ -245,8 +245,8 @@ theorem cageSourceSecondDaiReturnDecodeFailure
     {evmDai evmFlap evmFlop evmDai2 : EVM.State}
     {outDai outFlap outFlop outDai2 : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
@@ -365,8 +365,8 @@ theorem cageSourceVatSinNoCode
     {evmDai evmFlap evmFlop evmDai2 : EVM.State}
     {outDai outFlap outFlop outDai2 : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
@@ -501,8 +501,8 @@ theorem cageSourceVatSinRevertFromBlock
     {evmDai evmFlap evmFlop evmDai2 : EVM.State}
     {outDai outFlap outFlop outDai2 : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
@@ -631,8 +631,8 @@ theorem cageSourceVatSinCallFailure
     {evmDai evmFlap evmFlop evmDai2 evmSin : EVM.State}
     {outDai outFlap outFlop outDai2 outSin : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
@@ -708,8 +708,8 @@ theorem cageSourceVatSinReturnDecodeFailure
     {evmDai evmFlap evmFlop evmDai2 evmSin : EVM.State}
     {outDai outFlap outFlop outDai2 outSin : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
@@ -788,8 +788,8 @@ theorem vowCageSecondDaiNoCodeBodyCore
     {evmDai evmFlap evmFlop : EVM.State} {mem outDai outFlap outFlop rdata : ByteArray}
     {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
@@ -860,8 +860,8 @@ theorem vowCageSecondDaiCallFailureBodyCore
     {mem outDai outFlap outFlop outDai2 rdata : ByteArray} {aw : UInt256}
     {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
@@ -935,8 +935,8 @@ theorem vowCageSecondDaiDecodeShortBodyCore
     {base outDai outFlap outFlop outDai2 : ByteArray} {k C : ℕ}
     {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
@@ -998,7 +998,7 @@ theorem vowCageSecondDaiDecodeShortBodyCore
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hmin :
       (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai2.size)).toNat = outDai2.size :=
-    kissDaiMin32_toNat_of_lt hshort
+    ctorMin32_toNat_of_lt hshort
   have rd3074Short := rd3074
   rw [hmin] at rd3074Short
   obtain ⟨_, _, rd3092⟩ :=
@@ -1040,8 +1040,8 @@ theorem vowCageVatSinNoCodeBodyCore
     {base outDai outFlap outFlop outDai2 : ByteArray} {k C : ℕ}
     {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
@@ -1111,7 +1111,7 @@ theorem vowCageVatSinNoCodeBodyCore
   let vatDai := UInt256.ofNat (fromByteArrayBigEndian (outDai2.extract 0 32))
   have hmin :
       (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai2.size)).toNat = 32 :=
-    kissDaiMin32_toNat_of_ge ho32 hosz
+    ctorMin32_toNat_of_ge ho32 hosz
   have rd3074Write := rd3074
   rw [hmin] at rd3074Write
   obtain ⟨_, _, rd3092⟩ :=
@@ -1172,8 +1172,8 @@ theorem vowCageVatSinCallFailureBodyCore
     {mem outDai outFlap outFlop outDai2 outSin : ByteArray} {aw : UInt256}
     {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
@@ -1259,8 +1259,8 @@ theorem vowCageVatSinDecodeShortBodyCore
     {base outDai outFlap outFlop outDai2 outSin : ByteArray}
     {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
@@ -1333,7 +1333,7 @@ theorem vowCageVatSinDecodeShortBodyCore
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hmin :
       (min (⟨32⟩ : UInt256) (UInt256.ofNat outSin.size)).toNat = outSin.size :=
-    kissDaiMin32_toNat_of_lt hshort
+    ctorMin32_toNat_of_lt hshort
   have rd3193Short := rd3193
   rw [hmin] at rd3193Short
   obtain ⟨_, _, rd3211⟩ :=

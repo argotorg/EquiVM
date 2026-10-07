@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Vow.Common
 import Reasoning.ExternalCall
 import Reasoning.Initcode
@@ -22,92 +23,6 @@ def vowCtorArgsTail (vat flapper flopper : AccountAddress) : ByteArray :=
     EVM.Word.toBytesBE (EVM.word flapper.val) ++
     EVM.Word.toBytesBE (EVM.word flopper.val)).toByteArray
 
-private theorem byteArray_append_toList (a b : ByteArray) :
-    (a ++ b).toList = a.toList ++ b.toList := by
-  rw [byteArray_toList_eq, byteArray_toList_eq, byteArray_toList_eq]
-  simp [ByteArray.data_append]
-
-private theorem list_toByteArray_toList (xs : List UInt8) : xs.toByteArray.toList = xs := by
-  rw [byteArray_toList_eq]
-  simp
-
-private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : ℕ)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
-    (hbase : base.size ≤ destAddr) (hgap : destAddr - base.size < USize.size) :
-    src.write srcAddr base destAddr len =
-      base ++ ByteArray.zeroes (destAddr - base.size) ++
-        src.extract srcAddr (srcAddr + len) := by
-  have hsrcNonempty : ¬ srcAddr ≥ src.size := by omega
-  have hcopy : min len (src.size - srcAddr) = len := by
-    rw [Nat.min_eq_left]
-    omega
-  have hcopyData : min len (src.data.size - srcAddr) = len := by
-    rw [show src.data.size = src.size from rfl]
-    exact hcopy
-  have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by
-    have hle : min base.size (destAddr + len) ≤ destAddr + len := Nat.min_le_right _ _
-    omega
-  have hDsz :
-      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size =
-        destAddr := by
-    rw [Array.size_append]
-    have hz :
-        (ByteArray.zeroes (destAddr - base.size)).data.size =
-          destAddr - base.size := by
-      rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
-        ByteArray_zeroes_size]
-    rw [hz]
-    change base.size + (destAddr - base.size) = destAddr
-    omega
-  apply ByteArray.ext
-  unfold ByteArray.write
-  rw [if_neg hlen, if_neg hsrcNonempty]
-  simp only [ByteArray.data_copySlice, ByteArray.data_append]
-  change (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract 0
-          destAddr ++
-        (src.data ++
-            (ByteArray.zeroes
-              (min base.size (destAddr + len) -
-                (destAddr + min len (src.size - srcAddr)))).data).extract
-          srcAddr
-          (srcAddr +
-            (min len (src.size - srcAddr) +
-              (min base.size (destAddr + len) -
-                (destAddr + min len (src.size - srcAddr))))) ++
-        (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract
-          (destAddr +
-            min
-              (min len (src.size - srcAddr) +
-                (min base.size (destAddr + len) -
-                  (destAddr + min len (src.size - srcAddr))))
-              ((src.data ++
-                    (ByteArray.zeroes
-                      (min base.size (destAddr + len) -
-                        (destAddr + min len (src.size - srcAddr)))).data).size -
-                srcAddr)) =
-      base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
-        (src.extract srcAddr (srcAddr + len)).data
-  rw [hcopy, htail]
-  rw [show (ByteArray.zeroes 0).data =
-      (#[] : Array UInt8) from by
-    rw [zeroes_zero (n := 0) (by rfl)]
-    rfl]
-  simp only [Array.append_empty, Nat.add_zero]
-  rw [Array.extract_eq_self_of_le (by rw [hDsz])]
-  rw [show src.data.extract srcAddr (srcAddr + len) =
-      (src.extract srcAddr (srcAddr + len)).data from by rw [ByteArray.data_extract]]
-  rw [hcopyData]
-  rw [show
-      (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract
-        (destAddr + len) = #[] from by
-    apply Array.extract_eq_empty_of_le
-    rw [hDsz]
-    omega]
-  simp only [Array.append_empty]
 
 theorem vowCtorArgsTail_encode (vat flapper flopper : AccountAddress) :
     ABI.encodeABIValues? [addr, addr, addr]
@@ -116,7 +31,7 @@ theorem vowCtorArgsTail_encode (vat flapper flopper : AccountAddress) :
   simp [vowCtorArgsTail, addr, ABI.encodeABIValues?, ABI.encodeABIValuesFrom?,
     ABI.encodeABIValue?, ABI.encodeABIWord?, ABI.abiTupleHeadSize?,
     ABI.staticABIEncodedSize?, ABI.isDynamicABIType, list_toByteArray_toList,
-    byteArray_append_toList]
+    byteArray_toList_append]
 
 theorem vowCtorDeployment_eq
     (vat flapper flopper : AccountAddress) :
@@ -726,19 +641,6 @@ private theorem evalExpr_vowCtorLocalFlopper {evm : EVM.State}
 abbrev vowCtorCallerWardsEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "wards", steps := [.mindex (.address I.source)] }
 
-private theorem accountAddress_of_word_val (a : AccountAddress) :
-    AccountAddress.ofNat (EVM.word a.val).toNat = a := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
-  exact accountAddress_roundtrip a
-
-private theorem word_val_addr_canonical (a : AccountAddress) :
-    (EVM.word a.val).toNat < EVM.addressModulus := by
-  have hsize : AccountAddress.size < UInt256.size := by decide
-  have hval : (EVM.word a.val).toNat = a.val := by
-    change (UInt256.ofNat a.val).toNat = a.val
-    rw [UInt256.toNat_ofNat_of_lt (lt_trans a.isLt hsize)]
-  rw [hval]
-  exact a.isLt
 
 set_option maxHeartbeats 1000000 in
 theorem vowCtorVatStoreReach
@@ -1457,7 +1359,7 @@ theorem evalExpr_vowCtorVatStorage (evm : EVM.State) {locals : Store}
       .ok (.address (vowCtorVatAddressOf evm)) := by
   rw [evalExpr_storage_scalar (hbackend := rfl) (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨1⟩)]
-  · exact congrArg EvalResult.ok (vowStorageLocLoad_address_offset0 _ ⟨1⟩)
+  · exact congrArg EvalResult.ok (storageLocLoad_address_offset0 _ ⟨1⟩)
   · exact hbase
   · simp [vatRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, addrSt]

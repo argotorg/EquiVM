@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.GemJoin
 /-! ## `ilk()` getter -/
 
 def gemJoinIlkWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  gemJoinSlotWord ⟨2⟩ σ I
+  solcSlotWordAt ⟨2⟩ σ I
 
 theorem gemJoinDecode_ilk {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (ilkTransition.params.map Param.name)
@@ -45,7 +45,6 @@ theorem gemJoinReachIlkBody {σ σ₀ A I} {g : Sat256}
 theorem gemJoinIlkBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = gemJoinBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (gemJoinSelBytes 5)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -57,7 +56,7 @@ theorem gemJoinIlkBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinIlkWord σ I)))])) := by
-    simpa [ilkTransition, gemJoinIlkWord, gemJoinSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [ilkTransition, gemJoinIlkWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       gemJoinBytes32GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

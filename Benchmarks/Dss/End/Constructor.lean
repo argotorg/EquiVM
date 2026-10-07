@@ -96,7 +96,7 @@ theorem assign_endCtorWardsCaller (evm : EVM.State) {locals : Store}
       storageLocStore evm (wordLoc (wardsSlot (.address evm.executionEnv.source))) (.int 1) =
         some (endCtorAfterWardsState evm) := by
     simpa [endCtorAfterWardsState] using
-      endStorageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
+      storageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
   exact assignStorageRef_storage_scalar (hbackend := rfl)
     (ty := .elem (.int uint256Int))
     (loc := wordLoc (wardsSlot (.address evm.executionEnv.source))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
@@ -119,7 +119,7 @@ theorem assign_endCtorLive (evm : EVM.State) {locals : Store}
   have hstore :
       storageLocStore evm (wordLoc ⟨8⟩) (.int 1) =
         some (endCtorAfterLiveState evm) := by
-    simpa [endCtorAfterLiveState] using endStorageLocStore_uint256 evm ⟨8⟩ ⟨1⟩
+    simpa [endCtorAfterLiveState] using storageLocStore_uint256 evm ⟨8⟩ ⟨1⟩
   exact assignStorageRef_storage_scalar (hbackend := rfl)
     (ty := .elem (.int uint256Int))
     (loc := wordLoc ⟨8⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)

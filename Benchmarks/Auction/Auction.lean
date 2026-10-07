@@ -132,7 +132,7 @@ theorem auctionX {σ σ₀ A I} {g : UInt256}
 
 theorem auctionBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (entryBytes 9))
+    (hsel : selIs I (entryBytes 9))
     (hreach : EntryReached 9 σ σ₀ A I g) :
     runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
@@ -147,7 +147,7 @@ theorem auctionBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := auctionContract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some (snapshotOf σ I).values)) := by
-      simpa [snapshotOf, snapshotOfState, storedWord, initState,
+      simpa [snapshotOf, snapshotOfState, solcSlotWord, initState,
         Solm.EVM.storageLoad, State.lookupAccount] using
         auctionBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           ∅ hwv (by simp)

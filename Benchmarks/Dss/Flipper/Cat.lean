@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flipper
 /-! ## `cat()` getter -/
 
 def catWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperAddressReturnWord ⟨7⟩ σ I
+  solcAddressSlotWord ⟨7⟩ σ I
 
 theorem flipperDecode_cat {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (catTransition.params.map Param.name)
@@ -51,7 +51,6 @@ theorem flipperReachCatBody {σ σ₀ A I} {g : Sat256}
 theorem flipperCatBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 2)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -63,7 +62,7 @@ theorem flipperCatBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (catWord σ I).toNat))])) := by
-    simpa [catTransition, catWord, flipperAddressReturnWord, flipperSlotWord, initState,
+    simpa [catTransition, catWord, solcAddressSlotWord, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       flipperAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

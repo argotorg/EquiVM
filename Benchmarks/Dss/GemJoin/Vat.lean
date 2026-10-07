@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.GemJoin
 /-! ## `vat()` getter -/
 
 def gemJoinVatWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  gemJoinAddressReturnWord ⟨1⟩ σ I
+  solcAddressSlotWord ⟨1⟩ σ I
 
 theorem gemJoinDecode_vat {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (vatTransition.params.map Param.name)
@@ -45,7 +45,6 @@ theorem gemJoinReachVatBody {σ σ₀ A I} {g : Sat256}
 theorem gemJoinVatBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = gemJoinBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (gemJoinSelBytes 9)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -57,7 +56,7 @@ theorem gemJoinVatBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (gemJoinVatWord σ I).toNat))])) := by
-    simpa [vatTransition, gemJoinVatWord, gemJoinAddressReturnWord, initState,
+    simpa [vatTransition, gemJoinVatWord, solcAddressSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       gemJoinAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

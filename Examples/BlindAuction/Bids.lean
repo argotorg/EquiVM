@@ -1,9 +1,28 @@
+import Reasoning.ABIViews
+import Reasoning.Storage
+import Reasoning.WordArithmetic
 import Examples.BlindAuction.Storage
 import Reasoning.SolmBody
+
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace BlindAuction
+
+theorem bidsSubRet64_toNat :
+    (UInt256.sub ((⟨64⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 64 := by
+  decide
+
+end BlindAuction
+
+end
 
 namespace BlindAuction
 
@@ -59,12 +78,6 @@ def bidsEvaledRef (I : ExecutionEnv) (field : Ident) : EvaledStorageRef :=
   { base := "bids",
     steps := [.mindex (bidsAddressKey I), .aindex (bidsIndexKey I), .field field] }
 
-theorem blindAuctionStorageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (blindAuctionBytes32Loc slot)
-      = .fixedBytes ⟨31, by decide⟩
-          (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)) := by
-  simpa [blindAuctionBytes32Loc, Reasoning.Theory.bytes32Loc] using
-    storageLocLoad_bytes32 evm slot
 
 theorem bidsLengthSlot_spec (I : ExecutionEnv)
     (hcanon : (bidsAddressWord I).toNat < EVM.addressModulus) :
@@ -88,6 +101,28 @@ theorem bidsElementSlot_spec (I : ExecutionEnv)
         rw [Fin.val_mul]
         rfl]
 
+theorem bidsArrayLength (evm : EVM.State) (a : KeyValue) :
+    blindAuctionConfig.storageBackend.length
+      { base := "bids", steps := [.mindex a] }
+      (.dynamicArray bidStructTy) evm =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bidsBase a)).toNat := by
+  change solidityStorageLength? blindAuctionStorageLayout
+    { base := "bids", steps := [.mindex a] }
+    (.dynamicArray bidStructTy) evm = _
+  have hanchor : blindAuctionStorageLayout
+      { base := "bids", steps := [.mindex a] } =
+      some (.anchor (bidsBase a)) :=
+    blindAuctionConfig_storage_bids_length a
+  have hloc : solidityLengthLoc? blindAuctionStorageLayout
+      { base := "bids", steps := [.mindex a] } =
+      some (uint256Loc (bidsBase a)) := by
+    simp [solidityLengthLoc?, solidityAnchor?, hanchor, solidityAnchorWordLoc, uint256Loc]
+  simp only [solidityStorageLength?, solidityDynamicLength?, hloc,
+    EvalResult.ofOption, EvalResult.bind, bind]
+  rw [storageLocLoad_uint256]
+  simp
+
 theorem bidsArrayIndexInBounds_ok (evm : EVM.State) (I : ExecutionEnv)
     (hbound : (bidsIndexWord I).toNat < (bidsLengthCurrent evm I).toNat) :
     arrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
@@ -97,10 +132,10 @@ theorem bidsArrayIndexInBounds_ok (evm : EVM.State) (I : ExecutionEnv)
         UInt256.toNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (bidsBase (KeyValue.address (AccountAddress.ofNat (bidsAddressWord I).toNat)))) := by
     simpa [bidsLengthCurrent, bidsLengthSlot, bidsAddressKey] using hbound
-  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionConfig,
-    blindAuctionStorageLayout, blindAuctionContract, storageDecls, bidStructTy, uint256St,
-    bytes32St, blindAuctionStorageLocLoad_uint256, bidsAddressKey, bidsIndexKey,
-    bidsLengthSlot, hboundStorage]
+  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionContract,
+    storageDecls, bidsIndexKey]
+  rw [bidsArrayLength evm (bidsAddressKey I)]
+  simp [bidsAddressKey, hboundStorage]
 
 theorem bidsArrayIndexInBounds_revert (evm : EVM.State) (I : ExecutionEnv)
     (hbound : ¬ (bidsIndexWord I).toNat < (bidsLengthCurrent evm I).toNat) :
@@ -116,10 +151,10 @@ theorem bidsArrayIndexInBounds_revert (evm : EVM.State) (I : ExecutionEnv)
           (bidsBase (KeyValue.address (AccountAddress.ofNat (bidsAddressWord I).toNat)))) ≤
         (bidsIndexWord I).toNat :=
     Nat.le_of_not_gt hboundStorage
-  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionConfig,
-    blindAuctionStorageLayout, blindAuctionContract, storageDecls, bidStructTy, uint256St,
-    bytes32St, blindAuctionStorageLocLoad_uint256, bidsAddressKey, bidsIndexKey,
-    bidsLengthSlot, hleStorage]
+  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionContract,
+    storageDecls, bidsIndexKey]
+  rw [bidsArrayLength evm (bidsAddressKey I)]
+  simp [bidsAddressKey, hleStorage]
 
 theorem evalStorageRef_bidsField_ok (evm : EVM.State) (I : ExecutionEnv) (field : Ident)
     (hbound : (bidsIndexWord I).toNat < (bidsLengthCurrent evm I).toNat) :
@@ -218,12 +253,12 @@ theorem blindAuctionBidsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           storageLocLoad evm (blindAuctionBytes32Loc (bidsElementSlot I)) =
             .fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (bidsBlindedCurrent evm I)) := by
         simpa [bidsBlindedCurrent] using
-          blindAuctionStorageLocLoad_bytes32 evm (bidsElementSlot I)
+          storageLocLoad_bytes32 evm (bidsElementSlot I)
       have hloadDeposit :
           storageLocLoad evm (blindAuctionUint256Loc (bidsDepositSlot I)) =
             .int (Int.ofNat (bidsDepositCurrent evm I).toNat) := by
-        simpa [bidsDepositCurrent] using
-          blindAuctionStorageLocLoad_uint256 evm (bidsDepositSlot I)
+        simpa [bidsDepositCurrent, show blindAuctionUint256Loc = uint256Loc from rfl] using
+          storageLocLoad_uint256 evm (bidsDepositSlot I)
       simp only [Solm.evalExprs?.eq_def,
         evalExpr_storage_scalar (hbackend := rfl) (t := .bytes ⟨31, by decide⟩) (hbase := hbaseBlinded)
           (her := evalStorageRef_bidsField_ok evm I "blindedBid" hbound)
@@ -253,38 +288,6 @@ theorem blindAuctionBidsBodyReverts_oob (evm : EVM.State) (I : ExecutionEnv)
         simp [evalExpr?, Solm.evalExprs?.eq_def, resolveStorageRef?, hbaseGet, herBlindedRevert,
           EvalResult.bind, bind])))
 
-theorem blindAuctionBidsReturnEncoding (blinded deposit : UInt256) :
-    encodeReturnValues? [bytes32, uint256]
-      [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE blinded),
-        .int (Int.ofNat deposit.toNat)] =
-      some (UInt256.toByteArray blinded ++ UInt256.toByteArray deposit) := by
-  have hblindedLen : (EVM.Word.toBytesBE blinded).length = 32 := by
-    simpa using word_toBytesBE_toByteArray_size blinded
-  have hword : EVM.word deposit.toNat = deposit := u256_ofNat_toNat deposit
-  have hlt : deposit.toNat < EVM.twoPow 256 := by
-    change deposit.val.val < EVM.twoPow 256
-    exact deposit.val.isLt
-  have hencBlinded :
-      encodeABIValue? bytes32 (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE blinded)) =
-        some (EVM.Word.toBytesBE blinded) := by
-    simp only [bytes32, encodeABIValue?, hblindedLen, zeroBytes]
-    simp
-  have hencDeposit :
-      encodeABIValue? uint256 (.int (Int.ofNat deposit.toNat)) =
-        some (EVM.Word.toBytesBE deposit) := by
-    simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hlt]
-  have hhead : abiTupleHeadSize? [bytes32, uint256] = some 64 := by native_decide
-  have hdynBytes : isDynamicABIType bytes32 = false := by native_decide
-  have hdynUint : isDynamicABIType uint256 = false := by native_decide
-  rw [toByteArray_eq_toBytesBE blinded, toByteArray_eq_toBytesBE deposit]
-  simp only [encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?,
-    hhead, hencBlinded, hencDeposit, hdynBytes, hdynUint, bind, Option.bind,
-    Bool.false_eq_true, if_false,
-    List.nil_append, List.append_nil]
-  apply congrArg some
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  simp
 
 /-! ## EVM scratch memory for the two-key getter -/
 
@@ -574,9 +577,6 @@ theorem bidsReturnMem_read128_64 (a base blinded deposit : UInt256) :
       rw [toByteArray_size])
   rw [hblindedFull, hdepositFull]
 
-theorem bidsSubRet64_toNat :
-    (UInt256.sub ((⟨64⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 64 := by
-  decide
 
 /-! ## EVM trace and ABI dispatch/decode bridge -/
 
@@ -907,7 +907,7 @@ theorem blindAuctionBidsX_oob {σ σ₀ A I} {g : Sat256}
 /-- `bids(address,uint256)` getter body (pc 158) refines its transition. -/
 theorem blindAuctionBidsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I ⟨#[0x01, 0x49, 0x5c, 0x1c]⟩)
+    (hsel : selIs I ⟨#[0x01, 0x49, 0x5c, 0x1c]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨158⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
@@ -915,7 +915,6 @@ theorem blindAuctionBidsBodyCore {σ σ₀ A I} {g : UInt256}
  :
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
-  have _hperm : I.perm = true := hperm
 
   have hsz4 := blindAuctionBidsSelector_size hsel
   have hd := blindAuctionDispatch_bids (cd := I.calldata) hsel
@@ -939,7 +938,7 @@ theorem blindAuctionBidsBodyCore {σ σ₀ A I} {g : UInt256}
               |>.reEquivExecutionGen hcode hd hdec hbody
                 (by rfl)
                 (returnEquiv.returned rfl
-                  (blindAuctionBidsReturnEncoding (bidsBlindedWord σ I)
+                  (bytes32Uint256ReturnEncoding' (bidsBlindedWord σ I)
                     (bidsDepositWord σ I)))
           · have hbody := blindAuctionBidsBodyReverts_oob
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) I

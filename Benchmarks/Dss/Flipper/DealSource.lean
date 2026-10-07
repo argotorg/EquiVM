@@ -241,7 +241,7 @@ theorem evalExpr_dealIlk_ofLocals {evm : EVM.State} {locals : Store}
     (hty := by simp [storageTypeAt?, contract, storageDecls, bytes32St])
     (hloc := by
       simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, ilkRef])]
-  exact congrArg EvalResult.ok (flipperStorageLocLoad_bytes32 evm ⟨3⟩)
+  exact congrArg EvalResult.ok (storageLocLoad_bytes32 evm ⟨3⟩)
 
 theorem evalExpr_dealIlk {evm : EVM.State} :
     evalExpr? config { contract := contract, locals := dealLocals evm.executionEnv } evm
@@ -541,7 +541,7 @@ theorem flipperDealSourceBodyCatCallFailure {σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, dealTransition, nonpayable, dealFinishedGuard, checkedExternalCallStmts,
     locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem flipperDealSourceBodySuccess {σ σ₀ A I} {g : UInt256}
+theorem flipperDealSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
     {evmCat evmVat : EVM.State} {outCat outVat : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hfinished :
@@ -572,8 +572,10 @@ theorem flipperDealSourceBodySuccess {σ σ₀ A I} {g : UInt256}
     let locals1 := (dealLocals I).insert "_clawRet" (collapseReturns [])
     let locals2 := locals1.insert "_fluxRet" (collapseReturns [])
     let evmDeleted := bidDeletedEVM evmVat (dealId I)
-    ExecTransitionBody config contract evm0 locals dealTransition.body
-      (.returned { contract := contract, locals := locals2 } evmDeleted none) := by
+    (ExecTransitionBody config contract evm0 locals dealTransition.body
+      (.returned { contract := contract, locals := locals2 } evmDeleted none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evm0 locals
+        dealTransition.body .staticViolation) := by
   intro locals evm0 locals1 locals2 evmDeleted
   have hcat : evalExpr? config { contract := contract, locals := locals } evm0 (.storage catRef) =
       .ok (.address (flipperCatAddress evm0.accountMap evm0.executionEnv)) := by
@@ -643,44 +645,52 @@ theorem flipperDealSourceBodySuccess {σ σ₀ A I} {g : UInt256}
           .storage (bidsF (.var "id") "lot")])
         (argVals := dealFluxArgValsOf evmCat (dealId I)) (out := outVat) (perm := true)
         (value := []) hguardVat hvat hargsVat hcallVat hdecVat
-  have hdelete :
-      ExecBlock config { contract := contract, locals := locals2 } evmVat
-        [ .delete (bidRef (.var "id")) ]
-        (.ok { contract := contract, locals := locals2 } evmDeleted) := by
-    exact ExecBlock.consNormal
-      (ExecStmt.delete (by
-        simpa [evmDeleted, locals2] using
-          deleteStorage_bidRef_of_get_id (evm := evmVat) (id := dealId I)
-            (dealLocalsAfterCalls_get_id I) (dealLocalsAfterCalls_get_bids I)))
-      ExecBlock.nil
-  have htail :
-      ExecBlock config { contract := contract, locals := locals1 } evmCat
-        (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
-          [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "guy"),
-            .storage (bidsF (.var "id") "lot")] "_fluxRet" ++
-        [ .delete (bidRef (.var "id")) ])
-        (.ok { contract := contract, locals := locals2 } evmDeleted) := by
-    exact execBlock_append hvatBlock hdelete
-  have hcalls :
+  have hprefix {result : ExecResult}
+      (hdelete : ExecBlock config { contract := contract, locals := locals2 }
+        evmVat [.delete (bidRef (.var "id"))] result) :
       ExecBlock config { contract := contract, locals := locals } evm0
-        (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
-          [.storage (bidsF (.var "id") "tab")] "_clawRet" ++
-        (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
-          [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "guy"),
-            .storage (bidsF (.var "id") "lot")] "_fluxRet" ++
-        [ .delete (bidRef (.var "id")) ]))
-        (.ok { contract := contract, locals := locals2 } evmDeleted) := by
-    exact execBlock_append hcatBlock htail
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 dealTransition.body
-        (.ok { contract := contract, locals := locals2 } evmDeleted) := by
-    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-    · simpa [locals, evm0] using hfinished
-    simpa [dealTransition, checkedExternalCallStmts, List.append_assoc] using hcalls
-  simpa [ExecTransitionBody, dealTransition, nonpayable, dealFinishedGuard, checkedExternalCallStmts,
-    locals, evm0, locals1, locals2, evmDeleted] using ExecFuncBody.execBlockOK hblock
+        dealTransition.body result := by
+    have htail :
+        ExecBlock config { contract := contract, locals := locals1 } evmCat
+          (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
+            [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "guy"),
+              .storage (bidsF (.var "id") "lot")] "_fluxRet" ++
+          [ .delete (bidRef (.var "id")) ])
+          result := by
+      exact execBlock_append hvatBlock hdelete
+    have hcalls :
+        ExecBlock config { contract := contract, locals := locals } evm0
+          (checkedExternalCallStmts (.storage catRef) "claw" (.intLit 0)
+            [.storage (bidsF (.var "id") "tab")] "_clawRet" ++
+          (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
+            [.storage ilkRef, thisAddr, .storage (bidsF (.var "id") "guy"),
+              .storage (bidsF (.var "id") "lot")] "_fluxRet" ++
+          [ .delete (bidRef (.var "id")) ]))
+          result := by
+      exact execBlock_append hcatBlock htail
+    have hblock :
+        ExecBlock config { contract := contract, locals := locals } evm0 dealTransition.body
+          result := by
+      refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+      · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+      refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+      · simpa [locals, evm0] using hfinished
+      simpa [dealTransition, checkedExternalCallStmts, List.append_assoc] using hcalls
+    exact hblock
+  have hdelete : deleteStorage? config { contract := contract, locals := locals2 }
+      evmVat (bidRef (.var "id")) = .ok evmDeleted := by
+    exact deleteStorage_bidRef_of_get_id
+      (dealLocalsAfterCalls_get_id I) (dealLocalsAfterCalls_get_bids I)
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.delete hdelete) ExecBlock.nil))
+  · intro hperm
+    have hp : evmVat.executionEnv.perm = false := by
+      rw [typedCallViaEVM_executionEnv_eq hcallVat,
+        typedCallViaEVM_executionEnv_eq hcallCat]
+      exact hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.deleteStatic hdelete hp)))
 
 theorem flipperDealSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
     {evmCat : EVM.State} {outCat : ByteArray}

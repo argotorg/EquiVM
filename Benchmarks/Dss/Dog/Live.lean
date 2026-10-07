@@ -162,7 +162,6 @@ theorem dogLiveBodyCore {v : DogImmutables} {code : ByteArray}
     (_hpatch : patchRuntime dogBytecode (patches v) = some code)
     (_hcode : I.code = code)
     (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (_hwv : I.weiValue = ⟨0⟩)
     (_hsel : selIs I (dogSelBytes 12)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
@@ -173,8 +172,9 @@ theorem dogLiveBodyCore {v : DogImmutables} {code : ByteArray}
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ liveTransition.body
         (.returned { contract := contract v, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (dogSlotWord ⟨3⟩ σ I).toNat))])) := by
-    simpa [liveTransition, dogSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
+          (some [(.int (Int.ofNat (solcSlotWordAt ⟨3⟩ σ I).toNat))])) := by
+    simpa [liveTransition, solcSlotWordAt, initState, Solm.EVM.storageLoad,
+      State.lookupAccount] using
       dogUint256GetterBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := liveRef) (er := ({ base := "live", steps := [] } : EvaledStorageRef))
@@ -218,6 +218,6 @@ theorem dogLiveBodyCore {v : DogImmutables} {code : ByteArray}
         | apply And.intro
         | rw [dogDecodePatchedEqTemplate1405 _hpatch (by native_decide)]
           native_decide)
-    (by rfl) (by simpa [dogSlotWord] using hbody)
+    (by rfl) (by simpa [solcSlotWordAt] using hbody)
 
 end Benchmarks.Dss.Dog

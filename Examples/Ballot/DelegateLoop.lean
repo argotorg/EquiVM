@@ -831,7 +831,7 @@ theorem ballotDelegateBodyCoreLoopFrontier
     {σ σ₀ A I} {g : UInt256}
     {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x5c, 0x19, 0xa9, 0x5c]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨245⟩ [sel]
@@ -843,18 +843,17 @@ theorem ballotDelegateBodyCoreLoopFrontier
       delegateSenderWeightWord σ I ≠ ⟨0⟩ →
       delegateSenderVotedByte σ I = ⟨0⟩ →
       delegateToWord I ≠ delegateSourceWord I →
-      I.perm = true →
       delegateVoterDelegateWord σ I (delegateToWord I) ≠ ⟨0⟩ →
       delegateVoterDelegateWord σ I (delegateToWord I) ≠ delegateSourceWord I →
       runtimeEquivalenceFor ballotConfig ballotContract
         σ σ₀ g A I) :
     runtimeEquivalenceFor ballotConfig ballotContract
       σ σ₀ g A I := by
-  refine ballotDelegateBodyCoreFrontier hcode hsize hperm hwv hsel hreach ?_
-  intro hsz36 hbig hcanon hweight hvoted hnotself hperm hnext
+  refine ballotDelegateBodyCoreFrontier hcode hsize hwv hsel hreach ?_
+  intro hsz36 hbig hcanon hweight hvoted hnotself hnext
   by_cases hcycle : delegateVoterDelegateWord σ I (delegateToWord I) = delegateSourceWord I
   · exact ballotDelegateLoopSenderRevertEquiv hcode hsize hwv hsel hsz36 hbig hcanon hweight
       hvoted hnotself hnext hcycle hreach
-  · exact hcontinue hsz36 hbig hcanon hweight hvoted hnotself hperm hnext hcycle
+  · exact hcontinue hsz36 hbig hcanon hweight hvoted hnotself hnext hcycle
 
 end Ballot

@@ -10,9 +10,9 @@ namespace Benchmarks.Dss.Flopper
 
 theorem flopperDealX_ticLtReadyToMint
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
     (hticLt :
-      (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (rd3966 : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨3966⟩
@@ -32,7 +32,7 @@ theorem flopperDealX_ticLtReadyToMint
     flopperDealX_ticNonzero_toTicLtStart (g := g) htic (by simpa [id, mem0] using rd4000)
   obtain ⟨_, _, rd4045⟩ := flopperDealX_toTicLtGuard rd4009
   have hticLtWord :
-      UInt256.lt (flopperUint48Offset20Word (auctionPackedSlot id) σ I)
+      UInt256.lt (uint48Offset20Word (auctionPackedSlot id) σ I)
           (UInt256.ofNat I.header.timestamp) =
         ⟨1⟩ := by
     apply ult_one
@@ -50,12 +50,12 @@ theorem flopperDealX_ticLtReadyToMint
 
 theorem flopperDealX_endLtReadyToMint
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
     (hticGe :
       (UInt256.ofNat I.header.timestamp).toNat ≤
-        (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat)
+        (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat)
     (hendLt :
-      (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (rd3966 : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨3966⟩
@@ -77,7 +77,7 @@ theorem flopperDealX_endLtReadyToMint
     flopperDealX_ticNonzero_toTicLtStart (g := g) htic (by simpa [id, mem0] using rd4000)
   obtain ⟨_, _, rd4045⟩ := flopperDealX_toTicLtGuard rd4009
   have hticLtWord :
-      UInt256.lt (flopperUint48Offset20Word (auctionPackedSlot id) σ I)
+      UInt256.lt (uint48Offset20Word (auctionPackedSlot id) σ I)
           (UInt256.ofNat I.header.timestamp) =
         ⟨0⟩ := by
     apply ult_zero
@@ -97,7 +97,7 @@ theorem flopperDealX_endLtReadyToMint
     ⟨_, _, by simpa [id, memTic, hticLtWord] using rd4051raw⟩
   obtain ⟨_, _, rd4087⟩ := flopperDealX_toEndLtGuard rd4051
   have hendLtWord :
-      UInt256.lt (flopperUint48Offset26Word (auctionPackedSlot id) σ I)
+      UInt256.lt (uint48Offset26Word (auctionPackedSlot id) σ I)
           (UInt256.ofNat I.header.timestamp) =
         ⟨1⟩ := by
     apply ult_one
@@ -110,11 +110,11 @@ theorem flopperDealX_endLtReadyToMint
 
 theorem flopperDealX_readyToMint
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
     (hfinished :
-      (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat ∨
-      (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (rd3966 : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨3966⟩
@@ -142,20 +142,20 @@ theorem flopperDealX_readyToMint
   have hreadTic : memTic.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     simpa [memTic, id, mem0] using twoWordHashMem_read64 id ⟨1⟩ hmem0 hread0
   by_cases hticLt :
-      (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat
   · obtain ⟨_, _, rd4159⟩ :=
       flopperDealX_ticLtReadyToMint (g := g) htic hticLt rd3966
     exact ⟨memTic, _, _, hmemTic, hreadTic, by simpa [id, mem0, memTic] using rd4159⟩
   · have hendLt :
-        (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+        (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
           (UInt256.ofNat I.header.timestamp).toNat := by
       cases hfinished with
       | inl h => exact False.elim (hticLt h)
       | inr h => exact h
     have hticGe :
         (UInt256.ofNat I.header.timestamp).toNat ≤
-          (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat :=
+          (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat :=
       Nat.le_of_not_gt hticLt
     have hmemEnd : memEnd.size = 96 := by
       simpa [memEnd, id, memTic] using twoWordHashMem_size_96 id ⟨1⟩ hmemTic
@@ -178,9 +178,9 @@ theorem flopperDealX_toMintExtcodesizeGuard
       memStart (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := dealIdWord I
     let memMap := twoWordHashMem id ⟨1⟩ memStart
-    let gem := flopperAddressReturnWord ⟨3⟩ σ I
-    let guy := flopperAddressReturnWord (auctionPackedSlot id) σ I
-    let lot := flopperSlotWord (auctionLotSlot id) σ I
+    let gem := solcAddressSlotWord ⟨3⟩ σ I
+    let guy := solcAddressSlotWord (auctionPackedSlot id) σ I
+    let lot := solcSlotWordAt (auctionLotSlot id) σ I
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4253⟩
       (gem :: gem :: dealMintOutSize :: dealMintOutPtr :: dealMintInSize ::
         dealMintOutPtr :: dealMintOutSize :: dealMintEndPtr :: dealMintSelectorWord ::
@@ -220,9 +220,9 @@ theorem flopperDealX_toMintExtcodesizeGuard
   obtain ⟨k4163, C4163, rd4163raw⟩ := rd4162pre.sload (by native_decide) (by evm_ov)
   have rd4163 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4163⟩
-      (flopperSlotWord ⟨3⟩ σ I :: id :: ⟨334⟩ :: [sel])
+      (solcSlotWordAt ⟨3⟩ σ I :: id :: ⟨334⟩ :: [sel])
       memStart (UInt256.ofNat 3) ByteArray.empty σ k4163 C4163 := by
-    simpa [id, flopperSlotWord] using rd4163raw
+    simpa [id, solcSlotWordAt] using rd4163raw
   have rd4166pre := evm_run rd4163 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw dup3 (by native_decide) (by evm_ov),
@@ -273,10 +273,10 @@ theorem flopperDealX_toMintExtcodesizeGuard
   obtain ⟨k4185, C4185, rd4185raw⟩ := rd4183pre.sload (by native_decide) (by evm_ov)
   have rd4185 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4185⟩
-      (flopperSlotWord (auctionPackedSlot id) σ I :: base :: ⟨64⟩ :: ⟨1⟩ ::
-        ⟨0⟩ :: flopperSlotWord ⟨3⟩ σ I :: id :: ⟨334⟩ :: [sel])
+      (solcSlotWordAt (auctionPackedSlot id) σ I :: base :: ⟨64⟩ :: ⟨1⟩ ::
+        ⟨0⟩ :: solcSlotWordAt ⟨3⟩ σ I :: id :: ⟨334⟩ :: [sel])
       memMap (UInt256.ofNat 3) ByteArray.empty σ k4185 C4185 := by
-    simpa [flopperSlotWord] using rd4185raw
+    simpa [solcSlotWordAt] using rd4185raw
   have rd4186pre := evm_run rd4185 with [
     raw swap3 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
@@ -287,10 +287,10 @@ theorem flopperDealX_toMintExtcodesizeGuard
   obtain ⟨k4188, C4188, rd4188raw⟩ := rd4186pre.sload (by native_decide) (by evm_ov)
   have rd4188 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4188⟩
-      (lot :: ⟨64⟩ :: flopperSlotWord (auctionPackedSlot id) σ I :: ⟨0⟩ ::
-        flopperSlotWord ⟨3⟩ σ I :: id :: ⟨334⟩ :: [sel])
+      (lot :: ⟨64⟩ :: solcSlotWordAt (auctionPackedSlot id) σ I :: ⟨0⟩ ::
+        solcSlotWordAt ⟨3⟩ σ I :: id :: ⟨334⟩ :: [sel])
       memMap (UInt256.ofNat 3) ByteArray.empty σ k4188 C4188 := by
-    simpa [lot, flopperSlotWord] using rd4188raw
+    simpa [lot, solcSlotWordAt] using rd4188raw
   have rd4253 := evm_run rd4188 with [
     raw dup2 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
@@ -369,7 +369,7 @@ theorem flopperDealX_toMintExtcodesizeGuard
   exact ⟨_, _, by
     simpa [gem, guy, lot, dealMintSelectorMem, dealMintGuyMem, dealMintCalldataMem,
       dealMintSelectorShifted, dealMintOutPtr, dealMintOutSize, dealMintInSize,
-      dealMintEndPtr, flopperAddressReturnWord, flopperSlotWord, solcAddrMask,
+      dealMintEndPtr, solcAddressSlotWord, solcSlotWordAt, solcAddrMask,
       u256_land_comm,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide,
@@ -382,14 +382,14 @@ theorem flopperDealX_toMintExtcodesizeGuard
       using rd4253⟩
 
 theorem flopperDealX_mintNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
     (hfinished :
-      (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat ∨
-      (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (hnoCode :
-      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨3⟩ σ I) =
+      Reasoning.Theory.extCodeSizeWord σ (solcAddressSlotWord ⟨3⟩ σ I) =
         ⟨0⟩)
     (rd3966 : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨3966⟩
@@ -408,25 +408,24 @@ theorem flopperDealX_mintNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem flopperDealX_mintCall
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hperm : I.perm = true)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨3⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (solcAddressSlotWord ⟨3⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
     (hfinished :
-      (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat ∨
-      (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (rd3966 : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨3966⟩
       [dealIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := dealIdWord I
-    let gem := flopperAddressReturnWord ⟨3⟩ σ I
-    let guy := flopperAddressReturnWord (auctionPackedSlot id) σ I
-    let lot := flopperSlotWord (auctionLotSlot id) σ I
+    let gem := solcAddressSlotWord ⟨3⟩ σ I
+    let guy := solcAddressSlotWord (auctionPackedSlot id) σ I
+    let lot := solcSlotWordAt (auctionLotSlot id) σ I
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (memCall : ByteArray) (k' C' : ℕ),
       RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
@@ -446,8 +445,8 @@ theorem flopperDealX_mintCall
   have hmemMap : memMap.size = 96 := by
     simpa [memMap, id] using twoWordHashMem_size_96 id ⟨1⟩ hmemStart
   have hguyCanon : guy.toNat < EVM.addressModulus := by
-    simpa [guy, flopperAddressReturnWord] using
-      solcAddrMask_result_canonical (flopperSlotWord (auctionPackedSlot id) σ I)
+    simpa [guy, solcAddressSlotWord] using
+      solcAddrMask_result_canonical (solcSlotWordAt (auctionPackedSlot id) σ I)
   obtain ⟨_, _, rd4253⟩ :=
     flopperDealX_toMintExtcodesizeGuard hmemStart hread64Start rd4159
   obtain ⟨gasWord, _, _, rd1163⟩ :=
@@ -485,28 +484,28 @@ theorem flopperDealX_mintCall
       (mem := dealMintCalldataMem guy lot memMap)
       (inOff := dealMintOutPtr) (inSize := dealMintInSize)
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
-      dealAddressWord_address_eq_target
+      addressWord_address_eq_target
       (dealMintEncode_eq guy lot hmemMap hguyCanon) ?_
-    simpa [initState, hperm] using hΘ
+    simpa [initState] using hΘ
 
 theorem flopperDealX_mintCallDepthLimit
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨3⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (solcAddressSlotWord ⟨3⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth = 1024)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
     (hfinished :
-      (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat ∨
-      (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (rd3966 : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨3966⟩
       [dealIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := dealIdWord I
-    let gem := flopperAddressReturnWord ⟨3⟩ σ I
+    let gem := solcAddressSlotWord ⟨3⟩ σ I
     ∃ memCall k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
       (⟨0⟩ :: dealMintEndPtr :: dealMintSelectorWord :: gem ::
         id :: ⟨334⟩ :: sel :: [])
@@ -515,8 +514,8 @@ theorem flopperDealX_mintCallDepthLimit
   obtain ⟨memStart, _, _, hmemStart, hread64Start, rd4159⟩ :=
     flopperDealX_readyToMint (g := g) htic hfinished rd3966
   let memMap := twoWordHashMem id ⟨1⟩ memStart
-  let guy := flopperAddressReturnWord (auctionPackedSlot id) σ I
-  let lot := flopperSlotWord (auctionLotSlot id) σ I
+  let guy := solcAddressSlotWord (auctionPackedSlot id) σ I
+  let lot := solcSlotWordAt (auctionLotSlot id) σ I
   obtain ⟨_, _, rd4253⟩ :=
     flopperDealX_toMintExtcodesizeGuard hmemStart hread64Start rd4159
   obtain ⟨gasWord, _, _, rd1163⟩ :=
@@ -547,7 +546,7 @@ theorem flopperDealX_mintCallFailure
     {mem out : ByteArray} {k C : ℕ}
     (rd1164 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
       (⟨0⟩ :: dealMintEndPtr :: dealMintSelectorWord ::
-        flopperAddressReturnWord ⟨3⟩ σ I :: dealIdWord I :: ⟨334⟩ :: sel :: [])
+        solcAddressSlotWord ⟨3⟩ σ I :: dealIdWord I :: ⟨334⟩ :: sel :: [])
       mem (UInt256.ofNat 7) out σ' k C)
     (houtSize : out.size < UInt256.size) :
     RDrev flopperBytecode g (initState σ σ₀ g A I) := by
@@ -558,19 +557,20 @@ theorem flopperDealX_mintCallFailure
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     houtSize (by simp)
 
-theorem flopperDealX_mintCallSuccessDelete
+theorem flopperDealX_mintCallSuccessDeleteSplit
     {σ σ₀ A I} {g : Sat256} {sel status : UInt256}
     {σ' : AccountMap}
     {mem out : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
     (hstatus : status ≠ ⟨0⟩)
     (rd1164 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
       (status :: dealMintEndPtr :: dealMintSelectorWord ::
-        flopperAddressReturnWord ⟨3⟩ σ I :: dealIdWord I :: ⟨334⟩ :: sel :: [])
+        solcAddressSlotWord ⟨3⟩ σ I :: dealIdWord I :: ⟨334⟩ :: sel :: [])
       mem (UInt256.ofNat 7) out σ' k C) :
-    RDret flopperBytecode g (initState σ σ₀ g A I)
-      (auctionRuntimeDeleteAccountMap I.codeOwner (dealIdWord I) σ')
-      ByteArray.empty := by
+    (I.perm = true ∧
+      RDret flopperBytecode g (initState σ σ₀ g A I)
+        (auctionRuntimeDeleteAccountMap I.codeOwner (dealIdWord I) σ')
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic flopperBytecode g (initState σ σ₀ g A I)) := by
   have rd1165 := rd1164.iszero (by native_decide) (by evm_ov)
   have rd1166 := rd1165.dup1 (by native_decide) (by evm_ov)
   have rd1167 := rd1166.iszero (by native_decide) (by evm_ov)
@@ -580,7 +580,7 @@ theorem flopperDealX_mintCallSuccessDelete
     decide
   have rd1180 := rd1170.jumpiT (by native_decide) hcond (by jump_dest) (by evm_ov)
   simpa [auctionRuntimeDeleteAccountMap] using
-    RD.flopperAuctionDeleteTail hperm
+    RD.flopperAuctionDeleteTailSplit
       (by native_decide) (by native_decide) (by native_decide) (by simp) rd1180
 
 theorem flopperDealBodyCoreNotLive
@@ -588,7 +588,7 @@ theorem flopperDealBodyCoreNotLive
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hlive : flopperSlotWord ⟨8⟩ σ I ≠ ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some dealTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dealTransition.params.map Param.name)
@@ -598,11 +598,11 @@ theorem flopperDealBodyCoreNotLive
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I ≠ ⟨1⟩ := hlive
+  have hliveSolmWord : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨1⟩ := hlive
   have hbody :
       ExecTransitionBody config contract evmSolm (dealLocals I)
         dealTransition.body .reverted := by
-    simpa [evmSolm, flopperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flopperDealBodyReverts_notLive evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -616,8 +616,8 @@ theorem flopperDealBodyCoreTicZero
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I = ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some dealTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dealTransition.params.map Param.name)
@@ -627,13 +627,13 @@ theorem flopperDealBodyCoreTicZero
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩ := hlive
+  have hliveSolmWord : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩ := hlive
   have hticSolm : dealTicWord evmSolm I = ⟨0⟩ := by
     simpa [evmSolm, initState, dealTicWord] using htic
   have hbody :
       ExecTransitionBody config contract evmSolm (dealLocals I)
         dealTransition.body .reverted := by
-    simpa [evmSolm, flopperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flopperDealBodyReverts_ticZero evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -650,14 +650,14 @@ theorem flopperDealBodyCoreNotFinished
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
     (hticGe :
       (UInt256.ofNat I.header.timestamp).toNat ≤
-        (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat)
+        (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat)
     (hendGe :
       (UInt256.ofNat I.header.timestamp).toNat ≤
-        (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat)
+        (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some dealTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dealTransition.params.map Param.name)
@@ -667,7 +667,7 @@ theorem flopperDealBodyCoreNotFinished
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩ := hlive
+  have hliveSolmWord : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩ := hlive
   have hticSolm : dealTicWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     exact htic (by simpa [evmSolm, initState, dealTicWord] using hzero)
@@ -678,7 +678,7 @@ theorem flopperDealBodyCoreNotFinished
   have hbody :
       ExecTransitionBody config contract evmSolm (dealLocals I)
         dealTransition.body .reverted := by
-    simpa [evmSolm, flopperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flopperDealBodyReverts_notFinished evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -695,16 +695,16 @@ theorem flopperDealBodyCoreMintNoCode
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
     (hfinished :
-      (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat ∨
-      (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (hnoCode :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨3⟩ σ I) = ⟨0⟩)
+        (solcAddressSlotWord ⟨3⟩ σ I) = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some dealTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dealTransition.params.map Param.name)
@@ -714,7 +714,7 @@ theorem flopperDealBodyCoreMintNoCode
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩ := hlive
+  have hliveSolmWord : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩ := hlive
   have hticSolm : dealTicWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     exact htic (by simpa [evmSolm, initState, dealTicWord] using hzero)
@@ -730,12 +730,12 @@ theorem flopperDealBodyCoreMintNoCode
         simpa [evmSolm, initState, dealEndWord, dealTimestampWord] using h
   have hnoCodeSolm :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨3⟩ σ I) = ⟨0⟩ :=
+        (solcAddressSlotWord ⟨3⟩ σ I) = ⟨0⟩ :=
     hnoCode
   have hbody :
       ExecTransitionBody config contract evmSolm (dealLocals I)
         dealTransition.body .reverted := by
-    simpa [evmSolm, flopperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flopperDealBodyReverts_mintNoCode evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -754,31 +754,31 @@ theorem flopperDealBodyCoreMintCallFailure
     (hcode : I.code = flopperBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (_hsz36 : 36 ≤ I.calldata.size)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
     (hfinished :
-      (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat ∨
-      (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨3⟩ σ I) ≠ ⟨0⟩)
+        (solcAddressSlotWord ⟨3⟩ σ I) ≠ ⟨0⟩)
     (rd1164 : RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1164⟩
       (⟨0⟩ :: dealMintEndPtr :: dealMintSelectorWord ::
-        flopperAddressReturnWord ⟨3⟩ σ I :: dealIdWord I :: ⟨334⟩ :: sel :: [])
+        solcAddressSlotWord ⟨3⟩ σ I :: dealIdWord I :: ⟨334⟩ :: sel :: [])
       mem (UInt256.ofNat 7) out σ' k C)
     (hcall :
       typedCallViaEVM config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord ⟨3⟩ σ I).toNat))
+          (solcAddressSlotWord ⟨3⟩ σ I).toNat))
         "mint" 0
         [.address (AccountAddress.ofNat
-          (flopperAddressReturnWord (auctionPackedSlot (dealIdWord I)) σ I).toNat),
+          (solcAddressSlotWord (auctionPackedSlot (dealIdWord I)) σ I).toNat),
         .int (Int.ofNat
-          (flopperSlotWord (auctionLotSlot (dealIdWord I)) σ I).toNat)]
+          (solcSlotWordAt (auctionLotSlot (dealIdWord I)) σ I).toNat)]
         (false,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
               accountMap := σ', substate := A' },
@@ -795,15 +795,15 @@ theorem flopperDealBodyCoreMintCallFailure
   have hcallSolm :
       typedCallViaEVM config evmSolm
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord ⟨3⟩ σ I).toNat))
+          (solcAddressSlotWord ⟨3⟩ σ I).toNat))
         "mint" 0
         [.address (AccountAddress.ofNat
-          (flopperAddressReturnWord (auctionPackedSlot (dealIdWord I)) σ I).toNat),
+          (solcAddressSlotWord (auctionPackedSlot (dealIdWord I)) σ I).toNat),
         .int (Int.ofNat
-          (flopperSlotWord (auctionLotSlot (dealIdWord I)) σ I).toNat)]
+          (solcSlotWordAt (auctionLotSlot (dealIdWord I)) σ I).toNat)]
         (false, evmCallSolm, out) true := by
     simpa [evmSolm, evmCallSolm] using hcall
-  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩ := hlive
+  have hliveSolmWord : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩ := hlive
   have hticSolm : dealTicWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     exact htic (by simpa [evmSolm, initState, dealTicWord] using hzero)
@@ -819,12 +819,12 @@ theorem flopperDealBodyCoreMintCallFailure
         simpa [evmSolm, initState, dealEndWord, dealTimestampWord] using h
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨3⟩ σ I) ≠ ⟨0⟩ :=
+        (solcAddressSlotWord ⟨3⟩ σ I) ≠ ⟨0⟩ :=
     hcodeSize
   have hbody :
       ExecTransitionBody config contract evmSolm (dealLocals I)
         dealTransition.body .reverted := by
-    simpa [evmSolm, evmCallSolm, flopperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, evmCallSolm, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flopperDealBodyReverts_mintCallFailure evmSolm evmCallSolm I out
         (by simp only [evmSolm, initState]; exact hwv)
@@ -839,16 +839,16 @@ theorem flopperDealBodyCoreMintCallDepthLimit
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
     (hfinished :
-      (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat ∨
-      (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨3⟩ σ I) ≠ ⟨0⟩)
+        (solcAddressSlotWord ⟨3⟩ σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hdispatch : dispatchMsg contract I.calldata = some dealTransition)
     (hdecode :
@@ -861,16 +861,16 @@ theorem flopperDealBodyCoreMintCallDepthLimit
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := dealIdWord I
   let memMap := twoWordHashMem id ⟨1⟩ solcFreePtrMem
-  let gem := flopperAddressReturnWord ⟨3⟩ σ I
-  let guy := flopperAddressReturnWord (auctionPackedSlot id) σ I
-  let lot := flopperSlotWord (auctionLotSlot id) σ I
+  let gem := solcAddressSlotWord ⟨3⟩ σ I
+  let guy := solcAddressSlotWord (auctionPackedSlot id) σ I
+  let lot := solcSlotWordAt (auctionLotSlot id) σ I
   let A_mint := (evmSolm.addAccessedAccount (EVM.address (AccountAddress.ofNat gem.toNat))).substate
   have hmemMap : memMap.size = 96 := by
     simpa [memMap, id] using
       twoWordHashMem_size_96 (dealIdWord I) ⟨1⟩ solcFreePtrMem_size
   have hguyCanon : guy.toNat < EVM.addressModulus := by
-    simpa [guy, flopperAddressReturnWord] using
-      solcAddrMask_result_canonical (flopperSlotWord (auctionPackedSlot id) σ I)
+    simpa [guy, solcAddressSlotWord] using
+      solcAddrMask_result_canonical (solcSlotWordAt (auctionPackedSlot id) σ I)
   have hdepthInit : evmSolm.executionEnv.depth = 1024 := by
     simpa [evmSolm, initState] using hdepth
   have hcallSolm :
@@ -887,7 +887,7 @@ theorem flopperDealBodyCoreMintCallDepthLimit
           dealMintOutPtr.toNat dealMintInSize.toNat)
         (dealMintEncode_eq guy lot hmemMap hguyCanon)
         hdepthInit)
-  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩ := hlive
+  have hliveSolmWord : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩ := hlive
   have hticSolm : dealTicWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     exact htic (by simpa [evmSolm, initState, dealTicWord] using hzero)
@@ -903,12 +903,12 @@ theorem flopperDealBodyCoreMintCallDepthLimit
         simpa [evmSolm, initState, dealEndWord, dealTimestampWord] using h
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨3⟩ σ I) ≠ ⟨0⟩ :=
+        (solcAddressSlotWord ⟨3⟩ σ I) ≠ ⟨0⟩ :=
     hcodeSize
   have hbody :
       ExecTransitionBody config contract evmSolm (dealLocals I)
         dealTransition.body .reverted := by
-    simpa [evmSolm, gem, guy, lot, id, flopperSlotWord, initState,
+    simpa [evmSolm, gem, guy, lot, id, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       flopperDealBodyReverts_mintCallFailure evmSolm
         { evmSolm with substate := A_mint } I ByteArray.empty
@@ -929,33 +929,33 @@ theorem flopperDealBodyCoreMintCallSuccess
     {σ σ' σ₀ A A' I} {g : UInt256} {sel : UInt256}
     {mem out : ByteArray} {k C : ℕ}
     (hcode : I.code = flopperBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (_hsz36 : 36 ≤ I.calldata.size)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
     (hfinished :
-      (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat ∨
-      (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨3⟩ σ I) ≠ ⟨0⟩)
+        (solcAddressSlotWord ⟨3⟩ σ I) ≠ ⟨0⟩)
     (rd1164 : RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1164⟩
       (⟨1⟩ :: dealMintEndPtr :: dealMintSelectorWord ::
-        flopperAddressReturnWord ⟨3⟩ σ I :: dealIdWord I :: ⟨334⟩ :: sel :: [])
+        solcAddressSlotWord ⟨3⟩ σ I :: dealIdWord I :: ⟨334⟩ :: sel :: [])
       mem (UInt256.ofNat 7) out σ' k C)
     (hcall :
       typedCallViaEVM config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord ⟨3⟩ σ I).toNat))
+          (solcAddressSlotWord ⟨3⟩ σ I).toNat))
         "mint" 0
         [.address (AccountAddress.ofNat
-          (flopperAddressReturnWord (auctionPackedSlot (dealIdWord I)) σ I).toNat),
+          (solcAddressSlotWord (auctionPackedSlot (dealIdWord I)) σ I).toNat),
         .int (Int.ofNat
-          (flopperSlotWord (auctionLotSlot (dealIdWord I)) σ I).toNat)]
+          (solcSlotWordAt (auctionLotSlot (dealIdWord I)) σ I).toNat)]
         (true,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
               accountMap := σ', substate := A' },
@@ -971,15 +971,15 @@ theorem flopperDealBodyCoreMintCallSuccess
   have hcallSolm :
       typedCallViaEVM config evmSolm
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord ⟨3⟩ σ I).toNat))
+          (solcAddressSlotWord ⟨3⟩ σ I).toNat))
         "mint" 0
         [.address (AccountAddress.ofNat
-          (flopperAddressReturnWord (auctionPackedSlot (dealIdWord I)) σ I).toNat),
+          (solcAddressSlotWord (auctionPackedSlot (dealIdWord I)) σ I).toNat),
         .int (Int.ofNat
-          (flopperSlotWord (auctionLotSlot (dealIdWord I)) σ I).toNat)]
+          (solcSlotWordAt (auctionLotSlot (dealIdWord I)) σ I).toNat)]
         (true, evmCallSolm, out) true := by
     simpa [evmSolm, evmCallSolm] using hcall
-  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩ := hlive
+  have hliveSolmWord : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩ := hlive
   have hticSolm : dealTicWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     exact htic (by simpa [evmSolm, initState, dealTicWord] using hzero)
@@ -995,31 +995,36 @@ theorem flopperDealBodyCoreMintCallSuccess
         simpa [evmSolm, initState, dealEndWord, dealTimestampWord] using h
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨3⟩ σ I) ≠ ⟨0⟩ :=
+        (solcAddressSlotWord ⟨3⟩ σ I) ≠ ⟨0⟩ :=
     hcodeSize
-  have hbody :
-      ExecTransitionBody config contract evmSolm (dealLocals I)
+  have hbodySplit :
+      (ExecTransitionBody config contract evmSolm (dealLocals I)
         dealTransition.body
         (.returned { contract := contract, locals := dealMintLocals I }
-          (auctionDeletePostState (dealIdWord I) evmCallSolm) none) := by
-    simpa [evmSolm, evmCallSolm, flopperSlotWord, initState, Solm.EVM.storageLoad,
+          (auctionDeletePostState (dealIdWord I) evmCallSolm) none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evmSolm (dealLocals I)
+        dealTransition.body .staticViolation) := by
+    simpa [evmSolm, evmCallSolm, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
-      flopperDealBodyReturns_mintCallSuccess evmSolm evmCallSolm I out
+      flopperDealBodyReturns_mintCallSuccessSplit evmSolm evmCallSolm I out
         (by simp only [evmSolm, initState]; exact hwv)
         hliveSolmWord hticSolm hfinishedSolm
         (by simpa [evmSolm, initState] using hcodeSizeSolm)
         hcallSolm
-  have hret :=
-    flopperDealX_mintCallSuccessDelete
-      (g := Sat256.ofUInt256 g) (σ := σ) (sel := sel) hperm
-      (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) rd1164
+  rcases
+    flopperDealX_mintCallSuccessDeleteSplit
+      (g := Sat256.ofUInt256 g) (σ := σ) (sel := sel)
+      (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) rd1164 with
+      ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
   have hFinalAccounts :
       Eq (auctionRuntimeDeleteAccountMap I.codeOwner (dealIdWord I) σ')
         (auctionDeletePostState (dealIdWord I) evmCallSolm).accountMap := by
     simpa [evmCallSolm] using
       auctionDeletePostState_accountMapEq (dealIdWord I) evmCallSolm I.codeOwner
         (by simp [evmCallSolm, evmSolm, initState])
-  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
     (by simpa using hFinalAccounts)
     (by
       simpa [dealTransition] using
@@ -1041,7 +1046,6 @@ theorem flopperDealBodyCoreDecodeFailed_short
 theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 3)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -1054,25 +1058,25 @@ theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hdecode := flopperDecode_deal_ok (I := I) hsz36
-    by_cases hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩
+    by_cases hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩
     · by_cases hticZero :
-          flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I = ⟨0⟩
+          uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I = ⟨0⟩
       · exact flopperDealBodyCoreTicZero hcode hsize hwv hsz36 hlive hticZero
           hdispatch hdecode hreach
       · have htic :
-            flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩ :=
+            uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩ :=
           hticZero
         by_cases hticLt :
-            (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+            (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
               (UInt256.ofNat I.header.timestamp).toNat
         · let hfinished :
-              (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+              (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
                 (UInt256.ofNat I.header.timestamp).toNat ∨
-              (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+              (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
                 (UInt256.ofNat I.header.timestamp).toNat := Or.inl hticLt
           by_cases hcodeSize :
               Reasoning.Theory.extCodeSizeWord σ
-                (flopperAddressReturnWord ⟨3⟩ σ I) = ⟨0⟩
+                (solcAddressSlotWord ⟨3⟩ σ I) = ⟨0⟩
           · exact flopperDealBodyCoreMintNoCode hcode hsize hwv hsz36 hlive htic
               hfinished hcodeSize hdispatch hdecode hreach
           · by_cases hdepthEq : I.depth = 1024
@@ -1091,13 +1095,13 @@ theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
                   (flopperDealX_decoded (g := Sat256.ofUInt256 g) hsz36 hsize hreach)
               obtain ⟨σ', z, out, A', memCall, k1164, C1164, rd1164, hcall,
                   houtSize⟩ :=
-                flopperDealX_mintCall (g := Sat256.ofUInt256 g) hperm hcodeSize
+                flopperDealX_mintCall (g := Sat256.ofUInt256 g) hcodeSize
                   hdepthLt htic hfinished ⟨_, _, rd3966⟩
               by_cases hz : z = true
               · have rd1164True : RD flopperBytecode I (Sat256.ofUInt256 g)
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1164⟩
                     (⟨1⟩ :: dealMintEndPtr :: dealMintSelectorWord ::
-                      flopperAddressReturnWord ⟨3⟩ σ I ::
+                      solcAddressSlotWord ⟨3⟩ σ I ::
                       dealIdWord I :: ⟨334⟩ :: flopperSelWord I :: [])
                     memCall (UInt256.ofNat 7) out σ' k1164 C1164 := by
                   simpa [hz] using rd1164
@@ -1105,25 +1109,25 @@ theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
                     typedCallViaEVM config
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                       (EVM.address (AccountAddress.ofNat
-                        (flopperAddressReturnWord ⟨3⟩ σ I).toNat))
+                        (solcAddressSlotWord ⟨3⟩ σ I).toNat))
                       "mint" 0
                       [.address (AccountAddress.ofNat
-                        (flopperAddressReturnWord (auctionPackedSlot (dealIdWord I))
+                        (solcAddressSlotWord (auctionPackedSlot (dealIdWord I))
                           σ I).toNat),
                       .int (Int.ofNat
-                        (flopperSlotWord (auctionLotSlot (dealIdWord I)) σ I).toNat)]
+                        (solcSlotWordAt (auctionLotSlot (dealIdWord I)) σ I).toNat)]
                       (true,
                         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                             accountMap := σ', substate := A' },
                         out) true := by
                   simpa [hz] using hcall
-                exact flopperDealBodyCoreMintCallSuccess hcode hsize hperm hwv hsz36
+                exact flopperDealBodyCoreMintCallSuccess hcode hsize hwv hsz36
                   hlive htic hfinished hcodeSize rd1164True hcallTrue hdispatch hdecode
               · have hzFalse : z = false := Bool.eq_false_iff.mpr hz
                 have rd1164False : RD flopperBytecode I (Sat256.ofUInt256 g)
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1164⟩
                     (⟨0⟩ :: dealMintEndPtr :: dealMintSelectorWord ::
-                      flopperAddressReturnWord ⟨3⟩ σ I ::
+                      solcAddressSlotWord ⟨3⟩ σ I ::
                       dealIdWord I :: ⟨334⟩ :: flopperSelWord I :: [])
                     memCall (UInt256.ofNat 7) out σ' k1164 C1164 := by
                   simpa [hzFalse] using rd1164
@@ -1131,13 +1135,13 @@ theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
                     typedCallViaEVM config
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                       (EVM.address (AccountAddress.ofNat
-                        (flopperAddressReturnWord ⟨3⟩ σ I).toNat))
+                        (solcAddressSlotWord ⟨3⟩ σ I).toNat))
                       "mint" 0
                       [.address (AccountAddress.ofNat
-                        (flopperAddressReturnWord (auctionPackedSlot (dealIdWord I))
+                        (solcAddressSlotWord (auctionPackedSlot (dealIdWord I))
                           σ I).toNat),
                       .int (Int.ofNat
-                        (flopperSlotWord (auctionLotSlot (dealIdWord I)) σ I).toNat)]
+                        (solcSlotWordAt (auctionLotSlot (dealIdWord I)) σ I).toNat)]
                       (false,
                         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                             accountMap := σ', substate := A' },
@@ -1147,19 +1151,19 @@ theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
                   htic hfinished hcodeSize rd1164False hcallFalse houtSize hdispatch hdecode
         · have hticGe :
               (UInt256.ofNat I.header.timestamp).toNat ≤
-                (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat :=
+                (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat :=
             Nat.le_of_not_gt hticLt
           by_cases hendLt :
-              (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+              (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
                 (UInt256.ofNat I.header.timestamp).toNat
           · let hfinished :
-                (flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+                (uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
                   (UInt256.ofNat I.header.timestamp).toNat ∨
-                (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
+                (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
                   (UInt256.ofNat I.header.timestamp).toNat := Or.inr hendLt
             by_cases hcodeSize :
                 Reasoning.Theory.extCodeSizeWord σ
-                  (flopperAddressReturnWord ⟨3⟩ σ I) = ⟨0⟩
+                  (solcAddressSlotWord ⟨3⟩ σ I) = ⟨0⟩
             · exact flopperDealBodyCoreMintNoCode hcode hsize hwv hsz36 hlive htic
                 hfinished hcodeSize hdispatch hdecode hreach
             · by_cases hdepthEq : I.depth = 1024
@@ -1178,13 +1182,13 @@ theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
                     (flopperDealX_decoded (g := Sat256.ofUInt256 g) hsz36 hsize hreach)
                 obtain ⟨σ', z, out, A', memCall, k1164, C1164, rd1164, hcall,
                     houtSize⟩ :=
-                  flopperDealX_mintCall (g := Sat256.ofUInt256 g) hperm hcodeSize
+                  flopperDealX_mintCall (g := Sat256.ofUInt256 g) hcodeSize
                     hdepthLt htic hfinished ⟨_, _, rd3966⟩
                 by_cases hz : z = true
                 · have rd1164True : RD flopperBytecode I (Sat256.ofUInt256 g)
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1164⟩
                       (⟨1⟩ :: dealMintEndPtr :: dealMintSelectorWord ::
-                        flopperAddressReturnWord ⟨3⟩ σ I ::
+                        solcAddressSlotWord ⟨3⟩ σ I ::
                         dealIdWord I :: ⟨334⟩ :: flopperSelWord I :: [])
                       memCall (UInt256.ofNat 7) out σ' k1164 C1164 := by
                     simpa [hz] using rd1164
@@ -1192,25 +1196,25 @@ theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
                       typedCallViaEVM config
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                         (EVM.address (AccountAddress.ofNat
-                          (flopperAddressReturnWord ⟨3⟩ σ I).toNat))
+                          (solcAddressSlotWord ⟨3⟩ σ I).toNat))
                         "mint" 0
                         [.address (AccountAddress.ofNat
-                          (flopperAddressReturnWord (auctionPackedSlot (dealIdWord I))
+                          (solcAddressSlotWord (auctionPackedSlot (dealIdWord I))
                             σ I).toNat),
                         .int (Int.ofNat
-                          (flopperSlotWord (auctionLotSlot (dealIdWord I)) σ I).toNat)]
+                          (solcSlotWordAt (auctionLotSlot (dealIdWord I)) σ I).toNat)]
                         (true,
                           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                               accountMap := σ', substate := A' },
                           out) true := by
                     simpa [hz] using hcall
-                  exact flopperDealBodyCoreMintCallSuccess hcode hsize hperm hwv hsz36
+                  exact flopperDealBodyCoreMintCallSuccess hcode hsize hwv hsz36
                     hlive htic hfinished hcodeSize rd1164True hcallTrue hdispatch hdecode
                 · have hzFalse : z = false := Bool.eq_false_iff.mpr hz
                   have rd1164False : RD flopperBytecode I (Sat256.ofUInt256 g)
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1164⟩
                       (⟨0⟩ :: dealMintEndPtr :: dealMintSelectorWord ::
-                        flopperAddressReturnWord ⟨3⟩ σ I ::
+                        solcAddressSlotWord ⟨3⟩ σ I ::
                         dealIdWord I :: ⟨334⟩ :: flopperSelWord I :: [])
                       memCall (UInt256.ofNat 7) out σ' k1164 C1164 := by
                     simpa [hzFalse] using rd1164
@@ -1218,13 +1222,13 @@ theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
                       typedCallViaEVM config
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                         (EVM.address (AccountAddress.ofNat
-                          (flopperAddressReturnWord ⟨3⟩ σ I).toNat))
+                          (solcAddressSlotWord ⟨3⟩ σ I).toNat))
                         "mint" 0
                         [.address (AccountAddress.ofNat
-                          (flopperAddressReturnWord (auctionPackedSlot (dealIdWord I))
+                          (solcAddressSlotWord (auctionPackedSlot (dealIdWord I))
                             σ I).toNat),
                         .int (Int.ofNat
-                          (flopperSlotWord (auctionLotSlot (dealIdWord I)) σ I).toNat)]
+                          (solcSlotWordAt (auctionLotSlot (dealIdWord I)) σ I).toNat)]
                         (false,
                           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                               accountMap := σ', substate := A' },
@@ -1234,7 +1238,7 @@ theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
                     htic hfinished hcodeSize rd1164False hcallFalse houtSize hdispatch hdecode
           · have hendGe :
                 (UInt256.ofNat I.header.timestamp).toNat ≤
-                  (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat :=
+                  (uint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat :=
               Nat.le_of_not_gt hendLt
             exact flopperDealBodyCoreNotFinished hcode hsize hwv hsz36 hlive htic
               hticGe hendGe hdispatch hdecode hreach

@@ -6,7 +6,8 @@ import Solm.SolidityLayout
 # MakerDAO/Sky DSS GemJoin benchmark spec
 
 Faithful Solm benchmark scaffold for upstream `dss/src/join.sol` contract `GemJoin`.
-Events are omitted, matching the existing event-bearing DSS benchmarks.
+Events are omitted except `Join` and `Exit`: `join` and `exit` write no storage, so under a
+static call their log is the first forbidden operation. Every other event follows a storage write.
 -/
 
 open Solm ABI Ethereum
@@ -238,7 +239,8 @@ def joinTransition : TransitionDecl :=
         [.storage ilkRef, .var "usr", asInt256 (.var "wad")] "slipRet" ++
       checkedExternalCallStmts (.storage gemRef) "transferFrom" (.intLit 0)
         [sender, thisAddr, .var "wad"] "transferFromOk" ++
-      [ .require (.var "transferFromOk") ] }
+      [ .require (.var "transferFromOk"),
+        .emit "Join" [.var "usr", .var "wad"] ] }
 
 def exitTransition : TransitionDecl :=
   { name := "exit"
@@ -251,7 +253,8 @@ def exitTransition : TransitionDecl :=
         [.storage ilkRef, sender, asInt256 (.unary .neg (asInt256 (.var "wad")))] "slipRet" ++
       checkedExternalCallStmts (.storage gemRef) "transfer" (.intLit 0)
         [.var "usr", .var "wad"] "transferOk" ++
-      [ .require (.var "transferOk") ] }
+      [ .require (.var "transferOk"),
+        .emit "Exit" [.var "usr", .var "wad"] ] }
 
 def transitions : List TransitionDecl :=
   [cageTransition, decTransition, denyTransition, exitTransition, gemTransition, ilkTransition,

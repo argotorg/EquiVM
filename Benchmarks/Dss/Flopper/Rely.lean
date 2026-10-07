@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Flopper.Dispatch
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -5,6 +6,12 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 
 namespace Benchmarks.Dss.Flopper
+
+theorem relyNotAuthorizedWord :
+    UInt256.shiftLeft
+        (⟨0x119b1bdc1c195c8bdb9bdd0b585d5d1a1bdc9a5e9959⟩ : UInt256) ⟨82⟩ =
+      ⟨0x466c6f707065722f6e6f742d617574686f72697a656400000000000000000000⟩ := by
+  native_decide
 
 /-! ## `rely(address)` -/
 
@@ -36,7 +43,7 @@ def relyAuthStorageSlot (I : ExecutionEnv) : UInt256 :=
   wardsSlot (relyAuthKey I)
 
 def relyAuthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flopperSlotWord (relyAuthStorageSlot I) σ I
+  solcSlotWordAt (relyAuthStorageSlot I) σ I
 
 def relyPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (relyUsrStorageSlot I) ⟨1⟩
@@ -96,9 +103,6 @@ theorem evalStorageRef_rely_auth (evm : EVM.State) (I : ExecutionEnv)
     relyAuthKey, hsrc, valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure,
     evalExpr?]
 
-theorem uint256_toNat_eq_one {a : UInt256} (h : a.toNat = 1) : a = ⟨1⟩ := by
-  apply u256_inj
-  simpa using h
 
 theorem evalExpr_rely_auth_true (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source)
@@ -122,7 +126,7 @@ theorem evalExpr_rely_auth_true (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using flopperStorageLocLoad_uint256 evm (relyAuthStorageSlot I))]
+        simpa [hload] using storageLocLoad_uint256 evm (relyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -150,7 +154,7 @@ theorem evalExpr_rely_auth_false (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        exact flopperStorageLocLoad_uint256 evm (relyAuthStorageSlot I))
+        exact storageLocLoad_uint256 evm (relyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -158,7 +162,7 @@ theorem evalExpr_rely_auth_false (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact uint256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -205,7 +209,7 @@ theorem evalExpr_auth_true_of_wards_none (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using flopperStorageLocLoad_uint256 evm (relyAuthStorageSlot I))]
+        simpa [hload] using storageLocLoad_uint256 evm (relyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -235,7 +239,7 @@ theorem evalExpr_auth_false_of_wards_none (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        exact flopperStorageLocLoad_uint256 evm (relyAuthStorageSlot I))
+        exact storageLocLoad_uint256 evm (relyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -243,7 +247,7 @@ theorem evalExpr_auth_false_of_wards_none (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact uint256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -271,28 +275,33 @@ theorem relyAssign (evm : EVM.State) (I : ExecutionEnv) :
   simpa [relyPostState] using
     storageLocStore_uint256 evm (relyUsrStorageSlot I) ⟨1⟩
 
-theorem flopperRelyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
+theorem flopperRelyBodyReturnsSplit (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
     (hauth :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩) :
-    ExecTransitionBody config contract evm (relyStore I) relyTransition.body
-      (.returned { contract := contract, locals := relyStore I } (relyPostState evm I) none) := by
-  refine ExecFuncBody.execBlockOK ?_
-  simpa [relyTransition, nonpayable, auth] using
-    nonpayableRequireAssignStorageBlock
-      (cfg := config)
-      (solm := { contract := contract, locals := relyStore I })
-      (evm := evm)
-      (evm' := relyPostState evm I)
-      (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
-      (rhs := .intLit 1)
-      (ref := wardsRef (.var "usr"))
-      (value := .int 1)
-      hwv
-      (evalExpr_rely_auth_true evm I hsrc hauth)
-      (by simp [evalExpr?, pure])
-      (relyAssign evm I)
+    (ExecTransitionBody config contract evm (relyStore I) relyTransition.body
+      (.returned { contract := contract, locals := relyStore I } (relyPostState evm I) none)) ∧
+      (evm.executionEnv.perm = false →
+        ExecTransitionBody config contract evm (relyStore I)
+          relyTransition.body .staticViolation) := by
+  have hguard := evalExpr_rely_auth_true evm I hsrc hauth
+  have hval : evalExpr? config { contract := contract, locals := relyStore I } evm
+      (.intLit 1) = .ok (.int 1) := by simp [evalExpr?, pure]
+  have hassign := relyAssign evm I
+  have hprefix {result : ExecResult}
+      (htail : ExecBlock config { contract := contract, locals := relyStore I } evm
+        [.assign .storage (wardsRef (.var "usr")) (.intLit 1)] result) :
+      ExecBlock config { contract := contract, locals := relyStore I } evm
+        relyTransition.body result := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hguard) htail
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign hval hassign) ExecBlock.nil))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hval hassign hperm)))
 
 theorem flopperRelyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -336,11 +345,6 @@ theorem relyStoreHashMem_size (I : ExecutionEnv) :
     (relyStoreHashMem I).size = 96 := by
   exact twoWordHashMem_size_96 (relyUsrMaskedWord I) ⟨0⟩ (relyAuthHashMem_size I)
 
-theorem relyNotAuthorizedWord :
-    UInt256.shiftLeft
-        (⟨0x119b1bdc1c195c8bdb9bdd0b585d5d1a1bdc9a5e9959⟩ : UInt256) ⟨82⟩ =
-      ⟨0x466c6f707065722f6e6f742d617574686f72697a656400000000000000000000⟩ := by
-  native_decide
 
 theorem flopperReachRelyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -463,7 +467,7 @@ theorem flopperRelyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1737 : RD flopperBytecode I g s0 ⟨3026⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨334⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1737 C1737 := by
-    simpa [relyAuthWord, flopperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1737raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1737raw
   have rd1740pre := evm_run rd1737 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -511,7 +515,7 @@ theorem flopperRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1737 : RD flopperBytecode I g s0 ⟨3026⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨334⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1737 C1737 := by
-    simpa [relyAuthWord, flopperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1737raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1737raw
   have rd1740pre := evm_run rd1737 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -540,14 +544,16 @@ theorem flopperRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem flopperRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem flopperRelyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (h : RD flopperBytecode I g s0 ⟨3102⟩
       [relyUsrMaskedWord I, ⟨334⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨1⟩)
-      ByteArray.empty := by
+    (I.perm = true ∧
+      RDret flopperBytecode g s0
+        (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨1⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic flopperBytecode g s0) := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
@@ -597,25 +603,33 @@ theorem flopperRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have rd1836pre := evm_run rd1833 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1837raw⟩ := rd1836pre.sstore hperm (by native_decide)
+  have hstoreDec : decode flopperBytecode ⟨3129⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1836pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd1837raw⟩ := rd1836pre.sstore hperm hstoreDec
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd226 := rd1837raw.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd227 := rd226.jumpdest (by native_decide) (by evm_ov)
   simpa [relyUsrStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd227 (by native_decide) (by evm_ov)
 
-theorem flopperX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flopperX_rely_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
     (hreach : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨582⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨1⟩)
-      ByteArray.empty := by
+    (I.perm = true ∧
+      RDret flopperBytecode g (initState σ σ₀ g A I)
+        (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨1⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic flopperBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1720⟩ := flopperRelyX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨_, _, rd1809⟩ := flopperRelyX_authorized (I := I) hauth rd1720
-  exact flopperRelyX_storeAuthorized hperm rd1809
+  exact flopperRelyX_storeAuthorizedSplit rd1809
 
 theorem flopperX_rely_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -630,7 +644,7 @@ theorem flopperX_rely_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem flopperRelyBodyCoreOk
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some relyTransition)
@@ -643,19 +657,24 @@ theorem flopperRelyBodyCoreOk
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
-  have hbody :
-      ExecTransitionBody config contract evmSolm (relyStore I)
+  have hbodySplit :
+      (ExecTransitionBody config contract evmSolm (relyStore I)
         relyTransition.body
         (.returned { contract := contract, locals := relyStore I }
-          (relyPostState evmSolm I) none) := by
-    simpa [evmSolm, relyAuthWord, flopperSlotWord, initState, Solm.EVM.storageLoad,
+          (relyPostState evmSolm I) none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evmSolm (relyStore I)
+        relyTransition.body .staticViolation) := by
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
-      flopperRelyBodyReturns evmSolm I
+      flopperRelyBodyReturnsSplit evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
         (by simp [evmSolm, initState])
         hauthWord
-  exact (flopperX_rely_ok (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
-    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
+  rcases flopperX_rely_okSplit (g := Sat256.ofUInt256 g) hsz36 hsize hauth hreach with
+    ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
       (by
         simp [relyPostState, evmSolm, initState, storageStore_accountMap])
       (by
@@ -684,7 +703,7 @@ theorem flopperRelyBodyCoreUnauthorized
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         relyTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, flopperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flopperRelyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -708,7 +727,6 @@ theorem flopperRelyBodyCoreDecodeFailed_short
 theorem flopperRelyBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 12)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -721,7 +739,7 @@ theorem flopperRelyBody {σ σ₀ A I} {g : UInt256}
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
-    · exact flopperRelyBodyCoreOk hcode hsize hperm hwv hsz36 hauth hdispatch
+    · exact flopperRelyBodyCoreOk hcode hsize hwv hsz36 hauth hdispatch
         (flopperDecode_rely_ok hsz36) hreach
     · exact flopperRelyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
         (flopperDecode_rely_ok hsz36) hreach

@@ -9,7 +9,7 @@ namespace Benchmarks.Dss.Vow
 /-! ## `live()` getter -/
 
 def liveWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vowSlotWord ⟨12⟩ σ I
+  solcSlotWordAt ⟨12⟩ σ I
 
 theorem vowDispatch_live {I : ExecutionEnv} (hsel : selIs I ⟨#[0x95, 0x7a, 0xa5, 0x8c]⟩) :
     dispatchMsg contract I.calldata = some liveTransition := by
@@ -90,7 +90,7 @@ theorem vowLiveBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (liveWord σ I).toNat))])) := by
-    simpa [liveTransition, liveWord, vowSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [liveTransition, liveWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vowUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -112,7 +112,7 @@ theorem vowLiveBodyCore
 
 theorem vowLiveBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x95, 0x7a, 0xa5, 0x8c]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=

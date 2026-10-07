@@ -38,7 +38,7 @@ theorem minBidIncrementPercentageX {σ σ₀ A I} {g : UInt256}
     (hreach : EntryReached 14 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
     RDret auctionBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-      (UInt256.toByteArray (UInt256.land (storedWord σ I ⟨205⟩) ⟨255⟩)) := by
+      (UInt256.toByteArray (UInt256.land (solcSlotWord σ I ⟨205⟩) ⟨255⟩)) := by
   obtain ⟨_, _, rd785⟩ := hreach
   obtain ⟨_, _, rd798⟩ := entryGuardZero 14 (by decide) rd785 hwv
   have rd800 := evm_run rd798 with [push1 ⟨205⟩]
@@ -46,12 +46,12 @@ theorem minBidIncrementPercentageX {σ σ₀ A I} {g : UInt256}
   have rd810 := evm_run rd801 with [
     push2 ⟨810⟩, swap1, push1 ⟨255⟩, and, dup2, jump (by jump_dest) ]
   have hret := minBidIncrementPercentageEncode
-    (val := UInt256.land ⟨255⟩ (storedWord σ I ⟨205⟩)) rd810 (by evm_ov)
-  simpa only [u256_land_comm ⟨255⟩ (storedWord σ I ⟨205⟩), maskTwice] using hret
+    (val := UInt256.land ⟨255⟩ (solcSlotWord σ I ⟨205⟩)) rd810 (by evm_ov)
+  simpa only [u256_land_comm ⟨255⟩ (solcSlotWord σ I ⟨205⟩), maskTwice] using hret
 
 theorem minBidIncrementPercentageBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (entryBytes 14))
+    (hsel : selIs I (entryBytes 14))
     (hreach : EntryReached 14 σ σ₀ A I g) :
     runtimeEquivalenceFor auctionConfig auctionContract
       σ σ₀ g A I := by
@@ -66,14 +66,14 @@ theorem minBidIncrementPercentageBodyCore {σ σ₀ A I} {g : UInt256}
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ minBidIncGetter.body
         (.returned { contract := auctionContract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [.int (Int.ofNat (UInt256.land (storedWord σ I ⟨205⟩) ⟨255⟩).toNat)])) := by
-      simpa [storedWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
+          (some [.int (Int.ofNat (UInt256.land (solcSlotWord σ I ⟨205⟩) ⟨255⟩).toNat)])) := by
+      simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
         minBidIncrementPercentageBodyReturns
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ hwv (by simp)
     exact (minBidIncrementPercentageX hreach hwv).reEquivExecution
       hcode hd hdec hbody
       (returnEquiv_of_encode (uint8ReturnEncoding
-        (UInt256.land (storedWord σ I ⟨205⟩) ⟨255⟩) (lowByte_bound _)))
+        (UInt256.land (solcSlotWord σ I ⟨205⟩) ⟨255⟩) (lowByte_bound _)))
   · exact entryNonpayableRevert 14 (by decide) hcode hsel hreach hwv
 
 end Auction

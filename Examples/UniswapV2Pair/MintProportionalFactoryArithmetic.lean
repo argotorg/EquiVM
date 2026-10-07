@@ -108,7 +108,7 @@ theorem uniswapMintProportionalFeeOnKLastZeroArithmeticFromFactoryCases
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState

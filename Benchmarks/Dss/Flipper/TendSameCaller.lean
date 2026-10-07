@@ -17,7 +17,6 @@ theorem flipperTendBodyFrom3486SameCaller
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (tendTransition.params.map Param.name)
         (transitionSignature tendTransition).paramTypes I.calldata = some (tendLocals I))
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hguySolm : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
     (hticGuard :
@@ -113,9 +112,9 @@ theorem flipperTendBodyFrom3486SameCaller
       have hpayEncode :
           config.externalABI.encode? "move" (tendPayMoveArgValsOf evm0Solm I) =
             some ((tendVatPayCallMem memPay σ I).readWithPadding 128 100) := by
-        simpa [evm0Solm, tendPayMoveArgValsOf, initState, flipperSlotWord,
+        simpa [evm0Solm, tendPayMoveArgValsOf, initState, solcSlotWordAt,
           solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-          bidGalWord, bidSlotOfWord, bidBidWord, bidBaseOfWord, flipperAddressReturnWord]
+          bidGalWord, bidSlotOfWord, bidBidWord, bidBaseOfWord, solcAddressSlotWord]
           using tendVatPayCallMem_encode σ I hmemPaySize
       have hcallPaySolm :
           typedCallViaEVM config evm0Solm
@@ -149,7 +148,7 @@ theorem flipperTendBodyFrom3486SameCaller
         exact hdepthEq (Fin.ext hval)
       obtain ⟨σ_pay, zPay, outPay, A_pay, k3800, C3800, rd3800,
           hcallPayEvmRaw, houtPay⟩ :=
-        flipperTendX_payPostCall (Acur := A) hmemPaySize hmemPayRead64 hpayZero hperm
+        flipperTendX_payPostCall (Acur := A) hmemPaySize hmemPayRead64 hpayZero
           hdepthLt rd3686
       let evm0Evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm0Solm := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -222,13 +221,23 @@ theorem flipperTendBodyFrom3486SameCaller
         have hpayMemGe : 64 ≤ (tendVatPayCallMem memPay σ I).size := by
           rw [tendVatPayCallMem_size σ I hmemPaySize]
           norm_num
-        obtain ⟨_, _, rd6272⟩ := flipperTendX_storeBidToAdd48 hperm hpayMemGe rd3820
+        have hstoreSplit := flipperTendX_storeBidToAdd48Split hpayMemGe rd3820
         have hcallPaySolmTrue :
             typedCallViaEVM config evm0Solm
               (EVM.address (flipperVatAddress evm0Solm.accountMap evm0Solm.executionEnv))
               "move" 0 (tendPayMoveArgValsOf evm0Solm I)
               (true, evmPaySolm, outPay) true := by
           simpa using hcallPaySolm
+        rcases hstoreSplit with ⟨hperm, _, _, rd6272⟩ | ⟨hperm, hstatic⟩
+        swap
+        · have hsource := (flipperTendSourceBodySuccessSameCallerSplit
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            (evmPay := evmPaySolm) (outPay := outPay)
+            hwv hguySolm hticGuard hendGuard hlotGuard htabGuard hbidGuard hfitBid
+            hfitBeg hinc hcallerSolm hvatCodeSolm hcallPaySolmTrue
+            (by simp [evmPaySolm, evm0Solm, initState])
+            (by simp [evmPaySolm, evm0Solm, initState])).2 hperm
+          exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
         let evmBidEvm := Solm.EVM.storageStore evmPayEvm evmPayEvm.executionEnv.codeOwner
           (bidBaseOfWord (tendId I)) (tendBid I)
         let evmBidSolm := Solm.EVM.storageStore evmPaySolm evmPaySolm.executionEnv.codeOwner
@@ -258,7 +267,7 @@ theorem flipperTendBodyFrom3486SameCaller
               64 ≤
                 (twoWordHashMem (tendId I) ⟨1⟩
                   (tendVatPayCallMem memPay σ I)).size := by
-            rw [tendTwoWordHashMem_size_of_size_ge]
+            rw [twoWordHashMem_size_of_size_ge]
             · exact hpayMemGe
             · exact hpayMemGe
           have hret := flipperTendX_storeTicReturn hperm hticMemGe rd3859
@@ -326,7 +335,7 @@ theorem flipperTendBodyFrom3486SameCaller
             have hownerBid : evmBidEvm.executionEnv.codeOwner = I.codeOwner := by
               simp [evmBidEvm, evmPayEvm, evm0Evm, storageStore_executionEnv, initState]
             simpa [evmTicEvm, hmapBidEvm, hownerBid, tendStoreTicMap, tendStoredTicWord,
-              flipperSlotWord, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
+              solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
               Account.lookupStorage, storageStore_accountMap] using rfl
           have henc : returnEquiv ByteArray.empty none tendTransition.returnType := by
             rw [show tendTransition.returnType = [] by rfl]

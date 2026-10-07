@@ -101,6 +101,31 @@ theorem gemJoinRelyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       (by simp [evalExpr?, pure])
       (relyAssign evm I)
 
+theorem gemJoinRelyBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hauth :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (relyStore I) relyTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  simpa [relyTransition, nonpayable, auth] using
+    nonpayableRequireAssignStorageBlockStatic
+      (cfg := config)
+      (solm := { contract := contract, locals := relyStore I })
+      (evm := evm)
+      (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
+      (rhs := .intLit 1)
+      (ref := wardsRef (.var "usr"))
+      (value := .int 1)
+      (rest := [])
+      hwv
+      (evalExpr_auth_true_of_wards_none evm I (relyStore I) (relyStore_wards I) hsrc hauth)
+      (by simp [evalExpr?, pure])
+      (relyAssign evm I)
+      hperm
+
 theorem gemJoinRelyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
@@ -250,7 +275,7 @@ theorem gemJoinRelyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1046 : RD gemJoinBytecode I g s0 ⟨1046⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨254⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1046 C1046 := by
-    simpa [relyAuthWord, gemJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1046raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1046raw
   have rd1049pre := evm_run rd1046 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -298,7 +323,7 @@ theorem gemJoinRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1046 : RD gemJoinBytecode I g s0 ⟨1046⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨254⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1046 C1046 := by
-    simpa [relyAuthWord, gemJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1046raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1046raw
   have rd1049pre := evm_run rd1046 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -328,14 +353,16 @@ theorem gemJoinRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 2000000 in
-theorem gemJoinRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem gemJoinRelyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (h : RD gemJoinBytecode I g s0 ⟨1122⟩
       [relyUsrMaskedWord I, ⟨254⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret gemJoinBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨1⟩)
-      ByteArray.empty := by
+    (I.perm = true ∧
+      RDret gemJoinBytecode g s0
+        (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨1⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic gemJoinBytecode g s0) := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
@@ -385,7 +412,14 @@ theorem gemJoinRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have rd1151pre := evm_run rd1148 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1152raw⟩ := rd1151pre.sstore hperm (by native_decide)
+  have hstoreDec : decode gemJoinBytecode ⟨1151⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1151pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd1152raw⟩ := rd1151pre.sstore hperm hstoreDec
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd1152pre := evm_run rd1152raw with [
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
@@ -417,6 +451,21 @@ theorem gemJoinRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ
   simpa [relyUsrStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd255 (by native_decide) (by evm_ov)
 
+theorem gemJoinX_rely_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hreach : ∃ k C, RD gemJoinBytecode I g
+      (initState σ σ₀ g A I) ⟨256⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
+      RDret gemJoinBytecode g (initState σ σ₀ g A I)
+        (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨1⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic gemJoinBytecode g (initState σ σ₀ g A I)) := by
+  obtain ⟨_, _, rd1029⟩ := gemJoinRelyX_decoded (g := g) hsz36 hsize hreach
+  obtain ⟨_, _, rd1122⟩ := gemJoinRelyX_authorized (I := I) hauth rd1029
+  exact gemJoinRelyX_storeAuthorizedSplit rd1122
+
 theorem gemJoinX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
@@ -425,10 +474,8 @@ theorem gemJoinX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret gemJoinBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨1⟩)
-      ByteArray.empty := by
-  obtain ⟨_, _, rd1029⟩ := gemJoinRelyX_decoded (g := g) hsz36 hsize hreach
-  obtain ⟨_, _, rd1122⟩ := gemJoinRelyX_authorized (I := I) hauth rd1029
-  exact gemJoinRelyX_storeAuthorized hperm rd1122
+      ByteArray.empty :=
+  permSplit_true hperm (gemJoinX_rely_okSplit hsz36 hsize hauth hreach)
 
 theorem gemJoinX_rely_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -461,7 +508,7 @@ theorem gemJoinRelyBodyCoreOk
         relyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (relyPostState evmSolm I) none) := by
-    simpa [evmSolm, relyAuthWord, gemJoinSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       gemJoinRelyBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -476,6 +523,37 @@ theorem gemJoinRelyBodyCoreOk
         simpa [relyTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
             (dvs := []) rfl (by native_decide) (by native_decide)))
+
+theorem gemJoinRelyBodyCoreStatic
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some relyTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (relyTransition.params.map Param.name)
+        (transitionSignature relyTransition).paramTypes I.calldata = some (relyStore I))
+    (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨256⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
+  have hbody :
+      ExecTransitionBody config contract evmSolm (relyStore I)
+        relyTransition.body
+        .staticViolation := by
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
+      State.lookupAccount] using
+      gemJoinRelyBodyStatic evmSolm I
+        (by simp only [evmSolm, initState]; exact hwv)
+        (by simp [evmSolm, initState])
+        hauthWord
+        (by simp only [evmSolm, initState]; exact hperm)
+  exact (permSplit_false hperm (gemJoinX_rely_okSplit
+      (g := Sat256.ofUInt256 g) hsz36 hsize hauth hreach))
+    |>.reEquivStaticHalt hcode hdispatch hdecode hbody
 
 theorem gemJoinRelyBodyCoreUnauthorized
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -496,7 +574,7 @@ theorem gemJoinRelyBodyCoreUnauthorized
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         relyTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, gemJoinSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       gemJoinRelyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -534,6 +612,31 @@ theorem gemJoinRelyBodyCore {σ σ₀ A I} {g : UInt256}
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
     · exact gemJoinRelyBodyCoreOk hcode hsize hperm hwv hsz36 hauth hdispatch
+        (gemJoinDecode_rely_ok hsz36) hreach
+    · exact gemJoinRelyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
+        (gemJoinDecode_rely_ok hsz36) hreach
+  · exact gemJoinRelyBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
+      hdispatch hreach
+
+theorem gemJoinRelyBodyCoreAnyPerm {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = gemJoinBytecode)
+    (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I (gemJoinSelBytes 8)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact gemJoinRelyBodyCore hcode hsize hperm hwv hsel
+  have hstatic : I.perm = false := by simpa using hperm
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I (gemJoinSelBytes 8) rfl hsel
+  have hdispatch : dispatchMsg contract I.calldata = some relyTransition :=
+    gemJoinDispatchRely hsel
+  have hreach := gemJoinReachRelyBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz4 hsize hsel
+  by_cases hsz36 : 36 ≤ I.calldata.size
+  · by_cases hauth : relyAuthWord σ I = ⟨1⟩
+    · exact gemJoinRelyBodyCoreStatic hcode hsize hstatic hwv hsz36 hauth hdispatch
         (gemJoinDecode_rely_ok hsz36) hreach
     · exact gemJoinRelyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
         (gemJoinDecode_rely_ok hsz36) hreach

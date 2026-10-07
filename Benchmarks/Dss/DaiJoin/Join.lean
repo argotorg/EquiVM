@@ -139,11 +139,11 @@ theorem daiJoinJoinBodyMulReverts (evm : EVM.State) (I : ExecutionEnv)
   have hbindMul :
       bindParams? mulFunction.params
           [.int (Int.ofNat daiJoinONEWord.toNat), joinWadValue I] =
-        some (daiJoinUintBinaryLocals daiJoinONEWord (joinWadWord I)) := by
-    simp [mulFunction, uint256, bindParams?, daiJoinUintBinaryLocals, joinWadValue]
+        some (uintBinaryLocals daiJoinONEWord (joinWadWord I)) := by
+    simp [mulFunction, uint256, bindParams?, uintBinaryLocals, joinWadValue]
   have hover :
       UInt256.size ≤ daiJoinONEWord.toNat * (joinWadWord I).toNat :=
-    daiJoinMulOverflow_of_guard_fail (x := daiJoinONEWord) (y := joinWadWord I) hwad hguard
+    mulOverflow_of_guard_fail (x := daiJoinONEWord) (y := joinWadWord I) hwad hguard
   have hmulStmt :
       ExecStmt config { contract := contract, locals := joinStore I } evm
         (.internalCall "mul" [.intLit ONE, .var "wad"] "rad") .reverted :=
@@ -154,7 +154,7 @@ theorem daiJoinJoinBodyMulReverts (evm : EVM.State) (I : ExecutionEnv)
       (args := [.intLit ONE, .var "wad"])
       (argVals := [.int (Int.ofNat daiJoinONEWord.toNat), joinWadValue I])
       (callee := mulFunction)
-      (locals := daiJoinUintBinaryLocals daiJoinONEWord (joinWadWord I))
+      (locals := uintBinaryLocals daiJoinONEWord (joinWadWord I))
       (evalExprs_daiJoinJoinMulArgs evm I) hlookupMul hbindMul
       (execDaiJoinMulFunctionRevert evm (x := daiJoinONEWord) (y := joinWadWord I) hover)
   have hblock :
@@ -178,8 +178,8 @@ theorem daiJoinJoinInternalMulReturns (evm : EVM.State) (I : ExecutionEnv)
   have hbindMul :
       bindParams? mulFunction.params
           [.int (Int.ofNat daiJoinONEWord.toNat), joinWadValue I] =
-        some (daiJoinUintBinaryLocals daiJoinONEWord (joinWadWord I)) := by
-    simp [mulFunction, uint256, bindParams?, daiJoinUintBinaryLocals, joinWadValue]
+        some (uintBinaryLocals daiJoinONEWord (joinWadWord I)) := by
+    simp [mulFunction, uint256, bindParams?, uintBinaryLocals, joinWadValue]
   have hbody :=
     execDaiJoinMulFunctionReturn evm
       (x := daiJoinONEWord) (y := joinWadWord I)
@@ -193,10 +193,10 @@ theorem daiJoinJoinInternalMulReturns (evm : EVM.State) (I : ExecutionEnv)
       (args := [.intLit ONE, .var "wad"])
       (argVals := [.int (Int.ofNat daiJoinONEWord.toNat), joinWadValue I])
       (callee := mulFunction)
-      (locals := daiJoinUintBinaryLocals daiJoinONEWord (joinWadWord I))
+      (locals := uintBinaryLocals daiJoinONEWord (joinWadWord I))
       (calleeSolm :=
         { contract := contract,
-          locals := daiJoinUintBinaryLocalsZ daiJoinONEWord (joinWadWord I)
+          locals := uintBinaryLocalsZ daiJoinONEWord (joinWadWord I)
             (daiJoinRadWord (joinWadWord I)) })
       (value := some [.int (Int.ofNat (daiJoinRadWord (joinWadWord I)).toNat)])
       (evalExprs_daiJoinJoinMulArgs evm I) hlookupMul hbindMul hbody
@@ -275,9 +275,9 @@ theorem evalExpr_daiJoinVatStorage {evm : EVM.State} {locals : Store}
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by rfl)
     (by
-      simpa [daiJoinVatAddress, daiJoinVatTargetWord, daiJoinAddressReturnWord,
-        daiJoinSlotWord] using
-        daiJoinStorageLocLoad_address_offset0 evm ⟨1⟩)
+      simpa [daiJoinVatAddress, daiJoinVatTargetWord, solcAddressSlotWord,
+        solcSlotWordAt] using
+        storageLocLoad_address_offset0 evm ⟨1⟩)
 
 theorem evalExpr_daiJoinVatCodeGuard_false {evm : EVM.State} {locals : Store}
     (hvat :
@@ -353,9 +353,9 @@ theorem evalExpr_daiJoinDaiStorage {evm : EVM.State} {locals : Store}
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by rfl)
     (by
-      simpa [daiJoinDaiAddress, daiJoinDaiTargetWord, daiJoinAddressReturnWord,
-        daiJoinSlotWord] using
-        daiJoinStorageLocLoad_address_offset0 evm ⟨2⟩)
+      simpa [daiJoinDaiAddress, daiJoinDaiTargetWord, solcAddressSlotWord,
+        solcSlotWordAt] using
+        storageLocLoad_address_offset0 evm ⟨2⟩)
 
 theorem evalExpr_daiJoinDaiCodeGuard_false {evm : EVM.State} {locals : Store}
     (hdai :
@@ -533,11 +533,11 @@ theorem daiJoinJoinDaiBurnNoCodeAfterVatReverts (evm evmVat : EVM.State)
     refine ExecBlock.consNormal
       (ExecStmt.externalCallSuccess (sendVal := 0) (perm := true)
         hvat (by simp [evalExpr?, pure]) hmoveArgs hcallMove hmoveDecode) ?_
-    exact checkedExternalCallNoCode
+    exact execBlockAppendReverted (checkedExternalCallNoCode
       (cfg := config) (C := contract) (evm := evmVat)
       (locals := joinAfterMoveStore I) (receiver := .storage daiRef)
       (retVar := "burnRet") (name := "burn") (sendVal := 0)
-      (args := [sender, .var "wad"]) (perm := true) hdaiGuard
+      (args := [sender, .var "wad"]) (perm := true) hdaiGuard)
   simpa [ExecTransitionBody, joinAfterMoveStore] using ExecFuncBody.execBlockRevert hblock
 
 theorem daiJoinJoinDaiBurnCallFailedAfterVatReverts (evm evmVat evmBurn : EVM.State)
@@ -615,17 +615,25 @@ theorem daiJoinJoinDaiBurnCallFailedAfterVatReverts (evm evmVat evmBurn : EVM.St
     refine ExecBlock.consNormal
       (ExecStmt.externalCallSuccess (sendVal := 0) (perm := true)
         hvat (by simp [evalExpr?, pure]) hmoveArgs hcallMove hmoveDecode) ?_
-    exact checkedExternalCallFailure
+    exact execBlockAppendReverted (checkedExternalCallFailure
       (cfg := config) (C := contract) (evm := evmVat) (evm' := evmBurn)
       (locals := joinAfterMoveStore I) (receiver := .storage daiRef)
       (retVar := "burnRet") (name := "burn")
       (target := daiJoinDaiAddress evmVat.accountMap evmVat.executionEnv)
       (sendVal := 0) (args := [sender, .var "wad"])
       (argVals := [.address evmVat.executionEnv.source, joinWadValue I])
-      (out := outBurn) (perm := true) hdaiGuard hdai hburnArgs hcallBurn
+      (out := outBurn) (perm := true) hdaiGuard hdai hburnArgs hcallBurn)
   simpa [ExecTransitionBody, joinAfterMoveStore] using ExecFuncBody.execBlockRevert hblock
 
-theorem daiJoinJoinDaiBurnSuccessAfterVatReturns (evm evmVat evmBurn : EVM.State)
+theorem evalExprs_daiJoinJoinEvent (evm : EVM.State) (I : ExecutionEnv) :
+    evalExprs? config
+      { contract := contract,
+        locals := (joinAfterMoveStore I).insert "burnRet" (collapseReturns []) }
+      evm [.var "usr", .var "wad"] = .ok [joinUsrValue I, joinWadValue I] := by
+  simp [evalExprs?, evalExpr?, joinAfterMoveStore, joinRadStore, joinStore,
+    EvalResult.ofOption, EvalResult.bind, bind, pure, Std.HashMap.getElem_insert]
+
+theorem daiJoinJoinDaiBurnSuccessAfterVatReturnsSplit (evm evmVat evmBurn : EVM.State)
     (I : ExecutionEnv) (outMove outBurn : ByteArray)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hfit : daiJoinONEWord.toNat * (joinWadWord I).toNat < UInt256.size)
@@ -647,11 +655,14 @@ theorem daiJoinJoinDaiBurnSuccessAfterVatReturns (evm evmVat evmBurn : EVM.State
         (EVM.address (daiJoinDaiAddress evmVat.accountMap evmVat.executionEnv)) "burn" 0
         [.address evmVat.executionEnv.source, joinWadValue I]
         (true, evmBurn, outBurn) true) :
-    ExecTransitionBody config contract evm (joinStore I) joinTransition.body
+    (ExecTransitionBody config contract evm (joinStore I) joinTransition.body
       (.returned
         { contract := contract,
           locals := (joinAfterMoveStore I).insert "burnRet" (collapseReturns []) }
-        evmBurn none) := by
+        evmBurn none)) ∧
+      (evmBurn.executionEnv.perm = false →
+        ExecTransitionBody config contract evm (joinStore I)
+          joinTransition.body .staticViolation) := by
   have hmulStmt :=
     daiJoinJoinInternalMulReturns evm I hfit
   have hvat :
@@ -695,13 +706,13 @@ theorem daiJoinJoinDaiBurnSuccessAfterVatReturns (evm evmVat evmBurn : EVM.State
     evalExprs_daiJoinJoinDaiBurnArgs evmVat I
   have hburnDecode : config.externalABI.decode? "burn" outBurn = some [] := by
     simp [config, externalABI, decodeVoid?]
-  have hblock :
+  have hprefix {result : ExecResult}
+      (hlog : ExecBlock config
+        { contract := contract,
+          locals := (joinAfterMoveStore I).insert "burnRet" (collapseReturns []) }
+        evmBurn [.emit "Join" [.var "usr", .var "wad"]] result) :
       ExecBlock config { contract := contract, locals := joinStore I } evm
-        joinTransition.body
-        (.ok
-          { contract := contract,
-            locals := (joinAfterMoveStore I).insert "burnRet" (collapseReturns []) }
-          evmBurn) := by
+        joinTransition.body result := by
     simp only [joinTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
       List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -710,7 +721,7 @@ theorem daiJoinJoinDaiBurnSuccessAfterVatReturns (evm evmVat evmBurn : EVM.State
     refine ExecBlock.consNormal
       (ExecStmt.externalCallSuccess (sendVal := 0) (perm := true)
         hvat (by simp [evalExpr?, pure]) hmoveArgs hcallMove hmoveDecode) ?_
-    exact checkedExternalCallSuccess
+    exact execBlock_append_ok (checkedExternalCallSuccess
       (cfg := config) (C := contract) (evm := evmVat) (evm' := evmBurn)
       (locals := joinAfterMoveStore I) (receiver := .storage daiRef)
       (retVar := "burnRet") (name := "burn")
@@ -718,14 +729,20 @@ theorem daiJoinJoinDaiBurnSuccessAfterVatReturns (evm evmVat evmBurn : EVM.State
       (sendVal := 0) (args := [sender, .var "wad"])
       (argVals := [.address evmVat.executionEnv.source, joinWadValue I])
       (out := outBurn) (perm := true) (value := [])
-      hdaiGuard hdai hburnArgs hcallBurn hburnDecode
-  simpa [ExecTransitionBody, joinAfterMoveStore] using ExecFuncBody.execBlockOK hblock
+      hdaiGuard hdai hburnArgs hcallBurn hburnDecode) hlog
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal
+        (ExecStmt.emit (evalExprs_daiJoinJoinEvent evmBurn I)) ExecBlock.nil))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic
+        (ExecStmt.emitStatic (evalExprs_daiJoinJoinEvent evmBurn I) hperm)))
 
 theorem daiJoinJoinVatMoveCallFailedCore
     {σ σ' σ₀ A I} {g sel gasWord : UInt256}
     {Ain : Substate} {out : ByteArray} {k C : ℕ}
     (hcode : I.code = daiJoinBytecode)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some joinTransition)
     (hdecode :
@@ -779,8 +796,10 @@ theorem daiJoinJoinVatMoveCallFailedCore
           gasWord (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
-          (evmE.executionEnv.depth + 1) evmE.executionEnv.header evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks true := by
-    simpa [evmE, initState, hperm] using hΘ
+          (evmE.executionEnv.depth + 1) evmE.executionEnv.header
+          evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks
+          evmE.executionEnv.perm := by
+    simpa [evmE, initState] using hΘ
   have hcallSolm := callCoincides
       (cfg := config) (evm := evmS)
       (tgt := EVM.address (daiJoinVatAddress σ I))
@@ -812,7 +831,6 @@ theorem daiJoinJoinDaiBurnNoCodeCore
     {σ σ' σ₀ A I} {g sel gasWord : UInt256}
     {Ain : Substate} {out : ByteArray} {k C : ℕ}
     (hcode : I.code = daiJoinBytecode)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some joinTransition)
     (hdecode :
@@ -867,8 +885,10 @@ theorem daiJoinJoinDaiBurnNoCodeCore
           gasWord (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
-          (evmE.executionEnv.depth + 1) evmE.executionEnv.header evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks true := by
-    simpa [evmE, initState, hperm] using hΘ
+          (evmE.executionEnv.depth + 1) evmE.executionEnv.header
+          evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks
+          evmE.executionEnv.perm := by
+    simpa [evmE, initState] using hΘ
   have hcallSolm := callCoincides
       (cfg := config) (evm := evmS)
       (tgt := EVM.address (daiJoinVatAddress σ I))
@@ -904,7 +924,6 @@ theorem daiJoinJoinDaiBurnCallFailedCore
     {σ σ' σ'' σ₀ A I} {g sel gasWord burnGas : UInt256}
     {Ain burnAin : Substate} {out outBurn : ByteArray} {k C : ℕ}
     (hcode : I.code = daiJoinBytecode)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some joinTransition)
     (hdecode :
@@ -971,8 +990,10 @@ theorem daiJoinJoinDaiBurnCallFailedCore
           gasWord (UInt256.ofNat evmS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
-          (evmS.executionEnv.depth + 1) evmS.executionEnv.header evmS.executionEnv.blobVersionedHashes evmS.executionEnv.blocks true := by
-    simpa [evmS, initState, hperm] using hΘMove
+          (evmS.executionEnv.depth + 1) evmS.executionEnv.header
+          evmS.executionEnv.blobVersionedHashes evmS.executionEnv.blocks
+          evmS.executionEnv.perm := by
+    simpa [evmS, initState] using hΘMove
   have hcallMoveSolm := callCoincides
       (cfg := config) (evm := evmS)
       (tgt := EVM.address (daiJoinVatAddress σ I))
@@ -1007,8 +1028,10 @@ theorem daiJoinJoinDaiBurnCallFailedCore
           ((joinBurnCalldataMem I
             (joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem)).readWithPadding
               128 68)
-          (evmVatS.executionEnv.depth + 1) evmVatS.executionEnv.header evmVatS.executionEnv.blobVersionedHashes evmVatS.executionEnv.blocks true := by
-    simpa [evmVatS, evmS, initState, hperm] using hΘBurn
+          (evmVatS.executionEnv.depth + 1) evmVatS.executionEnv.header
+          evmVatS.executionEnv.blobVersionedHashes evmVatS.executionEnv.blocks
+          evmVatS.executionEnv.perm := by
+    simpa [evmVatS, evmS, initState] using hΘBurn
   have hburnMemSize :
       (joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem).size = 228 :=
     joinMoveCalldataMem_size I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem_size
@@ -1054,7 +1077,6 @@ theorem daiJoinJoinDaiBurnSuccessCore
     {σ σ' σ'' σ₀ A I} {g sel gasWord burnGas : UInt256}
     {Ain burnAin : Substate} {out outBurn : ByteArray} {k C : ℕ}
     (hcode : I.code = daiJoinBytecode)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some joinTransition)
     (hdecode :
@@ -1116,14 +1138,17 @@ theorem daiJoinJoinDaiBurnSuccessCore
           64 32 =
         UInt256.toByteArray ⟨128⟩ :=
     joinBurnCalldataMem_read64 I hmoveMemSize hmoveRead64
-  have hret : RDret daiJoinBytecode (Sat256.ofUInt256 g) evmS σ'' ByteArray.empty := by
+  have hretSplit :
+      (I.perm = true ∧ RDret daiJoinBytecode (Sat256.ofUInt256 g)
+        evmS σ'' ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic daiJoinBytecode (Sat256.ofUInt256 g) evmS) := by
     simpa [evmS] using
-      daiJoinJoinDaiBurnSuccessTail
+      daiJoinJoinDaiBurnSuccessTailSplit
         (σ := σ) (σ₀ := σ₀)
         (σd := σ') (A := A) (I := I) (g := g) (sel := sel)
         (mem := joinBurnCalldataMem I
           (joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem))
-        (rdata := outBurn) (acc := σ'') hperm hburnMemSize hburnRead64
+        (rdata := outBurn) (acc := σ'') hburnMemSize hburnRead64
         (by simpa using rd705)
   have hvatCodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ (daiJoinVatTargetWord σ I) ≠ ⟨0⟩ :=
@@ -1147,8 +1172,10 @@ theorem daiJoinJoinDaiBurnSuccessCore
           gasWord (UInt256.ofNat evmS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
-          (evmS.executionEnv.depth + 1) evmS.executionEnv.header evmS.executionEnv.blobVersionedHashes evmS.executionEnv.blocks true := by
-    simpa [evmS, initState, hperm] using hΘMove
+          (evmS.executionEnv.depth + 1) evmS.executionEnv.header
+          evmS.executionEnv.blobVersionedHashes evmS.executionEnv.blocks
+          evmS.executionEnv.perm := by
+    simpa [evmS, initState] using hΘMove
   have hcallMoveSolm := callCoincides
       (cfg := config) (evm := evmS)
       (tgt := EVM.address (daiJoinVatAddress σ I))
@@ -1183,8 +1210,10 @@ theorem daiJoinJoinDaiBurnSuccessCore
           ((joinBurnCalldataMem I
             (joinMoveCalldataMem I (daiJoinRadWord (joinWadWord I)) solcFreePtrMem)).readWithPadding
               128 68)
-          (evmVatS.executionEnv.depth + 1) evmVatS.executionEnv.header evmVatS.executionEnv.blobVersionedHashes evmVatS.executionEnv.blocks true := by
-    simpa [evmVatS, evmS, initState, hperm] using hΘBurn
+          (evmVatS.executionEnv.depth + 1) evmVatS.executionEnv.header
+          evmVatS.executionEnv.blobVersionedHashes evmVatS.executionEnv.blocks
+          evmVatS.executionEnv.perm := by
+    simpa [evmVatS, evmS, initState] using hΘBurn
   have hcallBurnAligned := callCoincides
       (cfg := config) (evm := evmVatS)
       (tgt := EVM.address (daiJoinDaiAddress σ' I))
@@ -1210,31 +1239,34 @@ theorem daiJoinJoinDaiBurnSuccessCore
     simpa [evmVatS, evmS, initState] using hcallBurnAligned
   let evmBurnS : EVM.State :=
     { evmVatS with accountMap := σ'', substate := ABurn' }
-  have hbody :
-      ExecTransitionBody config contract evmS (joinStore I) joinTransition.body
+  have hbodySplit :
+      (ExecTransitionBody config contract evmS (joinStore I) joinTransition.body
         (.returned
           { contract := contract,
             locals := (joinAfterMoveStore I).insert "burnRet" (collapseReturns []) }
-          evmBurnS none) := by
+          evmBurnS none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evmS (joinStore I)
+        joinTransition.body .staticViolation) := by
     simpa [evmS, evmVatS, evmBurnS, initState] using
-      (daiJoinJoinDaiBurnSuccessAfterVatReturns
+      (daiJoinJoinDaiBurnSuccessAfterVatReturnsSplit
         (evm := evmS) (evmVat := evmVatS) (evmBurn := evmBurnS)
         (I := I) (outMove := out) (outBurn := outBurn)
         (by simpa [evmS, initState] using hwv) hfit hvatCodeSizeSolm
         (by simpa [evmS, evmVatS, initState] using hcallMoveSolm)
         (by simpa [evmVatS, evmS, initState] using hdaiCodeSizeSolm)
         hcallBurnSolm)
-  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
-    (by rfl)
-    (by
-      simpa [joinTransition] using
-        (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-          (dvs := []) rfl (by native_decide) (by native_decide)))
+  rcases hretSplit with ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+  · exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
+      (by rfl)
+      (by
+        simpa [joinTransition] using
+          (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
+            (dvs := []) rfl (by native_decide) (by native_decide)))
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
 
 theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiJoinBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiJoinSelBytes 4)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -1288,7 +1320,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
               (σ := σ) (σ' := σ')
               (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := daiJoinSelWord I)
               (gasWord := gasWord) (Ain := Ain) (out := out) (k := k') (C := C')
-              hcode hperm hwv hdispatch hdecode hfit hvatCode hdepthLt
+              hcode hwv hdispatch hdecode hfit hvatCode hdepthLt
               (by simpa using rd580) hΘ hout
           · obtain ⟨_, _, rd598⟩ :=
               daiJoinJoinVatMoveCallSucceeded (by simpa using rd580)
@@ -1299,7 +1331,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
                 (σ := σ) (σ' := σ')
                 (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := daiJoinSelWord I)
                 (gasWord := gasWord) (Ain := Ain) (out := out)
-                hcode hperm hwv hdispatch hdecode hfit hvatCode hdaiCode hdepthLt
+                hcode hwv hdispatch hdecode hfit hvatCode hdaiCode hdepthLt
                 (by simpa using rd598) hΘ
             · obtain ⟨_burnGasWord, _, _, rd686⟩ :=
                 daiJoinJoinDaiBurnCallReady (by simpa using rd598) hdaiCode
@@ -1313,7 +1345,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
                   (gasWord := gasWord) (burnGas := burnCallGas)
                   (Ain := Ain) (burnAin := burnAin) (out := out) (outBurn := outBurn)
                   (k := kBurn) (C := CBurn)
-                  hcode hperm hwv hdispatch hdecode hfit hvatCode hdaiCode
+                  hcode hwv hdispatch hdecode hfit hvatCode hdaiCode
                   hdepthLt (by simpa using rd687) hΘ hΘBurn houtBurn
               · exact daiJoinJoinDaiBurnSuccessCore
                   (σ := σ) (σ' := σ') (σ'' := σ'')
@@ -1321,7 +1353,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
                   (gasWord := gasWord) (burnGas := burnCallGas)
                   (Ain := Ain) (burnAin := burnAin) (out := out) (outBurn := outBurn)
                   (k := kBurn) (C := CBurn)
-                  hcode hperm hwv hdispatch hdecode hfit hvatCode hdaiCode
+                  hcode hwv hdispatch hdecode hfit hvatCode hdaiCode
                   hdepthLt (by simpa using rd687) hΘ hΘBurn
         · have hdepthEq : I.depth = 1024 := by
             apply Fin.ext
@@ -1382,7 +1414,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
           Or.inr hguard
         obtain ⟨_, _, rd490⟩ := daiJoinJoinMulSuccess hmulOk rd449
         have hfit : daiJoinONEWord.toNat * (joinWadWord I).toNat < UInt256.size :=
-          daiJoinMulFit_of_guard hguard
+          mulFit_of_guard hguard
         by_cases hvatCode :
             Reasoning.Theory.extCodeSizeWord σ
               (daiJoinVatTargetWord σ I) = ⟨0⟩
@@ -1413,7 +1445,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
                 (σ := σ) (σ' := σ')
                 (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := daiJoinSelWord I)
                 (gasWord := gasWord) (Ain := Ain) (out := out) (k := k') (C := C')
-                hcode hperm hwv hdispatch hdecode hfit hvatCode hdepthLt
+                hcode hwv hdispatch hdecode hfit hvatCode hdepthLt
                 (by simpa using rd580) hΘ hout
             · obtain ⟨_, _, rd598⟩ :=
                 daiJoinJoinVatMoveCallSucceeded (by simpa using rd580)
@@ -1425,7 +1457,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
                   (σ := σ) (σ' := σ')
                   (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := daiJoinSelWord I)
                   (gasWord := gasWord) (Ain := Ain) (out := out)
-                  hcode hperm hwv hdispatch hdecode hfit hvatCode hdaiCode hdepthLt
+                  hcode hwv hdispatch hdecode hfit hvatCode hdaiCode hdepthLt
                   (by simpa using rd598) hΘ
               · obtain ⟨_burnGasWord, _, _, rd686⟩ :=
                   daiJoinJoinDaiBurnCallReady (by simpa using rd598) hdaiCode
@@ -1440,7 +1472,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
                     (gasWord := gasWord) (burnGas := burnCallGas)
                     (Ain := Ain) (burnAin := burnAin) (out := out) (outBurn := outBurn)
                     (k := kBurn) (C := CBurn)
-                    hcode hperm hwv hdispatch hdecode hfit hvatCode hdaiCode
+                    hcode hwv hdispatch hdecode hfit hvatCode hdaiCode
                     hdepthLt (by simpa using rd687) hΘ hΘBurn houtBurn
                 · exact daiJoinJoinDaiBurnSuccessCore
 
@@ -1449,7 +1481,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
                     (gasWord := gasWord) (burnGas := burnCallGas)
                     (Ain := Ain) (burnAin := burnAin) (out := out) (outBurn := outBurn)
                     (k := kBurn) (C := CBurn)
-                    hcode hperm hwv hdispatch hdecode hfit hvatCode hdaiCode
+                    hcode hwv hdispatch hdecode hfit hvatCode hdaiCode
                     hdepthLt (by simpa using rd687) hΘ hΘBurn
           · have hdepthEq : I.depth = 1024 := by
               apply Fin.ext

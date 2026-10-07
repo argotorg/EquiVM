@@ -229,7 +229,7 @@ theorem RD.clipperTakeFluxCallbackElim
                   (UInt256.ofNat (164 + ABI.paddedSize dataLen.toNat)).toNat =
                     164 + ABI.paddedSize dataLen.toNat := by
                 apply ulit_toNat'
-                have hpad := clipperTake_paddedSize_le dataLen.toNat
+                have hpad := paddedSize_le_add31 dataLen.toNat
                 have hsmall : 164 + (4294967296 + 31) < UInt256.size := by
                   native_decide
                 omega
@@ -239,7 +239,7 @@ theorem RD.clipperTakeFluxCallbackElim
                 rw [hinSizeNat,
                   clipperTakeCallbackCalldataMem_size I owe slice dataLen dataStart
                     hmemVatSize hdataLen hpayloadEnd]
-                have hpad := clipperTake_paddedSize_le dataLen.toNat
+                have hpad := paddedSize_le_add31 dataLen.toNat
                 omega
               have hmemCbPost := clipperTakeMemoryWF_after_zero_output_call
                 (mem := clipperTakeCallbackCalldataMem I owe slice dataLen dataStart memVat)

@@ -224,13 +224,13 @@ theorem RD.clipperTakeVatMovePostCallWF {σ₀ σStart σ I}
   have hsize := hbaseMem.1
   have hMIn : UInt256.ofNat
       (MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat (⟨100⟩ : UInt256).toNat) = aw := by
-    apply clipperTakeM_same_of_cover
+    apply UInt256_M_same_of_cover_len
     rcases hbaseMem with ⟨_, _, hcover, _⟩
     change 228 ≤ aw.toNat * 32
     omega
   have hMOut : UInt256.ofNat
       (MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) = aw := by
-    apply clipperTakeM_same_of_cover
+    apply UInt256_M_same_of_cover_len
     rcases hbaseMem with ⟨_, _, hcover, _⟩
     change 128 ≤ aw.toNat * 32
     omega
@@ -251,7 +251,7 @@ theorem RD.clipperTakeVatMovePostCallWF {σ₀ σStart σ I}
         (⟨128⟩ : UInt256).toNat
         (min (⟨0⟩ : UInt256) (UInt256.ofNat outVat.size)).toNat =
         clipperTakeVatMoveCalldataMem σ I owe baseMem := by
-      simpa using clipperTakeZeroReturndataWrite_eq outVat
+      simpa using zeroReturndataWrite_eq outVat
         (clipperTakeVatMoveCalldataMem σ I owe baseMem)
     rw [hwrite] at rd4829raw
     rw [hactive] at rd4829raw
@@ -275,7 +275,7 @@ theorem RD.clipperTakeVatMovePostCallWF {σ₀ σStart σ I}
         rw [hI]
         decide)) ?_ ?_ ?_
     · rw [clipperTakeVatTargetAddress v]
-      exact clipperTakeEVMAddressAccountAddress v.vat
+      exact eVM_address_id v.vat
     · simpa using clipperTakeVatMoveEncode_eq_ge v σ I owe hsize
     · simpa [evmVat, initState, hperm] using hΘ
 

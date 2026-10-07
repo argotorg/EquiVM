@@ -631,7 +631,7 @@ theorem RD.cureLoadReturnDecodeOk {g : Sat256} {s0 : State}
     mem_cost hMload128Value (by decide) (by omega)
   exact ⟨_, _, rdMload128⟩
 
-theorem RD.cureLoadStoreAmt {g : Sat256} {s0 : State}
+theorem RD.cureLoadStoreAmtSplit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret newAmt oldAmt : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1643⟩
@@ -639,12 +639,13 @@ theorem RD.cureLoadStoreAmt {g : Sat256} {s0 : State}
       rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hmem : mem.size = 160)
-    (hperm : ee.perm = true)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ⟨1670⟩
-      (newAmt :: ⟨0⟩ :: oldAmt :: key :: ret :: R)
-      (twoWordHashMem key ⟨6⟩ mem) (UInt256.ofNat 5) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨6⟩ key) newAmt) k' C' := by
+    (ee.perm = true ∧
+      ∃ k' C', RD cureBytecode ee g s0 ⟨1670⟩
+        (newAmt :: ⟨0⟩ :: oldAmt :: key :: ret :: R)
+        (twoWordHashMem key ⟨6⟩ mem) (UInt256.ofNat 5) rdata
+        (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨6⟩ key) newAmt) k' C') ∨
+      (ee.perm = false ∧ RDstatic cureBytecode g s0) := by
   have hmask : UInt256.land solcAddrMask key = key :=
     solcAddrMask_clean_left hcanonKey
   have hmaskLiteral :
@@ -687,7 +688,14 @@ theorem RD.cureLoadStoreAmt {g : Sat256} {s0 : State}
   have rdStorePrefix := evm_run rdSlot with [
     raw dup2 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rdStore⟩ := rdStorePrefix.sstore hperm (by native_decide)
+  have hstoreDec : decode cureBytecode ⟨1669⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdStorePrefix.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rdStore⟩ := rdStorePrefix.sstore hperm hstoreDec
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa using rdStore⟩
 
@@ -992,7 +1000,7 @@ theorem RD.cureLoadEventReturn {g : Sat256} {s0 : State}
     raw swap1 (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  have rdLogged := RD.cureLog2 0 (UInt256.ofNat 5) rdLogPrefix
+  have rdLogged := RD.log2 0 (UInt256.ofNat 5) rdLogPrefix
     (by native_decide) hperm mem_cost (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rdPop := evm_run rdLogged with [

@@ -55,7 +55,7 @@ theorem flapBeforeDaiSuccess
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [evm0, initState, kissVatAddress, vowAddressReturnWord, vowSlotWord] using
+    simpa [evm0, initState, kissVatAddress, solcAddressSlotWord, solcSlotWordAt] using
       evalExpr_kissVatStorage (evm := evm0) (locals := locals) (by simp [locals])
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -185,7 +185,7 @@ theorem flapSourceDai0NoCode
     (hsurplusNeedFit : surplus0.toNat + HumpVal.toNat < UInt256.size)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatNoCodeDai :
       (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -208,7 +208,7 @@ theorem flapSourceDai0NoCode
   have hvatDai :
       evalExpr? config { contract := contract, locals := locals3 } evmSin (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [locals3, kissVatAddress, vowAddressReturnWord, hvatLoadSin] using
+    simpa [locals3, kissVatAddress, solcAddressSlotWord, hvatLoadSin] using
       evalExpr_kissVatStorage (evm := evmSin) (locals := locals3)
         (by simp [locals3, flapLocalsVatSin0Surplus0Need, flapLocalsVatSin0Surplus0,
           flapLocalsVatSin0])
@@ -257,7 +257,7 @@ theorem flapSourceDai0CallFailure
     (hsurplusNeedFit : surplus0.toNat + HumpVal.toNat < UInt256.size)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -283,7 +283,7 @@ theorem flapSourceDai0CallFailure
   have hvatDai :
       evalExpr? config { contract := contract, locals := locals3 } evmSin (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [locals3, kissVatAddress, vowAddressReturnWord, hvatLoadSin] using
+    simpa [locals3, kissVatAddress, solcAddressSlotWord, hvatLoadSin] using
       evalExpr_kissVatStorage (evm := evmSin) (locals := locals3)
         (by simp [locals3, flapLocalsVatSin0Surplus0Need, flapLocalsVatSin0Surplus0,
           flapLocalsVatSin0])
@@ -345,7 +345,7 @@ theorem flapSourceDai0DecodeRevert
     (hsurplusNeedFit : surplus0.toNat + HumpVal.toNat < UInt256.size)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -372,7 +372,7 @@ theorem flapSourceDai0DecodeRevert
   have hvatDai :
       evalExpr? config { contract := contract, locals := locals3 } evmSin (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [locals3, kissVatAddress, vowAddressReturnWord, hvatLoadSin] using
+    simpa [locals3, kissVatAddress, solcAddressSlotWord, hvatLoadSin] using
       evalExpr_kissVatStorage (evm := evmSin) (locals := locals3)
         (by simp [locals3, flapLocalsVatSin0Surplus0Need, flapLocalsVatSin0Surplus0,
           flapLocalsVatSin0])
@@ -447,7 +447,7 @@ theorem vowFlapDai0NoCodeBodyCore
     (hsurplusNeedFit : surplus0.toNat + HumpVal.toNat < UInt256.size)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatNoCodeDai :
       (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -500,7 +500,7 @@ theorem vowFlapDai0CallFailureBodyCore
     (hsurplusNeedFit : surplus0.toNat + HumpVal.toNat < UInt256.size)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -561,7 +561,7 @@ theorem vowFlapDai0DecodeShortBodyCore
     (hsurplusNeedFit : surplus0.toNat + HumpVal.toNat < UInt256.size)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -572,7 +572,7 @@ theorem vowFlapDai0DecodeShortBodyCore
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai.size)).toNat =
       outDai.size :=
-    kissDaiMin32_toNat_of_lt hshort
+    ctorMin32_toNat_of_lt hshort
   have rd1072' := rd1072
   rw [hmin] at rd1072'
   obtain ⟨_, _, rd1090⟩ :=

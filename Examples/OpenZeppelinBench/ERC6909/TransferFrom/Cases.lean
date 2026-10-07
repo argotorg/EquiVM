@@ -1001,5 +1001,149 @@ theorem erc6909TransferFromBodyRevertsNoAllowance_overflow
 
 /-! ## Generic scratch-memory helpers for `transferFrom` EVM tails -/
 
+/-! ### Static mode: each path halts at its first storage write -/
+
+/-- Allowance-debit path: the body halts at the allowance write. -/
+theorem erc6909TransferFromBodyStaticAllowanceDebit (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hallowanceGate :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .and
+          (.binary .ne (.var "sender") sender)
+          (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+          .ok (.bool true))
+    (hallowanceNotMax :
+      evalExpr? config
+        { contract := contract, locals := transferFromStoreCurrentAllowance evm I } evm
+        (.binary .lt (.var "currentAllowance") maxUint256Lit) = .ok (.bool true))
+    (hallowanceEnough : (transferFromAmountWord I).toNat ≤
+      (transferFromCurrentAllowanceWord evm I).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .staticViolation := by
+  have hge := evalExpr_transferFrom_allowance_ge_true evm I hallowanceEnough
+  have hdebit := evalExpr_transferFrom_allowance_debit evm I hallowanceEnough
+  have hassign := transferFromAssignAllowance evm I
+  rw [transferFromStoreCurrentAllowance] at hallowanceNotMax hge hdebit hassign
+  refine ExecFuncBody.execBlockStatic ?_
+  dsimp [transferFromTransition]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consStatic (ExecStmt.iteTrue hallowanceGate ?_)
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+  refine ExecBlock.consStatic (ExecStmt.iteTrue hallowanceNotMax ?_)
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hge) ?_
+  exact ExecBlock.consStatic (ExecStmt.assignStatic hdebit hassign hperm)
+
+set_option maxHeartbeats 50000000 in
+/-- After the allowance phase, the body halts at the sender debit. -/
+theorem erc6909TransferFromAfterAllowanceStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hsenderNonzero :
+      evalExpr? config { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+        evm (.binary .ne (.var "sender") zeroAddr) = .ok (.bool true))
+    (hreceiverNonzero :
+      evalExpr? config { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+        evm (.binary .ne (.var "receiver") zeroAddr) = .ok (.bool true))
+    (hbalanceEnough : (transferFromAmountWord I).toNat ≤
+      (transferFromSenderBalanceWord evm I).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecBlock config
+      { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+      evm transferFromAfterAllowanceBody .staticViolation := by
+  dsimp [transferFromAfterAllowanceBody]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hsenderNonzero) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hreceiverNonzero) ?_
+  have hbase : "_balances" ∉ transferFromStoreCurrentAllowance evm I := by
+    simp [transferFromStoreCurrentAllowance, transferFromStore]
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl
+      (evalExpr_transferFrom_tail_sender_balance_of_get
+        (transferFromStoreCurrentAllowance evm I) evm I
+        (transferFromStoreCurrentAllowance_sender evm I)
+        (transferFromStoreCurrentAllowance_id evm I) hbase)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_tail_sender_balance_ge_true_of_get
+        (transferFromStoreCurrentAllowance evm I) evm I
+        (transferFromStoreCurrentAllowance_amount evm I) hbalanceEnough)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic
+      (evalExpr_transferFrom_tail_sender_debit_of_get
+        (transferFromStoreCurrentAllowance evm I) evm I
+        (transferFromStoreCurrentAllowance_amount evm I) hbalanceEnough)
+      (transferFromTailAssignSenderBalance_of_get
+        (transferFromStoreCurrentAllowance evm I) evm I
+        (transferFromStoreCurrentAllowance_sender evm I)
+        (transferFromStoreCurrentAllowance_id evm I) hbase)
+      hperm)
+
+set_option maxHeartbeats 12000000 in
+/-- Unlimited-allowance path: the body halts at the sender debit. -/
+theorem erc6909TransferFromBodyStaticAllowanceMax (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hallowanceGate :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .and
+          (.binary .ne (.var "sender") sender)
+          (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+          .ok (.bool true))
+    (hallowanceMax :
+      evalExpr? config
+        { contract := contract, locals := transferFromStoreCurrentAllowance evm I } evm
+        (.binary .lt (.var "currentAllowance") maxUint256Lit) = .ok (.bool false))
+    (hsenderNonzero :
+      evalExpr? config { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+        evm (.binary .ne (.var "sender") zeroAddr) = .ok (.bool true))
+    (hreceiverNonzero :
+      evalExpr? config { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+        evm (.binary .ne (.var "receiver") zeroAddr) = .ok (.bool true))
+    (hbalanceEnough : (transferFromAmountWord I).toNat ≤
+      (transferFromSenderBalanceWord evm I).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .staticViolation :=
+  ExecFuncBody.execBlockStatic
+    (erc6909TransferFromAllowanceMaxPrefixBlock evm I hwv hallowanceGate hallowanceMax
+      (erc6909TransferFromAfterAllowanceStatic evm I hsenderNonzero hreceiverNonzero
+        hbalanceEnough hperm))
+
+/-- No-allowance paths (caller is the owner, or an approved operator): the body halts at the
+    sender debit. -/
+theorem erc6909TransferFromBodyStaticNoAllowance (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hallowanceGate :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .and
+          (.binary .ne (.var "sender") sender)
+          (.unary .not (.storage (operatorApprovalRef (.var "sender") sender)))) =
+          .ok (.bool false))
+    (hsenderNonzero :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .ne (.var "sender") zeroAddr) = .ok (.bool true))
+    (hreceiverNonzero :
+      evalExpr? config { contract := contract, locals := transferFromStore I } evm
+        (.binary .ne (.var "receiver") zeroAddr) = .ok (.bool true))
+    (hbalanceEnough : (transferFromAmountWord I).toNat ≤
+      (transferFromSenderBalanceWord evm I).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  dsimp [transferFromTransition]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.iteFalse (result := .ok
+      ({ contract := contract, locals := transferFromStore I } : Frame) evm)
+      hallowanceGate ?_) ?_
+  · exact ExecBlock.nil
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hsenderNonzero) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hreceiverNonzero) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_tail_sender_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_tail_sender_balance_ge_true evm I hbalanceEnough)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_transferFrom_tail_sender_debit evm I hbalanceEnough)
+      (transferFromTailAssignSenderBalance evm I) hperm)
 
 end OpenZeppelinBench.ERC6909

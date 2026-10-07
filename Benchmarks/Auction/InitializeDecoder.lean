@@ -104,6 +104,6 @@ theorem initializeDecoderBadLength {I g s0 ret R mem aw rdata acc k C}
   exact evm_run h with [
     jumpdest, push0, dup1, push0, dup1, push0, dup1, push1 ⟨192⟩, dup8, dup10, sub, slt,
     iszero, push2 ⟨5421⟩, jumpiNT (by rw [hcheck]; decide),
-    raw auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
+    raw solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 end Auction

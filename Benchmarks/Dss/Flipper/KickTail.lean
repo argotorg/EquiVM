@@ -137,7 +137,7 @@ theorem test_flipperKickX_toEndStore {σ I} {g : Sat256} {s0 : State}
             (solcSlotWord (kickAfterGuyMap σ I) I (bidBaseOfWord (kickIdWord σ I) + ⟨2⟩))
             (kickNow I + kickTauWord (kickAfterGuyMap σ I) I)
       _ = kickEndStoredWord (kickIdWord σ I) (kickAfterGuyMap σ I) I := by
-          rw [kickEndStoredWord, flipperSlotWord]
+          rw [kickEndStoredWord, solcSlotWordAt]
           change setUint48Offset26Word
               (solcSlotWord (kickAfterGuyMap σ I) I (bidBaseOfWord (kickIdWord σ I) + ⟨2⟩))
               (UInt256.land (kickNow I + kickTauWord (kickAfterGuyMap σ I) I) uint48Mask) =
@@ -256,7 +256,7 @@ theorem test_flipperKickX_toUsrStore {σ I} {g : Sat256} {s0 : State}
           (kickUsrKey I) := by
           rfl
       _ = kickUsrStoredWord σ I := by
-          rw [kickUsrStoredWord, flipperSlotWord]
+          rw [kickUsrStoredWord, solcSlotWordAt]
   rw [hmask160] at rd2325
   rw [hstoredRaw] at rd2325
   obtain ⟨k2326, C2326, rd2326⟩ : ∃ k' C',
@@ -362,7 +362,7 @@ theorem test_flipperKickX_toGalStore {σ I} {g : Sat256} {s0 : State}
           (kickGalKey I) := by
           rfl
       _ = kickGalStoredWord σ I := by
-          rw [kickGalStoredWord, flipperSlotWord]
+          rw [kickGalStoredWord, solcSlotWordAt]
   rw [hstoredRaw] at rd2345
   obtain ⟨k2346, C2346, rd2346raw⟩ := rd2345.sstore hperm (by native_decide) (by evm_ov)
   exact ⟨k2346, C2346, by
@@ -412,14 +412,14 @@ theorem test_flipperKickX_toVatCallMem {σ I} {g : Sat256} {s0 : State}
         kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickFieldHashMem σ I) (UInt256.ofNat 3) out (kickAfterTabMap σ I) k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨2393⟩
-      [flipperSlotWord ⟨2⟩ (kickAfterTabMap σ I) I, ⟨128⟩, ⟨64⟩, ⟨0⟩,
+      [solcSlotWordAt ⟨2⟩ (kickAfterTabMap σ I) I, ⟨128⟩, ⟨64⟩, ⟨0⟩,
         solcAddrMask, kickIdWord σ I, kickBid I, kickLot I, kickTab I,
         kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickVatFluxCallMem σ (kickAfterTabMap σ I) I) (UInt256.ofNat 9) out
       (kickAfterTabMap σ I) k' C' := by
   let σcall := kickAfterTabMap σ I
-  let rawVat := flipperSlotWord ⟨2⟩ σcall I
-  let rawIlk := flipperSlotWord ⟨3⟩ σcall I
+  let rawVat := solcSlotWordAt ⟨2⟩ σcall I
+  let rawIlk := solcSlotWordAt ⟨3⟩ σcall I
   have hmload64Field :
       (if (⟨64⟩ : UInt256).toNat ≥ (kickFieldHashMem σ I).size then ⟨0⟩
        else UInt256.ofNat
@@ -435,7 +435,7 @@ theorem test_flipperKickX_toVatCallMem {σ I} {g : Sat256} {s0 : State}
       [rawVat, ⟨3⟩, ⟨4⟩, ⟨64⟩, ⟨0⟩, solcAddrMask, kickIdWord σ I, kickBid I,
         kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickFieldHashMem σ I) (UInt256.ofNat 3) out σcall k2356 C2356 := by
-    simpa [rawVat, σcall, flipperSlotWord, solcSlotWord] using rd2356raw
+    simpa [rawVat, σcall, solcSlotWordAt, solcSlotWord] using rd2356raw
   have rd2357 := evm_run rd2356 with [
     raw swap1 (by native_decide) (by evm_ov)]
   obtain ⟨k2358, C2358, rd2358raw⟩ := rd2357.sload (by native_decide) (by evm_ov)
@@ -443,7 +443,7 @@ theorem test_flipperKickX_toVatCallMem {σ I} {g : Sat256} {s0 : State}
       [rawIlk, rawVat, ⟨4⟩, ⟨64⟩, ⟨0⟩, solcAddrMask, kickIdWord σ I, kickBid I,
         kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickFieldHashMem σ I) (UInt256.ofNat 3) out σcall k2358 C2358 := by
-    simpa [rawIlk, σcall, flipperSlotWord, solcSlotWord] using rd2358raw
+    simpa [rawIlk, σcall, solcSlotWordAt, solcSlotWord] using rd2358raw
   have rd2374 := evm_run rd2358 with [
     raw dup4 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
@@ -495,19 +495,19 @@ theorem test_flipperKickX_toVatCallMem {σ I} {g : Sat256} {s0 : State}
 theorem test_flipperKickX_fromVatCallMemToVatMload {σ I}
     {g : Sat256} {s0 : State} {k C : ℕ} {out : ByteArray} {sel : UInt256}
     (h : RD flipperBytecode I g s0 ⟨2393⟩
-      [flipperSlotWord ⟨2⟩ (kickAfterTabMap σ I) I, ⟨128⟩, ⟨64⟩, ⟨0⟩,
+      [solcSlotWordAt ⟨2⟩ (kickAfterTabMap σ I) I, ⟨128⟩, ⟨64⟩, ⟨0⟩,
         solcAddrMask, kickIdWord σ I, kickBid I, kickLot I, kickTab I,
         kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickVatFluxCallMem σ (kickAfterTabMap σ I) I) (UInt256.ofNat 9) out
       (kickAfterTabMap σ I) k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨2395⟩
-      [⟨128⟩, ⟨128⟩, flipperSlotWord ⟨2⟩ (kickAfterTabMap σ I) I, ⟨0⟩,
+      [⟨128⟩, ⟨128⟩, solcSlotWordAt ⟨2⟩ (kickAfterTabMap σ I) I, ⟨0⟩,
         solcAddrMask, kickIdWord σ I, kickBid I, kickLot I, kickTab I,
         kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickVatFluxCallMem σ (kickAfterTabMap σ I) I) (UInt256.ofNat 9) out
       (kickAfterTabMap σ I) k' C' := by
   let σcall := kickAfterTabMap σ I
-  let rawVat := flipperSlotWord ⟨2⟩ σcall I
+  let rawVat := solcSlotWordAt ⟨2⟩ σcall I
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥ (kickVatFluxCallMem σ σcall I).size then ⟨0⟩
        else UInt256.ofNat
@@ -531,7 +531,7 @@ theorem test_flipperKickX_fromVatCallMemToVatMload {σ I}
 theorem test_flipperKickX_fromVatMloadToMaskedTarget {σ I}
     {g : Sat256} {s0 : State} {k C : ℕ} {out : ByteArray} {sel : UInt256}
     (h : RD flipperBytecode I g s0 ⟨2395⟩
-      [⟨128⟩, ⟨128⟩, flipperSlotWord ⟨2⟩ (kickAfterTabMap σ I) I, ⟨0⟩,
+      [⟨128⟩, ⟨128⟩, solcSlotWordAt ⟨2⟩ (kickAfterTabMap σ I) I, ⟨0⟩,
         solcAddrMask, kickIdWord σ I, kickBid I, kickLot I, kickTab I,
         kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickVatFluxCallMem σ (kickAfterTabMap σ I) I) (UInt256.ofNat 9) out
@@ -543,9 +543,9 @@ theorem test_flipperKickX_fromVatMloadToMaskedTarget {σ I}
       (kickVatFluxCallMem σ (kickAfterTabMap σ I) I) (UInt256.ofNat 9) out
       (kickAfterTabMap σ I) k' C' := by
   let σcall := kickAfterTabMap σ I
-  let rawVat := flipperSlotWord ⟨2⟩ σcall I
+  let rawVat := solcSlotWordAt ⟨2⟩ σcall I
   have hvatClean : UInt256.land rawVat solcAddrMask = flipperVatTargetWord σcall I := by
-    simp [rawVat, σcall, flipperVatTargetWord, flipperAddressReturnWord]
+    simp [rawVat, σcall, flipperVatTargetWord, solcAddressSlotWord]
   have hvatCleanLeft : UInt256.land solcAddrMask rawVat = flipperVatTargetWord σcall I := by
     rw [u256_land_comm]
   have h' : RD flipperBytecode I g s0 ⟨2395⟩
@@ -565,7 +565,7 @@ theorem test_flipperKickX_fromVatMloadToMaskedTarget {σ I}
 theorem test_flipperKickX_fromVatCallMemToMaskedTarget {σ I}
     {g : Sat256} {s0 : State} {k C : ℕ} {out : ByteArray} {sel : UInt256}
     (h : RD flipperBytecode I g s0 ⟨2393⟩
-      [flipperSlotWord ⟨2⟩ (kickAfterTabMap σ I) I, ⟨128⟩, ⟨64⟩, ⟨0⟩,
+      [solcSlotWordAt ⟨2⟩ (kickAfterTabMap σ I) I, ⟨128⟩, ⟨64⟩, ⟨0⟩,
         solcAddrMask, kickIdWord σ I, kickBid I, kickLot I, kickTab I,
         kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickVatFluxCallMem σ (kickAfterTabMap σ I) I) (UInt256.ofNat 9) out
@@ -620,7 +620,7 @@ theorem test_flipperKickX_fromMaskedTargetToExtcodesizeGuard {σ I}
 theorem test_flipperKickX_fromVatCallMemToExtcodesizeGuard {σ I}
     {g : Sat256} {s0 : State} {k C : ℕ} {out : ByteArray} {sel : UInt256}
     (h : RD flipperBytecode I g s0 ⟨2393⟩
-      [flipperSlotWord ⟨2⟩ (kickAfterTabMap σ I) I, ⟨128⟩, ⟨64⟩, ⟨0⟩,
+      [solcSlotWordAt ⟨2⟩ (kickAfterTabMap σ I) I, ⟨128⟩, ⟨64⟩, ⟨0⟩,
         solcAddrMask, kickIdWord σ I, kickBid I, kickLot I, kickTab I,
         kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickVatFluxCallMem σ (kickAfterTabMap σ I) I) (UInt256.ofNat 9) out
@@ -766,7 +766,7 @@ theorem test_flipperKickX_vatPostCall
         exact absurd hdepth (by rw [hEq]; decide))
       (flipperVatEvmAddress_eq_target σcall I)
       ?_ ?_
-    · simpa [σcall, kickFluxArgValsOf, initState, flipperSlotWord, solcSlotWord,
+    · simpa [σcall, kickFluxArgValsOf, initState, solcSlotWordAt, solcSlotWord,
         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage] using
         kickVatFluxCallMem_encode σ σcall I
     · simpa [initState, hperm] using hΘ

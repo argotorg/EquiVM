@@ -51,7 +51,7 @@ def zeroAddr : Expr := .cast (.intLit 0) addrSt
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
 def u112 (e : Expr) : Expr := .inRange uint112Int e
-def u32 (e : Expr) : Expr := .inRange uint32Int e
+def Reasoning.Theory.u256_32_toNat (e : Expr) : Expr := .inRange uint32Int e
 
 def maxUint256 : Int := (2 : Int) ^ 256 - 1
 def maxUint112 : Int := (2 : Int) ^ 112 - 1
@@ -316,9 +316,10 @@ def updateFunction : FunctionDecl :=
       [ .require (.binary .and
           (.binary .le (.var "balance0") (.intLit maxUint112))
           (.binary .le (.var "balance1") (.intLit maxUint112))),
-        .letDecl "blockTimestamp" (some uint32) (u32 (.binary .mod now (.intLit twoPow32))),
+        .letDecl "blockTimestamp" (some uint32)
+          (Reasoning.Theory.u256_32_toNat (.binary .mod now (.intLit twoPow32))),
         .letDecl "timeElapsed" (some uint32)
-          (u32 (.binary .mod
+          (Reasoning.Theory.u256_32_toNat (.binary .mod
             (.binary .add
               (.binary .sub (.var "blockTimestamp") (.storage blockTimestampLastRef))
               (.intLit twoPow32))

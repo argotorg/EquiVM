@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flopper
 /-! ## `kicks()` getter -/
 
 def kicksWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flopperSlotWord ⟨7⟩ σ I
+  solcSlotWordAt ⟨7⟩ σ I
 
 theorem flopperDecode_kicks {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (kicksTransition.params.map Param.name)
@@ -70,7 +70,7 @@ theorem flopperKicksBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (kicksWord σ I).toNat))])) := by
-    simpa [kicksTransition, kicksWord, flopperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [kicksTransition, kicksWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flopperUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -98,7 +98,6 @@ theorem flopperKicksBodyCore
 theorem flopperKicksBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 9)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

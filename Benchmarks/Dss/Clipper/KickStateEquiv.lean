@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.KickSourceFinish
 import Benchmarks.Dss.Clipper.KickTailEVM
 
@@ -12,14 +13,6 @@ set_option linter.unusedTactic false
 
 /-! Relate the compiler's account-map updates to the source interpreter's state updates. -/
 
-theorem clipperKickSlotWord_eq_of_accounts_eq
-    {σ : AccountMap} (evm : EVM.State) (I : ExecutionEnv) (slot : UInt256)
-    (henv : evm.executionEnv = I)
-    (hAccounts : σ = evm.accountMap) :
-  solcSlotWord σ I slot =
-      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot := by
-  simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-    solcSlotWord, henv, hAccounts]
 
 theorem clipperKickSalesBaseSlot_eq (evm : EVM.State) (σ : AccountMap)
     (I : ExecutionEnv)
@@ -29,13 +22,6 @@ theorem clipperKickSalesBaseSlot_eq (evm : EVM.State) (σ : AccountMap)
     clipperKickSalesBaseSlot solcMappingSlot
   rw [keyValueToWord_uint256, hid]
 
-theorem clipperKickStorageStore_present (evm : EVM.State)
-    (addr : AccountAddress) (slot val : UInt256) {acc : Account}
-    (hacc : evm.accountMap.get? addr = some acc) :
-    ∃ acc', (Solm.EVM.storageStore evm addr slot val).accountMap.get? addr = some acc' := by
-  unfold Solm.EVM.storageStore State.lookupAccount
-  rw [hacc]
-  simp [Option.option, State.setAccount, Std.ExtTreeMap.getElem?_insert_self]
 
 theorem clipperKickSalesUint96Mask_idempotent (w : UInt256) :
     UInt256.land (UInt256.land w clipperSalesUint96Mask) clipperSalesUint96Mask =
@@ -58,18 +44,6 @@ theorem clipperKickSalesUint96Mask_idempotent (w : UInt256) :
     w.toNat &&& (2 ^ 96 - 1)
   rw [Nat.land_assoc, Nat.and_self]
 
-theorem clipperKickSetAddressWord_eq (old data : UInt256) :
-    UInt256.lor (UInt256.land data solcAddrMask)
-        (UInt256.land (UInt256.lnot solcAddrMask) old) =
-      setAddressOffset0Word old data := by
-  calc
-    UInt256.lor (UInt256.land data solcAddrMask)
-        (UInt256.land (UInt256.lnot solcAddrMask) old) =
-        UInt256.lor (UInt256.land data solcAddrMask)
-          (UInt256.land old (UInt256.lnot solcAddrMask)) := by
-          rw [u256_land_comm (UInt256.lnot solcAddrMask) old]
-    _ = UInt256.lor (UInt256.land old (UInt256.lnot solcAddrMask))
-          (UInt256.land data solcAddrMask) := u256_lor_comm _ _
 
 theorem clipperKickInitializedState_accounts_eq
     {σ : AccountMap} (evm : EVM.State) (I : ExecutionEnv)
@@ -94,7 +68,7 @@ theorem clipperKickInitializedState_accounts_eq
   have howner : evm.executionEnv.codeOwner = I.codeOwner := by rw [henv]
   have hid : clipperKickSourceIdWord evm = clipperKickIdWord σ I := by
     rw [clipperKickSourceIdWord, clipperKickIdWord,
-      ← clipperKickSlotWord_eq_of_accounts_eq evm I ⟨10⟩ henv hAccounts]
+      ← slotWord_eq_of_accounts_eq evm I ⟨10⟩ henv hAccounts]
   have henvId : evmId.executionEnv = I := by
     simp [evmId, clipperKickSourceIdState, storageStore_executionEnv, henv]
   have hownerId : evmId.executionEnv.codeOwner = I.codeOwner :=
@@ -108,7 +82,7 @@ theorem clipperKickInitializedState_accounts_eq
       clipperKickActiveLengthWord σ I := by
     simpa [clipperKickSourceActiveLengthWord, clipperKickActiveLengthWord,
       evmId, σId, howner, hownerId] using
-      (clipperKickSlotWord_eq_of_accounts_eq evmId I ⟨11⟩ henvId hId).symm
+      (slotWord_eq_of_accounts_eq evmId I ⟨11⟩ henvId hId).symm
   have henvLen : evmLen.executionEnv = I := by
     dsimp only [evmLen]
     rw [clipperKickSourceActiveLengthState, storageStore_executionEnv]
@@ -135,12 +109,12 @@ theorem clipperKickInitializedState_accounts_eq
       clipperKickPostPushLengthWord σ I := by
     simpa [clipperKickSourcePostPushLengthWord, clipperKickPostPushLengthWord,
       evmActive, σActive, henvActive] using
-      (clipperKickSlotWord_eq_of_accounts_eq evmActive I ⟨11⟩
+      (slotWord_eq_of_accounts_eq evmActive I ⟨11⟩
         henvActive hActive).symm
   have hpos : clipperKickSourceActivePosWord evm =
       clipperKickActivePosWord σ I := by
     simp only [clipperKickSourceActivePosWord, clipperKickActivePosWord, hpostLen]
-    exact clipperSubOne_eq_addNotZero _
+    exact subOne_eq_addNotZero _
   have hbase : clipperKickSourceSalesBaseSlot evm =
       clipperKickSalesBaseSlot σ I := clipperKickSalesBaseSlot_eq evm σ I hid
   have henvPos : evmPos.executionEnv = I := by
@@ -173,28 +147,28 @@ theorem clipperKickInitializedState_accounts_eq
   obtain ⟨acc0, hacc0⟩ := hpresent
   have hacc0' : evm.accountMap.get? evm.executionEnv.codeOwner = some acc0 := by
     simpa [howner] using hacc0
-  obtain ⟨accId, haccId⟩ := clipperKickStorageStore_present evm
+  obtain ⟨accId, haccId⟩ := storageStore_present evm
     evm.executionEnv.codeOwner ⟨10⟩ (clipperKickSourceIdWord evm) hacc0'
-  obtain ⟨accLen, haccLen⟩ := clipperKickStorageStore_present evmId
+  obtain ⟨accLen, haccLen⟩ := storageStore_present evmId
     evmId.executionEnv.codeOwner ⟨11⟩
       (clipperKickSourceActiveLengthWord evm + ⟨1⟩) (by
         simpa [evmId, clipperKickSourceIdState, storageStore_executionEnv] using haccId)
-  obtain ⟨accActive, haccActive⟩ := clipperKickStorageStore_present evmLen
+  obtain ⟨accActive, haccActive⟩ := storageStore_present evmLen
     evmLen.executionEnv.codeOwner (clipperKickSourceActiveElemSlot evm)
       (clipperKickSourceIdWord evm) (by
         simpa [evmLen, clipperKickSourceActiveLengthState,
           storageStore_executionEnv] using haccLen)
-  obtain ⟨accPos, haccPos⟩ := clipperKickStorageStore_present evmActive
+  obtain ⟨accPos, haccPos⟩ := storageStore_present evmActive
     evmActive.executionEnv.codeOwner (clipperKickSourceSalesBaseSlot evm)
       (clipperKickSourceActivePosWord evm) (by
         simpa [evmActive, clipperKickSourceActiveState,
           storageStore_executionEnv] using haccActive)
-  obtain ⟨accTab, haccTab⟩ := clipperKickStorageStore_present evmPos
+  obtain ⟨accTab, haccTab⟩ := storageStore_present evmPos
     evmPos.executionEnv.codeOwner (clipperKickSourceSalesBaseSlot evm + ⟨1⟩)
       (clipperKickTabWord I) (by
         simpa [evmPos, clipperKickSourceSalesPosState,
           storageStore_executionEnv] using haccPos)
-  obtain ⟨accLot, haccLot⟩ := clipperKickStorageStore_present evmTab
+  obtain ⟨accLot, haccLot⟩ := storageStore_present evmTab
     evmTab.executionEnv.codeOwner (clipperKickSourceSalesBaseSlot evm + ⟨2⟩)
       (clipperKickLotWord I) (by
         simpa [evmTab, clipperKickSourceSalesTabState,
@@ -207,7 +181,7 @@ theorem clipperKickInitializedState_accounts_eq
     simp [slot, clipperKickPackedSlot, hbase, u256_add_comm]
   have hold : Solm.EVM.storageLoad evmLot evmLot.executionEnv.codeOwner
       (clipperKickSourceSalesBaseSlot evm + ⟨3⟩) = old := by
-    have hread := clipperKickSlotWord_eq_of_accounts_eq evmLot I slot henvLot hLot
+    have hread := slotWord_eq_of_accounts_eq evmLot I slot henvLot hLot
     simpa [old, hsourceSlot] using hread.symm
   have hold' : Solm.EVM.storageLoad evmLot I.codeOwner slot = old := by
     simpa [henvLot, hsourceSlot] using hold
@@ -250,7 +224,7 @@ theorem clipperKickInitializedState_accounts_eq
         clipperKickPackedWord σ I := by
     rw [clipperKickSalesUint96Mask_idempotent, htime, husrRead]
     simp only [clipperKickPackedWord, hmask96, old, usrVal]
-    rw [← clipperKickSetAddressWord_eq old (clipperKickUsrMaskedWord I)]
+    rw [← ctorSetAddressWord_eq old (clipperKickUsrMaskedWord I)]
     rw [u256_land_comm (UInt256.ofNat I.header.timestamp) clipperSalesUint96Mask]
     rw [u256_land_comm (clipperKickUsrMaskedWord I) solcAddrMask]
   have hpacked' :

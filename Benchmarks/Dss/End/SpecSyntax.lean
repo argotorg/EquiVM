@@ -35,6 +35,8 @@ def contractSyntax : ContractDecl := solidity% contract End {
   mapping(address => uint256) bag;
   mapping(bytes32 => mapping(address => uint256)) out;
 
+  event Free(bytes32 indexed ilk, address indexed usr, uint256 ink);
+
   constructor() {
     wards[msg.sender] = 1;
     live = 1;
@@ -313,6 +315,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     require(ink <= #int256Limit);
     require(vat.code.length > 0);
     var _grab = vat.grab(ilk, msg.sender, msg.sender, vow, int256(-int256(ink)), 0);
+    emit Free(ilk, msg.sender, ink);
   }
 
   function thaw() external {

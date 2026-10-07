@@ -68,7 +68,7 @@ theorem clipperDecode_active_ok (v : ClipperImmutables) {I : ExecutionEnv}
         some (clipperActiveStore I) := by
   show decodeCalldataWithMode (config v).abiDecodeMode ["arg0"] [uint256] I.calldata = _
   simpa [config, clipperActiveStore, clipperActiveArgValue, clipperActiveArgWord] using
-    decodeCalldataWithMode_legacyUint256_ok (cd := I.calldata) (x := "arg0") hsz36
+    decodeCalldata_legacyUInt256_ok (cd := I.calldata) (x := "arg0") hsz36
 
 theorem clipperDecode_active_none_short (v : ClipperImmutables) {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
@@ -76,7 +76,7 @@ theorem clipperDecode_active_none_short (v : ClipperImmutables) {I : ExecutionEn
       (transitionSignature activeTransition).paramTypes I.calldata = none := by
   show decodeCalldataWithMode (config v).abiDecodeMode ["arg0"] [uint256] I.calldata = none
   simpa [config] using
-    decodeCalldataWithMode_legacyUint256_none_short (cd := I.calldata) (x := "arg0")
+    decodeCalldata_legacyUInt256_none_short (cd := I.calldata) (x := "arg0")
       hsz4 hshort
 
 theorem clipperEvalActiveElem_ok (v : ClipperImmutables) (evm : EVM.State)
@@ -108,10 +108,11 @@ theorem clipperEvalActiveElem_ok (v : ClipperImmutables) (evm : EVM.State)
     (hbase := by
       simp [clipperActiveStore, activeElemRef])
     (her := by
-      simp [evalStorageRef, evalStorageRefStep, activeElemRef, clipperActiveStore,
+      simp [show wordLoc = uint256Loc from rfl, evalStorageRef, evalStorageRefStep, activeElemRef,
+        clipperActiveStore,
         clipperActiveArgValue, clipperActiveArgKey, valueToKey?, EvalResult.bind,
         EvalResult.ofOption, bind, pure, evalExpr?, config, storageLayout, solidityStorageBackend,
-        clipperActiveLength, storageTypeAt?, contract, storageDecls, clipperStorageLocLoad_uint256,
+        clipperActiveLength, storageTypeAt?, contract, storageDecls, storageLocLoad_uint256,
         hbound])
     (hty := by
       simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, clipperActiveArgKey,
@@ -119,7 +120,7 @@ theorem clipperEvalActiveElem_ok (v : ClipperImmutables) (evm : EVM.State)
     (hloc := by rfl)
     (hload := by
       simpa [wordLoc, uint256Loc] using
-        clipperStorageLocLoad_uint256 evm (clipperActiveSlot I))]
+        storageLocLoad_uint256 evm (clipperActiveSlot I))]
 
 theorem clipperEvalActiveElem_revert (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv)
@@ -141,10 +142,11 @@ theorem clipperEvalActiveElem_revert (v : ClipperImmutables) (evm : EVM.State)
       ¬ (clipperActiveArgWord I).toNat <
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat :=
     Nat.not_lt_of_ge hbound
-  simp [evalExpr?, resolveStorageRef?, evalStorageRef, evalStorageRefStep, activeElemRef,
+  simp [show wordLoc = uint256Loc from rfl, evalExpr?, resolveStorageRef?, evalStorageRef,
+    evalStorageRefStep, activeElemRef,
     clipperActiveStore, clipperActiveArgValue, valueToKey?,
     EvalResult.bind, EvalResult.ofOption, bind, pure, config, storageLayout, solidityStorageBackend,
-    clipperActiveLength, storageTypeAt?, contract, storageDecls, clipperStorageLocLoad_uint256,
+    clipperActiveLength, storageTypeAt?, contract, storageDecls, storageLocLoad_uint256,
     hnot]
 
 theorem clipperActiveBodyReturns (v : ClipperImmutables) (evm : EVM.State)
@@ -187,7 +189,7 @@ theorem clipperReachActiveBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutable
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperActiveSelectorWord hsz hsel
-  have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
+  have h43 := RD.selectorSplitNotTakenPush2 (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
@@ -211,7 +213,7 @@ theorem clipperReachActiveBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutable
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h162 := clipperSplitTaken (pc := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 3)
+  have h162 := RD.selectorSplitTakenPush2 (pc := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 3)
     (tgt := (⟨162⟩ : UInt256)) h43
     (by
         change decode code (⟨43⟩ : UInt256) = some (.DUP1, .none)
@@ -234,7 +236,7 @@ theorem clipperReachActiveBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutable
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨162⟩ : UInt256) (by native_decide))
     (by simp)
-  have h222 := clipperSplitTaken (pc := (⟨163⟩ : UInt256)) (pivot := clipperSelNat 13)
+  have h222 := RD.selectorSplitTakenPush2 (pc := (⟨163⟩ : UInt256)) (pivot := clipperSelNat 13)
     (tgt := (⟨222⟩ : UInt256))
     (h162.jumpdest
       (by
@@ -262,7 +264,7 @@ theorem clipperReachActiveBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutable
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨222⟩ : UInt256) (by native_decide))
     (by simp)
-  have h234 := clipperArmNotTaken (pc := (⟨223⟩ : UInt256))
+  have h234 := RD.selectorArmNotTakenPush2 (pc := (⟨223⟩ : UInt256))
     (next := (⟨234⟩ : UInt256)) (sel := clipperSelNat 20)
     (tgt := (⟨875⟩ : UInt256))
     (h222.jumpdest
@@ -291,7 +293,7 @@ theorem clipperReachActiveBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutable
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h883 := clipperArmTaken (pc := (⟨234⟩ : UInt256)) (sel := clipperSelNat 0)
+  have h883 := RD.selectorArmTakenPush2 (pc := (⟨234⟩ : UInt256)) (sel := clipperSelNat 0)
     (tgt := (⟨883⟩ : UInt256)) h234
     (by
         change decode code (⟨234⟩ : UInt256) = some (.DUP1, .none)
@@ -332,7 +334,7 @@ theorem clipperActivePatchesWindowDisjoint32 (v : ClipperImmutables) {lo hi : Na
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       try omega
@@ -346,7 +348,7 @@ theorem clipperJumpDest3497 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -360,7 +362,7 @@ theorem clipperJumpDest3510 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -684,7 +686,7 @@ theorem clipperActiveBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 0)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=

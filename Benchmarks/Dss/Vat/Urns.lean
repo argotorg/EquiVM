@@ -93,7 +93,7 @@ theorem vatDecode_urns_none_short {I : ExecutionEnv}
       (transitionSignature urnsTransition).paramTypes I.calldata = none := by
   show decodeCalldataWithMode config.abiDecodeMode ["arg0", "arg1"] [bytes32, addr]
     I.calldata = none
-  simpa [config] using decodeCalldata_legacyBytes32_legacyAddress_none_short
+  simpa [config] using decodeCalldata_legacyBytes32_address_none_short
     (cd := I.calldata) (x := "arg0") (y := "arg1") hsz4 hshort
 
 theorem vatDispatchUrns {I : ExecutionEnv}
@@ -282,9 +282,9 @@ theorem vatUrnsBodyReturns {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
     ExecTransitionBody config contract evm (urnsStore I) urnsTransition.body
       (.returned { contract := contract, locals := urnsStore I } evm
         (some [(.int (Int.ofNat
-          (vatSlotWord (urnsInkStorageSlot I) evm.accountMap evm.executionEnv).toNat)),
+          (solcSlotWordAt (urnsInkStorageSlot I) evm.accountMap evm.executionEnv).toNat)),
           (.int (Int.ofNat
-          (vatSlotWord (urnsArtStorageSlot I) evm.accountMap evm.executionEnv).toNat))])) := by
+          (solcSlotWordAt (urnsArtStorageSlot I) evm.accountMap evm.executionEnv).toNat))])) := by
   let frame : Frame := { contract := contract, locals := urnsStore I }
   have harg0Len : ((I.calldata.toList.drop 4).take 32).length = 32 := by
     have htlen : I.calldata.toList.length = I.calldata.size := by
@@ -295,13 +295,13 @@ theorem vatUrnsBodyReturns {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
   have hink :
       evalExpr? config frame evm (.storage (urnsF (.var "arg0") (.var "arg1") "ink")) =
         .ok (.int (Int.ofNat
-          (vatSlotWord (urnsInkStorageSlot I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (urnsInkStorageSlot I) evm.accountMap evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := urnsF (.var "arg0") (.var "arg1") "ink") (er := urnsInkEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (urnsInkStorageSlot I))
       (value := .int (Int.ofNat
-        (vatSlotWord (urnsInkStorageSlot I) evm.accountMap evm.executionEnv).toNat))
+        (solcSlotWordAt (urnsInkStorageSlot I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, urnsStore, urnsF])
       (by
         simp [frame, urnsInkEvaledRef, urnsIlkValue, urnsUsrValue, urnsIlkKey,
@@ -312,17 +312,17 @@ theorem vatUrnsBodyReturns {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
         simp [frame, urnsIlkKey, urnsUsrKey, storageTypeAt?, storageTypeStep?,
           contract, storageDecls, UrnStructTy, uint256St])
       (by rfl)
-      (by simpa [vatSlotWord] using vatStorageLocLoad_uint256 evm (urnsInkStorageSlot I))
+      (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (urnsInkStorageSlot I))
   have hart :
       evalExpr? config frame evm (.storage (urnsF (.var "arg0") (.var "arg1") "art")) =
         .ok (.int (Int.ofNat
-          (vatSlotWord (urnsArtStorageSlot I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (urnsArtStorageSlot I) evm.accountMap evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := urnsF (.var "arg0") (.var "arg1") "art") (er := urnsArtEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (urnsArtStorageSlot I))
       (value := .int (Int.ofNat
-        (vatSlotWord (urnsArtStorageSlot I) evm.accountMap evm.executionEnv).toNat))
+        (solcSlotWordAt (urnsArtStorageSlot I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, urnsStore, urnsF])
       (by
         simp [frame, urnsArtEvaledRef, urnsIlkValue, urnsUsrValue, urnsIlkKey,
@@ -333,16 +333,17 @@ theorem vatUrnsBodyReturns {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
         simp [frame, urnsIlkKey, urnsUsrKey, storageTypeAt?, storageTypeStep?,
           contract, storageDecls, UrnStructTy, uint256St])
       (by rfl)
-      (by simpa [vatSlotWord] using vatStorageLocLoad_uint256 evm (urnsArtStorageSlot I))
+      (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (urnsArtStorageSlot I))
   have hreturns :
       evalExprs? config frame evm
         [.storage (urnsF (.var "arg0") (.var "arg1") "ink"),
           .storage (urnsF (.var "arg0") (.var "arg1") "art")] =
           .ok
             [ .int (Int.ofNat
-                (vatSlotWord (urnsInkStorageSlot I) evm.accountMap evm.executionEnv).toNat),
+                (solcSlotWordAt (urnsInkStorageSlot I) evm.accountMap evm.executionEnv).toNat),
               .int (Int.ofNat
-                (vatSlotWord (urnsArtStorageSlot I) evm.accountMap evm.executionEnv).toNat) ] := by
+                (solcSlotWordAt (urnsArtStorageSlot I) evm.accountMap evm.executionEnv).toNat) ] :=
+                  by
     simp [evalExprs?, hink, hart, EvalResult.bind, bind, pure]
   simpa [urnsTransition, nonpayable, frame] using
     (ExecFuncBody.execBlockRet <|
@@ -364,8 +365,8 @@ theorem vatUrnsBodyCoreOk
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let inkSlot := solcMappingSlot (solcMappingSlot ⟨3⟩ (urnsIlkWord I)) (urnsUsrMaskedWord I)
   let artSlot := inkSlot + ⟨1⟩
-  let inkWord := vatSlotWord inkSlot σ I
-  let artWord := vatSlotWord artSlot σ I
+  let inkWord := solcSlotWordAt inkSlot σ I
+  let artWord := solcSlotWordAt artSlot σ I
   have hinkSlot : urnsInkStorageSlot I = inkSlot := by
     simp [inkSlot, urnsInkStorageSlot_eq I hsz68]
   have hartSlot : urnsArtStorageSlot I = artSlot := by
@@ -376,8 +377,8 @@ theorem vatUrnsBodyCoreOk
         urnsTransition.body
         (.returned { contract := contract, locals := urnsStore I }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (vatSlotWord (urnsInkStorageSlot I) σ I).toNat)),
-            (.int (Int.ofNat (vatSlotWord (urnsArtStorageSlot I) σ I).toNat))])) := by
+          (some [(.int (Int.ofNat (solcSlotWordAt (urnsInkStorageSlot I) σ I).toNat)),
+            (.int (Int.ofNat (solcSlotWordAt (urnsArtStorageSlot I) σ I).toNat))])) := by
     simpa [initState] using
       vatUrnsBodyReturns hsz68
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -414,7 +415,7 @@ theorem vatUrnsBodyCoreOk
       (pc := ⟨614⟩) (first := inkWord) (second := artWord) (ret := ⟨614⟩)
       (R := [sel]) (mem := solcNestedMappingHashMem ⟨3⟩ (urnsIlkWord I) (urnsUsrMaskedWord I))
       (by
-        simpa [inkWord, artWord, inkSlot, artSlot, vatSlotWord] using hretPc)
+        simpa [inkWord, artWord, inkSlot, artSlot, solcSlotWordAt] using hretPc)
       (by
         unfold solcTwoWordReturnFromMemWf
         repeat' first | apply And.intro | native_decide)
@@ -458,8 +459,8 @@ theorem vatUrnsBodyCoreDecodeFailed_short
     (by native_decide) (by native_decide) (by native_decide) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch hdec
 
-theorem vatUrnsBodyCore : VatBodyTheorem 25 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatUrnsBodyCore : VatBodyTheoremAnyPerm 25 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 25) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some urnsTransition :=

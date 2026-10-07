@@ -199,7 +199,7 @@ theorem clipperEvalGetFeedPriceValBlnRequire_true
   have hy0 : y.toNat ≠ 0 := by native_decide
   have hdiv :
       Int.ofNat (UInt256.mul x y).toNat / Int.ofNat y.toNat = Int.ofNat x.toNat := by
-    have hcancel := Reasoning.Theory.clipperMulDiv_cancel (x := y) (y := x)
+    have hcancel := Reasoning.Theory.mulDiv_cancel (x := y) (y := x)
       (by native_decide) (by simpa [x, y, Nat.mul_comm] using hmul)
     have hnat := congrArg UInt256.toNat hcancel
     rw [udiv_toNat, u256_mul_comm y x] at hnat

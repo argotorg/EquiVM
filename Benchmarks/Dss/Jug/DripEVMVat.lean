@@ -19,7 +19,7 @@ theorem RD.jugDripToVatIlksExtcodesizeGuard
       (dripVatIlksCalldataMem I (dripIlkHashMem I)) (UInt256.ofNat 6)
       ByteArray.empty σ k' C' := by
   let target := dripVatTargetWord σ I
-  let rawTarget := jugSlotWord ⟨2⟩ σ I
+  let rawTarget := solcSlotWordAt ⟨2⟩ σ I
   have htargetMask :
       UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
         rawTarget = target := by
@@ -31,7 +31,7 @@ theorem RD.jugDripToVatIlksExtcodesizeGuard
   have htargetMaskSolc :
       UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
         (solcSlotWord σ I ⟨2⟩) = dripVatTargetWord σ I := by
-    simpa [target, rawTarget, jugSlotWord] using htargetMask
+    simpa [target, rawTarget, solcSlotWordAt] using htargetMask
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ (dripIlkHashMem I).size then ⟨0⟩
        else UInt256.ofNat
@@ -61,7 +61,7 @@ theorem RD.jugDripToVatIlksExtcodesizeGuard
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1327⟩
       (rawTarget :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       (dripIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1327 C1327 := by
-    simpa [rawTarget, jugSlotWord, solcSlotWord] using rd1327raw
+    simpa [rawTarget, solcSlotWordAt, solcSlotWord] using rd1327raw
   have rd1384 := evm_run rd1327 with [
     push1 ⟨64⟩,
     dup1,
@@ -410,8 +410,8 @@ theorem RD.jugDripLoadBaseDuty
     (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1465⟩
-      (jugSlotWord (fileDutyDutySlotFor I) σ' I :: dripVatIlksPrevWord out ::
-        jugSlotWord ⟨4⟩ σ' I :: ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
+      (solcSlotWordAt (fileDutyDutySlotFor I) σ' I :: dripVatIlksPrevWord out ::
+        solcSlotWordAt ⟨4⟩ σ' I :: ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ (dripVatIlksPostCallMem I out))
       (UInt256.ofNat 6) out σ' k' C' := by
   have hslot :
@@ -419,7 +419,7 @@ theorem RD.jugDripLoadBaseDuty
           (KEC ((twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
             (dripVatIlksPostCallMem I out)).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) := by
-    exact drip_twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256) (fileDutyIlkWord I)
+    exact twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256) (fileDutyIlkWord I)
       (by rw [dripVatIlksPostCallMem_size_long I out hlo hout]; omega)
   have rd1448 := RD.push1 rd1446 ⟨4⟩ (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -427,10 +427,10 @@ theorem RD.jugDripLoadBaseDuty
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd1449 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1449⟩
-      (jugSlotWord ⟨4⟩ σ' I :: dripVatIlksPrevWord out :: ⟨32⟩ :: ⟨0⟩ :: ⟨0⟩ ::
+      (solcSlotWordAt ⟨4⟩ σ' I :: dripVatIlksPrevWord out :: ⟨32⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       (dripVatIlksPostCallMem I out) (UInt256.ofNat 6) out σ' k1449 C1449 := by
-    simpa [jugSlotWord, solcSlotWord] using rd1449raw
+    simpa [solcSlotWordAt, solcSlotWord] using rd1449raw
   have rd1453pre := evm_run rd1449 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw dup7 (by native_decide) (by evm_ov),
@@ -462,20 +462,20 @@ theorem RD.jugDripLoadBaseDuty
     native_decide
   have hslotEq : fileDutyDutySlotFor I = solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) :=
     fileDutyDutySlotFor_eq hsz36
-  simpa [hpc, jugSlotWord, solcSlotWord, hslotEq] using rd1465raw
+  simpa [hpc, solcSlotWordAt, solcSlotWord, hslotEq] using rd1465raw
 
 theorem RD.jugDripToAddRoutine
     {σ σ' σ₀ A I} {g sel : UInt256}
     {out : ByteArray} {k C : ℕ}
     (rd1465 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1465⟩
-      (jugSlotWord (fileDutyDutySlotFor I) σ' I :: dripVatIlksPrevWord out ::
-        jugSlotWord ⟨4⟩ σ' I :: ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
+      (solcSlotWordAt (fileDutyDutySlotFor I) σ' I :: dripVatIlksPrevWord out ::
+        solcSlotWordAt ⟨4⟩ σ' I :: ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ (dripVatIlksPostCallMem I out))
       (UInt256.ofNat 6) out σ' k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2131⟩
-      (jugSlotWord (fileDutyDutySlotFor I) σ' I :: jugSlotWord ⟨4⟩ σ' I ::
+      (solcSlotWordAt (fileDutyDutySlotFor I) σ' I :: solcSlotWordAt ⟨4⟩ σ' I ::
         ⟨1485⟩ :: ⟨1524⟩ :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ (dripVatIlksPostCallMem I out))
@@ -499,18 +499,18 @@ theorem RD.jugDripAddOverflowReverts
     {σ σ' σ₀ A I} {g sel : UInt256}
     {out mem : ByteArray} {k C : ℕ}
     (hover :
-      UInt256.size ≤ (jugSlotWord ⟨4⟩ σ' I).toNat +
-        (jugSlotWord (fileDutyDutySlotFor I) σ' I).toNat)
+      UInt256.size ≤ (solcSlotWordAt ⟨4⟩ σ' I).toNat +
+        (solcSlotWordAt (fileDutyDutySlotFor I) σ' I).toNat)
     (rd2131 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2131⟩
-      (jugSlotWord (fileDutyDutySlotFor I) σ' I :: jugSlotWord ⟨4⟩ σ' I ::
+      (solcSlotWordAt (fileDutyDutySlotFor I) σ' I :: solcSlotWordAt ⟨4⟩ σ' I ::
         ⟨1485⟩ :: ⟨1524⟩ :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k C) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let base := jugSlotWord ⟨4⟩ σ' I
-  let duty := jugSlotWord (fileDutyDutySlotFor I) σ' I
+  let base := solcSlotWordAt ⟨4⟩ σ' I
+  let duty := solcSlotWordAt (fileDutyDutySlotFor I) σ' I
   have hlt : UInt256.lt (duty + base) base = ⟨1⟩ := by
     simpa [base, duty] using constructorCheckedAddOverflowLt base duty hover
   have rdPushOk := evm_run rd2131 with [
@@ -534,22 +534,22 @@ theorem RD.jugDripAddReturns
     {σ σ' σ₀ A I} {g sel : UInt256}
     {out mem : ByteArray} {k C : ℕ}
     (hno :
-      ¬ UInt256.size ≤ (jugSlotWord ⟨4⟩ σ' I).toNat +
-        (jugSlotWord (fileDutyDutySlotFor I) σ' I).toNat)
+      ¬ UInt256.size ≤ (solcSlotWordAt ⟨4⟩ σ' I).toNat +
+        (solcSlotWordAt (fileDutyDutySlotFor I) σ' I).toNat)
     (rd2131 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2131⟩
-      (jugSlotWord (fileDutyDutySlotFor I) σ' I :: jugSlotWord ⟨4⟩ σ' I ::
+      (solcSlotWordAt (fileDutyDutySlotFor I) σ' I :: solcSlotWordAt ⟨4⟩ σ' I ::
         ⟨1485⟩ :: ⟨1524⟩ :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1485⟩
-      ((jugSlotWord ⟨4⟩ σ' I + jugSlotWord (fileDutyDutySlotFor I) σ' I) ::
+      ((solcSlotWordAt ⟨4⟩ σ' I + solcSlotWordAt (fileDutyDutySlotFor I) σ' I) ::
         ⟨1524⟩ :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k' C' := by
-  let base := jugSlotWord ⟨4⟩ σ' I
-  let duty := jugSlotWord (fileDutyDutySlotFor I) σ' I
+  let base := solcSlotWordAt ⟨4⟩ σ' I
+  let duty := solcSlotWordAt (fileDutyDutySlotFor I) σ' I
   have hlt : UInt256.lt (duty + base) base = ⟨0⟩ := by
     simpa [base, duty] using constructorCheckedAddNoOverflowLt base duty hno
   have rdPushOk := evm_run rd2131 with [

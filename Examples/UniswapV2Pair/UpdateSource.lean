@@ -9,12 +9,6 @@ namespace UniswapV2Pair
 
 /-! ## `sync()` source/ABI prefix -/
 
-private theorem valueInt_beq_false_of_ne {x y : Int} (h : x ≠ y) :
-    (Value.int x == Value.int y) = false := by
-  rw [beq_eq_false_iff_ne]
-  intro hv
-  cases hv
-  exact h rfl
 
 theorem uniswapDecode_sync {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (syncTransition.params.map Param.name)
@@ -642,12 +636,6 @@ theorem syncUpdateTimeElapsedStoreWith_price1CumulativeLast_none
   simp [syncUpdateTimeElapsedStoreWith, syncUpdateBlockTimestampStoreWith,
     syncUpdateCallStoreWith]
 
-theorem uniswapStorageLocStore_word_int_some
-    (evm : EVM.State) (slot : UInt256) (n : Int) :
-    ∃ evm', storageLocStore evm (wordLoc slot) (.int n) = some evm' := by
-  unfold storageLocStore storageLocWriteWord wordLoc
-  simp only [valueToWord, bind, Option.bind, pure]
-  exact ⟨_, rfl⟩
 
 theorem uniswapAssignPrice0CumulativeLastOfStore
     (evm evm' : EVM.State) (locals : Store) (value : Value)
@@ -721,8 +709,10 @@ theorem evalExpr_sync_balance1_le_max_false (evm : EVM.State) (balance0 balance1
 
 theorem evalExpr_sync_blockTimestamp (evm : EVM.State) (balance0 balance1 : UInt256) :
     evalExpr? config { contract := contract, locals := syncBalanceStore balance0 balance1 } evm
-      (u32 (.binary .mod now (.intLit twoPow32))) = .ok (syncBlockTimestampValue evm) := by
-  simpa [u32, now, syncBlockTimestampValue, syncBlockTimestampInt, twoPow32, uint32Int] using
+      (Reasoning.Theory.u256_32_toNat (.binary .mod now (.intLit twoPow32))) = .ok
+        (syncBlockTimestampValue evm) := by
+  simpa [Reasoning.Theory.u256_32_toNat, now, syncBlockTimestampValue, syncBlockTimestampInt,
+    twoPow32, uint32Int] using
     evalExpr_timestampModUint32
       (cfg := config) (solm := { contract := contract, locals := syncBalanceStore balance0 balance1 })
       evm
@@ -730,16 +720,20 @@ theorem evalExpr_sync_blockTimestamp (evm : EVM.State) (balance0 balance1 : UInt
 theorem evalExpr_sync_update_blockTimestamp
     (evm : EVM.State) (balance0 balance1 : UInt256) :
     evalExpr? config (syncUpdateCallFrame evm balance0 balance1) evm
-      (u32 (.binary .mod now (.intLit twoPow32))) = .ok (syncBlockTimestampValue evm) := by
-  simpa [u32, now, syncBlockTimestampValue, syncBlockTimestampInt, twoPow32, uint32Int] using
+      (Reasoning.Theory.u256_32_toNat (.binary .mod now (.intLit twoPow32))) = .ok
+        (syncBlockTimestampValue evm) := by
+  simpa [Reasoning.Theory.u256_32_toNat, now, syncBlockTimestampValue, syncBlockTimestampInt,
+    twoPow32, uint32Int] using
     evalExpr_timestampModUint32
       (cfg := config) (solm := syncUpdateCallFrame evm balance0 balance1) evm
 
 theorem evalExpr_sync_update_blockTimestamp_with
     (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256) :
     evalExpr? config (syncUpdateCallFrameWith balance0 balance1 reserve0 reserve1) evm
-      (u32 (.binary .mod now (.intLit twoPow32))) = .ok (syncBlockTimestampValue evm) := by
-  simpa [u32, now, syncBlockTimestampValue, syncBlockTimestampInt, twoPow32, uint32Int] using
+      (Reasoning.Theory.u256_32_toNat (.binary .mod now (.intLit twoPow32))) = .ok
+        (syncBlockTimestampValue evm) := by
+  simpa [Reasoning.Theory.u256_32_toNat, now, syncBlockTimestampValue, syncBlockTimestampInt,
+    twoPow32, uint32Int] using
     evalExpr_timestampModUint32
       (cfg := config)
       (solm := syncUpdateCallFrameWith balance0 balance1 reserve0 reserve1) evm
@@ -771,7 +765,7 @@ theorem evalExpr_sync_price0CumulativeLast (evm : EVM.State) (locals : Store)
       storageLocLoad evm (wordLoc ⟨9⟩) =
         .int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨9⟩).toNat) := by
-    exact uniswapStorageLocLoad_uint256 evm ⟨9⟩
+    exact storageLocLoad_uint256 evm ⟨9⟩
   rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (slot := price0CumulativeLastRef)
     (er := ({ base := "price0CumulativeLast", steps := [] } : EvaledStorageRef))
     (loc := wordLoc ⟨9⟩)
@@ -792,7 +786,7 @@ theorem evalExpr_sync_price1CumulativeLast (evm : EVM.State) (locals : Store)
       storageLocLoad evm (wordLoc ⟨10⟩) =
         .int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨10⟩).toNat) := by
-    exact uniswapStorageLocLoad_uint256 evm ⟨10⟩
+    exact storageLocLoad_uint256 evm ⟨10⟩
   rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (slot := price1CumulativeLastRef)
     (er := ({ base := "price1CumulativeLast", steps := [] } : EvaledStorageRef))
     (loc := wordLoc ⟨10⟩)
@@ -808,12 +802,12 @@ theorem evalExpr_sync_update_timeElapsed
     evalExpr? config
       { contract := contract, locals := syncUpdateBlockTimestampStore evm balance0 balance1 }
       evm
-      (u32 (.binary .mod
+      (Reasoning.Theory.u256_32_toNat (.binary .mod
         (.binary .add
           (.binary .sub (.var "blockTimestamp") (.storage blockTimestampLastRef))
           (.intLit twoPow32))
         (.intLit twoPow32))) = .ok (syncTimeElapsedValue evm) := by
-  unfold u32 syncTimeElapsedValue syncTimeElapsedInt
+  unfold Reasoning.Theory.u256_32_toNat syncTimeElapsedValue syncTimeElapsedInt
   simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind,
     syncUpdateBlockTimestampStore_blockTimestamp,
     evalExpr_sync_blockTimestampLast evm (syncUpdateBlockTimestampStore evm balance0 balance1)
@@ -844,12 +838,12 @@ theorem evalExpr_sync_update_timeElapsed_with
       { contract := contract,
         locals := syncUpdateBlockTimestampStoreWith evm balance0 balance1 reserve0 reserve1 }
       evm
-      (u32 (.binary .mod
+      (Reasoning.Theory.u256_32_toNat (.binary .mod
         (.binary .add
           (.binary .sub (.var "blockTimestamp") (.storage blockTimestampLastRef))
           (.intLit twoPow32))
         (.intLit twoPow32))) = .ok (syncTimeElapsedValue evm) := by
-  unfold u32 syncTimeElapsedValue syncTimeElapsedInt
+  unfold Reasoning.Theory.u256_32_toNat syncTimeElapsedValue syncTimeElapsedInt
   simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind,
     syncUpdateBlockTimestampStoreWith_blockTimestamp,
     evalExpr_sync_blockTimestampLast evm
@@ -1318,9 +1312,10 @@ theorem uniswapUpdateFunctionReturns_conditionFalse
     [ .require (.binary .and
         (.binary .le (.var "balance0") (.intLit maxUint112))
         (.binary .le (.var "balance1") (.intLit maxUint112))),
-      .letDecl "blockTimestamp" (some uint32) (u32 (.binary .mod now (.intLit twoPow32))),
+      .letDecl "blockTimestamp" (some uint32)
+        (Reasoning.Theory.u256_32_toNat (.binary .mod now (.intLit twoPow32))),
       .letDecl "timeElapsed" (some uint32)
-        (u32 (.binary .mod
+        (Reasoning.Theory.u256_32_toNat (.binary .mod
           (.binary .add
             (.binary .sub (.var "blockTimestamp") (.storage blockTimestampLastRef))
             (.intLit twoPow32))
@@ -1405,10 +1400,10 @@ theorem uniswapUpdateFunctionReturns_conditionTrue
           { contract := contract, locals := syncUpdateTimeElapsedStore evm balance0 balance1 }
           evm' none) := by
   obtain ⟨evmP0, hstoreP0⟩ :=
-    uniswapStorageLocStore_word_int_some evm ⟨9⟩
+    storageLocStore_word_int_some evm ⟨9⟩
       (syncPrice0CumulativeIntAt evm evm)
   obtain ⟨evmP1, hstoreP1⟩ :=
-    uniswapStorageLocStore_word_int_some evmP0 ⟨10⟩
+    storageLocStore_word_int_some evmP0 ⟨10⟩
       (syncPrice1CumulativeIntAt evmP0 evm)
   obtain ⟨evmR0, hstoreR0⟩ :=
     uniswapStorageLocStore_uint112_offset0_int_some evmP1 ⟨8⟩
@@ -1423,9 +1418,10 @@ theorem uniswapUpdateFunctionReturns_conditionTrue
     [ .require (.binary .and
         (.binary .le (.var "balance0") (.intLit maxUint112))
         (.binary .le (.var "balance1") (.intLit maxUint112))),
-      .letDecl "blockTimestamp" (some uint32) (u32 (.binary .mod now (.intLit twoPow32))),
+      .letDecl "blockTimestamp" (some uint32)
+        (Reasoning.Theory.u256_32_toNat (.binary .mod now (.intLit twoPow32))),
       .letDecl "timeElapsed" (some uint32)
-        (u32 (.binary .mod
+        (Reasoning.Theory.u256_32_toNat (.binary .mod
           (.binary .add
             (.binary .sub (.var "blockTimestamp") (.storage blockTimestampLastRef))
             (.intLit twoPow32))

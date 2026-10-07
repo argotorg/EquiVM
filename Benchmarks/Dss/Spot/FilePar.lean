@@ -35,7 +35,7 @@ theorem evalExpr_live_true_of_none (evm : EVM.State) (locals : Store)
       (her := evalStorageRef_live_of_none evm locals hlive)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by simpa [hload] using spotStorageLocLoad_uint256 evm ⟨4⟩)]
+      (hload := by simpa [hload] using storageLocLoad_uint256 evm ⟨4⟩)]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -60,14 +60,14 @@ theorem evalExpr_live_false_of_none (evm : EVM.State) (locals : Store)
       (her := evalStorageRef_live_of_none evm locals hlive)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact spotStorageLocLoad_uint256 evm ⟨4⟩)
+      (hload := by exact storageLocLoad_uint256 evm ⟨4⟩)
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨4⟩).toNat) ≠
         Value.int 1 := by
     intro hbad
     rw [Value.int.injEq] at hbad
-    exact hload (uint256_toNat_eq_one (Int.ofNat.inj hbad))
+    exact hload (uInt256_toNat_eq_one (Int.ofNat.inj hbad))
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨4⟩).toNat) ==
@@ -169,7 +169,7 @@ theorem spotDecode_filePar_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size
         some (fileParLocals I) := by
   simpa [config, fileParTransition, bytes32, bytes32Width, uint256, uint256Int,
     fileParLocals, fileParWhat, fileParData, abiBytes32, abiBytes32Width, abiUInt256] using
-    (Benchmarks.Dss.Jug.decodeCalldata_legacyBytes32_uint256_ok (cd := I.calldata)
+    (Reasoning.Theory.decodeCalldata_legacyBytes32_uint256_ok (cd := I.calldata)
       (x := "what") (y := "data") hsz68)
 
 theorem spotDecode_filePar_none_short {I : ExecutionEnv}
@@ -178,7 +178,7 @@ theorem spotDecode_filePar_none_short {I : ExecutionEnv}
       (transitionSignature fileParTransition).paramTypes I.calldata = none := by
   simpa [config, fileParTransition, bytes32, bytes32Width, uint256, uint256Int, abiBytes32,
     abiBytes32Width, abiUInt256] using
-    (Benchmarks.Dss.Jug.decodeCalldata_legacyBytes32_uint256_none_short
+    (Reasoning.Theory.decodeCalldata_legacyBytes32_uint256_none_short
       (cd := I.calldata) (x := "what") (y := "data") hsz4 hshort)
 
 theorem fileParWhat_length {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
@@ -301,7 +301,7 @@ theorem assign_fileParStorage (evm : EVM.State) (I : ExecutionEnv) :
       (hloc := by rfl)
   simpa [evm'] using storageLocStore_uint256 evm ⟨3⟩ (fileParData I)
 
-theorem spotFileParSourceBody {σ σ₀ A I} {g : UInt256}
+theorem spotFileParSourceBodySplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hlive : spotLiveWord σ I = ⟨1⟩)
@@ -309,8 +309,10 @@ theorem spotFileParSourceBody {σ σ₀ A I} {g : UInt256}
     let locals := fileParLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨3⟩ (fileParData I)
-    ExecTransitionBody config contract evm0 locals fileParTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) := by
+    (ExecTransitionBody config contract evm0 locals fileParTransition.body
+      (.returned { contract := contract, locals := locals } evm1 none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evm0 locals
+        fileParTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -319,7 +321,7 @@ theorem spotFileParSourceBody {σ σ₀ A I} {g : UInt256}
       (by simpa [locals] using fileParLocals_get_wards I)
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, spotSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have hliveGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -327,7 +329,7 @@ theorem spotFileParSourceBody {σ σ₀ A I} {g : UInt256}
     exact evalExpr_live_true_of_none evm0 locals
       (by simpa [locals] using fileParLocals_get_live I)
       (by
-        simpa [evm0, spotLiveWord, spotSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, spotLiveWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hlive)
   have hcond :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -345,20 +347,23 @@ theorem spotFileParSourceBody {σ σ₀ A I} {g : UInt256}
         .storage parRef (.int (Int.ofNat (fileParData I).toNat)) =
           .ok ({ contract := contract, locals := locals }, evm1) := by
     simpa [locals, evm1] using assign_fileParStorage evm0 I
-  have hthen :
+  have hprefix {result : ExecResult}
+      (hwrite : ExecBlock config { contract := contract, locals := locals } evm0
+        [.assign .storage parRef (.var "data")] result) :
       ExecBlock config { contract := contract, locals := locals } evm0
-        [.assign .storage parRef (.var "data")]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileParTransition.body
-        (.ok { contract := contract, locals := locals } evm1) := by
+        fileParTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hliveGuard) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
-  simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteTrue hcond hwrite)
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
+        (by simp only [evm0, initState]; exact hperm))))
 
 theorem spotFileParSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -374,7 +379,7 @@ theorem spotFileParSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
       (by simpa [locals] using fileParLocals_get_wards I)
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, spotSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [fileParTransition, nonpayable, auth, requireLive] using
@@ -404,7 +409,7 @@ theorem spotFileParSourceBodyNotLive {σ σ₀ A I} {g : UInt256}
       (by simpa [locals] using fileParLocals_get_wards I)
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, spotSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have hliveGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -412,7 +417,7 @@ theorem spotFileParSourceBodyNotLive {σ σ₀ A I} {g : UInt256}
     exact evalExpr_live_false_of_none evm0 locals
       (by simpa [locals] using fileParLocals_get_live I)
       (by
-        simpa [evm0, spotLiveWord, spotSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, spotLiveWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hlive)
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 fileParTransition.body
@@ -439,7 +444,7 @@ theorem spotFileParSourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
       (by simpa [locals] using fileParLocals_get_wards I)
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, spotSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have hliveGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -447,7 +452,7 @@ theorem spotFileParSourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
     exact evalExpr_live_true_of_none evm0 locals
       (by simpa [locals] using fileParLocals_get_live I)
       (by
-        simpa [evm0, spotLiveWord, spotSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, spotLiveWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hlive)
   have hcond :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -585,7 +590,7 @@ theorem spotFileParX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1288 : RD spotBytecode I g s0 ⟨1288⟩
       (relyAuthWord σ I :: fileParData I :: calldataWord I.calldata 4 :: ⟨214⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1288 C1288 := by
-    simpa [relyAuthWord, spotSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1288raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1288raw
   have rd1291pre := evm_run rd1288 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -632,7 +637,7 @@ theorem spotFileParX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1288 : RD spotBytecode I g s0 ⟨1288⟩
       (relyAuthWord σ I :: fileParData I :: calldataWord I.calldata 4 :: ⟨214⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1288 C1288 := by
-    simpa [relyAuthWord, spotSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1288raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1288raw
   have rd1291pre := evm_run rd1288 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -665,7 +670,7 @@ theorem spotFileParX_liveOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have hliveRaw :
       (σ.get? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.getD ⟨4⟩ ⟨0⟩)) = ⟨1⟩ := by
-    simpa [spotLiveWord, spotSlotWord, solcSlotWord] using hlive
+    simpa [spotLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   rw [hliveRaw] at rd1357raw
   have rd1360pre := evm_run rd1357raw with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -691,7 +696,7 @@ theorem spotFileParX_notLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have hliveRaw :
       (σ.get? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.getD ⟨4⟩ ⟨0⟩)) ≠ ⟨1⟩ := by
-    simpa [spotLiveWord, spotSlotWord, solcSlotWord] using hlive
+    simpa [spotLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have heq0 :
       UInt256.eq ⟨1⟩
         (σ.get? I.codeOwner |>.option ⟨0⟩
@@ -719,15 +724,17 @@ theorem spotFileParX_notLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (relyAuthHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem spotFileParX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem spotFileParX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileParBytes)
     (h : RD spotBytecode I g s0 ⟨1427⟩
       [fileParData I, calldataWord I.calldata 4, ⟨214⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret spotBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileParData I))
-      ByteArray.empty := by
+    (I.perm = true ∧
+      RDret spotBytecode g s0
+        (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileParData I))
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic spotBytecode g s0) := by
   have rd1428 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1429 := rd1428.dup2 (by native_decide) (by evm_ov)
   have rd1433 := rd1429.pushConst (⟨3682489⟩ : UInt256)
@@ -747,7 +754,14 @@ theorem spotFileParX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have rd1442 := rd1441.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   have rd1444 := rd1442.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1445raw⟩ := rd1444.sstore hperm (by native_decide) (by evm_ov)
+  have hstoreDec : decode spotBytecode ⟨1444⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1444.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd1445raw⟩ := rd1444.sstore hperm hstoreDec (by evm_ov)
   have rd1446 := rd1445raw.pop (by native_decide) (by evm_ov)
   have rd214 := rd1446.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd215 := rd214.jumpdest (by native_decide) (by evm_ov)
@@ -809,7 +823,7 @@ theorem spotFileParX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem spotFileParBodyCoreOk
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = spotBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hlive : spotLiveWord σ I = ⟨1⟩)
@@ -828,11 +842,13 @@ theorem spotFileParBodyCoreOk
   let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨3⟩ data
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
   have hliveSolm : spotLiveWord σ I = ⟨1⟩ := hlive
-  have hbody :
-      ExecTransitionBody config contract evm0 locals fileParTransition.body
-        (.returned { contract := contract, locals := locals } evm1 none) := by
+  have hbodySplit :
+      (ExecTransitionBody config contract evm0 locals fileParTransition.body
+        (.returned { contract := contract, locals := locals } evm1 none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evm0 locals
+        fileParTransition.body .staticViolation) := by
     simpa [evm0, evm1, locals, data] using
-      (spotFileParSourceBody (σ := σ)
+      (spotFileParSourceBodySplit (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hliveSolm hwhat)
   obtain ⟨_, _, hdecoded⟩ := spotFileParX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
@@ -840,8 +856,11 @@ theorem spotFileParBodyCoreOk
   obtain ⟨_, _, hlivez⟩ := spotFileParX_liveOk (I := I) hlive hauthz
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileParBytes :=
     fileParWhatWord_eq_of_bytes_eq (by omega) hwhat
-  have hret := spotFileParX_storeAuthorized hperm hmatch hlivez
-  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+  rcases spotFileParX_storeAuthorizedSplit hmatch hlivez with
+    ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
     (by simp [evm1, evm0, initState, storageStore_accountMap, data])
     (by
       simpa [fileParTransition] using
@@ -954,7 +973,6 @@ theorem spotFileParBodyCoreDecodeFailed_short
 theorem spotFileParBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = spotBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (spotSelBytes 3)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -969,7 +987,7 @@ theorem spotFileParBodyCore {σ σ₀ A I} {g : UInt256}
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
     · by_cases hlive : spotLiveWord σ I = ⟨1⟩
       · by_cases hwhat : fileParWhat I = fileParBytes
-        · exact spotFileParBodyCoreOk hcode hsize _hperm hwv hsz68 hauth hlive hwhat
+        · exact spotFileParBodyCoreOk hcode hsize hwv hsz68 hauth hlive hwhat
             hdispatch (spotDecode_filePar_ok hsz68) hreach
         · exact spotFileParBodyCoreUnrecognized hcode hsize hwv hsz68 hauth hlive hwhat
             hdispatch (spotDecode_filePar_ok hsz68) hreach

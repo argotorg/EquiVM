@@ -22,7 +22,7 @@ theorem ownerX {σ σ₀ A I} {g : UInt256}
     (hreach : EntryReached 12 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
     RDret auctionBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-      (UInt256.toByteArray (UInt256.land (storedWord σ I ⟨151⟩) solcAddrMask)) := by
+      (UInt256.toByteArray (UInt256.land (solcSlotWord σ I ⟨151⟩) solcAddrMask)) := by
   obtain ⟨_, _, rd736⟩ := hreach
   obtain ⟨_, _, rd749⟩ := entryGuardZero 12 (by decide) rd736 hwv
   have rd751 := evm_run rd749 with [push1 ⟨151⟩]
@@ -31,17 +31,17 @@ theorem ownerX {σ σ₀ A I} {g : UInt256}
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and,
     push2 ⟨358⟩, jump (by jump_dest) ]
   have hret := RD.auctionReturnAddress
-    (val := UInt256.land solcAddrMask (storedWord σ I ⟨151⟩)) rd358 (by evm_ov)
+    (val := UInt256.land solcAddrMask (solcSlotWord σ I ⟨151⟩)) rd358 (by evm_ov)
   have hclean :
-      UInt256.land (UInt256.land solcAddrMask (storedWord σ I ⟨151⟩)) solcAddrMask =
-        UInt256.land (storedWord σ I ⟨151⟩) solcAddrMask := by
-    rw [u256_land_comm solcAddrMask (storedWord σ I ⟨151⟩)]
+      UInt256.land (UInt256.land solcAddrMask (solcSlotWord σ I ⟨151⟩)) solcAddrMask =
+        UInt256.land (solcSlotWord σ I ⟨151⟩) solcAddrMask := by
+    rw [u256_land_comm solcAddrMask (solcSlotWord σ I ⟨151⟩)]
     exact solcAddrMask_clean (solcAddrMask_result_canonical _)
   simpa only [hclean] using hret
 
 theorem ownerBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (entryBytes 12))
+    (hsel : selIs I (entryBytes 12))
     (hreach : EntryReached 12 σ σ₀ A I g) :
     runtimeEquivalenceFor auctionConfig auctionContract
       σ σ₀ g A I := by
@@ -57,13 +57,13 @@ theorem ownerBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := auctionContract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [.address (AccountAddress.ofNat
-            (UInt256.land (storedWord σ I ⟨151⟩) solcAddrMask).toNat)])) := by
-      simpa [storedWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
+            (UInt256.land (solcSlotWord σ I ⟨151⟩) solcAddrMask).toNat)])) := by
+      simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
         ownerBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           ∅ hwv (by simp)
     exact (ownerX hreach hwv).reEquivExecution hcode hd hdec hbody
       (returnEquiv_of_encode
-        (solcAddressReturnEncoding (addrTy := addr) rfl (storedWord σ I ⟨151⟩)))
+        (solcAddressReturnEncoding (addrTy := addr) rfl (solcSlotWord σ I ⟨151⟩)))
   · exact entryNonpayableRevert 12 (by decide) hcode hsel hreach hwv
 
 end Auction

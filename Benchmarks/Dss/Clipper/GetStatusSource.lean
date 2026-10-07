@@ -252,7 +252,7 @@ theorem clipperEvalStatusCalcTarget (v : ClipperImmutables) (evm : EVM.State)
   have hloc : (config v).storageBackend.locate? er = some (.leaf (addrLoc ⟨4⟩)) := by
     rfl
   have hload := evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
-    (clipperStorageLocLoad_address evm ⟨4⟩)
+    (storageLocLoad_address_offset0 evm ⟨4⟩)
   simpa [clipperStatusCalcAddress, clipperStatusCalcWord,
     accountAddress_ofUInt256_eq_ofNat_toNat] using hload
 
@@ -558,7 +558,7 @@ theorem clipperEvalStatusTail (v : ClipperImmutables) (evm : EVM.State)
     rfl
   simpa [clipperStatusTailWord] using
     evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
-      (clipperStorageLocLoad_uint256 evm ⟨6⟩)
+      (storageLocLoad_uint256 evm ⟨6⟩)
 
 theorem clipperEvalStatusVarAgeForDoneAfterDone (v : ClipperImmutables)
     (evm : EVM.State) (tic top ageForPrice price ageForDone : UInt256) :
@@ -842,7 +842,7 @@ theorem clipperEvalStatusCusp (v : ClipperImmutables) (evm : EVM.State)
     rfl
   simpa [clipperStatusCuspWord] using
     evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
-      (clipperStorageLocLoad_uint256 evm ⟨7⟩)
+      (storageLocLoad_uint256 evm ⟨7⟩)
 
 theorem clipperEvalStatusVarRatio (v : ClipperImmutables) (evm : EVM.State)
     (tic top ageForPrice price ageForDone ratio : UInt256) :
@@ -1321,7 +1321,7 @@ theorem clipperEvalGetStatusSalesUsr (v : ClipperImmutables) (evm : EVM.State)
       storageDecls, SaleStructTy, addrSt])
     (by rfl)
     (by simpa [clipperGetStatusSalesPackedSlot, clipperGetStatusSalesBaseSlot] using
-      clipperStorageLocLoad_address evm (clipperGetStatusSalesPackedSlot I))
+      storageLocLoad_address_offset0 evm (clipperGetStatusSalesPackedSlot I))
 
 theorem clipperEvalGetStatusSalesTic (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
@@ -1378,7 +1378,7 @@ theorem clipperEvalGetStatusSalesTop (v : ClipperImmutables) (evm : EVM.State)
     (by rfl)
     (by simpa [clipperGetStatusSalesTopSlot, clipperGetStatusSalesBaseSlot, wordLoc,
       uint256Loc] using
-      clipperStorageLocLoad_uint256 evm (clipperGetStatusSalesTopSlot I))
+      storageLocLoad_uint256 evm (clipperGetStatusSalesTopSlot I))
 
 theorem clipperEvalGetStatusSalesLot (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
@@ -1405,7 +1405,7 @@ theorem clipperEvalGetStatusSalesLot (v : ClipperImmutables) (evm : EVM.State)
     (by rfl)
     (by simpa [clipperGetStatusSalesLotSlot, clipperGetStatusSalesBaseSlot, wordLoc,
       uint256Loc] using
-      clipperStorageLocLoad_uint256 evm (clipperGetStatusSalesLotSlot I))
+      storageLocLoad_uint256 evm (clipperGetStatusSalesLotSlot I))
 
 theorem clipperEvalGetStatusSalesTab (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
@@ -1432,7 +1432,7 @@ theorem clipperEvalGetStatusSalesTab (v : ClipperImmutables) (evm : EVM.State)
     (by rfl)
     (by simpa [clipperGetStatusSalesTabSlot, clipperGetStatusSalesBaseSlot, wordLoc,
       uint256Loc] using
-      clipperStorageLocLoad_uint256 evm (clipperGetStatusSalesTabSlot I))
+      storageLocLoad_uint256 evm (clipperGetStatusSalesTabSlot I))
 
 theorem clipperEvalGetStatusVarTicAfterTic (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
@@ -1467,7 +1467,7 @@ theorem clipperEvalGetStatusSalesTopAfterTic (v : ClipperImmutables) (evm : EVM.
     (by rfl)
     (by simpa [clipperGetStatusTopWord, clipperGetStatusSalesTopSlot,
       clipperGetStatusSalesBaseSlot, wordLoc, uint256Loc] using
-      clipperStorageLocLoad_uint256 evm (clipperGetStatusSalesTopSlot I))
+      storageLocLoad_uint256 evm (clipperGetStatusSalesTopSlot I))
 
 theorem clipperEvalGetStatusStatusArgs (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
@@ -1823,7 +1823,7 @@ theorem clipperEvalGetStatusSalesLotAfterNeedsRedo (v : ClipperImmutables)
     (by rfl)
     (by simpa [clipperGetStatusLotWord, clipperGetStatusSalesLotSlot,
       clipperGetStatusSalesBaseSlot, wordLoc, uint256Loc] using
-      clipperStorageLocLoad_uint256 evmRead (clipperGetStatusSalesLotSlot I))
+      storageLocLoad_uint256 evmRead (clipperGetStatusSalesLotSlot I))
 
 theorem clipperEvalGetStatusSalesTabAfterNeedsRedo (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv) (done : Bool) (price : UInt256) :
@@ -1853,7 +1853,7 @@ theorem clipperEvalGetStatusSalesTabAfterNeedsRedo (v : ClipperImmutables)
     (by rfl)
     (by simpa [clipperGetStatusTabWord, clipperGetStatusSalesTabSlot,
       clipperGetStatusSalesBaseSlot, wordLoc, uint256Loc] using
-      clipperStorageLocLoad_uint256 evmRead (clipperGetStatusSalesTabSlot I))
+      storageLocLoad_uint256 evmRead (clipperGetStatusSalesTabSlot I))
 
 theorem clipperEvalGetStatusReturnValues (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv) (done : Bool) (price : UInt256) :

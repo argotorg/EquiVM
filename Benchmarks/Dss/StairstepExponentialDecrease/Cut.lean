@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.StairstepExponentialDecrease
 /-! ## `cut()` getter -/
 
 def cutWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  stairstepSlotWord ⟨2⟩ σ I
+  solcSlotWordAt ⟨2⟩ σ I
 
 theorem stairstepDecode_cut {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (cutTransition.params.map Param.name)
@@ -65,7 +65,7 @@ theorem stairstepCutBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (cutWord σ I).toNat))])) := by
-    simpa [cutTransition, cutWord, stairstepSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [cutTransition, cutWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       stairstepUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -93,7 +93,6 @@ theorem stairstepCutBodyCore
 theorem stairstepCutBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stairstepExponentialDecreaseBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (stairstepSelBytes 0)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

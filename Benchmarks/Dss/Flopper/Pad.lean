@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flopper
 /-! ## `pad()` getter -/
 
 def padWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flopperSlotWord ⟨5⟩ σ I
+  solcSlotWordAt ⟨5⟩ σ I
 
 theorem flopperDecode_pad {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (padTransition.params.map Param.name)
@@ -72,7 +72,7 @@ theorem flopperPadBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (padWord σ I).toNat))])) := by
-    simpa [padTransition, padWord, flopperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [padTransition, padWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flopperUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -100,7 +100,6 @@ theorem flopperPadBodyCore
 theorem flopperPadBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 11)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

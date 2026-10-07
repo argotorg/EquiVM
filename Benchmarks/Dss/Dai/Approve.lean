@@ -156,6 +156,17 @@ theorem daiApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   exact ExecBlock.consReturn
     (ExecStmt.return (evalExprs?_singleton (by simp [evalExpr?, pure])))
 
+theorem daiApproveBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (h : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (approveStore I) approveTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_approve_wad evm I) (approveAssign evm I hsrc) hperm)
+
 /-! ## EVM trace -/
 
 abbrev approveInnerMem (I : ExecutionEnv) : ByteArray :=
@@ -294,14 +305,16 @@ theorem daiApproveX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     hreach dai_address_uint256_external_entry_wf hsz4 hsize hshort
 
 set_option maxHeartbeats 1000000 in
-theorem daiApproveX_logReady {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem daiApproveX_logReadySplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (h : RD daiBytecode I g s0 ⟨1302⟩
       [approveWadWord I, approveUsrMaskedWord I, ⟨496⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨496⟩ [⟨1⟩, sel]
-      (approveLogMem I) (UInt256.ofNat 5) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I)) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD daiBytecode I g s0 ⟨496⟩ [⟨1⟩, sel]
+        (approveLogMem I) (UInt256.ofNat 5) ByteArray.empty
+        (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I)) k' C') ∨
+      (I.perm = false ∧ RDstatic daiBytecode g s0) := by
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((approveInnerMem I).readWithPadding 0 64))) =
@@ -371,7 +384,14 @@ theorem daiApproveX_logReady {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1342pre := evm_run rd1340 with [
     raw dup7 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1343raw⟩ := rd1342pre.sstore hperm (by native_decide)
+  have hstoreDec : decode daiBytecode ⟨1342⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1342pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd1343raw⟩ := rd1342pre.sstore hperm hstoreDec
     (by change 9 ≤ 1024; decide)
   have rd1347pre := evm_run rd1343raw with [
     raw dup2 (by native_decide) (by evm_ov),
@@ -415,17 +435,19 @@ theorem daiApproveX_logReady {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       rd1404pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiX_approve_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiX_approve_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD daiBytecode I g
       (initState σ σ₀ g A I) ⟨452⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret daiBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I))
-      (UInt256.toByteArray ⟨1⟩) := by
+    (I.perm = true ∧
+      RDret daiBytecode g (initState σ σ₀ g A I)
+        (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I))
+        (UInt256.toByteArray ⟨1⟩)) ∨
+      (I.perm = false ∧ RDstatic daiBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1302⟩ := daiApproveX_decoded (g := g) hsz68 hsize hreach
-  obtain ⟨_, _, rd496⟩ := daiApproveX_logReady (I := I) hperm rd1302
+  refine permSplit_bind (daiApproveX_logReadySplit (I := I) rd1302) fun _ hret ↦ ?_
+  obtain ⟨_, _, rd496⟩ := hret
   have hretWf : solcReturnBoolFromMemWf daiBytecode ⟨496⟩ := by
     unfold solcReturnBoolFromMemWf
     repeat' first | apply And.intro | native_decide
@@ -437,10 +459,21 @@ theorem daiX_approve_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (approveBoolReturnMem_mload64 I) (approveBoolReturnMem_read128 I)
       (by simp only [List.length_singleton]; omega)
 
-theorem daiApproveBodyCoreOk
+theorem daiX_approve_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true)
+    (hreach : ∃ k C, RD daiBytecode I g
+      (initState σ σ₀ g A I) ⟨452⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret daiBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I))
+      (UInt256.toByteArray ⟨1⟩) :=
+  permSplit_true hperm (daiX_approve_okSplit hsz68 hsize hreach)
+
+theorem daiApproveBodyCoreStatic
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hperm : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
     (hdecode :
@@ -451,6 +484,38 @@ theorem daiApproveBodyCoreOk
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨452⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hbody :
+      ExecTransitionBody config contract evmSolm (approveStore I)
+        approveTransition.body
+        .staticViolation := by
+    simpa [evmSolm] using
+      daiApproveBodyStatic evmSolm I
+        (by simp only [evmSolm, initState]; exact hwv)
+        (by simp [evmSolm, initState])
+        (by simp only [evmSolm, initState]; exact hperm)
+  exact (permSplit_false hperm (daiX_approve_okSplit
+      (g := Sat256.ofUInt256 g) hsz68 hsize hreach))
+    |>.reEquivStaticHalt hcode hdispatch hdecode hbody
+
+theorem daiApproveBodyCoreOk
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (approveTransition.params.map Param.name)
+        (transitionSignature approveTransition).paramTypes I.calldata =
+          some (approveStore I))
+    (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨452⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  swap
+  · exact daiApproveBodyCoreStatic hcode hsize (by simpa using hperm) hwv hsz68
+      hdispatch hdecode hreach
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmSolm (approveStore I)
@@ -484,7 +549,7 @@ theorem daiApproveBodyCoreDecodeFailed_short
 /-- `approve(address,uint256)` body refines its Solm transition. -/
 theorem daiApproveBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 1)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -495,7 +560,7 @@ theorem daiApproveBodyCore {σ σ₀ A I} {g : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · exact daiApproveBodyCoreOk hcode hsize hperm hwv hsz68 hdispatch
+  · exact daiApproveBodyCoreOk hcode hsize hwv hsz68 hdispatch
       (daiDecode_approve_ok hsz68) hreach
   · exact daiApproveBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach

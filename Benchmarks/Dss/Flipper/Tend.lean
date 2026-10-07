@@ -78,10 +78,10 @@ theorem evalExpr_tendGuyNeZero_true {σ σ₀ A I} {g : Sat256}
     have hclean :
         UInt256.land solcAddrMask (bidGuyWord (tendId I) σ I) =
           bidGuyWord (tendId I) σ I := by
-      simpa [bidGuyWord, flipperAddressReturnWord, u256_land_comm] using
+      simpa [bidGuyWord, solcAddressSlotWord, u256_land_comm] using
         (solcAddrMask_clean
           (solcAddrMask_result_canonical
-            (flipperSlotWord (bidPackedSlotOfWord (tendId I)) σ I)))
+            (solcSlotWordAt (bidPackedSlotOfWord (tendId I)) σ I)))
     exact hguy (by simpa [keyValueToWord_address, hclean] using hmask.symm)
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
@@ -678,7 +678,7 @@ theorem flipperDecode_tend_ok {I : ExecutionEnv} (hsz100 : 100 ≤ I.calldata.si
         some (tendLocals I) := by
   change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "lot", "bid"]
       [abiUInt256, abiUInt256, abiUInt256] I.calldata = some (tendLocals I)
-  exact flipperDecodeCalldataLegacyUInt256UInt256UInt256_ok (cd := I.calldata)
+  exact decodeCalldata_legacyUint256_uint256_uint256_ok (cd := I.calldata)
     (x := "id") (y := "lot") (z := "bid") hsz100
 
 theorem flipperDecode_tend_none_short {I : ExecutionEnv}
@@ -687,7 +687,7 @@ theorem flipperDecode_tend_none_short {I : ExecutionEnv}
       (transitionSignature tendTransition).paramTypes I.calldata = none := by
   change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "lot", "bid"]
       [abiUInt256, abiUInt256, abiUInt256] I.calldata = none
-  exact flipperDecodeCalldataLegacyUInt256UInt256UInt256_none_short (cd := I.calldata)
+  exact decodeCalldata_legacyUint256_uint256_uint256_none_short (cd := I.calldata)
     (x := "id") (y := "lot") (z := "bid") hsz4 hshort
 
 theorem flipperReachTendBody {σ σ₀ A I} {g : Sat256}
@@ -811,7 +811,7 @@ theorem flipperTendX_guyNotSet {σ I} {g : Sat256} {s0 : State}
         (⟨2⟩ : UInt256) + bidBaseOfWord (tendId I) = bidPackedSlotOfWord (tendId I) := by
       simpa [bidPackedSlotOfWord] using
         (u256_add_comm (⟨2⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [bidPackedWord, flipperSlotWord, hslotAdd]
+    simpa [bidPackedWord, solcSlotWordAt, hslotAdd]
       using rd2680raw
   have hmask160 :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
@@ -821,7 +821,7 @@ theorem flipperTendX_guyNotSet {σ I} {g : Sat256} {s0 : State}
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
           (bidPackedWord (tendId I) σ I) = ⟨0⟩ := by
     rw [hmask160, u256_land_comm]
-    simpa [bidGuyWord, bidPackedWord, flipperAddressReturnWord] using hguy
+    simpa [bidGuyWord, bidPackedWord, solcAddressSlotWord] using hguy
   have rd2694 := evm_run rd2681 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -881,7 +881,7 @@ theorem flipperTendX_guyOk {σ I} {g : Sat256} {s0 : State}
         (⟨2⟩ : UInt256) + bidBaseOfWord (tendId I) = bidPackedSlotOfWord (tendId I) := by
       simpa [bidPackedSlotOfWord] using
         (u256_add_comm (⟨2⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [bidPackedWord, flipperSlotWord, hslotAdd]
+    simpa [bidPackedWord, solcSlotWordAt, hslotAdd]
       using rd2680raw
   have hmask160 :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
@@ -893,7 +893,7 @@ theorem flipperTendX_guyOk {σ I} {g : Sat256} {s0 : State}
     intro hzero
     exact hguy (by
       rw [hmask160, u256_land_comm] at hzero
-      simpa [bidGuyWord, bidPackedWord, flipperAddressReturnWord] using hzero)
+      simpa [bidGuyWord, bidPackedWord, solcAddressSlotWord] using hzero)
   have rd2760 := evm_run rd2681 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -941,7 +941,7 @@ theorem flipperTendX_alreadyFinishedTic {σ I} {g : Sat256} {s0 : State}
         (⟨2⟩ : UInt256) + bidBaseOfWord (tendId I) = bidPackedSlotOfWord (tendId I) := by
       simpa [bidPackedSlotOfWord] using
         (u256_add_comm (⟨2⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [bidPackedWord, flipperSlotWord, hslotAdd]
+    simpa [bidPackedWord, solcSlotWordAt, hslotAdd]
       using rd2778raw
   have rd2797 := evm_run rd2779 with [
     raw timestamp (by native_decide) (by evm_ov),
@@ -998,7 +998,7 @@ theorem flipperTendX_alreadyFinishedTic {σ I} {g : Sat256} {s0 : State}
         (⟨2⟩ : UInt256) + bidBaseOfWord (tendId I) = bidPackedSlotOfWord (tendId I) := by
       simpa [bidPackedSlotOfWord] using
         (u256_add_comm (⟨2⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [bidPackedWord, flipperSlotWord, hslotAdd]
+    simpa [bidPackedWord, solcSlotWordAt, hslotAdd]
       using rd2820raw
   have rd2837raw := evm_run rd2821 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1114,7 +1114,7 @@ theorem flipperTendX_ticGtOk {σ I} {g : Sat256} {s0 : State}
         (⟨2⟩ : UInt256) + bidBaseOfWord (tendId I) = bidPackedSlotOfWord (tendId I) := by
       simpa [bidPackedSlotOfWord] using
         (u256_add_comm (⟨2⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [bidPackedWord, flipperSlotWord, hslotAdd]
+    simpa [bidPackedWord, solcSlotWordAt, hslotAdd]
       using rd2778raw
   have rd2797 := evm_run rd2779 with [
     raw timestamp (by native_decide) (by evm_ov),
@@ -1184,7 +1184,7 @@ theorem flipperTendX_ticZeroOk {σ I} {g : Sat256} {s0 : State}
         (⟨2⟩ : UInt256) + bidBaseOfWord (tendId I) = bidPackedSlotOfWord (tendId I) := by
       simpa [bidPackedSlotOfWord] using
         (u256_add_comm (⟨2⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [bidPackedWord, flipperSlotWord, hslotAdd]
+    simpa [bidPackedWord, solcSlotWordAt, hslotAdd]
       using rd2778raw
   have rd2797 := evm_run rd2779 with [
     raw timestamp (by native_decide) (by evm_ov),
@@ -1244,7 +1244,7 @@ theorem flipperTendX_ticZeroOk {σ I} {g : Sat256} {s0 : State}
         (⟨2⟩ : UInt256) + bidBaseOfWord (tendId I) = bidPackedSlotOfWord (tendId I) := by
       simpa [bidPackedSlotOfWord] using
         (u256_add_comm (⟨2⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [bidPackedWord, flipperSlotWord, hslotAdd]
+    simpa [bidPackedWord, solcSlotWordAt, hslotAdd]
       using rd2820raw
   have rd2837raw := evm_run rd2821 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1312,7 +1312,7 @@ theorem flipperTendX_endOk {σ I} {g : Sat256} {s0 : State}
         (⟨2⟩ : UInt256) + bidBaseOfWord (tendId I) = bidPackedSlotOfWord (tendId I) := by
       simpa [bidPackedSlotOfWord] using
         (u256_add_comm (⟨2⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [bidPackedWord, flipperSlotWord, hslotAdd]
+    simpa [bidPackedWord, solcSlotWordAt, hslotAdd]
       using rd2936raw
   have rd2955 := evm_run rd2937 with [
     raw timestamp (by native_decide) (by evm_ov),
@@ -1388,7 +1388,7 @@ theorem flipperTendX_alreadyFinishedEnd {σ I} {g : Sat256} {s0 : State}
         (⟨2⟩ : UInt256) + bidBaseOfWord (tendId I) = bidPackedSlotOfWord (tendId I) := by
       simpa [bidPackedSlotOfWord] using
         (u256_add_comm (⟨2⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [memEnd, bidPackedWord, flipperSlotWord, hslotAdd]
+    simpa [memEnd, bidPackedWord, solcSlotWordAt, hslotAdd]
       using rd2936raw
   have rd2955 := evm_run rd2937 with [
     raw timestamp (by native_decide) (by evm_ov),
@@ -1507,7 +1507,7 @@ theorem flipperTendX_lotOk {σ I} {g : Sat256} {s0 : State}
         (⟨1⟩ : UInt256) + bidBaseOfWord (tendId I) = bidSlotOfWord (tendId I) ⟨1⟩ := by
       simpa [bidSlotOfWord] using
         (u256_add_comm (⟨1⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [bidLotWord, flipperSlotWord, hslotAdd]
+    simpa [bidLotWord, solcSlotWordAt, hslotAdd]
       using rd3054raw
   have rd3057raw := evm_run rd3055 with [
     raw dup3 (by native_decide) (by evm_ov),
@@ -1570,7 +1570,7 @@ theorem flipperTendX_lotNotMatching {σ I} {g : Sat256} {s0 : State}
         (⟨1⟩ : UInt256) + bidBaseOfWord (tendId I) = bidSlotOfWord (tendId I) ⟨1⟩ := by
       simpa [bidSlotOfWord] using
         (u256_add_comm (⟨1⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [memLot, bidLotWord, flipperSlotWord, hslotAdd]
+    simpa [memLot, bidLotWord, solcSlotWordAt, hslotAdd]
       using rd3054raw
   have rd3057raw := evm_run rd3055 with [
     raw dup3 (by native_decide) (by evm_ov),
@@ -1672,7 +1672,7 @@ theorem flipperTendX_tabGuardPrefix {σ I} {g : Sat256} {s0 : State}
         (⟨5⟩ : UInt256) + bidBaseOfWord (tendId I) = bidSlotOfWord (tendId I) ⟨5⟩ := by
       simpa [bidSlotOfWord] using
         (u256_add_comm (⟨5⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [bidTabWord, flipperSlotWord, hslotAdd] using rd3155raw
+    simpa [bidTabWord, solcSlotWordAt, hslotAdd] using rd3155raw
   exact ⟨_, _, evm_run rd3156 with [
     raw dup2 (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov)]⟩

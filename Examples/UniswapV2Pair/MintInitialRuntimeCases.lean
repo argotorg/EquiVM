@@ -22,7 +22,7 @@ theorem uniswapMintInitialRuntimeCases
     (henv : evm.executionEnv = I)
     (hrecipient : recipient = AccountAddress.ofNat toWord.toNat)
     (hto : locals.get? "to" = some (.address recipient))
-    (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
+    (htotalZero : solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩)
     (htotal : locals.get? "_totalSupply" = some (uniswapUint256Value (⟨0⟩ : UInt256)))
     (hamount0 : locals.get? "amount0" = some (uniswapUint256Value amount0))
     (hamount1 : locals.get? "amount1" = some (uniswapUint256Value amount1))

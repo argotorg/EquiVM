@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.MintCommon
 import Examples.UniswapV2Pair.SyncBody
 
@@ -7,14 +8,6 @@ set_option maxRecDepth 2000000
 
 namespace UniswapV2Pair
 
-theorem intOfNat_toNat_ne_zero_of_u256_ne_zero (w : UInt256) (h : w ≠ ⟨0⟩) :
-    Int.ofNat w.toNat ≠ 0 := by
-  intro hzero
-  apply h
-  apply u256_inj
-  have hnat : w.toNat = 0 := by
-    exact Int.ofNat_eq_zero.mp hzero
-  simpa using hnat
 
 theorem uniswapMintProportionalLiquidityBranchMin
     {locals : Store} (evm : EVM.State)

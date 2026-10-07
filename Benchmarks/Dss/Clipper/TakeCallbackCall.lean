@@ -11,7 +11,7 @@ theorem clipperTakeJumpDest4676 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -25,7 +25,7 @@ theorem clipperTakeJumpDest4696 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -225,8 +225,8 @@ theorem RD.clipperTakeClipperCallPostCall {σ₀ σStart σ I}
         decide))
       ?_ ?_ ?_
     · rw [accountAddress_ofUInt256_eq_ofNat_toNat]
-      exact clipperTakeEVMAddressAccountAddress _
-    · have hpadLe := clipperTake_paddedSize_le dataLen.toNat
+      exact eVM_address_id _
+    · have hpadLe := paddedSize_le_add31 dataLen.toNat
       have hinSizeLt : 164 + ABI.paddedSize dataLen.toNat < UInt256.size := by
         change 164 + ABI.paddedSize dataLen.toNat < 2 ^ 256
         omega

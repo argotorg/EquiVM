@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.DaiJoin
 /-! ## `vat()` getter -/
 
 def daiJoinVatWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  daiJoinAddressReturnWord ⟨1⟩ σ I
+  solcAddressSlotWord ⟨1⟩ σ I
 
 theorem daiJoinDecode_vat {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (vatTransition.params.map Param.name)
@@ -44,7 +44,6 @@ theorem daiJoinReachVatBody {σ σ₀ A I} {g : Sat256}
 theorem daiJoinVatBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiJoinBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiJoinSelBytes 7)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -56,7 +55,7 @@ theorem daiJoinVatBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (daiJoinVatWord σ I).toNat))])) := by
-    simpa [vatTransition, daiJoinVatWord, daiJoinAddressReturnWord, initState,
+    simpa [vatTransition, daiJoinVatWord, solcAddressSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       daiJoinAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

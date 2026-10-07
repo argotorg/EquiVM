@@ -1,3 +1,6 @@
+import Reasoning.ABIViews
+import Reasoning.WordArithmetic
+import Reasoning.EVMWord
 import Examples.Ballot.Bytecode
 import Examples.Ballot.Spec
 import Examples.Ballot.Common
@@ -316,71 +319,6 @@ theorem ballotDecoderMem_read (argBytes : ByteArray)
       show (128 + k + 32 - 128 : ℕ) = k + 32 from by omega,
       ← readWithPadding_eq_extract _ _ (by omega)]
 
-/-- The big-endian value of a 32-byte ABI `natBytes` word is the number itself. -/
-theorem fromByteArrayBigEndian_natBytes (n : ℕ) (hn : n < UInt256.size) :
-    fromByteArrayBigEndian ((ABI.natBytes n).toByteArray) = n := by
-  unfold ABI.natBytes
-  rw [word_toBytesBE_toByteArray_eq_toByteArray, fromByteArrayBigEndian_toByteArray]
-  exact UInt256.toNat_ofNat_of_lt hn
-
-theorem natBytes_toByteArray_size (n : ℕ) : (ABI.natBytes n).toByteArray.size = 32 := by
-  unfold ABI.natBytes; exact word_toBytesBE_toByteArray_size _
-
-/-- Every successful ABI encoding of a `bytes32` value is exactly one 32-byte word. -/
-theorem encodeABIValue_bytes32_length {v : Value} {bs : List UInt8}
-    (h : ABI.encodeABIValue? Ballot.bytes32 v = some bs) : bs.length = 32 := by
-  cases v <;> simp [Ballot.bytes32, ABI.encodeABIValue?, ABI.encodeABIWord?] at h
-  case fixedBytes n bytes =>
-    rcases h with ⟨⟨rfl, hlen⟩, hbs⟩
-    subst bs
-    simp [ABI.zeroBytes, hlen]
-
-/-- A successful ABI encoding of a `bytes32[]` element tail has one 32-byte word per element. -/
-theorem encodeABIStaticArrayElems_bytes32_length {vs : List Value} {elemBytes : List UInt8}
-    (h : ABI.encodeABIStaticArrayElems? Ballot.bytes32 vs = some elemBytes) :
-    elemBytes.length = 32 * vs.length := by
-  induction vs generalizing elemBytes with
-  | nil =>
-      simp [ABI.encodeABIStaticArrayElems?] at h
-      subst elemBytes
-      simp
-  | cons v rest ih =>
-      simp [ABI.encodeABIStaticArrayElems?] at h
-      rcases hv : ABI.encodeABIValue? Ballot.bytes32 v with _ | enc <;> simp [hv] at h
-      rcases hr : ABI.encodeABIStaticArrayElems? Ballot.bytes32 rest with _ | encRest <;>
-        simp [hr] at h
-      subst elemBytes
-      have henc := encodeABIValue_bytes32_length (v := v) (bs := enc) hv
-      have hrest := ih hr
-      simp [henc, hrest]
-      omega
-
-/-- Reading the first 32-byte word of `natBytes m ‖ rest` returns `natBytes m`. -/
-theorem natBytes_read0 (m : ℕ) (rest : List UInt8) :
-    ((ABI.natBytes m ++ rest).toByteArray).readWithPadding 0 32 = (ABI.natBytes m).toByteArray := by
-  have hm := natBytes_toByteArray_size m
-  rw [List.toByteArray_append,
-      readWithPadding_eq_extract _ _ (by rw [ByteArray.size_append, hm]; omega),
-      extract_append_left _ _ _ _ (by rw [hm])]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (le_of_eq hm)
-
-/-- Reading the second 32-byte word of `natBytes a ‖ natBytes b ‖ rest` returns `natBytes b`. -/
-theorem natBytes_read1 (a b : ℕ) (rest : List UInt8) :
-    ((ABI.natBytes a ++ (ABI.natBytes b ++ rest)).toByteArray).readWithPadding 32 32
-      = (ABI.natBytes b).toByteArray := by
-  have ha := natBytes_toByteArray_size a
-  have hb := natBytes_toByteArray_size b
-  rw [List.toByteArray_append, List.toByteArray_append,
-      readWithPadding_eq_extract _ _
-        (by rw [ByteArray.size_append, ByteArray.size_append, ha, hb]; omega),
-      extract_append_right_window _ _ _ _ (le_of_eq ha), ha,
-      show (32 - 32 : ℕ) = 0 from rfl, show (32 + 32 - 32 : ℕ) = 32 from rfl,
-      extract_append_left _ _ _ _ (by rw [hb])]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (le_of_eq hb)
 
 /-- The decoder's offset `MLOAD` at `mem[0x80]` reads the ABI offset word `m` (`= 0x20`). -/
 theorem ballotDecoderMem_offsetVal (m : ℕ) (rest : List UInt8)
@@ -539,40 +477,6 @@ theorem ballotDecoderValid1 (argBytes : ByteArray)
 
 /-! ### Remaining decoder bounds checks (offset/length ≤ 2^64-1, data-room SGT) -/
 
-/-- The `2^64 - 1` literal built by `PUSH1 1; PUSH1 1; PUSH1 0x40; SHL; SUB`. -/
-theorem u64mask_toNat :
-    (UInt256.sub (UInt256.shiftLeft ⟨1⟩ ⟨0x40⟩) ⟨1⟩).toNat = 2 ^ 64 - 1 := by decide
-
-/-- `GT a b` is `0` (false) when `a ≤ b`. -/
-theorem ugt_eq_zero {a b : UInt256} (h : a.toNat ≤ b.toNat) : UInt256.gt a b = ⟨0⟩ := by
-  show UInt256.fromBool (decide (a > b)) = ⟨0⟩
-  rw [decide_eq_false (show ¬ a > b by show ¬ b.toNat < a.toNat; omega)]
-  rfl
-
-/-- The offset bound check `iszero(gt(0x20, 2^64-1))` is taken (offset `0x20 ≤ 2^64-1`). -/
-theorem ballotDecoderValidOff :
-    (UInt256.isZero (UInt256.gt (UInt256.ofNat 32)
-      (UInt256.sub (UInt256.shiftLeft ⟨1⟩ ⟨0x40⟩) ⟨1⟩))) ≠ ⟨0⟩ := by
-  rw [ugt_eq_zero (by rw [u64mask_toNat, ulit_toNat' _ (by decide : (32:ℕ) < UInt256.size)]; omega)]
-  decide
-
-/-- The length bound check `iszero(gt(n, 2^64-1))` is taken when the array length `n < 2^64`. -/
-theorem ballotDecoderValidLen (n : ℕ) (hn : n < 2 ^ 64) :
-    (UInt256.isZero (UInt256.gt (UInt256.ofNat n)
-      (UInt256.sub (UInt256.shiftLeft ⟨1⟩ ⟨0x40⟩) ⟨1⟩))) ≠ ⟨0⟩ := by
-  rw [ugt_eq_zero (by rw [u64mask_toNat, ulit_toNat' _ (lt_of_lt_of_le hn (by decide))]; omega)]
-  decide
-
-/-- The decoded array head `0x80 + 0x20 = 0xa0`. -/
-theorem arrayHead_eq : (⟨128⟩ + UInt256.ofNat 32 : UInt256) = UInt256.ofNat 160 := by
-  apply u256_inj
-  rw [uadd_toNat, show ((⟨128⟩ : UInt256)).toNat = 128 from by decide,
-    ulit_toNat' _ (by decide : (32:ℕ) < UInt256.size),
-    ulit_toNat' _ (by decide : (160:ℕ) < UInt256.size)]
-  decide
-
-theorem arrayHead_toNat : (⟨128⟩ + UInt256.ofNat 32 : UInt256).toNat = 160 := by
-  rw [arrayHead_eq]; exact ulit_toNat' _ (by decide)
 
 /-- The data-room check `sgt(dataEnd, arrayHead + 0x1f)` is taken: with `argBytes.size ≥ 64` the
     appended data extends past the array head + length word. -/
@@ -633,7 +537,7 @@ theorem ballotDecoderValidations
           ballotDecoderAW_mloadStable argBytes hszH h64 128 (by omega), u256_ofNat_toNat])
       (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨0x40⟩, shl, sub, dup2, gt, iszero, push2 ⟨0xf7⟩,
-    jumpiT ballotDecoderValidOff (by ctor_jd),
+    jumpiT decoderValidOff (by ctor_jd),
     jumpdest, dup3, add, push1 ⟨0x1f⟩, dup2, add, dup5, sgt, push2 ⟨0x107⟩,
     jumpiT (ballotDecoderValid2 argBytes hszH h64 h255) (by ctor_jd),
     jumpdest, dup1,
@@ -648,7 +552,7 @@ theorem ballotDecoderValidations
       (by rw [arrayHead_toNat, ballotDecoderAW_mloadStable argBytes hszH h64 160 (by omega), u256_ofNat_toNat])
       (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨0x40⟩, shl, sub, dup2, gt, iszero, push2 ⟨0x120⟩,
-    jumpiT (ballotDecoderValidLen n hn) (by ctor_jd) ]
+    jumpiT (decoderValidLen n hn) (by ctor_jd) ]
   exact ⟨_, _, rd⟩
 
 /-! ### Allocation segment support (pc `0x120 → 0x172`)
@@ -660,15 +564,6 @@ active-words), all over the deployment shape `argBytes = natBytes 0x20 ‖ natBy
 `elemBytes.length = 0x20·n` and the (realistic) master bound `0x40·n + 0xe0 < 2^64` (so the allocation
 fits a 64-bit pointer; this also subsumes `n < 2^64` and `argBytes.size < 2^255-128`). -/
 
-/-- `argBytes.size = 0x40 + 0x20·n` for the `bytes32[]` deployment shape. -/
-theorem ballotArg_size (n : ℕ) (elemBytes : List UInt8) (argBytes : ByteArray)
-    (hstruct : argBytes = (ABI.natBytes 32 ++ (ABI.natBytes n ++ elemBytes)).toByteArray)
-    (helems : elemBytes.length = 32 * n) :
-    argBytes.size = 64 + 32 * n := by
-  rw [hstruct, List.toByteArray_append, ByteArray.size_append, List.toByteArray_append,
-    ByteArray.size_append, natBytes_toByteArray_size, natBytes_toByteArray_size,
-    List.size_toByteArray, helems]
-  omega
 
 /-- The free pointer `fp = 0x80 + argLen = 0xc0 + 0x20·n`. -/
 theorem ballotFp_toNat (n : ℕ) (elemBytes : List UInt8) (argBytes : ByteArray)
@@ -676,7 +571,8 @@ theorem ballotFp_toNat (n : ℕ) (elemBytes : List UInt8) (argBytes : ByteArray)
     (helems : elemBytes.length = 32 * n)
     (hsz : (ballotInitcode ++ argBytes).size < UInt256.size) :
     (⟨128⟩ + ballotArgLen argBytes).toNat = 192 + 32 * n := by
-  have hszval : argBytes.size = 64 + 32 * n := ballotArg_size n elemBytes argBytes hstruct helems
+  have hszval : argBytes.size = 64 + 32 * n :=
+    abiArrayWords_size n elemBytes argBytes hstruct helems
   have hbnd : 2368 + argBytes.size < UInt256.size := by
     rw [← ballotInitcode_size, ← ByteArray.size_append]; exact hsz
   rw [uadd_toNat, show ((⟨128⟩ : UInt256)).toNat = 128 from by decide,
@@ -689,18 +585,14 @@ theorem ballotAllocAW (n : ℕ) (elemBytes : List UInt8) (argBytes : ByteArray)
     (helems : elemBytes.length = 32 * n)
     (hsz : (ballotInitcode ++ argBytes).size < UInt256.size) (h64 : 64 ≤ argBytes.size) :
     MachineState.M (ballotDecoderAW argBytes).toNat (⟨128⟩ + ballotArgLen argBytes).toNat 32 = 7 + n := by
-  have hszval : argBytes.size = 64 + 32 * n := ballotArg_size n elemBytes argBytes hstruct helems
+  have hszval : argBytes.size = 64 + 32 * n :=
+    abiArrayWords_size n elemBytes argBytes hstruct helems
   have haw : (ballotDecoderAW argBytes).toNat = 6 + n := by
     rw [ballotDecoderAW_toNat argBytes hsz h64, hszval]; omega
   unfold MachineState.M
   simp only [haw, ballotFp_toNat n elemBytes argBytes hstruct helems hsz]
   omega
 
-/-- `LT a b = 0` when `b ≤ a` (unsigned). -/
-theorem ult_eq_zero {a b : UInt256} (h : b.toNat ≤ a.toNat) : UInt256.lt a b = ⟨0⟩ := by
-  show UInt256.fromBool (decide (a < b)) = ⟨0⟩
-  rw [decide_eq_false (show ¬ a < b by show ¬ a.toNat < b.toNat; omega)]
-  rfl
 
 /-- The new free pointer `newFP = fp + (0x20·n + 0x20) = 0xe0 + 0x40·n`. -/
 theorem ballotNewFP_toNat (n : ℕ) (elemBytes : List UInt8) (argBytes : ByteArray)
@@ -744,8 +636,8 @@ theorem ballotAllocOverflow (n : ℕ) (elemBytes : List UInt8) (argBytes : ByteA
           omega)]
   have hnewfp := ballotNewFP_toNat n elemBytes argBytes hstruct helems hsz h64 hn64
   have hfp := ballotFp_toNat n elemBytes argBytes hstruct helems hsz
-  rw [ult_eq_zero (by rw [hfp, hnewfp]; omega),
-      ugt_eq_zero (by rw [hnewfp, u64mask_toNat]; omega)]
+  rw [ult_zero (by rw [hfp, hnewfp]; omega),
+      ugt_zero (by rw [hnewfp, u64mask_toNat]; omega)]
   decide
 
 /-- The data-fits guard `iszero(srcEnd > dataEnd)` is taken: the source elements end exactly at the
@@ -771,7 +663,7 @@ theorem ballotAllocDataFits (n : ℕ) (elemBytes : List UInt8) (argBytes : ByteA
       = 192 + 32 * n := by
     rw [uadd_toNat, e1, show ((⟨32⟩ : UInt256)).toNat = 32 from by decide, Nat.mod_eq_of_lt (by omega)]
     omega
-  rw [ugt_eq_zero (by rw [hsrcEnd, hfp])]
+  rw [ugt_zero (by rw [hsrcEnd, hfp])]
   decide
 
 /-! ### Allocation trace (pc `0x120 → 0x172`)
@@ -893,7 +785,8 @@ theorem ballotAllocMem_src_read (n : ℕ) (elemBytes : List UInt8) (argBytes : B
     (ballotAllocMem argBytes n fp).readWithPadding (192 + 32 * j) 32
       = (ballotDecoderMem argBytes).readWithPadding (192 + 32 * j) 32 := by
   have hpos : 0 < argBytes.size := by omega
-  have hszval : argBytes.size = 64 + 32 * n := ballotArg_size n elemBytes argBytes hstruct helems
+  have hszval : argBytes.size = 64 + 32 * n :=
+    abiArrayWords_size n elemBytes argBytes hstruct helems
   have hdmsz : (ballotDecoderMem argBytes).size = 128 + argBytes.size :=
     ballotDecoderMem_size argBytes hsz hpos
   have hfpval : fp.toNat = 192 + 32 * n := by
@@ -911,31 +804,6 @@ theorem ballotAllocMem_src_read (n : ℕ) (elemBytes : List UInt8) (argBytes : B
       write32_read_above _ _ 64 (192 + 32 * j) (by rw [toByteArray_size])
         (by rw [hdmsz]; omega) (by omega) (by rw [hdmsz, hszval]; omega)]
 
-/-- Active-words is **stable** for the copy loop's source `MLOAD`: reading element `i` at `0xc0+0x20·i`
-    stays within the `7+n+i` active words. -/
-theorem M_copy_stable (n i : ℕ) :
-    MachineState.M (7 + n + i) (192 + 32 * i) 32 = 7 + n + i := by
-  unfold MachineState.M; simp only []; omega
-
-/-- Active-words **grows by one word** for the copy loop's destination `MSTORE`: writing at
-    `fp+0x20+0x20·i = (7+n+i)·0x20` (the current end) bumps the count to `8+n+i`. -/
-theorem M_copy_grow (n i : ℕ) :
-    MachineState.M (7 + n + i) (224 + 32 * n + 32 * i) 32 = 8 + n + i := by
-  unfold MachineState.M; simp only []; omega
-
-/-- A 32-byte in-bounds memory read round-trips through `uInt256OfByteArray`: the bytes the copy loop
-    re-stores (`MLOAD`'s `ofNat ∘ fromBE`, then `MSTORE`'s `toByteArray`) are exactly the source bytes. -/
-theorem read32_roundtrip (mem : ByteArray) (addr : ℕ) (h : addr + 32 ≤ mem.size) :
-    mem.readWithPadding addr 32
-      = UInt256.toByteArray (uInt256OfByteArray (mem.readWithPadding addr 32)) := by
-  have hsz : (mem.readWithPadding addr 32).size = 32 := by
-    rw [readWithPadding_eq_extract mem addr h, ByteArray.size_extract]; omega
-  rw [← word_toBytesBE_toByteArray_eq_toByteArray,
-    toBytesBE_uInt256OfByteArray_of_size hsz]
-  apply ByteArray.ext
-  apply Array.ext'
-  rw [byteArray_toList_eq] at *
-  rw [List.toList_data_toByteArray]
 
 /-! ### Copy loop (pc `0x172 → 0x18e`) — the full element-copy via `RD.whileLoopCarry`
 
@@ -958,7 +826,8 @@ theorem ballotAllocMem_size (n : ℕ) (elemBytes : List UInt8) (argBytes : ByteA
     (fp : UInt256) (hfp : fp = ⟨128⟩ + ballotArgLen argBytes) :
     (ballotAllocMem argBytes n fp).size = 224 + 32 * n := by
   have hpos : 0 < argBytes.size := by omega
-  have hszval : argBytes.size = 64 + 32 * n := ballotArg_size n elemBytes argBytes hstruct helems
+  have hszval : argBytes.size = 64 + 32 * n :=
+    abiArrayWords_size n elemBytes argBytes hstruct helems
   have hdmsz : (ballotDecoderMem argBytes).size = 128 + argBytes.size :=
     ballotDecoderMem_size argBytes hsz hpos
   have hfpval : fp.toNat = 192 + 32 * n := by
@@ -1074,9 +943,9 @@ theorem ballotDecoderCopyLoop
       dup5,
       raw mload 0 (srcWords a.i) (UInt256.ofNat (7 + n + a.i)) (by ctor_decode)
         (by
-          simp only [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, hsrc, hawN, M_copy_stable, Nat.sub_self])
+          simp only [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, hsrc, hawN, m_copy_stable, Nat.sub_self])
         (mloadWordValue_of_readWithPadding hsrcLt hread)
-        (by rw [hawN, hsrc, M_copy_stable])
+        (by rw [hawN, hsrc, m_copy_stable])
         (by evm_ov),
       dup1, dup3,
       raw mstore
@@ -1086,7 +955,7 @@ theorem ballotDecoderCopyLoop
         (UInt256.ofNat (7 + n + a.i + 1)) (by ctor_decode)
         (by rfl)
         (by rfl)
-        (by rw [hawN, hdst, M_copy_grow]; congr 1; omega)
+        (by rw [hawN, hdst, m_copy_grow]; congr 1; omega)
         (by evm_ov),
       push1 ⟨0x20⟩, swap6, dup7, add, swap6, swap1, swap4, pop, add, push2 ⟨0x172⟩,
       jump (by ctor_jd) ]

@@ -36,7 +36,8 @@ theorem clipperTakeIlkPatchPayload5046 (v : ClipperImmutables) {code : ByteArray
     (post := [(6800, ilkBytes), (8747, ilkBytes)])
     (off := 5046) (value := ilkBytes)
     (by
-      simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, hilk,
+      simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
+        hilk,
         hlen, List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
@@ -91,7 +92,8 @@ theorem clipperTakeVatPatchPayload5115 (v : ClipperImmutables) {code : ByteArray
         (8747, ilkBytes)])
     (off := 5115) (value := vatBytes)
     (by
-      simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, hilk,
+      simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
+        hilk,
         hlen, List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
@@ -473,7 +475,7 @@ theorem clipperTakeJumpDest5189 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 6000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none => simp [hIlk]; native_decide
   | some bs => simp [hIlk]; native_decide
 
@@ -483,7 +485,7 @@ theorem clipperTakeJumpDest5209 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 6000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none => simp [hIlk]; native_decide
   | some bs => simp [hIlk]; native_decide
 
@@ -586,7 +588,7 @@ theorem RD.clipperTakePostDogFluxPostCall {σ₀ σStart σ I}
       rw [hI]
       decide)) ?_ ?_ ?_
   · rw [clipperTakeVatTargetAddress v]
-    exact clipperTakeEVMAddressAccountAddress v.vat
+    exact eVM_address_id v.vat
   · simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
       show (⟨132⟩ : UInt256).toNat = 132 from by decide] using
       clipperTakeVatFluxEncode_eq_260 v I packed lotNew hbaseMem

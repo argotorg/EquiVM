@@ -152,18 +152,39 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv)
 
 /-- The Solm `approve(address,uint256)` body stores `allowance[msg.sender][guy] = wad` and returns
     `true`. -/
+theorem weth9ApproveBodyReturnsSplit (evm : EVM.State) (I : ExecutionEnv)
+    (h : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source) :
+    (ExecTransitionBody config contract evm (approveStore I) approveTransition.body
+      (.returned { contract := contract, locals := approveStore I }
+        (approvePostState evm I) (some [.bool true]))) ∧
+      (evm.executionEnv.perm = false → ExecTransitionBody config contract evm
+        (approveStore I) approveTransition.body .staticViolation) := by
+  have hvalue := evalExpr_approve_wad evm I
+  have hassign := approveAssign evm I hsrc
+  have hprefix {result : ExecResult}
+      (htail : ExecBlock config { contract := contract, locals := approveStore I } evm
+        (approveTransition.body.drop 1) result) :
+      ExecBlock config { contract := contract, locals := approveStore I } evm
+        approveTransition.body result :=
+    ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) htail
+  constructor
+  · apply ExecFuncBody.execBlockRet
+    apply hprefix
+    refine ExecBlock.consNormal (ExecStmt.assign hvalue hassign) ?_
+    exact ExecBlock.consReturn
+      (ExecStmt.return (evalExprs?_singleton (by simp [evalExpr?, pure])))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hvalue hassign hperm)))
+
 theorem weth9ApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source) :
     ExecTransitionBody config contract evm (approveStore I) approveTransition.body
       (.returned { contract := contract, locals := approveStore I }
-        (approvePostState evm I) (some [.bool true])) := by
-  refine ExecFuncBody.execBlockRet ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) ?_
-  refine ExecBlock.consNormal
-    (ExecStmt.assign (evalExpr_approve_wad evm I) (approveAssign evm I hsrc)) ?_
-  exact ExecBlock.consReturn
-    (ExecStmt.return (evalExprs?_singleton (by simp [evalExpr?, pure])))
+        (approvePostState evm I) (some [.bool true])) :=
+  (weth9ApproveBodyReturnsSplit evm I h hsrc).1
 
 /-! ## EVM trace : scratch-memory abbreviations -/
 
@@ -278,7 +299,7 @@ theorem weth9ApproveReachDecode {σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h304⟩ := weth9ReachApprove (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode (by omega) hsize hsel
-  obtain ⟨_, _, h318⟩ := weth9GuardPeelOk (gt := ⟨316⟩) h304 hwv
+  obtain ⟨_, _, h318⟩ := solcFunctionGuardPeelOk (gt := ⟨316⟩) h304 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
@@ -305,14 +326,16 @@ theorem weth9ApproveReachDecode {σ σ₀ A I} {g : Sat256}
 
 /-- The store + `Approval` log (981 → 361): store `allowance[caller][guy] = wad` and emit `LOG3`,
     reaching the bool-return encoder at pc 361 with the constant `1` on the stack. -/
-theorem weth9ApproveStoreLog {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem weth9ApproveStoreLogSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (h : RD weth9Bytecode I g s0 ⟨981⟩
       [approveWadWord I, approveGuyMaskedWord I, ⟨361⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD weth9Bytecode I g s0 ⟨361⟩ [⟨1⟩, sel]
-      (approveLogMem I) (UInt256.ofNat 5) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I)) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD weth9Bytecode I g s0 ⟨361⟩ [⟨1⟩, sel]
+        (approveLogMem I) (UInt256.ofNat 5) ByteArray.empty
+        (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I)) k' C') ∨
+      (I.perm = false ∧ RDstatic weth9Bytecode g s0) := by
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((approveInnerMem I).readWithPadding 0 64))) =
@@ -381,7 +404,14 @@ theorem weth9ApproveStoreLog {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1020pre := evm_run rd1018 with [
     raw dup7 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1021raw⟩ := rd1020pre.sstore hperm (by native_decide)
+  have hstoreDec : decode weth9Bytecode ⟨1021⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1020pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd1021raw⟩ := rd1020pre.sstore hperm hstoreDec
     (by change 9 ≤ 1024; decide)
   have rd1026pre := evm_run rd1021raw with [
     raw dup2 (by native_decide) (by evm_ov),
@@ -425,15 +455,21 @@ theorem weth9ApproveStoreLog {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 /-- The full `approve` EVM run (68 ≤ calldata): stores `allowance[caller][guy] = wad`, logs, and
     returns the ABI encoding of `true`. -/
-theorem weth9ApproveX_ok {σ σ₀ A I} {g : Sat256}
-    (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true)
+theorem weth9ApproveX_okSplit {σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 1)) :
-    RDret weth9Bytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I))
-      (UInt256.toByteArray ⟨1⟩) := by
+    (I.perm = true ∧
+      RDret weth9Bytecode g (initState σ σ₀ g A I)
+        (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I))
+        (UInt256.toByteArray ⟨1⟩)) ∨
+      (I.perm = false ∧ RDstatic weth9Bytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, h981⟩ := weth9ApproveReachDecode (g := g) hcode hwv hsz68 hsize hsel
-  obtain ⟨_, _, h361⟩ := weth9ApproveStoreLog (I := I) hperm h981
+  rcases weth9ApproveStoreLogSplit (I := I) h981 with
+    ⟨hperm, _, _, h361⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact Or.inr ⟨hperm, hstatic⟩
+  refine Or.inl ⟨hperm, ?_⟩
   have hretWf : solcReturnBoolFromMemWf weth9Bytecode ⟨361⟩ := by
     unfold solcReturnBoolFromMemWf
     repeat' first | apply And.intro | native_decide
@@ -442,6 +478,15 @@ theorem weth9ApproveX_ok {σ σ₀ A I} {g : Sat256}
     RD.solcReturnBoolFromMem h361 hretWf (approveLogMem_mload64 I) (by rfl)
       (approveBoolReturnMem_mload64 I) (approveBoolReturnMem_read128 I)
       (by simp only [List.length_singleton]; omega)
+
+theorem weth9ApproveX_ok {σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true)
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsel : selIs I (weth9SelBytes 1)) :
+    RDret weth9Bytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I))
+      (UInt256.toByteArray ⟨1⟩) :=
+  permSplit_true hperm (weth9ApproveX_okSplit hcode hwv hsz68 hsize hsel)
 
 /-! ## Refinement -/
 
@@ -466,6 +511,21 @@ theorem weth9ApproveBodyCoreOk {σ σ₀ A I} {g : UInt256}
   · simp [approvePostState, initState, storageStore_accountMap]
   · exact returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding)
 
+theorem weth9ApproveBodyCoreStaticOk {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hsel : selIs I (weth9SelBytes 1)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  have hstatic := permSplit_false hperm
+    (weth9ApproveX_okSplit (σ := σ) (σ₀ := σ₀) (A := A)
+      (g := Sat256.ofUInt256 g) hcode hwv hsz68 hsize hsel)
+  have hbody := (weth9ApproveBodyReturnsSplit
+    (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+    (by simpa [initState] using hwv) (by simp [initState])).2 hperm
+  exact weth9ReEquivExecStatic hcode hstatic
+    (weth9SelectorDispatchApprove hsel) (weth9Decode_approve_ok hsz68) hbody
+
 theorem weth9ApproveBodyCoreDecodeFailed_short {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
@@ -473,7 +533,7 @@ theorem weth9ApproveBodyCoreDecodeFailed_short {σ σ₀ A I} {g : UInt256}
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, h304⟩ := weth9ReachApprove (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
-  obtain ⟨_, _, h318⟩ := weth9GuardPeelOk (gt := ⟨316⟩) h304 hwv
+  obtain ⟨_, _, h318⟩ := solcFunctionGuardPeelOk (gt := ⟨316⟩) h304 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
   have hltShort : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
@@ -500,22 +560,24 @@ theorem weth9ApproveBodyCoreDecodeFailed_short {σ σ₀ A I} {g : UInt256}
     (weth9Decode_approve_none_short hsz4 hshort)
 
 /-- `approve(address,uint256)` body refines its Solm transition (all branches). -/
-theorem weth9ApproveBodyCore {σ σ₀ A I} {g : UInt256}
+theorem weth9ApproveBodyCoreAnyPerm {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 1)) :
+    (hsel : selIs I (weth9SelBytes 1)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 1) (by native_decide) hsel
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz68 : 68 ≤ I.calldata.size
-    · exact weth9ApproveBodyCoreOk hcode hsize hperm hwv hsz68 hsel
+    · by_cases hperm : I.perm = true
+      · exact weth9ApproveBodyCoreOk hcode hsize hperm hwv hsz68 hsel
+      · exact weth9ApproveBodyCoreStaticOk hcode hsize (by simpa using hperm) hwv hsz68 hsel
     · exact weth9ApproveBodyCoreDecodeFailed_short hcode hsize hwv hsz4 (by omega) hsel
   · obtain ⟨_, _, h304⟩ := weth9ReachApprove (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
-    have hrev := weth9GuardPeelRev (gt := ⟨316⟩) h304 hwv
+    have hrev := solcFunctionGuardPeelRev (gt := ⟨316⟩) h304 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     exact weth9NonpayableRevert hcode hrev (weth9SelectorDispatchApprove hsel)
-      (fun callargs _ => bodyReverts_nonPayable (by simp only [initState]; exact hwv))
+      (fun callargs _ ↦ bodyReverts_nonPayable (by simp only [initState]; exact hwv))
 
 end Benchmarks.WETH9

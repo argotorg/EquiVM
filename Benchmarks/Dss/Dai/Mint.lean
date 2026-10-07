@@ -245,7 +245,7 @@ theorem evalExpr_mint_auth_false (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact uint256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -525,6 +525,27 @@ theorem daiMintBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       (by simpa [mintPostState] using
         mintAssignSupply (mintAfterUsrCreditState evm I) I hfitSupply)) ?_
   exact ExecBlock.nil
+
+theorem daiMintBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hauth :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (mintAuthStorageSlot I) = ⟨1⟩)
+    (hfitUsr : mintUsrCreditNat evm I < UInt256.size)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (mintStore I) mintTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  simp only [mintTransition, nonpayable, auth, creditBalance, checkedAdd, List.append_assoc,
+    List.singleton_append]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_mint_auth_true evm I hsrc hauth)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_mint_usr_checkedAdd_true evm I hfitUsr)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_mint_usr_credit evm I hfitUsr)
+      (mintAssignUsr evm I hfitUsr) hperm)
 
 set_option maxHeartbeats 1000000 in
 theorem daiMintBodyReverts_auth (evm : EVM.State) (I : ExecutionEnv)
@@ -1021,18 +1042,19 @@ theorem daiCheckedAddRevert0 {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 4000000 in
-theorem daiMintX_storeUsr_success {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiMintX_storeUsr_successSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (hperm : I.perm = true)
     (hfitUsr :
       (mintEvmUsrBalanceWord σ I).toNat + (mintWadWord I).toNat < UInt256.size)
     (h : RD daiBytecode I g s0 ⟨2100⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
       (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨2161⟩
-      [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
-      (mintUsrStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (mintEvmAfterUsrAccountMap σ I) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD daiBytecode I g s0 ⟨2161⟩
+        [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
+        (mintUsrStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
+        (mintEvmAfterUsrAccountMap σ I) k' C') ∨
+      (I.perm = false ∧ RDstatic daiBytecode g s0) := by
   have husrMaskLiteral :
       UInt256.land (mintUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -1092,7 +1114,14 @@ theorem daiMintX_storeUsr_success {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd2160 := rd2159pre.keccak256 0 (mintEvmUsrSlot I)
     (UInt256.ofNat 3) (by native_decide) mem_cost hUsrStoreSlot (by native_decide)
     (by evm_ov)
-  obtain ⟨k2161, C2161, rd2161raw⟩ := rd2160.sstore hperm (by native_decide)
+  have hstoreDec : decode daiBytecode ⟨2160⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2160.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨k2161, C2161, rd2161raw⟩ := rd2160.sstore hperm hstoreDec
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd2161 : RD daiBytecode I g s0 ⟨2161⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
@@ -1100,6 +1129,20 @@ theorem daiMintX_storeUsr_success {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (mintEvmAfterUsrAccountMap σ I) k2161 C2161 := by
     simpa [mintEvmAfterUsrAccountMap, mintEvmUsrCreditWord, mintEvmUsrSlot] using rd2161raw
   exact ⟨k2161, C2161, rd2161⟩
+
+theorem daiMintX_storeUsr_success {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
+    (hperm : I.perm = true)
+    (hfitUsr :
+      (mintEvmUsrBalanceWord σ I).toNat + (mintWadWord I).toNat < UInt256.size)
+    (h : RD daiBytecode I g s0 ⟨2100⟩
+      [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
+      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD daiBytecode I g s0 ⟨2161⟩
+      [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
+      (mintUsrStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
+      (mintEvmAfterUsrAccountMap σ I) k' C' :=
+  permSplit_true hperm (daiMintX_storeUsr_successSplit hfitUsr h)
 
 theorem daiMintX_usrOverflowRevert {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
@@ -1315,7 +1358,7 @@ theorem mintSolmBridge {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
 /-- `mint(address,uint256)` body refines its Solm transition. -/
 theorem daiMintBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 7)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -1362,6 +1405,14 @@ theorem daiMintBodyCore {σ σ₀ A I} {g : UInt256}
             UInt256.size
       · rcases mintSolmAfterUsrBridge hownerSolm (by simp [evmSolm, initState]) hfitUsr with
           ⟨hfitUsrBody, _hafterMap, hsupplyNat⟩
+        by_cases hperm : I.perm = true
+        swap
+        · have hstatic : I.perm = false := by simpa using hperm
+          have hbody := daiMintBodyStatic evmSolm I
+            (by simpa [evmSolm, initState] using hwv) hsourceSolm hauthBody hfitUsrBody
+            (by simpa [evmSolm, initState] using hstatic)
+          exact (permSplit_false hstatic (daiMintX_storeUsr_successSplit hfitUsr rd2100))
+            |>.reEquivStaticHalt hcode hdispatch hdecode hbody
         by_cases hfitSupply :
             (mintEvmTotalSupplyWord σ I).toNat + (mintWadWord I).toNat <
               UInt256.size

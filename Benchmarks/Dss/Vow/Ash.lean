@@ -9,7 +9,7 @@ namespace Benchmarks.Dss.Vow
 /-! ## `Ash()` getter -/
 
 def ashWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vowSlotWord ⟨6⟩ σ I
+  solcSlotWordAt ⟨6⟩ σ I
 
 theorem vowDispatch_Ash {I : ExecutionEnv} (hsel : selIs I ⟨#[0x2a, 0x1d, 0x2b, 0x3c]⟩) :
     dispatchMsg contract I.calldata = some AshTransition := by
@@ -75,7 +75,7 @@ theorem vowAshBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (ashWord σ I).toNat))])) := by
-    simpa [AshTransition, ashWord, vowSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [AshTransition, ashWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vowUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -97,7 +97,7 @@ theorem vowAshBodyCore
 
 theorem vowAshBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x2a, 0x1d, 0x2b, 0x3c]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=

@@ -1,3 +1,7 @@
+import Reasoning.ABIComposite
+import Reasoning.WordArithmetic
+import Reasoning.EVMWord
+import Reasoning.Storage
 import Benchmarks.Dss.Pot.Dispatch
 import Benchmarks.Dss.Pot.Arith
 import Reasoning.ExternalCall
@@ -337,34 +341,6 @@ theorem RD.potAddReverts {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-/-- SafeMath mul division-check succeeds when the product fits and `a ≠ 0`. -/
-theorem potMulOkEqOne {a b : UInt256} (ha : a ≠ (⟨0⟩ : UInt256))
-    (hfit : b.toNat * a.toNat < UInt256.size) :
-    UInt256.eq (UInt256.div (UInt256.mul b a) a) b = ⟨1⟩ := by
-  have haNe : a.toNat ≠ 0 := fun hz => ha (uint256_toNat_eq_zero hz)
-  have hdiv : UInt256.div (UInt256.mul b a) a = b := by
-    apply u256_inj
-    rw [udiv_toNat, u256_mul_toNat, Nat.mod_eq_of_lt hfit]
-    simpa [Nat.mul_comm] using Nat.mul_div_right b.toNat (Nat.pos_of_ne_zero haNe)
-  rw [hdiv, u256_eq_refl]
-
-/-- SafeMath mul division-check fails on overflow (`size ≤ b*a`, `a ≠ 0`). -/
-theorem potMulOverflowEqZero {a b : UInt256} (ha : a ≠ (⟨0⟩ : UInt256))
-    (hover : UInt256.size ≤ b.toNat * a.toNat) :
-    UInt256.eq (UInt256.div (UInt256.mul b a) a) b = ⟨0⟩ := by
-  apply u256_eq_of_ne
-  intro hbad
-  have hmod : (UInt256.mul b a).toNat = b.toNat * a.toNat % UInt256.size := u256_mul_toNat b a
-  have hsizePos : 0 < UInt256.size := by decide
-  have hlt : (UInt256.mul b a).toNat < b.toNat * a.toNat := by
-    rw [hmod]; exact lt_of_lt_of_le (Nat.mod_lt _ hsizePos) hover
-  have hdiv : (UInt256.mul b a).toNat / a.toNat = b.toNat := by
-    have hh := congrArg UInt256.toNat hbad
-    rwa [udiv_toNat] at hh
-  have hge : b.toNat * a.toNat ≤ (UInt256.mul b a).toNat := by
-    calc b.toNat * a.toNat = ((UInt256.mul b a).toNat / a.toNat) * a.toNat := by rw [hdiv]
-      _ ≤ (UInt256.mul b a).toNat := Nat.div_mul_le_self _ _
-  omega
 
 /-- `_mul(a, b)` routine (`@2300`): stack `[a, b, ret, R]` → `[b * a, R]` at `ret`, product fits. -/
 theorem RD.potMulReturns {ee : ExecutionEnv} {g : Sat256} {s0 : State}
@@ -394,7 +370,7 @@ theorem RD.potMulReturns {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         (by decide) (by native_decide) (by evm_ov)
       have rd := rd2331.jumpiT (by native_decide) (by decide) (by jump_dest) (by evm_ov)
       exact ⟨_, _, by rw [hmul0]; exact rd⟩
-    · have hEqOne := potMulOkEqOne ha hfit
+    · have hEqOne := mulOkEqOne ha hfit
       have rdPre := evm_run h with [
         raw jumpdest (by native_decide) (by evm_ov),
         raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -446,7 +422,7 @@ theorem RD.potMulReverts {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     intro haz; subst haz
     simp only [show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.mul_zero] at hover
     exact absurd hover (by decide)
-  have hEqZero := potMulOverflowEqZero ha hover
+  have hEqZero := mulOverflowEqZero ha hover
   have rdPre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -626,14 +602,15 @@ abbrev joinPieStoreHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (joinCallerWord I) ⟨1⟩ (joinPieHashMem I)
 
 /-- Logic `@757 → @800`: load `pie[caller]`, `_add wad`, store back. -/
-theorem potJoinX_pieStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
-    (hperm : I.perm = true)
+theorem potJoinX_pieStoreSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     (hno : ¬ UInt256.size ≤ (joinPie0 σ I).toNat + (joinWadWord I).toNat)
     (h : RD potBytecode I g s0 ⟨757⟩ [joinWadWord I, ⟨301⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
     ∃ k' C', RD potBytecode I g s0 ⟨800⟩ [joinWadWord I, ⟨301⟩, sel]
       (joinPieStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ (joinPieSlot I) (joinPie0 σ I + joinWadWord I)) k' C' := by
+      (sstoreAccountMap I.codeOwner σ (joinPieSlot I) (joinPie0 σ I + joinWadWord I)) k' C') ∨
+      (I.perm = false ∧ RDstatic potBytecode g s0) := by
   have rdPre1 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
@@ -682,9 +659,25 @@ theorem potJoinX_pieStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UI
     (UInt256.ofNat 3) (by native_decide) mem_cost
     (twoWordHashMem_solcMappingSlot ⟨1⟩ (joinCallerWord I) (joinPieHashMem_size I))
     (by native_decide) (by evm_ov)
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd799.sstoreStatic (by simpa using hperm) (by native_decide)
+        (by simp only [List.length_cons, List.length_nil]; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd800⟩ := rd799.sstore hperm (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [joinPie0] using rd800⟩
+
+theorem potJoinX_pieStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
+    (hperm : I.perm = true)
+    (hno : ¬ UInt256.size ≤ (joinPie0 σ I).toNat + (joinWadWord I).toNat)
+    (h : RD potBytecode I g s0 ⟨757⟩ [joinWadWord I, ⟨301⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD potBytecode I g s0 ⟨800⟩ [joinWadWord I, ⟨301⟩, sel]
+      (joinPieStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner σ (joinPieSlot I) (joinPie0 σ I + joinWadWord I)) k' C' :=
+  permSplit_true hperm (potJoinX_pieStoreSplit hno h)
 
 /-- Logic `@800 → @816`: load `Pie` (slot 2), `_add wad`, store back. -/
 theorem potJoinX_PieStore {σ' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
@@ -880,56 +873,20 @@ theorem potJoinX_callGuard {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel :
 
 /-! ### `join(uint256)` calldata decode -/
 
-private theorem decodeJoinUint256_ok {cd : ByteArray} {x : Solm.Ident}
-    (hsz36 : 36 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd =
-      some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256]) (cd := cd)
-    (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-    (bytes := cd.toList.drop 4) (start := 0) htake4]
-  change decodeCalldata.insertValues [x]
-      [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat)] ∅ =
-    some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat)))
-  rw [hword4]
-  simp [decodeCalldata.insertValues]
-
-private theorem decodeJoinUint256_none_short {cd : ByteArray} {x : Solm.Ident}
-    (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 36) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256]) (cd := cd)
-    (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05) (start := 0)
-    (by simpa using htake0n)]
-  simp only [Option.bind, bind]
 
 theorem potDecode_join_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (joinTransition.params.map Param.name)
       (transitionSignature joinTransition).paramTypes I.calldata =
         some ((∅ : Store).insert "wad" (.int (Int.ofNat (joinWadWord I).toNat))) := by
   show decodeCalldataWithMode DecodeMode.legacySolc05 ["wad"] [abiUInt256] I.calldata = _
-  simpa [joinWadWord] using decodeJoinUint256_ok (cd := I.calldata) (x := "wad") hsz36
+  simpa [joinWadWord] using decodeCalldata_legacyUInt256_ok (cd := I.calldata) (x := "wad") hsz36
 
 theorem potDecode_join_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
     decodeCalldataWithMode config.abiDecodeMode (joinTransition.params.map Param.name)
       (transitionSignature joinTransition).paramTypes I.calldata = none := by
   show decodeCalldataWithMode DecodeMode.legacySolc05 ["wad"] [abiUInt256] I.calldata = _
-  exact decodeJoinUint256_none_short (cd := I.calldata) (x := "wad") hsz4 hshort
+  exact decodeCalldata_legacyUInt256_none_short (cd := I.calldata) (x := "wad") hsz4 hshort
 
 /-! ### `join(uint256)` — fire the `vat.move` CALL and thread the outcome -/
 
@@ -1161,7 +1118,7 @@ theorem evalExpr_joinChiOf {evm : EVM.State} {locals : Store}
     (by simp [chiRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (by rfl)
-    (potStorageLocLoad_uint256 evm ⟨4⟩)
+    (storageLocLoad_uint256 evm ⟨4⟩)
 
 theorem evalExpr_joinPieScalarOf {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "Pie" = none) :
@@ -1174,7 +1131,7 @@ theorem evalExpr_joinPieScalarOf {evm : EVM.State} {locals : Store}
     (by simp [PieRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (by rfl)
-    (potStorageLocLoad_uint256 evm ⟨2⟩)
+    (storageLocLoad_uint256 evm ⟨2⟩)
 
 theorem evalExpr_joinRhoOf {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "rho" = none) :
@@ -1187,7 +1144,7 @@ theorem evalExpr_joinRhoOf {evm : EVM.State} {locals : Store}
     (by simp [rhoRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (by rfl)
-    (potStorageLocLoad_uint256 evm ⟨7⟩)
+    (storageLocLoad_uint256 evm ⟨7⟩)
 
 theorem evalExpr_joinVatOf {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "vat" = none) :
@@ -1202,7 +1159,7 @@ theorem evalExpr_joinVatOf {evm : EVM.State} {locals : Store}
     (by simp [vatRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by rfl)
-    (potStorageLocLoad_address_offset0 evm ⟨5⟩)
+    (storageLocLoad_address_offset0 evm ⟨5⟩)
 
 theorem evalStorageRef_joinPie (evm : EVM.State) {locals : Store} :
     evalStorageRef config { contract := contract, locals := locals } evm (pieRef sender) =
@@ -1224,7 +1181,7 @@ theorem evalExpr_joinPieMapOf {evm : EVM.State} {locals : Store}
     (evalStorageRef_joinPie evm)
     (by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (by rfl)
-    (potStorageLocLoad_uint256 evm (pieSlot (.address evm.executionEnv.source)))
+    (storageLocLoad_uint256 evm (pieSlot (.address evm.executionEnv.source)))
 
 theorem joinAssignPieMap (evm : EVM.State) {locals : Store} (v : UInt256)
     (hbase : locals.get? "pie" = none) :
@@ -1237,7 +1194,7 @@ theorem joinAssignPieMap (evm : EVM.State) {locals : Store} (v : UInt256)
     (loc := wordLoc (pieSlot (.address evm.executionEnv.source))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     hbase (evalStorageRef_joinPie evm)
     (by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]) (by rfl)
-  exact potStorageLocStore_uint256 evm (pieSlot (.address evm.executionEnv.source)) v
+  exact storageLocStore_uint256 evm (pieSlot (.address evm.executionEnv.source)) v
 
 theorem joinAssignPieScalar (evm : EVM.State) {locals : Store} (v : UInt256)
     (hbase : locals.get? "Pie" = none) :
@@ -1250,7 +1207,7 @@ theorem joinAssignPieScalar (evm : EVM.State) {locals : Store} (v : UInt256)
     hbase
     (by simp [PieRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, uint256St]) (by rfl)
-  exact potStorageLocStore_uint256 evm ⟨2⟩ v
+  exact storageLocStore_uint256 evm ⟨2⟩ v
 
 theorem evalExpr_joinExtCodeGuard_true {evm : EVM.State} {locals : Store}
     {receiver : Expr} {target : AccountAddress}
@@ -1282,10 +1239,6 @@ theorem joinPieSlot_eq (I : ExecutionEnv) :
 
 /-! ### `join(uint256)` — Solm-side read/store bridges -/
 
-/-- Bridge the Solm `storageLoad` at `I.codeOwner` to the EVM-side `solcSlotWord`. -/
-theorem joinStorageLoad_eq (evm : EVM.State) (I : ExecutionEnv) (slot : UInt256) :
-    Solm.EVM.storageLoad evm I.codeOwner slot = solcSlotWord evm.accountMap I slot := by
-  simp [solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Ethereum.Account.lookupStorage]
 
 /-- The Solm `vat.move` target address is the EVM masked `vat` word (given read agreement). -/
 theorem joinVatTarget_eq (σ'' : AccountMap) (I : ExecutionEnv) (v : UInt256)
@@ -1361,30 +1314,28 @@ theorem potJoinX_depthLimitReverts {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ
 /-! ### `join(uint256)` — Solm-side statement drivers (shared prefix) -/
 
 set_option maxHeartbeats 1000000 in
-/-- Runs the Solm body prefix through the `pie[caller] += wad` store (statements 0–4),
-    leaving the tail obligation from the post-`pie`-store frame/state. -/
-theorem potJoinSolmDriverPie {σ σ₀ A I} {g : Sat256} {result : ExecResult}
+/-- Runs the Solm body prefix up to the `pie[caller] += wad` store (statements 0–3), leaving
+    the obligation from that store on. -/
+theorem potJoinSolmPrefixPie {σ σ₀ A I} {g : Sat256} {result : ExecResult}
     (hwv : I.weiValue = ⟨0⟩)
     (hrho : joinNowWord I
       = Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner ⟨7⟩)
     (hpieFit : (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
         (pieSlot (.address I.source))).toNat + (joinWadWord I).toNat < UInt256.size)
-    (htail : ExecBlock config
+    (hrest : ExecBlock config
         { contract := contract,
           locals := ((∅ : Store).insert "wad" (.int (Int.ofNat (joinWadWord I).toNat))).insert
             "pieNew" (.int (Int.ofNat ((Solm.EVM.storageLoad (initState σ σ₀ g A I)
               I.codeOwner (pieSlot (.address I.source))) + joinWadWord I).toNat)) }
-        (Solm.EVM.storageStore (initState σ σ₀ g A I) I.codeOwner
-          (pieSlot (.address I.source))
-          ((Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
-            (pieSlot (.address I.source))) + joinWadWord I))
-        [ .letDecl "PieNew" (some uint256) (add256 (.storage PieRef) (.var "wad")),
-          .require (.binary .ge (.var "PieNew") (.storage PieRef)),
-          .assign .storage PieRef (.var "PieNew"),
-          .internalCall "_mul" [.storage chiRef, .var "wad"] "rad",
-          .require (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)),
-          .externalCall (.storage vatRef) "move" (.intLit 0) [sender, .env .this, .var "rad"]
-            "_moveRet" ]
+        (initState σ σ₀ g A I)
+        (.assign .storage (pieRef sender) (.var "pieNew") ::
+          [ .letDecl "PieNew" (some uint256) (add256 (.storage PieRef) (.var "wad")),
+            .require (.binary .ge (.var "PieNew") (.storage PieRef)),
+            .assign .storage PieRef (.var "PieNew"),
+            .internalCall "_mul" [.storage chiRef, .var "wad"] "rad",
+            .require (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)),
+            .externalCall (.storage vatRef) "move" (.intLit 0) [sender, .env .this, .var "rad"]
+              "_moveRet" ])
         result) :
     ExecBlock config
       { contract := contract,
@@ -1419,14 +1370,66 @@ theorem potJoinSolmDriverPie {σ σ₀ A I} {g : Sat256} {result : ExecResult}
         (pieSlot (.address I.source)))
       (evalExpr_varUInt256 (by simp))
       (evalExpr_joinPieMapOf (by simp)) (by rw [hpieValNat]; omega))) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign
+  exact hrest
+
+set_option maxHeartbeats 1000000 in
+/-- Runs the Solm body prefix through the `pie[caller] += wad` store (statements 0–4),
+    leaving the tail obligation from the post-`pie`-store frame/state. -/
+theorem potJoinSolmDriverPie {σ σ₀ A I} {g : Sat256} {result : ExecResult}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hrho : joinNowWord I
+      = Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner ⟨7⟩)
+    (hpieFit : (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
+        (pieSlot (.address I.source))).toNat + (joinWadWord I).toNat < UInt256.size)
+    (htail : ExecBlock config
+        { contract := contract,
+          locals := ((∅ : Store).insert "wad" (.int (Int.ofNat (joinWadWord I).toNat))).insert
+            "pieNew" (.int (Int.ofNat ((Solm.EVM.storageLoad (initState σ σ₀ g A I)
+              I.codeOwner (pieSlot (.address I.source))) + joinWadWord I).toNat)) }
+        (Solm.EVM.storageStore (initState σ σ₀ g A I) I.codeOwner
+          (pieSlot (.address I.source))
+          ((Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
+            (pieSlot (.address I.source))) + joinWadWord I))
+        [ .letDecl "PieNew" (some uint256) (add256 (.storage PieRef) (.var "wad")),
+          .require (.binary .ge (.var "PieNew") (.storage PieRef)),
+          .assign .storage PieRef (.var "PieNew"),
+          .internalCall "_mul" [.storage chiRef, .var "wad"] "rad",
+          .require (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)),
+          .externalCall (.storage vatRef) "move" (.intLit 0) [sender, .env .this, .var "rad"]
+            "_moveRet" ]
+        result) :
+    ExecBlock config
+      { contract := contract,
+        locals := (∅ : Store).insert "wad" (.int (Int.ofNat (joinWadWord I).toNat)) }
+      (initState σ σ₀ g A I) joinTransition.body result :=
+  potJoinSolmPrefixPie hwv hrho hpieFit (ExecBlock.consNormal (ExecStmt.assign
     (value := .int (Int.ofNat ((Solm.EVM.storageLoad (initState σ σ₀ g A I)
       I.codeOwner (pieSlot (.address I.source))) + joinWadWord I).toNat))
     (evalExpr_varUInt256 (by simp))
     (joinAssignPieMap (initState σ σ₀ g A I)
       ((Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
-        (pieSlot (.address I.source))) + joinWadWord I) (by simp))) ?_
-  exact htail
+        (pieSlot (.address I.source))) + joinWadWord I) (by simp))) htail)
+
+/-- In a static call the `pie[caller]` store halts. -/
+theorem potJoinSolmPieStatic {σ σ₀ A I} {g : Sat256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hrho : joinNowWord I
+      = Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner ⟨7⟩)
+    (hpieFit : (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
+        (pieSlot (.address I.source))).toNat + (joinWadWord I).toNat < UInt256.size)
+    (hperm : I.perm = false) :
+    ExecBlock config
+      { contract := contract,
+        locals := (∅ : Store).insert "wad" (.int (Int.ofNat (joinWadWord I).toNat)) }
+      (initState σ σ₀ g A I) joinTransition.body .staticViolation :=
+  potJoinSolmPrefixPie hwv hrho hpieFit (ExecBlock.consStatic (ExecStmt.assignStatic
+    (value := .int (Int.ofNat ((Solm.EVM.storageLoad (initState σ σ₀ g A I)
+      I.codeOwner (pieSlot (.address I.source))) + joinWadWord I).toNat))
+    (evalExpr_varUInt256 (by simp))
+    (joinAssignPieMap (initState σ σ₀ g A I)
+      ((Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
+        (pieSlot (.address I.source))) + joinWadWord I) (by simp))
+    (by simpa [initState] using hperm)))
 
 set_option maxHeartbeats 1000000 in
 /-- Runs statements 5–7 (`Pie += wad` store), from the post-`pie`-store frame/state. -/
@@ -1503,15 +1506,6 @@ theorem potJoinSolmMulSeg {σ σ₀ A I} {g : Sat256} {result : ExecResult}
 
 /-! ### `join(uint256)` — `storageStore` field preservation -/
 
-theorem storageStore_σ₀ (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
-
-theorem storageStore_substate (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).substate = evm.substate := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
 
 /-! ### `join(uint256)` — the pre-`CALL` account-map coincidence -/
 
@@ -1531,7 +1525,7 @@ theorem joinPreCallAccounts {σ σ₀ A I} {g : Sat256} :
           (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
             (pieSlot (.address I.source)) + joinWadWord I)) I.codeOwner ⟨2⟩
           + joinWadWord I)).accountMap := by
-  rw [joinStorageLoad_eq, joinStorageLoad_eq, joinPieSlot_eq]
+  rw [storageLoad_eq_solcSlotWord, storageLoad_eq_solcSlotWord, joinPieSlot_eq]
   rw [storageStore_accountMap, storageStore_accountMap]
   rfl
 
@@ -1730,9 +1724,9 @@ theorem potJoinCallBridge {σ₀ I} {A : Substate} {g : Sat256}
         (z, { evm2_solm with accountMap := σ'_solm, substate := A'_solm }, o)
         I.perm ∧ σ_final = σ'_solm := by
   have hChi : joinChi σ'' I = Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨4⟩ := by
-    rw [joinStorageLoad_eq, hAccountsPre]
+    rw [storageLoad_eq_solcSlotWord, hAccountsPre]
   have hVat : joinVatRaw σ'' I = Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨5⟩ := by
-    rw [joinStorageLoad_eq, hAccountsPre]
+    rw [storageLoad_eq_solcSlotWord, hAccountsPre]
   have htgt : EVM.address (AccountAddress.ofNat
       (UInt256.land (Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨5⟩) solcAddrMask).toNat) =
       AccountAddress.ofUInt256 (joinVatMasked σ'' I) := by
@@ -1771,18 +1765,10 @@ theorem potJoinCallBridge {σ₀ I} {A : Substate} {g : Sat256}
     (mem := potMoveCalldataMem (joinCallerWord I) (joinThisWord I)
       (UInt256.mul (joinChi σ'' I) (joinWadWord I)) mem)
     (inOff := ⟨128⟩) (inSize := ⟨100⟩) (callPerm := I.perm)
-    hdepth' htgt hcd hΘ'
+    hdepth' htgt hcd (by simpa [hEnv] using hΘ')
 
 /-! ### `join(uint256)` — `extcodesize(vat)` agreement -/
 
-/-- `AccountAddress.ofUInt256` and `ofNat ∘ toNat` coincide. -/
-theorem addrOfUInt256_eq_ofNat (w : UInt256) :
-    AccountAddress.ofUInt256 w = AccountAddress.ofNat w.toNat := by
-  unfold AccountAddress.ofUInt256 AccountAddress.ofNat
-  apply Fin.ext
-  simp only [Fin.ofNat]
-  have hv : (↑w.val : ℕ) = w.toNat := rfl
-  rw [hv, Nat.mod_mod_of_dvd _ (dvd_refl _)]
 
 /-- The EVM `extcodesize(vat)` word equals the Solm-side code-size read (given read agreement). -/
 theorem joinExtCodeAgree (σ'' : AccountMap) (evm2 : EVM.State) (I : ExecutionEnv)
@@ -1795,7 +1781,7 @@ theorem joinExtCodeAgree (σ'' : AccountMap) (evm2 : EVM.State) (I : ExecutionEn
   have htgt : AccountAddress.ofUInt256 (joinVatMasked σ'' I)
       = AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm2 I.codeOwner ⟨5⟩) solcAddrMask).toNat := by
-    rw [joinVatMasked, hvat, addrOfUInt256_eq_ofNat]
+    rw [joinVatMasked, hvat, accountAddress_ofUInt256_eq_ofNat_toNat]
   have htgt' : AccountAddress.ofUInt256 (joinVatMasked evm2.accountMap I)
       = AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm2 I.codeOwner ⟨5⟩) solcAddrMask).toNat := by
@@ -1960,13 +1946,13 @@ theorem joinAccPre {σ σ₀ A I} {g : Sat256} :
 theorem joinChiReadB {σ σ₀ A I} {g : Sat256} :
     Solm.EVM.storageLoad (joinSolmEvm2 σ σ₀ g A I) I.codeOwner ⟨4⟩
       = joinChi (joinSigma'' σ I) I := by
-  rw [joinStorageLoad_eq]
+  rw [storageLoad_eq_solcSlotWord]
   rw [joinAccPre]
 
 theorem joinVatReadB {σ σ₀ A I} {g : Sat256} :
     joinVatRaw (joinSigma'' σ I) I
       = Solm.EVM.storageLoad (joinSolmEvm2 σ σ₀ g A I) I.codeOwner ⟨5⟩ := by
-  rw [joinStorageLoad_eq]
+  rw [storageLoad_eq_solcSlotWord]
   rw [joinAccPre]
 
 /-! ## `join(uint256)` -/
@@ -1987,12 +1973,12 @@ theorem potJoinBody {σ σ₀ A I} {g : UInt256}
   -- Solm-side rho / pie reads bridged to the EVM words.
   have hrhoB : Solm.EVM.storageLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       I.codeOwner ⟨7⟩ = joinRhoWord σ I := by
-    rw [joinStorageLoad_eq]
+    rw [storageLoad_eq_solcSlotWord]
     change solcSlotWord σ I ⟨7⟩ = joinRhoWord σ I
     rfl
   have hpieB : Solm.EVM.storageLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I)
     I.codeOwner (pieSlot (.address I.source)) = joinPie0 σ I := by
-    rw [joinStorageLoad_eq, joinPieSlot_eq]
+    rw [storageLoad_eq_solcSlotWord, joinPieSlot_eq]
     change solcSlotWord σ I (joinPieSlot I) = joinPie0 σ I
     rfl
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -2011,7 +1997,7 @@ theorem potJoinBody {σ σ₀ A I} {g : UInt256}
               (pieSlot (.address I.source))) + joinWadWord I)) I.codeOwner ⟨2⟩
             = solcSlotWord (sstoreAccountMap I.codeOwner σ (joinPieSlot I)
               (joinPie0 σ I + joinWadWord I)) I ⟨2⟩ := by
-          rw [joinStorageLoad_eq, storageStore_accountMap, joinStorageLoad_eq,
+          rw [storageLoad_eq_solcSlotWord, storageStore_accountMap, storageLoad_eq_solcSlotWord,
             joinPieSlot_eq]
           rfl
         by_cases hPieOvf : UInt256.size ≤ (solcSlotWord (sstoreAccountMap I.codeOwner σ
@@ -2123,6 +2109,48 @@ theorem potJoinBody {σ σ₀ A I} {g : UInt256}
                     (by simpa using hAcc')
                     (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
                       (dvs := []) rfl (by native_decide) (by native_decide))
+    · exact (potJoinX_rhoReverts hrho rd681).reEquivExecutionRevert hcode hdispatch
+        (potDecode_join_ok hsz36)
+        (potJoinSolmRevertRho hwv (fun h => hrho (by rw [h, hrhoB])))
+  · exact (potJoinX_shortReverts hsz4 hsize (by omega) hreach).reEquivDecodingFailed hcode hdispatch
+      (potDecode_join_none_short hsz4 (by omega))
+
+/-- `join` with any call permission; a static call halts at the `pie[caller]` `SSTORE`. -/
+theorem potJoinBodyAnyPerm {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = potBytecode)
+    (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I (potSelBytes 9)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact potJoinBody hcode hsize hperm hwv hsel
+  replace hperm : I.perm = false := by simpa using hperm
+  have hsz4 : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (potSelBytes 9) rfl hsel
+  have hdispatch : dispatchMsg contract I.calldata = some joinTransition := potDispatchJoin hsel
+  have hreach := potReachJoinBody (σ := σ) (σ₀ := σ₀)
+    (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
+  have hrhoB : Solm.EVM.storageLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      I.codeOwner ⟨7⟩ = joinRhoWord σ I := by
+    rw [storageLoad_eq_solcSlotWord]
+    change solcSlotWord σ I ⟨7⟩ = joinRhoWord σ I
+    rfl
+  have hpieB : Solm.EVM.storageLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+    I.codeOwner (pieSlot (.address I.source)) = joinPie0 σ I := by
+    rw [storageLoad_eq_solcSlotWord, joinPieSlot_eq]
+    change solcSlotWord σ I (joinPieSlot I) = joinPie0 σ I
+    rfl
+  by_cases hsz36 : 36 ≤ I.calldata.size
+  · obtain ⟨_, _, rd681⟩ := potJoinX_decoded hsz36 hsize hreach
+    by_cases hrho : joinNowWord I = joinRhoWord σ I
+    · obtain ⟨_, _, rd757⟩ := potJoinX_rhoOk hrho rd681
+      by_cases hpieOvf : UInt256.size ≤ (joinPie0 σ I).toNat + (joinWadWord I).toNat
+      · exact (potJoinX_pieOverflowReverts hpieOvf rd757).reEquivExecutionRevert hcode hdispatch
+          (potDecode_join_ok hsz36)
+          (potJoinSolmRevertPie hwv (hrho.trans hrhoB.symm) (by rw [hpieB]; exact hpieOvf))
+      · exact (permSplit_false hperm (potJoinX_pieStoreSplit hpieOvf rd757))
+          |>.reEquivStaticHalt hcode hdispatch (potDecode_join_ok hsz36)
+            (ExecFuncBody.execBlockStatic (potJoinSolmPieStatic hwv (hrho.trans hrhoB.symm)
+              (by rw [hpieB]; exact not_le.mp hpieOvf) hperm))
     · exact (potJoinX_rhoReverts hrho rd681).reEquivExecutionRevert hcode hdispatch
         (potDecode_join_ok hsz36)
         (potJoinSolmRevertRho hwv (fun h => hrho (by rw [h, hrhoB])))

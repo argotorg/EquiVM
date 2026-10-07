@@ -1,4 +1,9 @@
+import Reasoning.SolmBody
+import Reasoning.ABIViews
+import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.PermitABI
+import Reasoning.SolmArithmetic
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -287,9 +292,6 @@ theorem permitTypehashBytes_eq_toBytesBE :
     permitTypehashBytes = EVM.Word.toBytesBE permitTypehashWord := by
   native_decide
 
-theorem permitDigestPrefix_toList :
-    (ByteArray.mk #[0x19, 0x01]).toList = [0x19, 0x01] := by
-  native_decide
 
 theorem permitEncodePacked_typehash :
     encodePackedValue? bytes32 (.fixedBytes bytes32Width permitTypehashBytes) =
@@ -308,28 +310,6 @@ theorem permitEncodePacked_bytes2 :
       some [0x19, 0x01] := by
   simp [encodePackedValue?, bytes2, bytes2Width, fixedBytesSize]
 
-theorem permitAddress_toNat_mask (w : UInt256) :
-    (AccountAddress.ofNat w.toNat).toNat = (UInt256.land solcAddrMask w).toNat := by
-  have hkey := keyValueToWord_address_ofNat_mask w
-  rw [keyValueToWord_address] at hkey
-  have hto := congrArg UInt256.toNat hkey
-  have hleft : (UInt256.ofNat (AccountAddress.ofNat w.toNat).val).toNat =
-      (AccountAddress.ofNat w.toNat).val := by
-    exact UInt256.toNat_ofNat_of_lt
-      (lt_of_lt_of_le (AccountAddress.ofNat w.toNat).isLt (by decide))
-  rw [hleft] at hto
-  exact hto
-
-theorem permitCast_addressAsUint256 (w : UInt256) :
-    castValue? (.address (AccountAddress.ofNat w.toNat)) uint256St =
-      some (.int (Int.ofNat (UInt256.land solcAddrMask w).toNat)) := by
-  have haddr : (AccountAddress.ofNat w.toNat).toNat =
-      (UInt256.land solcAddrMask w).toNat := permitAddress_toNat_mask w
-  have hlt : (AccountAddress.ofNat w.toNat).toNat < EVM.twoPow 256 := by
-    exact lt_of_lt_of_le (AccountAddress.ofNat w.toNat).isLt (by decide)
-  simp only [castValue?, uint256St, uint256Int]
-  rw [if_pos hlt]
-  rw [haddr]
 
 theorem permitAfterStructHashStore_structHash (evm : EVM.State) (I : ExecutionEnv)
     (structHash : Value) :
@@ -380,7 +360,7 @@ theorem evalExpr_permit_afterNonce_owner_uint256_at (base cur : EVM.State) (I : 
   rw [addressAsUint256, evalExpr?]
   simp only [evalExpr_permit_afterNonce_owner_at base cur I, EvalResult.bind, bind]
   simp [permitOwnerValue, permitOwnerMaskedWord, EvalResult.ofOption,
-    permitCast_addressAsUint256]
+    show uint256St = packedUInt256StorageType from rfl, cast_addressAsUint256]
 
 theorem evalExpr_permit_afterNonce_spender_uint256_at (base cur : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
@@ -389,7 +369,7 @@ theorem evalExpr_permit_afterNonce_spender_uint256_at (base cur : EVM.State) (I 
   rw [addressAsUint256, evalExpr?]
   simp only [evalExpr_permit_afterNonce_spender_at base cur I, EvalResult.bind, bind]
   simp [permitSpenderValue, permitSpenderMaskedWord, EvalResult.ofOption,
-    permitCast_addressAsUint256]
+    show uint256St = packedUInt256StorageType from rfl, cast_addressAsUint256]
 
 theorem evalExpr_permit_afterStructHash_structHash_at (base cur : EVM.State) (I : ExecutionEnv)
     (structHash : Value) :
@@ -436,7 +416,7 @@ theorem evalPackedArgs_permit_structHash_at {σ σ₀ A I} {g : Sat256}
       .ok (((permitStructHashMem σ I).readWithPadding 160 192).toList) := by
   rw [permitStructHashMem_read160_192]
   simp only [byteArray_toList_append, List.append_assoc]
-  refine permitEvalPackedArgs_cons
+  refine evalPackedArgs_cons
     (v := .fixedBytes bytes32Width permitTypehashBytes)
     (head := permitTypehashWord.toByteArray.toList)
     (tailBytes :=
@@ -447,7 +427,7 @@ theorem evalPackedArgs_permit_structHash_at {σ σ₀ A I} {g : Sat256}
               (permitDeadlineWord I).toByteArray.toList)))) ?_ ?_ ?_
   · simp [permitTypehashExpr, evalExpr?, pure]
   · simpa [word_toBytesBE_eq_toByteArray_toList] using permitEncodePacked_typehash
-  · refine permitEvalPackedArgs_cons
+  · refine evalPackedArgs_cons
       (v := .int (Int.ofNat (permitOwnerMaskedWord I).toNat))
       (head := (permitOwnerMaskedWord I).toByteArray.toList)
       (tailBytes :=
@@ -457,8 +437,8 @@ theorem evalPackedArgs_permit_structHash_at {σ σ₀ A I} {g : Sat256}
               (permitDeadlineWord I).toByteArray.toList))) ?_ ?_ ?_
     · exact evalExpr_permit_afterNonce_owner_uint256_at _ cur I
     · simpa [word_toBytesBE_eq_toByteArray_toList] using
-        permitEncodePacked_uint256 (permitOwnerMaskedWord I)
-    · refine permitEvalPackedArgs_cons
+        encodePacked_uint256 (permitOwnerMaskedWord I)
+    · refine evalPackedArgs_cons
         (v := .int (Int.ofNat (permitSpenderMaskedWord I).toNat))
         (head := (permitSpenderMaskedWord I).toByteArray.toList)
         (tailBytes :=
@@ -467,8 +447,8 @@ theorem evalPackedArgs_permit_structHash_at {σ σ₀ A I} {g : Sat256}
               (permitDeadlineWord I).toByteArray.toList)) ?_ ?_ ?_
       · exact evalExpr_permit_afterNonce_spender_uint256_at _ cur I
       · simpa [word_toBytesBE_eq_toByteArray_toList] using
-          permitEncodePacked_uint256 (permitSpenderMaskedWord I)
-      · refine permitEvalPackedArgs_cons
+          encodePacked_uint256 (permitSpenderMaskedWord I)
+      · refine evalPackedArgs_cons
           (v := .int (Int.ofNat (permitValueWord I).toNat))
           (head := (permitValueWord I).toByteArray.toList)
           (tailBytes :=
@@ -476,20 +456,20 @@ theorem evalPackedArgs_permit_structHash_at {σ σ₀ A I} {g : Sat256}
               (permitDeadlineWord I).toByteArray.toList) ?_ ?_ ?_
         · exact evalExpr_permit_afterNonce_value_at _ cur I
         · simpa [word_toBytesBE_eq_toByteArray_toList] using
-            permitEncodePacked_uint256 (permitValueWord I)
-        · refine permitEvalPackedArgs_cons
+            encodePacked_uint256 (permitValueWord I)
+        · refine evalPackedArgs_cons
             (v := .int (Int.ofNat (permitNonceWord σ I).toNat))
             (head := (permitNonceWord σ I).toByteArray.toList)
             (tailBytes := (permitDeadlineWord I).toByteArray.toList) ?_ ?_ ?_
           · rw [evalExpr_permit_afterNonce_nonce_at]
             simp [permitNonceLoadedValue, permitNonceLoadedWord_initState_for_hash]
           · simpa [word_toBytesBE_eq_toByteArray_toList] using
-              permitEncodePacked_uint256 (permitNonceWord σ I)
-          · exact permitEvalPackedArgs_single
+              encodePacked_uint256 (permitNonceWord σ I)
+          · exact evalPackedArgs_single
               (evalExpr_permit_afterNonce_deadline_at _ cur I)
               (by
                 simpa [word_toBytesBE_eq_toByteArray_toList] using
-                  permitEncodePacked_uint256 (permitDeadlineWord I))
+                  encodePacked_uint256 (permitDeadlineWord I))
 
 theorem evalExpr_permit_structHash_at {σ σ₀ A I} {g : Sat256}
     (cur : EVM.State) :
@@ -500,7 +480,7 @@ theorem evalExpr_permit_structHash_at {σ σ₀ A I} {g : Sat256}
   rw [permitStructHashExpr, evalExpr?, evalExpr?]
   simp only [evalPackedArgs_permit_structHash_at cur, EvalResult.bind, bind,
     byteArray_mk_toList_toArray]
-  simp only [permitStructHashValue, permitWordBytes32Value, permitStructHashWord,
+  simp only [permitStructHashValue, wordBytes32Value, permitStructHashWord,
     permitRuntimeStructHashWord]
   rw [keccakSlot_eq, toBytesBE_keccak_uInt256OfByteArray]
   rfl
@@ -513,7 +493,7 @@ theorem evalExpr_permit_domainSeparator_afterNonce_at {σ σ₀ A I} {g : Sat256
           (permitStructHashValue σ I) }
       (permitAfterNonceState (initState σ σ₀ g A I) I)
       (.storage domainSeparatorRef) =
-        .ok (permitWordBytes32Value (permitDomainSeparatorWord σ I)) := by
+        .ok (wordBytes32Value (permitDomainSeparatorWord σ I)) := by
   let evmS := initState σ σ₀ g A I
   let evmNonceS := permitAfterNonceState evmS I
   have hbase :
@@ -554,7 +534,7 @@ theorem evalExpr_permit_domainSeparator_afterNonce_at {σ σ₀ A I} {g : Sat256
         { contract := contract,
           locals := permitAfterStructHashStore evmS I (permitStructHashValue σ I) }
         evmNonceS (.storage domainSeparatorRef) =
-          .ok (permitWordBytes32Value (permitDomainSeparatorWord σ I)) := by
+          .ok (wordBytes32Value (permitDomainSeparatorWord σ I)) := by
     exact evalExpr_storage_scalar_value
       (t := .bytes bytes32Width)
       (loc := bytes32Loc ⟨3⟩)
@@ -565,8 +545,8 @@ theorem evalExpr_permit_domainSeparator_afterNonce_at {σ σ₀ A I} {g : Sat256
       (hbackend := rfl)
       (hloc := by rfl)
       (hload := by
-        rw [uniswapStorageLocLoad_bytes32, hloadNonce]
-        simp [permitWordBytes32Value, bytes32Width])
+        erw [storageLocLoad_bytes32, hloadNonce]
+        simp [wordBytes32Value, bytes32Width, abiBytes32Width])
   simpa [evmS, evmNonceS] using hread
 
 theorem evalPackedArgs_permit_digest_at {base cur : EVM.State} {σ I}
@@ -575,7 +555,7 @@ theorem evalPackedArgs_permit_digest_at {base cur : EVM.State} {σ I}
         { contract := contract,
           locals := permitAfterStructHashStore base I (permitStructHashValue σ I) }
         cur (.var "domainSeparator") =
-        .ok (permitWordBytes32Value (permitDomainSeparatorWord σ I))) :
+        .ok (wordBytes32Value (permitDomainSeparatorWord σ I))) :
     evalPackedArgs? config
       { contract := contract,
         locals := permitAfterStructHashStore base I (permitStructHashValue σ I) }
@@ -585,8 +565,8 @@ theorem evalPackedArgs_permit_digest_at {base cur : EVM.State} {σ I}
         (bytes32, .var "structHash") ] =
       .ok (((permitDigestMem σ I).readWithPadding 384 66).toList) := by
   rw [permitDigestMem_read384_66]
-  simp only [byteArray_toList_append, permitDigestPrefix_toList, List.append_assoc]
-  refine permitEvalPackedArgs_cons
+  simp only [byteArray_toList_append, digestPrefix_toList, List.append_assoc]
+  refine evalPackedArgs_cons
     (v := .fixedBytes bytes2Width [0x19, 0x01])
     (head := [0x19, 0x01])
       (tailBytes :=
@@ -594,18 +574,18 @@ theorem evalPackedArgs_permit_digest_at {base cur : EVM.State} {σ I}
         (permitStructHashWord σ I).toByteArray.toList) ?_ ?_ ?_
   · simp [evalExpr?, pure]
   · exact permitEncodePacked_bytes2
-  · refine permitEvalPackedArgs_cons
-      (v := permitWordBytes32Value (permitDomainSeparatorWord σ I))
+  · refine evalPackedArgs_cons
+      (v := wordBytes32Value (permitDomainSeparatorWord σ I))
       (head := (permitDomainSeparatorWord σ I).toByteArray.toList)
       (tailBytes := (permitStructHashWord σ I).toByteArray.toList) ?_ ?_ ?_
     · exact hdomain
     · simpa [word_toBytesBE_eq_toByteArray_toList] using
-        permitEncodePacked_bytes32 (permitDomainSeparatorWord σ I)
-    · exact permitEvalPackedArgs_single
+        encodePacked_bytes32 (permitDomainSeparatorWord σ I)
+    · exact evalPackedArgs_single
         (evalExpr_permit_afterStructHash_structHash_at base cur I (permitStructHashValue σ I))
         (by
           simpa [word_toBytesBE_eq_toByteArray_toList] using
-            permitEncodePacked_bytes32 (permitStructHashWord σ I))
+            encodePacked_bytes32 (permitStructHashWord σ I))
 
 theorem evalExpr_permit_digest_at {base cur : EVM.State} {σ I}
     (hdomain :
@@ -613,7 +593,7 @@ theorem evalExpr_permit_digest_at {base cur : EVM.State} {σ I}
         { contract := contract,
           locals := permitAfterStructHashStore base I (permitStructHashValue σ I) }
         cur (.var "domainSeparator") =
-        .ok (permitWordBytes32Value (permitDomainSeparatorWord σ I))) :
+        .ok (wordBytes32Value (permitDomainSeparatorWord σ I))) :
     evalExpr? config
       { contract := contract,
         locals := permitAfterStructHashStore base I (permitStructHashValue σ I) }
@@ -621,7 +601,7 @@ theorem evalExpr_permit_digest_at {base cur : EVM.State} {σ I}
   rw [permitDigestExpr, evalExpr?, evalExpr?]
   simp only [evalPackedArgs_permit_digest_at hdomain, EvalResult.bind, bind,
     byteArray_mk_toList_toArray]
-  simp only [permitDigestValue, permitWordBytes32Value, permitDigestWord, permitRuntimeDigestWord]
+  simp only [permitDigestValue, wordBytes32Value, permitDigestWord, permitRuntimeDigestWord]
   rw [keccakSlot_eq, toBytesBE_keccak_uInt256OfByteArray]
   rfl
 
@@ -634,7 +614,7 @@ theorem evalExpr_permit_digest_afterNonce_at {σ σ₀ A I} {g : Sat256} :
       permitDigestExpr = .ok (permitDigestValue σ I) := by
   exact evalExpr_permit_digest_at (by
     rw [evalExpr_permit_afterStructHash_domainSeparator_at]
-    simp [permitDomainSeparatorLoadedValue, permitWordBytes32Value,
+    simp [permitDomainSeparatorLoadedValue, wordBytes32Value,
       permitDomainSeparatorLoadedWord_initState])
 
 theorem evalExpr_permit_afterDigest_digest (evm : EVM.State) (I : ExecutionEnv)
@@ -829,7 +809,7 @@ theorem permitApproveAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by
         simp [storageTypeAt?, contract, storageDecls, uint256St, storageTypeStep?])
       (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [permitApprovePostState, permitApproveStorageSlot]
 
 theorem uniswapLookupApproveFunction :
@@ -1233,8 +1213,8 @@ theorem evalExpr_permit_domainSeparator_storage (evm : EVM.State) (I : Execution
       (hbackend := rfl)
       (hloc := storageLayout_permit_domainSeparator)
       (hload := by
-        rw [uniswapStorageLocLoad_bytes32]
-        simp [permitDomainSeparatorLoadedValue, permitWordBytes32Value, bytes32Width])
+        erw [storageLocLoad_bytes32]
+        simp [permitDomainSeparatorLoadedValue, wordBytes32Value, bytes32Width, abiBytes32Width])
 
 theorem evalExpr_permit_nonce_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := permitStore I } evm
@@ -1248,7 +1228,7 @@ theorem evalExpr_permit_nonce_storage (evm : EVM.State) (I : ExecutionEnv) :
       (hbackend := rfl)
       (hloc := storageLayout_permit_nonce I)
       (hload := by
-        rw [uniswapStorageLocLoad_uint256])
+        erw [storageLocLoad_uint256])
 
 theorem evalExpr_permit_afterDomain_nonce_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := permitAfterDomainLoadStore evm I } evm
@@ -1262,7 +1242,7 @@ theorem evalExpr_permit_afterDomain_nonce_storage (evm : EVM.State) (I : Executi
       (hbackend := rfl)
       (hloc := storageLayout_permit_nonce I)
       (hload := by
-        rw [uniswapStorageLocLoad_uint256])
+        erw [storageLocLoad_uint256])
 
 theorem evalExpr_permit_nonce_next (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config
@@ -1294,7 +1274,7 @@ theorem permitAssignNonce (evm : EVM.State) (I : ExecutionEnv) :
       (loc := wordLoc (permitNonceStorageSlot I))
       (hloc := storageLayout_permit_nonce I)
       (hstore := by simpa [permitNonceNextLoadedValue, permitAfterNonceState] using
-        (uniswapStorageLocStore_uint256 evm (permitNonceStorageSlot I)
+        (storageLocStore_uint256 evm (permitNonceStorageSlot I)
           (permitNonceNextLoadedWord evm I)))]
   rfl
 
@@ -1396,20 +1376,5 @@ abbrev permitAfterNonceBody : List Stmt :=
     .internalCall "_approve" [.var "owner", .var "spender", .var "value"]
       "_approveResult" ]
 
-theorem execBlock_reverted_append {cfg : Config} {s2 : List Stmt} :
-    ∀ {f e s1}, ExecBlock cfg f e s1 .reverted →
-      ExecBlock cfg f e (s1 ++ s2) .reverted := by
-  intro f e s1
-  induction s1 generalizing f e with
-  | nil =>
-      intro h
-      cases h
-  | cons stmt rest ih =>
-      intro h
-      cases h with
-      | consNormal hstmt htail =>
-          exact ExecBlock.consNormal hstmt (ih htail)
-      | consRevert hstmt =>
-          exact ExecBlock.consRevert hstmt
 
 end UniswapV2Pair

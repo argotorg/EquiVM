@@ -5,6 +5,47 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 4000000
 
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Cat
+
+/-- The active-words after the kick `CALL` (`aw' = M (M aw p 164) p 32`) still cover `[0, p+164)`:
+memory expansion is `max`-monotone, so the argument-region growth survives. -/
+theorem kickAwBound (aw p : UInt256) (hpsz : p.toNat + 164 < UInt256.size) :
+    p.toNat + 164 ≤
+      (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32)).toNat * 32
+        := by
+  have hinnerEq : MachineState.M aw.toNat p.toNat 164 = max aw.toNat ((p.toNat + 164 + 31) / 32) :=
+    rfl
+  have houterEq : MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 =
+      max (MachineState.M aw.toNat p.toNat 164) ((p.toNat + 32 + 31) / 32) := rfl
+  have hinner_ge : (p.toNat + 164 + 31) / 32 ≤ MachineState.M aw.toNat p.toNat 164 := by
+    rw [hinnerEq]; exact le_max_right _ _
+  have houter_ge : MachineState.M aw.toNat p.toNat 164 ≤
+      MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 := by
+    rw [houterEq]; exact le_max_left _ _
+  have hlt : MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 < UInt256.size := by
+    rw [houterEq, hinnerEq]
+    have h1 : aw.toNat < UInt256.size := aw.val.isLt
+    have h2 : (p.toNat + 164 + 31) / 32 < UInt256.size := by omega
+    have h3 : (p.toNat + 32 + 31) / 32 < UInt256.size := by omega
+    omega
+  have hval : (UInt256.ofNat
+    (MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32)).toNat
+      = MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 := ulit_toNat' _ hlt
+  rw [hval]
+  have hceil : p.toNat + 164 ≤ (p.toNat + 164 + 31) / 32 * 32 := by omega
+  calc p.toNat + 164 ≤ (p.toNat + 164 + 31) / 32 * 32 := hceil
+    _ ≤ MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 * 32 := by
+        have := le_trans hinner_ge houter_ge; exact Nat.mul_le_mul_right 32 this
+
+end Benchmarks.Dss.Cat
+
+end
+
 namespace Benchmarks.Dss.Cat
 
 /-! # Cat `bite` — the `p`-parametric `kick` trace reach (pc 2383 → RETURN)
@@ -154,7 +195,7 @@ theorem catBiteKickCalldataP {σ σ₀ A I} {g : UInt256}
   have rd2441 := rd2439.push1 ⟨224⟩ (by native_decide) (by evm_ov)
   have rd2442 := rd2441.shl (by native_decide) (by evm_ov)
   have rd2443 := rd2442.dup2 (by native_decide) (by evm_ov)
-  have rd2444 := RD.mstore 0 (kickSelectorMemP p mem) aw rd2443 (by native_decide) (mstoreCost0 hMp)
+  have rd2444 := RD.mstore 0 (kickSelectorMemP p mem) aw rd2443 (by native_decide) (mloadCost0 hMp)
     (by rfl) hMp (by evm_ov)
   -- 2444 PUSH1 4, 2446 ADD (->p+4), 2447 DUP1, 2448 DUP7 (urn), mask, 2458 DUP2, 2459 MSTORE (urn@p+4)
   have rd2446 := rd2444.push1 ⟨4⟩ (by native_decide) (by evm_ov)
@@ -170,7 +211,7 @@ theorem catBiteKickCalldataP {σ σ₀ A I} {g : UInt256}
   have rd2458 := rd2457.and (by native_decide) (by evm_ov)
   have rd2459 := rd2458.dup2 (by native_decide) (by evm_ov)
   have rd2460 := RD.mstore 0 ((UInt256.land biteAddrMaskWord urn).toByteArray.write 0
-      (kickSelectorMemP p mem) (p + ⟨4⟩).toNat 32) aw rd2459 (by native_decide) (mstoreCost0 hMp4)
+      (kickSelectorMemP p mem) (p + ⟨4⟩).toNat 32) aw rd2459 (by native_decide) (mloadCost0 hMp4)
     (by rfl) hMp4 (by evm_ov)
   -- 2460 PUSH1 32, 2462 ADD (->p+36), 2463 DUP6 (vow1), mask again, 2473 DUP2, 2474 MSTORE (vow@p+36)
   have rd2462 := rd2460.push1 ⟨32⟩ (by native_decide) (by evm_ov)
@@ -188,21 +229,21 @@ theorem catBiteKickCalldataP {σ σ₀ A I} {g : UInt256}
         (UInt256.land biteAddrMaskWord (UInt256.div (solcSlotWord σx I ⟨4⟩) (UInt256.exp ⟨256⟩ ⟨0⟩)))).toByteArray.write 0
       ((UInt256.land biteAddrMaskWord urn).toByteArray.write 0 (kickSelectorMemP p mem) (p + ⟨4⟩).toNat 32)
         (p + ⟨36⟩).toNat 32)
-      aw rd2474 (by native_decide) (mstoreCost0 hMp36) (by rfl) hMp36 (by evm_ov)
+      aw rd2474 (by native_decide) (mloadCost0 hMp36) (by rfl) hMp36 (by evm_ov)
   -- 2475 PUSH1 32, 2477 ADD (->p+68), 2478 DUP5 (tab), 2479 DUP2, 2480 MSTORE (tab@p+68)
   have rd2477 := rd2475.push1 ⟨32⟩ (by native_decide) (by evm_ov)
   have rd2478 := rd2477.add (by native_decide) (by evm_ov)
   rw [a68] at rd2478
   have rd2479 := rd2478.dup5 (by native_decide) (by evm_ov)
   have rd2480 := rd2479.dup2 (by native_decide) (by evm_ov)
-  have rd2481 := RD.mstore 0 _ aw rd2480 (by native_decide) (mstoreCost0 hMp68) (by rfl) hMp68 (by evm_ov)
+  have rd2481 := RD.mstore 0 _ aw rd2480 (by native_decide) (mloadCost0 hMp68) (by rfl) hMp68 (by evm_ov)
   -- 2481 PUSH1 32, 2483 ADD (->p+100), 2484 DUP4 (dink), 2485 DUP2, 2486 MSTORE (dink@p+100)
   have rd2483 := rd2481.push1 ⟨32⟩ (by native_decide) (by evm_ov)
   have rd2484 := rd2483.add (by native_decide) (by evm_ov)
   rw [a100] at rd2484
   have rd2485 := rd2484.dup4 (by native_decide) (by evm_ov)
   have rd2486 := rd2485.dup2 (by native_decide) (by evm_ov)
-  have rd2487 := RD.mstore 0 _ aw rd2486 (by native_decide) (mstoreCost0 hMp100) (by rfl) hMp100 (by evm_ov)
+  have rd2487 := RD.mstore 0 _ aw rd2486 (by native_decide) (mloadCost0 hMp100) (by rfl) hMp100 (by evm_ov)
   -- 2487 PUSH1 32, 2489 ADD (->p+132), 2490 DUP3 (0), 2491 DUP2, 2492 MSTORE (0@p+132)
   have rd2489 := rd2487.push1 ⟨32⟩ (by native_decide) (by evm_ov)
   have rd2490 := rd2489.add (by native_decide) (by evm_ov)
@@ -212,7 +253,7 @@ theorem catBiteKickCalldataP {σ σ₀ A I} {g : UInt256}
   have rd2493 := RD.mstore 0 (kickCalldataMemP p (UInt256.land biteAddrMaskWord urn)
         (UInt256.land biteAddrMaskWord (UInt256.land biteAddrMaskWord
           (UInt256.div (solcSlotWord σx I ⟨4⟩) (UInt256.exp ⟨256⟩ ⟨0⟩)))) tab dink mem)
-      aw rd2492 (by native_decide) (mstoreCost0 hMp132) (by rfl) hMp132 (by evm_ov)
+      aw rd2492 (by native_decide) (mloadCost0 hMp132) (by rfl) hMp132 (by evm_ov)
   -- 2493 PUSH1 32, 2495 ADD (->p+164), 2496 SWAP6, 2497..2502 POP x6
   have rd2495 := rd2493.push1 ⟨32⟩ (by native_decide) (by evm_ov)
   have rd2496 := rd2495.add (by native_decide) (by evm_ov)
@@ -325,7 +366,7 @@ theorem catBiteKickGuardCallP {σ σ₀ A I} {g : UInt256}
           accountMap := σx }
         (AccountAddress.ofUInt256 target) "kick" 0 args
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A' }, o') I.perm
+              accountMap := σ', substate := A' }, o') true
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd2531⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd hcodeSize
@@ -339,7 +380,7 @@ theorem catBiteKickGuardCallP {σ σ₀ A I} {g : UInt256}
   rw [hpc] at rd2532raw
   refine ⟨σ', z, o', A', _, k', C', rd2532raw, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
-    (callPerm := I.perm) (targetWord := target)
+    (callPerm := true) (targetWord := target)
     (mem := mem') (inOff := p) (inSize := ⟨164⟩)
     (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
     rfl hencode ?_
@@ -428,67 +469,8 @@ theorem catBiteKickSeg8b1P {σ σ₀ A I} {g : UInt256}
 The event data is built at `[p, p+160)` (`dink@p, dart@p+32, dtab@p+64, flip@p+96, id@p+128`), then
 `LOG3 Bite()` logs it, and the `@419` encoder writes `id@p` and returns `[p, p+32)`.  These two
 helpers are the `p`-relative analogues of `seg8_evMemSize`/`seg8_evMemRead64` (which bake `128`),
-built on the offset-generic `seg8_wsize`/`seg8_wread64`. -/
+built on the offset-generic `wordWrite_size_of_le`/`wordWrite_read64_of_ge96`. -/
 
-/-- `p`-relative clone of `seg8_evMemSize`: the 5-word event build (`[p, p+160)`) preserves size. -/
-theorem seg8_evMemSizeP (base : ByteArray) (p v1 v2 v3 v4 v5 : UInt256)
-    (_hp96 : 96 ≤ p.toNat) (hbase : p.toNat + 160 ≤ base.size) (hpsz : p.toNat + 160 < UInt256.size) :
-    ((UInt256.toByteArray v5).write 0 ((UInt256.toByteArray v4).write 0 ((UInt256.toByteArray v3).write 0
-      ((UInt256.toByteArray v2).write 0 ((UInt256.toByteArray v1).write 0 base p.toNat 32)
-        (p + ⟨32⟩).toNat 32) (p + ⟨64⟩).toNat 32) (p + ⟨96⟩).toNat 32) (p + ⟨128⟩).toNat 32).size
-      = base.size := by
-  have f32 : (p + ⟨32⟩).toNat = p.toNat + 32 := by
-    rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide, Nat.mod_eq_of_lt (by omega)]
-  have f64 : (p + ⟨64⟩).toNat = p.toNat + 64 := by
-    rw [uadd_toNat, show (⟨64⟩ : UInt256).toNat = 64 from by decide, Nat.mod_eq_of_lt (by omega)]
-  have f96 : (p + ⟨96⟩).toNat = p.toNat + 96 := by
-    rw [uadd_toNat, show (⟨96⟩ : UInt256).toNat = 96 from by decide, Nat.mod_eq_of_lt (by omega)]
-  have f128 : (p + ⟨128⟩).toNat = p.toNat + 128 := by
-    rw [uadd_toNat, show (⟨128⟩ : UInt256).toNat = 128 from by decide, Nat.mod_eq_of_lt (by omega)]
-  rw [f32, f64, f96, f128]
-  have s1 := seg8_wsize base v1 p.toNat (by omega)
-  have s2 : ((UInt256.toByteArray v2).write 0 ((UInt256.toByteArray v1).write 0 base p.toNat 32)
-      (p.toNat + 32) 32).size = base.size := by rw [seg8_wsize _ v2 (p.toNat + 32) (by rw [s1]; omega)]; exact s1
-  have s3 : ((UInt256.toByteArray v3).write 0 ((UInt256.toByteArray v2).write 0
-      ((UInt256.toByteArray v1).write 0 base p.toNat 32) (p.toNat + 32) 32) (p.toNat + 64) 32).size
-        = base.size := by rw [seg8_wsize _ v3 (p.toNat + 64) (by rw [s2]; omega)]; exact s2
-  have s4 : ((UInt256.toByteArray v4).write 0 ((UInt256.toByteArray v3).write 0
-      ((UInt256.toByteArray v2).write 0 ((UInt256.toByteArray v1).write 0 base p.toNat 32) (p.toNat + 32) 32)
-        (p.toNat + 64) 32) (p.toNat + 96) 32).size = base.size := by
-    rw [seg8_wsize _ v4 (p.toNat + 96) (by rw [s3]; omega)]; exact s3
-  rw [seg8_wsize _ v5 (p.toNat + 128) (by rw [s4]; omega)]; exact s4
-
-/-- `p`-relative clone of `seg8_evMemRead64`: the event build (`[p, p+160)`, `96 ≤ p`) leaves `@64`. -/
-theorem seg8_evMemRead64P (base : ByteArray) (p v1 v2 v3 v4 v5 : UInt256)
-    (hp96 : 96 ≤ p.toNat) (hbase : p.toNat + 160 ≤ base.size) (hpsz : p.toNat + 160 < UInt256.size) :
-    ((UInt256.toByteArray v5).write 0 ((UInt256.toByteArray v4).write 0 ((UInt256.toByteArray v3).write 0
-      ((UInt256.toByteArray v2).write 0 ((UInt256.toByteArray v1).write 0 base p.toNat 32)
-        (p + ⟨32⟩).toNat 32) (p + ⟨64⟩).toNat 32) (p + ⟨96⟩).toNat 32) (p + ⟨128⟩).toNat 32).readWithPadding 64 32
-      = base.readWithPadding 64 32 := by
-  have f32 : (p + ⟨32⟩).toNat = p.toNat + 32 := by
-    rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide, Nat.mod_eq_of_lt (by omega)]
-  have f64 : (p + ⟨64⟩).toNat = p.toNat + 64 := by
-    rw [uadd_toNat, show (⟨64⟩ : UInt256).toNat = 64 from by decide, Nat.mod_eq_of_lt (by omega)]
-  have f96 : (p + ⟨96⟩).toNat = p.toNat + 96 := by
-    rw [uadd_toNat, show (⟨96⟩ : UInt256).toNat = 96 from by decide, Nat.mod_eq_of_lt (by omega)]
-  have f128 : (p + ⟨128⟩).toNat = p.toNat + 128 := by
-    rw [uadd_toNat, show (⟨128⟩ : UInt256).toNat = 128 from by decide, Nat.mod_eq_of_lt (by omega)]
-  rw [f32, f64, f96, f128]
-  have s1 := seg8_wsize base v1 p.toNat (by omega)
-  have s2 : ((UInt256.toByteArray v2).write 0 ((UInt256.toByteArray v1).write 0 base p.toNat 32)
-      (p.toNat + 32) 32).size = base.size := by rw [seg8_wsize _ v2 (p.toNat + 32) (by rw [s1]; omega)]; exact s1
-  have s3 : ((UInt256.toByteArray v3).write 0 ((UInt256.toByteArray v2).write 0
-      ((UInt256.toByteArray v1).write 0 base p.toNat 32) (p.toNat + 32) 32) (p.toNat + 64) 32).size
-        = base.size := by rw [seg8_wsize _ v3 (p.toNat + 64) (by rw [s2]; omega)]; exact s2
-  have s4 : ((UInt256.toByteArray v4).write 0 ((UInt256.toByteArray v3).write 0
-      ((UInt256.toByteArray v2).write 0 ((UInt256.toByteArray v1).write 0 base p.toNat 32) (p.toNat + 32) 32)
-        (p.toNat + 64) 32) (p.toNat + 96) 32).size = base.size := by
-    rw [seg8_wsize _ v4 (p.toNat + 96) (by rw [s3]; omega)]; exact s3
-  rw [seg8_wread64 _ v5 (p.toNat + 128) (by omega) (by rw [s4]; omega),
-    seg8_wread64 _ v4 (p.toNat + 96) (by omega) (by rw [s3]; omega),
-    seg8_wread64 _ v3 (p.toNat + 64) (by omega) (by rw [s2]; omega),
-    seg8_wread64 _ v2 (p.toNat + 32) (by omega) (by rw [s1]; omega),
-    seg8_wread64 _ v1 p.toNat (by omega) (by omega)]
 
 set_option maxHeartbeats 40000000 in
 /-- `p`-relative clone of `catBiteTraceSeg8b2`: builds the `Bite()` event data at `[p, p+160)`,
@@ -550,14 +532,14 @@ theorem catBiteKickSeg8b2P {σ σ₀ A I} {g : UInt256}
   have rd2637 := RD.mload 0 p aw8 rd2636 (by native_decide) (mloadCost0 hM64) hFree8 hM64 (by evm_ov)
   have rd2638 := rd2637.swap5 (by native_decide) (by evm_ov)
   have rd2639 := rd2638.dup6 (by native_decide) (by evm_ov)
-  have rd2640 := RD.mstore 0 _ aw8 rd2639 (by native_decide) (mstoreCost0 hMp) (by rfl) hMp (by evm_ov)
+  have rd2640 := RD.mstore 0 _ aw8 rd2639 (by native_decide) (mloadCost0 hMp) (by rfl) hMp (by evm_ov)
   have rd2641 := rd2640.push1 ⟨32⟩ (by native_decide) (by evm_ov)
   have rd2643 := rd2641.dup6 (by native_decide) (by evm_ov)
   have rd2644 := rd2643.add (by native_decide) (by evm_ov)
   have rd2645 := rd2644.swap4 (by native_decide) (by evm_ov)
   have rd2646 := rd2645.swap1 (by native_decide) (by evm_ov)
   have rd2647 := rd2646.swap4 (by native_decide) (by evm_ov)
-  have rd2648 := RD.mstore 0 _ aw8 rd2647 (by native_decide) (mstoreCost0 hMp32) (by rfl) hMp32 (by evm_ov)
+  have rd2648 := RD.mstore 0 _ aw8 rd2647 (by native_decide) (mloadCost0 hMp32) (by rfl) hMp32 (by evm_ov)
   have rd2649 := rd2648.dup4 (by native_decide) (by evm_ov)
   have rd2650 := rd2649.dup4 (by native_decide) (by evm_ov)
   have rd2651 := rd2650.add (by native_decide) (by evm_ov)
@@ -565,7 +547,7 @@ theorem catBiteKickSeg8b2P {σ σ₀ A I} {g : UInt256}
   have rd2652 := rd2651.swap2 (by native_decide) (by evm_ov)
   have rd2653 := rd2652.swap1 (by native_decide) (by evm_ov)
   have rd2654 := rd2653.swap2 (by native_decide) (by evm_ov)
-  have rd2655 := RD.mstore 0 _ aw8 rd2654 (by native_decide) (mstoreCost0 hMp64) (by rfl) hMp64 (by evm_ov)
+  have rd2655 := RD.mstore 0 _ aw8 rd2654 (by native_decide) (mloadCost0 hMp64) (by rfl) hMp64 (by evm_ov)
   have rd2656 := rd2655.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   have rd2658 := rd2656.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   have rd2660 := rd2658.push1 ⟨160⟩ (by native_decide) (by evm_ov)
@@ -575,17 +557,17 @@ theorem catBiteKickSeg8b2P {σ σ₀ A I} {g : UInt256}
   have rd2665 := rd2664.push1 ⟨96⟩ (by native_decide) (by evm_ov)
   have rd2667 := rd2665.dup4 (by native_decide) (by evm_ov)
   have rd2668 := rd2667.add (by native_decide) (by evm_ov)
-  have rd2669 := RD.mstore 0 _ aw8 rd2668 (by native_decide) (mstoreCost0 hMp96) (by rfl) hMp96 (by evm_ov)
+  have rd2669 := RD.mstore 0 _ aw8 rd2668 (by native_decide) (mloadCost0 hMp96) (by rfl) hMp96 (by evm_ov)
   have rd2670 := rd2669.push1 ⟨128⟩ (by native_decide) (by evm_ov)
   have rd2672 := rd2670.dup3 (by native_decide) (by evm_ov)
   have rd2673 := rd2672.add (by native_decide) (by evm_ov)
   have rd2674 := rd2673.dup15 (by native_decide) (by evm_ov)
   have rd2675 := rd2674.swap1 (by native_decide) (by evm_ov)
-  have rd2676 := RD.mstore 0 _ aw8 rd2675 (by native_decide) (mstoreCost0 hMp128) (by rfl) hMp128 (by evm_ov)
+  have rd2676 := RD.mstore 0 _ aw8 rd2675 (by native_decide) (mloadCost0 hMp128) (by rfl) hMp128 (by evm_ov)
   -- event-memory read-below/size + free-ptr reload (`@64 = p`), then LOG3
-  have hevRead := seg8_evMemRead64P mem8 p dink dart (UInt256.mul dart iRate)
+  have hevRead := fiveWordWrite_read64 mem8 p dink dart (UInt256.mul dart iRate)
     (UInt256.land biteAddrMaskWord flip2) id hp96 hmem8size hpsz
-  have hevSize := seg8_evMemSizeP mem8 p dink dart (UInt256.mul dart iRate)
+  have hevSize := fiveWordWrite_size mem8 p dink dart (UInt256.mul dart iRate)
     (UInt256.land biteAddrMaskWord flip2) id hp96 hmem8size hpsz
   have hFreeEv : (if (⟨64⟩ : UInt256).toNat ≥ ((UInt256.toByteArray id).write 0
         ((UInt256.toByteArray (UInt256.land biteAddrMaskWord flip2)).write 0
@@ -609,7 +591,8 @@ theorem catBiteKickSeg8b2P {σ σ₀ A I} {g : UInt256}
   have rd2684 := rd2682.add (by native_decide) (by evm_ov)
   rw [show (⟨160⟩ : UInt256) + ⟨0⟩ = ⟨160⟩ from by native_decide] at rd2684
   have rd2685 := rd2684.swap1 (by native_decide) (by evm_ov)
-  have rd2686 := RD.log3 0 aw8 rd2685 (by native_decide) hperm (log3Cost0 hMlog) hMlog (by evm_ov)
+  have rd2686 :=
+    RD.log3 0 aw8 rd2685 (by native_decide) hperm (memoryCost_zero_of_M_eq' hMlog) hMlog (by evm_ov)
   have rd2687 := rd2686.pop (by native_decide) (by evm_ov)
   have rd2688 := rd2687.pop (by native_decide) (by evm_ov)
   have rd2689 := rd2688.pop (by native_decide) (by evm_ov)
@@ -630,7 +613,7 @@ theorem catBiteKickSeg8b2P {σ σ₀ A I} {g : UInt256}
   have rd424 := RD.mload 0 p aw8 rd423 (by native_decide) (mloadCost0 hM64) hFreeEv hM64 (by evm_ov)
   have rd425 := rd424.swap2 (by native_decide) (by evm_ov)
   have rd426 := rd425.dup3 (by native_decide) (by evm_ov)
-  have rd427 := RD.mstore 0 _ aw8 rd426 (by native_decide) (mstoreCost0 hMp) (by rfl) hMp (by evm_ov)
+  have rd427 := RD.mstore 0 _ aw8 rd426 (by native_decide) (mloadCost0 hMp) (by rfl) hMp (by evm_ov)
   -- second free-ptr read (m2[64] = p, below the id@p write)
   have hm2read : ((UInt256.toByteArray id).write 0 (((UInt256.toByteArray id).write 0
       ((UInt256.toByteArray (UInt256.land biteAddrMaskWord flip2)).write 0
@@ -638,7 +621,7 @@ theorem catBiteKickSeg8b2P {σ σ₀ A I} {g : UInt256}
           ((UInt256.toByteArray dink).write 0 mem8 p.toNat 32) (p + ⟨32⟩).toNat 32)
           (p + ⟨64⟩).toNat 32) (p + ⟨96⟩).toNat 32) (p + ⟨128⟩).toNat 32)) p.toNat 32).readWithPadding 64 32
       = mem8.readWithPadding 64 32 := by
-    rw [seg8_wread64 _ id p.toNat (by omega) (by rw [hevSize]; omega), hevRead]
+    rw [wordWrite_read64_of_ge96 _ id p.toNat (by omega) (by rw [hevSize]; omega), hevRead]
   have hFreeM2 : (if (⟨64⟩ : UInt256).toNat ≥ ((UInt256.toByteArray id).write 0
         (((UInt256.toByteArray id).write 0
           ((UInt256.toByteArray (UInt256.land biteAddrMaskWord flip2)).write 0
@@ -652,7 +635,8 @@ theorem catBiteKickSeg8b2P {σ σ₀ A I} {g : UInt256}
               ((UInt256.toByteArray dink).write 0 mem8 p.toNat 32) (p + ⟨32⟩).toNat 32)
               (p + ⟨64⟩).toNat 32) (p + ⟨96⟩).toNat 32) (p + ⟨128⟩).toNat 32)) p.toNat 32).readWithPadding 64 32))) = p := by
     have h8 := hFree8; rw [if_neg hcond] at h8
-    rw [seg8_wsize _ id p.toNat (by rw [hevSize]; omega), hevSize, if_neg hcond, hm2read]; exact h8
+    rw [wordWrite_size_of_le _ id p.toNat (by rw [hevSize]; omega), hevSize, if_neg hcond,
+      hm2read]; exact h8
   have rd428 := RD.mload 0 p aw8 rd427 (by native_decide) (mloadCost0 hM64) hFreeM2 hM64 (by evm_ov)
   have rd429 := rd428.swap1 (by native_decide) (by evm_ov)
   have rd430 := rd429.dup2 (by native_decide) (by evm_ov)
@@ -708,32 +692,6 @@ theorem catBiteKickReturnP {σ σ₀ A I} {g : UInt256}
     catBiteKickSeg8b1P rd hstatus ho32 hoszLt hFree8 hId8 hp96 haw8 hRateFit (by simp)
   exact catBiteKickSeg8b2P rd2631 hperm hp96 hmem8size hpsz haw8q haw8 hFlipEv hFree8 (by simp)
 
-/-- The active-words after the kick `CALL` (`aw' = M (M aw p 164) p 32`) still cover `[0, p+164)`:
-memory expansion is `max`-monotone, so the argument-region growth survives. -/
-theorem kickAwBound (aw p : UInt256) (hpsz : p.toNat + 164 < UInt256.size) :
-    p.toNat + 164 ≤
-      (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32)).toNat * 32 := by
-  have hinnerEq : MachineState.M aw.toNat p.toNat 164 = max aw.toNat ((p.toNat + 164 + 31) / 32) := rfl
-  have houterEq : MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 =
-      max (MachineState.M aw.toNat p.toNat 164) ((p.toNat + 32 + 31) / 32) := rfl
-  have hinner_ge : (p.toNat + 164 + 31) / 32 ≤ MachineState.M aw.toNat p.toNat 164 := by
-    rw [hinnerEq]; exact le_max_right _ _
-  have houter_ge : MachineState.M aw.toNat p.toNat 164 ≤
-      MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 := by
-    rw [houterEq]; exact le_max_left _ _
-  have hlt : MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 < UInt256.size := by
-    rw [houterEq, hinnerEq]
-    have h1 : aw.toNat < UInt256.size := aw.val.isLt
-    have h2 : (p.toNat + 164 + 31) / 32 < UInt256.size := by omega
-    have h3 : (p.toNat + 32 + 31) / 32 < UInt256.size := by omega
-    omega
-  have hval : (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32)).toNat
-      = MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 := ulit_toNat' _ hlt
-  rw [hval]
-  have hceil : p.toNat + 164 ≤ (p.toNat + 164 + 31) / 32 * 32 := by omega
-  calc p.toNat + 164 ≤ (p.toNat + 164 + 31) / 32 * 32 := hceil
-    _ ≤ MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 * 32 := by
-        have := le_trans hinner_ge houter_ge; exact Nat.mul_le_mul_right 32 this
 
 /-! ## Part A — the `p`-relative return-copy memory `if`-forms (`kick` `CALL` return copy)
 
@@ -741,10 +699,6 @@ The kick `CALL` copies its 1-word return `o'` (the auction `id`) into memory at 
 (`o'.write 0 (kickCalldataMemP …) p (min 32 |o'|)`, needing `32 ≤ |o'|` so the length is `32`).
 These are the `p`-relative clones of `catBiteKickPostCallMem_size`/`_mload64`/`_mload128`. -/
 
-/-- The `min 32 |o|` return-copy length collapses to `32` once `32 ≤ |o|`. -/
-private theorem kickP_hlen (o : ByteArray) (ho32 : 32 ≤ o.size) (hout : o.size < UInt256.size) :
-    (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 32 :=
-  umin_ofNat_right_toNat_of_ge (c := 32) (n := o.size) (by decide) ho32 hout
 
 /-- `mem8.size = mem.size` (`p`-relative clone of `catBiteKickPostCallMem_size`). -/
 theorem catBiteKickPostCallMemP_size (p kurn kvow tab dink : UInt256) {mem : ByteArray} (o : ByteArray)
@@ -752,7 +706,7 @@ theorem catBiteKickPostCallMemP_size (p kurn kvow tab dink : UInt256) {mem : Byt
     (ho32 : 32 ≤ o.size) (hout : o.size < UInt256.size) :
     (o.write 0 (kickCalldataMemP p kurn kvow tab dink mem) p.toNat
       (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat).size = mem.size := by
-  rw [kickP_hlen o ho32 hout,
+  rw [callWriteLen32_eq_of_size_ge o ho32 hout,
     write32_eq o (kickCalldataMemP p kurn kvow tab dink mem) p.toNat (by omega)
       (by rw [kickCalldataMemP_size p kurn kvow tab dink hp96 hpmem hpsz]; omega),
     ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
@@ -773,7 +727,8 @@ theorem catBiteKickPostCallMemP_mload64 (p kurn kvow tab dink : UInt256) {mem : 
   mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := p)
     (by rw [catBiteKickPostCallMemP_size p kurn kvow tab dink o hp96 hpmem hpsz ho32 hout]
         show (64 : ℕ) < mem.size; omega)
-    (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, kickP_hlen o ho32 hout,
+    (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by
+      decide, callWriteLen32_eq_of_size_ge o ho32 hout,
           write_read_below_gen_extend o (kickCalldataMemP p kurn kvow tab dink mem) p.toNat 32 64
             (by decide) (by omega)
             (by rw [kickCalldataMemP_size p kurn kvow tab dink hp96 hpmem hpsz]; omega) (by omega)]
@@ -834,7 +789,7 @@ theorem catBiteKickPostCallMemP_mloadP (p kurn kvow tab dink : UInt256) {mem : B
   mloadWordValue_of_readWithPadding (off := p)
     (v := UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)))
     (by rw [catBiteKickPostCallMemP_size p kurn kvow tab dink o hp96 hpmem hpsz ho32 hout]; omega)
-    (by rw [kickP_hlen o ho32 hout,
+    (by rw [callWriteLen32_eq_of_size_ge o ho32 hout,
           writeReturnCopy_read32 o (kickCalldataMemP p kurn kvow tab dink mem) p.toNat 32 p.toNat
             (by omega) (by rw [kickCalldataMemP_size p kurn kvow tab dink hp96 hpmem hpsz]; omega)
             (by omega) (by omega)]
@@ -856,7 +811,7 @@ theorem catBiteKickPostCallMemP_mloadFlip (p kurn kvow tab dink q milkFlip : UIn
           (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat).readWithPadding q.toNat 32))) = milkFlip :=
   mloadWordValue_of_readWithPadding (off := q) (v := milkFlip)
     (by rw [catBiteKickPostCallMemP_size p kurn kvow tab dink o hp96 hpmem hpsz ho32 hout]; omega)
-    (by rw [kickP_hlen o ho32 hout,
+    (by rw [callWriteLen32_eq_of_size_ge o ho32 hout,
           write_read_below_gen_extend o (kickCalldataMemP p kurn kvow tab dink mem) p.toNat 32 q.toNat
             (by decide) (by omega)
             (by rw [kickCalldataMemP_size p kurn kvow tab dink hp96 hpmem hpsz]; omega) (by omega),
@@ -908,7 +863,7 @@ theorem catBiteReachKickC {σ σ₀ A I} {g : UInt256}
         (AccountAddress.ofUInt256 (UInt256.land biteAddrMaskWord milkFlip)) "kick" 0
         (seg8KickArgs σx I urn tab dink)
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A' }, o') I.perm
+              accountMap := σ', substate := A' }, o') true
     ∧ o'.size < UInt256.size
     ∧ (z = true → 32 ≤ o'.size →
         RDret catBytecode (Sat256.ofUInt256 g)
@@ -949,9 +904,9 @@ theorem catBiteReachKickC {σ σ₀ A I} {g : UInt256}
       (AccountAddress.ofUInt256 (UInt256.land biteAddrMaskWord milkFlip)) "kick" 0
       (seg8KickArgs σx I urn tab dink)
       (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ', substate := A' }, o') I.perm := by
+            accountMap := σ', substate := A' }, o') true := by
     refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
-      (callPerm := I.perm) (targetWord := UInt256.land biteAddrMaskWord milkFlip)
+      (callPerm := true) (targetWord := UInt256.land biteAddrMaskWord milkFlip)
       (mem := kickCalldataMemP p (UInt256.land biteAddrMaskWord urn)
         (UInt256.land biteAddrMaskWord (UInt256.land biteAddrMaskWord
           (UInt256.div (solcSlotWord σx I ⟨4⟩) (UInt256.exp ⟨256⟩ ⟨0⟩)))) tab dink mem)

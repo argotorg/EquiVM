@@ -15,7 +15,6 @@ theorem scratch_revealLoopBody_fromLoopStart {I : ExecutionEnv} {g : Sat256}
       valuesLenWord valuesEnd sel : UInt256}
     {values fakes secrets : List Value} {callargs : Store}
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hdec : decodeCalldata (revealTransition.params.map Param.name)
       (transitionSignature revealTransition).paramTypes I.calldata = some callargs)
     (hstore :
@@ -122,11 +121,11 @@ theorem scratch_revealLoopBody_fromLoopStart {I : ExecutionEnv} {g : Sat256}
     obtain ⟨e0, e1, e2, hval0, hval1, hval2⟩ :=
       blindAuctionDecode_reveal_array_decodes hdec hstore
     obtain ⟨value, hvalueLookup⟩ :=
-      revealDecode_dynamicArray_uint256_lookup_shape hval0 hboundValues
+      decodeABIValue_dynamicArray_uint256_lookup_shape hval0 hboundValues
     obtain ⟨word, hfakeLookup⟩ :=
-      revealDecode_dynamicArray_bool_lookup_shape hval1 hboundFakes
+      decodeABIValue_dynamicArray_bool_lookup_shape hval1 hboundFakes
     obtain ⟨secret, hsecretLookup⟩ :=
-      revealDecode_dynamicArray_bytes32_lookup_shape hval2 hboundSecrets
+      decodeABIValue_dynamicArray_bytes32_lookup_shape hval2 hboundSecrets
     let fakeWord : UInt256 := UInt256.ofNat word
     have hvalueLoad :
         uInt256OfByteArray
@@ -190,7 +189,7 @@ theorem scratch_revealLoopBody_fromLoopStart {I : ExecutionEnv} {g : Sat256}
       hvalueLoad hfakeSlt hfakeLoad hsecretLoad
       (by rfl) hfakeWordSmall hbidsL hvaluesL hfakesL hsecretsL hiL hlenL
       hrefundL hlenSrc hboundValues hboundFakes hboundSecrets
-      hvalueLookup hfakeLookup hsecretLookup hperm
+      hvalueLookup hfakeLookup hsecretLookup
   · exact Or.inl <|
       scratch_revealLoopBody_bounds_fromLoopStart
         (I := I) (g := g) (s0 := s0)
@@ -214,7 +213,6 @@ theorem scratch_revealLoop_fromLoopStart_or_revert {I : ExecutionEnv} {g : Sat25
       valuesLenWord valuesEnd sel : UInt256}
     {values fakes secrets : List Value} {callargs : Store}
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hdec : decodeCalldata (revealTransition.params.map Param.name)
       (transitionSignature revealTransition).paramTypes I.calldata = some callargs)
     (hstore :
@@ -244,7 +242,7 @@ theorem scratch_revealLoop_fromLoopStart_or_revert {I : ExecutionEnv} {g : Sat25
     (fakesLenWord := fakesLenWord) (fakesEnd := fakesEnd)
     (valuesLenWord := valuesLenWord) (valuesEnd := valuesEnd) (sel := sel)
     (values := values) (fakes := fakes) (secrets := secrets) (callargs := callargs)
-    hsize hperm hdec hstore hsecretsEnd hfakesEnd hvaluesEnd hvaluesEq hfakesEq
+    hsize hdec hstore hsecretsEnd hfakesEnd hvaluesEnd hvaluesEq hfakesEq
     hsecretsEq hvaluesListLen hfakesListLen hsecretsListLen hvaluesLenMax
 
 end BlindAuction

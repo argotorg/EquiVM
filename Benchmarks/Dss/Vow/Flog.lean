@@ -80,7 +80,7 @@ theorem evalExpr_flogWaitStorage (evm : EVM.State) {locals : Store}
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨7⟩).toNat)) := by
   rw [evalExpr_storage_scalar (hbackend := rfl) (er := flogWaitEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨7⟩)]
-  · exact congrArg EvalResult.ok (vowStorageLocLoad_uint256 _ ⟨7⟩)
+  · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨7⟩)
   · exact hbase
   · simp [flogWaitEvaledRef, waitRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
@@ -95,7 +95,7 @@ theorem evalExpr_flogSinCapitalStorage (evm : EVM.State) {locals : Store}
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩).toNat)) := by
   rw [evalExpr_storage_scalar (hbackend := rfl) (er := flogSinCapitalEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨5⟩)]
-  · exact congrArg EvalResult.ok (vowStorageLocLoad_uint256 _ ⟨5⟩)
+  · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨5⟩)
   · exact hbase
   · simp [flogSinCapitalEvaledRef, SinRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
@@ -114,7 +114,7 @@ theorem evalExpr_flogSinStorageOfLoad (evm : EVM.State) {I : ExecutionEnv}
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (flogEraSlot I)).toNat)) := by
   rw [evalExpr_storage_scalar (hbackend := rfl) (er := flogSinEvaledRef I) (t := .int uint256Int)
     (loc := wordLoc (flogEraSlot I))]
-  · exact congrArg EvalResult.ok (vowStorageLocLoad_uint256 _ (flogEraSlot I))
+  · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ (flogEraSlot I))
   · exact hbase
   · simp [flogSinEvaledRef, sinRef, evalStorageRef, evalStorageRefSteps,
       evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption,
@@ -291,8 +291,8 @@ theorem evalExpr_flogSinStorage
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.storage (sinRef (.var "era"))) =
-        .ok (.int (Int.ofNat (vowSlotWord (flogEraSlot I) σ I).toNat)) := by
-  simpa [vowSlotWord, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
+        .ok (.int (Int.ofNat (solcSlotWordAt (flogEraSlot I) σ I).toNat)) := by
+  simpa [solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
     Account.lookupStorage, initState] using
       (evalExpr_flogSinStorageOfLoad
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (I := I)
@@ -354,19 +354,19 @@ theorem assign_flogSinStorage (evm : EVM.State) {I : ExecutionEnv} {locals : Sto
         flogEraSlot])
     (hstore := hstore)
 
-theorem vowFlogSourceSuccess
+theorem vowFlogSourceSuccessSplit
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hfitWait : (flogEra I).toNat + (vowSlotWord ⟨7⟩ σ I).toNat < UInt256.size)
-    (hready : (flogEra I + vowSlotWord ⟨7⟩ σ I).toNat ≤
+    (hfitWait : (flogEra I).toNat + (solcSlotWordAt ⟨7⟩ σ I).toNat < UInt256.size)
+    (hready : (flogEra I + solcSlotWordAt ⟨7⟩ σ I).toNat ≤
       (UInt256.ofNat I.header.timestamp).toNat)
-    (hsub : (vowSlotWord (flogEraSlot I) σ I).toNat ≤
-      (vowSlotWord ⟨5⟩ σ I).toNat) :
+    (hsub : (solcSlotWordAt (flogEraSlot I) σ I).toNat ≤
+      (solcSlotWordAt ⟨5⟩ σ I).toNat) :
     let era := flogEra I
-    let wait := vowSlotWord ⟨7⟩ σ I
+    let wait := solcSlotWordAt ⟨7⟩ σ I
     let doneAt := era + wait
-    let SinVal := vowSlotWord ⟨5⟩ σ I
-    let sinVal := vowSlotWord (flogEraSlot I) σ I
+    let SinVal := solcSlotWordAt ⟨5⟩ σ I
+    let sinVal := solcSlotWordAt (flogEraSlot I) σ I
   let SinNew := UInt256.sub SinVal sinVal
     let locals := flogLocals I
     let locals2 := flogLocalsDoneAtSinNew I doneAt SinNew
@@ -374,29 +374,31 @@ theorem vowFlogSourceSuccess
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨5⟩ SinNew
   let evm2 := Solm.EVM.storageStore evm1 evm1.executionEnv.codeOwner (flogEraSlot I) ⟨0⟩
   ExecTransitionBody config contract evm0 locals flogTransition.body
-      (.returned { contract := contract, locals := locals2 } evm2 none) := by
+      (.returned { contract := contract, locals := locals2 } evm2 none) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 locals flogTransition.body .staticViolation) := by
   intro era wait doneAt SinVal sinVal SinNew locals locals2 evm0 evm1 evm2
   let locals1 := flogLocalsDoneAt I doneAt
-  have hwaitWord : wait = vowSlotWord ⟨7⟩ σ I := rfl
-  have hSinWord : SinVal = vowSlotWord ⟨5⟩ σ I := rfl
-  have hsinWord : sinVal = vowSlotWord (flogEraSlot I) σ I := rfl
+  have hwaitWord : wait = solcSlotWordAt ⟨7⟩ σ I := rfl
+  have hSinWord : SinVal = solcSlotWordAt ⟨5⟩ σ I := rfl
+  have hsinWord : sinVal = solcSlotWordAt (flogEraSlot I) σ I := rfl
   have hwaitLoad : Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨7⟩ = wait := by
     have hload : Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨7⟩ =
-        vowSlotWord ⟨7⟩ σ I := by
-      simp [evm0, initState, vowSlotWord, solcSlotWord, Solm.EVM.storageLoad,
+        solcSlotWordAt ⟨7⟩ σ I := by
+      simp [evm0, initState, solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad,
         State.lookupAccount, Account.lookupStorage]
     exact hload.trans hwaitWord.symm
   have hSinLoad : Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨5⟩ = SinVal := by
     have hload : Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨5⟩ =
-        vowSlotWord ⟨5⟩ σ I := by
-      simp [evm0, initState, vowSlotWord, solcSlotWord, Solm.EVM.storageLoad,
+        solcSlotWordAt ⟨5⟩ σ I := by
+      simp [evm0, initState, solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad,
         State.lookupAccount, Account.lookupStorage]
     exact hload.trans hSinWord.symm
   have hsinLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (flogEraSlot I) = sinVal := by
     have hload : Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (flogEraSlot I) =
-        vowSlotWord (flogEraSlot I) σ I := by
-      simp [evm0, initState, vowSlotWord, solcSlotWord, Solm.EVM.storageLoad,
+        solcSlotWordAt (flogEraSlot I) σ I := by
+      simp [evm0, initState, solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad,
         State.lookupAccount, Account.lookupStorage]
     exact hload.trans hsinWord.symm
   have hcallAdd :
@@ -453,40 +455,47 @@ theorem vowFlogSourceSuccess
       (assign_flogSinStorage evm1 (I := I) (locals := locals2) (⟨0⟩ : UInt256)
         (by simp [locals2, flogLocalsDoneAtSinNew, flogLocalsDoneAt, flogLocals])
         (by simpa [locals2] using flogLocalsDoneAtSinNew_get_era I doneAt SinNew))
-  have hblock :
+  have hpre : ∀ r, ExecBlock config { contract := contract, locals := locals2 } evm0
+      [ .assign .storage SinRef (.var "SinNew"),
+        .assign .storage (sinRef (.var "era")) (.intLit 0) ] r →
       ExecBlock config { contract := contract, locals := locals } evm0
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .internalCall "add" [.var "era", .storage waitRef] "doneAt",
           .require (.binary .le (.var "doneAt") (.env .timestamp)),
           .internalCall "sub" [.storage SinRef, .storage (sinRef (.var "era"))] "SinNew",
           .assign .storage SinRef (.var "SinNew"),
-          .assign .storage (sinRef (.var "era")) (.intLit 0) ]
-        (.ok { contract := contract, locals := locals2 } evm2) := by
+          .assign .storage (sinRef (.var "era")) (.intLit 0) ] r := by
+    intro r hrest
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal hcallAdd ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreadyEval) ?_
-    refine ExecBlock.consNormal hcallSub ?_
-    refine ExecBlock.consNormal (ExecStmt.assign hSinNewVar hassignSinCapital) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign hzero hassignSin) ExecBlock.nil
-  simpa [ExecTransitionBody, flogTransition, nonpayable, evm0, locals] using
-    ExecFuncBody.execBlockOK hblock
+    exact ExecBlock.consNormal hcallSub hrest
+  refine ⟨?_, fun hpf => ?_⟩
+  · simpa [ExecTransitionBody, flogTransition, nonpayable, evm0, locals] using
+      ExecFuncBody.execBlockOK (hpre _
+        (ExecBlock.consNormal (ExecStmt.assign hSinNewVar hassignSinCapital)
+          (ExecBlock.consNormal (ExecStmt.assign hzero hassignSin) ExecBlock.nil)))
+  · simpa [ExecTransitionBody, flogTransition, nonpayable, evm0, locals] using
+      ExecFuncBody.execBlockStatic (hpre _
+        (ExecBlock.consStatic (ExecStmt.assignStatic hSinNewVar hassignSinCapital
+          (by simp [evm0, initState]; exact hpf))))
 
 theorem vowFlogSourceAddOverflow
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hover : UInt256.size ≤ (flogEra I).toNat + (vowSlotWord ⟨7⟩ σ I).toNat) :
+    (hover : UInt256.size ≤ (flogEra I).toNat + (solcSlotWordAt ⟨7⟩ σ I).toNat) :
     ExecTransitionBody config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (flogLocals I)
       flogTransition.body .reverted := by
-  let wait := vowSlotWord ⟨7⟩ σ I
+  let wait := solcSlotWordAt ⟨7⟩ σ I
   let locals := flogLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hwaitWord : wait = vowSlotWord ⟨7⟩ σ I := rfl
+  have hwaitWord : wait = solcSlotWordAt ⟨7⟩ σ I := rfl
   have hwaitLoad : Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨7⟩ = wait := by
     have hload : Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨7⟩ =
-        vowSlotWord ⟨7⟩ σ I := by
-      simp [evm0, initState, vowSlotWord, solcSlotWord, Solm.EVM.storageLoad,
+        solcSlotWordAt ⟨7⟩ σ I := by
+      simp [evm0, initState, solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad,
         State.lookupAccount, Account.lookupStorage]
     exact hload.trans hwaitWord.symm
   have hcallAdd :
@@ -512,23 +521,23 @@ theorem vowFlogSourceAddOverflow
 theorem vowFlogSourceWaitNotFinished
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hfitWait : (flogEra I).toNat + (vowSlotWord ⟨7⟩ σ I).toNat < UInt256.size)
+    (hfitWait : (flogEra I).toNat + (solcSlotWordAt ⟨7⟩ σ I).toNat < UInt256.size)
     (hnotReady : (UInt256.ofNat I.header.timestamp).toNat <
-      (flogEra I + vowSlotWord ⟨7⟩ σ I).toNat) :
+      (flogEra I + solcSlotWordAt ⟨7⟩ σ I).toNat) :
     ExecTransitionBody config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (flogLocals I)
       flogTransition.body .reverted := by
   let era := flogEra I
-  let wait := vowSlotWord ⟨7⟩ σ I
+  let wait := solcSlotWordAt ⟨7⟩ σ I
   let doneAt := era + wait
   let locals := flogLocals I
   let locals1 := flogLocalsDoneAt I doneAt
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hwaitWord : wait = vowSlotWord ⟨7⟩ σ I := rfl
+  have hwaitWord : wait = solcSlotWordAt ⟨7⟩ σ I := rfl
   have hwaitLoad : Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨7⟩ = wait := by
     have hload : Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨7⟩ =
-        vowSlotWord ⟨7⟩ σ I := by
-      simp [evm0, initState, vowSlotWord, solcSlotWord, Solm.EVM.storageLoad,
+        solcSlotWordAt ⟨7⟩ σ I := by
+      simp [evm0, initState, solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad,
         State.lookupAccount, Account.lookupStorage]
     exact hload.trans hwaitWord.symm
   have hcallAdd :
@@ -570,42 +579,42 @@ theorem vowFlogSourceWaitNotFinished
 theorem vowFlogSourceSubUnderflow
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hfitWait : (flogEra I).toNat + (vowSlotWord ⟨7⟩ σ I).toNat < UInt256.size)
-    (hready : (flogEra I + vowSlotWord ⟨7⟩ σ I).toNat ≤
+    (hfitWait : (flogEra I).toNat + (solcSlotWordAt ⟨7⟩ σ I).toNat < UInt256.size)
+    (hready : (flogEra I + solcSlotWordAt ⟨7⟩ σ I).toNat ≤
       (UInt256.ofNat I.header.timestamp).toNat)
-    (hlt : (vowSlotWord ⟨5⟩ σ I).toNat <
-      (vowSlotWord (flogEraSlot I) σ I).toNat) :
+    (hlt : (solcSlotWordAt ⟨5⟩ σ I).toNat <
+      (solcSlotWordAt (flogEraSlot I) σ I).toNat) :
     ExecTransitionBody config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (flogLocals I)
       flogTransition.body .reverted := by
   let era := flogEra I
-  let wait := vowSlotWord ⟨7⟩ σ I
+  let wait := solcSlotWordAt ⟨7⟩ σ I
   let doneAt := era + wait
-  let SinVal := vowSlotWord ⟨5⟩ σ I
-  let sinVal := vowSlotWord (flogEraSlot I) σ I
+  let SinVal := solcSlotWordAt ⟨5⟩ σ I
+  let sinVal := solcSlotWordAt (flogEraSlot I) σ I
   let locals := flogLocals I
   let locals1 := flogLocalsDoneAt I doneAt
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hwaitWord : wait = vowSlotWord ⟨7⟩ σ I := rfl
-  have hSinWord : SinVal = vowSlotWord ⟨5⟩ σ I := rfl
-  have hsinWord : sinVal = vowSlotWord (flogEraSlot I) σ I := rfl
+  have hwaitWord : wait = solcSlotWordAt ⟨7⟩ σ I := rfl
+  have hSinWord : SinVal = solcSlotWordAt ⟨5⟩ σ I := rfl
+  have hsinWord : sinVal = solcSlotWordAt (flogEraSlot I) σ I := rfl
   have hwaitLoad : Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨7⟩ = wait := by
     have hload : Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨7⟩ =
-        vowSlotWord ⟨7⟩ σ I := by
-      simp [evm0, initState, vowSlotWord, solcSlotWord, Solm.EVM.storageLoad,
+        solcSlotWordAt ⟨7⟩ σ I := by
+      simp [evm0, initState, solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad,
         State.lookupAccount, Account.lookupStorage]
     exact hload.trans hwaitWord.symm
   have hSinLoad : Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨5⟩ = SinVal := by
     have hload : Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨5⟩ =
-        vowSlotWord ⟨5⟩ σ I := by
-      simp [evm0, initState, vowSlotWord, solcSlotWord, Solm.EVM.storageLoad,
+        solcSlotWordAt ⟨5⟩ σ I := by
+      simp [evm0, initState, solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad,
         State.lookupAccount, Account.lookupStorage]
     exact hload.trans hSinWord.symm
   have hsinLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (flogEraSlot I) = sinVal := by
     have hload : Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (flogEraSlot I) =
-        vowSlotWord (flogEraSlot I) σ I := by
-      simp [evm0, initState, vowSlotWord, solcSlotWord, Solm.EVM.storageLoad,
+        solcSlotWordAt (flogEraSlot I) σ I := by
+      simp [evm0, initState, solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad,
         State.lookupAccount, Account.lookupStorage]
     exact hload.trans hsinWord.symm
   have hcallAdd :
@@ -757,7 +766,7 @@ theorem RD.vowFlogToFirstAdd
     (hsize : I.calldata.size < UInt256.size) :
     ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5074⟩
-      (vowSlotWord ⟨7⟩ σ I :: flogEra I :: ⟨4511⟩ ::
+      (solcSlotWordAt ⟨7⟩ σ I :: flogEra I :: ⟨4511⟩ ::
         UInt256.ofNat I.header.timestamp :: flogEra I :: ⟨412⟩ :: sel :: [])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, htoRoutine⟩ := RD.vowFlogDecodeToRoutine hreach hsz36 hsize
@@ -769,7 +778,7 @@ theorem RD.vowFlogToFirstAdd
   obtain ⟨_, _, rd4507⟩ := rd4506.sload (by native_decide) (by evm_ov)
   have rd4510 := rd4507.push2 ⟨5074⟩ (by native_decide) (by evm_ov)
   exact ⟨_, _, by
-    simpa [vowSlotWord, solcSlotWord] using
+    simpa [solcSlotWordAt, solcSlotWord] using
       rd4510.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vowFlogAfterWaitReady
@@ -779,14 +788,14 @@ theorem RD.vowFlogAfterWaitReady
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
-    (hfit : (flogEra I).toNat + (vowSlotWord ⟨7⟩ σ I).toNat < UInt256.size)
-    (hready : (flogEra I + vowSlotWord ⟨7⟩ σ I).toNat ≤
+    (hfit : (flogEra I).toNat + (solcSlotWordAt ⟨7⟩ σ I).toNat < UInt256.size)
+    (hready : (flogEra I + solcSlotWordAt ⟨7⟩ σ I).toNat ≤
       (UInt256.ofNat I.header.timestamp).toNat) :
     ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4586⟩
       [flogEra I, ⟨412⟩, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C := by
-  let wait := vowSlotWord ⟨7⟩ σ I
+  let wait := solcSlotWordAt ⟨7⟩ σ I
   obtain ⟨_, _, hfirstAdd⟩ := RD.vowFlogToFirstAdd hreach hsz36 hsize
   obtain ⟨_, _, hafterAdd⟩ := RD.solcCheckedAddSuccess
     (code := vowBytecode) (pc := ⟨5074⟩) (okPc := ⟨5090⟩)
@@ -819,10 +828,10 @@ theorem RD.vowFlogFirstAddOverflow
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
-    (hover : UInt256.size ≤ (flogEra I).toNat + (vowSlotWord ⟨7⟩ σ I).toNat) :
+    (hover : UInt256.size ≤ (flogEra I).toNat + (solcSlotWordAt ⟨7⟩ σ I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let wait := vowSlotWord ⟨7⟩ σ I
+  let wait := solcSlotWordAt ⟨7⟩ σ I
   obtain ⟨_, _, hfirstAdd⟩ := RD.vowFlogToFirstAdd hreach hsz36 hsize
   exact RD.solcCheckedAddEmptyRevert
     (code := vowBytecode) (pc := ⟨5074⟩) (okPc := ⟨5090⟩)
@@ -951,7 +960,7 @@ theorem RD.vowFlogToCheckedSub {code : ByteArray} {g : Sat256} {s0 : State}
   ∧ decode code p18 = some (.SSTORE, .none)
   ∧ decode code p19 = some (.JUMP, .none)
 
-theorem RD.vowFlogStoreSinAndClear {code : ByteArray} {g : Sat256} {s0 : State}
+theorem RD.vowFlogStoreSinAndClearSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc SinNew era ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray}
     {σ : AccountMap}
@@ -959,14 +968,15 @@ theorem RD.vowFlogStoreSinAndClear {code : ByteArray} {g : Sat256} {s0 : State}
       σ k C)
     (hwf : vowFlogStoreSinAndClearWf code pc)
     (hmem : mem.size = 96)
-    (hperm : ee.perm = true)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 8 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD code ee g s0 ret R (twoWordHashMem era ⟨4⟩ mem) (UInt256.ofNat 3)
       rdata
       (sstoreAccountMap ee.codeOwner
         (sstoreAccountMap ee.codeOwner σ ⟨5⟩ SinNew) (solcMappingSlot ⟨4⟩ era) ⟨0⟩)
-      k' C' := by
+      k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd6, hd7, hd8, hd9, hd11, hd13, hd14, hd16, hd17,
       hd18, hd19⟩
@@ -974,6 +984,11 @@ theorem RD.vowFlogStoreSinAndClear {code : ByteArray} {g : Sat256} {s0 : State}
   have rdStoreSinPrefix := evm_run h with [
     raw jumpdest hd0 (by evm_ov),
     raw push1 ⟨5⟩ hd1 (by evm_ov)]
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdStoreSinPrefix.sstoreStatic (by simpa using hperm) hd3 (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdStoreSin⟩ := rdStoreSinPrefix.sstore hperm hd3 (by evm_ov)
   have rdMem0Prefix := evm_run rdStoreSin with [
     raw push1 ⟨0⟩ hd4 (by evm_ov),
@@ -995,25 +1010,27 @@ theorem RD.vowFlogStoreSinAndClear {code : ByteArray} {g : Sat256} {s0 : State}
   obtain ⟨_, _, rdStoreZero⟩ := rdSlot.sstore hperm hd18 (by evm_ov)
   exact ⟨_, _, by simpa [σ1] using rdStoreZero.jump hd19 hret (by evm_ov)⟩
 
-theorem RD.vowFlogSuccess
+theorem RD.vowFlogSuccessSplit
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨781⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hperm : I.perm = true)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
-    (hfitWait : (flogEra I).toNat + (vowSlotWord ⟨7⟩ σ I).toNat < UInt256.size)
-    (hready : (flogEra I + vowSlotWord ⟨7⟩ σ I).toNat ≤
+    (hfitWait : (flogEra I).toNat + (solcSlotWordAt ⟨7⟩ σ I).toNat < UInt256.size)
+    (hready : (flogEra I + solcSlotWordAt ⟨7⟩ σ I).toNat ≤
       (UInt256.ofNat I.header.timestamp).toNat)
-    (hsub : (vowSlotWord (flogEraSlot I) σ I).toNat ≤ (vowSlotWord ⟨5⟩ σ I).toNat) :
+    (hsub : (solcSlotWordAt (flogEraSlot I) σ I).toNat ≤ (solcSlotWordAt ⟨5⟩ σ I).toNat) :
+    (I.perm = true ∧
     RDret vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ ⟨5⟩
-          (UInt256.sub (vowSlotWord ⟨5⟩ σ I) (vowSlotWord (flogEraSlot I) σ I)))
+          (UInt256.sub (solcSlotWordAt ⟨5⟩ σ I) (solcSlotWordAt (flogEraSlot I) σ I)))
         (flogEraSlot I) ⟨0⟩)
-      ByteArray.empty := by
+      ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic vowBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   let era := flogEra I
   let eraSlot := solcMappingSlot ⟨4⟩ era
   let sinEra := solcSlotWord σ I eraSlot
@@ -1035,20 +1052,21 @@ theorem RD.vowFlogSuccess
     (by
       unfold solcCheckedSubSuccessWf
       repeat' first | apply And.intro | native_decide)
-    (by simpa [era, eraSlot, sinEra, flogEraSlot_eq, vowSlotWord] using hsub)
+    (by simpa [era, eraSlot, sinEra, flogEraSlot_eq, solcSlotWordAt] using hsub)
     (by jump_dest) (by jump_dest) (by simp)
   have hmem : (twoWordHashMem era ⟨4⟩ solcFreePtrMem).size = 96 :=
     twoWordHashMem_size_96 era ⟨4⟩ solcFreePtrMem_size
-  obtain ⟨_, _, hretPc⟩ := RD.vowFlogStoreSinAndClear
+  refine permSplit_bind (RD.vowFlogStoreSinAndClearSplit
     (code := vowBytecode) (pc := ⟨4614⟩) (SinNew := SinNew) (era := era)
     (ret := ⟨412⟩) (R := [sel])
     (by simpa [SinNew, era, eraSlot, sinEra] using hafterSub)
     (by
       unfold vowFlogStoreSinAndClearWf
       repeat' first | apply And.intro | native_decide)
-    hmem hperm (by jump_dest) (by simp)
+    hmem (by jump_dest) (by simp)) fun hperm hseg => ?_
+  obtain ⟨_, _, hretPc⟩ := hseg
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
-  simpa [era, eraSlot, sinEra, SinNew, flogEraSlot_eq, vowSlotWord] using
+  simpa [era, eraSlot, sinEra, SinNew, flogEraSlot_eq, solcSlotWordAt] using
     RD.stop hretPc' (by native_decide) (by simp)
 
 theorem RD.vowFlogSubUnderflow
@@ -1058,10 +1076,10 @@ theorem RD.vowFlogSubUnderflow
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
-    (hfitWait : (flogEra I).toNat + (vowSlotWord ⟨7⟩ σ I).toNat < UInt256.size)
-    (hready : (flogEra I + vowSlotWord ⟨7⟩ σ I).toNat ≤
+    (hfitWait : (flogEra I).toNat + (solcSlotWordAt ⟨7⟩ σ I).toNat < UInt256.size)
+    (hready : (flogEra I + solcSlotWordAt ⟨7⟩ σ I).toNat ≤
       (UInt256.ofNat I.header.timestamp).toNat)
-    (hlt : (vowSlotWord ⟨5⟩ σ I).toNat < (vowSlotWord (flogEraSlot I) σ I).toNat) :
+    (hlt : (solcSlotWordAt ⟨5⟩ σ I).toNat < (solcSlotWordAt (flogEraSlot I) σ I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let era := flogEra I
@@ -1084,7 +1102,7 @@ theorem RD.vowFlogSubUnderflow
     (by
       unfold solcCheckedSubEmptyRevertWf solcCheckedSubSuccessWf
       repeat' first | apply And.intro | native_decide)
-    (by simpa [era, eraSlot, sinEra, flogEraSlot_eq, vowSlotWord] using hlt)
+    (by simpa [era, eraSlot, sinEra, flogEraSlot_eq, solcSlotWordAt] using hlt)
     (by simp)
 
 abbrev vowWaitNotFinishedRawWord : UInt256 :=
@@ -1097,12 +1115,12 @@ theorem RD.vowFlogWaitNotFinished
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
-    (hfit : (flogEra I).toNat + (vowSlotWord ⟨7⟩ σ I).toNat < UInt256.size)
+    (hfit : (flogEra I).toNat + (solcSlotWordAt ⟨7⟩ σ I).toNat < UInt256.size)
     (hnotReady : (UInt256.ofNat I.header.timestamp).toNat <
-      (flogEra I + vowSlotWord ⟨7⟩ σ I).toNat) :
+      (flogEra I + solcSlotWordAt ⟨7⟩ σ I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let wait := vowSlotWord ⟨7⟩ σ I
+  let wait := solcSlotWordAt ⟨7⟩ σ I
   obtain ⟨_, _, hfirstAdd⟩ := RD.vowFlogToFirstAdd hreach hsz36 hsize
   obtain ⟨_, _, hafterAdd⟩ := RD.solcCheckedAddSuccess
     (code := vowBytecode) (pc := ⟨5074⟩) (okPc := ⟨5090⟩)
@@ -1139,7 +1157,7 @@ theorem RD.vowFlogWaitNotFinished
 theorem vowFlogBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some flogTransition)
     (hdecode :
@@ -1150,16 +1168,16 @@ theorem vowFlogBodyCore
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hfitWait :
-      (flogEra I).toNat + (vowSlotWord ⟨7⟩ σ I).toNat < UInt256.size
-  · by_cases hready : (flogEra I + vowSlotWord ⟨7⟩ σ I).toNat ≤
+      (flogEra I).toNat + (solcSlotWordAt ⟨7⟩ σ I).toNat < UInt256.size
+  · by_cases hready : (flogEra I + solcSlotWordAt ⟨7⟩ σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat
-    · by_cases hsub : (vowSlotWord (flogEraSlot I) σ I).toNat ≤
-          (vowSlotWord ⟨5⟩ σ I).toNat
+    · by_cases hsub : (solcSlotWordAt (flogEraSlot I) σ I).toNat ≤
+          (solcSlotWordAt ⟨5⟩ σ I).toNat
       · let era := flogEra I
-        let wait := vowSlotWord ⟨7⟩ σ I
+        let wait := solcSlotWordAt ⟨7⟩ σ I
         let doneAt := era + wait
-        let SinVal := vowSlotWord ⟨5⟩ σ I
-        let sinVal := vowSlotWord (flogEraSlot I) σ I
+        let SinVal := solcSlotWordAt ⟨5⟩ σ I
+        let sinVal := solcSlotWordAt (flogEraSlot I) σ I
         let SinNew := UInt256.sub SinVal sinVal
         let locals := flogLocals I
         let locals2 := flogLocalsDoneAtSinNew I doneAt SinNew
@@ -1168,15 +1186,17 @@ theorem vowFlogBodyCore
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨5⟩ SinNew
         let evm2 := Solm.EVM.storageStore evm1 evm1.executionEnv.codeOwner (flogEraSlot I) ⟨0⟩
+        have hboth := vowFlogSourceSuccessSplit (σ := σ)
+          (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hfitWait hready hsub
         have hbody :
             ExecTransitionBody config contract evm0 locals flogTransition.body
               (.returned { contract := contract, locals := locals2 } evm2 none) := by
           simpa [era, wait, doneAt, SinVal, sinVal, SinNew, locals, locals2, evm0, evm1,
-            evm2] using
-              (vowFlogSourceSuccess (σ := σ)
-                 (σ₀ := σ₀) (A := A) (I := I) (g := g)
-                hwv hfitWait hready hsub)
-        have hret := RD.vowFlogSuccess hreach hperm hsz36 hsize hfitWait hready hsub
+            evm2] using hboth.1
+        rcases RD.vowFlogSuccessSplit hreach hsz36 hsize hfitWait hready hsub with
+          ⟨_, hret⟩ | ⟨hpf, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hboth.2 hpf)
         have haccounts1 : σ1_evm = evm1.accountMap := by
           simp [σ1_evm, evm1, evm0, initState, storageStore_accountMap]
         have haccounts : σ2_evm = evm2.accountMap := by
@@ -1192,8 +1212,8 @@ theorem vowFlogBodyCore
           simpa [σ2_evm, σ1_evm, SinNew, SinVal, sinVal] using hret
         exact hret'.reEquivExecutionGen hcode hdispatch hdecode hbody
           haccounts henc
-      · have hlt : (vowSlotWord ⟨5⟩ σ I).toNat <
-            (vowSlotWord (flogEraSlot I) σ I).toNat := by
+      · have hlt : (solcSlotWordAt ⟨5⟩ σ I).toNat <
+            (solcSlotWordAt (flogEraSlot I) σ I).toNat := by
           omega
         have hbody := vowFlogSourceSubUnderflow
           (σ := σ)  (σ₀ := σ₀) (A := A) (I := I)
@@ -1201,7 +1221,7 @@ theorem vowFlogBodyCore
         have hrev := RD.vowFlogSubUnderflow hreach hsz36 hsize hfitWait hready hlt
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hnotReady : (UInt256.ofNat I.header.timestamp).toNat <
-          (flogEra I + vowSlotWord ⟨7⟩ σ I).toNat := by
+          (flogEra I + solcSlotWordAt ⟨7⟩ σ I).toNat := by
         omega
       have hbody := vowFlogSourceWaitNotFinished
         (σ := σ)  (σ₀ := σ₀) (A := A) (I := I)
@@ -1209,7 +1229,7 @@ theorem vowFlogBodyCore
       have hrev := RD.vowFlogWaitNotFinished hreach hsz36 hsize hfitWait hnotReady
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hover : UInt256.size ≤
-        (flogEra I).toNat + (vowSlotWord ⟨7⟩ σ I).toNat := by
+        (flogEra I).toNat + (solcSlotWordAt ⟨7⟩ σ I).toNat := by
       omega
     have hbody := vowFlogSourceAddOverflow
       (σ := σ)  (σ₀ := σ₀) (A := A) (I := I)
@@ -1219,12 +1239,12 @@ theorem vowFlogBodyCore
 
 theorem vowFlogBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0xd7, 0xee, 0x67, 0x4b]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size := by omega
-  exact vowFlogBodyCore hcode hwv hperm hsz36 hsize (vowDispatch_flog hsel)
+  exact vowFlogBodyCore hcode hwv hsz36 hsize (vowDispatch_flog hsel)
     (by simpa [flogLocals] using vowDecode_flog_ok (I := I) hsz36)
     (vowReachFlogBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -1232,7 +1252,7 @@ theorem vowFlogBody {σ σ₀ A I} {g : UInt256}
 
 theorem vowFlogShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xd7, 0xee, 0x67, 0x4b]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

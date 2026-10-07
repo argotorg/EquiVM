@@ -5,19 +5,35 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-theorem settleCreateEnter {I g s0 R mem aw rdata σ k C}
+theorem settleCreateEnterSplit {I g s0 R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨2607⟩ R mem aw rdata σ k C)
-    (hperm : I.perm = true) (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨2623⟩
-      (⟨2682⟩ :: UInt256.isZero (pausedWord (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) I) :: R)
-      mem aw rdata (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) k' C' := by
+    (hov : R.length + 3 ≤ 1024) :
+    (I.perm = true ∧
+      ∃ k' C', RD auctionBytecode I g s0 ⟨2623⟩
+        (⟨2682⟩ :: UInt256.isZero (pausedWord (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) I) :: R)
+        mem aw rdata (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) k' C') ∨
+      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
   have rd2612 := evm_run h with [jumpdest, push1 ⟨2⟩, push1 ⟨101⟩]
-  obtain ⟨_, _, rd2613⟩ := rd2612.sstore hperm (by native_decide) (by evm_ov)
+  have hstoreDec : decode auctionBytecode ⟨2612⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2612.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd2613⟩ := rd2612.sstore hperm hstoreDec (by evm_ov)
   have rd2615 := evm_run rd2613 with [push1 ⟨51⟩]
   obtain ⟨_, _, rd2616⟩ := rd2615.sload (by native_decide) (by evm_ov)
   have rd2623 := evm_run rd2616 with [push1 ⟨255⟩, and, iszero, push2 ⟨2682⟩]
   rw [u256_land_comm ⟨255⟩] at rd2623
   exact ⟨_, _, rd2623⟩
+
+theorem settleCreateEnter {I g s0 R mem aw rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨2607⟩ R mem aw rdata σ k C)
+    (hperm : I.perm = true) (hov : R.length + 3 ≤ 1024) :
+    ∃ k' C', RD auctionBytecode I g s0 ⟨2623⟩
+      (⟨2682⟩ :: UInt256.isZero (pausedWord (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) I) :: R)
+      mem aw rdata (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) k' C' :=
+  permSplit_true hperm (settleCreateEnterSplit h hov)
 
 theorem settleCreateUnpaused {I g s0 R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨2623⟩ (⟨2682⟩ :: UInt256.isZero (pausedWord σ I) :: R)

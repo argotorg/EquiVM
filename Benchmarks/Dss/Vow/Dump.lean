@@ -9,7 +9,7 @@ namespace Benchmarks.Dss.Vow
 /-! ## `dump()` getter -/
 
 def dumpWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vowSlotWord ⟨8⟩ σ I
+  solcSlotWordAt ⟨8⟩ σ I
 
 theorem vowDispatch_dump {I : ExecutionEnv} (hsel : selIs I ⟨#[0xe4, 0x33, 0x05, 0x45]⟩) :
     dispatchMsg contract I.calldata = some dumpTransition := by
@@ -85,7 +85,7 @@ theorem vowDumpBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (dumpWord σ I).toNat))])) := by
-    simpa [dumpTransition, dumpWord, vowSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [dumpTransition, dumpWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vowUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -107,7 +107,7 @@ theorem vowDumpBodyCore
 
 theorem vowDumpBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xe4, 0x33, 0x05, 0x45]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=

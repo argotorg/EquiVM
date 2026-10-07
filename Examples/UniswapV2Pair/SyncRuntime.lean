@@ -41,6 +41,22 @@ theorem uniswapSyncX_lockEntered {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa using rd6097⟩
 
+/-- In a static call, `sync()` halts at the lock-entry `SSTORE`. -/
+theorem uniswapSyncX_lockEnteredStatic {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hperm : I.perm = false)
+    (hunlocked :
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
+        ⟨1⟩)
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+      (initState σ σ₀ g A I) ⟨1467⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd6016⟩ := uniswapSyncX_decoded (g := g) hreach
+  exact RD.uniswapLockEnterOkStatic
+    (pc := ⟨6016⟩) (okPc := ⟨6091⟩) (R := [⟨570⟩, sel])
+    rd6016 uniswap_lock_enter_ok_wf hperm hunlocked (by jump_dest)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
 /-- Runtime-only `sync()` slice from selector dispatch through successful lock entry. -/
 theorem uniswapSyncRuntimeLockEntered
     {σ σ₀ A I} {g : UInt256}
@@ -75,17 +91,17 @@ theorem uniswapSyncRuntimeFirstBalanceOfExtcodesize
     ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6160⟩
       [UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
         UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
         ⟨128⟩, ⟨36⟩, ⟨128⟩, ⟨32⟩, ⟨164⟩, balanceOfSelectorWord,
         UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
         ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
       (balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)) (UInt256.ofNat 6)
       ByteArray.empty (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k C := by
   let σLock := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0Word := uniswapSlotWord ⟨6⟩ σLock I
+  let token0Word := solcSlotWordAt ⟨6⟩ σLock I
   let token0Clean := UInt256.land solcAddrMask token0Word
   obtain ⟨_, _, rd6097⟩ :=
     uniswapSyncRuntimeLockEntered
@@ -96,7 +112,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfExtcodesize
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6100⟩
       [token0Word, ⟨570⟩, uniswapSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σLock k6100 C6100 := by
-    simpa [σLock, token0Word, uniswapSlotWord] using rd6100₀
+    simpa [σLock, token0Word, solcSlotWordAt, solcSlotWord] using rd6100₀
   have rd6113 := evm_run rd6100 with [
     push1 ⟨64⟩, dup1,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
@@ -143,20 +159,20 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallReady
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6174⟩
       [UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
         ⟨128⟩, ⟨36⟩, ⟨128⟩, ⟨32⟩, ⟨164⟩, balanceOfSelectorWord,
         UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
         ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
       (balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)) (UInt256.ofNat 6)
       ByteArray.empty (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k C := by
   let σLock := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0Word := uniswapSlotWord ⟨6⟩ σLock I
+  let token0Word := solcSlotWordAt ⟨6⟩ σLock I
   let token0Clean := UInt256.land solcAddrMask token0Word
   obtain ⟨_, _, rd6160⟩ :=
     uniswapSyncRuntimeFirstBalanceOfExtcodesize
@@ -184,21 +200,21 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallEntry
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ gasWord k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6175⟩
       [gasWord,
         UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
         ⟨128⟩, ⟨36⟩, ⟨128⟩, ⟨32⟩, ⟨164⟩, balanceOfSelectorWord,
         UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
         ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
       (balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)) (UInt256.ofNat 6)
       ByteArray.empty (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k C := by
   let σLock := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0Word := uniswapSlotWord ⟨6⟩ σLock I
+  let token0Word := solcSlotWordAt ⟨6⟩ σLock I
   let token0Clean := UInt256.land solcAddrMask token0Word
   obtain ⟨_, _, rd6160⟩ :=
     uniswapSyncRuntimeFirstBalanceOfExtcodesize
@@ -227,7 +243,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallMade
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -237,11 +253,11 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallMade
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -249,13 +265,13 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallMade
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
       ∧ o.size < UInt256.size := by
   let σLock := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0Word := uniswapSlotWord ⟨6⟩ σLock I
+  let token0Word := solcSlotWordAt ⟨6⟩ σLock I
   let token0Clean := UInt256.land solcAddrMask token0Word
   obtain ⟨_, _, _, rd6175⟩ :=
     uniswapSyncRuntimeFirstBalanceOfStaticcallEntry
@@ -283,11 +299,11 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallFailureGuard
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -295,7 +311,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallFailureGuard
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
       ((if z then (⟨1⟩ : UInt256) else ⟨0⟩) :: ⟨164⟩ :: balanceOfSelectorWord ::
         UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I) :: R)
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I) :: R)
       (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
       balanceOfThisStaticcallActiveWords o σ' k C)
     (hoSize : o.size < UInt256.size)
@@ -308,11 +324,11 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallFailureGuard
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -391,7 +407,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallSuccessGuard
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -401,11 +417,11 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallSuccessGuard
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -413,7 +429,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallSuccessGuard
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
@@ -422,13 +438,13 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallSuccessGuard
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6194⟩
           [⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k' C')
       ∧ o.size < UInt256.size := by
   let σLock := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0Word := uniswapSlotWord ⟨6⟩ σLock I
+  let token0Word := solcSlotWordAt ⟨6⟩ σLock I
   let token0Clean := UInt256.land solcAddrMask token0Word
   obtain ⟨σ', z, o, A_in, callGas, k, C, hΘ, rd6176, hoSize⟩ :=
     uniswapSyncRuntimeFirstBalanceOfStaticcallMade
@@ -459,7 +475,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfReturnWordDecoded
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -469,11 +485,11 @@ theorem uniswapSyncRuntimeFirstBalanceOfReturnWordDecoded
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -481,7 +497,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfReturnWordDecoded
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
@@ -494,7 +510,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfReturnWordDecoded
           balanceOfThisStaticcallActiveWords o σ' k' C')
       ∧ o.size < UInt256.size := by
   let σLock := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0Word := uniswapSlotWord ⟨6⟩ σLock I
+  let token0Word := solcSlotWordAt ⟨6⟩ σLock I
   let token0Clean := UInt256.land solcAddrMask token0Word
   obtain ⟨σ', z, o, A_in, callGas, k, C, hΘ, rd6176, hsucc, hoSize⟩ :=
     uniswapSyncRuntimeFirstBalanceOfStaticcallSuccessGuard
@@ -528,7 +544,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Sloaded
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -538,11 +554,11 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Sloaded
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -550,21 +566,21 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Sloaded
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
       ∧ (z = true → 32 ≤ o.size →
         ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6220⟩
-          [uniswapSlotWord ⟨7⟩ σ' I,
+          [solcSlotWordAt ⟨7⟩ σ' I,
             UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k' C')
       ∧ o.size < UInt256.size := by
   let σLock := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0Word := uniswapSlotWord ⟨6⟩ σLock I
+  let token0Word := solcSlotWordAt ⟨6⟩ σLock I
   let token0Clean := UInt256.land solcAddrMask token0Word
   obtain ⟨σ', z, o, A_in, callGas, k, C, hΘ, rd6176, hdecoded, hoSize⟩ :=
     uniswapSyncRuntimeFirstBalanceOfReturnWordDecoded
@@ -574,7 +590,8 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Sloaded
   obtain ⟨_, _, rd6217⟩ := hdecoded hz ho32
   have rd6219 := evm_run rd6217 with [push1 ⟨7⟩]
   obtain ⟨k', C', rd6220⟩ := rd6219.sload (by native_decide) (by evm_ov)
-  exact ⟨k', C', by simpa [σLock, token0Word, token0Clean, uniswapSlotWord] using rd6220⟩
+  exact ⟨k', C', by
+    simpa [σLock, token0Word, token0Clean, solcSlotWordAt, solcSlotWord] using rd6220⟩
 
 set_option maxHeartbeats 1000000 in
 /-- Runtime-only `sync()` slice preparing the second `balanceOf(address(this))` selector
@@ -591,7 +608,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfSelectorReady
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -601,11 +618,11 @@ theorem uniswapSyncRuntimeSecondBalanceOfSelectorReady
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -613,7 +630,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfSelectorReady
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
@@ -621,7 +638,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfSelectorReady
         ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6233⟩
           [⟨128⟩, balanceOfSelectorShifted, ⟨128⟩, ⟨64⟩,
-            uniswapSlotWord ⟨7⟩ σ' I,
+            solcSlotWordAt ⟨7⟩ σ' I,
             UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
@@ -662,7 +679,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfCalldataRebuilt
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -672,11 +689,11 @@ theorem uniswapSyncRuntimeSecondBalanceOfCalldataRebuilt
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -684,14 +701,14 @@ theorem uniswapSyncRuntimeSecondBalanceOfCalldataRebuilt
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
       ∧ (z = true → 32 ≤ o.size →
         ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6240⟩
-          [⟨128⟩, ⟨64⟩, uniswapSlotWord ⟨7⟩ σ' I,
+          [⟨128⟩, ⟨64⟩, solcSlotWordAt ⟨7⟩ σ' I,
             UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o)
@@ -732,7 +749,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Cleaned
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -742,11 +759,11 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Cleaned
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -754,14 +771,14 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Cleaned
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
       ∧ (z = true → 32 ≤ o.size →
         ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6254⟩
-          [⟨128⟩, ⟨128⟩, UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+          [⟨128⟩, ⟨128⟩, UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
             UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o)
@@ -785,7 +802,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Cleaned
   have rd6254 := rd6254₀
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide] at rd6254
-  rw [u256_land_comm (uniswapSlotWord ⟨7⟩ σ' I) solcAddrMask] at rd6254
+  rw [u256_land_comm (solcSlotWordAt ⟨7⟩ σ' I) solcAddrMask] at rd6254
   rw [show (⟨6240⟩ : UInt256) + (⟨1⟩ : UInt256) + (⟨1⟩ : UInt256) +
       UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 + (⟨1⟩ : UInt256) +
       (⟨1⟩ : UInt256) + (⟨1⟩ : UInt256) + (⟨1⟩ : UInt256) +
@@ -807,7 +824,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfExtcodesize
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -817,11 +834,11 @@ theorem uniswapSyncRuntimeSecondBalanceOfExtcodesize
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -829,17 +846,17 @@ theorem uniswapSyncRuntimeSecondBalanceOfExtcodesize
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
       ∧ (z = true → 32 ≤ o.size →
         ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6279⟩
-          [UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
-            UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+          [UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
+            UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
             ⟨128⟩, ⟨36⟩, ⟨128⟩, ⟨32⟩, ⟨164⟩, balanceOfSelectorWord,
-            UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+            UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
             UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o)
@@ -875,7 +892,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallEntry
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -885,11 +902,11 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallEntry
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -897,18 +914,18 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallEntry
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
       ∧ (z = true → 32 ≤ o.size →
         extCodeSizeWord σ'
-          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
+          (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
         ∃ gasWord k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6294⟩
-          [gasWord, UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+          [gasWord, UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
             ⟨128⟩, ⟨36⟩, ⟨128⟩, ⟨32⟩, ⟨164⟩, balanceOfSelectorWord,
-            UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+            UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
             UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o)
@@ -943,7 +960,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallMade
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -953,11 +970,11 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallMade
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -965,13 +982,13 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallMade
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
       ∧ (z = true → 32 ≤ o.size →
         extCodeSizeWord σ'
-          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
+          (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
         ∃ (σ'' : AccountMap)
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
@@ -980,10 +997,10 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallMade
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
-                (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)))
+                (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
               (toExecute σ'
                 (AccountAddress.ofUInt256
-                  (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I))))
+                  (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
               ((balanceOfThisRebuiltCalldataMem
                 (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
@@ -991,7 +1008,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallMade
           ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6295⟩
             [(if z1 then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
-              UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+              UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
               UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
               ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
             (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -1022,7 +1039,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallFailureGuard
     (rd6295 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6295⟩
       ((if z1 then (⟨1⟩ : UInt256) else ⟨0⟩) :: ⟨164⟩ :: balanceOfSelectorWord ::
-        UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I) :: R)
+        UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I) :: R)
       (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
       balanceOfThisStaticcallActiveWords o1 σ'' k C)
     (ho1Size : o1.size < UInt256.size)
@@ -1100,7 +1117,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallSuccessGuard
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -1110,11 +1127,11 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallSuccessGuard
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -1122,13 +1139,13 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallSuccessGuard
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
       ∧ (z = true → 32 ≤ o.size →
         extCodeSizeWord σ'
-          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
+          (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
         ∃ (σ'' : AccountMap)
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
@@ -1137,10 +1154,10 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallSuccessGuard
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
-                (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)))
+                (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
               (toExecute σ'
                 (AccountAddress.ofUInt256
-                  (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I))))
+                  (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
               ((balanceOfThisRebuiltCalldataMem
                 (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
@@ -1148,7 +1165,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallSuccessGuard
           ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6295⟩
             [(if z1 then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
-              UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+              UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
               UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
               ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
             (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -1157,7 +1174,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallSuccessGuard
             ∃ k'' C'', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6313⟩
               [⟨164⟩, balanceOfSelectorWord,
-                UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+                UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
                 UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
                 ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
               (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -1198,7 +1215,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfReturnWordDecoded
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -1208,11 +1225,11 @@ theorem uniswapSyncRuntimeSecondBalanceOfReturnWordDecoded
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -1220,13 +1237,13 @@ theorem uniswapSyncRuntimeSecondBalanceOfReturnWordDecoded
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
       ∧ (z = true → 32 ≤ o.size →
         extCodeSizeWord σ'
-          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
+          (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
         ∃ (σ'' : AccountMap)
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
@@ -1235,10 +1252,10 @@ theorem uniswapSyncRuntimeSecondBalanceOfReturnWordDecoded
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
-                (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)))
+                (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
               (toExecute σ'
                 (AccountAddress.ofUInt256
-                  (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I))))
+                  (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
               ((balanceOfThisRebuiltCalldataMem
                 (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
@@ -1246,7 +1263,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfReturnWordDecoded
           ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6295⟩
             [(if z1 then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
-              UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+              UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
               UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
               ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
             (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -1291,9 +1308,9 @@ theorem uniswapSyncReserveSlotUnpack {g : Sat256} {s0 : State} {ee : ExecutionEn
       mem aw rdata σ k C)
     (hov : R.length + 9 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨6959⟩
-      (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ ee) reserve112Shift)
+      (UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σ ee) reserve112Shift)
           reserve112Mask ::
-        UInt256.land (uniswapSlotWord ⟨8⟩ σ ee) reserve112Mask ::
+        UInt256.land (solcSlotWordAt ⟨8⟩ σ ee) reserve112Mask ::
         balance1 :: balance0 :: R)
       mem aw rdata σ k' C' := by
   have rd6338 := evm_run h with [push1 ⟨8⟩]
@@ -1303,7 +1320,8 @@ theorem uniswapSyncReserveSlotUnpack {g : Sat256} {s0 : State} {ee : ExecutionEn
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup1, dup3, and, swap2,
     push1 ⟨1⟩, push1 ⟨112⟩, shl, swap1, div, and, push2 ⟨6959⟩]
   have rd6959 := evm_run rd6362 with [jump (by jump_dest)]
-  exact ⟨_, _, by simpa [uniswapSlotWord, reserve112Shift, reserve112Mask] using rd6959⟩
+  exact ⟨_, _, by
+    simpa [solcSlotWordAt, solcSlotWord, reserve112Shift, reserve112Mask] using rd6959⟩
 
 set_option maxHeartbeats 1000000 in
 /-- Runtime-only `sync()` slice through the reserve-slot unpack that prepares the shared
@@ -1320,7 +1338,7 @@ theorem uniswapSyncRuntimeReserveSlotUnpacked
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -1330,11 +1348,11 @@ theorem uniswapSyncRuntimeReserveSlotUnpacked
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -1342,13 +1360,13 @@ theorem uniswapSyncRuntimeReserveSlotUnpacked
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
       ∧ (z = true → 32 ≤ o.size →
         extCodeSizeWord σ'
-          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
+          (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
         ∃ (σ'' : AccountMap)
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
@@ -1357,10 +1375,10 @@ theorem uniswapSyncRuntimeReserveSlotUnpacked
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
-                (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)))
+                (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
               (toExecute σ'
                 (AccountAddress.ofUInt256
-                  (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I))))
+                  (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
               ((balanceOfThisRebuiltCalldataMem
                 (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
@@ -1368,7 +1386,7 @@ theorem uniswapSyncRuntimeReserveSlotUnpacked
           ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6295⟩
             [(if z1 then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
-              UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+              UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
               UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
               ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
             (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -1376,9 +1394,9 @@ theorem uniswapSyncRuntimeReserveSlotUnpacked
           ∧ (z1 = true → 32 ≤ o1.size →
             ∃ k'' C'', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6959⟩
-              (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Shift)
+              (UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σ'' I) reserve112Shift)
                   reserve112Mask ::
-                UInt256.land (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Mask ::
+                UInt256.land (solcSlotWordAt ⟨8⟩ σ'' I) reserve112Mask ::
                 UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)) ::
                 UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) ::
                 ⟨6363⟩ :: ⟨570⟩ :: uniswapSelWord I :: [])
@@ -1415,7 +1433,7 @@ theorem uniswapSyncRuntimeUpdateOverflowGuardOk
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -1425,11 +1443,11 @@ theorem uniswapSyncRuntimeUpdateOverflowGuardOk
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -1437,13 +1455,13 @@ theorem uniswapSyncRuntimeUpdateOverflowGuardOk
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
       ∧ (z = true → 32 ≤ o.size →
         extCodeSizeWord σ'
-          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
+          (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
         ∃ (σ'' : AccountMap)
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
@@ -1452,10 +1470,10 @@ theorem uniswapSyncRuntimeUpdateOverflowGuardOk
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
-                (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)))
+                (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
               (toExecute σ'
                 (AccountAddress.ofUInt256
-                  (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I))))
+                  (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
               ((balanceOfThisRebuiltCalldataMem
                 (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
@@ -1463,7 +1481,7 @@ theorem uniswapSyncRuntimeUpdateOverflowGuardOk
           ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6295⟩
             [(if z1 then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
-              UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+              UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
               UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
               ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
             (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -1475,9 +1493,9 @@ theorem uniswapSyncRuntimeUpdateOverflowGuardOk
               reserve112Mask.toNat →
             ∃ k'' C'', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7060⟩
-              [UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Shift)
+              [UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σ'' I) reserve112Shift)
                   reserve112Mask,
-                UInt256.land (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Mask,
+                UInt256.land (solcSlotWordAt ⟨8⟩ σ'' I) reserve112Mask,
                 UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)),
                 UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
                 ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
@@ -1514,7 +1532,7 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroSkipsCumulatives
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -1524,11 +1542,11 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroSkipsCumulatives
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -1536,13 +1554,13 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroSkipsCumulatives
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
       ∧ (z = true → 32 ≤ o.size →
         extCodeSizeWord σ'
-          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
+          (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
         ∃ (σ'' : AccountMap)
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
@@ -1551,10 +1569,10 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroSkipsCumulatives
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
-                (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)))
+                (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
               (toExecute σ'
                 (AccountAddress.ofUInt256
-                  (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I))))
+                  (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
               ((balanceOfThisRebuiltCalldataMem
                 (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
@@ -1562,7 +1580,7 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroSkipsCumulatives
           ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6295⟩
             [(if z1 then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
-              UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+              UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
               UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
               ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
             (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -1575,17 +1593,17 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroSkipsCumulatives
             UInt256.land
               (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat I.header.timestamp))
                 (UInt256.land reserve32Mask
-                  (UInt256.div (uniswapSlotWord ⟨8⟩ σ'' I) reserve224Shift)))
+                  (UInt256.div (solcSlotWordAt ⟨8⟩ σ'' I) reserve224Shift)))
               reserve32Mask = ⟨0⟩ →
             ∃ k'' C'', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7241⟩
               [UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat I.header.timestamp))
                   (UInt256.land reserve32Mask
-                    (UInt256.div (uniswapSlotWord ⟨8⟩ σ'' I) reserve224Shift)),
+                    (UInt256.div (solcSlotWordAt ⟨8⟩ σ'' I) reserve224Shift)),
                 UInt256.land reserve32Mask (UInt256.ofNat I.header.timestamp),
-                UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Shift)
+                UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σ'' I) reserve112Shift)
                   reserve112Mask,
-                UInt256.land (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Mask,
+                UInt256.land (solcSlotWordAt ⟨8⟩ σ'' I) reserve112Mask,
                 UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)),
                 UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
                 ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
@@ -1605,9 +1623,9 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroSkipsCumulatives
   obtain ⟨_, _, rd7060⟩ := hupdate hz1 ho132 hfit0 hfit1
   obtain ⟨k'', C'', rd7241⟩ :=
     RD.uniswapUpdateElapsedZeroSkipsCumulatives rd7060
-      (by simpa [uniswapSlotWord] using helapsed0)
+      (by simpa [solcSlotWordAt, solcSlotWord] using helapsed0)
       (by simp only [List.length_cons, List.length_nil]; omega)
-  exact ⟨k'', C'', by simpa [uniswapSlotWord] using rd7241⟩
+  exact ⟨k'', C'', by simpa [solcSlotWordAt, solcSlotWord] using rd7241⟩
 
 set_option maxHeartbeats 1000000 in
 /-- Runtime-only `sync()` slice for the `timeElapsed == 0` path through the packed reserve
@@ -1624,7 +1642,7 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroStoresPackedReserves
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -1634,11 +1652,11 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroStoresPackedReserves
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -1646,13 +1664,13 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroStoresPackedReserves
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
       ∧ (z = true → 32 ≤ o.size →
         extCodeSizeWord σ'
-          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
+          (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
         ∃ (σ'' : AccountMap)
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
@@ -1661,10 +1679,10 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroStoresPackedReserves
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
-                (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)))
+                (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
               (toExecute σ'
                 (AccountAddress.ofUInt256
-                  (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I))))
+                  (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
               ((balanceOfThisRebuiltCalldataMem
                 (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
@@ -1672,7 +1690,7 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroStoresPackedReserves
           ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6295⟩
             [(if z1 then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
-              UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+              UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
               UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
               ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
             (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -1682,27 +1700,27 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroStoresPackedReserves
               reserve112Mask.toNat →
             (UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32))).toNat ≤
               reserve112Mask.toNat →
-            UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ'' I) I)
+            UInt256.land (uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σ'' I) I)
               reserve32Mask = ⟨0⟩ →
             ∃ k'' C'', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7339⟩
               [reserve112Shift, reserve112Mask,
-                uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ σ'' I)
+                uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ σ'' I)
                   (uniswapUpdateTimestampWord I)
                   (UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)))
                   (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))),
-                uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ'' I) I,
+                uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σ'' I) I,
                 uniswapUpdateTimestampWord I,
-                UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Shift)
+                UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σ'' I) reserve112Shift)
                   reserve112Mask,
-                UInt256.land (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Mask,
+                UInt256.land (solcSlotWordAt ⟨8⟩ σ'' I) reserve112Mask,
                 UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)),
                 UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
                 ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
               (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
               balanceOfThisStaticcallActiveWords o1
               (sstoreAccountMap I.codeOwner σ'' ⟨8⟩
-                (uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ σ'' I)
+                (uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ σ'' I)
                   (uniswapUpdateTimestampWord I)
                   (UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)))
                   (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)))))
@@ -1726,7 +1744,8 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroStoresPackedReserves
       hperm
       (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨k'', C'', by
-    simpa [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, uniswapSlotWord] using rd7339⟩
+    simpa [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, solcSlotWordAt,
+      solcSlotWord] using rd7339⟩
 
 theorem uniswapSyncLogMem_read64 (packed : UInt256) (mem : ByteArray)
     (hsize : 128 ≤ mem.size)
@@ -1784,7 +1803,7 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroReturns
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -1794,11 +1813,11 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroReturns
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+                (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -1806,13 +1825,13 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroReturns
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6176⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
             UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
             ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
           (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o)
           balanceOfThisStaticcallActiveWords o σ' k C
       ∧ (z = true → 32 ≤ o.size →
         extCodeSizeWord σ'
-          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
+          (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)) ≠ ⟨0⟩ →
         ∃ (σ'' : AccountMap)
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
@@ -1821,10 +1840,10 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroReturns
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
-                (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)))
+                (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
               (toExecute σ'
                 (AccountAddress.ofUInt256
-                  (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I))))
+                  (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
               ((balanceOfThisRebuiltCalldataMem
                 (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
@@ -1832,7 +1851,7 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroReturns
           ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6295⟩
             [(if z1 then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨164⟩, balanceOfSelectorWord,
-              UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I),
+              UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I),
               UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)),
               ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
             (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -1842,13 +1861,13 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroReturns
               reserve112Mask.toNat →
             (UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32))).toNat ≤
               reserve112Mask.toNat →
-            UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ'' I) I)
+            UInt256.land (uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σ'' I) I)
               reserve32Mask = ⟨0⟩ →
             RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (sstoreAccountMap I.codeOwner
                 (sstoreAccountMap I.codeOwner σ'' ⟨8⟩
-                  (uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ σ'' I)
+                  (uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ σ'' I)
                     (uniswapUpdateTimestampWord I)
                     (UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)))
                     (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)))))
@@ -1867,7 +1886,7 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroReturns
   intro hz1 ho132 hfit0 hfit1 helapsed0
   obtain ⟨_, _, rd7339⟩ := hupdate hz1 ho132 hfit0 hfit1 helapsed0
   let packed :=
-    uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ σ'' I)
+    uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ σ'' I)
       (uniswapUpdateTimestampWord I)
       (UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)))
       (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)))
@@ -1893,7 +1912,7 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroReturns
       (mcostLoad := 0) (mcostStore0 := 0) (mcostStore1 := 0)
       (mcostLoadLog := 0) (mcostLog := 0)
       (by simpa [packed, mem0, uniswapUpdateElapsedWord, uniswapUpdateTimestampWord,
-        uniswapSlotWord] using rd7339)
+        solcSlotWordAt, solcSlotWord] using rd7339)
       (by simp [M, Cₘ]; native_decide)
       (by
         simpa [mem0] using
@@ -1932,12 +1951,12 @@ theorem uniswapSyncRuntimeFirstBalanceOfMissingCodeReverts
     (htoken0NoCode :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩) :
     RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let σLock := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0Word := uniswapSlotWord ⟨6⟩ σLock I
+  let token0Word := solcSlotWordAt ⟨6⟩ σLock I
   let token0Clean := UInt256.land solcAddrMask token0Word
   obtain ⟨_, _, rd6160⟩ :=
     uniswapSyncRuntimeFirstBalanceOfExtcodesize

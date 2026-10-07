@@ -7,6 +7,28 @@ set_option maxRecDepth 100000
 
 namespace Auction
 
+theorem pauseBodySplit (evm : EVM.State)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv)
+    (hp : pausedWord evm.accountMap evm.executionEnv = ⟨0⟩) :
+    (ExecTransitionBody auctionConfig auctionContract evm ∅ pauseTransition.body
+      (.returned { contract := auctionContract, locals := ∅ }
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨51⟩
+          (pauseWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨51⟩))) none)) ∧
+      (evm.executionEnv.perm = false →
+        ExecTransitionBody auctionConfig auctionContract evm ∅
+          pauseTransition.body .staticViolation) := by
+  have hprefix {result : ExecResult}
+      (htail : ExecBlock auctionConfig { contract := auctionContract, locals := ∅ } evm
+        (pauseTransition.body.drop 2) result) :
+      ExecBlock auctionConfig { contract := auctionContract, locals := ∅ } evm
+        pauseTransition.body result :=
+    ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
+      (ExecBlock.consNormal (ExecStmt.requireTrue (evalOwnerEq_true evm ∅ (by simp) ho)) htail)
+  have hblock := pauseBlockSplit evm ∅ (by simp) hp
+  exact ⟨ExecFuncBody.execBlockOK (hprefix hblock.1),
+    fun hperm ↦ ExecFuncBody.execBlockStatic (hprefix (hblock.2 hperm))⟩
+
 theorem pauseBody (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv)
@@ -14,10 +36,8 @@ theorem pauseBody (evm : EVM.State)
     ExecTransitionBody auctionConfig auctionContract evm ∅ pauseTransition.body
       (.returned { contract := auctionContract, locals := ∅ }
         (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨51⟩
-          (pauseWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨51⟩))) none) := by
-  apply ExecFuncBody.execBlockOK
-  exact ((ABlock.start.requireStep (evalCallvalueEq_true hwv)).requireStep
-    (evalOwnerEq_true evm ∅ (by simp) ho)).run (pauseBlock evm ∅ (by simp) hp)
+          (pauseWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨51⟩))) none) :=
+  (pauseBodySplit evm hwv ho hp).1
 
 theorem pauseBodyAlreadyPaused (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -30,7 +50,7 @@ theorem pauseBodyAlreadyPaused (evm : EVM.State)
 
 theorem pauseBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (entryBytes 10))
+    (hsel : selIs I (entryBytes 10))
     (hreach : EntryReached 10 σ σ₀ A I g) :
     runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
@@ -48,13 +68,18 @@ theorem pauseBodyCore {σ σ₀ A I} {g : UInt256}
       have rd3655 := evm_run rd2122 with [
         jumpdest, push2 ⟨1163⟩, push2 ⟨3655⟩, jump (by jump_dest) ]
       by_cases hp : pausedWord σ I = ⟨0⟩
-      · obtain ⟨_, _, rd1163⟩ := pauseRoutineOk rd3655 hp hperm (by jump_dest) (by evm_ov)
+      · rcases pauseRoutineOkSplit rd3655 hp (by jump_dest) (by evm_ov) with
+          ⟨_hperm, _, _, rd1163⟩ | ⟨hperm, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode hd hdec
+            ((pauseBodySplit
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv ho hp).2 hperm)
         obtain ⟨_, _, rd413⟩ := auctionInternalReturn rd1163 (by jump_dest) (by evm_ov)
         have hbody := pauseBody
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv ho hp
         exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
           hcode hd hdec hbody (by simp [storageStore_accountMap, initState,
-            storedWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage])
+            solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage])
           (.fallthrough rfl rfl (by native_decide))
       · have hbody := pauseBodyAlreadyPaused
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv ho hp

@@ -389,4 +389,26 @@ theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t
     refine reEquiv_execution hd hdec hbody ?_ hfallback hreceive
     rw [hrev]; exact execResultsEquiv.revert rfl rfl
 
+theorem RDinvalid.reEquivExecutionInvalid {cfg : Config} {contract : ContractDecl}
+    {t : TransitionDecl} {σ σ₀ A I} {g : UInt256}
+    {code : ByteArray} {callargs}
+    (hcode : I.code = code)
+    (h : RDinvalid code (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I))
+    (hd : dispatchMsg contract I.calldata = some t)
+    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
+      (transitionSignature t).paramTypes I.calldata = some callargs)
+    (hbody : ExecTransitionBody cfg contract
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs t.body .reverted)
+    (hfallback : contract.fallback = none := by rfl)
+    (hreceive : contract.receive = none := by rfl) :
+    runtimeEquivalenceFor cfg contract σ σ₀ g A I := by
+  rcases h with hoog | hinvalid
+  · exact reEquiv_outOfGas (Xi_error_of_X (g := g) (by rwa [← hcode] at hoog))
+  · refine reEquiv_execution hd hdec hbody ?_ hfallback hreceive
+    have hXi : Ξ σ σ₀ g A I = .error .InvalidInstruction :=
+      Xi_error_of_X (g := g) (by rwa [← hcode] at hinvalid)
+    rw [hXi]
+    exact execResultsEquiv.invalidHalt rfl rfl
+
 end Reasoning.Reach

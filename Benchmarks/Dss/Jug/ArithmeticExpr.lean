@@ -1,3 +1,6 @@
+import Reasoning.WordArithmetic
+import Reasoning.SolmArithmetic
+import Reasoning.EVMWord
 import Benchmarks.Dss.Jug.Dispatch
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,25 +19,6 @@ theorem jugRay_toNat : jugRay.toNat = 1000000000000000000000000000 := by
     1000000000000000000000000000
   exact ulit_toNat' _ (by native_decide)
 
-theorem jugUInt256Zero_toNat : (⟨0⟩ : UInt256).toNat = 0 := by
-  native_decide
-
-theorem jugUInt256One_toNat : (⟨1⟩ : UInt256).toNat = 1 := by
-  native_decide
-
-theorem jugUInt256Two_toNat : (⟨2⟩ : UInt256).toNat = 2 := by
-  native_decide
-
-theorem jugUInt256Two_ne_zero : (⟨2⟩ : UInt256) ≠ ⟨0⟩ := by
-  native_decide
-
-theorem jugUInt256DivZeroTwo :
-    UInt256.div (⟨0⟩ : UInt256) (⟨2⟩ : UInt256) = ⟨0⟩ := by
-  native_decide
-
-theorem jugUInt256DivOneTwo :
-    UInt256.div (⟨1⟩ : UInt256) (⟨2⟩ : UInt256) = ⟨0⟩ := by
-  native_decide
 
 theorem one_eq_jugRay_toNat : one = Int.ofNat jugRay.toNat := by
   simp [one, jugRay_toNat]
@@ -54,65 +38,26 @@ theorem jugRay_mul_div_cancel (y : UInt256)
   rw [hprod]
   simpa [Nat.mul_comm] using Nat.mul_div_right y.toNat hRayPos
 
-theorem u256_mul_div_overflow_ne (x y : UInt256)
-    (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    UInt256.div (y * x) y ≠ x := by
-  intro hEq
-  have hyNatNe : y.toNat ≠ 0 := by
-    intro hy0
-    have hprod0 : x.toNat * y.toNat = 0 := by simp [hy0]
-    have hsizePos : 0 < UInt256.size := by norm_num [UInt256.size]
-    omega
-  have hnat := congrArg UInt256.toNat hEq
-  rw [udiv_toNat, u256_mul_op_toNat] at hnat
-  have hremLt : y.toNat * x.toNat % UInt256.size < y.toNat * x.toNat := by
-    have hmodLt : y.toNat * x.toNat % UInt256.size < UInt256.size :=
-      Nat.mod_lt _ (by norm_num [UInt256.size])
-    have hover' : UInt256.size ≤ y.toNat * x.toNat := by
-      simpa [Nat.mul_comm] using hover
-    omega
-  have hle0 :=
-    Nat.mul_div_le (y.toNat * x.toNat % UInt256.size) y.toNat
-  rw [hnat] at hle0
-  have hle : y.toNat * x.toNat ≤ y.toNat * x.toNat % UInt256.size := by
-    simpa [Nat.mul_comm] using hle0
-  omega
 
 theorem jugRay_mul_div_overflow_ne (y : UInt256)
     (hover : UInt256.size ≤ jugRay.toNat * y.toNat) :
     UInt256.div (y * jugRay) y ≠ jugRay :=
   u256_mul_div_overflow_ne jugRay y hover
 
-theorem u256_sub_eq_zero_iff_eq {a b : UInt256} :
-    UInt256.sub a b = ⟨0⟩ ↔ a = b := by
-  constructor
-  · intro h
-    by_contra hne
-    exact u256_sub_ne_zero_of_ne hne h
-  · intro h
-    rw [h]
-    exact u256_sub_self b
 
 theorem evalExpr_varInt {evm : EVM.State} {locals : Store}
     {name : Ident} {value : Int}
     (h : locals.get? name = some (.int value)) :
     evalExpr? config { contract := contract, locals := locals } evm (.var name) =
-      .ok (.int value) := by
-  rw [evalExpr?]
-  change EvalResult.ofOption EvalError.unboundVariable (locals.get? name) = .ok (.int value)
-  rw [h]
-  rfl
+      .ok (.int value) :=
+  Reasoning.Theory.evalExpr_varInt (cfg := config) (contract := contract) h
 
 theorem evalExpr_varUInt256 {evm : EVM.State} {locals : Store}
     {name : Ident} {value : UInt256}
     (h : locals.get? name = some (.int (Int.ofNat value.toNat))) :
     evalExpr? config { contract := contract, locals := locals } evm (.var name) =
-      .ok (.int (Int.ofNat value.toNat)) := by
-  rw [evalExpr?]
-  change EvalResult.ofOption EvalError.unboundVariable (locals.get? name) =
-    .ok (.int (Int.ofNat value.toNat))
-  rw [h]
-  rfl
+      .ok (.int (Int.ofNat value.toNat)) :=
+  Reasoning.Theory.evalExpr_varUInt256 (cfg := config) (contract := contract) h
 
 theorem evalExpr_add256_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b sum : UInt256}
@@ -123,19 +68,8 @@ theorem evalExpr_add256_ok {evm : EVM.State} {locals : Store}
     (hsum : sum = a + b)
     (hfit : a.toNat + b.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm (add256 x y) =
-      .ok (.int (Int.ofNat sum.toNat)) := by
-  have hlt : ¬ Int.ofNat (a.toNat + b.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  have hword : sum.toNat = a.toNat + b.toNat := by
-    rw [hsum, uadd_toNat, Nat.mod_eq_of_lt hfit]
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+      .ok (.int (Int.ofNat sum.toNat)) :=
+  Reasoning.Theory.evalExpr_add256_ok (cfg := config) (contract := contract) hx hy hsum hfit
 
 theorem evalExpr_add256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -145,10 +79,8 @@ theorem evalExpr_add256_revert {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat b.toNat)))
     (hover : UInt256.size ≤ a.toNat + b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (add256 x y) =
-      .revert := by
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+      .revert :=
+  Reasoning.Theory.evalExpr_add256_revert (cfg := config) (contract := contract) hx hy hover
 
 theorem evalExpr_sub256_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b diff : UInt256}
@@ -159,35 +91,8 @@ theorem evalExpr_sub256_ok {evm : EVM.State} {locals : Store}
     (hdiff : diff = UInt256.sub a b)
     (hle : b.toNat ≤ a.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (sub256 x y) =
-      .ok (.int (Int.ofNat diff.toNat)) := by
-  have hcond :
-      evalExpr? config { contract := contract, locals := locals } evm (.binary .le y x) =
-        .ok (.bool true) := by
-    simp [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?]
-    exact_mod_cast hle
-  have hdiffNat : diff.toNat = a.toNat - b.toNat := by
-    rw [hdiff, usub_toNat hle]
-  have hsubInt : (a.toNat : Int) - (b.toNat : Int) = ((a.toNat - b.toNat : Nat) : Int) :=
-    (Int.ofNat_sub hle).symm
-  have hltNat : a.toNat - b.toNat < UInt256.size := by
-    have ha : a.toNat < UInt256.size := a.val.isLt
-    omega
-  have hlt : ¬ ((a.toNat - b.toNat : Nat) : Int) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hltNat))
-  have hchecked :
-      evalExpr? config { contract := contract, locals := locals } evm (checkedSub256 x y) =
-        .ok (.int (Int.ofNat diff.toNat)) := by
-    simp [checkedSub256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-      uint256Int]
-    rw [if_neg]
-    · rw [hsubInt, ← hdiffNat]
-      rfl
-    · intro hbad
-      rcases hbad with hbad | hbad
-      · exact (not_le.mpr hbad) hle
-      · rw [hsubInt] at hbad
-        exact hlt hbad
-  simp [sub256, evalExpr?, EvalResult.bind, bind, hcond, hchecked]
+      .ok (.int (Int.ofNat diff.toNat)) :=
+  Reasoning.Theory.evalExpr_wrappingSub256_ok (cfg := config) (contract := contract) hx hy hdiff hle
 
 theorem evalExpr_sub256_underflow_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b diff : UInt256}
@@ -198,50 +103,9 @@ theorem evalExpr_sub256_underflow_ok {evm : EVM.State} {locals : Store}
     (hdiff : diff = UInt256.sub a b)
     (hlt : a.toNat < b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (sub256 x y) =
-      .ok (.int (Int.ofNat diff.toNat)) := by
-  have hcond :
-      evalExpr? config { contract := contract, locals := locals } evm (.binary .le y x) =
-        .ok (.bool false) := by
-    simp [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?]
-    exact_mod_cast hlt
-  have hbLe : b.toNat ≤ UInt256.size + a.toNat := by
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    omega
-  have hdiffNat : diff.toNat = UInt256.size + a.toNat - b.toNat := by
-    rw [hdiff, usub_toNat_underflow hlt]
-  have hsubInt :
-      ((UInt256.size : Nat) : Int) + (a.toNat : Int) - (b.toNat : Int) =
-        ((UInt256.size + a.toNat - b.toNat : Nat) : Int) := by
-    rw [← Nat.cast_add, ← Int.ofNat_sub hbLe]
-  have hltNat : UInt256.size + a.toNat - b.toNat < UInt256.size := by
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    omega
-  have hltRange :
-      ¬ ((UInt256.size + a.toNat - b.toNat : Nat) : Int) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hltNat))
-  have hwrapped :
-      evalExpr? config { contract := contract, locals := locals } evm
-          (u256 (.binary .sub (.binary .add (.intLit (Int.ofNat UInt256.size)) x) y)) =
-        .ok (.int (Int.ofNat diff.toNat)) := by
-    simp [u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-    rw [if_neg]
-    · have hval :
-          ((UInt256.size : Nat) : Int) + (a.toNat : Int) - (b.toNat : Int) =
-            (diff.toNat : Int) := by
-        rw [hsubInt, ← hdiffNat]
-      change pure (Value.int
-          (((UInt256.size : Nat) : Int) + (a.toNat : Int) - (b.toNat : Int))) =
-        EvalResult.ok (.int (Int.ofNat diff.toNat))
-      rw [hval]
-      rfl
-    · intro hbad
-      rcases hbad with hbad | hbad
-      · omega
-      · have hbad' :
-            ((UInt256.size + a.toNat - b.toNat : Nat) : Int) ≥ (2 : Int) ^ 256 := by
-          rwa [hsubInt] at hbad
-        exact hltRange hbad'
-  simpa [sub256, evalExpr?, EvalResult.bind, bind, hcond] using hwrapped
+      .ok (.int (Int.ofNat diff.toNat)) :=
+  Reasoning.Theory.evalExpr_wrappingSub256_underflow_ok (cfg := config) (contract := contract) hx
+    hy hdiff hlt
 
 theorem evalExpr_sub256_word_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b diff : UInt256}
@@ -251,10 +115,9 @@ theorem evalExpr_sub256_word_ok {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat b.toNat)))
     (hdiff : diff = UInt256.sub a b) :
     evalExpr? config { contract := contract, locals := locals } evm (sub256 x y) =
-      .ok (.int (Int.ofNat diff.toNat)) := by
-  by_cases hle : b.toNat ≤ a.toNat
-  · exact evalExpr_sub256_ok hx hy hdiff hle
-  · exact evalExpr_sub256_underflow_ok hx hy hdiff (Nat.lt_of_not_ge hle)
+      .ok (.int (Int.ofNat diff.toNat)) :=
+  Reasoning.Theory.evalExpr_wrappingSub256_word_ok (cfg := config) (contract := contract) hx hy
+    hdiff
 
 theorem evalExpr_checkedSub256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -264,11 +127,8 @@ theorem evalExpr_checkedSub256_revert {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat b.toNat)))
     (hlt : a.toNat < b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (checkedSub256 x y) =
-      .revert := by
-  simp [checkedSub256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int]
-  intro hle
-  exact False.elim (not_le.mpr hlt hle)
+      .revert :=
+  Reasoning.Theory.evalExpr_checkedSub256_revert (cfg := config) (contract := contract) hx hy hlt
 
 theorem evalExpr_mul256_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b prod : UInt256}
@@ -279,19 +139,8 @@ theorem evalExpr_mul256_ok {evm : EVM.State} {locals : Store}
     (hprod : prod = a * b)
     (hfit : a.toNat * b.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm (mul256 x y) =
-      .ok (.int (Int.ofNat prod.toNat)) := by
-  have hlt : ¬ Int.ofNat (a.toNat * b.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  have hword : prod.toNat = a.toNat * b.toNat := by
-    rw [hprod, umul_toNat a b hfit]
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+      .ok (.int (Int.ofNat prod.toNat)) :=
+  Reasoning.Theory.evalExpr_mul256_ok (cfg := config) (contract := contract) hx hy hprod hfit
 
 theorem evalExpr_mul256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -301,10 +150,8 @@ theorem evalExpr_mul256_revert {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat b.toNat)))
     (hover : UInt256.size ≤ a.toNat * b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (mul256 x y) =
-      .revert := by
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+      .revert :=
+  Reasoning.Theory.evalExpr_mul256_revert (cfg := config) (contract := contract) hx hy hover
 
 theorem evalExpr_div_uint256_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b q : UInt256}
@@ -315,13 +162,8 @@ theorem evalExpr_div_uint256_ok {evm : EVM.State} {locals : Store}
     (hb : b ≠ ⟨0⟩)
     (hq : q = UInt256.div a b) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .div x y) =
-      .ok (.int (Int.ofNat q.toNat)) := by
-  have hbNat : ¬ b.toNat = 0 := by
-    intro hzero
-    exact hb (uint256_toNat_eq_zero hzero)
-  have hqNat : q.toNat = a.toNat / b.toNat := by
-    rw [hq, udiv_toNat]
-  simp [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, hbNat, hqNat]
+      .ok (.int (Int.ofNat q.toNat)) :=
+  Reasoning.Theory.evalExpr_div_uint256_ok (cfg := config) (contract := contract) hx hy hb hq
 
 theorem evalExpr_mod_int_ok {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b r : Int}
@@ -329,9 +171,8 @@ theorem evalExpr_mod_int_ok {evm : EVM.State} {locals : Store}
     (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs = .ok (.int b))
     (hb : b ≠ 0) (hr : r = a % b) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .mod lhs rhs) =
-      .ok (.int r) := by
-  subst r
-  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?, hb]
+      .ok (.int r) :=
+  Reasoning.Theory.evalExpr_mod_int_ok (cfg := config) (contract := contract) hlhs hrhs hb hr
 
 theorem evalExpr_le_uint256_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : UInt256}
@@ -341,9 +182,8 @@ theorem evalExpr_le_uint256_true {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat b.toNat)))
     (hle : a.toNat ≤ b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .le lhs rhs) =
-      .ok (.bool true) := by
-  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?]
-  exact_mod_cast hle
+      .ok (.bool true) :=
+  Reasoning.Theory.evalExpr_le_uint256_true (cfg := config) (contract := contract) hlhs hrhs hle
 
 theorem evalExpr_le_uint256_false {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : UInt256}
@@ -353,9 +193,8 @@ theorem evalExpr_le_uint256_false {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat b.toNat)))
     (hlt : b.toNat < a.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .le lhs rhs) =
-      .ok (.bool false) := by
-  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?]
-  exact_mod_cast hlt
+      .ok (.bool false) :=
+  Reasoning.Theory.evalExpr_le_uint256_false (cfg := config) (contract := contract) hlhs hrhs hlt
 
 theorem evalExpr_ge_uint256_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : UInt256}
@@ -365,9 +204,8 @@ theorem evalExpr_ge_uint256_true {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat b.toNat)))
     (hge : b.toNat ≤ a.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .ge lhs rhs) =
-      .ok (.bool true) := by
-  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?]
-  exact_mod_cast hge
+      .ok (.bool true) :=
+  Reasoning.Theory.evalExpr_ge_uint256_true (cfg := config) (contract := contract) hlhs hrhs hge
 
 theorem evalExpr_ge_uint256_false {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : UInt256}
@@ -377,9 +215,8 @@ theorem evalExpr_ge_uint256_false {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat b.toNat)))
     (hlt : a.toNat < b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .ge lhs rhs) =
-      .ok (.bool false) := by
-  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?]
-  exact_mod_cast hlt
+      .ok (.bool false) :=
+  Reasoning.Theory.evalExpr_ge_uint256_false (cfg := config) (contract := contract) hlhs hrhs hlt
 
 theorem evalExpr_le_int_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : Int}
@@ -387,9 +224,8 @@ theorem evalExpr_le_int_true {evm : EVM.State} {locals : Store}
     (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs = .ok (.int b))
     (hle : a ≤ b) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .le lhs rhs) =
-      .ok (.bool true) := by
-  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?]
-  exact hle
+      .ok (.bool true) :=
+  Reasoning.Theory.evalExpr_le_int_true (cfg := config) (contract := contract) hlhs hrhs hle
 
 theorem evalExpr_le_int_false {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : Int}
@@ -397,9 +233,8 @@ theorem evalExpr_le_int_false {evm : EVM.State} {locals : Store}
     (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs = .ok (.int b))
     (hlt : b < a) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .le lhs rhs) =
-      .ok (.bool false) := by
-  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?]
-  exact hlt
+      .ok (.bool false) :=
+  Reasoning.Theory.evalExpr_le_int_false (cfg := config) (contract := contract) hlhs hrhs hlt
 
 theorem evalExpr_eq_int_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : Int}
@@ -407,9 +242,8 @@ theorem evalExpr_eq_int_true {evm : EVM.State} {locals : Store}
     (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs = .ok (.int b))
     (h : a = b) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .eq lhs rhs) =
-      .ok (.bool true) := by
-  subst h
-  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?]
+      .ok (.bool true) :=
+  Reasoning.Theory.evalExpr_eq_int_true (cfg := config) (contract := contract) hlhs hrhs h
 
 theorem evalExpr_eq_int_false {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : Int}
@@ -417,8 +251,8 @@ theorem evalExpr_eq_int_false {evm : EVM.State} {locals : Store}
     (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs = .ok (.int b))
     (h : a ≠ b) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .eq lhs rhs) =
-      .ok (.bool false) := by
-  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?, h]
+      .ok (.bool false) :=
+  Reasoning.Theory.evalExpr_eq_int_false (cfg := config) (contract := contract) hlhs hrhs h
 
 theorem evalExpr_ne_int_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : Int}
@@ -426,8 +260,8 @@ theorem evalExpr_ne_int_true {evm : EVM.State} {locals : Store}
     (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs = .ok (.int b))
     (h : a ≠ b) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .ne lhs rhs) =
-      .ok (.bool true) := by
-  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?, h]
+      .ok (.bool true) :=
+  Reasoning.Theory.evalExpr_ne_int_true (cfg := config) (contract := contract) hlhs hrhs h
 
 theorem evalExpr_ne_int_false {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : Int}
@@ -435,17 +269,16 @@ theorem evalExpr_ne_int_false {evm : EVM.State} {locals : Store}
     (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs = .ok (.int b))
     (h : a = b) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .ne lhs rhs) =
-      .ok (.bool false) := by
-  subst h
-  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?]
+      .ok (.bool false) :=
+  Reasoning.Theory.evalExpr_ne_int_false (cfg := config) (contract := contract) hlhs hrhs h
 
 theorem evalExpr_or_true_left {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr}
     (hlhs : evalExpr? config { contract := contract, locals := locals } evm lhs =
       .ok (.bool true)) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .or lhs rhs) =
-      .ok (.bool true) := by
-  simp [evalExpr?, EvalResult.bind, bind, pure, hlhs]
+      .ok (.bool true) :=
+  Reasoning.Theory.evalExpr_or_true_left (cfg := config) (contract := contract) hlhs
 
 theorem evalExpr_or_false_right {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {b : Bool}
@@ -454,8 +287,8 @@ theorem evalExpr_or_false_right {evm : EVM.State} {locals : Store}
     (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs =
       .ok (.bool b)) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .or lhs rhs) =
-      .ok (.bool b) := by
-  simp [evalExpr?, EvalResult.bind, bind, pure, hlhs, hrhs]
+      .ok (.bool b) :=
+  Reasoning.Theory.evalExpr_or_false_right (cfg := config) (contract := contract) hlhs hrhs
 
 theorem evalExpr_ite_true {evm : EVM.State} {locals : Store}
     {cond thenExpr elseExpr : Expr} {value : Value}
@@ -464,8 +297,8 @@ theorem evalExpr_ite_true {evm : EVM.State} {locals : Store}
     (hthen : evalExpr? config { contract := contract, locals := locals } evm thenExpr =
       .ok value) :
     evalExpr? config { contract := contract, locals := locals } evm (.ite cond thenExpr elseExpr) =
-      .ok value := by
-  simp [evalExpr?, EvalResult.bind, bind, hcond, hthen]
+      .ok value :=
+  Reasoning.Theory.evalExpr_ite_true (cfg := config) (contract := contract) hcond hthen
 
 theorem evalExpr_ite_false {evm : EVM.State} {locals : Store}
     {cond thenExpr elseExpr : Expr} {value : Value}
@@ -474,37 +307,20 @@ theorem evalExpr_ite_false {evm : EVM.State} {locals : Store}
     (helse : evalExpr? config { contract := contract, locals := locals } evm elseExpr =
       .ok value) :
     evalExpr? config { contract := contract, locals := locals } evm (.ite cond thenExpr elseExpr) =
-      .ok value := by
-  simp [evalExpr?, EvalResult.bind, bind, hcond, helse]
+      .ok value :=
+  Reasoning.Theory.evalExpr_ite_false (cfg := config) (contract := contract) hcond helse
 
 theorem evalExpr_s256_ok {evm : EVM.State} {locals : Store} {e : Expr} {i : Int}
     (he : evalExpr? config { contract := contract, locals := locals } evm e = .ok (.int i))
     (hlo : -((2 : Int) ^ 255) ≤ i) (hhi : i < (2 : Int) ^ 255) :
     evalExpr? config { contract := contract, locals := locals } evm (s256 e) =
-      .ok (.int i) := by
-  have hnlo : ¬ i < -((2 : Int) ^ 255) := not_lt.mpr hlo
-  have hnhi : ¬ i ≥ (2 : Int) ^ 255 := not_le.mpr hhi
-  simp [s256, int256Int, evalExpr?, EvalResult.bind, bind, he]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact hnlo (by simpa using hbad)
-    · exact hnhi (by simpa using hbad)
+      .ok (.int i) :=
+  Reasoning.Theory.evalExpr_s256_ok (cfg := config) (contract := contract) he hlo hhi
 
 theorem evalExpr_s256_revert {evm : EVM.State} {locals : Store} {e : Expr} {i : Int}
     (he : evalExpr? config { contract := contract, locals := locals } evm e = .ok (.int i))
     (hbad : i < -((2 : Int) ^ 255) ∨ i ≥ (2 : Int) ^ 255) :
-    evalExpr? config { contract := contract, locals := locals } evm (s256 e) = .revert := by
-  simp [s256, int256Int, evalExpr?, EvalResult.bind, bind, he]
-  by_cases hlo : i < -((2 : Int) ^ 255)
-  · intro hge
-    exact False.elim ((not_lt.mpr (by simpa using hge)) hlo)
-  · have hhi : i ≥ (2 : Int) ^ 255 := by
-      rcases hbad with hbad | hbad
-      · exact False.elim (hlo hbad)
-      · exact hbad
-    intro _
-    simpa using hhi
+    evalExpr? config { contract := contract, locals := locals } evm (s256 e) = .revert :=
+  Reasoning.Theory.evalExpr_s256_revert (cfg := config) (contract := contract) he hbad
 
 end Benchmarks.Dss.Jug

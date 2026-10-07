@@ -4,11 +4,15 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
 namespace UniswapV2Pair
 
-/-! ## Dynamic `_safeTransfer` return-data tails -/
-
-theorem skimSafeTransferReturnDataHugeCopyMemCost_gt_g (g : Sat256) (out : ByteArray)
+theorem skimSafeTransferReturnDataHugeCopyMemCost_gt_g
+    (g : Sat256) (out : ByteArray)
     (hhi : 2 ^ 255 ≤ out.size) (hlo : out.size < UInt256.size) :
     g.toNat <
       Cₘ (UInt256.ofNat (MachineState.M (UInt256.ofNat 13).toNat 324 out.size)) -
@@ -54,6 +58,15 @@ theorem skimSafeTransferReturnDataHugeCopyMemCost_gt_g (g : Sat256) (out : ByteA
         Cₘ (UInt256.ofNat M) - Cₘ (UInt256.ofNat 13) := by
     omega
   simpa [M] using lt_trans hg hcost
+
+end UniswapV2Pair
+
+end
+
+namespace UniswapV2Pair
+
+/-! ## Dynamic `_safeTransfer` return-data tails -/
+
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferNonemptyHugeReverts {g : Sat256} {s0 : State}

@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.GemJoin
 /-! ## `gem()` getter -/
 
 def gemJoinGemWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  gemJoinAddressReturnWord ⟨3⟩ σ I
+  solcAddressSlotWord ⟨3⟩ σ I
 
 theorem gemJoinDecode_gem {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (gemTransition.params.map Param.name)
@@ -45,7 +45,6 @@ theorem gemJoinReachGemBody {σ σ₀ A I} {g : Sat256}
 theorem gemJoinGemBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = gemJoinBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (gemJoinSelBytes 4)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -57,7 +56,7 @@ theorem gemJoinGemBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (gemJoinGemWord σ I).toNat))])) := by
-    simpa [gemTransition, gemJoinGemWord, gemJoinAddressReturnWord, initState,
+    simpa [gemTransition, gemJoinGemWord, solcAddressSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       gemJoinAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

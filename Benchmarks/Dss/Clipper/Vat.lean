@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.Fallback
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -97,7 +98,7 @@ theorem clipperDecode_vat (v : ClipperImmutables) {I : ExecutionEnv}
 theorem clipperEvalVat (v : ClipperImmutables) (evm : EVM.State) (locals : Store) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm (vatExpr v) =
       .ok (.address v.vat) := by
-  simp only [vatExpr, addrLit, evalExpr?, castValue?]
+  simp only [vatExpr, Reasoning.Theory.addressLiteral, evalExpr?, castValue?]
   change EvalResult.ofOption EvalError.typeError
       (if (Int.ofNat v.vat.toNat) < 0 then none
        else some (Value.address (AccountAddress.ofNat (Int.ofNat v.vat.toNat).toNat))) =
@@ -127,7 +128,7 @@ theorem clipperReachVatBody {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperVatSelectorWord hsz hsel
-  have h260 := clipperSplitTaken (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
         change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none)
@@ -150,7 +151,7 @@ theorem clipperReachVatBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
     (by simp)
-  have h272 := clipperSplitNotTaken (pc := (⟨261⟩ : UInt256))
+  have h272 := RD.selectorSplitNotTakenPush2 (pc := (⟨261⟩ : UInt256))
     (next := (⟨272⟩ : UInt256)) (pivot := clipperSelNat 9)
     (tgt := (⟨369⟩ : UInt256))
     (h260.jumpdest
@@ -179,7 +180,7 @@ theorem clipperReachVatBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h331 := clipperSplitTaken (pc := (⟨272⟩ : UInt256))
+  have h331 := RD.selectorSplitTakenPush2 (pc := (⟨272⟩ : UInt256))
     (pivot := clipperSelNat 6) (tgt := (⟨331⟩ : UInt256)) h272
     (by
         change decode code (⟨272⟩ : UInt256) = some (.DUP1, .none)
@@ -202,7 +203,7 @@ theorem clipperReachVatBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨331⟩ : UInt256) (by native_decide))
     (by simp)
-  have h343 := clipperArmNotTaken (pc := (⟨332⟩ : UInt256))
+  have h343 := RD.selectorArmNotTakenPush2 (pc := (⟨332⟩ : UInt256))
     (next := (⟨343⟩ : UInt256)) (sel := clipperSelNat 9)
     (tgt := (⟨673⟩ : UInt256))
     (h331.jumpdest
@@ -231,7 +232,7 @@ theorem clipperReachVatBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h354 := clipperArmNotTaken (pc := (⟨343⟩ : UInt256))
+  have h354 := RD.selectorArmNotTakenPush2 (pc := (⟨343⟩ : UInt256))
     (next := (⟨354⟩ : UInt256)) (sel := clipperSelNat 19)
     (tgt := (⟨708⟩ : UInt256)) h343
     (by
@@ -255,7 +256,7 @@ theorem clipperReachVatBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h744 := clipperArmTaken (pc := (⟨354⟩ : UInt256)) (sel := clipperSelNat 25)
+  have h744 := RD.selectorArmTakenPush2 (pc := (⟨354⟩ : UInt256)) (sel := clipperSelNat 25)
     (tgt := (⟨744⟩ : UInt256)) h354
     (by
         change decode code (⟨354⟩ : UInt256) = some (.DUP1, .none)
@@ -296,7 +297,7 @@ theorem clipperVatPatchesWindowDisjoint32 (v : ClipperImmutables) (lo hi : Nat)
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk
   · simp [hIlk] at hwin ⊢
   · simp [hIlk] at hwin ⊢
     omega
@@ -351,7 +352,7 @@ theorem clipperVatPatchPayload (v : ClipperImmutables) {code : ByteArray}
         (8747, ilkBytes)])
     (off := 3145) (value := vatBytes)
     (by
-      simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord,
+      simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
         List.lookup_cons, hlen, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
@@ -406,7 +407,7 @@ theorem clipperJumpDest3143 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -414,23 +415,19 @@ theorem clipperJumpDest3143 (v : ClipperImmutables) {code : ByteArray}
       simp [hIlk]
       native_decide
 
-theorem clipperAddressOfWordOfNat (a : EVM.Address) :
-    AccountAddress.ofNat (EVM.Word.ofNat (↑a : Nat)).toNat = a := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat (EVM.Word.ofNat (↑a : Nat))]
-  simpa [EVM.Word.ofNat] using AccountAddress.ofUInt256_ofNat a
 
 theorem clipperVatBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 25)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 25) (by native_decide) hsel
   have hvatAddr :
       AccountAddress.ofNat (EVM.Word.ofNat (↑v.vat : Nat)).toNat = v.vat :=
-    clipperAddressOfWordOfNat v.vat
+    addressOfWordOfNat v.vat
   have hbody :
       ExecTransitionBody (config v) (contract v)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ (vatTransition v).body

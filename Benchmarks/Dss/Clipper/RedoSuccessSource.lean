@@ -872,7 +872,7 @@ theorem clipperEvalRedoLotFeedRequire
           evm (.binary .eq (.var "feedPrice") (.intLit 0)) = .ok (.bool true) := by
       simp [evalExpr?, hfeed, EvalResult.bind, bind, evalBinaryOp?, hyNat]
     simp [evalExpr?, hleft, EvalResult.bind, bind, pure]
-  · have hcancel := Reasoning.Theory.clipperMulDiv_cancel
+  · have hcancel := Reasoning.Theory.mulDiv_cancel
       (x := feedPrice) (y := lot) (by simpa [eq_comm] using hy)
       (by simpa [lot, Nat.mul_comm] using hmul)
     have hnat := congrArg UInt256.toNat hcancel
@@ -1114,13 +1114,7 @@ theorem clipperRedoActiveLotFeedBodyOfPayout
         (checkedMulUintInto "lotFeed" (.var "lot") (.var "feedPrice") ++
           [.ite (.binary .ge (.var "lotFeed") (.var "_chost"))
             (clipperRedoPayoutStmts v) []]) result := by
-    exact execBlock_append hmulBlock <| by
-      exact match result with
-      | .ok frame state => ExecBlock.consNormal hinner ExecBlock.nil
-      | .returned frame state values => ExecBlock.consReturn hinner
-      | .reverted => ExecBlock.consRevert hinner
-      | .break frame state => ExecBlock.consBreak hinner
-      | .continue frame state => ExecBlock.consContinue hinner
+    exact execBlock_append hmulBlock (execBlock_singleton hinner)
   have houter :
       ExecStmt (config v)
         { contract := contract v,
@@ -1134,12 +1128,7 @@ theorem clipperRedoActiveLotFeedBodyOfPayout
       (clipperEvalRedoTabGeChostTrue v evmLoc evmRead evmTop evmTop I
         price feedPrice topNew htab) houterBody
   simpa [clipperRedoIncentiveBody, clipperRedoPayoutStmts] using
-    (match result with
-    | .ok frame state => ExecBlock.consNormal hlet (ExecBlock.consNormal houter ExecBlock.nil)
-    | .returned frame state values => ExecBlock.consNormal hlet (ExecBlock.consReturn houter)
-    | .reverted => ExecBlock.consNormal hlet (ExecBlock.consRevert houter)
-    | .break frame state => ExecBlock.consNormal hlet (ExecBlock.consBreak houter)
-    | .continue frame state => ExecBlock.consNormal hlet (ExecBlock.consContinue houter))
+    (ExecBlock.consNormal hlet (execBlock_singleton houter))
 
 theorem clipperRedoActiveLotFeedBelowBody
     (v : ClipperImmutables) (evmLoc evmRead evmTop : EVM.State)

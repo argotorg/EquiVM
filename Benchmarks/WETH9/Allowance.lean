@@ -133,7 +133,7 @@ theorem weth9AllowanceReachGetter {σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h701⟩ := weth9ReachAllowance (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode (by omega) hsize hsel
-  obtain ⟨_, _, h715⟩ := weth9GuardPeelOk (gt := ⟨713⟩) h701 hwv
+  obtain ⟨_, _, h715⟩ := solcFunctionGuardPeelOk (gt := ⟨713⟩) h701 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
@@ -165,7 +165,7 @@ theorem weth9AllowanceX_ok {σ σ₀ A I} {g : Sat256}
       (UInt256.toByteArray (allowanceWord σ I)) := by
   obtain ⟨_, _, h1681⟩ := weth9AllowanceReachGetter (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz68 hsize hsel
-  obtain ⟨_, _, h402⟩ := weth9NestedMappingGetter (baseSlot := ⟨4⟩)
+  obtain ⟨_, _, h402⟩ := solcNestedMappingGetter (baseSlot := ⟨4⟩)
     (owner := allowanceOwnerMaskedWord I) (spender := allowanceGuyMaskedWord I)
     (ret := ⟨402⟩) (R := [weth9SelWord I]) h1681
     (by dsimp [solcNestedMappingGetterWf]; repeat' first | apply And.intro | native_decide)
@@ -216,7 +216,7 @@ theorem weth9AllowanceBodyCoreOk {σ σ₀ A I} {g : UInt256}
   · have hsz : I.calldata.size < 68 := by omega
     obtain ⟨_, _, h701⟩ := weth9ReachAllowance (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
-    obtain ⟨_, _, h715⟩ := weth9GuardPeelOk (gt := ⟨713⟩) h701 hwv
+    obtain ⟨_, _, h715⟩ := solcFunctionGuardPeelOk (gt := ⟨713⟩) h701 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     have hltShort : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
@@ -244,7 +244,6 @@ theorem weth9AllowanceBodyCoreOk {σ σ₀ A I} {g : UInt256}
 /-- `allowance(address,address)` body refines its Solm transition (both callvalue branches). -/
 theorem weth9AllowanceBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hsel : selIs I (weth9SelBytes 10)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
@@ -253,7 +252,7 @@ theorem weth9AllowanceBodyCore {σ σ₀ A I} {g : UInt256}
       calldata_size_ge_of_selIs I (weth9SelBytes 10) (by native_decide) hsel
     obtain ⟨_, _, h701⟩ := weth9ReachAllowance (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
-    have hrev := weth9GuardPeelRev (gt := ⟨713⟩) h701 hwv
+    have hrev := solcFunctionGuardPeelRev (gt := ⟨713⟩) h701 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     exact weth9NonpayableRevert hcode hrev (weth9SelectorDispatchAllowance hsel)

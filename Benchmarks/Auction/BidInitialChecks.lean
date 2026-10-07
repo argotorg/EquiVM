@@ -39,10 +39,10 @@ theorem bidInitialChecks {I g s0 s noun ptr ret R mem aw rdata σ k C evm locals
       have hr := bidReserveGuardSource hs hv
       have rd1432 := evm_run rd1429 with [jumpdest, push1 ⟨204⟩]
       obtain ⟨_, _, rd1433⟩ := rd1432.sload (by native_decide) (by evm_ov)
-      change RD _ _ _ _ ⟨1433⟩ (storedWord σ I ⟨204⟩ :: ptr :: noun :: ret :: R)
+      change RD _ _ _ _ ⟨1433⟩ (solcSlotWord σ I ⟨204⟩ :: ptr :: noun :: ret :: R)
         mem aw rdata σ _ _ at rd1433
       have rd1439 := evm_run rd1433 with [callvalue, lt, iszero, push2 ⟨1511⟩]
-      by_cases hres : (storedWord σ I ⟨204⟩).toNat ≤ I.weiValue.toNat
+      by_cases hres : (solcSlotWord σ I ⟨204⟩).toNat ≤ I.weiValue.toNat
       · rw [decide_eq_true hres] at hr
         have rd1511 := evm_run rd1439 with [jumpiT (by rw [ult_zero hres]; decide)
           (by jump_dest)]

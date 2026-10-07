@@ -25,7 +25,7 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesizeOfTail
       (feeToSelectorMem mem)
       feeToStaticcallActiveWords rdata σ'' k' C' := by
   let baseMem := mem
-  let factoryRaw := uniswapSlotWord ⟨5⟩ σ'' I
+  let factoryRaw := solcSlotWordAt ⟨5⟩ σ'' I
   let factory := mintFeeFactoryWord σ'' I
   have rd7705 := evm_run rd7696 with [
     jumpdest, push1 ⟨0⟩, dup1, push1 ⟨5⟩, push1 ⟨0⟩, swap1]
@@ -34,7 +34,7 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesizeOfTail
       s0 ⟨7706⟩
       (factoryRaw :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
       baseMem feeToStaticcallActiveWords rdata σ'' k7706 C7706 := by
-    simpa [baseMem, factoryRaw, uniswapSlotWord] using rd7706₀
+    simpa [baseMem, factoryRaw, solcSlotWordAt, solcSlotWord] using rd7706₀
   have rd7738pre := evm_run rd7706 with [
     swap1, push2 ⟨256⟩, exp, swap1, div,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and,
@@ -45,7 +45,7 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesizeOfTail
     u256_div_one,
     show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide,
-    u256_land_solcAddrMask_idem_left factoryRaw] at rd7738
+    solcAddrMask_idem_left_left factoryRaw] at rd7738
   have rd7739 := rd7738.mload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords
     (by native_decide)
     mem_cost
@@ -246,6 +246,7 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCallOfTail
         (by simp only [List.length_cons]; omega)
     have rd7824 := evm_run rd7822 with [push1 ⟨11⟩]
     obtain ⟨k7825, C7825, rd7825₀⟩ := rd7824.sload (by native_decide) (by evm_ov)
-    exact ⟨k7825, C7825, by simpa [baseMem, mintFeeKLastSlotWord, uniswapSlotWord] using rd7825₀⟩
+    exact ⟨k7825, C7825, by
+      simpa [baseMem, mintFeeKLastSlotWord, solcSlotWordAt, solcSlotWord] using rd7825₀⟩
 
 end UniswapV2Pair

@@ -1,3 +1,4 @@
+import Reasoning.Solc
 import Examples.Ballot.Common
 import Reasoning.Memory
 import Reasoning.SolmBody
@@ -87,11 +88,6 @@ theorem giveRightWord_eq_of_maskedAddress_eq_source {w : UInt256} {I : Execution
     simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)] at hval
   exact hval
 
-theorem u256_eq_zero_of_word_ne {a b : UInt256} (h : a ≠ b) :
-    UInt256.eq a b = ⟨0⟩ := by
-  show UInt256.fromBool (decide (a = b)) = ⟨0⟩
-  rw [decide_eq_false h]
-  rfl
 
 /-! ### ABI decode -/
 
@@ -131,36 +127,6 @@ theorem ballotDecode_giveRightToVote_none_huge {I : ExecutionEnv}
 
 /-! ### Storage helpers -/
 
-theorem ballotStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
-    storageLocStore evm (wordLoc slot) (.int (Int.ofNat val.toNat)) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
-  simpa [wordLoc, uint256Loc] using storageLocStore_uint256 evm slot val
-
-theorem giveRightStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256)
-    {hbound : (⟨0⟩ : UInt256).toNat + (⟨1⟩ : UInt256).toNat ≤ 32} :
-    storageLocLoad evm
-        { slot := slot, offset := 0, size := 1, hbound := hbound, type := .bool }
-      = wordToElem .bool
-          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩) := by
-  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0 evm slot
-
-theorem giveRightStorageLocLoad_bool_offset0_false (evm : EVM.State) (slot : UInt256)
-    {hbound : (⟨0⟩ : UInt256).toNat + (⟨1⟩ : UInt256).toNat ≤ 32}
-    (hzero : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ =
-      ⟨0⟩) :
-    storageLocLoad evm
-        { slot := slot, offset := 0, size := 1, hbound := hbound, type := .bool } =
-      .bool false := by
-  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0_false evm slot hzero
-
-theorem giveRightStorageLocLoad_bool_offset0_true (evm : EVM.State) (slot : UInt256)
-    {hbound : (⟨0⟩ : UInt256).toNat + (⟨1⟩ : UInt256).toNat ≤ 32}
-    (hnz : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ ≠
-      ⟨0⟩) :
-    storageLocLoad evm
-        { slot := slot, offset := 0, size := 1, hbound := hbound, type := .bool } =
-      .bool true := by
-  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0_true evm slot hnz
 
 /-! ### Source-level body facts -/
 
@@ -187,7 +153,7 @@ theorem evalExpr_giveRight_chair_true (evm : EVM.State) (I : ExecutionEnv)
           .ok (.address (AccountAddress.ofNat
             (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
               solcAddrMask).toNat)) := by
-    rw [evalExpr_storage_scalar (hbackend := rfl)
+    erw [evalExpr_storage_scalar (hbackend := rfl)
       (er := ({ base := "chairperson", steps := [] } : EvaledStorageRef))
       (t := .address)
       (loc := { slot := ⟨0⟩, offset := 0, size := 20, hbound := by decide, type := .address })
@@ -195,7 +161,7 @@ theorem evalExpr_giveRight_chair_true (evm : EVM.State) (I : ExecutionEnv)
       (her := by simp [evalStorageRef, evalStorageRefSteps, chairpersonRef, EvalResult.bind,
         bind, pure])
       (hty := by simp [storageTypeAt?, ballotContract, ballotStorageDecls, addrSt])
-      (hloc := by rfl), ballotStorageLocLoad_address_offset0]
+      (hloc := by rfl), storageLocLoad_address_offset0]
   have haddr : AccountAddress.ofNat
       (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
         solcAddrMask).toNat = evm.executionEnv.source := by
@@ -223,7 +189,7 @@ theorem evalExpr_giveRight_chair_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.address (AccountAddress.ofNat
             (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
               solcAddrMask).toNat)) := by
-    rw [evalExpr_storage_scalar (hbackend := rfl)
+    erw [evalExpr_storage_scalar (hbackend := rfl)
       (er := ({ base := "chairperson", steps := [] } : EvaledStorageRef))
       (t := .address)
       (loc := { slot := ⟨0⟩, offset := 0, size := 20, hbound := by decide, type := .address })
@@ -231,7 +197,7 @@ theorem evalExpr_giveRight_chair_false (evm : EVM.State) (I : ExecutionEnv)
       (her := by simp [evalStorageRef, evalStorageRefSteps, chairpersonRef, EvalResult.bind,
         bind, pure])
       (hty := by simp [storageTypeAt?, ballotContract, ballotStorageDecls, addrSt])
-      (hloc := by rfl), ballotStorageLocLoad_address_offset0]
+      (hloc := by rfl), storageLocLoad_address_offset0]
   have haddr : AccountAddress.ofNat
       (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
         solcAddrMask).toNat ≠ evm.executionEnv.source := by
@@ -282,7 +248,7 @@ theorem evalExpr_giveRight_notVoted_true (evm : EVM.State) (I : ExecutionEnv)
     change EvalResult.ok (storageLocLoad evm
         { slot := giveRightVotedSlot I, offset := 0, size := 1, hbound := _, type := .bool }) =
       EvalResult.ok (Value.bool false)
-    rw [giveRightStorageLocLoad_bool_offset0_false evm (giveRightVotedSlot I) hvoted]
+    rw [storageLocLoad_bool_offset0_false' evm (giveRightVotedSlot I) hvoted]
   simp [evalExpr?, EvalResult.bind, EvalResult.ofOption, bind, hstorage, evalUnaryOp?]
 
 theorem evalExpr_giveRight_notVoted_false (evm : EVM.State) (I : ExecutionEnv)
@@ -302,7 +268,7 @@ theorem evalExpr_giveRight_notVoted_false (evm : EVM.State) (I : ExecutionEnv)
     change EvalResult.ok (storageLocLoad evm
         { slot := giveRightVotedSlot I, offset := 0, size := 1, hbound := _, type := .bool }) =
       EvalResult.ok (Value.bool true)
-    rw [giveRightStorageLocLoad_bool_offset0_true evm (giveRightVotedSlot I) hvoted]
+    rw [storageLocLoad_bool_offset0_true' evm (giveRightVotedSlot I) hvoted]
   simp [evalExpr?, EvalResult.bind, EvalResult.ofOption, bind, hstorage, evalUnaryOp?]
 
 theorem evalExpr_giveRight_weight_zero_true (evm : EVM.State) (I : ExecutionEnv)
@@ -315,13 +281,14 @@ theorem evalExpr_giveRight_weight_zero_true (evm : EVM.State) (I : ExecutionEnv)
         (.storage (voterF (.var "voter") "weight")) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (giveRightVoterSlot I)).toNat)) := by
-    rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
-      (loc := wordLoc (giveRightVoterSlot I))
+    erw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
       (hbase := by simp [giveRightStore, voterF])
       (her := evalStorageRef_giveRight_voterField evm I "weight")
       (hty := by simp [storageTypeAt?, giveRightVoterEvaledRef, ballotContract,
         ballotStorageDecls, voterStructTy, uint256St, storageTypeStep?])
-      (hloc := by rfl), ballotStorageLocLoad_uint256]
+      (hloc := by rfl)]
+    change EvalResult.ok (storageLocLoad evm (uint256Loc (giveRightVoterSlot I))) = _
+    rw [storageLocLoad_uint256]
   simp [EvalResult.bind, bind, pure, hstorage, evalExpr?, evalBinaryOp?, hweight]
 
 theorem evalExpr_giveRight_weight_zero_false (evm : EVM.State) (I : ExecutionEnv)
@@ -334,13 +301,14 @@ theorem evalExpr_giveRight_weight_zero_false (evm : EVM.State) (I : ExecutionEnv
         (.storage (voterF (.var "voter") "weight")) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (giveRightVoterSlot I)).toNat)) := by
-    rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
-      (loc := wordLoc (giveRightVoterSlot I))
+    erw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
       (hbase := by simp [giveRightStore, voterF])
       (her := evalStorageRef_giveRight_voterField evm I "weight")
       (hty := by simp [storageTypeAt?, giveRightVoterEvaledRef, ballotContract,
         ballotStorageDecls, voterStructTy, uint256St, storageTypeStep?])
-      (hloc := by rfl), ballotStorageLocLoad_uint256]
+      (hloc := by rfl)]
+    change EvalResult.ok (storageLocLoad evm (uint256Loc (giveRightVoterSlot I))) = _
+    rw [storageLocLoad_uint256]
   have hnat : (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (giveRightVoterSlot I)).toNat ≠
       0 := by
     intro hz
@@ -362,7 +330,7 @@ theorem giveRightAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hloc := by rfl)
   change storageLocStore evm (wordLoc (giveRightVoterSlot I))
       (.int (Int.ofNat (⟨1⟩ : UInt256).toNat)) = some (giveRightPostState evm I)
-  rw [ballotStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [giveRightPostState]
 
 theorem ballotGiveRightToVoteBodyReturns (evm : EVM.State) (I : ExecutionEnv)
@@ -386,6 +354,28 @@ theorem ballotGiveRightToVoteBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (evalExpr_giveRight_weight_zero_true evm I hweight)) ?_
   exact ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) (giveRightAssign evm I))
     ExecBlock.nil
+
+/-- Static mode: the body halts at the weight write. -/
+theorem ballotGiveRightToVoteBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hchair : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
+      solcAddrMask = UInt256.ofNat evm.executionEnv.source.val)
+    (hvoted : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (giveRightVotedSlot I)) ⟨255⟩ = ⟨0⟩)
+    (hweight : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (giveRightVoterSlot I) = ⟨0⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody ballotConfig ballotContract evm (giveRightStore I)
+      giveRightToVoteTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue
+    (evalExpr_giveRight_chair_true evm I hchair)) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue
+    (evalExpr_giveRight_notVoted_true evm I hvoted)) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue
+    (evalExpr_giveRight_weight_zero_true evm I hweight)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (by simp [evalExpr?, pure]) (giveRightAssign evm I) hperm)
 
 theorem ballotGiveRightToVoteBodyReverts_chair (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -1102,7 +1092,7 @@ theorem ballotGiveRightToVoteX_chairRevert {σ σ₀ A I} {g : Sat256} {sel : UI
         (giveRightChairWord σ I)) = ⟨0⟩ := by
     change UInt256.eq (giveRightSourceWord I)
       (UInt256.land solcAddrMask (giveRightChairWord σ I)) = ⟨0⟩
-    apply u256_eq_zero_of_word_ne
+    apply u256_eq_of_ne
     intro h
     apply hchair
     rw [u256_land_comm (giveRightChairWord σ I) solcAddrMask]
@@ -1289,15 +1279,16 @@ theorem ballotGiveRightToVoteX_votedRevert {σ σ₀ A I} {g : Sat256} {sel : UI
 
 theorem ballotGiveRightToVoteX_success {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (giveRightVoterWord I).toNat < EVM.addressModulus)
     (hchair : UInt256.land (giveRightChairWord σ I) solcAddrMask = giveRightSourceWord I)
     (hvoted : giveRightVotedByte σ I = ⟨0⟩)
     (hweight : giveRightWeightWord σ I = ⟨0⟩)
     (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨286⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret ballotBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ (giveRightVoterSlot I) ⟨1⟩) ByteArray.empty := by
+    (I.perm = true ∧ RDret ballotBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ (giveRightVoterSlot I) ⟨1⟩) ByteArray.empty)
+    ∨ (I.perm = false ∧ RDstatic ballotBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1639⟩ := ballotGiveRightToVoteX_afterNotVoted
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
     hsz36 hsize hszhi hcanon hchair hvoted hreach
@@ -1350,9 +1341,12 @@ theorem ballotGiveRightToVoteX_success {σ σ₀ A I} {g : Sat256} {sel : UInt25
     push1 ⟨64⟩, swap1, swap2,
     raw keccak256 0 (giveRightVoterSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hslot (by decide) (by evm_ov) ]
-  obtain ⟨_, _, rd1699⟩ := rd1698₀.sstore hperm (by decide) (by evm_ov)
-  have rd156 := evm_run rd1699 with [jump (by jump_dest), jumpdest]
-  exact rd156.stop (by decide) (by evm_ov)
+  by_cases hp : I.perm = true
+  · obtain ⟨_, _, rd1699⟩ := rd1698₀.sstore hp (by decide) (by evm_ov)
+    have rd156 := evm_run rd1699 with [jump (by jump_dest), jumpdest]
+    exact Or.inl ⟨hp, rd156.stop (by decide) (by evm_ov)⟩
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd1698₀.sstoreStatic hpf (by decide) (by evm_ov)⟩
 
 theorem ballotGiveRightToVoteX_weightRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1433,7 +1427,7 @@ theorem ballotDispatch_giveRightToVote {cd : ByteArray}
 theorem ballotGiveRightToVoteBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x9e, 0x7b, 0x8d, 0x61]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨286⟩ [sel]
@@ -1450,23 +1444,41 @@ theorem ballotGiveRightToVoteBodyCore
             UInt256.land (giveRightChairWord σ I) solcAddrMask = giveRightSourceWord I
         · by_cases hvoted : giveRightVotedByte σ I = ⟨0⟩
           · by_cases hweight : giveRightWeightWord σ I = ⟨0⟩
-            · have hbody := ballotGiveRightToVoteBodyReturns
-                (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
-                (by simp only [initState]; exact hwv)
-                (by
-                  simpa [giveRightChairWord, giveRightSourceWord, initState] using hchair)
-                (by
-                  simpa [giveRightVotedByte, giveRightVotedPackedWord, giveRightVotedSlot,
-                    giveRightVoterSlot, u256_land_comm, initState] using hvoted)
-                (by
-                  simpa [giveRightWeightWord, giveRightVoterSlot, initState] using hweight)
-              exact (ballotGiveRightToVoteX_success (g := Sat256.ofUInt256 g)
-                  hsz36 hsize hbig hperm hcanon hchair hvoted hweight hreach)
-                |>.reEquivExecutionGen hcode hd hdec hbody
-                (by
-                  simp [giveRightPostState, giveRightVoterSlot, initState,
-                    storageStore_accountMap])
-                (returnEquiv.fallthrough rfl rfl (by native_decide))
+            · by_cases hperm : I.perm = true
+              · have hbody := ballotGiveRightToVoteBodyReturns
+                  (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+                  (by simp only [initState]; exact hwv)
+                  (by
+                    simpa [giveRightChairWord, giveRightSourceWord, initState] using hchair)
+                  (by
+                    simpa [giveRightVotedByte, giveRightVotedPackedWord, giveRightVotedSlot,
+                      giveRightVoterSlot, u256_land_comm, initState] using hvoted)
+                  (by
+                    simpa [giveRightWeightWord, giveRightVoterSlot, initState] using hweight)
+                exact (permSplit_true hperm (ballotGiveRightToVoteX_success
+                    (g := Sat256.ofUInt256 g) hsz36 hsize hbig hcanon hchair hvoted hweight
+                    hreach))
+                  |>.reEquivExecutionGen hcode hd hdec hbody
+                  (by
+                    simp [giveRightPostState, giveRightVoterSlot, initState,
+                      storageStore_accountMap])
+                  (returnEquiv.fallthrough rfl rfl (by native_decide))
+              · have hpf : I.perm = false := by simpa using hperm
+                have hbody := ballotGiveRightToVoteBodyStatic
+                  (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+                  (by simp only [initState]; exact hwv)
+                  (by
+                    simpa [giveRightChairWord, giveRightSourceWord, initState] using hchair)
+                  (by
+                    simpa [giveRightVotedByte, giveRightVotedPackedWord, giveRightVotedSlot,
+                      giveRightVoterSlot, u256_land_comm, initState] using hvoted)
+                  (by
+                    simpa [giveRightWeightWord, giveRightVoterSlot, initState] using hweight)
+                  (by simp only [initState]; exact hpf)
+                exact (permSplit_false hpf (ballotGiveRightToVoteX_success
+                    (g := Sat256.ofUInt256 g) hsz36 hsize hbig hcanon hchair hvoted hweight
+                    hreach))
+                  |>.reEquivStaticHalt hcode hd hdec hbody
             · have hbody := ballotGiveRightToVoteBodyReverts_weight
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv)

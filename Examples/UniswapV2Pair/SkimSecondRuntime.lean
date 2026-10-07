@@ -4,6 +4,29 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace UniswapV2Pair
+
+theorem skimSecondBalanceStaticcallWriteLen_of_size_ge (out : ByteArray)
+    (hlo : 32 ≤ out.size) (hhi : out.size < UInt256.size) :
+    (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 32 := by
+  simpa using
+    umin_ofNat_right_toNat_of_ge (c := 32) (n := out.size) (by decide) hlo hhi
+
+theorem skimSecondBalanceStaticcallWriteLen_of_size_lt (out : ByteArray)
+    (hshort : out.size < 32) (hhi : out.size < UInt256.size) :
+    (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = out.size := by
+  simpa using
+    umin_ofNat_right_toNat_of_lt (c := 32) (n := out.size) (by decide) hshort hhi
+
+end UniswapV2Pair
+
+end
+
 namespace UniswapV2Pair
 
 /-! ## `skim(address)` second `balanceOf` runtime tail -/
@@ -167,11 +190,6 @@ theorem skimSecondBalanceCalldataMem_encode
   rw [balanceOfThisCalldataMem_read128_36] at h
   exact h
 
-theorem skimSecondBalanceStaticcallWriteLen_of_size_ge (out : ByteArray)
-    (hlo : 32 ≤ out.size) (hhi : out.size < UInt256.size) :
-    (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 32 := by
-  simpa using
-    umin_ofNat_right_toNat_of_ge (c := 32) (n := out.size) (by decide) hlo hhi
 
 theorem skimSecondBalanceStaticcallMem_size_of_size_ge
     (self : UInt256) {o : ByteArray} (toWord value : UInt256) (out : ByteArray)
@@ -219,11 +237,6 @@ theorem skimSecondBalanceStaticcallMem_mload64_of_size_ge
     (skimSecondBalanceStaticcallMem_read64_of_size_ge self toWord value out
       ho32 hoSize hout32 houtSize)
 
-theorem skimSecondBalanceStaticcallWriteLen_of_size_lt (out : ByteArray)
-    (hshort : out.size < 32) (hhi : out.size < UInt256.size) :
-    (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = out.size := by
-  simpa using
-    umin_ofNat_right_toNat_of_lt (c := 32) (n := out.size) (by decide) hshort hhi
 
 theorem skimSecondBalanceStaticcallMem_size_of_size_lt
     (self : UInt256) {o : ByteArray} (toWord value : UInt256) (out : ByteArray)
@@ -604,13 +617,13 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade {g : Sat256} {s0 : State}
       ∧ RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5273⟩
           ((if z then (⟨1⟩ : UInt256) else ⟨0⟩) :: ⟨328⟩ ::
             balanceOfSelectorWord :: UInt256.land token1 solcAddrMask ::
-            UInt256.land reserve112Mask (UInt256.div (uniswapSlotWord ⟨8⟩ σ ee) reserve112Shift) ::
+            UInt256.land reserve112Mask (UInt256.div (solcSlotWordAt ⟨8⟩ σ ee) reserve112Shift) ::
             ⟨5325⟩ :: toWord :: token1 :: ⟨5433⟩ ::
             token1 :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
           (skimSecondBalanceStaticcallMem (UInt256.ofNat ee.codeOwner.val) o toWord value out)
           (UInt256.ofNat 13) out σ' k' C'
       ∧ out.size < UInt256.size := by
-  let packedWord := uniswapSlotWord ⟨8⟩ σ ee
+  let packedWord := solcSlotWordAt ⟨8⟩ σ ee
   let token1Clean := UInt256.land token1 solcAddrMask
   let reserve1Word := UInt256.land reserve112Mask (UInt256.div packedWord reserve112Shift)
   have rd5333 := evm_run h with [jumpdest, push1 ⟨8⟩]
@@ -619,7 +632,7 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade {g : Sat256} {s0 : State}
       (packedWord :: token1 :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSafeTransferCallMem2 (UInt256.ofNat ee.codeOwner.val) o toWord value)
       (UInt256.ofNat 13) out0 σ k5334 C5334 := by
-    simpa [packedWord, uniswapSlotWord] using rd5334₀
+    simpa [packedWord, solcSlotWordAt, solcSlotWord] using rd5334₀
   have rd5347 := evm_run rd5334 with [
     push1 ⟨64⟩, dup1,
     raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by native_decide)
@@ -698,7 +711,7 @@ theorem RD.uniswapSkimSecondBalanceOfNoCodeReverts {g : Sat256} {s0 : State}
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (htoken1NoCode : extCodeSizeWord σ (UInt256.land token1 solcAddrMask) = ⟨0⟩) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
-  let packedWord := uniswapSlotWord ⟨8⟩ σ ee
+  let packedWord := solcSlotWordAt ⟨8⟩ σ ee
   let token1Clean := UInt256.land token1 solcAddrMask
   have rd5333 := evm_run h with [jumpdest, push1 ⟨8⟩]
   obtain ⟨k5334, C5334, rd5334₀⟩ := rd5333.sload (by native_decide) (by evm_ov)
@@ -706,7 +719,7 @@ theorem RD.uniswapSkimSecondBalanceOfNoCodeReverts {g : Sat256} {s0 : State}
       (packedWord :: token1 :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSafeTransferCallMem2 (UInt256.ofNat ee.codeOwner.val) o toWord value)
       (UInt256.ofNat 13) out0 σ k5334 C5334 := by
-    simpa [packedWord, uniswapSlotWord] using rd5334₀
+    simpa [packedWord, solcSlotWordAt, solcSlotWord] using rd5334₀
   have rd5347 := evm_run rd5334 with [
     push1 ⟨64⟩, dup1,
     raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by native_decide)

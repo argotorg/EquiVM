@@ -1,3 +1,5 @@
+import Reasoning.WordArithmetic
+import Reasoning.ABIComposite
 import Examples.OpenZeppelinBench.ERC6909.Approve
 import Examples.OpenZeppelinBench.ERC6909.BalanceOf
 import Examples.OpenZeppelinBench.ERC6909.IsOperator
@@ -60,105 +62,6 @@ def transferFromStore (I : ExecutionEnv) : Store :=
 
 /-! ### ABI decoding -/
 
-theorem decodeScalarWords_address_address_uint256_uint256_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hlen64 : ((bytes.drop 64).take 32).length = 32)
-    (hlen96 : ((bytes.drop 96).take 32).length = 32)
-    (hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus)
-    (hcanon32 : (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat <
-      EVM.addressModulus) :
-    decodeScalarWords? [addr, addr, uint256, uint256] bytes 0 =
-      some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
-        .address (Ethereum.AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat)] :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeScalarWords_address_address_uint256_uint256_ok
-        (bytes := bytes) hlen0 hlen32 hlen64 hlen96 hcanon0 hcanon32
-
-theorem decodeScalarWords_address_address_uint256_uint256_none_noncanon0 {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hnc0 : ¬ (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [addr, addr, uint256, uint256] bytes 0 = none :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeScalarWords_address_address_uint256_uint256_none_noncanon0
-        (bytes := bytes) hlen0 hnc0
-
-theorem decodeScalarWords_address_address_uint256_uint256_none_noncanon1 {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus)
-    (hnc32 : ¬ (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [addr, addr, uint256, uint256] bytes 0 = none :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeScalarWords_address_address_uint256_uint256_none_noncanon1
-        (bytes := bytes) hlen0 hlen32 hcanon0 hnc32
-
-theorem decodeScalarWords_address_address_uint256_uint256_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 128) :
-    decodeScalarWords? [addr, addr, uint256, uint256] bytes 0 = none :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeScalarWords_address_address_uint256_uint256_none_short
-        (bytes := bytes) hshort
-
-theorem decodeCalldata_address_address_uint256_uint256_ok {cd : ByteArray}
-    {x y z w : Solm.Ident} (hsz132 : 132 ≤ cd.size)
-    (hbig : cd.size < 2 ^ 255 + 4)
-    (hcanon0 : (calldataWord cd 4).toNat < EVM.addressModulus)
-    (hcanon1 : (calldataWord cd 36).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y, z, w] [addr, addr, uint256, uint256] cd =
-      some (((((∅ : Solm.Store).insert x
-        (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
-        (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 36).toNat))).insert z
-        (.int (Int.ofNat (calldataWord cd 68).toNat))).insert w
-        (.int (Int.ofNat (calldataWord cd 100).toNat))) :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeCalldata_address_address_uint256_uint256_ok
-        (cd := cd) (x := x) (y := y) (z := z) (w := w) hsz132 hbig hcanon0 hcanon1
-
-theorem decodeCalldata_address_address_uint256_uint256_none_noncanon0 {cd : ByteArray}
-    {x y z w : Solm.Ident} (hsz132 : 132 ≤ cd.size)
-    (hbig : cd.size < 2 ^ 255 + 4)
-    (hnc0 : ¬ (calldataWord cd 4).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y, z, w] [addr, addr, uint256, uint256] cd = none :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeCalldata_address_address_uint256_uint256_none_noncanon0
-        (cd := cd) (x := x) (y := y) (z := z) (w := w) hsz132 hbig hnc0
-
-theorem decodeCalldata_address_address_uint256_uint256_none_noncanon1 {cd : ByteArray}
-    {x y z w : Solm.Ident} (hsz132 : 132 ≤ cd.size)
-    (hbig : cd.size < 2 ^ 255 + 4)
-    (hcanon0 : (calldataWord cd 4).toNat < EVM.addressModulus)
-    (hnc1 : ¬ (calldataWord cd 36).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y, z, w] [addr, addr, uint256, uint256] cd = none :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeCalldata_address_address_uint256_uint256_none_noncanon1
-        (cd := cd) (x := x) (y := y) (z := z) (w := w) hsz132 hbig hcanon0 hnc1
-
-theorem decodeCalldata_address_address_uint256_uint256_none_short {cd : ByteArray}
-    {x y z w : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 132) :
-    decodeCalldata [x, y, z, w] [addr, addr, uint256, uint256] cd = none :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeCalldata_address_address_uint256_uint256_none_short
-        (cd := cd) (x := x) (y := y) (z := z) (w := w) hsz4 hshort
-
-theorem decodeCalldata_address_address_uint256_uint256_none_huge {cd : ByteArray}
-    {x y z w : Solm.Ident} (hbig : 2 ^ 255 + 4 ≤ cd.size) :
-    decodeCalldata [x, y, z, w] [addr, addr, uint256, uint256] cd = none :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeCalldata_address_address_uint256_uint256_none_huge
-        (cd := cd) (x := x) (y := y) (z := z) (w := w) hbig
 
 theorem erc6909Decode_transferFrom_ok {I : ExecutionEnv}
     (hsz132 : 132 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
@@ -336,9 +239,6 @@ theorem transferFromAllowanceKeccakSlot (I : ExecutionEnv)
   exact mappingSlot_single (transferFromIdWord I)
     (mapSlot (transferFromCallerWord I) (mapSlot (transferFromSenderWord I) ⟨2⟩))
 
-theorem uint256_lnot_zero_max :
-    UInt256.lnot (⟨0⟩ : UInt256) = UInt256.ofNat (UInt256.size - 1) := by
-  decide
 
 theorem transferFromOperatorSlot_init {σ σ₀ A I} {g : Sat256} :
     transferFromOperatorSlot (initState σ σ₀ g A I) I =
@@ -610,7 +510,6 @@ theorem erc6909Dispatch_transferFrom {cd : ByteArray}
   · rw [selectorOf, erc6909SetOperatorSelectorBytes, hcd]; decide
   · rw [selectorOf, erc6909SupportsInterfaceSelectorBytes, hcd]; decide
   · rw [selectorOf, erc6909TransferSelectorBytes, hcd]; decide
-
 
 
 end OpenZeppelinBench.ERC6909

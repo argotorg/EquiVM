@@ -1,3 +1,4 @@
+import Reasoning.SolmBody
 import Benchmarks.Auction.ErrorReturnABI
 import Benchmarks.Auction.PaymentArithmetic
 
@@ -5,12 +6,6 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
--- LIBRARY CANDIDATE: successful natural-number byte slicing in the source semantics.
-theorem sliceBytes_nat {out : ByteArray} {start finish : Nat}
-    (hs : start ≤ finish) (he : finish ≤ out.size) :
-    sliceBytes? out (Int.ofNat start) (Int.ofNat finish) =
-      .ok (.bytes (out.extract start finish)) := by
-  simp [sliceBytes?, Int.ofNat_eq_natCast, Nat.not_lt.mpr hs, Nat.not_lt.mpr he]
 
 theorem errorPayloadSource {evm : EVM.State} {locals : Store} {name : Ident} {out : ByteArray}
     (hd : locals.get? name = some (.bytes out)) (hl : 4 ≤ out.size) :

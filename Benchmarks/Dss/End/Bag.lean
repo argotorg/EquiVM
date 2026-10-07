@@ -105,8 +105,8 @@ theorem endBagBodyCoreOk
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals bagTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (endSlotWord (endBagSlotFor I) σ I).toNat))])) := by
-    simpa [bagTransition, endBagSlotFor, endSlotWord, initState, Solm.EVM.storageLoad,
+          (some [(.int (Int.ofNat (solcSlotWordAt (endBagSlotFor I) σ I).toNat))])) := by
+    simpa [bagTransition, endBagSlotFor, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount, locals, key] using
       endUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -143,38 +143,38 @@ theorem endBagBodyCoreOk
   have hret :
       RDret endBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (endSlotWord slot σ I)) := by
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := endWordReturnPc) (val := endSlotWord slot σ I) (ret := endWordReturnPc)
+      (pc := endWordReturnPc) (val := solcSlotWordAt slot σ I) (ret := endWordReturnPc)
       (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨16⟩ key)
-        (endSlotWord slot σ I))
-      (by simpa [slot, endSlotWord] using hretPc)
+        (solcSlotWordAt slot σ I))
+      (by simpa [slot, solcSlotWordAt] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
         repeat' first | apply And.intro | native_decide)
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨16⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (endSlotWord slot σ I)
+        exact solcScratchReturnMem_mload64 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨16⟩ key) (solcMappingHashMem_read64 ⟨16⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (endSlotWord slot σ I)
+        exact solcScratchReturnMem_read128 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨16⟩ key))
       (by simp)
-    simpa [slot, endSlotWord] using hret'
+    simpa [slot, solcSlotWordAt] using hret'
   have hval :
-      some [Value.int (Int.ofNat (endSlotWord (endBagSlotFor I) σ I).toNat)] =
-        some [Value.int (Int.ofNat (endSlotWord slot σ I).toNat)] := by
+      some [Value.int (Int.ofNat (solcSlotWordAt (endBagSlotFor I) σ I).toNat)] =
+        some [Value.int (Int.ofNat (solcSlotWordAt slot σ I).toNat)] := by
     rw [hslot]
   rw [hval] at hbody
   have henc :
-      returnEquiv (UInt256.toByteArray (endSlotWord slot σ I))
-        (some [(.int (Int.ofNat (endSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         bagTransition.returnType := by
     rw [show bagTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (endSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem endBagBodyCoreDecodeFailed_short
@@ -204,7 +204,7 @@ theorem endBagBodyCoreDecodeFailed_short
 
 theorem endBagBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf bagTransition)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endBagConcreteSelector := by

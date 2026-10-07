@@ -49,7 +49,7 @@ abbrev catBiteIlksOutSize : UInt256 := ⟨160⟩
 
 /-- The `vat` address (slot 3, `addrLoc`) masked to 160 bits — the STATICCALL target. -/
 abbrev catBiteVatTargetWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  catAddressReturnWord ⟨3⟩ σ I
+  solcAddressSlotWord ⟨3⟩ σ I
 
 /-! ## Scratch-memory calldata layout (`selector @0x80`, `ilk @0x84`). -/
 
@@ -166,12 +166,12 @@ theorem RD.catBiteIlksToStaticcallGuard
       ByteArray.empty σ k' C' := by
   have htargetMask :
       UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
-        (catSlotWord ⟨3⟩ σ I) = catBiteVatTargetWord σ I := by
+        (solcSlotWordAt ⟨3⟩ σ I) = catBiteVatTargetWord σ I := by
     have hmask :
         UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
       native_decide
-    show UInt256.land _ (catSlotWord ⟨3⟩ σ I) =
-      UInt256.land (catSlotWord ⟨3⟩ σ I) solcAddrMask
+    show UInt256.land _ (solcSlotWordAt ⟨3⟩ σ I) =
+      UInt256.land (solcSlotWordAt ⟨3⟩ σ I) solcAddrMask
     rw [u256_land_comm, hmask]
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
@@ -198,9 +198,9 @@ theorem RD.catBiteIlksToStaticcallGuard
   obtain ⟨k1167, C1167, rd1167raw⟩ := rd1166.sload (by native_decide) (by evm_ov)
   have rd1167 : RD catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1167⟩
-      (catSlotWord ⟨3⟩ σ I :: urn :: ilk :: R)
+      (solcSlotWordAt ⟨3⟩ σ I :: urn :: ilk :: R)
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1167 C1167 := by
-    simpa [catSlotWord, solcSlotWord] using rd1167raw
+    simpa [solcSlotWordAt, solcSlotWord] using rd1167raw
   have rd1233 := evm_run rd1167 with [
     push1 ⟨64⟩,
     dup1,

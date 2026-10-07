@@ -1,3 +1,6 @@
+import Reasoning.Storage
+import Reasoning.ExternalCall
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.GemJoin.ConstructorSource
 import Benchmarks.Dss.GemJoin.ConstructorTrace
 
@@ -11,84 +14,6 @@ namespace Benchmarks.Dss.GemJoin
 
 set_option maxRecDepth 2000000
 
-private theorem ctorExtCodeSize_ne_zero_lookup_code_pos {σ : AccountMap} {target : UInt256}
-    {addr : AccountAddress}
-    (haddr : addr = AccountAddress.ofUInt256 target)
-    (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
-    0 < (UInt256.ofNat
-      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
-  subst addr
-  unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
-  | none =>
-      exfalso
-      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
-  | some acc =>
-      have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
-        intro hzero
-        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
-      have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
-        intro hzeroNat
-        apply hwordNe
-        cases hword : UInt256.ofNat acc.code.size with
-        | mk val =>
-            cases val using Fin.cases
-            · rfl
-            · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using Nat.pos_of_ne_zero htoNatNe
-
-private theorem ctorExtCodeSize_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
-    {addr : AccountAddress}
-    (haddr : addr = AccountAddress.ofUInt256 target)
-    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
-    (UInt256.ofNat
-      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
-  subst addr
-  unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
-  | none =>
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
-  | some acc =>
-      have hword := congrArg UInt256.toNat hzero
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
-
-private theorem storageStore_substate_ctor (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).substate = evm.substate := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
-
-private theorem storageStore_sigma0_ctor (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
-
-private theorem evmAddress_accountAddress_ctor (a : AccountAddress) :
-    EVM.address a = a := by
-  apply Fin.ext
-  simp [EVM.address, EVM.uintN]
-  exact Nat.mod_eq_of_lt (by simpa [EVM.twoPow, AccountAddress.size] using a.isLt)
-
-private theorem RDret.xiResultAcc {σ σ' σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
-    {g : Sat256} {code o : ByteArray}
-    (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) σ' o) :
-    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
-    ∨ ∃ (g' : UInt256) (A' : Substate),
-        Ξ σ σ₀ g.toUInt256 A I =
-          .ok (.success (σ', g', A') o) := by
-  rcases h with hoog | ⟨s, hX, hacc⟩
-  · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
-      rw [← hcode] at hoog
-      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hoog))
-  · have hσ : s.accountMap = σ' := hacc
-    have hxi := Xi_success_of_X (g := g.toUInt256) (by
-      rw [← hcode] at hX
-      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
-    rw [hσ] at hxi
-    exact Or.inr ⟨_, _, hxi⟩
 
 theorem gemJoinCtorPrefixStateEquiv
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
@@ -209,14 +134,14 @@ theorem gemJoinConstructorCorrect :
             (UInt256.ofNat ((evm5s.lookupAccount gem).option 0 (fun acc => acc.code.size))).toNat =
               0 := by
           simpa [evm5s, State.lookupAccount] using
-            ctorExtCodeSize_zero_lookup_code_zero (σ := evm5s.accountMap)
+            extCodeSizeWord_zero_lookup_code_zero (σ := evm5s.accountMap)
               (target := gemTarget) (addr := gem) htargetAddr hcodeSizeSolm
         refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
           (gemJoinSolmCtorExecReverts_noCode
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             vat ilk gem hwv
             (by
-              simpa [gemJoinCtorAfterInitStores, evmAddress_accountAddress_ctor, evm0s, evm1s,
+              simpa [gemJoinCtorAfterInitStores, eVM_address_id, evm0s, evm1s,
                 evm2s, evm3s, evm4s, evm5s] using hgemNoCode))
           ?_
         exact ctorResultEquiv.revert rfl rfl
@@ -229,7 +154,7 @@ theorem gemJoinConstructorCorrect :
           0 < (UInt256.ofNat ((evm5s.lookupAccount gem).option 0
             (fun acc => acc.code.size))).toNat := by
         simpa [evm5s, State.lookupAccount] using
-          ctorExtCodeSize_ne_zero_lookup_code_pos (σ := evm5s.accountMap)
+          extCodeSizeWord_ne_zero_lookup_code_pos (σ := evm5s.accountMap)
             (target := gemTarget) (addr := gem) htargetAddr hcodeSizeSolmNe
       by_cases hdepth : I.depth.val < 1024
       · obtain ⟨σCall, z, out, Ain, callGas, _, _, hΘ, rd200, hout⟩ :=
@@ -248,7 +173,7 @@ theorem gemJoinConstructorCorrect :
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
               (g := Sat256.ofUInt256 g) vat ilk gem)
         have htgt : EVM.address gem = AccountAddress.ofUInt256 gemTarget := by
-          rw [evmAddress_accountAddress_ctor, htargetAddr]
+          rw [eVM_address_id, htargetAddr]
         have hslot : wardsSlot (.address I.source) = gemJoinCtorCallerWardsSlot I :=
           gemJoinCtorCallerWardsSlot_eq I
         obtain ⟨gTheta, ATheta, hTheta⟩ := hΘ
@@ -281,7 +206,7 @@ theorem gemJoinConstructorCorrect :
               gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState, gemJoinCtorAfterVatState,
               gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState, storageStore_accountMap,
               storageStore_executionEnv,
-              storageStore_sigma0_ctor, initState, Solm.EVM.storageLoad,
+              storageStore_σ₀, initState, Solm.EVM.storageLoad,
               State.lookupAccount, Account.lookupStorage, solcSlotWord,
               gemJoinCtorGemStored, gemJoinCtorVatStored, hslot, hperm] using hTheta
         have hstate : evm5e = evm5s := by
@@ -289,7 +214,7 @@ theorem gemJoinConstructorCorrect :
             evm1e, evm1s, evm0e, evm0s, gemJoinCtorAfterGemState,
             gemJoinCtorAfterIlkState, gemJoinCtorAfterVatState,
             gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState,
-            storageStore_sigma0_ctor, storageStore_accountMap,
+            storageStore_σ₀, storageStore_accountMap,
             storageStore_executionEnv, initState]
         have hcallSolm :
             typedCallViaEVM config evm5s (EVM.address gem) "decimals" 0 []
@@ -306,7 +231,7 @@ theorem gemJoinConstructorCorrect :
                 (evmDecimals := evmDecimalsSolm) (outDecimals := out)
                 vat ilk gem hwv
                 (by
-                  simpa [gemJoinCtorAfterInitStores, evmAddress_accountAddress_ctor, evm0s, evm1s,
+                  simpa [gemJoinCtorAfterInitStores, eVM_address_id, evm0s, evm1s,
                     evm2s, evm3s, evm4s, evm5s] using hgemCode)
                 (by
                   simpa [hz, gemJoinCtorAfterInitStores, evm0s, evm1s, evm2s, evm3s, evm4s,
@@ -320,7 +245,7 @@ theorem gemJoinConstructorCorrect :
             have hhi := hout
             let retWord := gemJoinCtorDecimalsReturnWord out
             have hL : (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 32 :=
-              gemJoinCtorMin32_toNat_of_ge hlo hhi
+              ctorMin32_toNat_of_ge hlo hhi
             let memRet := out.write 0 (gemJoinCtorDecimalsCalldataMem I vat ilk gem) 224 32
             have hmemRetSize : memRet.size = 256 := by
               simpa [memRet] using
@@ -352,7 +277,7 @@ theorem gemJoinConstructorCorrect :
             have hretWordBytes : UInt256.toByteArray retWord = out.extract 0 32 := by
               dsimp only [retWord, gemJoinCtorDecimalsReturnWord]
               rw [← uInt256OfByteArray_eq (out.extract 0 32)]
-              exact toByteArray_uInt256OfByteArray_of_size_gemJoin
+              exact toByteArray_uInt256OfByteArray_of_size32
                 (by rw [ByteArray.size_extract]; omega)
             have hmload224 :
                 (if (⟨224⟩ : UInt256).toNat ≥ memRet.size
@@ -374,7 +299,7 @@ theorem gemJoinConstructorCorrect :
               (by simpa [memRet, hL] using rd218)
             have hret := gemJoinCtorReturnTrace vat ilk retWord gem hperm hmload64
               (by simpa [memRet] using rd241)
-            rcases RDret.xiResultAcc hcodeCtor hret with hOOG | ⟨g', A', hSuccess⟩
+            rcases RDretXiResultAccountMapReordered hcodeCtor hret with hOOG | ⟨g', A', hSuccess⟩
             · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
             · have hdec :
                   config.externalABI.decode? "decimals" out =
@@ -401,7 +326,7 @@ theorem gemJoinConstructorCorrect :
                   (evmDecimals := evmDecimalsSolm) (outDecimals := out) (dec := retWord)
                   vat ilk gem hwv
                   (by
-                    simpa [gemJoinCtorAfterInitStores, evmAddress_accountAddress_ctor, evm0s,
+                    simpa [gemJoinCtorAfterInitStores, eVM_address_id, evm0s,
                       evm1s, evm2s, evm3s, evm4s, evm5s] using hgemCode)
                   (by
                     simpa [hz, gemJoinCtorAfterInitStores, evm0s, evm1s, evm2s, evm3s,
@@ -416,7 +341,7 @@ theorem gemJoinConstructorCorrect :
               (by native_decide)
               (by
                 have hLle : (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat ≤ 32 := by
-                  rw [gemJoinCtorMin32_toNat_of_lt hshort]
+                  rw [ctorMin32_toNat_of_lt hshort]
                   omega
                 let memRet := out.write 0 (gemJoinCtorDecimalsCalldataMem I vat ilk gem) 224
                   (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat
@@ -425,7 +350,7 @@ theorem gemJoinConstructorCorrect :
                     gemJoinCtorDecimalsReturnWrite_size
                       ((min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
                       (by rw [gemJoinCtorDecimalsCalldataMem_size])
-                      hLle (by rw [gemJoinCtorMin32_toNat_of_lt hshort])
+                      hLle (by rw [ctorMin32_toNat_of_lt hshort])
                 have hread64 :
                     memRet.readWithPadding 64 32 = UInt256.toByteArray ⟨224⟩ := by
                   simpa [memRet] using
@@ -433,7 +358,7 @@ theorem gemJoinConstructorCorrect :
                       ((min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
                       (by rw [gemJoinCtorDecimalsCalldataMem_size])
                       (gemJoinCtorDecimalsCalldataMem_read64 I vat ilk gem)
-                      hLle (by rw [gemJoinCtorMin32_toNat_of_lt hshort])
+                      hLle (by rw [ctorMin32_toNat_of_lt hshort])
                 exact mloadWordValue_of_readWithPadding
                   (mem := memRet)
                   (off := ⟨64⟩) (v := ⟨224⟩)
@@ -450,7 +375,7 @@ theorem gemJoinConstructorCorrect :
                   (evmDecimals := evmDecimalsSolm) (outDecimals := out)
                   vat ilk gem hwv
                   (by
-                    simpa [gemJoinCtorAfterInitStores, evmAddress_accountAddress_ctor, evm0s,
+                    simpa [gemJoinCtorAfterInitStores, eVM_address_id, evm0s,
                       evm1s, evm2s, evm3s, evm4s, evm5s] using hgemCode)
                   (by
                     simpa [hz, gemJoinCtorAfterInitStores, evm0s, evm1s, evm2s, evm3s,
@@ -491,7 +416,7 @@ theorem gemJoinConstructorCorrect :
               (evmDecimals := { evm5s with substate := A_dec }) (outDecimals := ByteArray.empty)
               vat ilk gem hwv
               (by
-                simpa [gemJoinCtorAfterInitStores, evmAddress_accountAddress_ctor, evm0s, evm1s,
+                simpa [gemJoinCtorAfterInitStores, eVM_address_id, evm0s, evm1s,
                   evm2s, evm3s, evm4s, evm5s] using hgemCode)
               (by
                 simpa [gemJoinCtorAfterInitStores, evm0s, evm1s, evm2s, evm3s, evm4s,

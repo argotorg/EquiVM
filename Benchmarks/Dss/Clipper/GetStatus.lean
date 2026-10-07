@@ -1,3 +1,4 @@
+import Reasoning.ExternalCall
 import Benchmarks.Dss.Clipper.GetStatusEVMReverts
 import Benchmarks.Dss.Clipper.GetStatusReverts
 
@@ -26,30 +27,6 @@ theorem clipperGetStatusReturnEquiv
   exact returnEquiv.returned rfl
     (clipperGetStatusReturnEncoding needsWord needs price lot tab hneeds)
 
-theorem clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos
-    {σ : AccountMap} {target : UInt256} {addr : AccountAddress}
-    (haddr : addr = AccountAddress.ofUInt256 target)
-    (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
-    0 < (UInt256.ofNat ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
-  subst addr
-  unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
-  | none =>
-      exfalso
-      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
-  | some acc =>
-      have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
-        intro hzero
-        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
-      have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
-        intro hzeroNat
-        apply hwordNe
-        cases hword : UInt256.ofNat acc.code.size with
-        | mk val =>
-            cases val using Fin.cases
-            · rfl
-            · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem clipperDecode_getStatus_ok (v : ClipperImmutables) {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) :
@@ -59,7 +36,7 @@ theorem clipperDecode_getStatus_ok (v : ClipperImmutables) {I : ExecutionEnv}
   show decodeCalldataWithMode (config v).abiDecodeMode ["id"] [uint256] I.calldata = _
   simpa [config, clipperGetStatusStore, clipperGetStatusArgValue,
     clipperGetStatusArgWord] using
-    decodeCalldataWithMode_legacyUint256_ok (cd := I.calldata) (x := "id") hsz36
+    decodeCalldata_legacyUInt256_ok (cd := I.calldata) (x := "id") hsz36
 
 theorem clipperDecode_getStatus_none_short (v : ClipperImmutables) {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
@@ -67,7 +44,7 @@ theorem clipperDecode_getStatus_none_short (v : ClipperImmutables) {I : Executio
       (transitionSignature getStatusTransition).paramTypes I.calldata = none := by
   show decodeCalldataWithMode (config v).abiDecodeMode ["id"] [uint256] I.calldata = none
   simpa [config] using
-    decodeCalldataWithMode_legacyUint256_none_short (cd := I.calldata) (x := "id")
+    decodeCalldata_legacyUInt256_none_short (cd := I.calldata) (x := "id")
       hsz4 hshort
 
 theorem clipperGetStatusSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
@@ -134,7 +111,7 @@ theorem clipperReachGetStatusBody {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperGetStatusSelectorWord hsz hsel
-  have h260 := clipperSplitTaken (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -153,7 +130,7 @@ theorem clipperReachGetStatusBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
     (by simp)
-  have h272 := clipperSplitNotTaken (pc := (⟨261⟩ : UInt256))
+  have h272 := RD.selectorSplitNotTakenPush2 (pc := (⟨261⟩ : UInt256))
     (next := (⟨272⟩ : UInt256)) (pivot := clipperSelNat 9)
     (tgt := (⟨369⟩ : UInt256))
     (h260.jumpdest
@@ -176,7 +153,7 @@ theorem clipperReachGetStatusBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h283 := clipperSplitNotTaken (pc := (⟨272⟩ : UInt256))
+  have h283 := RD.selectorSplitNotTakenPush2 (pc := (⟨272⟩ : UInt256))
     (next := (⟨283⟩ : UInt256)) (pivot := clipperSelNat 6)
     (tgt := (⟨331⟩ : UInt256)) h272
     (by change decode code (⟨272⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -196,7 +173,7 @@ theorem clipperReachGetStatusBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h294 := clipperArmNotTaken (pc := (⟨283⟩ : UInt256))
+  have h294 := RD.selectorArmNotTakenPush2 (pc := (⟨283⟩ : UInt256))
     (next := (⟨294⟩ : UInt256)) (sel := clipperSelNat 6)
     (tgt := (⟨752⟩ : UInt256)) h283
     (by change decode code (⟨283⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -216,7 +193,7 @@ theorem clipperReachGetStatusBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h760 := clipperArmTaken (pc := (⟨294⟩ : UInt256)) (sel := clipperSelNat 11)
+  have h760 := RD.selectorArmTakenPush2 (pc := (⟨294⟩ : UInt256)) (sel := clipperSelNat 11)
     (tgt := (⟨760⟩ : UInt256)) h294
     (by change decode code (⟨294⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -253,7 +230,7 @@ theorem clipperJumpDest3185 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -343,7 +320,7 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 11)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -480,7 +457,7 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
               ((evmSolm.lookupAccount (clipperStatusCalcAddress evmSolm)).option 0
                 (fun acc => acc.code.size))).toNat := by
           simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, State.lookupAccount, initState] using
-            clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos
+            extCodeSizeWord_ne_zero_lookup_code_pos
               (σ := σ) (target := calcAddr)
               (addr := clipperStatusCalcAddress evmSolm)
               hcalcAddrSolm hcalcCodeSolmNE
@@ -536,7 +513,7 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                 ((evmSolm.lookupAccount (clipperStatusCalcAddress evmSolm)).option 0
                   (fun acc => acc.code.size))).toNat := by
             simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, State.lookupAccount, initState] using
-              clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos
+              extCodeSizeWord_ne_zero_lookup_code_pos
                 (σ := σ) (target := calcAddr)
                 (addr := clipperStatusCalcAddress evmSolm)
                 hcalcAddrSolm hcalcCodeSolmNE
@@ -612,7 +589,7 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                 ((evmSolm.lookupAccount (clipperStatusCalcAddress evmSolm)).option 0
                   (fun acc => acc.code.size))).toNat := by
             simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, State.lookupAccount, initState] using
-              clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos
+              extCodeSizeWord_ne_zero_lookup_code_pos
                 (σ := σ) (target := calcAddr)
                 (addr := clipperStatusCalcAddress evmSolm)
                 hcalcAddrSolm hcalcCodeSolmNE
@@ -1101,7 +1078,7 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                 ((evmSolm.lookupAccount (clipperStatusCalcAddress evmSolm)).option 0
                   (fun acc => acc.code.size))).toNat := by
             simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, State.lookupAccount, initState] using
-              clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos
+              extCodeSizeWord_ne_zero_lookup_code_pos
                 (σ := σ) (target := calcAddr)
                 (addr := clipperStatusCalcAddress evmSolm)
                 hcalcAddrSolm hcalcCodeSolmNE

@@ -359,10 +359,10 @@ theorem clipperKickSuckEncode_eq (v : ClipperImmutables) (σ : AccountMap)
   have hvowWord :
       EVM.word (AccountAddress.ofNat (clipperRedoVowTarget σ ee).toNat).val =
         clipperRedoVowTarget σ ee := by
-    simpa [hvowClean] using clipperRedoAddressWord (clipperRedoVowTarget σ ee)
+    simpa [hvowClean] using word_of_addressOfNat_eq_mask (clipperRedoVowTarget σ ee)
   have hkprWord : EVM.word (AccountAddress.ofNat kpr.toNat).val =
       clipperRedoKprTarget kpr := by
-    simpa [clipperRedoKprTarget, u256_land_comm] using clipperRedoAddressWord kpr
+    simpa [clipperRedoKprTarget, u256_land_comm] using word_of_addressOfNat_eq_mask kpr
   have hcoinWord : EVM.word coin.toNat = coin := u256_ofNat_toNat coin
   have hcoinLt : coin.toNat < EVM.twoPow 256 := by
     change coin.val.val < UInt256.size
@@ -412,7 +412,7 @@ theorem clipperKickVatPatchPayload6295 (v : ClipperImmutables) {code : ByteArray
        (8747, ilkBytes)])
     (off := 6295) (value := vatBytes)
     (by
-      simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord,
+      simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
         hilk, hlen, List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
@@ -690,7 +690,7 @@ theorem RD.clipperKickSuckPostCall
         decide))
       ?_ ?_ ?_
     · rw [clipperRedoVatTargetAddress v]
-      exact clipperRedoEVMAddressAccountAddress v.vat
+      exact eVM_address_id v.vat
     · simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
         show (⟨100⟩ : UInt256).toNat = 100 from by decide] using
         clipperKickSuckEncode_eq v σ ee kpr coin hmem

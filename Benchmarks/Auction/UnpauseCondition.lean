@@ -19,7 +19,7 @@ theorem unpauseCreateSource {s0 I σ evm locals} (hs : SourceState s0 I σ evm)
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       unpauseCreateExpr = .ok (.bool (decide (UnpauseCreates σ I))) := by
   have hw (slot : UInt256) : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot =
-      storedWord σ I slot := by
+      solcSlotWord σ I slot := by
     exact hs.storageRead _
   have ht := auctionFieldRead evm locals "startTime" (.int uint256Int)
     (auctionUint256Loc ⟨209⟩) ha (by native_decide) rfl
@@ -65,17 +65,17 @@ theorem unpauseCondition {I g s0 R mem aw rdata σ k C}
       mem aw rdata σ k' C' := by
   have rd1129 := evm_run h with [jumpdest, push1 ⟨209⟩]
   obtain ⟨_, _, rd1130⟩ := rd1129.sload (by native_decide) (by evm_ov)
-  change RD _ _ _ _ _ (storedWord σ I ⟨209⟩ :: R) _ _ _ _ _ _ at rd1130
+  change RD _ _ _ _ _ (solcSlotWord σ I ⟨209⟩ :: R) _ _ _ _ _ _ at rd1130
   have rd1135 := evm_run rd1130 with [iszero, dup1, push2 ⟨1150⟩]
   by_cases hz : (snapshotOf σ I).startTime = ⟨0⟩
-  · change storedWord σ I ⟨209⟩ = ⟨0⟩ at hz
+  · change solcSlotWord σ I ⟨209⟩ = ⟨0⟩ at hz
     have rd1150 := evm_run rd1135 with [jumpiT (by rw [hz]; decide) (by jump_dest)]
     exact ⟨_, _, by simpa only [unpauseCreateWord, snapshotOf, hz, if_pos rfl,
       show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from rfl] using rd1150⟩
-  · have hsz : storedWord σ I ⟨209⟩ ≠ ⟨0⟩ := hz
+  · have hsz : solcSlotWord σ I ⟨209⟩ ≠ ⟨0⟩ := hz
     have rd1139 := evm_run rd1135 with [jumpiNT (isZero_eq_zero_of_ne hsz), pop, push1 ⟨211⟩]
     obtain ⟨_, _, rd1140⟩ := rd1139.sload (by native_decide) (by evm_ov)
-    change RD _ _ _ _ _ (storedWord σ I ⟨211⟩ :: R) _ _ _ _ _ _ at rd1140
+    change RD _ _ _ _ _ (solcSlotWord σ I ⟨211⟩ :: R) _ _ _ _ _ _ at rd1140
     have rd1150 := evm_run rd1140 with [push1 ⟨1⟩, push1 ⟨160⟩, shl, swap1, div,
       push1 ⟨255⟩, and]
     rw [u256_land_comm ⟨255⟩] at rd1150

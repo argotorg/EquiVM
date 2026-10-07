@@ -39,7 +39,7 @@ def bidMinimumExpr : Expr :=
 def bidMinimumGuard : Expr := .binary .ge (.env .callvalue) bidMinimumExpr
 
 def bidPercentage (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (storedWord σ I ⟨205⟩) ⟨255⟩
+  UInt256.land (solcSlotWord σ I ⟨205⟩) ⟨255⟩
 
 def bidIncrement (amount percentage : UInt256) : UInt256 :=
   UInt256.div (UInt256.mul amount percentage) ⟨100⟩
@@ -75,12 +75,12 @@ theorem bidReserveGuardSource {s0 I σ evm locals s noun}
     (hs : SourceState s0 I σ evm) (hv : BidValues locals s noun) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       (.binary .ge (.env .callvalue) (.storage reservePriceRef)) =
-      .ok (.bool (decide ((storedWord σ I ⟨204⟩).toNat ≤ I.weiValue.toNat))) := by
+      .ok (.bool (decide ((solcSlotWord σ I ⟨204⟩).toNat ≤ I.weiValue.toNat))) := by
   have hr := scalarRead evm locals "reservePrice" (.int uint256Int) (auctionUint256Loc ⟨204⟩)
     (hv.storage _ (by decide)) (by native_decide) rfl
   rw [loadUint256] at hr
   have hw : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨204⟩ =
-      storedWord σ I ⟨204⟩ := by
+      solcSlotWord σ I ⟨204⟩ := by
     exact hs.storageRead _
   rw [hw] at hr
   simp only [reservePriceRef, evalExpr?, hr, envValue, hs.env, pure,

@@ -36,7 +36,7 @@ theorem denyAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa [denyPostState] using
-    stairstepStorageLocStore_uint256 evm (relyUsrStorageSlot I) ⟨0⟩
+    storageLocStore_uint256 evm (relyUsrStorageSlot I) ⟨0⟩
 
 theorem stairstepDenyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -60,6 +60,30 @@ theorem stairstepDenyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       (evalExpr_rely_auth_true evm I hsrc hauth)
       (by simp [evalExpr?, pure])
       (denyAssign evm I)
+
+theorem stairstepDenyBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hauth :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (relyStore I) denyTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  simpa [denyTransition, nonpayable, auth] using
+    nonpayableRequireAssignStorageBlockStatic
+      (cfg := config)
+      (solm := { contract := contract, locals := relyStore I })
+      (evm := evm)
+      (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
+      (rhs := .intLit 0)
+      (ref := wardsRef (.var "usr"))
+      (value := .int 0)
+      (rest := [])
+      hwv
+      (evalExpr_rely_auth_true evm I hsrc hauth)
+      (by simp [evalExpr?, pure])
+      (denyAssign evm I)
+      hperm
 
 theorem stairstepDenyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -199,7 +223,7 @@ theorem stairstepDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd883 : RD stairstepExponentialDecreaseBytecode I g s0 ⟨883⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨165⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k883 C883 := by
-    simpa [relyAuthWord, stairstepSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd883raw
   have rd886pre := evm_run rd883 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -250,7 +274,7 @@ theorem stairstepDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd883 : RD stairstepExponentialDecreaseBytecode I g s0 ⟨883⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨165⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k883 C883 := by
-    simpa [relyAuthWord, stairstepSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd883raw
   have rd886pre := evm_run rd883 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -272,14 +296,16 @@ theorem stairstepDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 4000000 in
-theorem stairstepDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem stairstepDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (h : RD stairstepExponentialDecreaseBytecode I g s0 ⟨944⟩
       [relyUsrMaskedWord I, ⟨165⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret stairstepExponentialDecreaseBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
-      ByteArray.empty := by
+    (I.perm = true ∧
+      RDret stairstepExponentialDecreaseBytecode g s0
+        (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic stairstepExponentialDecreaseBytecode g s0) := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
@@ -337,7 +363,15 @@ theorem stairstepDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : �
   have rd973pre := evm_run rd970 with [
     raw dup3 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd973raw⟩ := rd973pre.sstore hperm (by native_decide)
+  have hstoreDec : decode stairstepExponentialDecreaseBytecode ⟨972⟩ =
+      some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd973pre.sstoreStatic (by simpa using hperm) hstoreDec
+        (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd973raw⟩ := rd973pre.sstore hperm hstoreDec
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd973 := by
     simpa [relyUsrStorageSlot_eq_mapSlot_masked I] using rd973raw
@@ -370,6 +404,32 @@ theorem stairstepDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : �
   have hstop := RD.stop rd166 (by native_decide) (by evm_ov)
   simpa [relyUsrStorageSlot_eq_mapSlot_masked I] using hstop
 
+theorem stairstepDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hperm : I.perm = true)
+    (h : RD stairstepExponentialDecreaseBytecode I g s0 ⟨944⟩
+      [relyUsrMaskedWord I, ⟨165⟩, sel]
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret stairstepExponentialDecreaseBytecode g s0
+      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
+      ByteArray.empty :=
+  permSplit_true hperm (stairstepDenyX_storeAuthorizedSplit h)
+
+theorem stairstepX_deny_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hreach : ∃ k C, RD stairstepExponentialDecreaseBytecode I g
+      (initState σ σ₀ g A I) stairstepDenyEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
+      RDret stairstepExponentialDecreaseBytecode g (initState σ σ₀ g A I)
+        (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧
+        RDstatic stairstepExponentialDecreaseBytecode g (initState σ σ₀ g A I)) := by
+  obtain ⟨_, _, rd866⟩ := stairstepDenyX_decoded (g := g) hsz36 hsize hreach
+  obtain ⟨_, _, rd944⟩ := stairstepDenyX_authorized (I := I) hauth rd866
+  exact stairstepDenyX_storeAuthorizedSplit rd944
+
 theorem stairstepX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
@@ -378,10 +438,8 @@ theorem stairstepX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret stairstepExponentialDecreaseBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
-      ByteArray.empty := by
-  obtain ⟨_, _, rd866⟩ := stairstepDenyX_decoded (g := g) hsz36 hsize hreach
-  obtain ⟨_, _, rd944⟩ := stairstepDenyX_authorized (I := I) hauth rd866
-  exact stairstepDenyX_storeAuthorized hperm rd944
+      ByteArray.empty :=
+  permSplit_true hperm (stairstepX_deny_okSplit hsz36 hsize hauth hreach)
 
 theorem stairstepX_deny_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -414,7 +472,7 @@ theorem stairstepDenyBodyCoreOk
         denyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (denyPostState evmSolm I) none) := by
-    simpa [evmSolm, relyAuthWord, stairstepSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       stairstepDenyBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -427,6 +485,36 @@ theorem stairstepDenyBodyCoreOk
         simpa [denyTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
             (dvs := []) rfl (by native_decide) (by native_decide)))
+
+theorem stairstepDenyBodyCoreStatic
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = stairstepExponentialDecreaseBytecode)
+    (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
+        (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
+    (hreach : ∃ k C, RD stairstepExponentialDecreaseBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) stairstepDenyEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hbody :
+      ExecTransitionBody config contract evmSolm (relyStore I)
+        denyTransition.body .staticViolation := by
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
+      State.lookupAccount] using
+      stairstepDenyBodyStatic evmSolm I
+        (by simp only [evmSolm, initState]; exact hwv)
+        (by simp [evmSolm, initState])
+        hauth
+        (by simp only [evmSolm, initState]; exact hperm)
+  exact (permSplit_false hperm (stairstepX_deny_okSplit
+      (g := Sat256.ofUInt256 g) hsz36 hsize hauth hreach))
+    |>.reEquivStaticHalt hcode hdispatch hdecode hbody
 
 theorem stairstepDenyBodyCoreUnauthorized
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -447,7 +535,7 @@ theorem stairstepDenyBodyCoreUnauthorized
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         denyTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, stairstepSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       stairstepDenyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -486,6 +574,31 @@ theorem stairstepDenyBody {σ σ₀ A I} {g : UInt256}
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
     · exact stairstepDenyBodyCoreOk hcode hsize hperm hwv hsz36 hauth hdispatch
+        (stairstepDecode_deny_ok hsz36) hreach
+    · exact stairstepDenyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
+        (stairstepDecode_deny_ok hsz36) hreach
+  · exact stairstepDenyBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
+      hdispatch hreach
+
+theorem stairstepDenyBodyAnyPerm {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = stairstepExponentialDecreaseBytecode)
+    (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I (stairstepSelBytes 1)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact stairstepDenyBody hcode hsize hperm hwv hsel
+  replace hperm : I.perm = false := by simpa using hperm
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I (stairstepSelBytes 1) rfl hsel
+  have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
+    stairstepDispatchDeny hsel
+  have hreach := stairstepReachDenyBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz4 hsize hsel
+  by_cases hsz36 : 36 ≤ I.calldata.size
+  · by_cases hauth : relyAuthWord σ I = ⟨1⟩
+    · exact stairstepDenyBodyCoreStatic hcode hsize hperm hwv hsz36 hauth hdispatch
         (stairstepDecode_deny_ok hsz36) hreach
     · exact stairstepDenyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
         (stairstepDecode_deny_ok hsz36) hreach

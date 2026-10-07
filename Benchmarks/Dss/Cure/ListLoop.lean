@@ -1,3 +1,4 @@
+import Reasoning.Memory
 import Benchmarks.Dss.Cure.ListBase
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -9,12 +10,12 @@ theorem cureListNonemptyToLoop {σ σ₀ A I} {g : Sat256}
     (h929 : ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨929⟩
       [⟨369⟩, cureSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ k C)
-    (hlen_ne : cureSlotWord ⟨2⟩ σ I ≠ ⟨0⟩) :
+    (hlen_ne : solcSlotWordAt ⟨2⟩ σ I ≠ ⟨0⟩) :
     ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨987⟩
-      (listArrayDataPtr :: srcsDataSlot :: listArrayEndPtr (cureSlotWord ⟨2⟩ σ I) ::
-        cureSlotWord ⟨2⟩ σ I :: (⟨2⟩ : UInt256) :: listArrayBasePtr ::
+      (listArrayDataPtr :: srcsDataSlot :: listArrayEndPtr (solcSlotWordAt ⟨2⟩ σ I) ::
+        solcSlotWordAt ⟨2⟩ σ I :: (⟨2⟩ : UInt256) :: listArrayBasePtr ::
         (⟨96⟩ : UInt256) :: ⟨369⟩ :: cureSelWord I :: [])
-      (listArrayHashMem (cureSlotWord ⟨2⟩ σ I)) (UInt256.ofNat 5)
+      (listArrayHashMem (solcSlotWordAt ⟨2⟩ σ I)) (UInt256.ofNat 5)
       ByteArray.empty σ k C := by
   obtain ⟨_, _, h929⟩ := h929
   obtain ⟨_, _, h936raw⟩ :=
@@ -22,10 +23,10 @@ theorem cureListNonemptyToLoop {σ σ₀ A I} {g : Sat256}
       (by native_decide) (by evm_ov)
   obtain ⟨_, _, h936⟩ : ∃ k C, RD cureBytecode I g
       (initState σ σ₀ g A I) ⟨936⟩
-      [cureSlotWord ⟨2⟩ σ I, ⟨2⟩, ⟨96⟩, ⟨369⟩, cureSelWord I]
+      [solcSlotWordAt ⟨2⟩ σ I, ⟨2⟩, ⟨96⟩, ⟨369⟩, cureSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C :=
-    ⟨_, _, by simpa [cureSlotWord, initState] using h936raw⟩
-  let len := cureSlotWord ⟨2⟩ σ I
+    ⟨_, _, by simpa [solcSlotWordAt, initState] using h936raw⟩
+  let len := solcSlotWordAt ⟨2⟩ σ I
   have h963 := evm_run h936 with [
     dup1, push1 ⟨32⟩, mul, push1 ⟨32⟩, add, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
@@ -41,10 +42,10 @@ theorem cureListNonemptyToLoop {σ σ₀ A I} {g : Sat256}
   have hload :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)) =
         len := by
-    simp [len, cureSlotWord, solcSlotWord]
+    simp [len, solcSlotWordAt, solcSlotWord]
   have h965 := by
     simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState, hload, len] using h965raw
-  have hcond : UInt256.isZero (cureSlotWord ⟨2⟩ σ I) = ⟨0⟩ := by
+  have hcond : UInt256.isZero (solcSlotWordAt ⟨2⟩ σ I) = ⟨0⟩ := by
     exact isZero_eq_zero_of_ne hlen_ne
   have h966 := h965.dup1 (by native_decide) (by evm_ov)
   have h967raw := h966.iszero (by native_decide) (by evm_ov)
@@ -189,23 +190,23 @@ theorem cureListArrayLoopRunAux {g : Sat256} {s0 : State}
     {rdata : ByteArray}
     (hwf : cureStorageWF σ ee) :
     ∀ rem idx,
-      idx + (rem + 1) = (cureSlotWord ⟨2⟩ σ ee).toNat →
+      idx + (rem + 1) = (solcSlotWordAt ⟨2⟩ σ ee).toNat →
       RD cureBytecode ee g s0 (⟨987⟩ : UInt256)
         (listArrayDest idx :: listArraySlot idx ::
-          listArrayEndPtr (cureSlotWord ⟨2⟩ σ ee) ::
-          cureSlotWord ⟨2⟩ σ ee :: (⟨2⟩ : UInt256) :: listArrayBasePtr ::
+          listArrayEndPtr (solcSlotWordAt ⟨2⟩ σ ee) ::
+          solcSlotWordAt ⟨2⟩ σ ee :: (⟨2⟩ : UInt256) :: listArrayBasePtr ::
           (⟨96⟩ : UInt256) :: (⟨369⟩ : UInt256) :: cureSelWord ee :: [])
-        (listArrayCopiedMem σ ee (cureSlotWord ⟨2⟩ σ ee) idx)
+        (listArrayCopiedMem σ ee (solcSlotWordAt ⟨2⟩ σ ee) idx)
         (listArrayCopiedAw idx) rdata σ k C →
       ∃ k' C', RD cureBytecode ee g s0 (⟨369⟩ : UInt256)
         [listArrayBasePtr, cureSelWord ee]
-        (listArrayCopiedMem σ ee (cureSlotWord ⟨2⟩ σ ee)
-          (cureSlotWord ⟨2⟩ σ ee).toNat)
-        (listArrayCopiedAw (cureSlotWord ⟨2⟩ σ ee).toNat)
+        (listArrayCopiedMem σ ee (solcSlotWordAt ⟨2⟩ σ ee)
+          (solcSlotWordAt ⟨2⟩ σ ee).toNat)
+        (listArrayCopiedAw (solcSlotWordAt ⟨2⟩ σ ee).toNat)
         rdata σ k' C'
   | 0, idx, hsum, h => by
       have hguard :
-          UInt256.gt (listArrayEndPtr (cureSlotWord ⟨2⟩ σ ee))
+          UInt256.gt (listArrayEndPtr (solcSlotWordAt ⟨2⟩ σ ee))
               ((⟨32⟩ : UInt256) + listArrayDest idx) = ⟨0⟩ :=
         listArrayLoopGuard_false_of_wf hwf hsum
       obtain ⟨_, _, h369⟩ :=
@@ -218,7 +219,7 @@ theorem cureListArrayLoopRunAux {g : Sat256} {s0 : State}
           using h369⟩
   | rem + 1, idx, hsum, h => by
       have hguard :
-          UInt256.gt (listArrayEndPtr (cureSlotWord ⟨2⟩ σ ee))
+          UInt256.gt (listArrayEndPtr (solcSlotWordAt ⟨2⟩ σ ee))
               ((⟨32⟩ : UInt256) + listArrayDest idx) ≠ ⟨0⟩ := by
         rw [listArrayLoopGuard_true_of_wf hwf (n := idx) (by omega)]
         decide
@@ -226,45 +227,15 @@ theorem cureListArrayLoopRunAux {g : Sat256} {s0 : State}
         cureListArrayLoopStepBack (σ := σ) h hguard (by simp)
       have hnext' : RD cureBytecode ee g s0 (⟨987⟩ : UInt256)
           (listArrayDest (idx + 1) :: listArraySlot (idx + 1) ::
-            listArrayEndPtr (cureSlotWord ⟨2⟩ σ ee) ::
-            cureSlotWord ⟨2⟩ σ ee :: (⟨2⟩ : UInt256) :: listArrayBasePtr ::
+            listArrayEndPtr (solcSlotWordAt ⟨2⟩ σ ee) ::
+            solcSlotWordAt ⟨2⟩ σ ee :: (⟨2⟩ : UInt256) :: listArrayBasePtr ::
             (⟨96⟩ : UInt256) :: (⟨369⟩ : UInt256) :: cureSelWord ee :: [])
-          (listArrayCopiedMem σ ee (cureSlotWord ⟨2⟩ σ ee) (idx + 1))
+          (listArrayCopiedMem σ ee (solcSlotWordAt ⟨2⟩ σ ee) (idx + 1))
           (listArrayCopiedAw (idx + 1)) rdata σ k1 C1 := by
         simpa [listArrayDest_succ_eq, listArraySlot_succ_eq, listArrayCopiedAw,
           listArrayCopyStepMem_eq_copied_succ_of_wf hwf (n := idx) (by omega)]
           using hnext
       exact cureListArrayLoopRunAux hwf rem (idx + 1) (by omega) hnext'
-
-theorem listMloadCost_of_stack {s : State} {aw off : UInt256} {t : List UInt256}
-    {mcost : ℕ}
-    (haw : s.machineState.activeWords = aw)
-    (hstk : s.machineState.stack = off :: t)
-    (hcost : Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)) - Cₘ aw = mcost) :
-    memoryExpansionCost s .MLOAD = mcost := by
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ']
-  have htop : s.machineState.stack[0]! = off := by
-    rw [hstk]
-    rfl
-  rw [htop, haw]
-  exact hcost
-
-theorem listReturnCost_of_stack {s : State} {aw off len : UInt256} {t : List UInt256}
-    {mcost : ℕ}
-    (haw : s.machineState.activeWords = aw)
-    (hstk : s.machineState.stack = off :: len :: t)
-    (hcost : Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat len.toNat)) -
-        Cₘ aw = mcost) :
-    memoryExpansionCost s .RETURN = mcost := by
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ']
-  have h0 : s.machineState.stack[0]! = off := by
-    rw [hstk]
-    rfl
-  have h1 : s.machineState.stack[1]! = len := by
-    rw [hstk]
-    rfl
-  rw [h0, h1, haw]
-  exact hcost
 
 
 end Benchmarks.Dss.Cure

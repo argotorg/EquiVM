@@ -30,8 +30,9 @@ theorem evalExpr_burn_liquidity (evm : EVM.State) (locals : Store)
     (hbase := hbase) (her := her)
     (hty := by simp [storageTypeAt?, burnFunctionFromEvaledRef, contract, storageDecls,
       uint256St, storageTypeStep?]) (hloc := by rfl)]
-  simp [burnLiquidityWord, burnFunctionFromSlot, burnFunctionFromBalanceWord,
-    uniswapStorageLocLoad_uint256]
+  simp [show wordLoc = uint256Loc from rfl, burnLiquidityWord, burnFunctionFromSlot,
+    burnFunctionFromBalanceWord,
+    storageLocLoad_uint256]
 
 theorem burnLiquidityStore_reserve0
     (reserveEvm callEvm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256) :

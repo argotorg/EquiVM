@@ -26,8 +26,8 @@ theorem pausablePausedBodyReturns (evm : EVM.State) (locals : Store)
       have hty : storageTypeAt? contract.storage
           ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
         decide
-      rw [evalExpr_storage_scalar (hbackend := rfl) (loc := boolLoc ⟨0⟩) (t := .bool) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := by rfl), pausableStorageLocLoad_bool_offset0])
+      erw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool) (hbase := hlocals) (her := her)
+        (hty := hty) (hloc := by rfl), storageLocLoad_bool_offset0])
 
 theorem pausableX_paused {σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD pausableBenchBytecode I g
@@ -109,7 +109,7 @@ theorem pausableDecode_paused {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
 theorem pausablePausedBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x5c, 0x97, 0x5a, 0xbb]⟩)
     (hreach : ∃ k C, RD pausableBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨99⟩

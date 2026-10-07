@@ -7,7 +7,6 @@ namespace Benchmarks.Dss.Flipper
 theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 4)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -25,14 +24,14 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
     let locals := dentLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hpacked :
-        flipperSlotWord (bidPackedSlotOfWord (dentId I)) σ I =
-          flipperSlotWord (bidPackedSlotOfWord (dentId I)) σ I := rfl
+        solcSlotWordAt (bidPackedSlotOfWord (dentId I)) σ I =
+          solcSlotWordAt (bidPackedSlotOfWord (dentId I)) σ I := rfl
     have hbidWordEq : bidBidWord (dentId I) σ I = bidBidWord (dentId I) σ I := rfl
     have htabWordEq : bidTabWord (dentId I) σ I = bidTabWord (dentId I) σ I := rfl
     have hlotWordEq : bidLotWord (dentId I) σ I = bidLotWord (dentId I) σ I := rfl
     have hbegWordEq : dentBegWord σ I = dentBegWord σ I := rfl
     have hguyEq : bidGuyWord (dentId I) σ I = bidGuyWord (dentId I) σ I := by
-      simp [bidGuyWord, flipperAddressReturnWord, hpacked]
+      simp [bidGuyWord, solcAddressSlotWord, hpacked]
     have hticEq : bidTicWord (dentId I) σ I = bidTicWord (dentId I) σ I := by
       simp [bidTicWord, flipperUint48Offset20Word, hpacked]
     have hendEq : bidEndWord (dentId I) σ I = bidEndWord (dentId I) σ I := by
@@ -190,7 +189,7 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
                         (twoWordHashMem_size_96 (dentId I) ⟨1⟩ (dentHashMem2_size I))
                         (twoWordHashMem_read64 (dentId I) ⟨1⟩ (dentHashMem2_size I)
                           (dentHashMem2_read64 I)))
-                  exact flipperDentBodyFrom4601LotLower hcode hdispatch hdecode hperm hwv
+                  exact flipperDentBodyFrom4601LotLower hcode hdispatch hdecode hwv
                     hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard
                     hmem4601Size hmem4601Read64 rd4601
                 · have hlotLeEvm :
@@ -366,7 +365,7 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
                         (twoWordHashMem_size_96 (dentId I) ⟨1⟩ (dentHashMem2_size I))
                         (twoWordHashMem_read64 (dentId I) ⟨1⟩ (dentHashMem2_size I)
                           (dentHashMem2_read64 I))))
-                exact flipperDentBodyFrom4601LotLower hcode hdispatch hdecode hperm hwv
+                exact flipperDentBodyFrom4601LotLower hcode hdispatch hdecode hwv
                   hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard
                   hmem4601Size hmem4601Read64 rd4601
               · have hlotLeEvm :

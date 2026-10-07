@@ -44,7 +44,7 @@ def mintFeeOnKLastNonzeroInitialReturnFromFactoryCaseData
   let caller : Frame := { contract := contract, locals := afterTotalSupplyLocals }
   mintFeeOnKLastNonzeroNoFeeLiquidityFromFactoryCaseData feeToWord reserve0 reserve1
       σFee evmFeeS I ∧
-    uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩ ∧
+    solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩ ∧
     amount0.toNat * amount1.toNat < UInt256.size ∧
     ∀ rootLiquidity : Int,
       ExecStmt config caller evmFeeS
@@ -60,11 +60,11 @@ def mintFeeOnKLastNonzeroInitialReturnFromFactoryCaseData
         mintFunctionToBalanceNewNat evmFeeS (AccountAddress.ofNat 0)
             (⟨1000⟩ : UInt256) <
           UInt256.size ∧
-        (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
+        (solcSlotWordAt ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
           UInt256.size ∧
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩ memFee)).toNat +
             (⟨1000⟩ : UInt256).toNat <
           UInt256.size ∧
@@ -79,14 +79,14 @@ def mintFeeOnKLastNonzeroInitialReturnFromFactoryCaseData
         (let σAfterMinimum :=
           sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩
               (uniswapInternalMintBalanceHashMem ⟨0⟩ memFee))
             (uniswapCodeOwnerStorageWord I
               (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-                (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+                (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
               (uniswapInternalMintBalanceHashSlot ⟨0⟩ memFee) + (⟨1000⟩ : UInt256))
-        (uniswapSlotWord ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat < UInt256.size) ∧
+        (solcSlotWordAt ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat < UInt256.size) ∧
         (let minimumMem :=
           uniswapInternalMintLogMem (⟨1000⟩ : UInt256)
             (uniswapInternalMintBalanceHashMem ⟨0⟩
@@ -94,16 +94,16 @@ def mintFeeOnKLastNonzeroInitialReturnFromFactoryCaseData
         let σAfterMinimum :=
           sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩
               (uniswapInternalMintBalanceHashMem ⟨0⟩ memFee))
             (uniswapCodeOwnerStorageWord I
               (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-                (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+                (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
               (uniswapInternalMintBalanceHashSlot ⟨0⟩ memFee) + (⟨1000⟩ : UInt256))
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σAfterMinimum ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σAfterMinimum I + liquidity))
+            (solcSlotWordAt ⟨0⟩ σAfterMinimum I + liquidity))
           (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) minimumMem)).toNat +
             liquidity.toNat <
           UInt256.size) ∧
@@ -116,25 +116,25 @@ def mintFeeOnKLastNonzeroInitialReturnFromFactoryCaseData
         let σAfterMinimum :=
           sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩
               (uniswapInternalMintBalanceHashMem ⟨0⟩ memFee))
             (uniswapCodeOwnerStorageWord I
               (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-                (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+                (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
               (uniswapInternalMintBalanceHashSlot ⟨0⟩ memFee) + (⟨1000⟩ : UInt256))
         let σAfterMint :=
           sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σAfterMinimum ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σAfterMinimum I + liquidity))
+              (solcSlotWordAt ⟨0⟩ σAfterMinimum I + liquidity))
             (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I)
               (uniswapInternalMintBalanceHashMem (mintToMaskedWord I) minimumMem))
             (uniswapCodeOwnerStorageWord I
               (sstoreAccountMap I.codeOwner σAfterMinimum ⟨0⟩
-                (uniswapSlotWord ⟨0⟩ σAfterMinimum I + liquidity))
+                (solcSlotWordAt ⟨0⟩ σAfterMinimum I + liquidity))
               (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) minimumMem) +
               liquidity)
-        UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σAfterMint I) I)
+        UInt256.land (uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σAfterMint I) I)
           reserve32Mask = ⟨0⟩) ∧
         syncTimeElapsedInt
             (mintFunctionPostState
@@ -149,29 +149,29 @@ def mintFeeOnKLastNonzeroInitialReturnFromFactoryCaseData
         let σAfterMinimum :=
           sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩
               (uniswapInternalMintBalanceHashMem ⟨0⟩ memFee))
             (uniswapCodeOwnerStorageWord I
               (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-                (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+                (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
               (uniswapInternalMintBalanceHashSlot ⟨0⟩ memFee) + (⟨1000⟩ : UInt256))
         let σAfterMint :=
           sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σAfterMinimum ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σAfterMinimum I + liquidity))
+              (solcSlotWordAt ⟨0⟩ σAfterMinimum I + liquidity))
             (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I)
               (uniswapInternalMintBalanceHashMem (mintToMaskedWord I) minimumMem))
             (uniswapCodeOwnerStorageWord I
               (sstoreAccountMap I.codeOwner σAfterMinimum ⟨0⟩
-                (uniswapSlotWord ⟨0⟩ σAfterMinimum I + liquidity))
+                (solcSlotWordAt ⟨0⟩ σAfterMinimum I + liquidity))
               (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) minimumMem) +
               liquidity)
-        let packed := uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ σAfterMint I)
+        let packed := uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ σAfterMint I)
           (uniswapUpdateTimestampWord I) balance1 balance0
         let σPacked := sstoreAccountMap I.codeOwner σAfterMint ⟨8⟩ packed
-        (UInt256.land (uniswapSlotWord ⟨8⟩ σPacked I) reserve112Mask).toNat *
-            (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σPacked I) reserve112Shift)
+        (UInt256.land (solcSlotWordAt ⟨8⟩ σPacked I) reserve112Mask).toNat *
+            (UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σPacked I) reserve112Shift)
               reserve112Mask).toNat <
           UInt256.size) ∧
         mintFeeReserveProductNat
@@ -205,7 +205,7 @@ def mintFeeOnKLastNonzeroInitialZeroFromFactoryCaseData
   let caller : Frame := { contract := contract, locals := afterTotalSupplyLocals }
   mintFeeOnKLastNonzeroNoFeeLiquidityFromFactoryCaseData feeToWord reserve0 reserve1
       σFee evmFeeS I ∧
-    uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩ ∧
+    solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩ ∧
     amount0.toNat * amount1.toNat < UInt256.size ∧
     ∀ rootLiquidity : Int,
       ExecStmt config caller evmFeeS
@@ -221,11 +221,11 @@ def mintFeeOnKLastNonzeroInitialZeroFromFactoryCaseData
         mintFunctionToBalanceNewNat evmFeeS (AccountAddress.ofNat 0)
             (⟨1000⟩ : UInt256) <
           UInt256.size ∧
-        (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
+        (solcSlotWordAt ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
           UInt256.size ∧
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩ memFee)).toNat +
             (⟨1000⟩ : UInt256).toNat <
           UInt256.size
@@ -235,7 +235,7 @@ def mintFeeOnKLastNonzeroInitialProductOverflowFromFactoryCaseData
     (evmFeeS : EVM.State) (I : ExecutionEnv) : Prop :=
   mintFeeOnKLastNonzeroNoFeeLiquidityFromFactoryCaseData feeToWord reserve0 reserve1
       σFee evmFeeS I ∧
-    uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩ ∧
+    solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩ ∧
     UInt256.size ≤ amount0.toNat * amount1.toNat
 
 def mintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCaseData
@@ -252,7 +252,7 @@ def mintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCaseData
   let caller : Frame := { contract := contract, locals := afterTotalSupplyLocals }
   mintFeeOnKLastNonzeroNoFeeLiquidityFromFactoryCaseData feeToWord reserve0 reserve1
       σFee evmFeeS I ∧
-    uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩ ∧
+    solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩ ∧
     amount0.toNat * amount1.toNat < UInt256.size ∧
     ∀ rootLiquidity : Int,
       ExecStmt config caller evmFeeS
@@ -315,7 +315,7 @@ theorem uniswapMintFeeOnKLastNonzeroNoFeeLiquidityPrefixFromFactory
     (hruntimeReserve1 :
       reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve1)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
@@ -727,11 +727,11 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
           (⟨1000⟩ : UInt256) <
         UInt256.size)
     (htotalFitMin :
-      (uniswapSlotWord ⟨0⟩ σAfter I).toNat + (⟨1000⟩ : UInt256).toNat < UInt256.size)
+      (solcSlotWordAt ⟨0⟩ σAfter I).toNat + (⟨1000⟩ : UInt256).toNat < UInt256.size)
     (hbalanceFitMin :
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σAfter ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
+          (solcSlotWordAt ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem)).toNat +
           (⟨1000⟩ : UInt256).toNat < UInt256.size)
     (hfitSupplySource :
@@ -748,14 +748,14 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
       let σAfterMinimum :=
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σAfter ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
             (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σAfter ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
-      (uniswapSlotWord ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat < UInt256.size)
+      (solcSlotWordAt ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat < UInt256.size)
     (hbalanceFit :
       let minimumMem :=
         uniswapInternalMintLogMem (⟨1000⟩ : UInt256)
@@ -764,16 +764,16 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
       let σAfterMinimum :=
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σAfter ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
             (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σAfter ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σAfterMinimum ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σAfterMinimum I + liquidity))
+          (solcSlotWordAt ⟨0⟩ σAfterMinimum I + liquidity))
         (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) minimumMem)).toNat +
           liquidity.toNat < UInt256.size)
     (hbound0 : balance0.toNat ≤ reserve112Mask.toNat)
@@ -786,24 +786,24 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
       let σAfterMinimum :=
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σAfter ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
             (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σAfter ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
       let σAfterMint :=
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σAfterMinimum ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σAfterMinimum I + liquidity))
+            (solcSlotWordAt ⟨0⟩ σAfterMinimum I + liquidity))
           (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I)
             (uniswapInternalMintBalanceHashMem (mintToMaskedWord I) minimumMem))
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σAfterMinimum ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σAfterMinimum I + liquidity))
+              (solcSlotWordAt ⟨0⟩ σAfterMinimum I + liquidity))
             (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) minimumMem) + liquidity)
-      UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σAfterMint I) I)
+      UInt256.land (uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σAfterMint I) I)
         reserve32Mask = ⟨0⟩)
     (helapsedSource :
       syncTimeElapsedInt
@@ -819,28 +819,28 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
       let σAfterMinimum :=
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σAfter ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
             (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σAfter ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σAfter I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
       let σAfterMint :=
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σAfterMinimum ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σAfterMinimum I + liquidity))
+            (solcSlotWordAt ⟨0⟩ σAfterMinimum I + liquidity))
           (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I)
             (uniswapInternalMintBalanceHashMem (mintToMaskedWord I) minimumMem))
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σAfterMinimum ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σAfterMinimum I + liquidity))
+              (solcSlotWordAt ⟨0⟩ σAfterMinimum I + liquidity))
             (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) minimumMem) + liquidity)
-      let packed := uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ σAfterMint I)
+      let packed := uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ σAfterMint I)
         (uniswapUpdateTimestampWord I) balance1 balance0
       let σPacked := sstoreAccountMap I.codeOwner σAfterMint ⟨8⟩ packed
-      (UInt256.land (uniswapSlotWord ⟨8⟩ σPacked I) reserve112Mask).toNat *
-          (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σPacked I) reserve112Shift)
+      (UInt256.land (solcSlotWordAt ⟨8⟩ σPacked I) reserve112Mask).toNat *
+          (UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σPacked I) reserve112Shift)
             reserve112Mask).toNat <
         UInt256.size)
     (hfitKLastSource :
@@ -1071,7 +1071,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialReturnFromFactoryCase
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
         amount1)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
@@ -1283,7 +1283,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialZeroFromFactoryCase
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
         amount1)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
@@ -1490,7 +1490,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialProductOverflowFromFactoryCase
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
         amount1)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
@@ -1653,7 +1653,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCase
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
         amount1)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
@@ -1858,7 +1858,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialFromFactoryCases
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
         amount1)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,

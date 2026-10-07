@@ -1,3 +1,4 @@
+import Reasoning.Memory
 import Examples.OpenZeppelinBench.AccessControl.Storage
 import Reasoning.SolmBody
 
@@ -155,8 +156,10 @@ theorem evalStorageRef_hasRole (evm : EVM.State) (I : ExecutionEnv)
   simp only [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, roleHasRoleRef,
     hasRoleEvaledRef, evalExpr?, EvalResult.bind, EvalResult.ofOption, bind, pure,
     Std.HashMap.get?_eq_getElem?, hgrole, hgaccount, hasRoleRoleValue,
-    hasRoleAccountValue, accessControlValueToKey_bytes32_of_length hlen,
-    accessControlValueToKey_address]
+    hasRoleAccountValue, show bytes32Width = abiBytes32Width from rfl,
+    valueToKey_bytes32_of_length hlen,
+    valueToKey_address]
+  rfl
 
 theorem evalExpr_hasRole_storage (evm : EVM.State) (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size) :
@@ -176,7 +179,8 @@ theorem evalExpr_hasRole_storage (evm : EVM.State) (I : ExecutionEnv)
         some (.leaf (boolLoc (hasRoleSlot I)))
       simpa [config, hasRoleEvaledRef, hasRoleSlot] using
         storageLayout_hasRole (hasRoleRoleKey I) (hasRoleAccountKey I))]
-  rw [accessControlStorageLocLoad_bool_offset0 evm (hasRoleSlot I)]
+  rw [show boolLoc (hasRoleSlot I) = boolOffset0Loc (hasRoleSlot I) from rfl,
+    storageLocLoad_bool_offset0 evm (hasRoleSlot I)]
 
 theorem accessControlHasRoleBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size) :
@@ -205,126 +209,19 @@ theorem hasRoleRoleKeyValueToWord {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.
   rw [byteArray_toList_eq (I.calldata.readBytes 4 32),
     readBytes_at_toList I.calldata 4 (by omega) (by decide), ← byteArray_toList_eq I.calldata]
 
--- PROMOTE -> Common.lean: generic two-word scratch-memory helpers.
-def accessControlWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
-  (UInt256.toByteArray word).write 0 mem 0 32
-
-def accessControlWordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
-  (UInt256.toByteArray word).write 0 mem 32 32
-
-def accessControlTwoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
-  accessControlWordAt32Mem slot (accessControlWordAt0Mem key mem)
-
-theorem accessControlWordAt0Mem_size {mem : ByteArray} (word : UInt256)
-    (hmem : mem.size = 96) :
-    (accessControlWordAt0Mem word mem).size = 96 := by
-  unfold accessControlWordAt0Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
-    ByteArray.size_extract, hmem, toByteArray_size]
-  omega
-
-theorem accessControlWordAt32Mem_size {mem : ByteArray} (word : UInt256)
-    (hmem : mem.size = 96) :
-    (accessControlWordAt32Mem word mem).size = 96 := by
-  unfold accessControlWordAt32Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
-    ByteArray.size_extract, hmem, toByteArray_size]
-  omega
-
-theorem accessControlTwoWordHashMem_size {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96) :
-    (accessControlTwoWordHashMem key slot mem).size = 96 := by
-  unfold accessControlTwoWordHashMem
-  exact accessControlWordAt32Mem_size slot (accessControlWordAt0Mem_size key hmem)
-
-theorem accessControlWordAt0Mem_read0 {mem : ByteArray} (word : UInt256)
-    (hmem : mem.size = 96) :
-    (accessControlWordAt0Mem word mem).readWithPadding 0 32 = UInt256.toByteArray word := by
-  unfold accessControlWordAt0Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray word).size ≤ 32
-    rw [toByteArray_size])
-
-theorem accessControlWordAt0Mem_read64 {mem : ByteArray} (word : UInt256)
-    (hmem : mem.size = 96) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (accessControlWordAt0Mem word mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  unfold accessControlWordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
-      (by omega) (by rw [hmem])]
-  exact hread64
-
-theorem accessControlTwoWordHashMem_read0 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96) :
-    (accessControlTwoWordHashMem key slot mem).readWithPadding 0 32 =
-      UInt256.toByteArray key := by
-  unfold accessControlTwoWordHashMem accessControlWordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [accessControlWordAt0Mem_size key hmem]; omega) (by omega),
-    accessControlWordAt0Mem_read0 key hmem]
-
-theorem accessControlTwoWordHashMem_read32 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96) :
-    (accessControlTwoWordHashMem key slot mem).readWithPadding 32 32 =
-      UInt256.toByteArray slot := by
-  unfold accessControlTwoWordHashMem accessControlWordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [accessControlWordAt0Mem_size key hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray slot).size ≤ 32
-    rw [toByteArray_size])
-
-theorem accessControlTwoWordHashMem_read64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (accessControlTwoWordHashMem key slot mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold accessControlTwoWordHashMem accessControlWordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [accessControlWordAt0Mem_size key hmem]; omega) (by omega)
-      (by rw [accessControlWordAt0Mem_size key hmem])]
-  exact accessControlWordAt0Mem_read64 key hmem hread64
-
-theorem accessControlTwoWordHashMem_read0_64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96) :
-    (accessControlTwoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [accessControlTwoWordHashMem_size key slot hmem]; omega)]
-  have hleft :
-      (accessControlTwoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [accessControlTwoWordHashMem_size key slot hmem]; omega),
-      accessControlTwoWordHashMem_read0 key slot hmem]
-  have hright :
-      (accessControlTwoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by rw [accessControlTwoWordHashMem_size key slot hmem]; omega),
-      accessControlTwoWordHashMem_read32 key slot hmem]
-  rw [show (accessControlTwoWordHashMem key slot mem).extract 0 64 =
-      (accessControlTwoWordHashMem key slot mem).extract 0 32 ++
-        (accessControlTwoWordHashMem key slot mem).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      norm_num]
-  rw [hleft, hright]
 
 def hasRoleBaseHashMem (role : UInt256) : ByteArray :=
-  accessControlTwoWordHashMem role ⟨0⟩ solcFreePtrMem
+  twoWordHashMem role ⟨0⟩ solcFreePtrMem
 
 def hasRoleBaseSlot (role : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
     (KEC ((hasRoleBaseHashMem role).readWithPadding 0 64)))
 
 def hasRoleAccountMem (role account : UInt256) : ByteArray :=
-  accessControlWordAt0Mem account (hasRoleBaseHashMem role)
+  wordAt0Mem account (hasRoleBaseHashMem role)
 
 def hasRoleSlotHashMem (role account : UInt256) : ByteArray :=
-  accessControlWordAt32Mem (hasRoleBaseSlot role) (hasRoleAccountMem role account)
+  wordAt32Mem (hasRoleBaseSlot role) (hasRoleAccountMem role account)
 
 def hasRoleReturnMem (role account val : UInt256) : ByteArray :=
   (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))).write 0
@@ -333,40 +230,40 @@ def hasRoleReturnMem (role account val : UInt256) : ByteArray :=
 theorem hasRoleBaseHashMem_size (role : UInt256) :
     (hasRoleBaseHashMem role).size = 96 := by
   unfold hasRoleBaseHashMem
-  exact accessControlTwoWordHashMem_size role ⟨0⟩ solcFreePtrMem_size
+  exact twoWordHashMem_size_96 role ⟨0⟩ solcFreePtrMem_size
 
 theorem hasRoleSlotHashMem_size (role account : UInt256) :
     (hasRoleSlotHashMem role account).size = 96 := by
   unfold hasRoleSlotHashMem
-  apply accessControlWordAt32Mem_size
+  apply wordAt32Mem_size_96
   unfold hasRoleAccountMem
-  exact accessControlWordAt0Mem_size account (hasRoleBaseHashMem_size role)
+  exact wordAt0Mem_size_96 account (hasRoleBaseHashMem_size role)
 
 theorem hasRoleBaseHashMem_read0_64 (role : UInt256) :
     (hasRoleBaseHashMem role).readWithPadding 0 64 =
       UInt256.toByteArray role ++ UInt256.toByteArray (⟨0⟩ : UInt256) := by
   unfold hasRoleBaseHashMem
-  exact accessControlTwoWordHashMem_read0_64 role ⟨0⟩ solcFreePtrMem_size
+  exact twoWordHashMem_read0_64 role ⟨0⟩ solcFreePtrMem_size
 
 theorem hasRoleSlotHashMem_read0_64 (role account : UInt256) :
     (hasRoleSlotHashMem role account).readWithPadding 0 64 =
       UInt256.toByteArray account ++ UInt256.toByteArray (hasRoleBaseSlot role) := by
-  change (accessControlTwoWordHashMem account (hasRoleBaseSlot role)
+  change (twoWordHashMem account (hasRoleBaseSlot role)
       (hasRoleBaseHashMem role)).readWithPadding 0 64 =
     UInt256.toByteArray account ++ UInt256.toByteArray (hasRoleBaseSlot role)
-  exact accessControlTwoWordHashMem_read0_64 account (hasRoleBaseSlot role)
+  exact twoWordHashMem_read0_64 account (hasRoleBaseSlot role)
     (hasRoleBaseHashMem_size role)
 
 theorem hasRoleSlotHashMem_read64 (role account : UInt256) :
     (hasRoleSlotHashMem role account).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  change (accessControlTwoWordHashMem account (hasRoleBaseSlot role)
+  change (twoWordHashMem account (hasRoleBaseSlot role)
       (hasRoleBaseHashMem role)).readWithPadding 64 32 =
     UInt256.toByteArray ⟨128⟩
-  apply accessControlTwoWordHashMem_read64
+  apply twoWordHashMem_read64
   · exact hasRoleBaseHashMem_size role
   · unfold hasRoleBaseHashMem
-    exact accessControlTwoWordHashMem_read64 role ⟨0⟩ solcFreePtrMem_size
+    exact twoWordHashMem_read64 role ⟨0⟩ solcFreePtrMem_size
       solcFreePtrMem_read64
 
 theorem hasRoleSlotHashMem_mload64 (role account : UInt256) :
@@ -524,7 +421,7 @@ theorem accessControlX_hasRole {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hslot := hasRoleOuterKeccakSlot I hsz68 hcanonAccount
   have rd465 := evm_run rd451 with [
     jumpdest, push0, swap2, dup3,
-    raw mstore 0 (accessControlWordAt0Mem (hasRoleRoleWord I) solcFreePtrMem)
+    raw mstore 0 (wordAt0Mem (hasRoleRoleWord I) solcFreePtrMem)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup3, dup2,
     raw mstore 0 (hasRoleBaseHashMem (hasRoleRoleWord I)) (UInt256.ofNat 3) (by decide)
@@ -657,7 +554,7 @@ theorem accessControlHasRoleX_noncanon_account {σ σ₀ A I} {g : Sat256}
 theorem accessControlHasRoleBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x91, 0xd1, 0x48, 0x54]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨254⟩
@@ -665,7 +562,6 @@ theorem accessControlHasRoleBody {σ σ₀ A I}
       σ k C) :
     runtimeEquivalenceFor config contract
       σ σ₀ g A I := by
-  have _hperm : I.perm = true := hperm
   have hsz4 := hasRoleSelector_size hsel
   have hd := accessControlDispatch_hasRole (cd := I.calldata) (by simpa [selIs] using hsel)
   by_cases hsz68 : 68 ≤ I.calldata.size

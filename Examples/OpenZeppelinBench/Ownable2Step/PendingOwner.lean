@@ -32,9 +32,8 @@ theorem ownable2StepPendingOwnerBodyReturns (evm : EVM.State) (locals : Store)
           ({ base := "_pendingOwner", steps := [] } : EvaledStorageRef) =
           some (.elem .address) := by
         decide
-      rw [evalExpr_storage_scalar (hbackend := rfl) (loc := addrLoc ⟨1⟩)
-        (t := .address) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := by rfl), ownable2StepStorageLocLoad_address_offset0])
+      erw [evalExpr_storage_scalar (hbackend := rfl) (t := .address) (hbase := hlocals) (her := her)
+        (hty := hty) (hloc := by rfl), storageLocLoad_address_offset0])
 
 theorem ownable2StepPendingOwnerSelector_size {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0xe3, 0x0c, 0x39, 0x78]⟩) :
@@ -89,7 +88,7 @@ theorem ownable2StepX_pendingOwner {σ σ₀ A I} {g : Sat256}
 theorem ownable2StepPendingOwnerBody
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xe3, 0x0c, 0x39, 0x78]⟩)
     (hreach : ∃ k C, RD ownable2StepBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨147⟩

@@ -35,6 +35,11 @@ and the correctness of the runtime code:
 runtimeEquivalence <config> <runtimeBytecode> <contract>
 ```
 
+It has no `I.perm = true` precondition, so it also covers calls entered
+with STATICCALL: at a path's first SSTORE / LOG / value-carrying CALL
+both sides halt with a static-mode violation (see
+`Misc/Template/Function.lean`).
+
 Your goal is to complete the proof. The proof must be correct,
 modular, fast enough to work on, and axiom-clean except for the
 accepted trusted base below.
@@ -153,7 +158,8 @@ The proof of each function follows, roughly, four phases:
 5. Connect. `reEquivExecution` / `reEquivDecodingFailed` /
    `reEquivNoDispatch` / `reEquivElim` glue the source result, the
    decode fact, and the EVM `RDret`/`RDrev` into
-   `runtimeEquivalenceFor`.
+   `runtimeEquivalenceFor`; `RDstatic.reEquivStaticHalt` does the same
+   for a static-mode halt.
 
 ---
 

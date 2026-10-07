@@ -1,4 +1,4 @@
-import Examples.TinyImmutable.Common
+import Examples.TinyImmutable.BlocksProof
 import Reasoning.SolmBody
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -22,7 +22,7 @@ theorem tinyOwnerBodyReturns (v : TinyImmutables) (evm : EVM.State) (locals : St
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       simpa [owner] using
-        evalAddrLit (config v) { contract := contract v, locals := locals } evm v.owner)
+        evalAddressLiteral (config v) { contract := contract v, locals := locals } evm v.owner)
 
 theorem tinyOwnerReturnEncoding (v : TinyImmutables) :
     encodeReturnValue? addr (.address v.owner) =
@@ -37,16 +37,18 @@ theorem tinyOwnerX {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret (patchedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (EVM.Word.ofNat (↑v.owner : Nat))) := by
-  obtain ⟨_, _, rd67⟩ := hreach
-  have rd71 := evm_run rd67 with [
-    raw jumpdest (by tiny_decode_at v, ⟨67⟩, 0x5b, .JUMPDEST) (by evm_ov),
-    raw push2 ⟨106⟩ (by tiny_decode_at v, ⟨68⟩, 0x61, (.Push .PUSH2)) (by evm_ov)]
-  have rd104 := rd71.pushConst (EVM.Word.ofNat (↑v.owner : Nat)) (width := 32)
-    (op := .PUSH32) (by decide) (tinyDecodeOwnerWord1 v) (by evm_ov)
-  have rd106 := evm_run rd104 with [
-    raw dup2 (by tiny_decode_at v, ⟨104⟩, 0x81, .DUP2) (by evm_ov),
-    raw jump (by tiny_decode_at v, ⟨105⟩, 0x56, .JUMP) (tinyContains106 v) (by evm_ov)]
-  have hret := RD.tinyReturnAddress106 (v := v) (R := [solcSelectorWord I]) rd106
+  obtain ⟨k, C, rd67⟩ := hreach
+  have rd106 : RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨106⟩
+      [EVM.Word.ofNat (↑v.owner : Nat), ⟨106⟩, solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k + 5) (C + 18) := by
+    have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+        (UInt256.ofNat 106) = true := by
+      exact tinyContains106 v
+    have h := tinyImmutableBlocks.tinyImmutable_block_67 (immWords := immutableWords v)
+      (by simp) hvalid rd67
+    simpa [tinyImmutableBlocks.tinyImmutable_block_67_stack, immutableWords,
+      patchedRuntime] using h
+  have hret := RD.tinyBlocksReturnAddress106 (v := v) (R := [solcSelectorWord I]) rd106
     (by simp only [List.length_singleton]; omega)
   simpa [tinyOwnerWord_clean v] using hret
 
@@ -58,7 +60,7 @@ theorem tinyOwnerBodyCore
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz := tinyOwnerSelector_size hsel
   have hd := tinyDispatch_owner v hsel
-  have hreach := tinyReachOwnerBody (σ := σ)
+  have hreach := tinyBlocksReachOwnerBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) v hcode hwv hsz hsize
     hsel
   have hdec := tinyOwnerDecode_empty (v := v) (I := I) hsz

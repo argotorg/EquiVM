@@ -27,27 +27,27 @@ namespace Benchmarks.Dss.DaiJoin
 theorem daiJoinCorrect :
     runtimeEquivalence config daiJoinBytecode contract := by
   refine runtimeEquivalence.intro ?_
-  intro σ σ₀ g A I hcode hsize hperm
+  intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcage : selIs I (daiJoinSelBytes 0)
-    · exact daiJoinCageBodyCore hcode hsize hperm hwv hcage
+    · exact daiJoinCageBodyCoreAnyPerm hcode hsize hwv hcage
     · by_cases hdai : selIs I (daiJoinSelBytes 1)
-      · exact daiJoinDaiBodyCore hcode hsize hperm hwv hdai
+      · exact daiJoinDaiBodyCore hcode hsize hwv hdai
       · by_cases hdeny : selIs I (daiJoinSelBytes 2)
-        · exact daiJoinDenyBodyCore hcode hsize hperm hwv hdeny
+        · exact daiJoinDenyBodyCoreAnyPerm hcode hsize hwv hdeny
         · by_cases hexit : selIs I (daiJoinSelBytes 3)
-          · exact daiJoinExitBodyCore hcode hsize hperm hwv hexit
+          · exact daiJoinExitBodyCore hcode hsize hwv hexit
           · by_cases hjoin : selIs I (daiJoinSelBytes 4)
-            · exact daiJoinJoinBodyCore hcode hsize hperm hwv hjoin
+            · exact daiJoinJoinBodyCore hcode hsize hwv hjoin
             · by_cases hlive : selIs I (daiJoinSelBytes 5)
-              · exact daiJoinLiveBodyCore hcode hsize hperm hwv hlive
+              · exact daiJoinLiveBodyCore hcode hsize hwv hlive
               · by_cases hrely : selIs I (daiJoinSelBytes 6)
-                · exact daiJoinRelyBodyCore hcode hsize hperm hwv hrely
+                · exact daiJoinRelyBodyCoreAnyPerm hcode hsize hwv hrely
                 · by_cases hvat : selIs I (daiJoinSelBytes 7)
-                  · exact daiJoinVatBodyCore hcode hsize hperm hwv hvat
+                  · exact daiJoinVatBodyCore hcode hsize hwv hvat
                   · by_cases hwards : selIs I (daiJoinSelBytes 8)
-                    · exact daiJoinWardsBodyCore hcode hsize hperm hwv hwards
-                    · exact daiJoinNoDispatch hcode hsize hperm hwv
+                    · exact daiJoinWardsBodyCore hcode hsize hwv hwards
+                    · exact daiJoinNoDispatch hcode hsize hwv
                         (daiJoinNoSelectorMatches hcage hdai hdeny hexit hjoin hlive hrely hvat
                           hwards)
   · exact daiJoinNonPayable hcode hwv

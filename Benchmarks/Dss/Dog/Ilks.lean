@@ -1,3 +1,4 @@
+import Reasoning.ABIViews
 import Benchmarks.Dss.Dog.Dispatch
 import Reasoning.MemCascade
 
@@ -56,7 +57,7 @@ theorem dogDecode_ilks_ok {v : DogImmutables} {I : ExecutionEnv}
         some (ilksLocals I) := by
   simpa [config, ilksTransition, ilksLocals, ilksArgValue, ilksArgBytes, bytes32,
     bytes32Width] using
-    (dogDecodeCalldataWithMode_legacyBytes32_ok (cd := I.calldata) (x := "arg0")
+    (decodeCalldataWithMode_legacyBytes32_ok (cd := I.calldata) (x := "arg0")
       hsz36)
 
 theorem dogDecode_ilks_none_short {v : DogImmutables} {I : ExecutionEnv}
@@ -64,7 +65,7 @@ theorem dogDecode_ilks_none_short {v : DogImmutables} {I : ExecutionEnv}
     decodeCalldataWithMode (config v).abiDecodeMode (ilksTransition.params.map Param.name)
       (transitionSignature ilksTransition).paramTypes I.calldata = none := by
   simpa [config, ilksTransition, bytes32, bytes32Width] using
-    (dogDecodeCalldataWithMode_legacyBytes32_none_short (cd := I.calldata) (x := "arg0")
+    (decodeCalldataWithMode_legacyBytes32_none_short (cd := I.calldata) (x := "arg0")
       hsz4 hshort)
 
 theorem ilksArgBytes_len {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
@@ -78,14 +79,6 @@ theorem ilksArgBytes_len {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
   simp [bytes32Width]
   omega
 
-theorem ilksArgBytes_len_min {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
-    min 32 (I.calldata.toList.length - 4) = bytes32Width.val + 1 := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [htlen]
-  simp [bytes32Width]
-  omega
 
 theorem ilksArgBytes_len32 {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     (ilksArgBytes I).length = 32 := by
@@ -123,73 +116,6 @@ theorem ilksDirtSlotFor_eq {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     ilksDirtSlotFor I = solcMappingSlot ⟨1⟩ (ilksArgWord I) + ⟨3⟩ := by
   simp [ilksDirtSlotFor, ilksClipSlotFor_eq hsz36]
 
-theorem dogIlksReturnEncoding (clip chop hole dirt : UInt256) :
-    encodeReturnValues? [addr, uint256, uint256, uint256]
-      [.address (AccountAddress.ofNat (UInt256.land clip solcAddrMask).toNat),
-        .int (Int.ofNat chop.toNat), .int (Int.ofNat hole.toNat),
-        .int (Int.ofNat dirt.toNat)] =
-        some (UInt256.toByteArray (UInt256.land clip solcAddrMask) ++
-          UInt256.toByteArray chop ++ UInt256.toByteArray hole ++ UInt256.toByteArray dirt) := by
-  have hencAddr :
-      encodeABIValue? addr
-          (.address (AccountAddress.ofNat (UInt256.land clip solcAddrMask).toNat)) =
-        some (EVM.Word.toBytesBE (UInt256.land clip solcAddrMask)) := by
-    have hcanon := solcAddrMask_result_canonical clip
-    have haddrMod : (UInt256.land clip solcAddrMask).toNat % AccountAddress.size =
-        (UInt256.land clip solcAddrMask).toNat := by
-      apply Nat.mod_eq_of_lt
-      simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon
-    have hword :
-        EVM.word (UInt256.land clip solcAddrMask).toNat =
-          UInt256.land clip solcAddrMask :=
-      u256_ofNat_toNat _
-    simp [addr, encodeABIValue?, encodeABIWord?, AccountAddress.ofNat, haddrMod, hword]
-  have hencUint : ∀ w : UInt256,
-      encodeABIValue? uint256 (.int (Int.ofNat w.toNat)) =
-        some (EVM.Word.toBytesBE w) := by
-    intro w
-    have hword : EVM.word w.toNat = w := by
-      show UInt256.ofNat w.toNat = w
-      exact u256_ofNat_toNat w
-    have hlt : w.toNat < EVM.twoPow 256 := by
-      change w.val.val < EVM.twoPow 256
-      exact w.val.isLt
-    simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hlt]
-  rw [show UInt256.toByteArray (UInt256.land clip solcAddrMask) =
-      (EVM.Word.toBytesBE (UInt256.land clip solcAddrMask)).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray
-      (UInt256.land clip solcAddrMask)).symm]
-  rw [show UInt256.toByteArray chop = (EVM.Word.toBytesBE chop).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray chop).symm]
-  rw [show UInt256.toByteArray hole = (EVM.Word.toBytesBE hole).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray hole).symm]
-  rw [show UInt256.toByteArray dirt = (EVM.Word.toBytesBE dirt).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray dirt).symm]
-  unfold encodeReturnValues? encodeABIValues?
-  rw [show abiTupleHeadSize? [addr, uint256, uint256, uint256] = some 128 by
-    native_decide]
-  simp only [bind, Option.bind]
-  unfold encodeABIValuesFrom?
-  rw [hencAddr]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType addr = false by native_decide]
-  unfold encodeABIValuesFrom?
-  rw [hencUint chop]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
-  unfold encodeABIValuesFrom?
-  rw [hencUint hole]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
-  unfold encodeABIValuesFrom?
-  rw [hencUint dirt]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
-  unfold encodeABIValuesFrom?
-  simp only [Bool.false_eq_true, if_false, List.nil_append, List.append_nil]
-  apply congrArg some
-  apply ByteArray.ext
-  simp [ByteArray.data_append]
 
 abbrev dogIlksReturnMem
     (mem : ByteArray) (clip chop hole dirt : UInt256) : ByteArray :=
@@ -647,26 +573,27 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
     ExecTransitionBody (config v) (contract v) evm locals ilksTransition.body
       (.returned { contract := contract v, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
-          (dogAddressReturnWord (ilksClipSlotFor I) evm.accountMap evm.executionEnv).toNat)),
-          (.int (Int.ofNat (dogSlotWord (ilksChopSlotFor I) evm.accountMap
+          (solcAddressSlotWord (ilksClipSlotFor I) evm.accountMap evm.executionEnv).toNat)),
+          (.int (Int.ofNat (solcSlotWordAt (ilksChopSlotFor I) evm.accountMap
             evm.executionEnv).toNat)),
-          (.int (Int.ofNat (dogSlotWord (ilksHoleSlotFor I) evm.accountMap
+          (.int (Int.ofNat (solcSlotWordAt (ilksHoleSlotFor I) evm.accountMap
             evm.executionEnv).toNat)),
-          (.int (Int.ofNat (dogSlotWord (ilksDirtSlotFor I) evm.accountMap
+          (.int (Int.ofNat (solcSlotWordAt (ilksDirtSlotFor I) evm.accountMap
             evm.executionEnv).toNat))])) := by
   subst locals
   let frame : Frame := { contract := contract v, locals := ilksLocals I }
-  have hkeyLen := ilksArgBytes_len_min (I := I) hsz36
+  have hkeyLen := calldata_first_word_min_length (I := I) hsz36
+  change _ = bytes32Width.val + 1 at hkeyLen
   have hclip :
       evalExpr? (config v) frame evm (.storage (ilksF (.var "arg0") "clip")) =
         .ok (.address (AccountAddress.ofNat
-          (dogAddressReturnWord (ilksClipSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcAddressSlotWord (ilksClipSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "clip") (er := ilksClipEvaledRef I)
       (t := .address) (loc := addrLoc (ilksClipSlotFor I))
       (value := .address (AccountAddress.ofNat
-        (dogAddressReturnWord (ilksClipSlotFor I) evm.accountMap evm.executionEnv).toNat))
+        (solcAddressSlotWord (ilksClipSlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, ilksF])
       (by
         simp [frame, ilksClipEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
@@ -675,18 +602,18 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
       (by simp [frame, ilksArgKey, storageTypeAt?, storageTypeStep?, contract,
         storageDecls, IlkStructTy, addrSt])
       (by rfl)
-      (by simpa [dogAddressReturnWord, dogSlotWord] using
-        dogStorageLocLoad_address_offset0 evm (ilksClipSlotFor I))
+      (by simpa [solcAddressSlotWord, solcSlotWordAt] using
+        storageLocLoad_address_offset0 evm (ilksClipSlotFor I))
   have hchop :
       evalExpr? (config v) frame evm (.storage (ilksF (.var "arg0") "chop")) =
         .ok (.int (Int.ofNat
-          (dogSlotWord (ilksChopSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (ilksChopSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "chop") (er := ilksChopEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksChopSlotFor I))
       (value := .int (Int.ofNat
-        (dogSlotWord (ilksChopSlotFor I) evm.accountMap evm.executionEnv).toNat))
+        (solcSlotWordAt (ilksChopSlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, ilksF])
       (by
         simp [frame, ilksChopEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
@@ -695,17 +622,17 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
       (by simp [frame, ilksArgKey, storageTypeAt?, storageTypeStep?, contract,
         storageDecls, IlkStructTy, uint256St])
       (by rfl)
-      (by simpa [dogSlotWord] using dogStorageLocLoad_uint256 evm (ilksChopSlotFor I))
+      (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (ilksChopSlotFor I))
   have hhole :
       evalExpr? (config v) frame evm (.storage (ilksF (.var "arg0") "hole")) =
         .ok (.int (Int.ofNat
-          (dogSlotWord (ilksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (ilksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "hole") (er := ilksHoleEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksHoleSlotFor I))
       (value := .int (Int.ofNat
-        (dogSlotWord (ilksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat))
+        (solcSlotWordAt (ilksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, ilksF])
       (by
         simp [frame, ilksHoleEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
@@ -714,17 +641,17 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
       (by simp [frame, ilksArgKey, storageTypeAt?, storageTypeStep?, contract,
         storageDecls, IlkStructTy, uint256St])
       (by rfl)
-      (by simpa [dogSlotWord] using dogStorageLocLoad_uint256 evm (ilksHoleSlotFor I))
+      (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (ilksHoleSlotFor I))
   have hdirt :
       evalExpr? (config v) frame evm (.storage (ilksF (.var "arg0") "dirt")) =
         .ok (.int (Int.ofNat
-          (dogSlotWord (ilksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (ilksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "dirt") (er := ilksDirtEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksDirtSlotFor I))
       (value := .int (Int.ofNat
-        (dogSlotWord (ilksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat))
+        (solcSlotWordAt (ilksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, ilksF])
       (by
         simp [frame, ilksDirtEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
@@ -733,21 +660,21 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
       (by simp [frame, ilksArgKey, storageTypeAt?, storageTypeStep?, contract,
         storageDecls, IlkStructTy, uint256St])
       (by rfl)
-      (by simpa [dogSlotWord] using dogStorageLocLoad_uint256 evm (ilksDirtSlotFor I))
+      (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (ilksDirtSlotFor I))
   have hreturns :
       evalExprs? (config v) frame evm
         [.storage (ilksF (.var "arg0") "clip"), .storage (ilksF (.var "arg0") "chop"),
           .storage (ilksF (.var "arg0") "hole"), .storage (ilksF (.var "arg0") "dirt")] =
           .ok
             [ .address (AccountAddress.ofNat
-                (dogAddressReturnWord (ilksClipSlotFor I) evm.accountMap
+                (solcAddressSlotWord (ilksClipSlotFor I) evm.accountMap
                   evm.executionEnv).toNat),
               .int (Int.ofNat
-                (dogSlotWord (ilksChopSlotFor I) evm.accountMap evm.executionEnv).toNat),
+                (solcSlotWordAt (ilksChopSlotFor I) evm.accountMap evm.executionEnv).toNat),
               .int (Int.ofNat
-                (dogSlotWord (ilksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat),
+                (solcSlotWordAt (ilksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat),
               .int (Int.ofNat
-                (dogSlotWord (ilksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat) ] := by
+                (solcSlotWordAt (ilksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat) ] := by
     simp [evalExprs?, hclip, hchop, hhole, hdirt, EvalResult.bind, bind, pure]
   simpa [ilksTransition, nonpayable, frame] using
     (ExecFuncBody.execBlockRet <|
@@ -763,7 +690,7 @@ theorem dogIlksReturnEquiv (clip chop hole dirt : UInt256) :
         (.int (Int.ofNat dirt.toNat))])
       ilksTransition.returnType := by
   rw [show ilksTransition.returnType = [addr, uint256, uint256, uint256] by rfl]
-  exact returnEquiv.returned rfl (dogIlksReturnEncoding clip chop hole dirt)
+  exact returnEquiv.returned rfl (addressThreeUint256ReturnEncoding clip chop hole dirt)
 
 theorem dogReachIlksBody {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : Sat256}
@@ -881,10 +808,10 @@ theorem dogIlksBodyCoreOk
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   let baseSlot := solcMappingSlot ⟨1⟩ (ilksArgWord I)
-  let clipWord := dogSlotWord baseSlot σ I
-  let chopWord := dogSlotWord (baseSlot + ⟨1⟩) σ I
-  let holeWord := dogSlotWord (baseSlot + ⟨2⟩) σ I
-  let dirtWord := dogSlotWord (baseSlot + ⟨3⟩) σ I
+  let clipWord := solcSlotWordAt baseSlot σ I
+  let chopWord := solcSlotWordAt (baseSlot + ⟨1⟩) σ I
+  let holeWord := solcSlotWordAt (baseSlot + ⟨2⟩) σ I
+  let dirtWord := solcSlotWordAt (baseSlot + ⟨3⟩) σ I
   let locals := ilksLocals I
   have hclipSlot : ilksClipSlotFor I = baseSlot := by
     simp [baseSlot, ilksClipSlotFor_eq hsz36]
@@ -896,15 +823,15 @@ theorem dogIlksBodyCoreOk
     simp [baseSlot, ilksDirtSlotFor_eq hsz36]
   have hval :
       some [Value.address (AccountAddress.ofNat
-          (dogAddressReturnWord (ilksClipSlotFor I) σ I).toNat),
-        Value.int (Int.ofNat (dogSlotWord (ilksChopSlotFor I) σ I).toNat),
-        Value.int (Int.ofNat (dogSlotWord (ilksHoleSlotFor I) σ I).toNat),
-        Value.int (Int.ofNat (dogSlotWord (ilksDirtSlotFor I) σ I).toNat)] =
+          (solcAddressSlotWord (ilksClipSlotFor I) σ I).toNat),
+        Value.int (Int.ofNat (solcSlotWordAt (ilksChopSlotFor I) σ I).toNat),
+        Value.int (Int.ofNat (solcSlotWordAt (ilksHoleSlotFor I) σ I).toNat),
+        Value.int (Int.ofNat (solcSlotWordAt (ilksDirtSlotFor I) σ I).toNat)] =
       some [Value.address (AccountAddress.ofNat (UInt256.land clipWord solcAddrMask).toNat),
         Value.int (Int.ofNat chopWord.toNat), Value.int (Int.ofNat holeWord.toNat),
         Value.int (Int.ofNat dirtWord.toNat)] := by
     simp [hclipSlot, hchopSlot, hholeSlot, hdirtSlot, clipWord, chopWord, holeWord,
-      dirtWord, dogAddressReturnWord]
+      dirtWord, solcAddressSlotWord]
   have henc := dogIlksReturnEquiv clipWord chopWord holeWord dirtWord
   have hbody :
       ExecTransitionBody (config v) (contract v)
@@ -913,10 +840,10 @@ theorem dogIlksBodyCoreOk
         (.returned { contract := contract v, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (dogAddressReturnWord (ilksClipSlotFor I) σ I).toNat)),
-            (.int (Int.ofNat (dogSlotWord (ilksChopSlotFor I) σ I).toNat)),
-            (.int (Int.ofNat (dogSlotWord (ilksHoleSlotFor I) σ I).toNat)),
-            (.int (Int.ofNat (dogSlotWord (ilksDirtSlotFor I) σ I).toNat))])) := by
+            (solcAddressSlotWord (ilksClipSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (solcSlotWordAt (ilksChopSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (solcSlotWordAt (ilksHoleSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (solcSlotWordAt (ilksDirtSlotFor I) σ I).toNat))])) := by
     simpa [locals, initState] using
       dogIlksBodyReturns (v := v) (I := I) hsz36
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -979,7 +906,7 @@ theorem dogIlksBodyCoreOk
             UInt256.land (UInt256.land clipWord solcAddrMask) solcAddrMask =
               UInt256.land clipWord solcAddrMask := by
           exact solcAddrMask_clean (solcAddrMask_result_canonical clipWord)
-        simpa [baseSlot, clipWord, chopWord, holeWord, dirtWord, dogSlotWord,
+        simpa [baseSlot, clipWord, chopWord, holeWord, dirtWord, solcSlotWordAt,
           hclean, u256_land_comm] using hretPc)
       (by
         unfold dogIlksReturnFromMemWf
@@ -1040,7 +967,6 @@ theorem dogIlksBodyCore {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (dogSelBytes 11)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by

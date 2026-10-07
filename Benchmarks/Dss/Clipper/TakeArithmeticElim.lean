@@ -80,7 +80,7 @@ theorem RD.clipperTakeOweLeTabElim
             intro hp
             subst price
             have hmulZero : UInt256.mul (⟨0⟩ : UInt256) slice = ⟨0⟩ :=
-              Reasoning.Theory.clipperMul_zero_left slice
+              Reasoning.Theory.mul_zero_left slice
             rw [hmulZero] at hlt hremaining
             have hsubZero : (UInt256.sub tab (⟨0⟩ : UInt256)).toNat = tab.toNat := by
               rw [usub_toNat (by simp)]

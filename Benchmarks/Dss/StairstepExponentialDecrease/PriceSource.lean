@@ -1,3 +1,5 @@
+import Reasoning.WordArithmetic
+import Reasoning.EVMWord
 import Benchmarks.Dss.StairstepExponentialDecrease.RpowEVM
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,10 +21,10 @@ abbrev priceLocals (I : ExecutionEnv) : Store :=
     "dur" (.int (Int.ofNat (priceDur I).toNat))
 
 def priceStepWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  stairstepSlotWord ⟨1⟩ σ I
+  solcSlotWordAt ⟨1⟩ σ I
 
 def priceCutWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  stairstepSlotWord ⟨2⟩ σ I
+  solcSlotWordAt ⟨2⟩ σ I
 
 abbrev stairstepRay : UInt256 :=
   ⟨1000000000000000000000000000⟩
@@ -38,32 +40,6 @@ theorem stairstepRay_toNat : stairstepRay.toNat = 1000000000000000000000000000 :
 theorem RAY_eq_stairstepRay_toNat : RAY = Int.ofNat stairstepRay.toNat := by
   simp [RAY, stairstepRay_toNat]
 
-theorem stairstepUInt256Zero_toNat : (⟨0⟩ : UInt256).toNat = 0 := by
-  native_decide
-
--- GENERALIZES Benchmarks.Dss.Jug.u256_mul_div_overflow_ne.
-theorem price_u256_mul_div_overflow_ne (x y : UInt256)
-    (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    UInt256.div (y * x) y ≠ x := by
-  intro hEq
-  have hyNatNe : y.toNat ≠ 0 := by
-    intro hy0
-    have hprod0 : x.toNat * y.toNat = 0 := by simp [hy0]
-    have hsizePos : 0 < UInt256.size := by norm_num [UInt256.size]
-    omega
-  have hnat := congrArg UInt256.toNat hEq
-  rw [udiv_toNat, u256_mul_op_toNat] at hnat
-  have hremLt : y.toNat * x.toNat % UInt256.size < y.toNat * x.toNat := by
-    have hmodLt : y.toNat * x.toNat % UInt256.size < UInt256.size :=
-      Nat.mod_lt _ (by norm_num [UInt256.size])
-    have hover' : UInt256.size ≤ y.toNat * x.toNat := by
-      simpa [Nat.mul_comm] using hover
-    omega
-  have hle0 := Nat.mul_div_le (y.toNat * x.toNat % UInt256.size) y.toNat
-  rw [hnat] at hle0
-  have hle : y.toNat * x.toNat ≤ y.toNat * x.toNat % UInt256.size := by
-    simpa [Nat.mul_comm] using hle0
-  omega
 
 theorem stairstepRay_mul_div_cancel (y : UInt256)
     (hfit : stairstepRay.toNat * y.toNat < UInt256.size) :
@@ -81,7 +57,7 @@ theorem stairstepRay_mul_div_cancel (y : UInt256)
 theorem stairstepRay_mul_div_overflow_ne (y : UInt256)
     (hover : UInt256.size ≤ stairstepRay.toNat * y.toNat) :
     UInt256.div (stairstepRay * y) stairstepRay ≠ y :=
-  price_u256_mul_div_overflow_ne y stairstepRay (by simpa [Nat.mul_comm] using hover)
+  u256_mul_div_overflow_ne y stairstepRay (by simpa [Nat.mul_comm] using hover)
 
 abbrev priceUintBinaryLocals (x y : UInt256) : Store :=
   (((∅ : Store).insert "y" (.int (Int.ofNat y.toNat))).insert "x"
@@ -308,7 +284,7 @@ theorem evalExpr_priceStep_zero {evm : EVM.State} {I : ExecutionEnv}
     evalExpr? config { contract := contract, locals := priceLocals I } evm (.storage stepRef) =
       .ok (.int 0) := by
   have hload : storageLocLoad evm (wordLoc ⟨1⟩) = .int 0 := by
-    rw [stairstepStorageLocLoad_uint256, hstep]
+    rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256, hstep]
     native_decide
   exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := priceLocals I }) (evm := evm)
@@ -325,7 +301,7 @@ theorem evalExpr_priceStep_word {evm : EVM.State} {I : ExecutionEnv} {step : UIn
     evalExpr? config { contract := contract, locals := priceLocals I } evm (.storage stepRef) =
       .ok (.int (Int.ofNat step.toNat)) := by
   have hload : storageLocLoad evm (wordLoc ⟨1⟩) = .int (Int.ofNat step.toNat) := by
-    rw [stairstepStorageLocLoad_uint256, hstep]
+    rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256, hstep]
   exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := priceLocals I }) (evm := evm)
     (slot := stepRef) (er := ({ base := "step", steps := [] } : EvaledStorageRef))
@@ -342,7 +318,7 @@ theorem evalExpr_priceCut_word {evm : EVM.State} {locals : Store} {cut : UInt256
     evalExpr? config { contract := contract, locals := locals } evm (.storage cutRef) =
       .ok (.int (Int.ofNat cut.toNat)) := by
   have hload : storageLocLoad evm (wordLoc ⟨2⟩) = .int (Int.ofNat cut.toNat) := by
-    rw [stairstepStorageLocLoad_uint256, hcut]
+    rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256, hcut]
   exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := cutRef) (er := ({ base := "cut", steps := [] } : EvaledStorageRef))
@@ -665,23 +641,6 @@ theorem evalExprs_priceRmulArgs {evm : EVM.State} {σ : AccountMap} {I : Executi
     evalExpr_price_varUInt256 (priceLocalsPow_get_pow σ I pow)
   simp [evalExprs?, htop, hpow, EvalResult.bind, bind, pure]
 
-theorem uint256_mul_zero (x : UInt256) :
-    x * (⟨0⟩ : UInt256) = ⟨0⟩ := by
-  apply u256_inj
-  rw [u256_mul_op_toNat]
-  rfl
-
-theorem uint256_zero_mul (x : UInt256) :
-    (⟨0⟩ : UInt256) * x = ⟨0⟩ := by
-  rw [show (⟨0⟩ : UInt256) * x = x * (⟨0⟩ : UInt256) by
-    exact u256_mul_comm (⟨0⟩ : UInt256) x]
-  exact uint256_mul_zero x
-
-theorem uint256_div_zero_num (x : UInt256) :
-    UInt256.div (⟨0⟩ : UInt256) x = ⟨0⟩ := by
-  apply u256_inj
-  rw [udiv_toNat]
-  exact Nat.zero_div x.toNat
 
 theorem stairstepPriceSourceXZeroNNonzeroReturns {evm : EVM.State} {σ : AccountMap}
     {I : ExecutionEnv}
@@ -711,7 +670,7 @@ theorem stairstepPriceSourceXZeroNNonzeroReturns {evm : EVM.State} {σ : Account
           [.int (Int.ofNat (priceCutWord σ I).toNat),
             .int (Int.ofNat (priceN σ I).toNat), .int (Int.ofNat stairstepRay.toNat)] =
         some (uintTernaryLocals ⟨0⟩ (priceN σ I) stairstepRay) := by
-    simp [rpowFunction, uintTernaryLocals, bindParams?, hcut, stairstepUInt256Zero_toNat]
+    simp [rpowFunction, uintTernaryLocals, bindParams?, hcut, u256_zero_toNat]
   have hrpowReturn :
       ExecStmt config { contract := contract, locals := priceLocalsN σ I } evm
         (.internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow")
@@ -736,7 +695,7 @@ theorem stairstepPriceSourceXZeroNNonzeroReturns {evm : EVM.State} {σ : Account
       bindParams? rmulFunction.params
           [.int (Int.ofNat (priceTop I).toNat), .int 0] =
         some (priceUintBinaryLocals (priceTop I) ⟨0⟩) := by
-    simp [rmulFunction, priceUintBinaryLocals, bindParams?, stairstepUInt256Zero_toNat]
+    simp [rmulFunction, priceUintBinaryLocals, bindParams?, u256_zero_toNat]
   have hprodZero : priceTop I * (⟨0⟩ : UInt256) = ⟨0⟩ :=
     uint256_mul_zero (priceTop I)
   have hq : (⟨0⟩ : UInt256) = UInt256.div (priceTop I * ⟨0⟩) stairstepRay := by
@@ -764,7 +723,7 @@ theorem stairstepPriceSourceXZeroNNonzeroReturns {evm : EVM.State} {σ : Account
       (evm := evm) (locals := priceLocalsOut σ I ⟨0⟩ ⟨0⟩)
       (name := "out") (value := (⟨0⟩ : UInt256))
       (priceLocalsOut_get_out σ I ⟨0⟩ ⟨0⟩)
-    simpa [stairstepUInt256Zero_toNat] using h
+    simpa [u256_zero_toNat] using h
   have hblock :
       ExecBlock config { contract := contract, locals := priceLocals I } evm
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),

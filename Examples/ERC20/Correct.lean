@@ -218,19 +218,18 @@ theorem erc20X_noMatch {σ σ₀ A I} {g : Sat256}
 
 /-- From `approve`'s body entry (pc 100), the body refines its Solm transition. -/
 theorem erc20ApproveBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨100⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor erc20Config erc20Contract
       σ σ₀ g A I := by
-  exact erc20ApproveBodyCore hcode hsize hperm hwv hsel hreach
+  exact erc20ApproveBodyCore hcode hsize hwv hsel hreach
 
 /-- `totalSupply` body (pc 148) refines its transition. -/
 theorem erc20TotalSupplyBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x18, 0x16, 0x0d, 0xdd]⟩)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨148⟩ [erc20SelWord I]
@@ -241,19 +240,18 @@ theorem erc20TotalSupplyBody {σ σ₀ A I} {g : UInt256}
 
 /-- `transferFrom` body (pc 178) refines its transition. -/
 theorem erc20TransferFromBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨178⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor erc20Config erc20Contract
       σ σ₀ g A I := by
-  exact erc20TransferFromBodyCore hcode hsize hperm hwv hsel hreach
+  exact erc20TransferFromBodyCore hcode hsize hwv hsel hreach
 
 /-- `balanceOf` body (pc 226) refines its transition. -/
 theorem erc20BalanceOfBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨226⟩ [erc20SelWord I]
@@ -264,19 +262,18 @@ theorem erc20BalanceOfBody {σ σ₀ A I} {g : UInt256}
 
 /-- `transfer` body (pc 274) refines its transition. -/
 theorem erc20TransferBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨274⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor erc20Config erc20Contract
       σ σ₀ g A I := by
-  exact erc20TransferBodyCore hcode hsize hperm hwv hsel hreach
+  exact erc20TransferBodyCore hcode hsize hwv hsel hreach
 
 /-- `allowance` body (pc 322) refines its transition. -/
 theorem erc20AllowanceBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨322⟩ [erc20SelWord I]
@@ -292,7 +289,6 @@ theorem erc20AllowanceBody {σ σ₀ A I} {g : UInt256}
     bytecode selector does not equal `calldata[0:4]`. -/
 theorem erc20NoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 6 → (erc20SelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor erc20Config erc20Contract
@@ -309,7 +305,6 @@ theorem erc20NoDispatch {σ σ₀ A I} {g : UInt256}
     four bytes. -/
 theorem erc20ShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     runtimeEquivalenceFor erc20Config erc20Contract
       σ σ₀ g A I := by
@@ -346,36 +341,36 @@ theorem erc20NonPayable {σ σ₀ A I} {g : UInt256}
     (`erc20ReachBody`) drives the EVM to the matched function's body entry, handed to that function's
     body obligation. -/
 theorem erc20Correct : runtimeEquivalence erc20Config erc20Bytecode erc20Contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · -- callvalue = 0, size ≥ 4: dispatch on the selector, driving the machinery to each body
       by_cases h0 : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩
-      · exact erc20ApproveBody hcode hsize hperm hwv h0
+      · exact erc20ApproveBody hcode hsize hwv h0
           (erc20ReachBody 0 (by omega) ⟨100⟩ hcode hwv hsz hsize (erc20Matches 0 (by omega) hsz h0).1
             (erc20Matches 0 (by omega) hsz h0).2 (by jump_dest) (by decide))
       · by_cases h1 : selIs I ⟨#[0x18, 0x16, 0x0d, 0xdd]⟩
-        · exact erc20TotalSupplyBody hcode hsize hperm hwv h1
+        · exact erc20TotalSupplyBody hcode hsize hwv h1
             (erc20ReachBody 1 (by omega) ⟨148⟩ hcode hwv hsz hsize (erc20Matches 1 (by omega) hsz h1).1
               (erc20Matches 1 (by omega) hsz h1).2 (by jump_dest) (by decide))
         · by_cases h2 : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩
-          · exact erc20TransferFromBody hcode hsize hperm hwv h2
+          · exact erc20TransferFromBody hcode hsize hwv h2
               (erc20ReachBody 2 (by omega) ⟨178⟩ hcode hwv hsz hsize (erc20Matches 2 (by omega) hsz h2).1
                 (erc20Matches 2 (by omega) hsz h2).2 (by jump_dest) (by decide))
           · by_cases h3 : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩
-            · exact erc20BalanceOfBody hcode hsize hperm hwv h3
+            · exact erc20BalanceOfBody hcode hsize hwv h3
                 (erc20ReachBody 3 (by omega) ⟨226⟩ hcode hwv hsz hsize (erc20Matches 3 (by omega) hsz h3).1
                   (erc20Matches 3 (by omega) hsz h3).2 (by jump_dest) (by decide))
             · by_cases h4 : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩
-              · exact erc20TransferBody hcode hsize hperm hwv h4
+              · exact erc20TransferBody hcode hsize hwv h4
                   (erc20ReachBody 4 (by omega) ⟨274⟩ hcode hwv hsz hsize (erc20Matches 4 (by omega) hsz h4).1
                     (erc20Matches 4 (by omega) hsz h4).2 (by jump_dest) (by decide))
               · by_cases h5 : selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩
-                · exact erc20AllowanceBody hcode hsize hperm hwv h5
+                · exact erc20AllowanceBody hcode hsize hwv h5
                     (erc20ReachBody 5 (by omega) ⟨322⟩ hcode hwv hsz hsize (erc20Matches 5 (by omega) hsz h5).1
                       (erc20Matches 5 (by omega) hsz h5).2 (by jump_dest) (by decide))
                 · -- size ≥ 4 but no selector matches: explicit no-match evidence from h0..h5
-                  refine erc20NoDispatch hcode hsize hperm hwv ?_
+                  refine erc20NoDispatch hcode hsize hwv ?_
                   intro i hi
                   interval_cases i
                   · simpa [selIs, erc20SelBytes] using h0
@@ -385,7 +380,7 @@ theorem erc20Correct : runtimeEquivalence erc20Config erc20Bytecode erc20Contrac
                   · simpa [selIs, erc20SelBytes] using h4
                   · simpa [selIs, erc20SelBytes] using h5
     · -- callvalue = 0, size < 4: size guard reverts before dispatch
-      exact erc20ShortRevert hcode hsize hperm hwv (by omega)
+      exact erc20ShortRevert hcode hsize hwv (by omega)
   · -- callvalue ≠ 0: non-payable revert
     exact erc20NonPayable hcode hwv
 
@@ -601,7 +596,7 @@ theorem erc20CtorKeccakSlot (caller : AccountAddress) (initialSupply : UInt256) 
   unfold erc20CtorHashMem erc20BalanceOfSlot erc20MappingSlot
   rw [twoWordHashMem_read0_64 (UInt256.ofNat caller.val) ⟨0⟩
     (erc20CtorArgMem_size initialSupply)]
-  rw [approveSource_keyValueToWord caller]
+  rw [keyValueToWord_address caller]
   exact mappingSlot_single (UInt256.ofNat caller.val) ⟨0⟩
 
 theorem erc20CtorRuntime_codecopy_mem (caller : AccountAddress) (initialSupply : UInt256) :
@@ -782,7 +777,7 @@ theorem erc20CtorAssignBalance (evm : EVM.State) (initialSupply : Int)
       _ = initialSupply := by
         exact Int.toNat_of_nonneg h0
   conv_lhs => rw [← hint]
-  rw [erc20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   rfl
 
 theorem erc20CtorAssignTotalSupply (evm : EVM.State) (initialSupply : Int)
@@ -811,7 +806,7 @@ theorem erc20CtorAssignTotalSupply (evm : EVM.State) (initialSupply : Int)
       _ = initialSupply := by
         exact Int.toNat_of_nonneg h0
   conv_lhs => rw [← hint]
-  rw [erc20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
 
 theorem erc20SolmCtorExecReverts_nonpayable
     {σ : AccountMap}

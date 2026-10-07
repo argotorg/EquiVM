@@ -1,4 +1,5 @@
 import Solm.SolidityStorage
+import Reasoning.EVMWord
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -32,7 +33,7 @@ def addrSt : StorageType := .elem .address
 
 def sender : Expr := .env .caller
 def one : Int := 1000000000000000000000000000
-def maxInt256 : Int := (2 : Int) ^ 255 - 1
+
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
 def s256 (e : Expr) : Expr := .inRange int256Int e
@@ -180,8 +181,8 @@ def diffFunction : FunctionDecl :=
     returnType := [int256]
     body :=
       [ .letDecl "z" (some int256) (s256 (.binary .sub (.var "x") (.var "y"))),
-        .require (.binary .le (.var "x") (.intLit maxInt256)),
-        .require (.binary .le (.var "y") (.intLit maxInt256)),
+        .require (.binary .le (.var "x") (.intLit Reasoning.Theory.maxInt256)),
+        .require (.binary .le (.var "y") (.intLit Reasoning.Theory.maxInt256)),
         .return [.var "z"] ] }
 
 def rmulFunction : FunctionDecl :=

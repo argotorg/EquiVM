@@ -107,7 +107,7 @@ theorem clearAuctionPackedState_accounts (evm : EVM.State) :
 
 theorem SourceState.clearAuctionPacked {s0 I σ evm} (hs : SourceState s0 I σ evm) :
     SourceState s0 I
-      (sstoreAccountMap I.codeOwner σ ⟨211⟩ (clearAuctionPackedWord (storedWord σ I ⟨211⟩)))
+      (sstoreAccountMap I.codeOwner σ ⟨211⟩ (clearAuctionPackedWord (solcSlotWord σ I ⟨211⟩)))
       (clearAuctionPackedState evm) := by
   have hs1 := hs.storageWrite ⟨211⟩
     (setAddressOffset0Word (Solm.EVM.storageLoad evm I.codeOwner ⟨211⟩) ⟨0⟩)
@@ -120,6 +120,6 @@ theorem SourceState.clearAuctionPacked {s0 I σ evm} (hs : SourceState s0 I σ e
       storageStore_executionEnv, hs.env]
   · have he := clearAuctionPackedState_accounts evm
     rw [hs.accounts, ← hs.env]
-    simpa [storedWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage] using he
+    simpa [solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage] using he
 
 end Auction

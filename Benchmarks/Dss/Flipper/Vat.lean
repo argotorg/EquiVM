@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flipper
 /-! ## `vat()` getter -/
 
 def vatWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperAddressReturnWord ⟨2⟩ σ I
+  solcAddressSlotWord ⟨2⟩ σ I
 
 theorem flipperDecode_vat {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (vatTransition.params.map Param.name)
@@ -51,7 +51,6 @@ theorem flipperReachVatBody {σ σ₀ A I} {g : Sat256}
 theorem flipperVatBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 16)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -63,7 +62,7 @@ theorem flipperVatBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (vatWord σ I).toNat))])) := by
-    simpa [vatTransition, vatWord, flipperAddressReturnWord, flipperSlotWord, initState,
+    simpa [vatTransition, vatWord, solcAddressSlotWord, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       flipperAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

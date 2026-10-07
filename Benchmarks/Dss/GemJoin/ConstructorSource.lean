@@ -1,3 +1,5 @@
+import Reasoning.ABIViews
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.GemJoin.ConstructorBase
 
 /-!
@@ -10,16 +12,6 @@ namespace Benchmarks.Dss.GemJoin
 
 set_option maxRecDepth 2000000
 
-private theorem accountAddress_of_word_val (a : AccountAddress) :
-    AccountAddress.ofNat (EVM.word a.val).toNat = a := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
-  exact accountAddress_roundtrip a
-
-private theorem evm_address_account (a : AccountAddress) :
-    EVM.address a = a := by
-  apply Fin.ext
-  change a.val % EVM.addressModulus = a.val
-  exact Nat.mod_eq_of_lt a.isLt
 
 abbrev gemJoinCtorAfterInitStores (evm : EVM.State) (vat : AccountAddress)
     (ilk : UInt256) (gem : AccountAddress) : EVM.State :=
@@ -157,19 +149,6 @@ private theorem assign_gemJoinCtorUint256Storage (evm : EVM.State) (locals : Sto
       (hloc := hloc)
   simpa [evm'] using storageLocStore_uint256 evm slot value
 
-private theorem valueToWord_ctorIlk (ilk : UInt256) :
-    valueToWord (.fixedBytes bytes32Width (EVM.Word.toBytesBE ilk)) = some ilk := by
-  have hlen : (EVM.Word.toBytesBE ilk).length = 32 := by
-    simpa using word_toBytesBE_toByteArray_size ilk
-  have hword : EVM.Word.ofNat (fromBytesBigEndian (EVM.Word.toBytesBE ilk)) = ilk := by
-    apply u256_inj
-    have hfrom : fromBytesBigEndian (EVM.Word.toBytesBE ilk) = ilk.toNat := by
-      have h := congrArg fromByteArrayBigEndian (word_toBytesBE_toByteArray_eq_toByteArray ilk)
-      simpa [fromByteArrayBigEndian, byteArray_toList_eq] using
-        h.trans (fromByteArrayBigEndian_toByteArray ilk)
-    rw [EVM.Word.ofNat, hfrom]
-    exact Nat.mod_eq_of_lt ilk.val.isLt
-  simp [valueToWord, bytes32Width, hlen, hword]
 
 private theorem assign_gemJoinCtorBytes32Storage (evm : EVM.State) (locals : Store)
     (ref : StorageRef) (er : EvaledStorageRef) (slot word : UInt256)
@@ -192,7 +171,7 @@ private theorem assign_gemJoinCtorBytes32Storage (evm : EVM.State) (locals : Sto
 
   simpa [bytes32Loc, Reasoning.Theory.bytes32Loc, bytes32Width, evm'] using
     Reasoning.Theory.storageLocStore_bytes32 evm slot word
-      (.fixedBytes bytes32Width (EVM.Word.toBytesBE word)) (valueToWord_ctorIlk word)
+      (.fixedBytes bytes32Width (EVM.Word.toBytesBE word)) (valueToWord_bytes32_toBytesBE word)
 
 theorem assign_gemJoinCtorLiveStorage (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "live" = none) :
@@ -285,7 +264,7 @@ theorem evalExpr_gemJoinCtorGemCodeGuard_true (evm : EVM.State)
   have hcode' :
       0 < (EVM.Word.ofNat
         (Option.option 0 (fun acc => acc.code.size) (State.lookupAccount evm gem))).toNat := by
-    simpa [evm_address_account gem] using hcode
+    simpa [eVM_address_id gem] using hcode
   have hgt : Int.ofNat
       (EVM.Word.ofNat
         (Option.option 0 (fun acc => acc.code.size) (State.lookupAccount evm gem))).toNat >
@@ -318,7 +297,7 @@ theorem evalExpr_gemJoinCtorGemCodeGuard_false (evm : EVM.State)
   have hcode' :
       ¬ 0 < (EVM.Word.ofNat
         (Option.option 0 (fun acc => acc.code.size) (State.lookupAccount evm gem))).toNat := by
-    simpa [evm_address_account gem] using hcode
+    simpa [eVM_address_id gem] using hcode
   have hnot : ¬ Int.ofNat
       (EVM.Word.ofNat
         (Option.option 0 (fun acc => acc.code.size) (State.lookupAccount evm gem))).toNat >

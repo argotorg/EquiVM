@@ -22,7 +22,7 @@ theorem reservePriceX {σ σ₀ A I} {g : UInt256}
     (hreach : EntryReached 16 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
     RDret auctionBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-      (UInt256.toByteArray (storedWord σ I ⟨204⟩)) := by
+      (UInt256.toByteArray (solcSlotWord σ I ⟨204⟩)) := by
   obtain ⟨_, _, rd859⟩ := hreach
   obtain ⟨_, _, rd872⟩ := entryGuardZero 16 (by decide) rd859 hwv
   have rd877 := evm_run rd872 with [push2 ⟨308⟩, push1 ⟨204⟩]
@@ -32,7 +32,7 @@ theorem reservePriceX {σ σ₀ A I} {g : UInt256}
 
 theorem reservePriceBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (entryBytes 16))
+    (hsel : selIs I (entryBytes 16))
     (hreach : EntryReached 16 σ σ₀ A I g) :
     runtimeEquivalenceFor auctionConfig auctionContract
       σ σ₀ g A I := by
@@ -47,12 +47,12 @@ theorem reservePriceBodyCore {σ σ₀ A I} {g : UInt256}
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ reservePriceGetter.body
         (.returned { contract := auctionContract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [.int (Int.ofNat (storedWord σ I ⟨204⟩).toNat)])) := by
-      simpa [storedWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
+          (some [.int (Int.ofNat (solcSlotWord σ I ⟨204⟩).toNat)])) := by
+      simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
         reservePriceBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           ∅ hwv (by simp)
     exact (reservePriceX hreach hwv).reEquivExecution hcode hd hdec hbody
-      (returnEquiv_of_encode (uint256ReturnEncoding (storedWord σ I ⟨204⟩)))
+      (returnEquiv_of_encode (uint256ReturnEncoding (solcSlotWord σ I ⟨204⟩)))
   · exact entryNonpayableRevert 16 (by decide) hcode hsel hreach hwv
 
 end Auction

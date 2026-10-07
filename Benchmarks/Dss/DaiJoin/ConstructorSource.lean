@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.DaiJoin.Common
 import Reasoning.Initcode
 import Reasoning.ExternalCall
@@ -68,19 +69,6 @@ abbrev daiJoinCtorAfterDaiState (evm : EVM.State) (dai : AccountAddress) : EVM.S
     (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)
       (EVM.word dai.val))
 
-private theorem accountAddress_of_word_val (a : AccountAddress) :
-    AccountAddress.ofNat (EVM.word a.val).toNat = a := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
-  exact accountAddress_roundtrip a
-
-theorem daiJoin_word_val_addr_canonical (a : AccountAddress) :
-    (EVM.word a.val).toNat < EVM.addressModulus := by
-  have hsize : AccountAddress.size < UInt256.size := by decide
-  have hval : (EVM.word a.val).toNat = a.val := by
-    change (UInt256.ofNat a.val).toNat = a.val
-    rw [UInt256.toNat_ofNat_of_lt (lt_trans a.isLt hsize)]
-  rw [hval]
-  exact a.isLt
 
 theorem evalExpr_daiJoinCtorLocalVat {evm : EVM.State} (vat dai : AccountAddress) :
     evalExpr? config { contract := contract, locals := daiJoinCtorLocals vat dai } evm
@@ -111,7 +99,7 @@ theorem assign_daiJoinCtorWardsCaller (evm : EVM.State) {locals : Store}
       storageLocStore evm (wordLoc (wardsSlot (.address evm.executionEnv.source))) (.int 1) =
         some evm' := by
     simpa [evm', daiJoinCtorAfterWardsState] using
-      daiJoinStorageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
+      storageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
   exact assignStorageRef_storage_scalar (hbackend := rfl)
     (ty := uint256St) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source))) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := by simpa [wardsRef] using hbase)
@@ -145,7 +133,7 @@ private theorem assign_daiJoinCtorAddressStorage (evm : EVM.State) (locals : Sto
         some evm' := by
     simpa [addrLoc, evm'] using
       storageLocStore_address_offset0 evm slot (EVM.word addrValue.val)
-        (daiJoin_word_val_addr_canonical addrValue)
+        (word_val_addr_canonical addrValue)
   exact assignStorageRef_storage_scalar_value (hbackend := rfl)
     (ty := .elem .address) (loc := addrLoc slot) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
@@ -173,7 +161,7 @@ private theorem assign_daiJoinCtorUint256Storage (evm : EVM.State) (locals : Sto
       (her := her)
       (hty := hty)
       (hloc := hloc)
-  simpa [evm'] using daiJoinStorageLocStore_uint256 evm slot value
+  simpa [evm'] using storageLocStore_uint256 evm slot value
 
 theorem assign_daiJoinCtorLiveStorage (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "live" = none) :

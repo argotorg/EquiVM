@@ -1,11 +1,10 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Cure.ListLoop
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Cure
 
-private theorem listReturnU256_32_toNat : (⟨32⟩ : UInt256).toNat = 32 := by u256_toNat
-private theorem listReturnU256_64_toNat : (⟨64⟩ : UInt256).toNat = 64 := by u256_toNat
 
 def listReturnOffsetMem (fmp : UInt256) (mem : ByteArray) :
     ByteArray :=
@@ -55,24 +54,24 @@ def listReturnDataWord (σ : AccountMap) (I : ExecutionEnv) (idx : Nat) : UInt25
   UInt256.land (solcSlotWord σ I (listArraySlot idx)) solcAddrMask
 
 def listReturnBaseMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
-  listReturnLengthMem (cureSlotWord ⟨2⟩ σ I)
-    (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-    (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-      (cureSlotWord ⟨2⟩ σ I).toNat)
+  listReturnLengthMem (solcSlotWordAt ⟨2⟩ σ I)
+    (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+    (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+      (solcSlotWordAt ⟨2⟩ σ I).toNat)
 
 def listReturnCopiedMem (σ : AccountMap) (I : ExecutionEnv) : Nat → ByteArray
   | 0 => listReturnBaseMem σ I
   | n + 1 =>
       (UInt256.toByteArray (listReturnDataWord σ I n)).write 0
         (listReturnCopiedMem σ I n)
-        ((listReturnCopyOffset n) + listReturnDataDst (cureSlotWord ⟨2⟩ σ I)).toNat 32
+        ((listReturnCopyOffset n) + listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I)).toNat 32
 
 def listReturnCopiedAw (σ : AccountMap) (I : ExecutionEnv) (n : Nat) : UInt256 :=
-  UInt256.ofNat (7 + (cureSlotWord ⟨2⟩ σ I).toNat + n)
+  UInt256.ofNat (7 + (solcSlotWordAt ⟨2⟩ σ I).toNat + n)
 
 theorem listReturnCopyOffset_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    ∀ {n}, n ≤ (cureSlotWord ⟨2⟩ σ I).toNat →
+    ∀ {n}, n ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat →
       (listReturnCopyOffset n).toNat = 32 * n
   | 0, _ => by
       rfl
@@ -87,26 +86,26 @@ theorem listReturnCopyOffset_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
 
 theorem listReturnDataDst_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    (listReturnDataDst (cureSlotWord ⟨2⟩ σ I)).toNat =
-      224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat := by
+    (listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I)).toNat =
+      224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat := by
   exact listReturnDst_toNat_of_wf hwf
 
 theorem listReturnCopyDest_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) {n : Nat}
-    (hn : n ≤ (cureSlotWord ⟨2⟩ σ I).toNat) :
-    ((listReturnCopyOffset n) + listReturnDataDst (cureSlotWord ⟨2⟩ σ I)).toNat =
-      224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 * n := by
+    (hn : n ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat) :
+    ((listReturnCopyOffset n) + listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I)).toNat =
+      224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 * n := by
   rw [uadd_toNat, listReturnCopyOffset_toNat_of_wf hwf hn,
     listReturnDataDst_toNat_of_wf hwf]
-  rw [show 32 * n + (224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat) =
-    224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 * n by omega]
+  rw [show 32 * n + (224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat) =
+    224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 * n by omega]
   apply Nat.mod_eq_of_lt
   have hret := cureStorageWF_returnEnd_lt hwf
   nlinarith
 
 theorem listReturnCopySrc_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) {n : Nat}
-    (hn : n ≤ (cureSlotWord ⟨2⟩ σ I).toNat) :
+    (hn : n ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat) :
     ((listReturnCopyOffset n) + listArrayDataPtr).toNat = 160 + 32 * n := by
   rw [uadd_toNat, listReturnCopyOffset_toNat_of_wf hwf hn, listArrayDataPtr_toNat]
   rw [show 32 * n + 160 = 160 + 32 * n by omega]
@@ -116,9 +115,9 @@ theorem listReturnCopySrc_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
 
 theorem listReturnCopiedAw_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) {n : Nat}
-    (hn : n ≤ (cureSlotWord ⟨2⟩ σ I).toNat) :
+    (hn : n ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat) :
     (listReturnCopiedAw σ I n).toNat =
-      7 + (cureSlotWord ⟨2⟩ σ I).toNat + n := by
+      7 + (solcSlotWordAt ⟨2⟩ σ I).toNat + n := by
   unfold listReturnCopiedAw
   rw [UInt256.toNat_ofNat_of_lt]
   have hret := cureStorageWF_returnEnd_lt hwf
@@ -126,7 +125,7 @@ theorem listReturnCopiedAw_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
 
 theorem listReturnCopiedAw_mul32_lt_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) {n : Nat}
-    (hn : n ≤ (cureSlotWord ⟨2⟩ σ I).toNat) :
+    (hn : n ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat) :
     (listReturnCopiedAw σ I n).toNat * 32 < UInt256.size := by
   rw [listReturnCopiedAw_toNat_of_wf hwf hn]
   have hret := cureStorageWF_returnEnd_lt hwf
@@ -134,15 +133,15 @@ theorem listReturnCopiedAw_mul32_lt_of_wf {σ : AccountMap} {I : ExecutionEnv}
 
 theorem listReturnMload64Aw_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    (listReturnMload64Aw (listArrayCopiedAw (cureSlotWord ⟨2⟩ σ I).toNat)).toNat =
-      5 + (cureSlotWord ⟨2⟩ σ I).toNat := by
+    (listReturnMload64Aw (listArrayCopiedAw (solcSlotWordAt ⟨2⟩ σ I).toNat)).toNat =
+      5 + (solcSlotWordAt ⟨2⟩ σ I).toNat := by
   unfold listReturnMload64Aw
   rw [UInt256.toNat_ofNat_of_lt]
-  · rw [listArrayCopiedAw_toNat_of_wf hwf (n := (cureSlotWord ⟨2⟩ σ I).toNat) (by omega)]
+  · rw [listArrayCopiedAw_toNat_of_wf hwf (n := (solcSlotWordAt ⟨2⟩ σ I).toNat) (by omega)]
     rw [machineState_M_inBounds (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
       omega)]
-  · rw [listArrayCopiedAw_toNat_of_wf hwf (n := (cureSlotWord ⟨2⟩ σ I).toNat) (by omega)]
+  · rw [listArrayCopiedAw_toNat_of_wf hwf (n := (solcSlotWordAt ⟨2⟩ σ I).toNat) (by omega)]
     rw [machineState_M_inBounds (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
       omega)]
@@ -151,28 +150,28 @@ theorem listReturnMload64Aw_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
 
 theorem listReturnOffsetAw_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    (listReturnOffsetAw (listArrayCopiedAw (cureSlotWord ⟨2⟩ σ I).toNat)
-        (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))).toNat =
-      6 + (cureSlotWord ⟨2⟩ σ I).toNat := by
+    (listReturnOffsetAw (listArrayCopiedAw (solcSlotWordAt ⟨2⟩ σ I).toNat)
+        (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))).toNat =
+      6 + (solcSlotWordAt ⟨2⟩ σ I).toNat := by
   unfold listReturnOffsetAw
   rw [UInt256.toNat_ofNat_of_lt]
   · rw [listReturnMload64Aw_toNat_of_wf hwf, listArrayFreePtr_toNat_of_wf hwf]
-    rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat =
-      32 * (5 + (cureSlotWord ⟨2⟩ σ I).toNat) by omega]
+    rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat =
+      32 * (5 + (solcSlotWordAt ⟨2⟩ σ I).toNat) by omega]
     rw [machineState_M_endWrite]
     omega
   · rw [listReturnMload64Aw_toNat_of_wf hwf, listArrayFreePtr_toNat_of_wf hwf]
-    rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat =
-      32 * (5 + (cureSlotWord ⟨2⟩ σ I).toNat) by omega]
+    rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat =
+      32 * (5 + (solcSlotWordAt ⟨2⟩ σ I).toNat) by omega]
     rw [machineState_M_endWrite]
     have hret := cureStorageWF_returnEnd_lt hwf
     omega
 
 theorem listReturnArrayMloadAw_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    (listReturnArrayMloadAw (listArrayCopiedAw (cureSlotWord ⟨2⟩ σ I).toNat)
-        (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)) listArrayBasePtr).toNat =
-      6 + (cureSlotWord ⟨2⟩ σ I).toNat := by
+    (listReturnArrayMloadAw (listArrayCopiedAw (solcSlotWordAt ⟨2⟩ σ I).toNat)
+        (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)) listArrayBasePtr).toNat =
+      6 + (solcSlotWordAt ⟨2⟩ σ I).toNat := by
   unfold listReturnArrayMloadAw
   rw [UInt256.toNat_ofNat_of_lt]
   · rw [listReturnOffsetAw_toNat_of_wf hwf]
@@ -186,44 +185,44 @@ theorem listReturnArrayMloadAw_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
 
 theorem listReturnLengthAw_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    (listReturnLengthAw (listArrayCopiedAw (cureSlotWord ⟨2⟩ σ I).toNat)
-        (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)) listArrayBasePtr).toNat =
-      7 + (cureSlotWord ⟨2⟩ σ I).toNat := by
+    (listReturnLengthAw (listArrayCopiedAw (solcSlotWordAt ⟨2⟩ σ I).toNat)
+        (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)) listArrayBasePtr).toNat =
+      7 + (solcSlotWordAt ⟨2⟩ σ I).toNat := by
   unfold listReturnLengthAw
   rw [UInt256.toNat_ofNat_of_lt]
   · rw [listReturnArrayMloadAw_toNat_of_wf hwf, uadd_toNat,
       listArrayFreePtr_toNat_of_wf hwf, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-    rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-      192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-      rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-        192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+    rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+      192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+      rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+        192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
       apply Nat.mod_eq_of_lt
       have hret := cureStorageWF_returnEnd_lt hwf
       omega]
-    rw [show 192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat =
-      32 * (6 + (cureSlotWord ⟨2⟩ σ I).toNat) by omega]
+    rw [show 192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat =
+      32 * (6 + (solcSlotWordAt ⟨2⟩ σ I).toNat) by omega]
     rw [machineState_M_endWrite]
     omega
   · rw [listReturnArrayMloadAw_toNat_of_wf hwf, uadd_toNat,
       listArrayFreePtr_toNat_of_wf hwf, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-    rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-      192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-      rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-        192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+    rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+      192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+      rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+        192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
       apply Nat.mod_eq_of_lt
       have hret := cureStorageWF_returnEnd_lt hwf
       omega]
-    rw [show 192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat =
-      32 * (6 + (cureSlotWord ⟨2⟩ σ I).toNat) by omega]
+    rw [show 192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat =
+      32 * (6 + (solcSlotWordAt ⟨2⟩ σ I).toNat) by omega]
     rw [machineState_M_endWrite]
     have hret := cureStorageWF_returnEnd_lt hwf
     omega
 
 theorem listReturnFinalAw_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    (listReturnFinalAw (listArrayCopiedAw (cureSlotWord ⟨2⟩ σ I).toNat)
-        (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)) listArrayBasePtr).toNat =
-      7 + (cureSlotWord ⟨2⟩ σ I).toNat := by
+    (listReturnFinalAw (listArrayCopiedAw (solcSlotWordAt ⟨2⟩ σ I).toNat)
+        (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)) listArrayBasePtr).toNat =
+      7 + (solcSlotWordAt ⟨2⟩ σ I).toNat := by
   unfold listReturnFinalAw
   rw [UInt256.toNat_ofNat_of_lt]
   · rw [listReturnLengthAw_toNat_of_wf hwf]
@@ -237,8 +236,8 @@ theorem listReturnFinalAw_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
 
 theorem listReturnFinalAw_eq_copied_zero_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    listReturnFinalAw (listArrayCopiedAw (cureSlotWord ⟨2⟩ σ I).toNat)
-        (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)) listArrayBasePtr =
+    listReturnFinalAw (listArrayCopiedAw (solcSlotWordAt ⟨2⟩ σ I).toNat)
+        (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)) listArrayBasePtr =
       listReturnCopiedAw σ I 0 := by
   apply u256_inj
   rw [listReturnFinalAw_toNat_of_wf hwf,
@@ -285,18 +284,18 @@ theorem listReturnLengthMem_read128_of_copied
 
 theorem listReturnOffsetMem_size_of_copied_wf
     {σ : AccountMap} {I : ExecutionEnv} (hwf : cureStorageWF σ I) :
-    (listReturnOffsetMem (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-        (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-          (cureSlotWord ⟨2⟩ σ I).toNat)).size =
-      192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat := by
+    (listReturnOffsetMem (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+        (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+          (solcSlotWordAt ⟨2⟩ σ I).toNat)).size =
+      192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat := by
   unfold listReturnOffsetMem
   rw [toByteArray_write32_size_of_ge
-    (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-      (cureSlotWord ⟨2⟩ σ I).toNat)
+    (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+      (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (⟨32⟩ : UInt256)
-    (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat
-    (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat)
-    (192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat)
+    (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat
+    (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat)
+    (192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (by rw [listArrayCopiedMem_size])
     (by rw [listArrayFreePtr_toNat_of_wf hwf])
     (by
@@ -309,40 +308,40 @@ theorem listReturnOffsetMem_size_of_copied_wf
 
 theorem listReturnLengthMem_size_of_copied_wf
     {σ : AccountMap} {I : ExecutionEnv} (hwf : cureStorageWF σ I) :
-    (listReturnLengthMem (cureSlotWord ⟨2⟩ σ I)
-        (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-        (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-          (cureSlotWord ⟨2⟩ σ I).toNat)).size =
-      224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat := by
+    (listReturnLengthMem (solcSlotWordAt ⟨2⟩ σ I)
+        (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+        (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+          (solcSlotWordAt ⟨2⟩ σ I).toNat)).size =
+      224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat := by
   unfold listReturnLengthMem
   rw [toByteArray_write32_size_of_ge
-    (listReturnOffsetMem (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-      (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-        (cureSlotWord ⟨2⟩ σ I).toNat))
-    (cureSlotWord ⟨2⟩ σ I)
-    ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat
-    (192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat)
-    (224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat)
+    (listReturnOffsetMem (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+      (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+        (solcSlotWordAt ⟨2⟩ σ I).toNat))
+    (solcSlotWordAt ⟨2⟩ σ I)
+    ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat
+    (192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat)
+    (224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (listReturnOffsetMem_size_of_copied_wf hwf)
     (by
       rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-      rw [show (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat =
-        160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat from
+      rw [show (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat =
+        160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat from
         listArrayFreePtr_toNat_of_wf hwf]
-      rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-        192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-        rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-          192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+      rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+        192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+        rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+          192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
         apply Nat.mod_eq_of_lt
         have hret := cureStorageWF_returnEnd_lt hwf
         omega])
     (by
       rw [uadd_toNat, listArrayFreePtr_toNat_of_wf hwf,
         show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-      rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-        192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-        rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-          192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+      rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+        192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+        rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+          192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
         apply Nat.mod_eq_of_lt
         have hret := cureStorageWF_returnEnd_lt hwf
         omega]
@@ -351,10 +350,10 @@ theorem listReturnLengthMem_size_of_copied_wf
     (by
       rw [uadd_toNat, listArrayFreePtr_toNat_of_wf hwf,
         show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-      rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-        192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-        rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-          192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+      rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+        192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+        rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+          192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
         apply Nat.mod_eq_of_lt
         have hret := cureStorageWF_returnEnd_lt hwf
         omega]
@@ -362,9 +361,9 @@ theorem listReturnLengthMem_size_of_copied_wf
 
 theorem listReturnCopiedMem_size_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    ∀ {n}, n ≤ (cureSlotWord ⟨2⟩ σ I).toNat →
+    ∀ {n}, n ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat →
       (listReturnCopiedMem σ I n).size =
-        224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 * n
+        224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 * n
   | 0, _ => by
       rw [listReturnCopiedMem, listReturnBaseMem, listReturnLengthMem_size_of_copied_wf hwf]
       omega
@@ -372,9 +371,9 @@ theorem listReturnCopiedMem_size_of_wf {σ : AccountMap} {I : ExecutionEnv}
       rw [listReturnCopiedMem]
       exact toByteArray_write32_size_of_ge
         (listReturnCopiedMem σ I n) (listReturnDataWord σ I n)
-        (((listReturnCopyOffset n) + listReturnDataDst (cureSlotWord ⟨2⟩ σ I)).toNat)
-        (224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 * n)
-        (224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 * (n + 1))
+        (((listReturnCopyOffset n) + listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I)).toNat)
+        (224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 * n)
+        (224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 * (n + 1))
         (listReturnCopiedMem_size_of_wf hwf (n := n) (by omega))
         (by rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega)])
         (by
@@ -387,25 +386,25 @@ theorem listReturnCopiedMem_size_of_wf {σ : AccountMap} {I : ExecutionEnv}
 
 theorem listReturnCopiedMem_read64_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    ∀ {n}, n ≤ (cureSlotWord ⟨2⟩ σ I).toNat →
+    ∀ {n}, n ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat →
       (listReturnCopiedMem σ I n).readWithPadding 64 32 =
-        UInt256.toByteArray (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
+        UInt256.toByteArray (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
   | 0, _ => by
       unfold listReturnCopiedMem listReturnBaseMem listReturnLengthMem
       rw [toByteArray_write_read_below_of_gap
-        (cureSlotWord ⟨2⟩ σ I)
-        (listReturnOffsetMem (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-          (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-            (cureSlotWord ⟨2⟩ σ I).toNat))
-        ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat 64
+        (solcSlotWordAt ⟨2⟩ σ I)
+        (listReturnOffsetMem (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+          (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+            (solcSlotWordAt ⟨2⟩ σ I).toNat))
+        ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat 64
         (by rw [listReturnOffsetMem_size_of_copied_wf hwf]; omega)
         (by
           rw [uadd_toNat, listArrayFreePtr_toNat_of_wf hwf,
             show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-          rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-            192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-            rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-              192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+          rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+            192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+            rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+              192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
             apply Nat.mod_eq_of_lt
             have hret := cureStorageWF_returnEnd_lt hwf
             omega]
@@ -414,10 +413,10 @@ theorem listReturnCopiedMem_read64_of_wf {σ : AccountMap} {I : ExecutionEnv}
           rw [uadd_toNat, listArrayFreePtr_toNat_of_wf hwf,
             show (⟨32⟩ : UInt256).toNat = 32 from by decide,
             listReturnOffsetMem_size_of_copied_wf hwf]
-          rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-            192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-            rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-              192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+          rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+            192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+            rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+              192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
             apply Nat.mod_eq_of_lt
             have hret := cureStorageWF_returnEnd_lt hwf
             omega]
@@ -426,22 +425,22 @@ theorem listReturnCopiedMem_read64_of_wf {σ : AccountMap} {I : ExecutionEnv}
       unfold listReturnOffsetMem
       rw [toByteArray_write_read_below_of_gap
         (⟨32⟩ : UInt256)
-        (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-          (cureSlotWord ⟨2⟩ σ I).toNat)
-        (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat 64
+        (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+          (solcSlotWordAt ⟨2⟩ σ I).toNat)
+        (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat 64
         (by rw [listArrayCopiedMem_size]; omega)
         (by rw [listArrayFreePtr_toNat_of_wf hwf]; omega)
         (by
           rw [listArrayFreePtr_toNat_of_wf hwf, listArrayCopiedMem_size]
           have hU : 0 < USize.size := by native_decide
           omega)]
-      exact listArrayCopiedMem_read64 σ I (cureSlotWord ⟨2⟩ σ I)
-        (cureSlotWord ⟨2⟩ σ I).toNat
+      exact listArrayCopiedMem_read64 σ I (solcSlotWordAt ⟨2⟩ σ I)
+        (solcSlotWordAt ⟨2⟩ σ I).toNat
   | n + 1, hn => by
       rw [listReturnCopiedMem]
       rw [toByteArray_write_read_below_of_gap
         (listReturnDataWord σ I n) (listReturnCopiedMem σ I n)
-        (((listReturnCopyOffset n) + listReturnDataDst (cureSlotWord ⟨2⟩ σ I)).toNat)
+        (((listReturnCopyOffset n) + listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I)).toNat)
         64
         (by rw [listReturnCopiedMem_size_of_wf hwf (n := n) (by omega)]; omega)
         (by rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega)]; omega)
@@ -454,31 +453,31 @@ theorem listReturnCopiedMem_read64_of_wf {σ : AccountMap} {I : ExecutionEnv}
 
 theorem listReturnBaseMem_read_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) {k : Nat}
-    (hk : k < (cureSlotWord ⟨2⟩ σ I).toNat) :
+    (hk : k < (solcSlotWordAt ⟨2⟩ σ I).toNat) :
     (listReturnBaseMem σ I).readWithPadding (160 + 32 * k) 32 =
       UInt256.toByteArray (listReturnDataWord σ I k) := by
   unfold listReturnBaseMem listReturnLengthMem
   rw [toByteArray_write_read_below_of_gap
-    (cureSlotWord ⟨2⟩ σ I)
-    (listReturnOffsetMem (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-      (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-        (cureSlotWord ⟨2⟩ σ I).toNat))
-    ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat
+    (solcSlotWordAt ⟨2⟩ σ I)
+    (listReturnOffsetMem (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+      (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+        (solcSlotWordAt ⟨2⟩ σ I).toNat))
+    ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat
     (160 + 32 * k)
     (by rw [listReturnOffsetMem_size_of_copied_wf hwf]; omega)
     (by
       have hfmp :
-          (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat =
-            160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat :=
+          (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat =
+            160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat :=
         listArrayFreePtr_toNat_of_wf hwf
       have hnext :
-          ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat =
-            192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat := by
+          ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat =
+            192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat := by
         rw [uadd_toNat, hfmp, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-        rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-          192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-          rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-            192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+        rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+          192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+          rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+            192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
           apply Nat.mod_eq_of_lt
           have hret := cureStorageWF_returnEnd_lt hwf
           omega]
@@ -488,10 +487,10 @@ theorem listReturnBaseMem_read_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
       rw [uadd_toNat, listArrayFreePtr_toNat_of_wf hwf,
         show (⟨32⟩ : UInt256).toNat = 32 from by decide,
         listReturnOffsetMem_size_of_copied_wf hwf]
-      rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-        192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-        rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-          192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+      rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+        192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+        rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+          192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
         apply Nat.mod_eq_of_lt
         have hret := cureStorageWF_returnEnd_lt hwf
         omega]
@@ -500,9 +499,9 @@ theorem listReturnBaseMem_read_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
   unfold listReturnOffsetMem
   rw [toByteArray_write_read_below_of_gap
     (⟨32⟩ : UInt256)
-    (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-      (cureSlotWord ⟨2⟩ σ I).toNat)
-    (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat
+    (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+      (solcSlotWordAt ⟨2⟩ σ I).toNat)
+    (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat
     (160 + 32 * k)
     (by rw [listArrayCopiedMem_size]; omega)
     (by rw [listArrayFreePtr_toNat_of_wf hwf]; omega)
@@ -511,13 +510,13 @@ theorem listReturnBaseMem_read_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
       have hU : 0 < USize.size := by native_decide
       omega)]
   simpa [listReturnDataWord] using
-    listArrayCopiedMem_read_elem σ I (cureSlotWord ⟨2⟩ σ I)
-      (cureSlotWord ⟨2⟩ σ I).toNat k hk
+    listArrayCopiedMem_read_elem σ I (solcSlotWordAt ⟨2⟩ σ I)
+      (solcSlotWordAt ⟨2⟩ σ I).toNat k hk
 
 theorem listReturnCopiedMem_read_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    ∀ {n k}, n ≤ (cureSlotWord ⟨2⟩ σ I).toNat →
-      k < (cureSlotWord ⟨2⟩ σ I).toNat →
+    ∀ {n k}, n ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat →
+      k < (solcSlotWordAt ⟨2⟩ σ I).toNat →
       (listReturnCopiedMem σ I n).readWithPadding (160 + 32 * k) 32 =
         UInt256.toByteArray (listReturnDataWord σ I k)
   | 0, k, _, hk => by
@@ -526,7 +525,7 @@ theorem listReturnCopiedMem_read_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
       rw [listReturnCopiedMem]
       rw [toByteArray_write_read_below_of_gap
         (listReturnDataWord σ I n) (listReturnCopiedMem σ I n)
-        (((listReturnCopyOffset n) + listReturnDataDst (cureSlotWord ⟨2⟩ σ I)).toNat)
+        (((listReturnCopyOffset n) + listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I)).toNat)
         (160 + 32 * k)
         (by rw [listReturnCopiedMem_size_of_wf hwf (n := n) (by omega)]; omega)
         (by rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega)]; omega)
@@ -539,7 +538,7 @@ theorem listReturnCopiedMem_read_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
 
 theorem listReturnCopiedMem_mload_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) {n : Nat}
-    (hn : n < (cureSlotWord ⟨2⟩ σ I).toNat) :
+    (hn : n < (solcSlotWordAt ⟨2⟩ σ I).toNat) :
     (if ((listReturnCopyOffset n) + listArrayDataPtr).toNat ≥
           (listReturnCopiedMem σ I n).size
 
@@ -561,30 +560,30 @@ theorem listReturnCopiedMem_mload_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
 theorem listReturnBaseMem_read_offset_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
     (listReturnBaseMem σ I).readWithPadding
-        (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat 32 =
+        (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat 32 =
       UInt256.toByteArray (⟨32⟩ : UInt256) := by
   unfold listReturnBaseMem listReturnLengthMem
   rw [toByteArray_write_read_below_of_gap
-    (cureSlotWord ⟨2⟩ σ I)
-    (listReturnOffsetMem (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-      (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-        (cureSlotWord ⟨2⟩ σ I).toNat))
-    ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat
-    (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat
+    (solcSlotWordAt ⟨2⟩ σ I)
+    (listReturnOffsetMem (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+      (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+        (solcSlotWordAt ⟨2⟩ σ I).toNat))
+    ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat
+    (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat
     (by rw [listReturnOffsetMem_size_of_copied_wf hwf, listArrayFreePtr_toNat_of_wf hwf]; omega)
     (by
       have hfmp :
-          (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat =
-            160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat :=
+          (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat =
+            160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat :=
         listArrayFreePtr_toNat_of_wf hwf
       have hnext :
-          ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat =
-            192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat := by
+          ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat =
+            192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat := by
         rw [uadd_toNat, hfmp, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-        rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-          192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-          rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-            192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+        rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+          192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+          rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+            192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
           apply Nat.mod_eq_of_lt
           have hret := cureStorageWF_returnEnd_lt hwf
           omega]
@@ -594,10 +593,10 @@ theorem listReturnBaseMem_read_offset_of_wf {σ : AccountMap} {I : ExecutionEnv}
       rw [uadd_toNat, listArrayFreePtr_toNat_of_wf hwf,
         show (⟨32⟩ : UInt256).toNat = 32 from by decide,
         listReturnOffsetMem_size_of_copied_wf hwf]
-      rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-        192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-        rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-          192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+      rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+        192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+        rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+          192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
         apply Nat.mod_eq_of_lt
         have hret := cureStorageWF_returnEnd_lt hwf
         omega]
@@ -605,9 +604,9 @@ theorem listReturnBaseMem_read_offset_of_wf {σ : AccountMap} {I : ExecutionEnv}
       omega)]
   unfold listReturnOffsetMem
   exact toByteArray_write_read_back_of_gap (⟨32⟩ : UInt256)
-    (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-      (cureSlotWord ⟨2⟩ σ I).toNat)
-    (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat
+    (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+      (solcSlotWordAt ⟨2⟩ σ I).toNat)
+    (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat
     (by
       rw [listArrayFreePtr_toNat_of_wf hwf, listArrayCopiedMem_size]
       have hU : 0 < USize.size := by native_decide
@@ -616,22 +615,22 @@ theorem listReturnBaseMem_read_offset_of_wf {σ : AccountMap} {I : ExecutionEnv}
 theorem listReturnBaseMem_read_length_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
     (listReturnBaseMem σ I).readWithPadding
-        ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat 32 =
-      UInt256.toByteArray (cureSlotWord ⟨2⟩ σ I) := by
+        ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat 32 =
+      UInt256.toByteArray (solcSlotWordAt ⟨2⟩ σ I) := by
   unfold listReturnBaseMem listReturnLengthMem
-  exact toByteArray_write_read_back_of_gap (cureSlotWord ⟨2⟩ σ I)
-    (listReturnOffsetMem (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-      (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-        (cureSlotWord ⟨2⟩ σ I).toNat))
-    ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat
+  exact toByteArray_write_read_back_of_gap (solcSlotWordAt ⟨2⟩ σ I)
+    (listReturnOffsetMem (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+      (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+        (solcSlotWordAt ⟨2⟩ σ I).toNat))
+    ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat
     (by
       rw [uadd_toNat, listArrayFreePtr_toNat_of_wf hwf,
         show (⟨32⟩ : UInt256).toNat = 32 from by decide,
         listReturnOffsetMem_size_of_copied_wf hwf]
-      rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-        192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-        rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-          192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+      rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+        192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+        rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+          192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
         apply Nat.mod_eq_of_lt
         have hret := cureStorageWF_returnEnd_lt hwf
         omega]
@@ -640,17 +639,17 @@ theorem listReturnBaseMem_read_length_of_wf {σ : AccountMap} {I : ExecutionEnv}
 
 theorem listReturnCopiedMem_read_offset_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    ∀ {n}, n ≤ (cureSlotWord ⟨2⟩ σ I).toNat →
+    ∀ {n}, n ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat →
       (listReturnCopiedMem σ I n).readWithPadding
-          (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat 32 =
+          (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat 32 =
         UInt256.toByteArray (⟨32⟩ : UInt256)
   | 0, _ => listReturnBaseMem_read_offset_of_wf hwf
   | n + 1, hn => by
       rw [listReturnCopiedMem]
       rw [toByteArray_write_read_below_of_gap
         (listReturnDataWord σ I n) (listReturnCopiedMem σ I n)
-        (((listReturnCopyOffset n) + listReturnDataDst (cureSlotWord ⟨2⟩ σ I)).toNat)
-        (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat
+        (((listReturnCopyOffset n) + listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I)).toNat)
+        (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat
         (by
           rw [listReturnCopiedMem_size_of_wf hwf (n := n) (by omega),
             listArrayFreePtr_toNat_of_wf hwf]
@@ -668,28 +667,28 @@ theorem listReturnCopiedMem_read_offset_of_wf {σ : AccountMap} {I : ExecutionEn
 
 theorem listReturnCopiedMem_read_length_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    ∀ {n}, n ≤ (cureSlotWord ⟨2⟩ σ I).toNat →
+    ∀ {n}, n ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat →
       (listReturnCopiedMem σ I n).readWithPadding
-          ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat 32 =
-        UInt256.toByteArray (cureSlotWord ⟨2⟩ σ I)
+          ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat 32 =
+        UInt256.toByteArray (solcSlotWordAt ⟨2⟩ σ I)
   | 0, _ => listReturnBaseMem_read_length_of_wf hwf
   | n + 1, hn => by
       rw [listReturnCopiedMem]
       rw [toByteArray_write_read_below_of_gap
         (listReturnDataWord σ I n) (listReturnCopiedMem σ I n)
-        (((listReturnCopyOffset n) + listReturnDataDst (cureSlotWord ⟨2⟩ σ I)).toNat)
-        ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat
+        (((listReturnCopyOffset n) + listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I)).toNat)
+        ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat
         (by
           rw [listReturnCopiedMem_size_of_wf hwf (n := n) (by omega)]
           have hnext :
-              ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat =
-                192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat := by
+              ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat =
+                192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat := by
             rw [uadd_toNat, listArrayFreePtr_toNat_of_wf hwf,
               show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-            rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-              192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-              rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-                192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+            rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+              192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+              rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+                192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
               apply Nat.mod_eq_of_lt
               have hret := cureStorageWF_returnEnd_lt hwf
               omega]
@@ -698,14 +697,14 @@ theorem listReturnCopiedMem_read_length_of_wf {σ : AccountMap} {I : ExecutionEn
         (by
           rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega)]
           have hnext :
-              ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat =
-                192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat := by
+              ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) + (⟨32⟩ : UInt256))).toNat =
+                192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat := by
             rw [uadd_toNat, listArrayFreePtr_toNat_of_wf hwf,
               show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-            rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-              192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-              rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-                192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+            rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+              192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+              rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+                192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
               apply Nat.mod_eq_of_lt
               have hret := cureStorageWF_returnEnd_lt hwf
               omega]
@@ -720,9 +719,9 @@ theorem listReturnCopiedMem_read_length_of_wf {σ : AccountMap} {I : ExecutionEn
 
 theorem listReturnCopiedMem_read_data_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    ∀ {n k}, n ≤ (cureSlotWord ⟨2⟩ σ I).toNat → k < n →
+    ∀ {n k}, n ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat → k < n →
       (listReturnCopiedMem σ I n).readWithPadding
-          (224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 * k) 32 =
+          (224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 * k) 32 =
         UInt256.toByteArray (listReturnDataWord σ I k)
   | 0, k, _, hk => by omega
   | n + 1, k, hn, hk => by
@@ -732,7 +731,7 @@ theorem listReturnCopiedMem_read_data_of_wf {σ : AccountMap} {I : ExecutionEnv}
         rw [← listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega)]
         exact toByteArray_write_read_back_of_gap (listReturnDataWord σ I n)
           (listReturnCopiedMem σ I n)
-          (((listReturnCopyOffset n) + listReturnDataDst (cureSlotWord ⟨2⟩ σ I)).toNat)
+          (((listReturnCopyOffset n) + listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I)).toNat)
           (by
             rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega),
               listReturnCopiedMem_size_of_wf hwf (n := n) (by omega)]
@@ -741,8 +740,8 @@ theorem listReturnCopiedMem_read_data_of_wf {σ : AccountMap} {I : ExecutionEnv}
       · have hk' : k < n := by omega
         rw [toByteArray_write_read_below_of_gap
           (listReturnDataWord σ I n) (listReturnCopiedMem σ I n)
-          (((listReturnCopyOffset n) + listReturnDataDst (cureSlotWord ⟨2⟩ σ I)).toNat)
-          (224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 * k)
+          (((listReturnCopyOffset n) + listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I)).toNat)
+          (224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 * k)
           (by rw [listReturnCopiedMem_size_of_wf hwf (n := n) (by omega)]; omega)
           (by rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega)]; omega)
           (by
@@ -752,16 +751,6 @@ theorem listReturnCopiedMem_read_data_of_wf {σ : AccountMap} {I : ExecutionEnv}
             omega)]
         exact listReturnCopiedMem_read_data_of_wf hwf (n := n) (k := k) (by omega) hk'
 
-theorem byteArray_toList_toByteArray (b : ByteArray) :
-    b.toList.toByteArray = b := by
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  simp [byteArray_toList_eq]
-
-theorem natBytes_toByteArray (n : Nat) :
-    (ABI.natBytes n).toByteArray = UInt256.toByteArray (UInt256.ofNat n) := by
-  show (EVM.Word.toBytesBE (UInt256.ofNat n)).toByteArray = _
-  exact word_toBytesBE_toByteArray_eq_toByteArray _
 
 theorem listSrcsWordBytesFrom_toByteArray {σ : AccountMap} {I : ExecutionEnv} :
     ∀ idx n,
@@ -778,7 +767,7 @@ theorem listSrcsWordBytesFrom_toByteArray {σ : AccountMap} {I : ExecutionEnv} :
 
 theorem listReturnDataWord_eq_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) {idx : Nat}
-    (hidx : idx ≤ (cureSlotWord ⟨2⟩ σ I).toNat) :
+    (hidx : idx ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat) :
     listReturnDataWord σ I idx =
       UInt256.land (solcSlotWord σ I (srcElemSlot (.int (Int.ofNat idx)))) solcAddrMask := by
   unfold listReturnDataWord
@@ -786,7 +775,7 @@ theorem listReturnDataWord_eq_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
 
 theorem wordConcat_listReturnDataWord_eq_listSrcsWordBytesFrom
     {σ : AccountMap} {I : ExecutionEnv} (hwf : cureStorageWF σ I) :
-    ∀ idx n, idx + n ≤ (cureSlotWord ⟨2⟩ σ I).toNat →
+    ∀ idx n, idx + n ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat →
       wordConcat (listReturnDataWord σ I) idx n =
         (listSrcsWordBytesFrom σ I idx n).toByteArray
   | idx, n, hle => by
@@ -797,56 +786,56 @@ theorem wordConcat_listReturnDataWord_eq_listSrcsWordBytesFrom
 
 theorem listReturnCopiedMem_read_data_span_of_wf
     {σ : AccountMap} {I : ExecutionEnv} (hwf : cureStorageWF σ I) :
-    (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat).readWithPadding
-        (224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat)
-        (32 * (cureSlotWord ⟨2⟩ σ I).toNat) =
-      (listSrcsWordBytesFrom σ I 0 (cureSlotWord ⟨2⟩ σ I).toNat).toByteArray := by
+    (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat).readWithPadding
+        (224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat)
+        (32 * (solcSlotWordAt ⟨2⟩ σ I).toNat) =
+      (listSrcsWordBytesFrom σ I 0 (solcSlotWordAt ⟨2⟩ σ I).toNat).toByteArray := by
   have hconcat := readWithPadding_wordConcat
-    (mem := listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat)
+    (mem := listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (f := listReturnDataWord σ I)
-    (base := 224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat)
-    (n := (cureSlotWord ⟨2⟩ σ I).toNat) (idx := 0)
+    (base := 224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat)
+    (n := (solcSlotWordAt ⟨2⟩ σ I).toNat) (idx := 0)
     (by
       have hret := cureStorageWF_returnEnd_lt_u64 hwf
       omega)
     (by
-      rw [listReturnCopiedMem_size_of_wf hwf (n := (cureSlotWord ⟨2⟩ σ I).toNat)
+      rw [listReturnCopiedMem_size_of_wf hwf (n := (solcSlotWordAt ⟨2⟩ σ I).toNat)
         (by omega)]
       omega)
     (by
       intro k hk
       simpa using listReturnCopiedMem_read_data_of_wf hwf
-        (n := (cureSlotWord ⟨2⟩ σ I).toNat) (k := k) (by omega) hk)
+        (n := (solcSlotWordAt ⟨2⟩ σ I).toNat) (k := k) (by omega) hk)
   have hbytes := wordConcat_listReturnDataWord_eq_listSrcsWordBytesFrom hwf 0
-    (cureSlotWord ⟨2⟩ σ I).toNat (by omega)
+    (solcSlotWordAt ⟨2⟩ σ I).toNat (by omega)
   simpa using hconcat.trans hbytes
 
 theorem listReturnCopiedMem_read_return_of_wf
     {σ : AccountMap} {I : ExecutionEnv} (hwf : cureStorageWF σ I)
-    (hlenpos : 0 < (cureSlotWord ⟨2⟩ σ I).toNat) :
-    (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat).readWithPadding
-        (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat
+    (hlenpos : 0 < (solcSlotWordAt ⟨2⟩ σ I).toNat) :
+    (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat).readWithPadding
+        (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat
         (UInt256.sub
-          (((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) +
-            listReturnDataDst (cureSlotWord ⟨2⟩ σ I))
-          (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))).toNat =
+          (((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) +
+            listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I))
+          (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))).toNat =
       listSrcsReturnBytes σ I := by
   rw [listReturnSize_toNat_of_wf hwf]
   have hsplitHead :
-      (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat).readWithPadding
-          (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat
-          (64 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat) =
-        (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat).readWithPadding
-            (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat 32 ++
-          (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat).readWithPadding
-            ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat + 32)
-            (32 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat) := by
-    rw [show 64 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat =
-      32 + (32 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat) by omega]
+      (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat).readWithPadding
+          (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat
+          (64 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat) =
+        (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat).readWithPadding
+            (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat 32 ++
+          (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat).readWithPadding
+            ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat + 32)
+            (32 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat) := by
+    rw [show 64 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat =
+      32 + (32 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat) by omega]
     exact byteArray_readWithPadding_split
-      (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat)
-      (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat 32
-      (32 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat)
+      (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat)
+      (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat 32
+      (32 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat)
       (by norm_num) (by omega) (by norm_num)
       (by
         have hret := cureStorageWF_returnEnd_lt_u64 hwf
@@ -857,21 +846,21 @@ theorem listReturnCopiedMem_read_return_of_wf
       (by
         rw [listArrayFreePtr_toNat_of_wf hwf,
           listReturnCopiedMem_size_of_wf hwf
-            (n := (cureSlotWord ⟨2⟩ σ I).toNat) (by omega)]
+            (n := (solcSlotWordAt ⟨2⟩ σ I).toNat) (by omega)]
         omega)
   have hsplitTail :
-      (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat).readWithPadding
-          ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat + 32)
-          (32 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat) =
-        (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat).readWithPadding
-            ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat + 32) 32 ++
-          (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat).readWithPadding
-            ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat + 64)
-            (32 * (cureSlotWord ⟨2⟩ σ I).toNat) := by
+      (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat).readWithPadding
+          ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat + 32)
+          (32 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat) =
+        (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat).readWithPadding
+            ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat + 32) 32 ++
+          (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat).readWithPadding
+            ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat + 64)
+            (32 * (solcSlotWordAt ⟨2⟩ σ I).toNat) := by
     exact byteArray_readWithPadding_split
-      (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat)
-      ((listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat + 32) 32
-      (32 * (cureSlotWord ⟨2⟩ σ I).toNat)
+      (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat)
+      ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat + 32) 32
+      (32 * (solcSlotWordAt ⟨2⟩ σ I).toNat)
       (by norm_num) (by omega) (by norm_num)
       (by
         have hret := cureStorageWF_returnEnd_lt_u64 hwf
@@ -882,32 +871,32 @@ theorem listReturnCopiedMem_read_return_of_wf
       (by
         rw [listArrayFreePtr_toNat_of_wf hwf,
           listReturnCopiedMem_size_of_wf hwf
-            (n := (cureSlotWord ⟨2⟩ σ I).toNat) (by omega)]
+            (n := (solcSlotWordAt ⟨2⟩ σ I).toNat) (by omega)]
         omega)
   rw [hsplitHead, hsplitTail]
-  rw [listReturnCopiedMem_read_offset_of_wf hwf (n := (cureSlotWord ⟨2⟩ σ I).toNat)
+  rw [listReturnCopiedMem_read_offset_of_wf hwf (n := (solcSlotWordAt ⟨2⟩ σ I).toNat)
       (by omega)]
-  rw [show (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat + 32 =
-      (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) + (⟨32⟩ : UInt256)).toNat by
+  rw [show (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat + 32 =
+      (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) + (⟨32⟩ : UInt256)).toNat by
       conv_rhs => rw [uadd_toNat]
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       exact (Nat.mod_eq_of_lt (by
         rw [listArrayFreePtr_toNat_of_wf hwf]
         have hret := cureStorageWF_returnDst_lt hwf
         omega)).symm]
-  rw [listReturnCopiedMem_read_length_of_wf hwf (n := (cureSlotWord ⟨2⟩ σ I).toNat)
+  rw [listReturnCopiedMem_read_length_of_wf hwf (n := (solcSlotWordAt ⟨2⟩ σ I).toNat)
       (by omega)]
-  rw [show (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat + 64 =
-      224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
+  rw [show (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat + 64 =
+      224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
       rw [listArrayFreePtr_toNat_of_wf hwf]; omega]
   rw [listReturnCopiedMem_read_data_span_of_wf hwf]
   unfold listSrcsReturnBytes
   rw [show (⟨(ABI.natBytes 32 ++
       (ABI.natBytes (listSrcsValues σ I).length ++
-        listSrcsWordBytesFrom σ I 0 (cureSlotWord ⟨2⟩ σ I).toNat)).toArray⟩ : ByteArray) =
+        listSrcsWordBytesFrom σ I 0 (solcSlotWordAt ⟨2⟩ σ I).toNat)).toArray⟩ : ByteArray) =
       (ABI.natBytes 32 ++
         (ABI.natBytes (listSrcsValues σ I).length ++
-          listSrcsWordBytesFrom σ I 0 (cureSlotWord ⟨2⟩ σ I).toNat)).toByteArray by
+          listSrcsWordBytesFrom σ I 0 (solcSlotWordAt ⟨2⟩ σ I).toNat)).toByteArray by
     rw [← List.data_toByteArray]]
   rw [list_toByteArray_append, list_toByteArray_append, natBytes_toByteArray,
     natBytes_toByteArray, listSrcsValues_length, u256_ofNat_toNat]
@@ -915,10 +904,10 @@ theorem listReturnCopiedMem_read_return_of_wf
 
 theorem listReturnCopyMloadAw_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) {n : Nat}
-    (hn : n ≤ (cureSlotWord ⟨2⟩ σ I).toNat) :
+    (hn : n ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat) :
     (listReturnCopyMloadAw (listReturnCopiedAw σ I n) listArrayDataPtr
         (listReturnCopyOffset n)).toNat =
-      7 + (cureSlotWord ⟨2⟩ σ I).toNat + n := by
+      7 + (solcSlotWordAt ⟨2⟩ σ I).toNat + n := by
   unfold listReturnCopyMloadAw
   rw [UInt256.toNat_ofNat_of_lt]
   · rw [listReturnCopiedAw_toNat_of_wf hwf hn,
@@ -932,23 +921,23 @@ theorem listReturnCopyMloadAw_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
 
 theorem listReturnCopyStepAw_eq_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) {n : Nat}
-    (hn : n + 1 ≤ (cureSlotWord ⟨2⟩ σ I).toNat) :
+    (hn : n + 1 ≤ (solcSlotWordAt ⟨2⟩ σ I).toNat) :
     listReturnCopyStepAw (listReturnCopiedAw σ I n) listArrayDataPtr
-        (listReturnDataDst (cureSlotWord ⟨2⟩ σ I)) (listReturnCopyOffset n) =
+        (listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I)) (listReturnCopyOffset n) =
       listReturnCopiedAw σ I (n + 1) := by
   apply u256_inj
   unfold listReturnCopyStepAw
   rw [UInt256.toNat_ofNat_of_lt, listReturnCopiedAw_toNat_of_wf hwf (n := n + 1) hn]
   · rw [listReturnCopyMloadAw_toNat_of_wf hwf (n := n) (by omega),
       listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega)]
-    rw [show 224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 * n =
-      32 * (7 + (cureSlotWord ⟨2⟩ σ I).toNat + n) by omega]
+    rw [show 224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 * n =
+      32 * (7 + (solcSlotWordAt ⟨2⟩ σ I).toNat + n) by omega]
     rw [machineState_M_endWrite]
     omega
   · rw [listReturnCopyMloadAw_toNat_of_wf hwf (n := n) (by omega),
       listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega)]
-    rw [show 224 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 * n =
-      32 * (7 + (cureSlotWord ⟨2⟩ σ I).toNat + n) by omega]
+    rw [show 224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 * n =
+      32 * (7 + (solcSlotWordAt ⟨2⟩ σ I).toNat + n) by omega]
     rw [machineState_M_endWrite]
     have hret := cureStorageWF_returnEnd_lt hwf
     omega
@@ -956,18 +945,18 @@ theorem listReturnCopyStepAw_eq_of_wf {σ : AccountMap} {I : ExecutionEnv}
 theorem listReturnOffsetMem_mload128_of_copied_wf
     {σ : AccountMap} {I : ExecutionEnv} (hwf : cureStorageWF σ I) :
     (if listArrayBasePtr.toNat ≥
-          (listReturnOffsetMem (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-            (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-              (cureSlotWord ⟨2⟩ σ I).toNat)).size
+          (listReturnOffsetMem (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+            (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+              (solcSlotWordAt ⟨2⟩ σ I).toNat)).size
 
       then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
-          ((listReturnOffsetMem (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-            (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-              (cureSlotWord ⟨2⟩ σ I).toNat)).readWithPadding
+          ((listReturnOffsetMem (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+            (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+              (solcSlotWordAt ⟨2⟩ σ I).toNat)).readWithPadding
                 listArrayBasePtr.toNat 32)))
-      = cureSlotWord ⟨2⟩ σ I := by
+      = solcSlotWordAt ⟨2⟩ σ I := by
   exact mloadWordValue_of_readWithPadding
     (by
       rw [show listArrayBasePtr.toNat = 128 from by decide,
@@ -975,8 +964,8 @@ theorem listReturnOffsetMem_mload128_of_copied_wf
       omega)
     (by
       exact listReturnOffsetMem_read128_of_copied σ I
-        (cureSlotWord ⟨2⟩ σ I) (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-        (cureSlotWord ⟨2⟩ σ I).toNat
+        (solcSlotWordAt ⟨2⟩ σ I) (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+        (solcSlotWordAt ⟨2⟩ σ I).toNat
         (by
           rw [show listArrayBasePtr.toNat = 128 from by decide,
             listArrayFreePtr_toNat_of_wf hwf]
@@ -989,20 +978,20 @@ theorem listReturnOffsetMem_mload128_of_copied_wf
 theorem listReturnLengthMem_mload128_of_copied_wf
     {σ : AccountMap} {I : ExecutionEnv} (hwf : cureStorageWF σ I) :
     (if listArrayBasePtr.toNat ≥
-          (listReturnLengthMem (cureSlotWord ⟨2⟩ σ I)
-            (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-            (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-              (cureSlotWord ⟨2⟩ σ I).toNat)).size
+          (listReturnLengthMem (solcSlotWordAt ⟨2⟩ σ I)
+            (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+            (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+              (solcSlotWordAt ⟨2⟩ σ I).toNat)).size
 
       then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
-          ((listReturnLengthMem (cureSlotWord ⟨2⟩ σ I)
-            (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-            (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-              (cureSlotWord ⟨2⟩ σ I).toNat)).readWithPadding
+          ((listReturnLengthMem (solcSlotWordAt ⟨2⟩ σ I)
+            (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+            (listArrayCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I)
+              (solcSlotWordAt ⟨2⟩ σ I).toNat)).readWithPadding
                 listArrayBasePtr.toNat 32)))
-      = cureSlotWord ⟨2⟩ σ I := by
+      = solcSlotWordAt ⟨2⟩ σ I := by
   exact mloadWordValue_of_readWithPadding
     (by
       rw [show listArrayBasePtr.toNat = 128 from by decide,
@@ -1010,8 +999,8 @@ theorem listReturnLengthMem_mload128_of_copied_wf
       omega)
     (by
       exact listReturnLengthMem_read128_of_copied σ I
-        (cureSlotWord ⟨2⟩ σ I) (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-        (cureSlotWord ⟨2⟩ σ I).toNat
+        (solcSlotWordAt ⟨2⟩ σ I) (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+        (solcSlotWordAt ⟨2⟩ σ I).toNat
         (by
           rw [show listArrayBasePtr.toNat = 128 from by decide,
             listArrayFreePtr_toNat_of_wf hwf]
@@ -1020,10 +1009,10 @@ theorem listReturnLengthMem_mload128_of_copied_wf
           rw [show listArrayBasePtr.toNat = 128 from by decide,
             uadd_toNat, listArrayFreePtr_toNat_of_wf hwf,
             show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-          rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-            192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-            rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-              192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+          rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+            192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+            rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+              192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
             apply Nat.mod_eq_of_lt
             have hret := cureStorageWF_returnEnd_lt hwf
             omega]
@@ -1040,10 +1029,10 @@ theorem listReturnLengthMem_mload128_of_copied_wf
           rw [uadd_toNat, listArrayFreePtr_toNat_of_wf hwf,
             show (⟨32⟩ : UInt256).toNat = 32 from by decide,
             listReturnOffsetMem_size_of_copied_wf hwf]
-          rw [show (160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32) % UInt256.size =
-            192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by
-            rw [show 160 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat + 32 =
-              192 + 32 * (cureSlotWord ⟨2⟩ σ I).toNat by omega]
+          rw [show (160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32) % UInt256.size =
+            192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by
+            rw [show 160 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat + 32 =
+              192 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat by omega]
             apply Nat.mod_eq_of_lt
             have hret := cureStorageWF_returnEnd_lt hwf
             omega]
@@ -1087,7 +1076,7 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
   have rd374 := rd373.mload (Cₘ (listReturnMload64Aw aw) - Cₘ aw) fmp
     (listReturnMload64Aw aw) (by native_decide)
     (by simp [M, MachineState.M, listReturnMload64Aw,
-      listReturnU256_32_toNat, listReturnU256_64_toNat])
+      u256_32_toNat, u256_64_toNat])
     hload64 (by rfl) (by evm_ov)
   have rd376 := rd374.push1 ⟨32⟩ (by native_decide) (by evm_ov)
   have rd377 := rd376.dup1 (by native_decide) (by evm_ov)
@@ -1096,7 +1085,7 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
     (Cₘ (listReturnOffsetAw aw fmp) - Cₘ (listReturnMload64Aw aw))
     (listReturnOffsetMem fmp mem) (listReturnOffsetAw aw fmp) (by native_decide)
     (by simp [M, MachineState.M, listReturnMload64Aw, listReturnOffsetAw,
-      listReturnU256_32_toNat, listReturnU256_64_toNat])
+      u256_32_toNat, u256_64_toNat])
     (by rfl) (by rfl) (by evm_ov)
   have rd380 := rd379.dup4 (by native_decide) (by evm_ov)
   have rd381 := rd380.mload
@@ -1104,7 +1093,7 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
       Cₘ (listReturnOffsetAw aw fmp))
     len (listReturnArrayMloadAw aw fmp arrPtr) (by native_decide)
     (by simp [M, MachineState.M, listReturnMload64Aw, listReturnOffsetAw,
-      listReturnArrayMloadAw, listReturnU256_32_toNat, listReturnU256_64_toNat])
+      listReturnArrayMloadAw, u256_32_toNat, u256_64_toNat])
     hloadArr (by rfl) (by evm_ov)
   have rd382 := rd381.dup2 (by native_decide) (by evm_ov)
   have rd383 := rd382.dup4 (by native_decide) (by evm_ov)
@@ -1115,8 +1104,8 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
     (listReturnLengthMem len fmp mem) (listReturnLengthAw aw fmp arrPtr)
     (by native_decide)
     (by simp [M, MachineState.M, listReturnMload64Aw, listReturnOffsetAw,
-      listReturnArrayMloadAw, listReturnLengthAw, listReturnU256_32_toNat,
-      listReturnU256_64_toNat])
+      listReturnArrayMloadAw, listReturnLengthAw, u256_32_toNat,
+      u256_64_toNat])
     (by rfl) (by rfl) (by evm_ov)
   have rd386 := rd385.dup4 (by native_decide) (by evm_ov)
   have rd387 := rd386.mload
@@ -1125,7 +1114,7 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
     len (listReturnFinalAw aw fmp arrPtr) (by native_decide)
     (by simp [M, MachineState.M, listReturnMload64Aw, listReturnOffsetAw,
       listReturnArrayMloadAw, listReturnLengthAw, listReturnFinalAw,
-      listReturnU256_32_toNat, listReturnU256_64_toNat])
+      u256_32_toNat, u256_64_toNat])
     hloadArrTail (by rfl) (by evm_ov)
   have rd405 := evm_run rd387 with [
     swap2, swap3, dup4, swap3, swap1, dup4, add, swap2, dup6, dup2, add, swap2,
@@ -1165,7 +1154,7 @@ theorem cureListReturnCopyLoopStep {g : Sat256} {s0 : State}
   have rd418 := rd417.mload (Cₘ (listReturnCopyMloadAw aw src i) - Cₘ aw)
     word (listReturnCopyMloadAw aw src i) (by native_decide)
     (by simp [M, MachineState.M, listReturnCopyMloadAw,
-      listReturnU256_32_toNat, listReturnU256_64_toNat])
+      u256_32_toNat, u256_64_toNat])
     hload (by rfl) (by evm_ov)
   have rd419 := rd418.dup4 (by native_decide) (by evm_ov)
   have rd420 := rd419.dup3 (by native_decide) (by evm_ov)
@@ -1176,7 +1165,7 @@ theorem cureListReturnCopyLoopStep {g : Sat256} {s0 : State}
     (listReturnCopyStepMem word dst i mem)
     (listReturnCopyStepAw aw src dst i) (by native_decide)
     (by simp [M, MachineState.M, listReturnCopyMloadAw, listReturnCopyStepAw,
-      listReturnU256_32_toNat, listReturnU256_64_toNat])
+      u256_32_toNat, u256_64_toNat])
     (by rfl) (by rfl) (by evm_ov)
   have rd424 := rd422.push1 ⟨32⟩ (by native_decide) (by evm_ov)
   have rd425 := rd424.add (by native_decide) (by evm_ov)
@@ -1187,12 +1176,12 @@ theorem cureListReturnCopyLoopStep {g : Sat256} {s0 : State}
 
 theorem listReturnCopyLoopContinueCond_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) {n : Nat}
-    (hn : n < (cureSlotWord ⟨2⟩ σ I).toNat) :
+    (hn : n < (solcSlotWordAt ⟨2⟩ σ I).toNat) :
     UInt256.isZero
         (UInt256.lt (listReturnCopyOffset n)
-          ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256))) = ⟨0⟩ := by
+          ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256))) = ⟨0⟩ := by
   have hlt : UInt256.lt (listReturnCopyOffset n)
-      ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) = ⟨1⟩ := by
+      ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) = ⟨1⟩ := by
     apply ult_one
     rw [listReturnCopyOffset_toNat_of_wf hwf (n := n) (by omega),
       listReturnBound_toNat_of_wf hwf]
@@ -1203,26 +1192,26 @@ theorem listReturnCopyLoopContinueCond_of_wf {σ : AccountMap} {I : ExecutionEnv
 theorem cureListReturnCopyLoopStepWf {σ σ₀ A I} {g : Sat256}
     {k C : ℕ} {n : Nat}
     (hwf : cureStorageWF σ I)
-    (hn : n < (cureSlotWord ⟨2⟩ σ I).toNat)
+    (hn : n < (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (h : RD cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
       (listReturnCopyOffset n :: listArrayDataPtr ::
-        listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
-        ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
-        ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
-        listArrayDataPtr :: listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
-        listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) ::
-        listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) :: listArrayBasePtr ::
+        listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::
+        ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
+        ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
+        listArrayDataPtr :: listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::
+        listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) ::
+        listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) :: listArrayBasePtr ::
         cureSelWord I :: [])
       (listReturnCopiedMem σ I n) (listReturnCopiedAw σ I n) ByteArray.empty
       σ k C) :
     ∃ k' C', RD cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
       (listReturnCopyOffset (n + 1) :: listArrayDataPtr ::
-        listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
-        ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
-        ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
-        listArrayDataPtr :: listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
-        listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) ::
-        listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) :: listArrayBasePtr ::
+        listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::
+        ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
+        ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
+        listArrayDataPtr :: listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::
+        listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) ::
+        listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) :: listArrayBasePtr ::
         cureSelWord I :: [])
       (listReturnCopiedMem σ I (n + 1)) (listReturnCopiedAw σ I (n + 1))
       ByteArray.empty σ k' C' := by
@@ -1241,36 +1230,36 @@ theorem cureListReturnCopyLoopStepWf {σ σ₀ A I} {g : Sat256}
 theorem cureListReturnCopyLoopRunAux {σ σ₀ A I} {g : Sat256}
     (hwf : cureStorageWF σ I) :
     ∀ rem n k C,
-      n + rem = (cureSlotWord ⟨2⟩ σ I).toNat →
+      n + rem = (solcSlotWordAt ⟨2⟩ σ I).toNat →
       RD cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
         (listReturnCopyOffset n :: listArrayDataPtr ::
-          listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
-          ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
-          ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
-          listArrayDataPtr :: listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
-          listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) ::
-          listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) :: listArrayBasePtr ::
+          listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::
+          ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
+          ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
+          listArrayDataPtr :: listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::
+          listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) ::
+          listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) :: listArrayBasePtr ::
           cureSelWord I :: [])
         (listReturnCopiedMem σ I n) (listReturnCopiedAw σ I n) ByteArray.empty
         σ k C →
       ∃ k' C', RD cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
-        (listReturnCopyOffset (cureSlotWord ⟨2⟩ σ I).toNat :: listArrayDataPtr ::
-          listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
-          ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
-          ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
-          listArrayDataPtr :: listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
-          listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) ::
-          listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) :: listArrayBasePtr ::
+        (listReturnCopyOffset (solcSlotWordAt ⟨2⟩ σ I).toNat :: listArrayDataPtr ::
+          listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::
+          ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
+          ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
+          listArrayDataPtr :: listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::
+          listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) ::
+          listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) :: listArrayBasePtr ::
           cureSelWord I :: [])
-        (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat)
-        (listReturnCopiedAw σ I (cureSlotWord ⟨2⟩ σ I).toNat) ByteArray.empty
+        (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat)
+        (listReturnCopiedAw σ I (solcSlotWordAt ⟨2⟩ σ I).toNat) ByteArray.empty
         σ k' C'
   | 0, n, k, C, hsum, h => by
-      have hn : n = (cureSlotWord ⟨2⟩ σ I).toNat := by omega
+      have hn : n = (solcSlotWordAt ⟨2⟩ σ I).toNat := by omega
       subst hn
       exact ⟨k, C, h⟩
   | rem + 1, n, k, C, hsum, h => by
-      have hn : n < (cureSlotWord ⟨2⟩ σ I).toNat := by omega
+      have hn : n < (solcSlotWordAt ⟨2⟩ σ I).toNat := by omega
       obtain ⟨k1, C1, hnext⟩ :=
         cureListReturnCopyLoopStepWf
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1318,7 +1307,7 @@ theorem cureListReturnCopyLoopExit {g : Sat256} {s0 : State}
   have rd444 := rd443.mload (Cₘ (listReturnMload64Aw aw) - Cₘ aw) fmp
     (listReturnMload64Aw aw) (by native_decide)
     (by simp [M, MachineState.M, listReturnMload64Aw,
-      listReturnU256_32_toNat, listReturnU256_64_toNat])
+      u256_32_toNat, u256_64_toNat])
     hload64 (by rfl) (by evm_ov)
   have rd445 := rd444.dup1 (by native_decide) (by evm_ov)
   have rd446 := rd445.swap2 (by native_decide) (by evm_ov)
@@ -1406,10 +1395,10 @@ theorem readStorage_srcs_ok {σ σ₀ A I} {g : Sat256} :
       (Solm.EVM.storageLoad (initState σ σ₀ g A I)
         (initState σ σ₀ g A I).executionEnv.codeOwner ⟨2⟩).toNat =
         .ok (listSrcsValues σ I) := by
-    simpa [listSrcsValues, cureSlotWord, solcSlotWord, initState,
+    simpa [listSrcsValues, solcSlotWordAt, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage] using
       (readArrayElems_srcs_address_ok (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-        (g := g) 0 (cureSlotWord ⟨2⟩ σ I).toNat)
+        (g := g) 0 (solcSlotWordAt ⟨2⟩ σ I).toNat)
   simp only [harray, EvalResult.bind, bind, pure]
 
 theorem evalExpr_listSrcs_ok {σ σ₀ A I} {g : Sat256} :
@@ -1461,7 +1450,7 @@ theorem cureListEmptyReturns {σ σ₀ A I} {g : Sat256}
     (h929 : ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨929⟩
       [⟨369⟩, cureSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ k C)
-    (hlen0 : cureSlotWord ⟨2⟩ σ I = ⟨0⟩) :
+    (hlen0 : solcSlotWordAt ⟨2⟩ σ I = ⟨0⟩) :
     RDret cureBytecode g (initState σ σ₀ g A I) σ listEmptyArrayAbi := by
   obtain ⟨_, _, h929⟩ := h929
   obtain ⟨_, _, h936raw⟩ :=
@@ -1469,9 +1458,9 @@ theorem cureListEmptyReturns {σ σ₀ A I} {g : Sat256}
       (by native_decide) (by evm_ov)
   obtain ⟨_, _, h936⟩ : ∃ k C, RD cureBytecode I g
       (initState σ σ₀ g A I) ⟨936⟩
-      [cureSlotWord ⟨2⟩ σ I, ⟨2⟩, ⟨96⟩, ⟨369⟩, cureSelWord I]
+      [solcSlotWordAt ⟨2⟩ σ I, ⟨2⟩, ⟨96⟩, ⟨369⟩, cureSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C :=
-    ⟨_, _, by simpa [cureSlotWord, initState] using h936raw⟩
+    ⟨_, _, by simpa [solcSlotWordAt, initState] using h936raw⟩
   rw [hlen0] at h936
   have h963 := evm_run h936 with [
     dup1, push1 ⟨32⟩, mul, push1 ⟨32⟩, add, push1 ⟨64⟩,
@@ -1490,7 +1479,7 @@ theorem cureListEmptyReturns {σ σ₀ A I} {g : Sat256}
   have hload0 :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)) =
         (⟨0⟩ : UInt256) := by
-    simpa [cureSlotWord, solcSlotWord] using hlen0
+    simpa [solcSlotWordAt, solcSlotWord] using hlen0
   have h965 := by
     simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState, hload0] using h965raw
   have h369 := evm_run h965 with [
@@ -1526,7 +1515,6 @@ theorem cureListEmptyReturns {σ σ₀ A I} {g : Sat256}
 theorem cureListBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 7))
     (_hStorageWF : cureStorageWF σ I) :
@@ -1555,7 +1543,7 @@ theorem cureListBodyCore {σ σ₀ A I} {g : UInt256}
     cureListSourceBodyOk (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
   have hvalues : listSrcsValues σ I = listSrcsValues σ I := rfl
-  by_cases hlen0 : cureSlotWord ⟨2⟩ σ I = ⟨0⟩
+  by_cases hlen0 : solcSlotWordAt ⟨2⟩ σ I = ⟨0⟩
   · have hret := cureListEmptyReturns
       (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -1571,11 +1559,11 @@ theorem cureListBodyCore {σ σ₀ A I} {g : UInt256}
       rw [listSrcsValues_nil_of_len_zero hlen0]
       exact returnEquiv_of_encode listEmptyArrayReturnEncoding
     exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
-  · have hlenpos : 0 < (cureSlotWord ⟨2⟩ σ I).toNat := by
+  · have hlenpos : 0 < (solcSlotWordAt ⟨2⟩ σ I).toNat := by
       by_contra hnot
-      have hnat : (cureSlotWord ⟨2⟩ σ I).toNat = 0 := by omega
+      have hnat : (solcSlotWordAt ⟨2⟩ σ I).toNat = 0 := by omega
       apply hlen0
-      rw [← u256_ofNat_toNat (cureSlotWord ⟨2⟩ σ I), hnat]
+      rw [← u256_ofNat_toNat (solcSlotWordAt ⟨2⟩ σ I), hnat]
       rfl
     obtain ⟨_, _, h987⟩ := cureListNonemptyToLoop
       (σ := σ) (σ₀ := σ₀)
@@ -1585,29 +1573,29 @@ theorem cureListBodyCore {σ σ₀ A I} {g : UInt256}
       cureListArrayLoopRunAux
         (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (σ := σ) (_hStorageWF)
-        ((cureSlotWord ⟨2⟩ σ I).toNat - 1) 0
+        ((solcSlotWordAt ⟨2⟩ σ I).toNat - 1) 0
         (by omega) h987
     obtain ⟨_, _, h405raw⟩ :=
       cureListReturnFromMemToCopyLoop
         (arrPtr := listArrayBasePtr)
-        (fmp := listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
-        (len := cureSlotWord ⟨2⟩ σ I)
+        (fmp := listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))
+        (len := solcSlotWordAt ⟨2⟩ σ I)
         (R := [cureSelWord I])
         h369
-        (listArrayCopiedMem_mload64 σ I (cureSlotWord ⟨2⟩ σ I)
-          (cureSlotWord ⟨2⟩ σ I).toNat)
+        (listArrayCopiedMem_mload64 σ I (solcSlotWordAt ⟨2⟩ σ I)
+          (solcSlotWordAt ⟨2⟩ σ I).toNat)
         (listReturnOffsetMem_mload128_of_copied_wf _hStorageWF)
         (listReturnLengthMem_mload128_of_copied_wf _hStorageWF)
         (by simp)
     have h405 : ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨405⟩ : UInt256)
         (listReturnCopyOffset 0 :: listArrayDataPtr ::
-          listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
-          ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
-          ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
-          listArrayDataPtr :: listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
-          listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) ::
-          listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) :: listArrayBasePtr ::
+          listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::
+          ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
+          ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
+          listArrayDataPtr :: listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I) ::
+          listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) ::
+          listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) :: listArrayBasePtr ::
           cureSelWord I :: [])
         (listReturnCopiedMem σ I 0) (listReturnCopiedAw σ I 0)
         ByteArray.empty σ k C := by
@@ -1619,47 +1607,47 @@ theorem cureListBodyCore {σ σ₀ A I} {g : UInt256}
     obtain ⟨_, _, h405done⟩ := cureListReturnCopyLoopRunAux
       (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g)
-      _hStorageWF (cureSlotWord ⟨2⟩ σ I).toNat 0 k405 C405
+      _hStorageWF (solcSlotWordAt ⟨2⟩ σ I).toNat 0 k405 C405
       (by omega) h405rd
     have hdone :
         UInt256.isZero
-          (UInt256.lt (listReturnCopyOffset (cureSlotWord ⟨2⟩ σ I).toNat)
-            ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256))) ≠ ⟨0⟩ := by
+          (UInt256.lt (listReturnCopyOffset (solcSlotWordAt ⟨2⟩ σ I).toNat)
+            ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256))) ≠ ⟨0⟩ := by
       have hlt :
-          UInt256.lt (listReturnCopyOffset (cureSlotWord ⟨2⟩ σ I).toNat)
-            ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) = ⟨0⟩ := by
+          UInt256.lt (listReturnCopyOffset (solcSlotWordAt ⟨2⟩ σ I).toNat)
+            ((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) = ⟨0⟩ := by
         apply ult_zero
         rw [listReturnCopyOffset_toNat_of_wf _hStorageWF
-            (n := (cureSlotWord ⟨2⟩ σ I).toNat) (by omega),
+            (n := (solcSlotWordAt ⟨2⟩ σ I).toNat) (by omega),
           listReturnBound_toNat_of_wf _hStorageWF]
       rw [hlt]
       decide
     have hload64 :
         (if (⟨64⟩ : UInt256).toNat ≥
-              (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat).size
+              (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat).size
 
           then ⟨0⟩
           else UInt256.ofNat
             (fromByteArrayBigEndian
               ((listReturnCopiedMem σ I
-                (cureSlotWord ⟨2⟩ σ I).toNat).readWithPadding
+                (solcSlotWordAt ⟨2⟩ σ I).toNat).readWithPadding
                   (⟨64⟩ : UInt256).toNat 32))) =
-          listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) := by
+          listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I) := by
       exact mloadWordValue_of_readWithPadding
         (by
           rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
             listReturnCopiedMem_size_of_wf _hStorageWF
-              (n := (cureSlotWord ⟨2⟩ σ I).toNat) (by omega)]
+              (n := (solcSlotWordAt ⟨2⟩ σ I).toNat) (by omega)]
           omega)
         (listReturnCopiedMem_read64_of_wf _hStorageWF
-          (n := (cureSlotWord ⟨2⟩ σ I).toNat) (by omega))
+          (n := (solcSlotWordAt ⟨2⟩ σ I).toNat) (by omega))
     have hreturn :
-        (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat).readWithPadding
-          (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat
+        (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat).readWithPadding
+          (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat
           (UInt256.sub
-            (((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) +
-              listReturnDataDst (cureSlotWord ⟨2⟩ σ I))
-            (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))).toNat =
+            (((solcSlotWordAt ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) +
+              listReturnDataDst (solcSlotWordAt ⟨2⟩ σ I))
+            (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I))).toNat =
           listSrcsReturnBytes σ I :=
       listReturnCopiedMem_read_return_of_wf _hStorageWF hlenpos
     have hret := cureListReturnCopyLoopExit

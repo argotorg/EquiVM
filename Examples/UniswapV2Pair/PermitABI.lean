@@ -1,3 +1,5 @@
+import Reasoning.ABIViews
+import Reasoning.ABIComposite
 import Examples.UniswapV2Pair.PackedWordSource
 import Examples.UniswapV2Pair.MutatorDispatch
 import Examples.UniswapV2Pair.PermitDecode
@@ -171,7 +173,7 @@ abbrev permitStructHashWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
     (permitDeadlineWord I)
 
 abbrev permitStructHashValue (σ : AccountMap) (I : ExecutionEnv) : Value :=
-  permitWordBytes32Value (permitStructHashWord σ I)
+  wordBytes32Value (permitStructHashWord σ I)
 
 abbrev permitDigestMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   permitRuntimeDigestMem (permitStructHashMem σ I) (permitDomainSeparatorWord σ I)
@@ -182,7 +184,7 @@ abbrev permitDigestWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
     (permitStructHashWord σ I)
 
 abbrev permitDigestValue (σ : AccountMap) (I : ExecutionEnv) : Value :=
-  permitWordBytes32Value (permitDigestWord σ I)
+  wordBytes32Value (permitDigestWord σ I)
 
 theorem permitStructHashMem_size (σ : AccountMap) (I : ExecutionEnv) :
     (permitStructHashMem σ I).size = 352 := by
@@ -253,7 +255,7 @@ abbrev permitDomainSeparatorLoadedWord (evm : EVM.State) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩
 
 abbrev permitDomainSeparatorLoadedValue (evm : EVM.State) : Value :=
-  permitWordBytes32Value (permitDomainSeparatorLoadedWord evm)
+  wordBytes32Value (permitDomainSeparatorLoadedWord evm)
 
 abbrev permitAfterDomainLoadStore (evm : EVM.State) (I : ExecutionEnv) : Store :=
   (permitStore I).insert "domainSeparator" (permitDomainSeparatorLoadedValue evm)
@@ -305,25 +307,6 @@ theorem permitSpenderValue_masked (I : ExecutionEnv) :
   simpa [permitSpenderValue, permitSpenderMaskedWord] using
     solcAddressValue_masked (permitSpenderWord I)
 
-theorem permitRecoveredAddress_masked {o : ByteArray}
-    (ho32 : 32 ≤ o.size) :
-    (.address (AccountAddress.ofNat (fromByteArrayBigEndian (o.extract 0 32))) : Value) =
-      .address (AccountAddress.ofNat
-        (UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)))
-          solcAddrMask).toNat) := by
-  let recovered := fromByteArrayBigEndian (o.extract 0 32)
-  have hrecoveredLt : recovered < UInt256.size :=
-    fromByteArrayBigEndian_extract0_32_lt ho32
-  calc
-    (.address (AccountAddress.ofNat recovered) : Value)
-        = .address (AccountAddress.ofNat (UInt256.ofNat recovered).toNat) := by
-          rw [UInt256.toNat_ofNat_of_lt hrecoveredLt]
-    _ = .address (AccountAddress.ofNat
-          (UInt256.land solcAddrMask (UInt256.ofNat recovered)).toNat) := by
-          exact solcAddressValue_masked (UInt256.ofNat recovered)
-    _ = .address (AccountAddress.ofNat
-          (UInt256.land (UInt256.ofNat recovered) solcAddrMask).toNat) := by
-          rw [u256_land_comm solcAddrMask (UInt256.ofNat recovered)]
 
 theorem permitRecoveredAddress_eq_owner_of_mask_eq {I : ExecutionEnv} {o : ByteArray}
     (ho32 : 32 ≤ o.size)
@@ -348,63 +331,6 @@ theorem permitRecoveredAddress_eq_owner_of_mask_eq {I : ExecutionEnv} {o : ByteA
     _ = permitOwnerValue I := by
           exact (permitOwnerValue_masked I).symm
 
-theorem permitRecoveredAddress_ne_zero_of_mask_ne_zero {o : ByteArray}
-    (ho32 : 32 ≤ o.size)
-    (hnz :
-      UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))) solcAddrMask ≠
-        ⟨0⟩) :
-    (.address (AccountAddress.ofNat (fromByteArrayBigEndian (o.extract 0 32))) : Value) ≠
-      .address (AccountAddress.ofNat 0) := by
-  let recovered := fromByteArrayBigEndian (o.extract 0 32)
-  have hrecoveredLt : recovered < UInt256.size :=
-    fromByteArrayBigEndian_extract0_32_lt ho32
-  have hmasked :
-      (.address (AccountAddress.ofNat recovered) : Value) =
-        .address (AccountAddress.ofNat
-          (UInt256.land solcAddrMask (UInt256.ofNat recovered)).toNat) := by
-    calc
-      (.address (AccountAddress.ofNat recovered) : Value)
-          = .address (AccountAddress.ofNat (UInt256.ofNat recovered).toNat) := by
-            rw [UInt256.toNat_ofNat_of_lt hrecoveredLt]
-      _ = .address (AccountAddress.ofNat
-            (UInt256.land solcAddrMask (UInt256.ofNat recovered)).toNat) := by
-            exact solcAddressValue_masked (UInt256.ofNat recovered)
-  intro hzero
-  apply hnz
-  have hmaskedZero :
-      (.address (AccountAddress.ofNat
-          (UInt256.land solcAddrMask (UInt256.ofNat recovered)).toNat) : Value) =
-        .address (AccountAddress.ofNat 0) := by
-    rw [← hmasked]
-    exact hzero
-  injection hmaskedZero with haddr
-  apply u256_inj
-  have hcanon :
-      (UInt256.land (UInt256.ofNat recovered) solcAddrMask).toNat < AccountAddress.size := by
-    simpa [AccountAddress.size, EVM.addressModulus] using
-      solcAddrMask_result_canonical (UInt256.ofNat recovered)
-  have hval := congrArg Fin.val haddr
-  unfold AccountAddress.ofNat at hval
-  simp only [Fin.val_ofNat] at hval
-  rw [u256_land_comm solcAddrMask (UInt256.ofNat recovered)] at hval
-  rw [Nat.mod_eq_of_lt hcanon] at hval
-  simpa using hval
-
-theorem permitRecoveredAddress_eq_zero_of_mask_eq_zero {o : ByteArray}
-    (ho32 : 32 ≤ o.size)
-    (hzero :
-      UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))) solcAddrMask =
-        ⟨0⟩) :
-    (.address (AccountAddress.ofNat (fromByteArrayBigEndian (o.extract 0 32))) : Value) =
-      .address (AccountAddress.ofNat 0) := by
-  calc
-    (.address (AccountAddress.ofNat (fromByteArrayBigEndian (o.extract 0 32))) : Value)
-        = .address (AccountAddress.ofNat
-            (UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)))
-              solcAddrMask).toNat) := permitRecoveredAddress_masked ho32
-    _ = .address (AccountAddress.ofNat 0) := by
-          rw [hzero]
-          simp
 
 theorem permitRecoveredAddress_ne_owner_of_mask_ne {I : ExecutionEnv} {o : ByteArray}
     (ho32 : 32 ≤ o.size)
@@ -420,7 +346,7 @@ theorem permitRecoveredAddress_ne_owner_of_mask_ne {I : ExecutionEnv} {o : ByteA
       (.address (AccountAddress.ofNat
           (UInt256.land (UInt256.ofNat recovered) solcAddrMask).toNat) : Value) =
         .address (AccountAddress.ofNat (permitOwnerMaskedWord I).toNat) := by
-    rw [← permitRecoveredAddress_masked (o := o) ho32, ← permitOwnerValue_masked I]
+    rw [← recoveredAddress_masked (o := o) ho32, ← permitOwnerValue_masked I]
     exact heq
   injection hmaskedEq with haddr
   apply u256_inj
@@ -438,48 +364,6 @@ theorem permitRecoveredAddress_ne_owner_of_mask_ne {I : ExecutionEnv} {o : ByteA
   rw [Nat.mod_eq_of_lt hcanonRecovered, Nat.mod_eq_of_lt hcanonOwner] at hval
   exact hval
 
-theorem fromByteArrayBigEndian_readWithPadding0_32_lt (o : ByteArray) :
-    fromByteArrayBigEndian (o.readWithPadding 0 32) < UInt256.size := by
-  unfold fromByteArrayBigEndian fromBytesBigEndian
-  have h := EVM.fromBytes'_le (bs := (o.readWithPadding 0 32).toList.reverse)
-  rw [List.length_reverse] at h
-  have hlen : (o.readWithPadding 0 32).toList.length = 32 := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    change (o.readWithPadding 0 32).size = 32
-    unfold ByteArray.readWithPadding
-    rw [if_neg (by norm_num : ¬ (32 ≥ 2 ^ 64))]
-    rw [ByteArray.size_append, ByteArray_zeroes_size]
-    have hreadLe : (o.readWithoutPadding 0 32).size ≤ 32 := by
-      unfold ByteArray.readWithoutPadding
-      by_cases h : 0 ≥ o.size
-      · rw [if_pos h]
-        simp
-      · rw [if_neg h]
-        rw [ByteArray.size_extract]
-        omega
-    omega
-  rw [hlen] at h
-  simpa [UInt256.size] using h
-
-theorem permitRecoveredPaddedAddress_masked {o : ByteArray} :
-    (.address (AccountAddress.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32))) :
-        Value) =
-      .address (AccountAddress.ofNat
-        (UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)))
-          solcAddrMask).toNat) := by
-  let recovered := fromByteArrayBigEndian (o.readWithPadding 0 32)
-  have hrecoveredLt : recovered < UInt256.size :=
-    fromByteArrayBigEndian_readWithPadding0_32_lt o
-  calc
-    (.address (AccountAddress.ofNat recovered) : Value)
-        = .address (AccountAddress.ofNat (UInt256.ofNat recovered).toNat) := by
-          rw [UInt256.toNat_ofNat_of_lt hrecoveredLt]
-    _ = .address (AccountAddress.ofNat
-          (UInt256.land solcAddrMask (UInt256.ofNat recovered)).toNat) := by
-          exact solcAddressValue_masked (UInt256.ofNat recovered)
-    _ = .address (AccountAddress.ofNat
-          (UInt256.land (UInt256.ofNat recovered) solcAddrMask).toNat) := by
-          rw [u256_land_comm solcAddrMask (UInt256.ofNat recovered)]
 
 theorem permitRecoveredPaddedAddress_eq_owner_of_mask_eq {I : ExecutionEnv} {o : ByteArray}
     (hmatch :
@@ -505,66 +389,6 @@ theorem permitRecoveredPaddedAddress_eq_owner_of_mask_eq {I : ExecutionEnv} {o :
     _ = permitOwnerValue I := by
           exact (permitOwnerValue_masked I).symm
 
-theorem permitRecoveredPaddedAddress_ne_zero_of_mask_ne_zero {o : ByteArray}
-    (hnz :
-      UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)))
-          solcAddrMask ≠
-        ⟨0⟩) :
-    (.address (AccountAddress.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32))) :
-        Value) ≠
-      .address (AccountAddress.ofNat 0) := by
-  let recovered := fromByteArrayBigEndian (o.readWithPadding 0 32)
-  have hrecoveredLt : recovered < UInt256.size :=
-    fromByteArrayBigEndian_readWithPadding0_32_lt o
-  have hmasked :
-      (.address (AccountAddress.ofNat recovered) : Value) =
-        .address (AccountAddress.ofNat
-          (UInt256.land solcAddrMask (UInt256.ofNat recovered)).toNat) := by
-    calc
-      (.address (AccountAddress.ofNat recovered) : Value)
-          = .address (AccountAddress.ofNat (UInt256.ofNat recovered).toNat) := by
-            rw [UInt256.toNat_ofNat_of_lt hrecoveredLt]
-      _ = .address (AccountAddress.ofNat
-            (UInt256.land solcAddrMask (UInt256.ofNat recovered)).toNat) := by
-            exact solcAddressValue_masked (UInt256.ofNat recovered)
-  intro hzero
-  apply hnz
-  have hmaskedZero :
-      (.address (AccountAddress.ofNat
-          (UInt256.land solcAddrMask (UInt256.ofNat recovered)).toNat) : Value) =
-        .address (AccountAddress.ofNat 0) := by
-    rw [← hmasked]
-    exact hzero
-  injection hmaskedZero with haddr
-  apply u256_inj
-  have hcanon :
-      (UInt256.land (UInt256.ofNat recovered) solcAddrMask).toNat < AccountAddress.size := by
-    simpa [AccountAddress.size, EVM.addressModulus] using
-      solcAddrMask_result_canonical (UInt256.ofNat recovered)
-  have hval := congrArg Fin.val haddr
-  unfold AccountAddress.ofNat at hval
-  simp only [Fin.val_ofNat] at hval
-  rw [u256_land_comm solcAddrMask (UInt256.ofNat recovered)] at hval
-  rw [Nat.mod_eq_of_lt hcanon] at hval
-  simpa using hval
-
-theorem permitRecoveredPaddedAddress_eq_zero_of_mask_eq_zero {o : ByteArray}
-    (hzero :
-      UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)))
-          solcAddrMask =
-        ⟨0⟩) :
-    (.address (AccountAddress.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32))) :
-        Value) =
-      .address (AccountAddress.ofNat 0) := by
-  calc
-    (.address (AccountAddress.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32))) :
-        Value)
-        = .address (AccountAddress.ofNat
-            (UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)))
-              solcAddrMask).toNat) := permitRecoveredPaddedAddress_masked
-    _ = .address (AccountAddress.ofNat 0) := by
-          rw [hzero]
-          simp
 
 theorem permitRecoveredPaddedAddress_ne_owner_of_mask_ne {I : ExecutionEnv} {o : ByteArray}
     (hne :
@@ -581,7 +405,7 @@ theorem permitRecoveredPaddedAddress_ne_owner_of_mask_ne {I : ExecutionEnv} {o :
       (.address (AccountAddress.ofNat
           (UInt256.land (UInt256.ofNat recovered) solcAddrMask).toNat) : Value) =
         .address (AccountAddress.ofNat (permitOwnerMaskedWord I).toNat) := by
-    rw [← permitRecoveredPaddedAddress_masked (o := o), ← permitOwnerValue_masked I]
+    rw [← recoveredPaddedAddress_masked (o := o), ← permitOwnerValue_masked I]
     exact heq
   injection hmaskedEq with haddr
   apply u256_inj
@@ -627,12 +451,6 @@ def permitAfterNonceState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (permitNonceStorageSlot I)
     (permitNonceNextLoadedWord evm I)
 
-theorem permitStorageStore_sigma0 (evm : EVM.State) (a : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).σ₀ = evm.σ₀ := by
-  unfold Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.get? a <;>
-    simp [Option.option, State.setAccount, Account.updateStorage]
 
 abbrev permitNonceEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "nonces", steps := [.mindex (permitOwnerKey I)] }
@@ -706,12 +524,14 @@ theorem permitSBytes_eq_toBytesBE (I : ExecutionEnv) (hsz228 : 228 ≤ I.calldat
   simpa [permitSBytes, permitArgBytes] using hbytes.symm
 
 theorem permitRValue_eq_wordBytes (I : ExecutionEnv) (hsz228 : 228 ≤ I.calldata.size) :
-    permitRValue I = permitWordBytes32Value (permitRWord I) := by
-  simp [permitRValue, permitWordBytes32Value, permitRBytes_eq_toBytesBE I hsz228]
+    permitRValue I = wordBytes32Value (permitRWord I) := by
+  simp [bytes32Width, abiBytes32Width, permitRValue, wordBytes32Value,
+    permitRBytes_eq_toBytesBE I hsz228]
 
 theorem permitSValue_eq_wordBytes (I : ExecutionEnv) (hsz228 : 228 ≤ I.calldata.size) :
-    permitSValue I = permitWordBytes32Value (permitSWord I) := by
-  simp [permitSValue, permitWordBytes32Value, permitSBytes_eq_toBytesBE I hsz228]
+    permitSValue I = wordBytes32Value (permitSWord I) := by
+  simp [bytes32Width, abiBytes32Width, permitSValue, wordBytes32Value,
+    permitSBytes_eq_toBytesBE I hsz228]
 
 theorem uniswapEcrecoverEncode_eq (σ : AccountMap) (I : ExecutionEnv)
     (hsz228 : 228 ≤ I.calldata.size) :
@@ -732,9 +552,9 @@ theorem uniswapEcrecoverEncode_eq (σ : AccountMap) (I : ExecutionEnv)
   change uniswapExternalABI.encode? "ecrecover" _ = _
   simp [uniswapExternalABI, encodeEcrecoverInput?, ABI.encodeABIValues?,
     ABI.encodeABIValuesFrom?, ABI.encodeABIValue?, ABI.encodeABIWord?,
-    permitDigestValue, permitWordBytes32Value, permitVValue,
+    permitDigestValue, wordBytes32Value, permitVValue,
     permitRValue_eq_wordBytes I hsz228, permitSValue_eq_wordBytes I hsz228,
-    bytes32, bytes32Width, uint8, uint8Int, ABI.abiTupleHeadSize?,
+    bytes32, bytes32Width, abiBytes32Width, uint8, uint8Int, ABI.abiTupleHeadSize?,
     ABI.staticABIEncodedSize?, ABI.isDynamicABIType, hdlen, hrlen, hslen, hv8, hword,
     zeroBytes, word_toBytesBE_toByteArray_eq_toByteArray, ByteArray.append_assoc]
 
@@ -756,80 +576,6 @@ theorem permitDigestWord_equiv {σ : AccountMap} {I : ExecutionEnv} :
     permitDigestWord σ I = permitDigestWord σ I := by
   rfl
 
-theorem permitDecodeABIValue_legacyAddress_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? (.elem .address) bytes start DecodeMode.legacySolc05 =
-      some (.address (AccountAddress.ofNat
-        (ABI.bytesToWord ((bytes.drop start).take 32)).toNat), start + 32) :=
-  permitDecodeABIValue_legacyAddress_ok_core hlen
-
-theorem permitDecodeABIValue_uint256_legacy_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? uint256 bytes start DecodeMode.legacySolc05 =
-      some (.int (Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat),
-        start + 32) :=
-  permitDecodeABIValue_uint256_legacy_ok_core hlen
-
-theorem permitDecodeABIValue_uint8_legacy_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? uint8 bytes start DecodeMode.legacySolc05 =
-      some (.int (Int.ofNat
-          ((ABI.bytesToWord ((bytes.drop start).take 32)).toNat % EVM.twoPow 8)),
-        start + 32) :=
-  permitDecodeABIValue_uint8_legacy_ok_core hlen
-
-theorem permitDecodeABIValue_bytes32_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? bytes32 bytes start DecodeMode.legacySolc05 =
-      some (.fixedBytes bytes32Width ((bytes.drop start).take 32), start + 32) :=
-  permitDecodeABIValue_bytes32_ok_core hlen
-
--- LIBRARY CANDIDATE: legacy solc return decoder for `address`.
-theorem permitDecodeReturnValue_legacyAddress_ok {returndata : ByteArray}
-    (hlo : 32 ≤ returndata.size) :
-    ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 addr returndata =
-      some (.address (AccountAddress.ofNat
-        (fromByteArrayBigEndian (returndata.extract 0 32)))) := by
-  have hlen : returndata.toList.length = returndata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake0 : ((returndata.toList.drop 0).take 32).length = 32 := by
-    rw [List.drop_zero, List.length_take, hlen]
-    omega
-  have hword := bytesToWord_take32_eq_extract0_32 (returndata := returndata)
-  unfold ABI.decodeReturnValueWithMode? ABI.decodeReturnValuesWithMode?
-  rw [abiTupleHeadSize_scalarWords_eq (types := [addr]) (by decide)]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
-    (types := [addr]) (bytes := returndata.toList) (cursor := 0)
-    (total := 32 * [addr].length)
-    (by decide) (by simp)]
-  simp [addr, decodeScalarWordsWithMode?]
-  rw [decodeScalarWord_legacyAddress_ok
-    (bytes := returndata.toList) (start := 0) (by simpa [List.drop_zero] using htake0)]
-  simp [hword, UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)]
-
--- LIBRARY CANDIDATE: legacy solc return decoder short-input failure for `address`.
-theorem permitDecodeReturnValue_legacyAddress_none_short {returndata : ByteArray}
-    (hshort : returndata.size < 32) :
-    ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 addr returndata = none := by
-  have hlen : returndata.toList.length = returndata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake0n : ¬ ((returndata.toList.drop 0).take 32).length = 32 := by
-    rw [List.drop_zero, List.length_take, hlen]
-    omega
-  unfold ABI.decodeReturnValueWithMode? ABI.decodeReturnValuesWithMode?
-  rw [abiTupleHeadSize_scalarWords_eq (types := [addr]) (by decide)]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
-    (types := [addr]) (bytes := returndata.toList) (cursor := 0)
-    (total := 32 * [addr].length)
-    (by decide) (by simp)]
-  simp [addr, decodeScalarWordsWithMode?]
-  rw [decodeScalarWord_legacyAddress_none_short
-    (bytes := returndata.toList) (start := 0) (by simpa [List.drop_zero] using htake0n)]
-  rfl
 
 theorem uniswapEcrecoverDecode_ok {returndata : ByteArray}
     (hlo : 32 ≤ returndata.size) :

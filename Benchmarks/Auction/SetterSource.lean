@@ -17,7 +17,7 @@ theorem scalarWrite (evm evm' : EVM.State) (locals : Store) (name : Ident)
   apply assignStorageRef_storage_scalar_value (hbackend := rfl) hbase _ hty hloc hleaf hstore
   simp [evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
 
-theorem ownerSetUint256 (evm : EVM.State) (locals : Store) (name param : Ident)
+theorem ownerSetUint256Split (evm : EVM.State) (locals : Store) (name param : Ident)
     (slot value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv)
@@ -27,18 +27,27 @@ theorem ownerSetUint256 (evm : EVM.State) (locals : Store) (name param : Ident)
       some (.elem (.int uint256Int)))
     (hloc : auctionConfig.storageBackend.locate? { base := name } =
       some (.leaf (auctionUint256Loc slot))) :
-    ExecTransitionBody auctionConfig auctionContract evm locals
+    (ExecTransitionBody auctionConfig auctionContract evm locals
       [nonpayable, .require (.binary .eq sender (.storage ownerRef)),
         .assign .storage { base := name } (.var param)]
       (.returned { contract := auctionContract, locals := locals }
-        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot value) none) := by
-  apply ExecFuncBody.execBlockOK
-  apply nonpayableRequireAssignStorageBlock (value := .int (Int.ofNat value.toNat))
-    hwv (evalOwnerEq_true evm locals howner ho)
-  · simp only [evalExpr?, hparam, EvalResult.ofOption]
-  · exact scalarWrite evm _ locals name (.elem (.int uint256Int))
-      (auctionUint256Loc slot) _ hbase hty hloc
-      (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 evm slot value)
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot value) none)) ∧
+      (evm.executionEnv.perm = false → ExecTransitionBody auctionConfig auctionContract evm locals
+        [nonpayable, .require (.binary .eq sender (.storage ownerRef)),
+          .assign .storage { base := name } (.var param)] .staticViolation) := by
+  have hownerEval := evalOwnerEq_true evm locals howner ho
+  have hvalue : evalExpr? auctionConfig { contract := auctionContract, locals := locals }
+      evm (.var param) = .ok (.int (Int.ofNat value.toNat)) := by
+    simp only [evalExpr?, hparam, EvalResult.ofOption]
+  have hassign := scalarWrite evm _ locals name (.elem (.int uint256Int))
+    (auctionUint256Loc slot) _ hbase hty hloc
+    (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 evm slot value)
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (nonpayableRequireAssignStorageBlock hwv hownerEval hvalue hassign)
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (nonpayableRequireAssignStorageBlockStatic hwv hownerEval hvalue hassign hperm)
 
 theorem ownerBodyReverts (evm : EVM.State) (locals : Store) (rest : List Stmt)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

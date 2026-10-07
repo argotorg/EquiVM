@@ -1,3 +1,4 @@
+import Reasoning.SolcRoutines
 import Benchmarks.Dss.Clipper.Fallback
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -77,13 +78,8 @@ theorem clipperEvalActiveLength (v : ClipperImmutables) (evm : EVM.State) (local
     .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat))
   have hlength : solidityStorageLength? storageLayoutRaw { base := "active" }
       (.dynamicArray uint256St) evm =
-        .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat := by
-    have hloc : solidityAnchorWordLoc ⟨11⟩ = wordLoc ⟨11⟩ := rfl
-    simp only [solidityStorageLength?, solidityDynamicLength?, solidityLengthLoc?,
-      solidityAnchor?, storageLayoutRaw, hloc, Option.map_some,
-      EvalResult.ofOption, EvalResult.bind, bind]
-    rw [clipperStorageLocLoad_uint256]
-    simp
+        .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat :=
+    clipperActiveLength evm
   simp [config, solidityStorageBackend, storageLayout, er, hlength]
   simp only [EvalResult.bind, bind, pure]
 
@@ -108,7 +104,7 @@ theorem clipperReachCountBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperCountSelectorWord hsz hsel
-  have h260 := clipperSplitTaken (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
         change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none)
@@ -131,7 +127,7 @@ theorem clipperReachCountBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
     (by simp)
-  have h369 := clipperSplitTaken (pc := (⟨261⟩ : UInt256)) (pivot := clipperSelNat 9)
+  have h369 := RD.selectorSplitTakenPush2 (pc := (⟨261⟩ : UInt256)) (pivot := clipperSelNat 9)
     (tgt := (⟨369⟩ : UInt256))
     (h260.jumpdest
       (by
@@ -159,7 +155,7 @@ theorem clipperReachCountBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨369⟩ : UInt256) (by native_decide))
     (by simp)
-  have h429 := clipperSplitTaken (pc := (⟨370⟩ : UInt256)) (pivot := clipperSelNat 21)
+  have h429 := RD.selectorSplitTakenPush2 (pc := (⟨370⟩ : UInt256)) (pivot := clipperSelNat 21)
     (tgt := (⟨429⟩ : UInt256))
     (h369.jumpdest
       (by
@@ -187,7 +183,7 @@ theorem clipperReachCountBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨429⟩ : UInt256) (by native_decide))
     (by simp)
-  have h468 := clipperArmTaken (pc := (⟨430⟩ : UInt256)) (sel := clipperSelNat 5)
+  have h468 := RD.selectorArmTakenPush2 (pc := (⟨430⟩ : UInt256)) (sel := clipperSelNat 5)
     (tgt := (⟨468⟩ : UInt256))
     (h429.jumpdest
       (by
@@ -226,42 +222,11 @@ theorem clipperCountGetterEntryWf (v : ClipperImmutables) {code : ByteArray}
     rw [clipperDecodeBeforeFirstPatch v hpatch _ (by native_decide)]
     native_decide
 
-@[reducible] def clipperWordSlotSwapGetterWf
-    (code : ByteArray) (pc slot : UInt256) : Prop :=
-  let p1 := pc + ⟨1⟩
-  let p3 := p1 + UInt256.ofNat 2
-  let p4 := p3 + ⟨1⟩
-  let p5 := p4 + ⟨1⟩
-  decode code pc = some (.JUMPDEST, .none)
-  ∧ decode code p1 = some (.Push .PUSH1, some (slot, 1))
-  ∧ decode code p3 = some (.SLOAD, .none)
-  ∧ decode code p4 = some (.SWAP1, .none)
-  ∧ decode code p5 = some (.JUMP, .none)
-
--- GENERALIZES Reasoning.Solc.RD.solcWordSlotGetter: solc 0.6 also emits
--- `SLOAD; SWAP1; JUMP` for some no-argument getters, leaving the return pc off-stack.
-theorem clipperWordSlotSwapGetter {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc slot ret : UInt256} {R : List UInt256}
-    {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem aw rdata σ k C)
-    (hwf : clipperWordSlotSwapGetterWf code pc slot)
-    (hret : (D_J code 0).contains ret = true)
-    (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (solcSlotWord σ ee slot :: R)
-      mem aw rdata σ k' C' := by
-  rcases hwf with ⟨hd0, hd1, hd2, hd3, hd4⟩
-  have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
-  have rd3 := rd1.push1 slot hd1 (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rd4⟩ := rd3.sload hd2 (by simp only [List.length_cons]; omega)
-  have rd5 := rd4.swap1 hd3 (by omega)
-  have rdRet := rd5.jump hd4 hret (by simp only [List.length_cons]; omega)
-  exact ⟨_, _, by simpa [solcSlotWord] using rdRet⟩
 
 theorem clipperCountSlotGetterWf (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
-    clipperWordSlotSwapGetterWf code (⟨1453⟩ : UInt256) (⟨11⟩ : UInt256) := by
-  unfold clipperWordSlotSwapGetterWf
+    solcWordSlotGetterSwapJumpWf code (⟨1453⟩ : UInt256) (⟨11⟩ : UInt256) := by
+  unfold solcWordSlotGetterSwapJumpWf
   repeat' first | apply And.intro
   all_goals
     exact clipperDecodeBeforeFirstPatchOfDecode v hpatch _ _
@@ -278,7 +243,7 @@ theorem clipperX_count (v : ClipperImmutables) {code : ByteArray}
   obtain ⟨_, _, h1453⟩ := RD.solcGetterThunk hreach
     (clipperCountGetterEntryWf v hpatch)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨1453⟩ : UInt256) (by native_decide))
-  obtain ⟨_, _, h476⟩ := clipperWordSlotSwapGetter (slot := (⟨11⟩ : UInt256))
+  obtain ⟨_, _, h476⟩ := RD.solcWordSlotGetterSwapJump (slot := (⟨11⟩ : UInt256))
     (R := [sel]) h1453 (clipperCountSlotGetterWf v hpatch)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨476⟩ : UInt256) (by native_decide))
     (by simp only [List.length_singleton]; omega)
@@ -293,7 +258,7 @@ theorem clipperCountBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 5)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=

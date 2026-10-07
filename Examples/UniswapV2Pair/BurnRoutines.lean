@@ -228,7 +228,8 @@ theorem evalExpr_burnFunction_from_balance (evm : EVM.State) (holder : AccountAd
     (hty := by simp [storageTypeAt?, burnFunctionFromEvaledRef, contract, storageDecls,
       uint256St, storageTypeStep?])
     (hloc := by rfl)]
-  simp [burnFunctionFromSlot, burnFunctionFromBalanceWord, uniswapStorageLocLoad_uint256]
+  simp [burnFunctionFromSlot, burnFunctionFromBalanceWord, show wordLoc = uint256Loc from rfl,
+    storageLocLoad_uint256]
 
 theorem evalExpr_burnFunction_balance_require_true (evm : EVM.State)
     (holder : AccountAddress) (value : UInt256)
@@ -280,7 +281,7 @@ theorem burnFunctionAssignBalance (evm : EVM.State) (holder : AccountAddress)
       (hty := by simp [storageTypeAt?, burnFunctionFromEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
       (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [burnFunctionAfterBalanceState, burnFunctionFromSlot, burnFunctionBalanceDebitWord]
 
 theorem burnFunctionAfterBalance_codeOwner (evm : EVM.State)
@@ -321,7 +322,7 @@ theorem evalExpr_burnFunction_totalSupply (evm : EVM.State)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
   simp [burnFunctionTotalSupplyValue, burnFunctionTotalSupplyWord,
-    uniswapStorageLocLoad_uint256, burnFunctionAfterBalance_codeOwner]
+    show wordLoc = uint256Loc from rfl, storageLocLoad_uint256, burnFunctionAfterBalance_codeOwner]
 
 theorem evalExpr_burnFunction_totalSupply_require_true (evm : EVM.State)
     (holder : AccountAddress) (value : UInt256)
@@ -381,7 +382,7 @@ theorem burnFunctionAssignTotalSupply (evm : EVM.State) (holder : AccountAddress
       (her := evalStorageRef_burnFunction_totalSupply_afterTotalSupply evm holder value)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [burnFunctionPostState, burnFunctionTotalSupplyDebitWord,
     burnFunctionAfterBalance_codeOwner]
 

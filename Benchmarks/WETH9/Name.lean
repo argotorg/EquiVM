@@ -35,35 +35,35 @@ theorem weth9NameStorageRead {σ σ₀ A I} {g : Sat256} :
 
 theorem weth9NameBaseSlotLen {σ σ₀ A I} {g : Sat256} :
     weth9BytesBaseSlotAndLength? storageLayoutRaw nameEvaledRef (initState σ σ₀ g A I) =
-      .ok ((⟨0⟩ : UInt256), (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat) := by
+      .ok ((⟨0⟩ : UInt256), (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat) := by
   unfold weth9BytesBaseSlotAndLength?
   simp only [nameEvaledRef, List.nil_append, storageLayoutRaw,
-    weth9Header, weth9DecodeBytesLengthHeader_stringLen]
+    storageLoad_initState_solcSlotWord, weth9DecodeBytesLengthHeader_stringLen]
 
 /-- The `.bytes` value the Solm `name()` body returns: the decoded compact string. -/
 theorem weth9NameReadValue {σ σ₀ A I} {g : Sat256} :
     weth9ReadBytesValue? storageLayoutRaw nameEvaledRef (initState σ σ₀ g A I) =
-      .ok (.bytes (if (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat < 32
-        then (weth9StringSlotWord σ I ⟨0⟩).toByteArray.extract 0
-          (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat
+      .ok (.bytes (if (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat < 32
+        then (solcSlotWord σ I ⟨0⟩).toByteArray.extract 0
+          (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat
         else (readSolidityBytesDataWordsFrom (initState σ σ₀ g A I) ⟨0⟩ 0
-          (solidityBytesDataWordCount (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat)).extract 0
-          (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat)) := by
+          (solidityBytesDataWordCount (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat)).extract 0
+          (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat)) := by
   unfold weth9ReadBytesValue?
   rw [weth9NameBaseSlotLen]
-  simp only [weth9Header]
+  simp only [storageLoad_initState_solcSlotWord]
   split <;> rfl
 
 /-- The full Solm `name()` body `evalExpr?` result. -/
 theorem weth9NameEval {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := ∅ } (initState σ σ₀ g A I)
       (.storage nameRef)
-    = .ok (.bytes (if (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat < 32
-        then (weth9StringSlotWord σ I ⟨0⟩).toByteArray.extract 0
-          (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat
+    = .ok (.bytes (if (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat < 32
+        then (solcSlotWord σ I ⟨0⟩).toByteArray.extract 0
+          (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat
         else (readSolidityBytesDataWordsFrom (initState σ σ₀ g A I) ⟨0⟩ 0
-          (solidityBytesDataWordCount (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat)).extract 0
-          (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat)) := by
+          (solidityBytesDataWordCount (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat)).extract 0
+          (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat)) := by
   rw [weth9NameStorageRead, weth9NameReadValue]; rfl
 
 /-! ## Long-case name-specific helpers (slot 0) -/
@@ -91,8 +91,8 @@ theorem read_eq_wordConcat {σ σ₀ A I} {g : Sat256} (n idx : ℕ) :
     rw [wordConcat_succ, ih (idx + 1), weth9LongStorageLoad, weth9LongDataWordAt, weth9LongSlot_eq]
 
 theorem wcp_eq (σ : AccountMap) (I : ExecutionEnv)
-    (hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat) :
-    solidityBytesDataWordCount (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat =
+    (hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat) :
+    solidityBytesDataWordCount (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat =
       weth9LongWC σ I + 1 := by
   unfold solidityBytesDataWordCount weth9LongWC
   omega
@@ -101,8 +101,8 @@ theorem wcp_eq (σ : AccountMap) (I : ExecutionEnv)
     significant bytes and zero-padded is exactly `weth9LongMaskWord` (both the full and partial cases). -/
 theorem weth9LongLastWord (σ : AccountMap) (I : ExecutionEnv) (s : ℕ)
     (hs1 : 1 ≤ s) (hs32 : s ≤ 32)
-    (hcase : (UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) = ⟨0⟩ ∧ s = 32) ∨
-      ((UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩))).toNat = s ∧ s ≤ 31)) :
+    (hcase : (UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) = ⟨0⟩ ∧ s = 32) ∨
+      ((UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩))).toNat = s ∧ s ≤ 31)) :
     (weth9LongDataWordAt σ I (weth9LongWC σ I)).toByteArray.extract 0 s ++
         (List.replicate (32 - s) 0).toByteArray =
       UInt256.toByteArray (weth9LongMaskWord σ I) := by
@@ -110,90 +110,90 @@ theorem weth9LongLastWord (σ : AccountMap) (I : ExecutionEnv) (s : ℕ)
   rcases hcase with ⟨hcond, hs⟩ | ⟨hLtoNat, hs31⟩
   · rw [if_pos hcond, hs, Nat.sub_self, List.replicate_zero, List.toByteArray_nil,
       ByteArray.append_empty, toByteArray_extract_all]
-  · have hcond : UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩ := by
+  · have hcond : UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩ := by
       intro h; rw [h, show (⟨0⟩ : UInt256).toNat = 0 from rfl] at hLtoNat; omega
     rw [if_neg hcond, tailMask_toByteArray (weth9LongDataWordAt σ I (weth9LongWC σ I))
-        (UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)))
+        (UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)))
         (by rw [hLtoNat]; exact hs1) (by rw [hLtoNat]; exact hs31),
       hLtoNat, bytearray_append_list_eq]
 
 /-- Long string (`len ≥ 32`): the decoded keccak-data bytes ABI-encode to `weth9LongStringAbi`. -/
 theorem weth9NameEncode_long {σ σ₀ A I} {g : Sat256}
-    (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩)
+    (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩)
     (hfit : 96 + 32 * weth9LongWC σ I < 2 ^ 64) :
     encodeReturnValue? stringTy (.bytes
       ((readSolidityBytesDataWordsFrom (initState σ σ₀ g A I) ⟨0⟩ 0
-          (solidityBytesDataWordCount (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat)).extract 0
-        (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat)) = some (weth9LongStringAbi σ I) := by
-  have hlen32 : 32 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat := by
+          (solidityBytesDataWordCount (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat)).extract 0
+        (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat)) = some (weth9LongStringAbi σ I) := by
+  have hlen32 : 32 ≤ (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat := by
     have := weth9LongLen_ge32 hge31; omega
-  have hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat := by omega
-  have hwc : weth9LongWC σ I = ((weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat - 1) / 32 := rfl
+  have hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat := by omega
+  have hwc : weth9LongWC σ I = ((weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat - 1) / 32 := rfl
   rw [wcp_eq σ I hpos, read_eq_wordConcat, wordConcat_append_last, Nat.zero_add]
   have hAsize : (wordConcat (weth9LongDataWordAt σ I) 0 (weth9LongWC σ I)).size =
       32 * weth9LongWC σ I := wordConcat_size _ _ _
   have hBsize : (weth9LongDataWordAt σ I (weth9LongWC σ I)).toByteArray.size = 32 := toByteArray_size _
-  have hle : 32 * weth9LongWC σ I ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat := by omega
-  have hs32 : (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I ≤ 32 := by omega
-  have hs1 : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I := by omega
+  have hle : 32 * weth9LongWC σ I ≤ (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat := by omega
+  have hs32 : (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I ≤ 32 := by omega
+  have hs1 : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I := by omega
   rw [extract_append_span _ _ 0 _ (Nat.zero_le _) (by rw [hAsize]; exact hle),
     byteArray_extract_self, hAsize]
   have hbsize : (wordConcat (weth9LongDataWordAt σ I) 0 (weth9LongWC σ I) ++
       (weth9LongDataWordAt σ I (weth9LongWC σ I)).toByteArray.extract 0
-        ((weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I)).size =
-      (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat := by
+        ((weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I)).size =
+      (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat := by
     rw [ByteArray.size_append, hAsize, ByteArray.size_extract, hBsize]; omega
-  have hcase : (UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) = ⟨0⟩ ∧
-        (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I = 32) ∨
-      ((UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩))).toNat =
-          (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I ∧
-        (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I ≤ 31) := by
-    by_cases hc : UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) = ⟨0⟩
+  have hcase : (UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) = ⟨0⟩ ∧
+        (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I = 32) ∨
+      ((UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩))).toNat =
+          (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I ∧
+        (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I ≤ 31) := by
+    by_cases hc : UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) = ⟨0⟩
     · refine Or.inl ⟨hc, ?_⟩
-      have hm0 : (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat % 32 = 0 := by
+      have hm0 : (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat % 32 = 0 := by
         rw [← land31_toNat_mod, hc]; rfl
       omega
     · refine Or.inr ⟨?_, ?_⟩
-      · have hmne : (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat % 32 ≠ 0 := by
+      · have hmne : (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat % 32 ≠ 0 := by
           rw [← land31_toNat_mod]; intro h; exact hc (uint256_toNat_eq_zero h)
         rw [land31_toNat_mod]; omega
-      · have hmne : (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat % 32 ≠ 0 := by
+      · have hmne : (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat % 32 ≠ 0 := by
           rw [← land31_toNat_mod]; intro h; exact hc (uint256_toNat_eq_zero h)
         omega
   have e1 : (ABI.natBytes 32).toByteArray = UInt256.toByteArray ⟨32⟩ := by
-    rw [natBytes_toByteArray]; rfl
+    rw [natBytes_toByteArray']; rfl
   have e2 : (ABI.natBytes (wordConcat (weth9LongDataWordAt σ I) 0 (weth9LongWC σ I) ++
         (weth9LongDataWordAt σ I (weth9LongWC σ I)).toByteArray.extract 0
-          ((weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat -
+          ((weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat -
             32 * weth9LongWC σ I)).size).toByteArray =
-      UInt256.toByteArray (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) := by
-    rw [natBytes_toByteArray, hbsize, u256_ofNat_toNat]
+      UInt256.toByteArray (weth9StringLen (solcSlotWord σ I ⟨0⟩)) := by
+    rw [natBytes_toByteArray', hbsize, u256_ofNat_toNat]
   have e3 : (ABI.padRightToWord (wordConcat (weth9LongDataWordAt σ I) 0 (weth9LongWC σ I) ++
         (weth9LongDataWordAt σ I (weth9LongWC σ I)).toByteArray.extract 0
-          ((weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat -
+          ((weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat -
             32 * weth9LongWC σ I)).toList).toByteArray =
       wordConcat (weth9LongDataWordAt σ I) 0 (weth9LongWC σ I) ++
         UInt256.toByteArray (weth9LongMaskWord σ I) := by
     have hpad : ABI.padRightToWord (wordConcat (weth9LongDataWordAt σ I) 0 (weth9LongWC σ I) ++
           (weth9LongDataWordAt σ I (weth9LongWC σ I)).toByteArray.extract 0
-            ((weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I)).toList =
+            ((weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I)).toList =
         (wordConcat (weth9LongDataWordAt σ I) 0 (weth9LongWC σ I) ++
           (weth9LongDataWordAt σ I (weth9LongWC σ I)).toByteArray.extract 0
-            ((weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I)).toList ++
-          List.replicate (32 - ((weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat -
+            ((weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I)).toList ++
+          List.replicate (32 - ((weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat -
             32 * weth9LongWC σ I)) 0 := by
       unfold ABI.padRightToWord ABI.zeroBytes
       rw [show (wordConcat (weth9LongDataWordAt σ I) 0 (weth9LongWC σ I) ++
             (weth9LongDataWordAt σ I (weth9LongWC σ I)).toByteArray.extract 0
-              ((weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat -
+              ((weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat -
                 32 * weth9LongWC σ I)).toList.length =
-          (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat from by
+          (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat from by
             rw [byteArray_toList_eq, Array.length_toList]; exact hbsize,
-        show ABI.paddedSize (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat =
+        show ABI.paddedSize (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat =
             32 * (weth9LongWC σ I + 1) from by unfold ABI.paddedSize; congr 1; omega]
-      rw [show 32 * (weth9LongWC σ I + 1) - (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat =
-        32 - ((weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I) from by omega]
-    rw [hpad, List.toByteArray_append, toList_toByteArray_roundtrip, ByteArray.append_assoc,
+      rw [show 32 * (weth9LongWC σ I + 1) - (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat =
+        32 - ((weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat - 32 * weth9LongWC σ I) from by omega]
+    rw [hpad, List.toByteArray_append, byteArray_toList_toByteArray, ByteArray.append_assoc,
       weth9LongLastWord σ I _ hs1 hs32 hcase]
   rw [encode_string_bytes, weth9LongStringAbi, mk_toArray_eq, List.toByteArray_append,
     List.toByteArray_append, e1, e2, e3]
@@ -219,7 +219,7 @@ theorem weth9Decode_name_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
 
 theorem weth9NameBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 0)) :
+    (hsel : selIs I (weth9SelBytes 0)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 0) (by native_decide) hsel
@@ -229,9 +229,9 @@ theorem weth9NameBodyCore {σ σ₀ A I} {g : UInt256}
     have hbody := nonpayableReturnExprBodyReturns (cfg := config) (contract := contract)
       (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) (locals := ∅)
       (by simp only [initState]; exact hwv) weth9NameEval
-    by_cases hlen0 : weth9StringLen (weth9StringSlotWord σ I ⟨0⟩) = ⟨0⟩
+    by_cases hlen0 : weth9StringLen (solcSlotWord σ I ⟨0⟩) = ⟨0⟩
     · -- EMPTY (len = 0)
-      have hlen0' : (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat = 0 := by
+      have hlen0' : (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat = 0 := by
         rw [hlen0]; rfl
       exact weth9ReEquivExecGen hcode
         (weth9NameStringEmptyReturns (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel hlen0)
@@ -240,9 +240,9 @@ theorem weth9NameBodyCore {σ σ₀ A I} {g : UInt256}
         (returnEquiv_of_encode (weth9EncodeEmpty _ (by
           simp only [hlen0', show (0 : Nat) < 32 from by norm_num, if_true, ByteArray.size_extract]
           omega)))
-    · by_cases hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) = ⟨0⟩
+    · by_cases hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) = ⟨0⟩
       · -- SHORT (0 < len < 32)
-        have hlt32 : (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat < 32 := by
+        have hlt32 : (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat < 32 := by
           have := weth9StringLen_toNat_le31 hlt31; omega
         exact weth9ReEquivExecGen hcode
           (weth9NameStringShortReturns (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel hlen0 hlt31)
@@ -251,8 +251,8 @@ theorem weth9NameBodyCore {σ σ₀ A I} {g : UInt256}
           (returnEquiv_of_encode (by
             rw [if_pos hlt32]; exact weth9EncodeShort _ hlen0 hlt31))
       · -- LONG (len ≥ 32)
-        have hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩ := hlt31
-        have hge32 : ¬ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat < 32 := by
+        have hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩ := hlt31
+        have hge32 : ¬ (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat < 32 := by
           have := weth9LongLen_ge32 hge31; omega
         exact weth9ReEquivExecGen hcode
           (weth9NameStringLongReturns (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel hge31
@@ -265,7 +265,7 @@ theorem weth9NameBodyCore {σ σ₀ A I} {g : UInt256}
   · -- non-payable revert: EVM reverts at name's callvalue guard (entry 166, gt 178).
     obtain ⟨_, _, h166⟩ := weth9ReachName (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
-    have hrev := weth9GuardPeelRev (gt := ⟨178⟩) h166 hwv
+    have hrev := solcFunctionGuardPeelRev (gt := ⟨178⟩) h166 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     exact weth9NonpayableRevert hcode hrev (weth9SelectorDispatchName hsel)

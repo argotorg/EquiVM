@@ -9,7 +9,7 @@ namespace Benchmarks.Dss.Vow
 /-! ## `bump()` getter -/
 
 def bumpWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vowSlotWord ⟨10⟩ σ I
+  solcSlotWordAt ⟨10⟩ σ I
 
 theorem vowDispatch_bump {I : ExecutionEnv} (hsel : selIs I ⟨#[0x68, 0x11, 0x0b, 0x2f]⟩) :
     dispatchMsg contract I.calldata = some bumpTransition := by
@@ -85,7 +85,7 @@ theorem vowBumpBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (bumpWord σ I).toNat))])) := by
-    simpa [bumpTransition, bumpWord, vowSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [bumpTransition, bumpWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vowUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -107,7 +107,7 @@ theorem vowBumpBodyCore
 
 theorem vowBumpBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x68, 0x11, 0x0b, 0x2f]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=

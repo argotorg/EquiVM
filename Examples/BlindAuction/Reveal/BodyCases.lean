@@ -17,6 +17,9 @@ def RevealLoopBodyOutcome (I : ExecutionEnv) (g : Sat256) (s0 : State)
   (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
       scratch_revealLoopBodyStmts .reverted ∧
     RDrev blindAuctionBytecode g s0) ∨
+  (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+      scratch_revealLoopBodyStmts .staticViolation ∧
+    RDstatic blindAuctionBytecode g s0) ∨
   ∃ a' L1 evm1 L2 evm2 k' C',
     (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts
@@ -58,7 +61,12 @@ def RevealLoopRunFromStart (I : ExecutionEnv) (g : Sat256) (s0 : State)
         { contract := blindAuctionContract, locals := L } evm
         (.binary .lt (.var "i") (.var "length")) scratch_revealLoopPostStmts
         scratch_revealLoopBodyStmts .reverted ∧
-      RDrev blindAuctionBytecode g s0)
+      RDrev blindAuctionBytecode g s0) ∨
+    (ExecForLoop blindAuctionConfig
+        { contract := blindAuctionContract, locals := L } evm
+        (.binary .lt (.var "i") (.var "length")) scratch_revealLoopPostStmts
+        scratch_revealLoopBodyStmts .staticViolation ∧
+      RDstatic blindAuctionBytecode g s0)
 
 theorem scratch_revealLoop_from_bodyOutcome_or_revert {I : ExecutionEnv} {g : Sat256}
     {s0 : State}
@@ -168,8 +176,7 @@ theorem scratch_revealLoopBody_decoded_inBounds_fromLoopStart {I} {g : Sat256}
     (hfakeLookup : lookupNth? fakes a.idx.toNat = some (rawBoolWordValue word))
     (hsecretLookup :
       lookupNth? secrets a.idx.toNat =
-        some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret)))
-    (hperm : I.perm = true) :
+        some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret))) :
     RevealLoopBodyOutcome I g s0 σ₀ A v k C loopLen revealEnd biddingEnd
       secretsLenWord secretsEnd fakesLenWord fakesEnd valuesLenWord valuesEnd sel
       values fakes secrets a L evm := by
@@ -189,7 +196,7 @@ theorem scratch_revealLoopBody_decoded_inBounds_fromLoopStart {I} {g : Sat256}
       hfp128 hfp96 hvalueBound hfakesBound hsecretsBound hvalueLoad hfakeSlt hfakeLoad
       hsecretLoad hfakeWordEq hfakeWordSmall hfakeZero
       hbidsL hvaluesL hfakesL hsecretsL hiL hlenL hrefundL hlenSrc
-      hboundValues hboundFakes hboundSecrets hvalueLookup hfakeLookup hsecretLookup hperm
+      hboundValues hboundFakes hboundSecrets hvalueLookup hfakeLookup hsecretLookup
   · by_cases hfakeOne : fakeWord = ⟨1⟩
     · exact scratch_revealLoopBody_fakeTrue_fromLoopStart
         (I := I) (g := g) (s0 := s0) (σ₀ := σ₀) (A := A)
@@ -206,10 +213,10 @@ theorem scratch_revealLoopBody_decoded_inBounds_fromLoopStart {I} {g : Sat256}
         hvalueBound hfakesBound hsecretsBound hvalueLoad hfakeSlt hfakeLoad hsecretLoad
         hfakeWordEq hfakeWordSmall hfakeOne hbidsL hvaluesL hfakesL hsecretsL hiL
         hrefundL hlenSrc hboundValues hboundFakes hboundSecrets hvalueLookup hfakeLookup
-        hsecretLookup hperm
+        hsecretLookup
     · have hfakeNorm :
           normalizeRawBoolWord? (rawBoolWordValue word) = .revert := by
-        exact scratch_normalizeRawBoolWord_revert_of_u256
+        exact normalizeRawBoolWord_revert_of_u256
           hfakeWordSmall
           (by simpa [hfakeWordEq] using hfakeZero)
           (by simpa [hfakeWordEq] using hfakeOne)

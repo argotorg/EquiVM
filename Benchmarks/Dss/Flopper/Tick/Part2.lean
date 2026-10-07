@@ -9,9 +9,9 @@ set_option maxHeartbeats 1000000 in
 theorem flopperTickX_toCheckedMulStart
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hendLt :
-      (flopperUint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
     (rd4292 : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
@@ -21,15 +21,15 @@ theorem flopperTickX_toCheckedMulStart
     let memTic := twoWordHashMem id ⟨1⟩ memEnd
     let memLot := twoWordHashMem id ⟨1⟩ memTic
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4674⟩
-      [flopperSlotWord (auctionLotSlot id) σ I, flopperSlotWord ⟨5⟩ σ I,
+      [solcSlotWordAt (auctionLotSlot id) σ I, solcSlotWordAt ⟨5⟩ σ I,
         ⟨4558⟩, tickOneWord, id, ⟨334⟩, sel]
       memLot (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   intro id memEnd memTic memLot
   obtain ⟨_, _, rd4435⟩ := flopperTickX_toTicZeroGuard hendLt rd4292
   have hcond :
-      UInt256.isZero (flopperUint48Offset20Word (auctionPackedSlot id) σ I) ≠ ⟨0⟩ := by
-    rw [show flopperUint48Offset20Word (auctionPackedSlot id) σ I =
-      flopperUint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I from rfl, htic]
+      UInt256.isZero (uint48Offset20Word (auctionPackedSlot id) σ I) ≠ ⟨0⟩ := by
+    rw [show uint48Offset20Word (auctionPackedSlot id) σ I =
+      uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I from rfl, htic]
     decide
   have rd4438 := rd4435.push2 ⟨4515⟩ (by native_decide) (by evm_ov)
   have rd4515 := rd4438.jumpiT (by native_decide) hcond (by jump_dest) (by evm_ov)
@@ -44,9 +44,9 @@ theorem flopperTickX_toCheckedMulStart
   obtain ⟨k4531, C4531, rd4531raw⟩ := rd4530.sload (by native_decide) (by evm_ov)
   have rd4531 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4531⟩
-      [flopperSlotWord ⟨5⟩ σ I, ⟨4558⟩, tickOneWord, id, ⟨334⟩, sel]
+      [solcSlotWordAt ⟨5⟩ σ I, ⟨4558⟩, tickOneWord, id, ⟨334⟩, sel]
       memTic (UInt256.ofNat 3) ByteArray.empty σ k4531 C4531 := by
-    simpa [flopperSlotWord, id] using rd4531raw
+    simpa [solcSlotWordAt, id] using rd4531raw
   let memKey := wordAt0Mem id memTic
   let base := solcMappingSlot ⟨1⟩ id
   have rd4537pre := evm_run rd4531 with [
@@ -101,21 +101,21 @@ theorem flopperTickX_toCheckedMulStart
   obtain ⟨k4553, C4553, rd4553raw⟩ := rd4552pre.sload (by native_decide) (by evm_ov)
   have rd4554 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4554⟩
-      [flopperSlotWord (auctionLotSlot id) σ I, flopperSlotWord ⟨5⟩ σ I,
+      [solcSlotWordAt (auctionLotSlot id) σ I, solcSlotWordAt ⟨5⟩ σ I,
         ⟨4558⟩, tickOneWord, id, ⟨334⟩, sel]
       memLot (UInt256.ofNat 3) ByteArray.empty σ k4553 C4553 := by
-    simpa [flopperSlotWord] using rd4553raw
+    simpa [solcSlotWordAt] using rd4553raw
   have rd4557 := rd4554.push2 ⟨4674⟩ (by native_decide) (by evm_ov)
   exact ⟨_, _, rd4557.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
 theorem flopperTickX_mulOverflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hendLt :
-      (flopperUint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
     (hover :
-      UInt256.size ≤ (flopperSlotWord ⟨5⟩ σ I).toNat *
-        (flopperSlotWord (auctionLotSlot (tickIdWord I)) σ I).toNat)
+      UInt256.size ≤ (solcSlotWordAt ⟨5⟩ σ I).toNat *
+        (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat)
     (rd4292 : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
@@ -131,12 +131,12 @@ theorem flopperTickX_mulOverflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem flopperTickX_toLotStoreStart
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hendLt :
-      (flopperUint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
     (hmulFit :
-      (flopperSlotWord ⟨5⟩ σ I).toNat *
-        (flopperSlotWord (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
+      (solcSlotWordAt ⟨5⟩ σ I).toNat *
+        (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
     (rd4292 : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
@@ -146,7 +146,7 @@ theorem flopperTickX_toLotStoreStart
     let memTic := twoWordHashMem id ⟨1⟩ memEnd
     let memLot := twoWordHashMem id ⟨1⟩ memTic
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4558⟩
-      [flopperSlotWord ⟨5⟩ σ I * flopperSlotWord (auctionLotSlot id) σ I,
+      [solcSlotWordAt ⟨5⟩ σ I * solcSlotWordAt (auctionLotSlot id) σ I,
         tickOneWord, id, ⟨334⟩, sel]
       memLot (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   intro id memEnd memTic memLot
@@ -160,16 +160,15 @@ theorem flopperTickX_toLotStoreStart
   exact ⟨_, _, rd4558⟩
 
 set_option maxHeartbeats 1000000 in
-theorem flopperTickX_toCheckedAddStart
+theorem flopperTickX_toCheckedAddStartSplit
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hperm : I.perm = true)
     (hendLt :
-      (flopperUint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
     (hmulFit :
-      (flopperSlotWord ⟨5⟩ σ I).toNat *
-        (flopperSlotWord (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
+      (solcSlotWordAt ⟨5⟩ σ I).toNat *
+        (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
     (rd4292 : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
@@ -180,10 +179,12 @@ theorem flopperTickX_toCheckedAddStart
     let memLot := twoWordHashMem id ⟨1⟩ memTic
     let memStore := twoWordHashMem id ⟨1⟩ memLot
     let σLot := tickRuntimeAfterLotMap I.codeOwner σ I
-    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4740⟩
-      [tickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp,
-        ⟨4618⟩, id, ⟨334⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty σLot k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4740⟩
+        [tickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp,
+          ⟨4618⟩, id, ⟨334⟩, sel]
+        memStore (UInt256.ofNat 3) ByteArray.empty σLot k' C') ∨
+      (I.perm = false ∧ RDstatic flopperBytecode g (initState σ σ₀ g A I)) := by
   intro id memEnd memTic memLot memStore σLot
   obtain ⟨_, _, rd4558⟩ := flopperTickX_toLotStoreStart hendLt htic hmulFit rd4292
   have rd4563pre := evm_run rd4558 with [
@@ -248,8 +249,14 @@ theorem flopperTickX_toCheckedAddStart
   have hlotSlot : base + ⟨1⟩ = auctionLotSlot id := by
     simp [base, auctionLotSlot_eq, id]
   rw [hlotSlot] at rd4589pre
+  have hstoreDec : decode flopperBytecode ⟨4589⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd4589pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k4590, C4590, rd4590raw⟩ := rd4589pre.sstore hperm
-    (by native_decide) (by evm_ov)
+    hstoreDec (by evm_ov)
   have rd4590 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4590⟩
       [id, ⟨334⟩, sel] memStore (UInt256.ofNat 3) ByteArray.empty
@@ -260,9 +267,9 @@ theorem flopperTickX_toCheckedAddStart
   obtain ⟨k4593, C4593, rd4593raw⟩ := rd4592.sload (by native_decide) (by evm_ov)
   have rd4593 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4593⟩
-      [flopperSlotWord ⟨6⟩ σLot I, id, ⟨334⟩, sel]
+      [solcSlotWordAt ⟨6⟩ σLot I, id, ⟨334⟩, sel]
       memStore (UInt256.ofNat 3) ByteArray.empty σLot k4593 C4593 := by
-    simpa [flopperSlotWord] using rd4593raw
+    simpa [solcSlotWordAt] using rd4593raw
   have rd4606 := evm_run rd4593 with [
     raw push2 ⟨4618⟩ (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
@@ -273,7 +280,7 @@ theorem flopperTickX_toCheckedAddStart
     raw shl (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw div (by native_decide) (by evm_ov)]
-  have rd4614 := rd4606.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
+  have rd4614 := rd4606.pushConst uint48Mask (width := 6) (op := .PUSH6)
     (by decide : Operation.POp.PUSH6 ≠ .PUSH0)
     (by native_decide)
     (by simp)
@@ -281,24 +288,50 @@ theorem flopperTickX_toCheckedAddStart
   have rd4617 := rd4614'.push2 ⟨4740⟩ (by native_decide) (by evm_ov)
   have rd4740 := rd4617.jump (by native_decide) (by jump_dest) (by evm_ov)
   exact ⟨_, _, by
-    simpa [σLot, tickRuntimeTauWord, tickRuntimeAfterLotMap, flopperUint48Offset6Word,
+    simpa [σLot, tickRuntimeTauWord, tickRuntimeAfterLotMap, uint48Offset6Word,
       show UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨48⟩ = UInt256.ofNat (256 ^ 6)
         from by native_decide]
       using rd4740⟩
+
+theorem flopperTickX_toCheckedAddStart
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hperm : I.perm = true)
+    (hendLt :
+      (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
+        (UInt256.ofNat I.header.timestamp).toNat)
+    (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
+    (hmulFit :
+      (solcSlotWordAt ⟨5⟩ σ I).toNat *
+        (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
+    (rd4292 : ∃ k C, RD flopperBytecode I g
+      (initState σ σ₀ g A I) ⟨4292⟩
+      [tickIdWord I, ⟨334⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    let id := tickIdWord I
+    let memEnd := twoWordHashMem id ⟨1⟩ solcFreePtrMem
+    let memTic := twoWordHashMem id ⟨1⟩ memEnd
+    let memLot := twoWordHashMem id ⟨1⟩ memTic
+    let memStore := twoWordHashMem id ⟨1⟩ memLot
+    let σLot := tickRuntimeAfterLotMap I.codeOwner σ I
+    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4740⟩
+      [tickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp,
+        ⟨4618⟩, id, ⟨334⟩, sel]
+      memStore (UInt256.ofNat 3) ByteArray.empty σLot k' C' :=
+  permSplit_true hperm (flopperTickX_toCheckedAddStartSplit hendLt htic hmulFit rd4292)
 
 set_option maxHeartbeats 1000000 in
 theorem flopperTickX_toEndStoreStart
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hendLt :
-      (flopperUint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
     (hmulFit :
-      (flopperSlotWord ⟨5⟩ σ I).toNat *
-        (flopperSlotWord (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
+      (solcSlotWordAt ⟨5⟩ σ I).toNat *
+        (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
     (haddFit :
-      (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
+      (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48)
     (rd4292 : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
@@ -324,7 +357,7 @@ theorem flopperTickX_toEndStoreStart
     raw dup1 (by native_decide) (by evm_ov),
     raw dup3 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
-  have rd4751 := rd4744.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
+  have rd4751 := rd4744.pushConst uint48Mask (width := 6) (op := .PUSH6)
     (by decide : Operation.POp.PUSH6 ≠ .PUSH0)
     (by native_decide)
     (by simp)
@@ -339,13 +372,13 @@ theorem flopperTickX_toEndStoreStart
     raw iszero (by native_decide) (by evm_ov),
     raw push2 ⟨4710⟩ (by native_decide) (by evm_ov)]
   have hltFalse :
-      UInt256.lt (UInt256.land (timestamp + tau) flopperUint48Mask)
-          (UInt256.land timestamp flopperUint48Mask) = ⟨0⟩ := by
+      UInt256.lt (UInt256.land (timestamp + tau) uint48Mask)
+          (UInt256.land timestamp uint48Mask) = ⟨0⟩ := by
     simpa [timestamp, tau] using uint48AddGuard_false_of_no_wrap timestamp tau haddFit
   have hcond :
       UInt256.isZero
-          (UInt256.lt (UInt256.land (timestamp + tau) flopperUint48Mask)
-            (UInt256.land timestamp flopperUint48Mask)) ≠ ⟨0⟩ := by
+          (UInt256.lt (UInt256.land (timestamp + tau) uint48Mask)
+            (UInt256.land timestamp uint48Mask)) ≠ ⟨0⟩ := by
     rw [hltFalse]
     decide
   have rd4710 := rd4759.jumpiT (by native_decide) hcond (by jump_dest) (by evm_ov)
@@ -364,14 +397,14 @@ theorem flopperTickX_success
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hendLt :
-      (flopperUint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
     (hmulFit :
-      (flopperSlotWord ⟨5⟩ σ I).toNat *
-        (flopperSlotWord (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
+      (solcSlotWordAt ⟨5⟩ σ I).toNat *
+        (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
     (haddFit :
-      (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
+      (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48)
     (rd4292 : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
@@ -447,7 +480,7 @@ theorem flopperTickX_success
       [oldPacked, packedSlot, addWord, ⟨334⟩, sel]
       memEndStore (UInt256.ofNat 3) ByteArray.empty σLot k4639 C4639 := by
     simpa [oldPacked, packedSlot, solcSlotWord, addWord] using rd4639raw
-  have rd4646 := rd4639.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
+  have rd4646 := rd4639.pushConst uint48Mask (width := 6) (op := .PUSH6)
     (by decide : Operation.POp.PUSH6 ≠ .PUSH0)
     (by native_decide)
     (by simp)
@@ -486,14 +519,14 @@ theorem flopperTickX_addOverflow
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hendLt :
-      (flopperUint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
     (hmulFit :
-      (flopperSlotWord ⟨5⟩ σ I).toNat *
-        (flopperSlotWord (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
+      (solcSlotWordAt ⟨5⟩ σ I).toNat *
+        (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
     (haddOverflow :
-      2 ^ 48 ≤ (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
+      2 ^ 48 ≤ (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tickRuntimeTauWord I.codeOwner σ I).toNat)
     (rd4292 : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4292⟩
@@ -509,7 +542,7 @@ theorem flopperTickX_addOverflow
     raw dup1 (by native_decide) (by evm_ov),
     raw dup3 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov)]
-  have rd4751 := rd4744.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
+  have rd4751 := rd4744.pushConst uint48Mask (width := 6) (op := .PUSH6)
     (by decide : Operation.POp.PUSH6 ≠ .PUSH0)
     (by native_decide)
     (by simp)
@@ -524,21 +557,21 @@ theorem flopperTickX_addOverflow
     raw iszero (by native_decide) (by evm_ov),
     raw push2 ⟨4710⟩ (by native_decide) (by evm_ov)]
   have htauLt : tau.toNat < 2 ^ 48 := by
-    simpa [tau, tickRuntimeTauWord, flopperUint48Offset6Word, EVM.twoPow,
+    simpa [tau, tickRuntimeTauWord, uint48Offset6Word, EVM.twoPow,
       u256_land_comm] using
-      flopperUint48Masked_lt
+      uint48Masked_lt
         (UInt256.div
-          (flopperSlotWord ⟨6⟩ (tickRuntimeAfterLotMap I.codeOwner σ I) I)
+          (solcSlotWordAt ⟨6⟩ (tickRuntimeAfterLotMap I.codeOwner σ I) I)
           (UInt256.ofNat (256 ^ 6)))
   have hltTrue :
-      UInt256.lt (UInt256.land (timestamp + tau) flopperUint48Mask)
-          (UInt256.land timestamp flopperUint48Mask) = ⟨1⟩ := by
+      UInt256.lt (UInt256.land (timestamp + tau) uint48Mask)
+          (UInt256.land timestamp uint48Mask) = ⟨1⟩ := by
     simpa [timestamp, tau] using
       uint48AddGuard_true_of_wrap timestamp tau htauLt haddOverflow
   have hcond :
       UInt256.isZero
-          (UInt256.lt (UInt256.land (timestamp + tau) flopperUint48Mask)
-            (UInt256.land timestamp flopperUint48Mask)) = ⟨0⟩ := by
+          (UInt256.lt (UInt256.land (timestamp + tau) uint48Mask)
+            (UInt256.land timestamp uint48Mask)) = ⟨0⟩ := by
     rw [hltTrue]
     native_decide
   have rd4763 := rd4759.jumpiNT (by native_decide) hcond (by evm_ov)
@@ -554,7 +587,7 @@ theorem tickRuntimeAfterLotMap_source_eq
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   simp [evmSolm, initState, tickAfterLotStore, storageStore_accountMap,
     tickRuntimeAfterLotMap, tickRuntimeLotPostWord, tickRuntimeLotBaseWord,
-    tickLotPostWord, tickLotBaseWord, tickPadWord, tickLotWord, flopperSlotWord]
+    tickLotPostWord, tickLotBaseWord, tickPadWord, tickLotWord, solcSlotWordAt]
 
 theorem tickRuntimeTauWord_source_eq
     {σ σ₀ A I} {g : UInt256} :
@@ -567,14 +600,14 @@ theorem tickRuntimeTauWord_source_eq
     tickRuntimeAfterLotMap_source_eq
       (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g)
-  have h := congrArg (fun accounts => flopperUint48Offset6Word ⟨6⟩ accounts I) hAfter
+  have h := congrArg (fun accounts => uint48Offset6Word ⟨6⟩ accounts I) hAfter
   simpa [evmSolm, tickRuntimeTauWord, tickTauWord, tickAfterLotStore_executionEnv,
     initState] using h
 
 theorem tickRuntimeSuccessAccountMap_eq_postState
     {σ σ₀ A I} {g : UInt256}
     (haddFit :
-      (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
+      (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48) :
     Eq (tickRuntimeSuccessAccountMap I.codeOwner σ I)
       (tickPostState (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -596,9 +629,9 @@ theorem tickRuntimeSuccessAccountMap_eq_postState
           (tickTauWord (tickAfterLotStore evmSolm I)).toNat < 2 ^ 48 := by
     simpa [evmSolm, tickNow48Word, tickTimestampWord, initState, htau] using haddFit
   have hmaskedRuntime :
-      UInt256.land runtimeAdd flopperUint48Mask = tickEndPostWord evmSolm I := by
+      UInt256.land runtimeAdd uint48Mask = tickEndPostWord evmSolm I := by
     apply u256_inj
-    change (UInt256.land (tickRuntimeAddWord I.codeOwner σ I) flopperUint48Mask).toNat =
+    change (UInt256.land (tickRuntimeAddWord I.codeOwner σ I) uint48Mask).toNat =
       (tickEndPostWord evmSolm I).toNat
     rw [tickRuntimeAddWord]
     rw [uint48Mask_add_no_wrap_toNat (UInt256.ofNat I.header.timestamp)
@@ -606,9 +639,9 @@ theorem tickRuntimeSuccessAccountMap_eq_postState
     rw [tickEndPostWord_toNat evmSolm I haddFitSolm]
     simpa [evmSolm, tickNow48Word, tickTimestampWord, initState, htau]
   have hsourceClean :
-      UInt256.land (tickEndPostWord evmSolm I) flopperUint48Mask =
+      UInt256.land (tickEndPostWord evmSolm I) uint48Mask =
         tickEndPostWord evmSolm I := by
-    apply flopperUint48Mask_clean_of_canonical
+    apply uint48Mask_clean_of_canonical
     have hendNat := tickEndPostWord_toNat evmSolm I haddFitSolm
     rw [hendNat]
     simpa [EVM.twoPow] using haddFitSolm
@@ -617,8 +650,8 @@ theorem tickRuntimeSuccessAccountMap_eq_postState
         Solm.EVM.storageLoad (tickAfterLotStore evmSolm I)
           (tickAfterLotStore evmSolm I).executionEnv.codeOwner packedSlot := by
     have hslot :=
-      congrArg (fun accounts => flopperSlotWord packedSlot accounts I) hAfter
-    simpa [runtimeOld, packedSlot, flopperSlotWord, solcSlotWord, evmSolm,
+      congrArg (fun accounts => solcSlotWordAt packedSlot accounts I) hAfter
+    simpa [runtimeOld, packedSlot, solcSlotWordAt, solcSlotWord, evmSolm,
       initState, tickAfterLotStore_executionEnv] using hslot
   have hstored :
       tickRuntimeEndStoredRawWord runtimeOld runtimeAdd = tickEndStoredWord evmSolm I := by
@@ -639,7 +672,7 @@ theorem flopperTickBodyCoreEndNotExpired
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hendGe :
       (UInt256.ofNat I.header.timestamp).toNat ≤
-        (flopperUint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat)
+        (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some tickTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (tickTransition.params.map Param.name)
@@ -665,9 +698,9 @@ theorem flopperTickBodyCoreTicNonzero
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hendLt :
-      (flopperUint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I ≠ ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I ≠ ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some tickTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (tickTransition.params.map Param.name)
@@ -697,12 +730,12 @@ theorem flopperTickBodyCoreMulOverflow
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hendLt :
-      (flopperUint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
     (hover :
-      UInt256.size ≤ (flopperSlotWord ⟨5⟩ σ I).toNat *
-        (flopperSlotWord (auctionLotSlot (tickIdWord I)) σ I).toNat)
+      UInt256.size ≤ (solcSlotWordAt ⟨5⟩ σ I).toNat *
+        (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some tickTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (tickTransition.params.map Param.name)
@@ -734,14 +767,14 @@ theorem flopperTickBodyCoreAddOverflow
     (hcode : I.code = flopperBytecode) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hendLt :
-      (flopperUint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
     (hmulFit :
-      (flopperSlotWord ⟨5⟩ σ I).toNat *
-        (flopperSlotWord (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
+      (solcSlotWordAt ⟨5⟩ σ I).toNat *
+        (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
     (haddOverflow :
-      2 ^ 48 ≤ (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
+      2 ^ 48 ≤ (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tickRuntimeTauWord I.codeOwner σ I).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some tickTransition)
     (hdecode :
@@ -786,14 +819,14 @@ theorem flopperTickBodyCoreSuccess
     (hcode : I.code = flopperBytecode) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hendLt :
-      (flopperUint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
+      (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
     (hmulFit :
-      (flopperSlotWord ⟨5⟩ σ I).toNat *
-        (flopperSlotWord (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
+      (solcSlotWordAt ⟨5⟩ σ I).toNat *
+        (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
     (haddFit :
-      (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
+      (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (tickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48)
     (hdispatch : dispatchMsg contract I.calldata = some tickTransition)
     (hdecode :
@@ -857,7 +890,6 @@ theorem flopperTickBodyCoreDecodeFailed_short
 theorem flopperTickBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 14)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -874,14 +906,29 @@ theorem flopperTickBody {σ σ₀ A I} {g : UInt256}
     let id := tickIdWord I
     let packedSlot := auctionPackedSlot id
     by_cases hendLt :
-        (flopperUint48Offset26Word packedSlot σ I).toNat <
+        (uint48Offset26Word packedSlot σ I).toNat <
           (UInt256.ofNat I.header.timestamp).toNat
-    · by_cases htic : flopperUint48Offset20Word packedSlot σ I = ⟨0⟩
+    · by_cases htic : uint48Offset20Word packedSlot σ I = ⟨0⟩
       · by_cases hmulFit :
-          (flopperSlotWord ⟨5⟩ σ I).toNat *
-            (flopperSlotWord (auctionLotSlot id) σ I).toNat < UInt256.size
-        · by_cases haddFit :
-            (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
+          (solcSlotWordAt ⟨5⟩ σ I).toNat *
+            (solcSlotWordAt (auctionLotSlot id) σ I).toNat < UInt256.size
+        · by_cases hperm : I.perm = true
+          swap
+          · have hp : I.perm = false := by simpa using hperm
+            have hstatic := permSplit_false hp (flopperTickX_toCheckedAddStartSplit
+              (by simpa [id, packedSlot] using hendLt)
+              (by simpa [id, packedSlot] using htic)
+              (by simpa [id] using hmulFit) rd4292)
+            have hsource := (flopperTickBodyReturns_successSplit
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) I hwv
+              (by simpa [tickEndWord, tickTimestampWord, initState, id, packedSlot]
+                using hendLt)
+              (by simpa [tickTicWord, initState, id, packedSlot] using htic)
+              (by simpa [tickPadWord, tickLotWord, initState, id] using hmulFit)).2 hp
+            exact hstatic.reEquivStaticHalt hcode hdispatch
+              (flopperDecode_tick_ok hsz36) hsource
+          by_cases haddFit :
+            (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
               (tickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48
           · exact flopperTickBodyCoreSuccess hcode hperm hwv
               (by simpa [id, packedSlot] using hendLt)

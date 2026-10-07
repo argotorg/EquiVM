@@ -1,39 +1,10 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Vat.Slip
 
 namespace Benchmarks.Dss.Vat
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
-theorem uintWordLeMaxInt256_of_slt_zero {w : UInt256}
-    (hmax : UInt256.slt w ⟨0⟩ = ⟨0⟩) :
-    Int.ofNat w.toNat ≤ maxInt256 := by
-  have hnonneg := slt_zero_eq_zero_to_nonneg w hmax
-  unfold maxInt256
-  by_cases hlow : w.toNat < EVM.twoPow 255
-  · have hlt : (w.toNat : Int) < (2 : Int) ^ 255 := by
-      exact_mod_cast (by simpa [EVM.twoPow] using hlow)
-    change (w.toNat : Int) ≤ (2 : Int) ^ 255 - 1
-    omega
-  · have hltInt : (w.toNat : Int) < (EVM.wordModulus : Int) := by
-      exact_mod_cast w.val.isLt
-    have hbad : ¬ 0 ≤
-        (if w.toNat < EVM.twoPow 255 then Int.ofNat w.toNat
-         else Int.ofNat w.toNat - Int.ofNat EVM.wordModulus) := by
-      simp [hlow]; omega
-    exact False.elim (hbad hnonneg)
-
-theorem uintWordGtMaxInt256_of_slt_ne_zero {w : UInt256}
-    (hmax : UInt256.slt w ⟨0⟩ ≠ ⟨0⟩) :
-    maxInt256 < Int.ofNat w.toNat := by
-  by_cases hlow : w.toNat < EVM.twoPow 255
-  · have hslt0 : UInt256.slt w (UInt256.ofNat 0) = ⟨0⟩ :=
-      slt_lit_zero (a := w) (m := 0) (by norm_num) (Nat.zero_le _) hlow
-    exact False.elim (hmax (by simpa using hslt0))
-  · unfold maxInt256
-    have hge : EVM.twoPow 255 ≤ w.toNat := by omega
-    have hgeInt : (2 : Int) ^ 255 ≤ Int.ofNat w.toNat := by
-      exact_mod_cast (by simpa [EVM.twoPow] using hge)
-    omega
 
 theorem evalExpr_fold_wordWrapAdd_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {old addend sum : UInt256} {addendInt : Int}
@@ -49,7 +20,7 @@ theorem evalExpr_fold_wordWrapAdd_ok {evm : EVM.State} {locals : Store}
   have hwrap :
       (Int.ofNat old.toNat + addendInt) % (Int.ofNat EVM.wordModulus) =
         Int.ofNat sum.toNat := by
-    simpa [hsum] using slipSignedAddWrap old addend addendInt haddend
+    simpa [hsum] using signedAddWrap old addend addendInt haddend
   have hmodNe : ¬ EVM.wordModulus = 0 := by decide
   simp [wordWrap256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, hmodNe]
   simpa using hwrap
@@ -70,80 +41,6 @@ theorem evalExpr_fold_wordWrapSub_ok {evm : EVM.State} {locals : Store}
   simp [wordWrap256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, hmodNe]
   simpa using hwrap
 
-theorem signedSubWrap (old sub : UInt256) (subInt : Int)
-    (hsub : subInt % (Int.ofNat EVM.wordModulus) = Int.ofNat sub.toNat) :
-    (Int.ofNat old.toNat - subInt) % (Int.ofNat EVM.wordModulus) =
-      Int.ofNat (UInt256.sub old sub).toNat := by
-  have holdLt : old.toNat < EVM.wordModulus := by
-    change old.val.val < EVM.twoPow 256
-    exact old.val.isLt
-  have hold :
-      (Int.ofNat old.toNat) % (Int.ofNat EVM.wordModulus) = Int.ofNat old.toNat :=
-    Int.emod_eq_of_lt (Int.natCast_nonneg _) (Int.ofNat_lt.mpr holdLt)
-  rw [Int.sub_emod, hold, hsub]
-  by_cases hle : sub.toNat ≤ old.toNat
-  · have hdiff : (UInt256.sub old sub).toNat = old.toNat - sub.toNat :=
-      usub_toNat hle
-    have hsubInt :
-        (Int.ofNat old.toNat - Int.ofNat sub.toNat) =
-          Int.ofNat (old.toNat - sub.toNat) := by
-      exact (Int.ofNat_sub hle).symm
-    have hlt : (old.toNat - sub.toNat) < EVM.wordModulus := by
-      omega
-    rw [hsubInt]
-    calc
-      Int.ofNat (old.toNat - sub.toNat) % Int.ofNat EVM.wordModulus =
-          Int.ofNat (old.toNat - sub.toNat) :=
-        Int.emod_eq_of_lt (Int.natCast_nonneg _) (Int.ofNat_lt.mpr hlt)
-      _ = Int.ofNat (UInt256.sub old sub).toNat := by rw [hdiff]
-  · have hlt : old.toNat < sub.toNat := Nat.lt_of_not_ge hle
-    have hdiff : (UInt256.sub old sub).toNat = UInt256.size + old.toNat - sub.toNat :=
-      usub_toNat_underflow hlt
-    have hwordMod : EVM.wordModulus = UInt256.size := by rfl
-    have hpos : 0 < sub.toNat - old.toNat := by omega
-    have hdiffLt : sub.toNat - old.toNat < EVM.wordModulus := by
-      have hsubLt : sub.toNat < EVM.wordModulus := by
-        change sub.val.val < EVM.twoPow 256
-        exact sub.val.isLt
-      omega
-    have hneg :
-        (Int.ofNat old.toNat - Int.ofNat sub.toNat) =
-          -Int.ofNat (sub.toNat - old.toNat) := by
-      have hsubOld :
-          Int.ofNat sub.toNat - Int.ofNat old.toNat =
-            Int.ofNat (sub.toNat - old.toNat) := by
-        exact (Int.ofNat_sub (Nat.le_of_lt hlt)).symm
-      calc
-        Int.ofNat old.toNat - Int.ofNat sub.toNat =
-            -(Int.ofNat sub.toNat - Int.ofNat old.toNat) := by omega
-        _ = -Int.ofNat (sub.toNat - old.toNat) := by rw [hsubOld]
-    rw [hneg]
-    have hshift :
-        (-Int.ofNat (sub.toNat - old.toNat)) % Int.ofNat EVM.wordModulus =
-          Int.ofNat EVM.wordModulus - Int.ofNat (sub.toNat - old.toNat) := by
-      have hMpos : 0 < (Int.ofNat EVM.wordModulus) := by
-        change (0 : Int) < (2 : Int) ^ 256
-        norm_num
-      have hdpos : 0 < (Int.ofNat (sub.toNat - old.toNat)) :=
-        Int.natCast_pos.mpr hpos
-      have hdlt : (Int.ofNat (sub.toNat - old.toNat)) < Int.ofNat EVM.wordModulus :=
-        Int.ofNat_lt.mpr hdiffLt
-      rw [Int.emod_eq_add_self_emod]
-      rw [show -Int.ofNat (sub.toNat - old.toNat) + Int.ofNat EVM.wordModulus =
-          Int.ofNat EVM.wordModulus - Int.ofNat (sub.toNat - old.toNat) by omega]
-      exact Int.emod_eq_of_lt (by omega) (by omega)
-    rw [hshift, hdiff]
-    have hdle : sub.toNat - old.toNat ≤ EVM.wordModulus := by omega
-    have hnat :
-        EVM.wordModulus - (sub.toNat - old.toNat) =
-          UInt256.size + old.toNat - sub.toNat := by
-      rw [hwordMod]
-      omega
-    calc
-      Int.ofNat EVM.wordModulus - Int.ofNat (sub.toNat - old.toNat) =
-          Int.ofNat (EVM.wordModulus - (sub.toNat - old.toNat)) := by
-        exact (Int.ofNat_sub hdle).symm
-      _ = Int.ofNat (UInt256.size + old.toNat - sub.toNat) := by rw [hnat]
 
 theorem evalExpr_s256_revert {evm : EVM.State} {locals : Store} {e : Expr} {i : Int}
     (he : evalExpr? config { contract := contract, locals := locals } evm e = .ok (.int i))

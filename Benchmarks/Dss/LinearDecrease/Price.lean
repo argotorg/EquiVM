@@ -1,3 +1,6 @@
+import Reasoning.WordArithmetic
+import Reasoning.ABIComposite
+import Reasoning.EVMWord
 import Benchmarks.Dss.LinearDecrease.Tau
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -67,32 +70,6 @@ theorem stairstepRay_toNat : stairstepRay.toNat = 1000000000000000000000000000 :
 theorem RAY_eq_stairstepRay_toNat : RAY = Int.ofNat stairstepRay.toNat := by
   simp [RAY, stairstepRay_toNat]
 
-theorem stairstepUInt256Zero_toNat : (⟨0⟩ : UInt256).toNat = 0 := by
-  native_decide
-
--- GENERALIZES Benchmarks.Dss.Jug.u256_mul_div_overflow_ne.
-theorem price_u256_mul_div_overflow_ne (x y : UInt256)
-    (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    UInt256.div (y * x) y ≠ x := by
-  intro hEq
-  have hyNatNe : y.toNat ≠ 0 := by
-    intro hy0
-    have hprod0 : x.toNat * y.toNat = 0 := by simp [hy0]
-    have hsizePos : 0 < UInt256.size := by norm_num [UInt256.size]
-    omega
-  have hnat := congrArg UInt256.toNat hEq
-  rw [udiv_toNat, u256_mul_op_toNat] at hnat
-  have hremLt : y.toNat * x.toNat % UInt256.size < y.toNat * x.toNat := by
-    have hmodLt : y.toNat * x.toNat % UInt256.size < UInt256.size :=
-      Nat.mod_lt _ (by norm_num [UInt256.size])
-    have hover' : UInt256.size ≤ y.toNat * x.toNat := by
-      simpa [Nat.mul_comm] using hover
-    omega
-  have hle0 := Nat.mul_div_le (y.toNat * x.toNat % UInt256.size) y.toNat
-  rw [hnat] at hle0
-  have hle : y.toNat * x.toNat ≤ y.toNat * x.toNat % UInt256.size := by
-    simpa [Nat.mul_comm] using hle0
-  omega
 
 theorem stairstepRay_mul_div_cancel (y : UInt256)
     (hfit : stairstepRay.toNat * y.toNat < UInt256.size) :
@@ -110,25 +87,8 @@ theorem stairstepRay_mul_div_cancel (y : UInt256)
 theorem stairstepRay_mul_div_overflow_ne (y : UInt256)
     (hover : UInt256.size ≤ stairstepRay.toNat * y.toNat) :
     UInt256.div (stairstepRay * y) stairstepRay ≠ y :=
-  price_u256_mul_div_overflow_ne y stairstepRay (by simpa [Nat.mul_comm] using hover)
+  u256_mul_div_overflow_ne y stairstepRay (by simpa [Nat.mul_comm] using hover)
 
-theorem uint256_mul_zero (x : UInt256) :
-    x * (⟨0⟩ : UInt256) = ⟨0⟩ := by
-  apply u256_inj
-  rw [u256_mul_op_toNat]
-  rfl
-
-theorem uint256_zero_mul (x : UInt256) :
-    (⟨0⟩ : UInt256) * x = ⟨0⟩ := by
-  rw [show (⟨0⟩ : UInt256) * x = x * (⟨0⟩ : UInt256) by
-    exact u256_mul_comm (⟨0⟩ : UInt256) x]
-  exact uint256_mul_zero x
-
-theorem uint256_div_zero_num (x : UInt256) :
-    UInt256.div (⟨0⟩ : UInt256) x = ⟨0⟩ := by
-  apply u256_inj
-  rw [udiv_toNat]
-  exact Nat.zero_div x.toNat
 
 theorem priceLocals_get_top (I : ExecutionEnv) :
     (priceLocals I).get? "top" = some (.int (Int.ofNat (priceTop I).toNat)) := by
@@ -246,7 +206,7 @@ theorem evalExpr_priceTau_word {evm : EVM.State} {locals : Store}
       simp [evalStorageRef, evalStorageRefSteps, tauRef, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-    (hload := by exact stairstepStorageLocLoad_uint256 evm ⟨1⟩)]
+    (hload := by exact storageLocLoad_uint256 evm ⟨1⟩)]
 
 theorem evalExpr_ge_uint256_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : UInt256}
@@ -726,120 +686,6 @@ theorem stairstepExecRmulFunctionRevertMul (evm : EVM.State) {x y : UInt256}
     exact ExecBlock.consRevert (ExecStmt.letDeclRevert hMulRev)
   simpa [rmulFunction, checkedMulUintInto, locals] using ExecFuncBody.execBlockRevert hblock
 
-theorem uint256_lt_eq_zero_toNat_ge {a b : UInt256}
-    (h : UInt256.lt a b = ⟨0⟩) :
-    b.toNat ≤ a.toNat := by
-  by_contra hge
-  have hlt : a.toNat < b.toNat := by omega
-  have hone : UInt256.lt a b = ⟨1⟩ := ult_one hlt
-  have hbad : (⟨0⟩ : UInt256) = ⟨1⟩ := by
-    simpa [h] using hone
-  exact (by native_decide : (⟨0⟩ : UInt256) ≠ ⟨1⟩) hbad
-
--- LIBRARY CANDIDATE: legacy solc05 decoding for `(uint256,uint256)`.
-theorem stairstepDecodeABIValues_uint256_uint256_legacy_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32) :
-    decodeABIValues? [abiUInt256, abiUInt256] bytes 0 0 64 64 DecodeMode.legacySolc05 =
-      some ([.int (Int.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)], 64) := by
-  have hread32 : 32 ≤ bytes.length - 32 := by
-    rw [List.length_take, List.length_drop] at hlen32
-    omega
-  have hmod0 :
-      (Int.ofNat (ABI.bytesToWord (bytes.take 32)).val % Int.ofNat (EVM.twoPow 256)) =
-        Int.ofNat (UInt256.toNat (ABI.bytesToWord (bytes.take 32))) := by
-    rw [Int.emod_eq_of_lt]
-    · simp [UInt256.toNat]
-    · exact Int.natCast_nonneg _
-    · have hlt : (ABI.bytesToWord (bytes.take 32)).val < EVM.twoPow 256 := by
-        simpa [EVM.twoPow, UInt256.size] using (ABI.bytesToWord (bytes.take 32)).val.isLt
-      exact Int.ofNat_lt.mpr hlt
-  have hmod32 :
-      (Int.ofNat (ABI.bytesToWord ((bytes.drop 32).take 32)).val %
-          Int.ofNat (EVM.twoPow 256)) =
-        Int.ofNat (UInt256.toNat (ABI.bytesToWord ((bytes.drop 32).take 32))) := by
-    rw [Int.emod_eq_of_lt]
-    · simp [UInt256.toNat]
-    · exact Int.natCast_nonneg _
-    · have hlt : (ABI.bytesToWord ((bytes.drop 32).take 32)).val < EVM.twoPow 256 := by
-        simpa [EVM.twoPow, UInt256.size] using
-          (ABI.bytesToWord ((bytes.drop 32).take 32)).val.isLt
-      exact Int.ofNat_lt.mpr hlt
-  simp [decodeABIValues?, abiUInt256, isDynamicABIType, staticABIEncodedSize?,
-    decodeABIValue?, readWord?, readBytes?, decodeABIWord?, hlen0, hread32]
-  exact ⟨hmod0, hmod32⟩
-
--- LIBRARY CANDIDATE: legacy solc05 short-calldata rejection for `(uint256,uint256)`.
-theorem stairstepDecodeABIValues_uint256_uint256_legacy_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 64) :
-    decodeABIValues? [abiUInt256, abiUInt256] bytes 0 0 64 64 DecodeMode.legacySolc05 =
-      none := by
-  simp only [decodeABIValues?, abiUInt256, isDynamicABIType, Bool.false_eq_true, if_false,
-    staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have hnot : ¬ 32 ≤ bytes.length := by omega
-    simp [decodeABIValue?, readWord?, readBytes?, hnot]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have hnot : ¬ 32 ≤ bytes.length - 32 := by
-      omega
-    simp [decodeABIValue?, readWord?, readBytes?, decodeABIWord?, htake0, hnot]
-
-theorem stairstepDecodeCalldata_legacyUInt256_uint256_ok {cd : ByteArray}
-    {x y : Solm.Ident} (hsz68 : 68 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiUInt256, abiUInt256] cd =
-      some (((∅ : Solm.Store).insert x
-        (.int (Int.ofNat (calldataWord cd 4).toNat))).insert y
-        (.int (Int.ofNat (calldataWord cd 36).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiUInt256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiUInt256, abiUInt256] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [stairstepDecodeABIValues_uint256_uint256_legacy_ok (bytes := cd.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (cd.toList.drop 4).length < 64)]
-  simp [decodeCalldata.insertValues]
-  rw [hword4, hword36]
-
-theorem stairstepDecodeCalldata_legacyUInt256_uint256_none_short {cd : ByteArray}
-    {x y : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 68) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiUInt256, abiUInt256] cd =
-      none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiUInt256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiUInt256, abiUInt256] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  by_cases hbytes : (cd.toList.drop 4).length < 64
-  · rw [if_pos hbytes]
-  · rw [if_neg hbytes]
-    rw [stairstepDecodeABIValues_uint256_uint256_legacy_none_short
-      (bytes := cd.toList.drop 4) (by
-        rw [List.length_drop, htlen]
-        omega)]
 
 theorem stairstepDecode_price_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (priceTransition.params.map Param.name)
@@ -847,7 +693,7 @@ theorem stairstepDecode_price_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.s
         some (priceLocals I) := by
   simpa [config, priceTransition, uint256, uint256Int, priceLocals, priceTop, priceDur,
     abiUInt256] using
-    (stairstepDecodeCalldata_legacyUInt256_uint256_ok (cd := I.calldata) (x := "top")
+    (decodeCalldata_legacyUInt256_uint256_ok (cd := I.calldata) (x := "top")
       (y := "dur") hsz68)
 
 theorem stairstepDecode_price_none_short {I : ExecutionEnv}
@@ -855,7 +701,7 @@ theorem stairstepDecode_price_none_short {I : ExecutionEnv}
     decodeCalldataWithMode config.abiDecodeMode (priceTransition.params.map Param.name)
       (transitionSignature priceTransition).paramTypes I.calldata = none := by
   simpa [config, priceTransition, uint256, uint256Int, abiUInt256] using
-    (stairstepDecodeCalldata_legacyUInt256_uint256_none_short (cd := I.calldata)
+    (decodeCalldata_legacyUInt256_uint256_none_short (cd := I.calldata)
       (x := "top") (y := "dur") hsz4 hshort)
 
 theorem stairstepReachPriceBody {σ σ₀ A I} {g : Sat256}
@@ -963,14 +809,14 @@ theorem stairstepPriceSourceZeroReturns {σ σ₀ A I} {g : UInt256}
   have htau :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage tauRef) =
         .ok (.int (Int.ofNat (priceTauWord σ I).toNat)) := by
-    simpa [locals, evm0, priceTauWord, tauWord, stairstepSlotWord, initState,
+    simpa [locals, evm0, priceTauWord, tauWord, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       (evalExpr_priceTau_word (evm := evm0) (locals := locals)
         (by simpa [locals] using priceLocals_get_tau_none I))
   have hcond :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .ge (.var "dur") (.storage tauRef)) = .ok (.bool true) :=
-    evalExpr_ge_uint256_true hdur htau (uint256_lt_eq_zero_toNat_ge hlt)
+    evalExpr_ge_uint256_true hdur htau (ult_eq_zero_to_le hlt)
   have hzero :
       evalExpr? config { contract := contract, locals := locals } evm0 (.intLit 0) =
         .ok (.int 0) := by
@@ -1005,7 +851,7 @@ theorem stairstepPriceSourceReturns {evm : EVM.State} {σ : AccountMap}
     intro hzero
     have hzeroNat : (priceTauWord σ I).toNat = 0 := by
       rw [hzero]
-      exact stairstepUInt256Zero_toNat
+      exact u256_zero_toNat
     omega
   have hdur :
       evalExpr? config { contract := contract, locals := priceLocals I } evm (.var "dur") =
@@ -1228,7 +1074,7 @@ theorem stairstepPriceSourceRmulOverflowReverts {evm : EVM.State} {σ : AccountM
     intro hzero
     have hzeroNat : (priceTauWord σ I).toNat = 0 := by
       rw [hzero]
-      exact stairstepUInt256Zero_toNat
+      exact u256_zero_toNat
     omega
   have hdur :
       evalExpr? config { contract := contract, locals := priceLocals I } evm (.var "dur") =
@@ -1361,7 +1207,7 @@ theorem stairstepPriceZeroReturn {σ I} {g : Sat256} {s0 : State}
   have rd558 : RD linearDecreaseBytecode I g s0 ⟨558⟩
       (priceTauWord σ I :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k558 C558 := by
-    simpa [priceTauWord, tauWord, stairstepSlotWord] using rd558raw
+    simpa [priceTauWord, tauWord, solcSlotWordAt] using rd558raw
   have rd620 := evm_run rd558 with [
     raw dup3 (by native_decide) (by evm_ov),
     raw lt (by native_decide) (by evm_ov),
@@ -1411,7 +1257,7 @@ theorem stairstepPriceToMulRay {σ I} {g : Sat256} {s0 : State}
   have rd558 : RD linearDecreaseBytecode I g s0 ⟨558⟩
       (priceTauWord σ I :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k558 C558 := by
-    simpa [priceTauWord, tauWord, stairstepSlotWord] using rd558raw
+    simpa [priceTauWord, tauWord, solcSlotWordAt] using rd558raw
   have rd571 := evm_run rd558 with [
     raw dup3 (by native_decide) (by evm_ov),
     raw lt (by native_decide) (by evm_ov),
@@ -1426,7 +1272,7 @@ theorem stairstepPriceToMulRay {σ I} {g : Sat256} {s0 : State}
       (priceTauWord σ I :: priceTop I :: ⟨617⟩ :: ⟨0⟩ :: priceDur I ::
         priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k579 C579 := by
-    simpa [priceTauWord, tauWord, stairstepSlotWord] using rd579raw
+    simpa [priceTauWord, tauWord, solcSlotWordAt] using rd579raw
   have rd585 := evm_run rd579 with [
     raw push2 ⟨604⟩ (by native_decide) (by evm_ov),
     raw dup6 (by native_decide) (by evm_ov),
@@ -1436,7 +1282,7 @@ theorem stairstepPriceToMulRay {σ I} {g : Sat256} {s0 : State}
       (priceTauWord σ I :: priceDur I :: ⟨604⟩ :: priceTauWord σ I ::
         priceTop I :: ⟨617⟩ :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨175⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k586 C586 := by
-    simpa [priceTauWord, tauWord, stairstepSlotWord] using rd586raw
+    simpa [priceTauWord, tauWord, solcSlotWordAt] using rd586raw
   have rd587 := evm_run rd586 with [
     raw sub (by native_decide) (by evm_ov)]
   have rd600 := rd587.pushConst stairstepRay
@@ -1696,7 +1542,7 @@ theorem stairstepPriceRmulOverflowReverts {σ I} {g : Sat256} {s0 : State}
     have hsizePos : 0 < UInt256.size := by norm_num [UInt256.size]
     omega
   have hdivNe : UInt256.div (pow * priceTop I) pow ≠ priceTop I :=
-    price_u256_mul_div_overflow_ne (priceTop I) pow (by simpa [Nat.mul_comm] using hover)
+    u256_mul_div_overflow_ne (priceTop I) pow (by simpa [Nat.mul_comm] using hover)
   have hdivNe' : UInt256.div (UInt256.mul pow (priceTop I)) pow ≠ priceTop I := by
     simpa [HMul.hMul, Mul.mul] using hdivNe
   have rd1047pre := evm_run h with [
@@ -1814,7 +1660,6 @@ set_option maxHeartbeats 2000000 in
 theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = linearDecreaseBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (stairstepSelBytes 2)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -1831,7 +1676,7 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
     have hloadSolm :
         Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨1⟩ =
           priceTauWord σ I := by
-      simp [evmSolm, priceTauWord, tauWord, stairstepSlotWord, initState,
+      simp [evmSolm, priceTauWord, tauWord, solcSlotWordAt, initState,
         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, solcSlotWord]
     obtain ⟨_, _, rd552⟩ :=
       stairstepPriceX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
@@ -1845,7 +1690,7 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
         intro hzero
         have hzeroNat : (priceTauWord σ I).toNat = 0 := by
           rw [hzero]
-          exact stairstepUInt256Zero_toNat
+          exact u256_zero_toNat
         omega
       obtain ⟨_, _, rd987⟩ := stairstepPriceToMulRay (σ := σ) hltZero rd552
       by_cases hfitMul : (priceLeft σ I).toNat * stairstepRay.toNat < UInt256.size

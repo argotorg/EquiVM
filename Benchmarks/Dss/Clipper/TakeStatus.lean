@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.Arithmetic
 import Benchmarks.Dss.Clipper.GetStatusEVM
 import Benchmarks.Dss.Clipper.GetStatusEVMReverts
@@ -304,7 +305,7 @@ theorem clipperEvalTakeSalesLotAtPrice (v : ClipperImmutables)
     (by rfl)
     (by simpa [clipperTakeSalesLotEVMWord, clipperTakeSalesLotSlot,
       clipperTakeSalesBaseSlot, wordLoc, uint256Loc] using
-      clipperStorageLocLoad_uint256 evmRead (clipperTakeSalesLotSlot I))
+      storageLocLoad_uint256 evmRead (clipperTakeSalesLotSlot I))
 
 theorem clipperEvalTakeVarIdAtLot (v : ClipperImmutables)
     (evmLoc evmRead evmEval : EVM.State) (I : ExecutionEnv)
@@ -349,7 +350,7 @@ theorem clipperEvalTakeSalesTabAfterLot (v : ClipperImmutables)
     (by rfl)
     (by simpa [clipperTakeSalesTabEVMWord, clipperTakeSalesTabSlot,
       clipperTakeSalesBaseSlot, wordLoc, uint256Loc] using
-      clipperStorageLocLoad_uint256 evmRead (clipperTakeSalesTabSlot I))
+      storageLocLoad_uint256 evmRead (clipperTakeSalesTabSlot I))
 
 theorem clipperEvalTakeVarLotAtTab (v : ClipperImmutables)
     (evmLoc evmRead evmEval : EVM.State) (I : ExecutionEnv)
@@ -1124,7 +1125,7 @@ theorem clipperEvalTakeCheckedOwe0Require_true (v : ClipperImmutables)
   · have hdiv :
         Int.ofNat (UInt256.mul slice price).toNat / Int.ofNat price.toNat =
           Int.ofNat slice.toNat := by
-      have hcancel := Reasoning.Theory.clipperMulDiv_cancel (x := price) (y := slice)
+      have hcancel := Reasoning.Theory.mulDiv_cancel (x := price) (y := slice)
         hprice (by simpa [Nat.mul_comm] using hmul)
       have hnat := congrArg UInt256.toNat hcancel
       rw [udiv_toNat, u256_mul_comm price slice] at hnat
@@ -1244,7 +1245,7 @@ theorem clipperEvalTakeSalesUsr (v : ClipperImmutables) (evm : EVM.State)
     (by rfl)
     (by simpa [clipperTakeSalesUsrEVMWord, clipperTakeSalesPackedSlot,
       clipperTakeSalesBaseSlot] using
-      clipperStorageLocLoad_address evm (clipperTakeSalesPackedSlot I))
+      storageLocLoad_address_offset0 evm (clipperTakeSalesPackedSlot I))
 
 theorem clipperEvalTakeVarIdAfterUsr (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv) :
@@ -1312,25 +1313,6 @@ theorem clipperEvalTakeUsrNeZeroAfterTic_false (v : ClipperImmutables)
   rw [husr]
   native_decide
 
-theorem clipperTakeMaskedAddress_ne_zero {w : UInt256}
-    (h : UInt256.land w solcAddrMask ≠ ⟨0⟩) :
-    AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat ≠ AccountAddress.ofNat 0 := by
-  intro haddr
-  have hval : (UInt256.land w solcAddrMask).toNat = 0 := by
-    have hlt : (UInt256.land w solcAddrMask).toNat < AccountAddress.size := by
-      rw [u256_land_toNat]
-      have hland : Nat.land w.toNat solcAddrMask.toNat ≤ solcAddrMask.toNat :=
-        Nat.and_le_right
-      have hmask : solcAddrMask.toNat < AccountAddress.size := by
-        native_decide
-      have hlandlt : Nat.land w.toNat solcAddrMask.toNat < UInt256.size := by
-        have hsize : AccountAddress.size < UInt256.size := by decide
-        omega
-      rw [Nat.mod_eq_of_lt hlandlt]
-      omega
-    apply congrArg Fin.val at haddr
-    simpa [AccountAddress.ofNat, Fin.ofNat, Nat.mod_eq_of_lt hlt] using haddr
-  exact h (u256_inj (by simpa using hval))
 
 theorem clipperEvalTakeUsrNeZeroAfterTic_true (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)
@@ -1343,7 +1325,7 @@ theorem clipperEvalTakeUsrNeZeroAfterTic_true (v : ClipperImmutables)
   have haddr : AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evm I).toNat ≠
       AccountAddress.ofNat 0 := by
     simpa [clipperTakeSalesUsrEVMWord] using
-      clipperTakeMaskedAddress_ne_zero
+      maskedAddress_ne_zero_of_mask_ne_zero
         (w := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperTakeSalesPackedSlot I))
         (by simpa [clipperTakeSalesUsrEVMWord] using husr)
@@ -1395,7 +1377,7 @@ theorem clipperEvalTakeSalesTopAfterTic (v : ClipperImmutables)
     (by rfl)
     (by simpa [clipperTakeSalesTopEVMWord, clipperTakeSalesTopSlot,
       clipperTakeSalesBaseSlot, wordLoc, uint256Loc] using
-      clipperStorageLocLoad_uint256 evm (clipperTakeSalesTopSlot I))
+      storageLocLoad_uint256 evm (clipperTakeSalesTopSlot I))
 
 theorem clipperEvalTakeStatusArgs (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv) :

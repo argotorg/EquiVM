@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flopper
 /-! ## `beg()` getter -/
 
 def begWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flopperSlotWord ⟨4⟩ σ I
+  solcSlotWordAt ⟨4⟩ σ I
 
 theorem flopperDecode_beg {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (begTransition.params.map Param.name)
@@ -70,7 +70,7 @@ theorem flopperBegBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (begWord σ I).toNat))])) := by
-    simpa [begTransition, begWord, flopperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [begTransition, begWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flopperUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -98,7 +98,6 @@ theorem flopperBegBodyCore
 theorem flopperBegBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 0)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

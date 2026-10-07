@@ -766,7 +766,7 @@ theorem mintFeeAssignKLastZero
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
   · rfl
   · simpa [mintFeeKLastClearedState, uniswapUint256Value, uint256Value] using
-      uniswapStorageLocStore_uint256 evm ⟨11⟩ ⟨0⟩
+      storageLocStore_uint256 evm ⟨11⟩ ⟨0⟩
 
 theorem uniswapMintFeeFunctionBody_feeOff_kLastZero
     (evm evmFee : EVM.State) (reserve0 reserve1 : UInt256) {out : ByteArray}

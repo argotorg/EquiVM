@@ -7,7 +7,6 @@ namespace Benchmarks.Dss.Spot
 theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = spotBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (spotSelBytes 8)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -103,8 +102,10 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                 callGas (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
                 ((pokePeekCalldataMem I).readWithPadding
                   pokePeekOutPtr.toNat pokePeekInSize.toNat)
-                (evmE.executionEnv.depth + 1) evmE.executionEnv.header evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks true := by
-          simpa [evmE, initState, _hperm] using hΘ
+                (evmE.executionEnv.depth + 1) evmE.executionEnv.header
+                evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks
+                evmE.executionEnv.perm := by
+          simpa [evmE, initState] using hΘ
         obtain ⟨σ'_solm, A'_solm, hcallSolm, hMap'⟩ :=
           typedCallViaEVM_callMade_sameInputs
             (cfg := config) (evm_evm := evmE) (evm_solm := evmS)
@@ -117,7 +118,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
             (inOff := pokePeekOutPtr) (inSize := pokePeekInSize) (callPerm := true)
             hdepthNe (by
               rw [pokePipAddress_eq_target]
-              exact spotEvmAddress_accountAddress _)
+              exact address_of_val _)
             (pokePeekEncode_eq I) hΘE
             (by simp [evmE, evmS, initState])
             (by simp [evmE, evmS, initState])
@@ -233,8 +234,9 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                           (pokeVatFileCalldataMem I ⟨0⟩ (pokePeekPostCallMem I out))
                           pokeVatFileOutPtr.toNat pokeVatFileInSize.toNat)
                       (evmPipE.executionEnv.depth + 1) evmPipE.executionEnv.header
-                      evmPipE.executionEnv.blobVersionedHashes evmPipE.executionEnv.blocks true := by
-                  simpa [evmPipE, evmE, initState, _hperm] using hΘFile
+                      evmPipE.executionEnv.blobVersionedHashes evmPipE.executionEnv.blocks
+                      evmPipE.executionEnv.perm := by
+                  simpa [evmPipE, evmE, initState] using hΘFile
                 obtain ⟨σ''_solm, A''_solm, hfileCallSolmAligned, hMap''⟩ :=
                   typedCallViaEVM_callMade_sameInputs
                     (cfg := config) (evm_evm := evmPipE) (evm_solm := evmPipSAligned)
@@ -254,7 +256,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                     (by simpa [evmPipE, evmE, initState] using hdepthNe)
                     (by
                       rw [← hMap', pokeVatAddress_eq_target]
-                      exact spotEvmAddress_accountAddress _)
+                      exact address_of_val _)
                     (pokeVatFileEncode_eq I ⟨0⟩ hsz36 hmem192)
                     hΘFileE
                     (by simpa [evmPipE, evmPipSAligned, evmPipS] using hMap')
@@ -326,8 +328,8 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                       (UInt256.ofNat 8) fileOut σ'' k902 C902 := by
                     simpa using rd902
                   obtain ⟨_, _, rd920⟩ := RD.spotPokeVatFileCallSucceeded rd902True
-                  have hbody :
-                      ExecTransitionBody config contract
+                  have hbodySplit :
+                      (ExecTransitionBody config contract
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                         (pokeLocals I) pokeTransition.body
                         (.returned
@@ -336,9 +338,12 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                           { evmPipS with
                             accountMap := σ''_solm
                             substate := A''_solm }
-                          none) := by
+                          none)) ∧
+                      (I.perm = false → ExecTransitionBody config contract
+                        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                        (pokeLocals I) pokeTransition.body .staticViolation) := by
                     simpa [evmS, evmPipS] using
-                      (spotPokeSourceBodyPeekHasFalseVatCallSucceededReturns
+                      (spotPokeSourceBodyPeekHasFalseVatCallSucceededReturnsSplit
                         (σ := σ)
                         (σ₀ := σ₀) (A := A) (I := I) (g := g)
                         (evmPip := evmPipS)
@@ -358,13 +363,17 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                           (pokeVatFileCalldataMem I ⟨0⟩ (pokePeekPostCallMem I out)) 64 32 =
                         UInt256.toByteArray ⟨128⟩ :=
                     pokeVatFileCalldataMem_read64 I ⟨0⟩ hmem192 hread64
-                  have hret :=
-                    RD.spotPokeVatFileLogReturns _hperm hmem228 hread64Final rd920
+                  rcases
+                    RD.spotPokeVatFileLogReturnsSplit hmem228 hread64Final rd920 with
+                    ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+                  swap
+                  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+                      (hbodySplit.2 hperm)
                   have henc : returnEquiv ByteArray.empty none pokeTransition.returnType := by
                     simpa [pokeTransition] using
                       (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
                         (dvs := []) rfl (by native_decide) (by native_decide))
-                  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+                  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
                     (by simpa using hMap'') henc
             ·
               have hhasNe : pokePeekHasWord out ≠ ⟨0⟩ := hhasZero
@@ -461,13 +470,13 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                       (pokePeekPostCallMem I out)
                     have hmemHash192 : memHash.size = 192 := by
                       dsimp [memHash]
-                      rw [poke_twoWordHashMem_size_of_ge64]
+                      rw [twoWordHashMem_size_of_ge64]
                       · exact hmem192
                       · rw [hmem192]; omega
                     have hread64Hash :
                         memHash.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
                       dsimp [memHash]
-                      exact poke_twoWordHashMem_read64_of_ge96
+                      exact twoWordHashMem_read64_of_ge_96
                         (pokeIlkWord I) (⟨1⟩ : UInt256)
                         (by rw [hmem192]; omega) hread64
                     have hparNeS :
@@ -599,8 +608,8 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                                   (evmPipE.executionEnv.depth + 1)
                                   evmPipE.executionEnv.header
                                   evmPipE.executionEnv.blobVersionedHashes
-                                  evmPipE.executionEnv.blocks true := by
-                            simpa [evmPipE, evmE, initState, _hperm] using hΘFile
+                                  evmPipE.executionEnv.blocks evmPipE.executionEnv.perm := by
+                            simpa [evmPipE, evmE, initState] using hΘFile
                           obtain ⟨σ''_solm, A''_solm, hfileCallSolmAligned,
                               hMap''⟩ :=
                             typedCallViaEVM_callMade_sameInputs
@@ -622,7 +631,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                               (by simpa [evmPipE, evmE, initState] using hdepthNe)
                               (by
                                 rw [← hMap', pokeVatAddress_eq_target]
-                                exact spotEvmAddress_accountAddress _)
+                                exact address_of_val _)
                               (pokeVatFileEncode_eq I spot2 hsz36 hmemHash192)
                               hΘFileE
                               (by simpa [evmPipE, evmPipSAligned, evmPipS] using hMap')
@@ -715,8 +724,8 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                               simpa using rd902
                             obtain ⟨_, _, rd920⟩ :=
                               RD.spotPokeVatFileCallSucceeded rd902True
-                            have htail :=
-                              spotPokeTrueTailVatCallSucceededReturns
+                            have htailSplit :=
+                              spotPokeTrueTailVatCallSucceededReturnsSplit
                                 (evm := evmPipS)
                                 (evmFile :=
                                   { evmPipS with
@@ -727,8 +736,8 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                                 (spot2 := spot2) hhasNe
                                 (by simpa [pokeTrueBranchStmts] using harith)
                                 hvatCodeSolm hfileCallSolm
-                            have hbody :
-                                ExecTransitionBody config contract
+                            have hbodySplit :
+                                (ExecTransitionBody config contract
                                   (initState σ σ₀
                                     (Sat256.ofUInt256 g) A I)
                                   (pokeLocals I) pokeTransition.body
@@ -740,9 +749,12 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                                     { evmPipS with
                                       accountMap := σ''_solm
                                       substate := A''_solm }
-                                    none) := by
+                                    none)) ∧
+                                (I.perm = false → ExecTransitionBody config contract
+                                  (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                                  (pokeLocals I) pokeTransition.body .staticViolation) := by
                               simpa [evmS, evmPipS] using
-                                (spotPokeSourceBodyPeekHasTrueTailReturns
+                                (spotPokeSourceBodyPeekHasTrueTailReturnsSplit
                                   (σ := σ) (σ₀ := σ₀) (A := A)
                                   (I := I) (g := g) (evmPip := evmPipS)
                                   (evmFile :=
@@ -755,7 +767,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                                       "_fileRet" .unit)
                                   hwv hsz36 hpipCodeSolm
                                   (by simpa [evmS, evmPipS] using hcallSolm)
-                                  hdecPeek htail)
+                                  hdecPeek htailSplit)
                             have hmem228 :
                                 (pokeVatFileCalldataMem I spot2 memHash).size = 228 :=
                               pokeVatFileCalldataMem_size I spot2 hmemHash192
@@ -765,9 +777,13 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                                   UInt256.toByteArray ⟨128⟩ :=
                               pokeVatFileCalldataMem_read64 I spot2
                                 hmemHash192 hread64Hash
-                            have hret :=
-                              RD.spotPokeVatFileLogReturns _hperm hmem228
-                                hread64Final rd920
+                            rcases
+                              RD.spotPokeVatFileLogReturnsSplit hmem228
+                                hread64Final rd920 with
+                              ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+                            swap
+                            · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+                                (hbodySplit.2 hperm)
                             have henc :
                                 returnEquiv ByteArray.empty none
                                   pokeTransition.returnType := by
@@ -777,7 +793,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                                   (dvs := []) rfl (by native_decide)
                                   (by native_decide))
                             exact hret.reEquivExecutionGen
-                              hcode hdispatch hdecode hbody
+                              hcode hdispatch hdecode hbodySplit.1
                               (by simpa using hMap'')
                               henc
                     · have hoverMat :

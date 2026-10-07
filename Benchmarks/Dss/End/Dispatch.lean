@@ -1915,7 +1915,6 @@ theorem endNonPayable {σ σ₀ A I} {g : UInt256}
 theorem endNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hwards : ¬ selIs I (selectorOf wardsTransition))
     (hvat : ¬ selIs I (selectorOf vatTransition))

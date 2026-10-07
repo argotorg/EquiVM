@@ -9,7 +9,7 @@ namespace Benchmarks.Dss.Vow
 /-! ## `flopper()` getter -/
 
 def flopperWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vowAddressReturnWord ⟨3⟩ σ I
+  solcAddressSlotWord ⟨3⟩ σ I
 
 theorem vowDispatch_flopper {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x40, 0x81, 0xd7, 0x3a]⟩) :
@@ -89,7 +89,7 @@ theorem vowFlopperBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (flopperWord σ I).toNat))])) := by
-    simpa [flopperTransition, flopperWord, vowAddressReturnWord, initState,
+    simpa [flopperTransition, flopperWord, solcAddressSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       vowAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -111,7 +111,7 @@ theorem vowFlopperBodyCore
 
 theorem vowFlopperBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x40, 0x81, 0xd7, 0x3a]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=

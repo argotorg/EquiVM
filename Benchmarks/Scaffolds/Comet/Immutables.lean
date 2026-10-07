@@ -1,4 +1,7 @@
+import Reasoning.SolmBody
+import Reasoning.BytecodePatching
 import Solm
+import Reasoning.Immutables
 
 /-!
 # Compound III Comet immutable values, offset table, and `runtimeCodeOf`
@@ -45,17 +48,15 @@ structure CometImmutables where
   accrualDescaleFactor : Int
   assetList : EVM.Address
 
-/-- An address value as an `Expr` literal. -/
-def addrLit (a : EVM.Address) : Expr := .cast (.intLit (Int.ofNat a.toNat)) (.elem .address)
 
 variable (v : CometImmutables)
 
 -- Each immutable as an `Expr` returning its value (getters + internal rate computations).
-def governor : Expr := addrLit v.governor
-def pauseGuardian : Expr := addrLit v.pauseGuardian
-def baseToken : Expr := addrLit v.baseToken
-def baseTokenPriceFeed : Expr := addrLit v.baseTokenPriceFeed
-def extensionDelegate : Expr := addrLit v.extensionDelegate
+def governor : Expr := Reasoning.Theory.addressLiteral v.governor
+def pauseGuardian : Expr := Reasoning.Theory.addressLiteral v.pauseGuardian
+def baseToken : Expr := Reasoning.Theory.addressLiteral v.baseToken
+def baseTokenPriceFeed : Expr := Reasoning.Theory.addressLiteral v.baseTokenPriceFeed
+def extensionDelegate : Expr := Reasoning.Theory.addressLiteral v.extensionDelegate
 def supplyKink : Expr := .intLit v.supplyKink
 def supplyPerSecondInterestRateSlopeLow : Expr := .intLit v.supplyPerSecondInterestRateSlopeLow
 def supplyPerSecondInterestRateSlopeHigh : Expr := .intLit v.supplyPerSecondInterestRateSlopeHigh
@@ -75,7 +76,7 @@ def targetReserves : Expr := .intLit v.targetReserves
 def decimals : Expr := .intLit v.decimals
 def numAssets : Expr := .intLit v.numAssets
 def accrualDescaleFactor : Expr := .intLit v.accrualDescaleFactor
-def assetList : Expr := addrLit v.assetList
+def assetList : Expr := Reasoning.Theory.addressLiteral v.assetList
 
 /-- solc `immutableReferences` offsets, keyed by `imm_<name>` (verified against the AST). -/
 def offsets : List (Ident × List Nat) :=
@@ -105,6 +106,10 @@ def offsets : List (Ident × List Nat) :=
     ("imm_accrualDescaleFactor", [11826]),
     ("imm_assetList", [6223, 7424]) ]
 
+/-- The constructor's immutable offsets as a layout for generated runtime summaries. -/
+def immutableLayout : Reasoning.Immutables.Layout :=
+  ⟨offsets.flatMap fun (key, sites) => sites.map fun off => (off, 32, key)⟩
+
 /-- The immutable values as `Value`s under their `imm_<name>` keys. -/
 def immValues (v : CometImmutables) : List (Ident × Value) :=
   [ ("imm_governor", .address v.governor),
@@ -133,13 +138,11 @@ def immValues (v : CometImmutables) : List (Ident × Value) :=
     ("imm_accrualDescaleFactor", .int v.accrualDescaleFactor),
     ("imm_assetList", .address v.assetList) ]
 
-def wordBytes? (x : Value) : Option ByteArray :=
-  (valueToWord x).map (fun w => ByteArray.mk (EVM.Word.toBytesBE w).toArray)
 
 def patchesFrom (get : Ident → Option Value) : Option (List (Nat × ByteArray)) :=
   offsets.foldrM (fun p acc => do
     let x ← get p.1
-    let bytes ← wordBytes? x
+    let bytes ← Reasoning.Theory.wordBytes? x
     pure (p.2.map (fun o => (o, bytes)) ++ acc)) []
 
 def patches (v : CometImmutables) : List (Nat × ByteArray) :=

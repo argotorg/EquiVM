@@ -79,23 +79,14 @@ theorem dripSuckFrameLocals_get_tmp (σ : AccountMap) (I : ExecutionEnv) (pow : 
 
 /-! ## Storage-word bridge on the initial state -/
 
-/-- On `evm0`, a code-owner storage read at `slot` is the layout word `potSlotWord slot σ I`. -/
-theorem dripEvm0_load {σ σ₀ A I} {g : UInt256} (slot : UInt256) :
-    Solm.EVM.storageLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner slot =
-      potSlotWord slot σ I := by
-  have hco : (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner =
-      I.codeOwner := rfl
-  rw [hco, codeOwnerStorageWord_initState]
-  rfl
 
 /-- The `chi := tmp`/`rho := now` stores don't touch slots `≠ 4, 7`, so a later read there is still
-`potSlotWord slot σ I`. -/
+`solcSlotWordAt slot σ I`. -/
 theorem dripEvmRho_load {σ σ₀ A I} {g : UInt256} {tmp now : UInt256} (slot : UInt256)
     (h4 : slot ≠ (⟨4⟩ : UInt256)) (h7 : slot ≠ (⟨7⟩ : UInt256)) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     Solm.EVM.storageLoad (dripEvmRho evm0 tmp now) (dripEvmRho evm0 tmp now).executionEnv.codeOwner
-        slot = potSlotWord slot σ I := by
+        slot = solcSlotWordAt slot σ I := by
   intro evm0
   have hChiEnv : (dripEvmChi evm0 tmp).executionEnv.codeOwner = evm0.executionEnv.codeOwner := by
     simp only [dripEvmChi, storageStore_executionEnv]
@@ -112,7 +103,7 @@ theorem dripEvmRho_load {σ σ₀ A I} {g : UInt256} {tmp now : UInt256} (slot :
   rw [show dripEvmChi evm0 tmp =
         Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨4⟩ tmp from rfl]
   rw [storageLoad_storageStore_ne _ _ h4]
-  exact dripEvm0_load slot
+  exact storageLoad_initState_ofUInt256_solcSlotWordAt slot
 
 /-! ## Solm-side scalar storage reads (parameterized over the locals frame) -/
 
@@ -127,7 +118,7 @@ theorem evalExpr_potDsrOfLocals {evm : EVM.State} {locals : Store}
     (by simp [dsrRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (by rfl)
-    (potStorageLocLoad_uint256 evm ⟨3⟩)
+    (storageLocLoad_uint256 evm ⟨3⟩)
 
 theorem evalExpr_potChiOfLocals {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "chi" = none) :
@@ -140,7 +131,7 @@ theorem evalExpr_potChiOfLocals {evm : EVM.State} {locals : Store}
     (by simp [chiRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (by rfl)
-    (potStorageLocLoad_uint256 evm ⟨4⟩)
+    (storageLocLoad_uint256 evm ⟨4⟩)
 
 theorem evalExpr_potPieOfLocals {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "Pie" = none) :
@@ -153,7 +144,7 @@ theorem evalExpr_potPieOfLocals {evm : EVM.State} {locals : Store}
     (by simp [PieRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (by rfl)
-    (potStorageLocLoad_uint256 evm ⟨2⟩)
+    (storageLocLoad_uint256 evm ⟨2⟩)
 
 /-! ## Solm-side address storage reads -/
 
@@ -170,7 +161,7 @@ theorem evalExpr_potVatOfLocals {evm : EVM.State} {locals : Store}
     (by simp [vatRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by rfl)
-    (potStorageLocLoad_address_offset0 evm ⟨5⟩)
+    (storageLocLoad_address_offset0 evm ⟨5⟩)
 
 theorem evalExpr_potVowOfLocals {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "vow" = none) :
@@ -185,7 +176,7 @@ theorem evalExpr_potVowOfLocals {evm : EVM.State} {locals : Store}
     (by simp [vowRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by rfl)
-    (potStorageLocLoad_address_offset0 evm ⟨6⟩)
+    (storageLocLoad_address_offset0 evm ⟨6⟩)
 
 /-! ## Solm-side scalar storage writes (`chi := tmp`, `rho := now`) -/
 
@@ -208,7 +199,7 @@ theorem dripAssignChi (evm : EVM.State) {locals : Store} (tmp : UInt256)
   apply assignStorageRef_storage_scalar (hbackend := rfl) (ty := uint256St) (loc := wordLoc ⟨4⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     hbase (evalStorageRef_drip_chi evm)
     (by simp [storageTypeAt?, contract, storageDecls, uint256St]) (by rfl)
-  exact potStorageLocStore_uint256 evm ⟨4⟩ tmp
+  exact storageLocStore_uint256 evm ⟨4⟩ tmp
 
 theorem dripAssignRho (evm : EVM.State) {locals : Store} (now : UInt256)
     (hbase : locals.get? "rho" = none) :
@@ -219,6 +210,6 @@ theorem dripAssignRho (evm : EVM.State) {locals : Store} (now : UInt256)
   apply assignStorageRef_storage_scalar (hbackend := rfl) (ty := uint256St) (loc := wordLoc ⟨7⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     hbase (evalStorageRef_drip_rho evm)
     (by simp [storageTypeAt?, contract, storageDecls, uint256St]) (by rfl)
-  exact potStorageLocStore_uint256 evm ⟨7⟩ now
+  exact storageLocStore_uint256 evm ⟨7⟩ now
 
 end Benchmarks.Dss.Pot

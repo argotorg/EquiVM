@@ -25,11 +25,11 @@ theorem syncToken0GuardFalse_initState_of_noCode
     (htoken0NoCode :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩) :
     syncToken0GuardFalse (initState σ σ₀ g A I) := by
   let σLockS := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0WordS := uniswapSlotWord ⟨6⟩ σLockS I
+  let token0WordS := solcSlotWordAt ⟨6⟩ σLockS I
   have hnoSolm :
       extCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) = ⟨0⟩ := by
     simpa [σLockS, token0WordS] using htoken0NoCode
@@ -53,7 +53,8 @@ theorem syncToken0GuardFalse_initState_of_noCode
       simpa [u256_land_comm] using hnoSolm
     simpa [evmL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
       storageStore_accountMap, storageStore_executionEnv, State.lookupAccount, Solm.EVM.storageLoad,
-      Account.lookupStorage, uniswapAddressAtSlot, extCodeSizeWord, uniswapSlotWord, σLockS,
+      Account.lookupStorage, uniswapAddressAtSlot, extCodeSizeWord, solcSlotWordAt, solcSlotWord,
+        σLockS,
       token0WordS, accountAddress_ofUInt256_eq_ofNat_toNat] using hnoSolmRight
   have hnoSourceWord :
       EVM.Word.ofNat
@@ -385,6 +386,19 @@ theorem uniswapSyncBodyReverts_locked (evm : EVM.State)
     ExecTransitionBody config contract evm ∅ syncTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert (uniswapSyncLockedSource evm hwv hlocked)
 
+theorem uniswapSyncBodyStatic (evm : EVM.State)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm ∅ syncTransition.body .staticViolation := by
+  have hlock := uniswapLockEnterStatic evm ∅ hwv (by simp) hunlocked hperm
+  exact ExecFuncBody.execBlockStatic (by
+    simpa [syncTransition, List.append_assoc] using
+      (execBlock_append_term
+        (s2 := syncBalanceCallsBody ++
+          updateReservesStmts (.var "balance0") (.var "balance1") ++ lockExit)
+        hlock (by intro f e h; cases h)))
+
 theorem uniswapSyncBodyReverts_firstNoCode (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
@@ -714,7 +728,7 @@ theorem uniswapSyncBodyCoreRevert_firstNoCode
     (htoken0NoCode :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -763,7 +777,7 @@ theorem uniswapSyncBodyRevert_firstNoCode
     (htoken0NoCode :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

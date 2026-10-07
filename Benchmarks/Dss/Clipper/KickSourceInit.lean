@@ -148,7 +148,7 @@ theorem evalExpr_clipperStopped_lt_one (v : ClipperImmutables)
         rfl)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by simpa using clipperStorageLocLoad_uint256 evm ⟨14⟩)
+      (hload := by simpa using storageLocLoad_uint256 evm ⟨14⟩)
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   change evalBinaryOp? BinaryOp.lt
       (.int (Int.ofNat
@@ -180,7 +180,7 @@ theorem evalExpr_clipperStopped_lt_one_false (v : ClipperImmutables)
         rfl)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by simpa using clipperStorageLocLoad_uint256 evm ⟨14⟩)
+      (hload := by simpa using storageLocLoad_uint256 evm ⟨14⟩)
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   change evalBinaryOp? BinaryOp.lt
       (.int (Int.ofNat
@@ -296,7 +296,7 @@ theorem clipperEvalKickIdExpr (v : ClipperImmutables) (evm : EVM.State)
         rfl)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by simpa using clipperStorageLocLoad_uint256 evm ⟨10⟩)
+      (hload := by simpa using storageLocLoad_uint256 evm ⟨10⟩)
   let old := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨10⟩
   rw [wrap256]
   simp only [evalExpr?, hkicks, EvalResult.bind, bind, pure]
@@ -393,12 +393,10 @@ theorem clipperKickPushActive (v : ClipperImmutables) (evm : EVM.State)
   have hlenLoad : storageLocLoad evmId (wordLoc ⟨11⟩) =
       .int (Int.ofNat len.toNat) := by
     simpa [len, evmId, clipperKickSourceIdState, storageStore_executionEnv] using
-      clipperStorageLocLoad_uint256 evmId ⟨11⟩
+      storageLocLoad_uint256 evmId ⟨11⟩
   have hlenNat :
-      (Solm.EVM.storageLoad evmId evmId.executionEnv.codeOwner ⟨11⟩).toNat =
-        len.toNat := by
-    rw [clipperStorageLocLoad_uint256] at hlenLoad
-    exact Int.ofNat.inj (Value.int.inj hlenLoad)
+      (Solm.EVM.storageLoad evmId evmId.executionEnv.codeOwner ⟨11⟩).toNat = len.toNat := by
+    simpa [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256] using hlenLoad
   have hinc : (len + ⟨1⟩).toNat = len.toNat + 1 := by
     rw [uadd_toNat, show (⟨1⟩ : UInt256).toNat = 1 by native_decide,
       Nat.mod_eq_of_lt hlen]

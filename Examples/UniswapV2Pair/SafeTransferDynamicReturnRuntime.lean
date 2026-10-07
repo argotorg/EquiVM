@@ -1,6 +1,7 @@
 import Examples.UniswapV2Pair.SafeTransferDynamicCallRuntime
 import Examples.UniswapV2Pair.ReturnDataMemory
 import Examples.UniswapV2Pair.SafeTransferEmptyReturnCore
+import Reasoning.HeapMemory
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair

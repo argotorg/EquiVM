@@ -244,7 +244,7 @@ theorem RD.cureDropSwapLoadMovePrefix {g : Sat256} {s0 : State}
         ⟨0⟩ :: len :: pos :: key :: ret :: R)
       (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata σ k' C' := by
   have hlastIndex : UInt256.sub len ⟨1⟩ = dropLastIndex len := by
-    simpa [dropLastIndex] using dropSubOne_eq_pred len hlenPos
+    simpa [dropLastIndex] using u256_sub_one_eq_pred_of_pos len hlenPos
   have hlastLt :
       UInt256.lt (dropLastIndex len) len ≠ ⟨0⟩ := by
     show UInt256.fromBool (decide ((dropLastIndex len).toNat < len.toNat)) ≠ ⟨0⟩
@@ -350,23 +350,24 @@ theorem RD.cureDropSwapMaskMovePrefix {g : Sat256} {s0 : State}
     raw swap3 (by native_decide) (by evm_ov),
     raw pop (by native_decide) (by evm_ov)]⟩
 
-theorem RD.cureDropSwapStoreMoveElemPrefix {g : Sat256} {s0 : State}
+theorem RD.cureDropSwapStoreMoveElemPrefixSplit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret len pos : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨3123⟩
         (⟨2⟩ :: len :: dropMoveWordFor σ ee len :: len :: pos :: key :: ret :: R)
         mem (UInt256.ofNat 3) rdata σ k C)
-    (hperm : ee.perm = true)
     (hswap : pos.toNat < len.toNat)
     (hposNat : 0 < pos.toNat)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ⟨3179⟩
-      (⟨32⟩ :: ⟨0⟩ :: solcAddrMask :: dropMoveWordFor σ ee len ::
-        len :: pos :: key :: ret :: R)
-      (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata
-      (dropMoveElemAccountMapFor σ ee pos len) k' C' := by
+    (ee.perm = true ∧
+      ∃ k' C', RD cureBytecode ee g s0 ⟨3179⟩
+        (⟨32⟩ :: ⟨0⟩ :: solcAddrMask :: dropMoveWordFor σ ee len ::
+          len :: pos :: key :: ret :: R)
+        (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata
+        (dropMoveElemAccountMapFor σ ee pos len) k' C') ∨
+      (ee.perm = false ∧ RDstatic cureBytecode g s0) := by
   have hdstIndex : pos + UInt256.lnot ⟨0⟩ = dropDstIndex pos := by
-    simpa [dropDstIndex] using dropLenAddLnotZero_eq_pred pos hposNat
+    simpa [dropDstIndex] using u256_add_lnot_zero_eq_pred_of_pos pos hposNat
   have hdstLt :
       UInt256.lt (dropDstIndex pos) len ≠ ⟨0⟩ := by
     show UInt256.fromBool (decide ((dropDstIndex pos).toNat < len.toNat)) ≠ ⟨0⟩
@@ -492,9 +493,33 @@ theorem RD.cureDropSwapStoreMoveElemPrefix {g : Sat256} {s0 : State}
       solcAddrMask from by decide] at rdSetRaw
   rw [hstored] at rdSetRaw
   have rdStoreReady := rdSetRaw.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rdStored'⟩ := rdStoreReady.sstore hperm (by native_decide)
+  have hstoreDec : decode cureBytecode ⟨3178⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdStoreReady.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rdStored'⟩ := rdStoreReady.sstore hperm hstoreDec
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [dropMoveElemAccountMapFor] using rdStored'⟩
+
+theorem RD.cureDropSwapStoreMoveElemPrefix {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {key ret len pos : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (h : RD cureBytecode ee g s0 ⟨3123⟩
+        (⟨2⟩ :: len :: dropMoveWordFor σ ee len :: len :: pos :: key :: ret :: R)
+        mem (UInt256.ofNat 3) rdata σ k C)
+    (hperm : ee.perm = true)
+    (hswap : pos.toNat < len.toNat)
+    (hposNat : 0 < pos.toNat)
+    (hov : R.length + 20 ≤ 1024) :
+    ∃ k' C', RD cureBytecode ee g s0 ⟨3179⟩
+      (⟨32⟩ :: ⟨0⟩ :: solcAddrMask :: dropMoveWordFor σ ee len ::
+        len :: pos :: key :: ret :: R)
+      (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata
+      (dropMoveElemAccountMapFor σ ee pos len) k' C' :=
+  permSplit_true hperm (RD.cureDropSwapStoreMoveElemPrefixSplit h hswap hposNat hov)
 
 theorem RD.cureDropSwapStoreMovePosPrefix {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret len pos : UInt256} {R : List UInt256}
@@ -555,19 +580,20 @@ theorem RD.cureDropSwapStoreMovePosPrefix {g : Sat256} {s0 : State}
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [dropMovePosAccountMapFor] using rdStored'⟩
 
-theorem RD.cureDropNoSwapPopTail {g : Sat256} {s0 : State}
+theorem RD.cureDropNoSwapPopTailSplit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret oldLen popLen pos : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨3197⟩ (oldLen :: pos :: key :: ret :: R) mem
         (UInt256.ofNat 3) rdata σ k C)
-    (hperm : ee.perm = true)
     (hlen : solcSlotWord σ ee ⟨2⟩ = popLen)
     (hlenPos : 0 < popLen.toNat)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ⟨3247⟩
-      (⟨32⟩ :: ⟨0⟩ :: oldLen :: pos :: key :: ret :: R)
-      (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata
-      (dropPopAccountMap σ ee popLen) k' C' := by
+    (ee.perm = true ∧
+      ∃ k' C', RD cureBytecode ee g s0 ⟨3247⟩
+        (⟨32⟩ :: ⟨0⟩ :: oldLen :: pos :: key :: ret :: R)
+        (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata
+        (dropPopAccountMap σ ee popLen) k' C') ∨
+      (ee.perm = false ∧ RDstatic cureBytecode g s0) := by
   have hsrcsSlot :
       UInt256.ofNat
           (fromByteArrayBigEndian (KEC ((wordAt0Mem (⟨2⟩ : UInt256) mem).readWithPadding 0 32))) =
@@ -578,7 +604,7 @@ theorem RD.cureDropNoSwapPopTail {g : Sat256} {s0 : State}
       srcsDataSlot + UInt256.ofNat (popLen.toNat - 1) = dropSrcsLastSlot popLen := by
     exact (dropSrcsLastSlot_eq popLen hlenPos).symm
   have hpred : popLen + UInt256.lnot ⟨0⟩ = UInt256.ofNat (popLen.toNat - 1) :=
-    dropLenAddLnotZero_eq_pred popLen hlenPos
+    u256_add_lnot_zero_eq_pred_of_pos popLen hlenPos
   have hlastSlotRaw :
       UInt256.lnot ⟨0⟩ + (popLen + srcsDataSlot) = dropSrcsLastSlot popLen := by
     rw [u256_add_comm (UInt256.lnot ⟨0⟩) (popLen + srcsDataSlot)]
@@ -660,7 +686,14 @@ theorem RD.cureDropNoSwapPopTail {g : Sat256} {s0 : State}
     rw [show UInt256.land (⟨0⟩ : UInt256) solcAddrMask = ⟨0⟩ by native_decide]
     rw [u256_lor_zero]
   rw [hclear] at rdClearRaw
-  obtain ⟨_, _, rdCleared'⟩ := rdClearRaw.sstore hperm (by native_decide)
+  have hstoreDec : decode cureBytecode ⟨3240⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdClearRaw.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rdCleared'⟩ := rdClearRaw.sstore hperm hstoreDec
     (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rdCleared⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨3241⟩
       (UInt256.lnot ⟨0⟩ :: ⟨32⟩ :: ⟨0⟩ :: popLen :: ⟨2⟩ :: oldLen :: pos ::
@@ -678,6 +711,21 @@ theorem RD.cureDropNoSwapPopTail {g : Sat256} {s0 : State}
   obtain ⟨_, _, rdLenStored'⟩ := rdLenStoreReady.sstore hperm (by native_decide)
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [dropPopAccountMap] using rdLenStored'⟩
+
+theorem RD.cureDropNoSwapPopTail {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {key ret oldLen popLen pos : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (h : RD cureBytecode ee g s0 ⟨3197⟩ (oldLen :: pos :: key :: ret :: R) mem
+        (UInt256.ofNat 3) rdata σ k C)
+    (hperm : ee.perm = true)
+    (hlen : solcSlotWord σ ee ⟨2⟩ = popLen)
+    (hlenPos : 0 < popLen.toNat)
+    (hov : R.length + 20 ≤ 1024) :
+    ∃ k' C', RD cureBytecode ee g s0 ⟨3247⟩
+      (⟨32⟩ :: ⟨0⟩ :: oldLen :: pos :: key :: ret :: R)
+      (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata
+      (dropPopAccountMap σ ee popLen) k' C' :=
+  permSplit_true hperm (RD.cureDropNoSwapPopTailSplit h hlen hlenPos hov)
 
 theorem RD.cureDropPopEmptyInvalid {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret oldLen pos : UInt256} {R : List UInt256}
@@ -774,7 +822,7 @@ theorem RD.cureDropNoSwapDeleteLogTail {g : Sat256} {s0 : State}
   have rdAmtHashPrefix := evm_run rdAmtMem with [
     raw dup2 (by native_decide) (by evm_ov),
     raw dup4 (by native_decide) (by evm_ov)]
-  have hamtSlot := dropWordAt32TwoWordHashMem_solcMappingSlot ⟨6⟩ key ⟨5⟩ hmem
+  have hamtSlot := wordAt32TwoWordHashMem_solcMappingSlot ⟨6⟩ key ⟨5⟩ hmem
   have rdAmtHash := rdAmtHashPrefix.keccak256 0 (solcMappingSlot ⟨6⟩ key)
     (UInt256.ofNat 3) (by native_decide) mem_cost hamtSlot (by native_decide) (by evm_ov)
   have rdAmtStoreReady := evm_run rdAmtHash with [
@@ -797,7 +845,7 @@ theorem RD.cureDropNoSwapDeleteLogTail {g : Sat256} {s0 : State}
       rw [wordAt32Mem_size_96 ⟨6⟩ (twoWordHashMem_size_96 key ⟨5⟩ hmem)]
       native_decide)]
     rw [show (⟨64⟩ : UInt256).toNat = 64 from rfl,
-      dropWordAt32TwoWordHashMem_read64 key ⟨5⟩ ⟨6⟩ hmem hread64]
+      wordAt32TwoWordHashMem_read64 key ⟨5⟩ ⟨6⟩ hmem hread64]
     native_decide
   have rdMloadPrefix := rdAmtStored.swap1 (by native_decide) (by evm_ov)
   have rdMload := rdMloadPrefix.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
@@ -809,7 +857,7 @@ theorem RD.cureDropNoSwapDeleteLogTail {g : Sat256} {s0 : State}
     (op := .PUSH32) (width := 32) (by decide) (by native_decide) (by evm_ov)
   have rdLogPrefix := evm_run rdEventTopic with [
     raw swap2 (by native_decide) (by evm_ov)]
-  have rdLogged := RD.cureLog2 0 (UInt256.ofNat 3) rdLogPrefix
+  have rdLogged := RD.log2 0 (UInt256.ofNat 3) rdLogPrefix
     (by native_decide) hperm mem_cost (by native_decide) (by evm_ov)
   have rdTail := evm_run rdLogged with [
     raw pop (by native_decide) (by evm_ov),
@@ -817,7 +865,7 @@ theorem RD.cureDropNoSwapDeleteLogTail {g : Sat256} {s0 : State}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, RD.jump rdTail (by native_decide) hret (by evm_ov)⟩
 
-theorem RD.cureDropNoSwapStoreAndLogReturn {g : Sat256} {s0 : State}
+theorem RD.cureDropNoSwapStoreAndLogReturnSplit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨2962⟩ (key :: ⟨484⟩ :: R) mem
@@ -827,20 +875,24 @@ theorem RD.cureDropNoSwapStoreAndLogReturn {g : Sat256} {s0 : State}
     (hnoswap :
       (solcSlotWord σ ee ⟨2⟩).toNat ≤
         (solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key)).toNat)
-    (hperm : ee.perm = true)
     (hlenPos : 0 < (solcSlotWord σ ee ⟨2⟩).toNat)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 20 ≤ 1024) :
-    RDret cureBytecode g s0
-      (dropNoSwapFinalAccountMapFor σ ee key (solcSlotWord σ ee ⟨2⟩))
-      ByteArray.empty := by
+    (ee.perm = true ∧
+      RDret cureBytecode g s0
+        (dropNoSwapFinalAccountMapFor σ ee key (solcSlotWord σ ee ⟨2⟩))
+        ByteArray.empty) ∨
+      (ee.perm = false ∧ RDstatic cureBytecode g s0) := by
   obtain ⟨_, _, rd3197⟩ := RD.cureDropNoSwapPrefix
     (g := g) (s0 := s0) (ee := ee) (key := key) (ret := ⟨484⟩) (R := R)
     h hcanonKey hpos hnoswap hmem (by omega)
-  obtain ⟨_, _, rd3247⟩ := RD.cureDropNoSwapPopTail
+  have hfirstWrite := RD.cureDropNoSwapPopTailSplit
     (g := g) (s0 := s0) (ee := ee) (key := key) (ret := ⟨484⟩) (R := R)
-    rd3197 hperm rfl hlenPos hov
+    rd3197 rfl hlenPos hov
+  refine permSplit_bind hfirstWrite ?_
+  intro hperm hreach
+  obtain ⟨_, _, rd3247⟩ := hreach
   have hprefixMem :
       (twoWordHashMem key ⟨5⟩ mem).readWithPadding 64 32 =
         UInt256.toByteArray ⟨128⟩ :=
@@ -851,7 +903,7 @@ theorem RD.cureDropNoSwapStoreAndLogReturn {g : Sat256} {s0 : State}
   have hpopRead64 :
       (wordAt0Mem ⟨2⟩ (twoWordHashMem key ⟨5⟩ mem)).readWithPadding 64 32 =
         UInt256.toByteArray ⟨128⟩ :=
-    dropWordAt0Mem_read64_of_size96 ⟨2⟩
+    wordAt0Mem_read64_of_size96 ⟨2⟩
       (twoWordHashMem_size_96 key ⟨5⟩ hmem) hprefixMem
   obtain ⟨_, _, rdRetPc⟩ := RD.cureDropNoSwapDeleteLogTail
     (g := g) (s0 := s0) (ee := ee) (key := key) (ret := ⟨484⟩) (R := R)
@@ -951,11 +1003,11 @@ theorem RD.cureDropSwapStoreAndLogReturn {g : Sat256} {s0 : State}
   have hmoveLoadRead64 :
       (wordAt0Mem ⟨2⟩ (twoWordHashMem key ⟨5⟩ mem)).readWithPadding 64 32 =
         UInt256.toByteArray ⟨128⟩ :=
-    dropWordAt0Mem_read64_of_size96 ⟨2⟩ hprefixMemSize hprefixRead64
+    wordAt0Mem_read64_of_size96 ⟨2⟩ hprefixMemSize hprefixRead64
   have hmoveElemRead64 :
       (wordAt0Mem ⟨2⟩ (wordAt0Mem ⟨2⟩ (twoWordHashMem key ⟨5⟩ mem))).readWithPadding 64 32 =
         UInt256.toByteArray ⟨128⟩ :=
-    dropWordAt0Mem_read64_of_size96 ⟨2⟩ hmoveLoadMemSize hmoveLoadRead64
+    wordAt0Mem_read64_of_size96 ⟨2⟩ hmoveLoadMemSize hmoveLoadRead64
   have hswapMemSize :
       (twoWordHashMem (dropMoveWordFor σ ee len) ⟨5⟩
         (wordAt0Mem ⟨2⟩ (wordAt0Mem ⟨2⟩ (twoWordHashMem key ⟨5⟩ mem)))).size = 96 :=
@@ -975,7 +1027,7 @@ theorem RD.cureDropSwapStoreAndLogReturn {g : Sat256} {s0 : State}
         (twoWordHashMem (dropMoveWordFor σ ee len) ⟨5⟩
           (wordAt0Mem ⟨2⟩ (wordAt0Mem ⟨2⟩ (twoWordHashMem key ⟨5⟩ mem))))).readWithPadding 64 32 =
         UInt256.toByteArray ⟨128⟩ :=
-    dropWordAt0Mem_read64_of_size96 ⟨2⟩ hswapMemSize hswapRead64
+    wordAt0Mem_read64_of_size96 ⟨2⟩ hswapMemSize hswapRead64
   obtain ⟨_, _, rdRetPc⟩ := RD.cureDropNoSwapDeleteLogTail
     (g := g) (s0 := s0) (ee := ee) (key := key) (ret := ⟨484⟩) (R := R)
     rd3247 (by jump_dest) hperm hcanonKey hpopMemSize hpopRead64 (by omega)
@@ -983,7 +1035,7 @@ theorem RD.cureDropSwapStoreAndLogReturn {g : Sat256} {s0 : State}
   simpa [dropSwapFinalAccountMapFor, len, pos, popLen] using
     RD.stop rdRetJd (by native_decide) (by evm_ov)
 
-theorem RD.cureDropSwapPopEmptyInvalid {g : Sat256} {s0 : State}
+theorem RD.cureDropSwapPopEmptyInvalidSplit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨2962⟩ (key :: ⟨484⟩ :: R) mem
@@ -993,14 +1045,14 @@ theorem RD.cureDropSwapPopEmptyInvalid {g : Sat256} {s0 : State}
     (hswap :
       (solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key)).toNat <
         (solcSlotWord σ ee ⟨2⟩).toNat)
-    (hperm : ee.perm = true)
-    (hpopLenZero :
-      dropSwapPopLenAccountMapFor σ ee
-        (solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key))
-        (solcSlotWord σ ee ⟨2⟩) = ⟨0⟩)
     (hmem : mem.size = 96)
     (hov : R.length + 24 ≤ 1024) :
-    RDinvalid cureBytecode g s0 := by
+    (ee.perm = true ∧
+      (dropSwapPopLenAccountMapFor σ ee
+          (solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key))
+          (solcSlotWord σ ee ⟨2⟩) = ⟨0⟩ →
+      RDinvalid cureBytecode g s0)) ∨
+      (ee.perm = false ∧ RDstatic cureBytecode g s0) := by
   let len := solcSlotWord σ ee ⟨2⟩
   let pos := solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key)
   let popLen := dropSwapPopLenAccountMapFor σ ee pos len
@@ -1027,9 +1079,12 @@ theorem RD.cureDropSwapPopEmptyInvalid {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd3123⟩ := RD.cureDropSwapMaskMovePrefix
     (g := g) (s0 := s0) (ee := ee) (key := key) (ret := ⟨484⟩) (R := R)
     rd3106 rfl (by omega)
-  obtain ⟨_, _, rd3179⟩ := RD.cureDropSwapStoreMoveElemPrefix
+  have hfirstWrite := RD.cureDropSwapStoreMoveElemPrefixSplit
     (g := g) (s0 := s0) (ee := ee) (key := key) (ret := ⟨484⟩) (R := R)
-    rd3123 hperm hswap hposNat (by omega)
+    rd3123 hswap hposNat (by omega)
+  refine permSplit_bind hfirstWrite ?_
+  intro hperm hreach hpopLenZero
+  obtain ⟨_, _, rd3179⟩ := hreach
   have hprefixMemSize :
       (twoWordHashMem key ⟨5⟩ mem).size = 96 :=
     twoWordHashMem_size_96 key ⟨5⟩ hmem
@@ -1048,6 +1103,27 @@ theorem RD.cureDropSwapPopEmptyInvalid {g : Sat256} {s0 : State}
   exact RD.cureDropPopEmptyInvalid
     (g := g) (s0 := s0) (ee := ee) (key := key) (ret := ⟨484⟩) (R := R)
     rd3197 hlenAfterMove (by omega)
+
+theorem RD.cureDropSwapPopEmptyInvalid {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {key : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (h : RD cureBytecode ee g s0 ⟨2962⟩ (key :: ⟨484⟩ :: R) mem
+        (UInt256.ofNat 3) rdata σ k C)
+    (hcanonKey : key.toNat < EVM.addressModulus)
+    (hpos : solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩)
+    (hswap :
+      (solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key)).toNat <
+        (solcSlotWord σ ee ⟨2⟩).toNat)
+    (hperm : ee.perm = true)
+    (hpopLenZero :
+      dropSwapPopLenAccountMapFor σ ee
+        (solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key))
+        (solcSlotWord σ ee ⟨2⟩) = ⟨0⟩)
+    (hmem : mem.size = 96)
+    (hov : R.length + 24 ≤ 1024) :
+    RDinvalid cureBytecode g s0 :=
+  permSplit_true hperm (RD.cureDropSwapPopEmptyInvalidSplit
+    h hcanonKey hpos hswap hmem hov) hpopLenZero
 
 theorem cureDispatchDrop {I : ExecutionEnv}
     (hsel : selIs I (cureSelBytes 3)) :
@@ -1081,10 +1157,10 @@ theorem cureDropSwapFinalAccountMapEq
     (hposSlotEq : dropPosSlotFor I = solcMappingSlot ⟨5⟩ key)
     (hamtSlotEq : dropAmtSlotFor I = solcMappingSlot ⟨6⟩ key)
     :
-    let posEvm := cureSlotWord (dropPosSlotFor I) σ I
-    let posSolm := cureSlotWord (dropPosSlotFor I) σ I
-    let lenEvm := cureSlotWord ⟨2⟩ σ I
-    let lenSolm := cureSlotWord ⟨2⟩ σ I
+    let posEvm := solcSlotWordAt (dropPosSlotFor I) σ I
+    let posSolm := solcSlotWordAt (dropPosSlotFor I) σ I
+    let lenEvm := solcSlotWordAt ⟨2⟩ σ I
+    let lenSolm := solcSlotWordAt ⟨2⟩ σ I
     dropSwapFinalAccountMapFor σ I key posEvm lenEvm =
       (dropSwapFinalAccountMap σ I posSolm lenSolm) := by
   intro posEvm posSolm lenEvm lenSolm
@@ -1096,10 +1172,10 @@ theorem cureDropSwapFinalAccountMapEq
 
 theorem cureDropSwapPopLenAccountMapEq
     {σ : AccountMap} {I : ExecutionEnv} :
-    let posEvm := cureSlotWord (dropPosSlotFor I) σ I
-    let posSolm := cureSlotWord (dropPosSlotFor I) σ I
-    let lenEvm := cureSlotWord ⟨2⟩ σ I
-    let lenSolm := cureSlotWord ⟨2⟩ σ I
+    let posEvm := solcSlotWordAt (dropPosSlotFor I) σ I
+    let posSolm := solcSlotWordAt (dropPosSlotFor I) σ I
+    let lenEvm := solcSlotWordAt ⟨2⟩ σ I
+    let lenSolm := solcSlotWordAt ⟨2⟩ σ I
     dropSwapPopLenAccountMapFor σ I posEvm lenEvm =
       dropSwapPopLenAccountMapFor σ I posSolm lenSolm := by
   intro posEvm posSolm lenEvm lenSolm
@@ -1108,22 +1184,22 @@ theorem cureDropSwapPopLenAccountMapEq
 theorem cureDropSwapSourceBodyForRefinement
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
-    (hposNe : cureSlotWord (dropPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hlenPos : 0 < (cureSlotWord ⟨2⟩ σ I).toNat)
+    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
+    (hposNe : solcSlotWordAt (dropPosSlotFor I) σ I ≠ ⟨0⟩)
+    (hlenPos : 0 < (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (hswap :
-      (cureSlotWord (dropPosSlotFor I) σ I).toNat <
-        (cureSlotWord ⟨2⟩ σ I).toNat)
+      (solcSlotWordAt (dropPosSlotFor I) σ I).toNat <
+        (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (hpopLenPos :
       0 <
         (dropSwapPopLenState
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (cureSlotWord (dropPosSlotFor I) σ I)
-          (cureSlotWord ⟨2⟩ σ I)).toNat) :
+          (solcSlotWordAt (dropPosSlotFor I) σ I)
+          (solcSlotWordAt ⟨2⟩ σ I)).toNat) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let posWord := cureSlotWord (dropPosSlotFor I) σ I
-    let lenWord := cureSlotWord ⟨2⟩ σ I
+    let posWord := solcSlotWordAt (dropPosSlotFor I) σ I
+    let lenWord := solcSlotWordAt ⟨2⟩ σ I
     let lastIndex := dropLastIndex lenWord
     let dstIndex := dropDstIndex posWord
     let localsPos : Store := (dropLocals I).insert "pos_" (.int (Int.ofNat posWord.toNat))
@@ -1156,10 +1232,10 @@ theorem cureDropSwapFinalAccountMapMatchesSolmState
     (hposSlotEq : dropPosSlotFor I = solcMappingSlot ⟨5⟩ key)
     (hamtSlotEq : dropAmtSlotFor I = solcMappingSlot ⟨6⟩ key)
     :
-    let posEvm := cureSlotWord (dropPosSlotFor I) σ I
-    let lenEvm := cureSlotWord ⟨2⟩ σ I
-    let posSolm := cureSlotWord (dropPosSlotFor I) σ I
-    let lenSolm := cureSlotWord ⟨2⟩ σ I
+    let posEvm := solcSlotWordAt (dropPosSlotFor I) σ I
+    let lenEvm := solcSlotWordAt ⟨2⟩ σ I
+    let posSolm := solcSlotWordAt (dropPosSlotFor I) σ I
+    let lenSolm := solcSlotWordAt ⟨2⟩ σ I
     let evm0Solm := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evmMoveElem := dropAfterMoveElemState evm0Solm posSolm lenSolm
     let evmMovePos := dropAfterMovePosState evm0Solm evmMoveElem posSolm lenSolm
@@ -1183,7 +1259,7 @@ theorem cureDropSwapFinalAccountMapMatchesSolmState
     dropPopAccountMap, dropPopClearAccountMap, dropDeletePosAccountMap,
     dropDeleteAmtAccountMap, initState, storageStore_accountMap, storageStore_executionEnv,
     Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-    cureSlotWord, solcSlotWord, posSolm, lenSolm]
+    solcSlotWordAt, solcSlotWord, posSolm, lenSolm]
     using hmap
 
 theorem cureDropReturnRuntimeEquiv
@@ -1222,9 +1298,9 @@ theorem cureDropSwapBranchRefinement {σ σ₀ A I} {g sel key : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hposSlotEq : dropPosSlotFor I = solcMappingSlot ⟨5⟩ key)
     (hamtSlotEq : dropAmtSlotFor I = solcMappingSlot ⟨6⟩ key)
-    (hauthSolm : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hliveSolm : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
-    (hposSolm : cureSlotWord (dropPosSlotFor I) σ I ≠ ⟨0⟩)
+    (hauthSolm : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
+    (hliveSolm : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
+    (hposSolm : solcSlotWordAt (dropPosSlotFor I) σ I ≠ ⟨0⟩)
     (hafterLive :
       RD cureBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -1233,38 +1309,38 @@ theorem cureDropSwapBranchRefinement {σ σ₀ A I} {g sel key : UInt256}
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hlenPos : 0 < (cureSlotWord ⟨2⟩ σ I).toNat)
+    (hlenPos : 0 < (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (hswap :
-      (cureSlotWord (dropPosSlotFor I) σ I).toNat <
-        (cureSlotWord ⟨2⟩ σ I).toNat)
+      (solcSlotWordAt (dropPosSlotFor I) σ I).toNat <
+        (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (hpopLenPosEvm :
       0 <
         (dropSwapPopLenAccountMapFor σ I
-          (cureSlotWord (dropPosSlotFor I) σ I)
-          (cureSlotWord ⟨2⟩ σ I)).toNat)
+          (solcSlotWordAt (dropPosSlotFor I) σ I)
+          (solcSlotWordAt ⟨2⟩ σ I)).toNat)
     (hpopLenPosSolm :
       0 <
         (dropSwapPopLenState
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (cureSlotWord (dropPosSlotFor I) σ I)
-          (cureSlotWord ⟨2⟩ σ I)).toNat) :
+          (solcSlotWordAt (dropPosSlotFor I) σ I)
+          (solcSlotWordAt ⟨2⟩ σ I)).toNat) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
-  have hposEvm : cureSlotWord (dropPosSlotFor I) σ I ≠ ⟨0⟩ := by
+  have hposEvm : solcSlotWordAt (dropPosSlotFor I) σ I ≠ ⟨0⟩ := by
     intro hz
     apply hposSolm
     exact hz
-  have hposNat : 0 < (cureSlotWord (dropPosSlotFor I) σ I).toNat := by
+  have hposNat : 0 < (solcSlotWordAt (dropPosSlotFor I) σ I).toNat := by
     by_contra hnot
-    have hzeroNat : (cureSlotWord (dropPosSlotFor I) σ I).toNat = 0 := by
+    have hzeroNat : (solcSlotWordAt (dropPosSlotFor I) σ I).toNat = 0 := by
       omega
     apply hposEvm
-    rw [← u256_ofNat_toNat (cureSlotWord (dropPosSlotFor I) σ I), hzeroNat]
+    rw [← u256_ofNat_toNat (solcSlotWordAt (dropPosSlotFor I) σ I), hzeroNat]
     rfl
-  have hlenPosSolm : 0 < (cureSlotWord ⟨2⟩ σ I).toNat := by
+  have hlenPosSolm : 0 < (solcSlotWordAt ⟨2⟩ σ I).toNat := by
     exact hlenPos
   have hswapSolm :
-      (cureSlotWord (dropPosSlotFor I) σ I).toNat <
-        (cureSlotWord ⟨2⟩ σ I).toNat := by
+      (solcSlotWordAt (dropPosSlotFor I) σ I).toNat <
+        (solcSlotWordAt ⟨2⟩ σ I).toNat := by
     exact hswap
   have hbody := cureDropSwapSourceBodyForRefinement
     (σ := σ) (σ₀ := σ₀)
@@ -1272,23 +1348,23 @@ theorem cureDropSwapBranchRefinement {σ σ₀ A I} {g sel key : UInt256}
     hwv hauthSolm hliveSolm hposSolm hlenPosSolm hswapSolm hpopLenPosSolm
   have hposSolc : solcSlotWord σ I (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩ := by
     rw [← hposSlotEq]
-    simpa [cureSlotWord] using hposEvm
+    simpa [solcSlotWordAt] using hposEvm
   have hswapSolc :
       (solcSlotWord σ I (solcMappingSlot ⟨5⟩ key)).toNat <
         (solcSlotWord σ I ⟨2⟩).toNat := by
-    simpa [cureSlotWord, hposSlotEq] using hswap
+    simpa [solcSlotWordAt, hposSlotEq] using hswap
   have hposNatSolc :
       0 < (solcSlotWord σ I (solcMappingSlot ⟨5⟩ key)).toNat := by
-    simpa [cureSlotWord, hposSlotEq] using hposNat
+    simpa [solcSlotWordAt, hposSlotEq] using hposNat
   have hret := RD.cureDropSwapStoreAndLogReturn
     (g := Sat256.ofUInt256 g)
     (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
     (ee := I) (key := key) (R := [sel])
     hafterLive hcanonKey hposSolc hswapSolc hperm hlenPos hposNatSolc
-    (by simpa [cureSlotWord, hposSlotEq] using hpopLenPosEvm) hmem hread64
+    (by simpa [solcSlotWordAt, hposSlotEq] using hpopLenPosEvm) hmem hread64
     (by simp)
   refine cureDropReturnRuntimeEquiv hcode hdispatch hdecode hret hbody ?_
-  · simpa [cureSlotWord, hposSlotEq] using
+  · simpa [solcSlotWordAt, hposSlotEq] using
       (cureDropSwapFinalAccountMapMatchesSolmState
         (σ := σ)  (σ₀ := σ₀) (A := A) (I := I)
         (g := g) (key := key) hposSlotEq hamtSlotEq)
@@ -1297,7 +1373,6 @@ set_option maxHeartbeats 5000000 in
 theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 3))
     (_hStorageWF : cureStorageWF σ I) :
@@ -1335,12 +1410,12 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
-    by_cases hauthEvm : cureSlotWord callerSlot σ I = ⟨1⟩
-    · have hauthSolm : cureSlotWord callerSlot σ I = ⟨1⟩ := by
+    by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
+    · have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := by
         exact hauthEvm
       have hauthSolc :
           solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-        simpa [callerSlot, cureCallerWardsSlot, cureSlotWord] using hauthEvm
+        simpa [callerSlot, cureCallerWardsSlot, solcSlotWordAt] using hauthEvm
       obtain ⟨_, _, hafterAuth⟩ := RD.cureAuthCheckOk
         (code := cureBytecode) (pc := ⟨2801⟩) (okPc := ⟨2891⟩)
         (key := key) (ret := ⟨484⟩) (R := [sel])
@@ -1349,11 +1424,11 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
           unfold cureAuthCheckWf
           repeat' first | apply And.intro | native_decide)
         hauthSolc (by jump_dest) (by simp)
-      by_cases hliveEvm : cureSlotWord ⟨1⟩ σ I = ⟨1⟩
-      · have hliveSolm : cureSlotWord ⟨1⟩ σ I = ⟨1⟩ := by
+      by_cases hliveEvm : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩
+      · have hliveSolm : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩ := by
           exact hliveEvm
         have hliveSolc : solcSlotWord σ I ⟨1⟩ = ⟨1⟩ := by
-          simpa [cureSlotWord] using hliveEvm
+          simpa [solcSlotWordAt] using hliveEvm
         obtain ⟨_, _, hafterLive⟩ := RD.cureLiveGuardOk
           (code := cureBytecode) (pc := ⟨2891⟩) (okPc := ⟨2962⟩)
           (key := key) (ret := ⟨484⟩) (R := [sel]) hafterAuth
@@ -1361,8 +1436,8 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
             unfold cureLiveGuardWf
             repeat' first | apply And.intro | native_decide)
           hliveSolc (by jump_dest) (by simp)
-        by_cases hposEvm : cureSlotWord (dropPosSlotFor I) σ I = ⟨0⟩
-        · have hposSolm : cureSlotWord (dropPosSlotFor I) σ I = ⟨0⟩ := by
+        by_cases hposEvm : solcSlotWordAt (dropPosSlotFor I) σ I = ⟨0⟩
+        · have hposSolm : solcSlotWordAt (dropPosSlotFor I) σ I = ⟨0⟩ := by
             exact hposEvm
           let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
           have hbody : ExecTransitionBody config contract evm0 locals dropTransition.body .reverted := by
@@ -1372,7 +1447,7 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
               hwv hauthSolm hliveSolm hposSolm)
           have hposSolc : solcSlotWord σ I (solcMappingSlot ⟨5⟩ key) = ⟨0⟩ := by
             rw [← hposSlotEq]
-            simpa [cureSlotWord] using hposEvm
+            simpa [solcSlotWordAt] using hposEvm
           have hmemAuth :
               (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
             twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
@@ -1391,14 +1466,14 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
             (ee := I) (key := key) (ret := ⟨484⟩) (R := [sel])
             hafterLive hcanonKey hposSolc hmemAuth hread64 (by simp)
           exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-        · have hposSolm : cureSlotWord (dropPosSlotFor I) σ I ≠ ⟨0⟩ := by
+        · have hposSolm : solcSlotWordAt (dropPosSlotFor I) σ I ≠ ⟨0⟩ := by
             intro hsolm
             exact hposEvm hsolm
-          have hposNat : 0 < (cureSlotWord (dropPosSlotFor I) σ I).toNat := by
+          have hposNat : 0 < (solcSlotWordAt (dropPosSlotFor I) σ I).toNat := by
             by_contra hnot
-            have hzero : (cureSlotWord (dropPosSlotFor I) σ I).toNat = 0 := by omega
+            have hzero : (solcSlotWordAt (dropPosSlotFor I) σ I).toNat = 0 := by omega
             apply hposEvm
-            rw [← u256_ofNat_toNat (cureSlotWord (dropPosSlotFor I) σ I), hzero]
+            rw [← u256_ofNat_toNat (solcSlotWordAt (dropPosSlotFor I) σ I), hzero]
             rfl
           have hcanonKey : key.toNat < EVM.addressModulus := by
             dsimp [key, dropKey]
@@ -1413,33 +1488,47 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
             twoWordHashMem_read64 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
               solcFreePtrMem_read64
           by_cases hswap :
-              (cureSlotWord (dropPosSlotFor I) σ I).toNat <
-                (cureSlotWord ⟨2⟩ σ I).toNat
+              (solcSlotWordAt (dropPosSlotFor I) σ I).toNat <
+                (solcSlotWordAt ⟨2⟩ σ I).toNat
           · let popLenEvm :=
                 dropSwapPopLenAccountMapFor σ I
-                  (cureSlotWord (dropPosSlotFor I) σ I)
-                  (cureSlotWord ⟨2⟩ σ I)
+                  (solcSlotWordAt (dropPosSlotFor I) σ I)
+                  (solcSlotWordAt ⟨2⟩ σ I)
             let popLenSolm :=
                 dropSwapPopLenAccountMapFor σ I
-                  (cureSlotWord (dropPosSlotFor I) σ I)
-                  (cureSlotWord ⟨2⟩ σ I)
-            have hlenPos : 0 < (cureSlotWord ⟨2⟩ σ I).toNat := by
+                  (solcSlotWordAt (dropPosSlotFor I) σ I)
+                  (solcSlotWordAt ⟨2⟩ σ I)
+            have hlenPos : 0 < (solcSlotWordAt ⟨2⟩ σ I).toNat := by
               omega
             have hpopLenEq : popLenEvm = popLenSolm := by
               simpa [popLenEvm, popLenSolm] using
                 (cureDropSwapPopLenAccountMapEq (σ := σ) (I := I))
-            have hlenPosSolm : 0 < (cureSlotWord ⟨2⟩ σ I).toNat := by
+            have hlenPosSolm : 0 < (solcSlotWordAt ⟨2⟩ σ I).toNat := by
               exact hlenPos
             have hswapSolm :
-                (cureSlotWord (dropPosSlotFor I) σ I).toNat <
-                  (cureSlotWord ⟨2⟩ σ I).toNat := by
+                (solcSlotWordAt (dropPosSlotFor I) σ I).toNat <
+                  (solcSlotWordAt ⟨2⟩ σ I).toNat := by
               exact hswap
+            by_cases _hperm : I.perm = true
+            swap
+            · have hperm : I.perm = false := by simpa using _hperm
+              have hposSolc : solcSlotWord σ I (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩ := by
+                simpa [solcSlotWordAt, hposSlotEq] using hposEvm
+              have hswapSolc :
+                  (solcSlotWord σ I (solcMappingSlot ⟨5⟩ key)).toNat <
+                    (solcSlotWord σ I ⟨2⟩).toNat := by
+                simpa [solcSlotWordAt, hposSlotEq] using hswap
+              have hstatic := permSplit_false hperm (RD.cureDropSwapPopEmptyInvalidSplit
+                hafterLive hcanonKey hposSolc hswapSolc hmemAuth (by simp))
+              exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+                ((cureDropSourceBodySwapPopZeroRevertSplit
+                  hwv hauthSolm hliveSolm hposSolm hlenPosSolm hswapSolm).2 hperm)
             by_cases hpopLenZero : popLenEvm = ⟨0⟩
             · have hpopLenZeroSolmState :
                   dropSwapPopLenState
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-                    (cureSlotWord (dropPosSlotFor I) σ I)
-                    (cureSlotWord ⟨2⟩ σ I) = ⟨0⟩ := by
+                    (solcSlotWordAt (dropPosSlotFor I) σ I)
+                    (solcSlotWordAt ⟨2⟩ σ I) = ⟨0⟩ := by
                 rw [dropSwapPopLenState_initState_eq]
                 change popLenSolm = ⟨0⟩
                 rw [← hpopLenEq]
@@ -1456,17 +1545,17 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
               have hposSolc :
                   solcSlotWord σ I (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩ := by
                 rw [← hposSlotEq]
-                simpa [cureSlotWord] using hposEvm
+                simpa [solcSlotWordAt] using hposEvm
               have hswapSolc :
                   (solcSlotWord σ I (solcMappingSlot ⟨5⟩ key)).toNat <
                     (solcSlotWord σ I ⟨2⟩).toNat := by
-                simpa [cureSlotWord, hposSlotEq] using hswap
+                simpa [solcSlotWordAt, hposSlotEq] using hswap
               have hinv := RD.cureDropSwapPopEmptyInvalid
                 (g := Sat256.ofUInt256 g)
                 (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (ee := I) (key := key) (R := [sel])
                 hafterLive hcanonKey hposSolc hswapSolc _hperm
-                (by simpa [popLenEvm, cureSlotWord, hposSlotEq] using hpopLenZero)
+                (by simpa [popLenEvm, solcSlotWordAt, hposSlotEq] using hpopLenZero)
                 hmemAuth (by simp)
               exact RDinvalid.reEquivExecutionInvalid hcode hinv hdispatch hdecode hbody
             · have hpopLenPosRaw : 0 < popLenEvm.toNat := by
@@ -1478,15 +1567,15 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
               have hpopLenPosEvm :
                   0 <
                     (dropSwapPopLenAccountMapFor σ I
-                      (cureSlotWord (dropPosSlotFor I) σ I)
-                      (cureSlotWord ⟨2⟩ σ I)).toNat := by
+                      (solcSlotWordAt (dropPosSlotFor I) σ I)
+                      (solcSlotWordAt ⟨2⟩ σ I)).toNat := by
                 simpa [popLenEvm] using hpopLenPosRaw
               have hpopLenPosSolm :
                   0 <
                     (dropSwapPopLenState
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-                      (cureSlotWord (dropPosSlotFor I) σ I)
-                      (cureSlotWord ⟨2⟩ σ I)).toNat := by
+                      (solcSlotWordAt (dropPosSlotFor I) σ I)
+                      (solcSlotWordAt ⟨2⟩ σ I)).toNat := by
                 rw [dropSwapPopLenState_initState_eq]
                 change 0 < popLenSolm.toNat
                 rw [← hpopLenEq]
@@ -1496,23 +1585,23 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
                 hafterLive hcanonKey hmemAuth hread64 hlenPos hswap
                 hpopLenPosEvm hpopLenPosSolm
           · have hnoswapEvm :
-                (cureSlotWord ⟨2⟩ σ I).toNat ≤
-                  (cureSlotWord (dropPosSlotFor I) σ I).toNat := by
+                (solcSlotWordAt ⟨2⟩ σ I).toNat ≤
+                  (solcSlotWordAt (dropPosSlotFor I) σ I).toNat := by
               omega
             have hnoswapSolm :
-                (cureSlotWord ⟨2⟩ σ I).toNat ≤
-                  (cureSlotWord (dropPosSlotFor I) σ I).toNat := by
+                (solcSlotWordAt ⟨2⟩ σ I).toNat ≤
+                  (solcSlotWordAt (dropPosSlotFor I) σ I).toNat := by
               exact hnoswapEvm
             have hposSolc :
                 solcSlotWord σ I (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩ := by
               rw [← hposSlotEq]
-              simpa [cureSlotWord] using hposEvm
+              simpa [solcSlotWordAt] using hposEvm
             have hnoswapSolc :
                 (solcSlotWord σ I ⟨2⟩).toNat ≤
                   (solcSlotWord σ I (solcMappingSlot ⟨5⟩ key)).toNat := by
-              simpa [cureSlotWord, hposSlotEq] using hnoswapEvm
-            by_cases hlenZeroEvm : cureSlotWord ⟨2⟩ σ I = ⟨0⟩
-            · have hlenZeroSolm : cureSlotWord ⟨2⟩ σ I = ⟨0⟩ := by
+              simpa [solcSlotWordAt, hposSlotEq] using hnoswapEvm
+            by_cases hlenZeroEvm : solcSlotWordAt ⟨2⟩ σ I = ⟨0⟩
+            · have hlenZeroSolm : solcSlotWordAt ⟨2⟩ σ I = ⟨0⟩ := by
                 exact hlenZeroEvm
               let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
               have hbody :
@@ -1527,33 +1616,37 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
                 (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (ee := I) (key := key) (R := [sel])
                 hafterLive hcanonKey hposSolc hnoswapSolc
-                (by simpa [cureSlotWord] using hlenZeroEvm)
+                (by simpa [solcSlotWordAt] using hlenZeroEvm)
                 hmemAuth (by simp)
               exact RDinvalid.reEquivExecutionInvalid hcode hinv hdispatch hdecode hbody
-            · have hlenPos : 0 < (cureSlotWord ⟨2⟩ σ I).toNat := by
+            · have hlenPos : 0 < (solcSlotWordAt ⟨2⟩ σ I).toNat := by
                 by_contra hnot
-                have hzeroNat : (cureSlotWord ⟨2⟩ σ I).toNat = 0 := by omega
+                have hzeroNat : (solcSlotWordAt ⟨2⟩ σ I).toNat = 0 := by omega
                 apply hlenZeroEvm
-                rw [← u256_ofNat_toNat (cureSlotWord ⟨2⟩ σ I), hzeroNat]
+                rw [← u256_ofNat_toNat (solcSlotWordAt ⟨2⟩ σ I), hzeroNat]
                 rfl
-              have hlenPosSolm : 0 < (cureSlotWord ⟨2⟩ σ I).toNat := by
+              have hlenPosSolm : 0 < (solcSlotWordAt ⟨2⟩ σ I).toNat := by
                 exact hlenPos
               let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-              let lenSolm := cureSlotWord ⟨2⟩ σ I
+              let lenSolm := solcSlotWordAt ⟨2⟩ σ I
               let evmPop := dropAfterPopState evm0 lenSolm
               let evmPos := dropAfterDeletePosState evmPop I
               let evmAmt := dropAfterDeleteAmtState evmPos I
-              have hbody := cureDropSourceBodyOkNoSwap
+              have hbodySplit := cureDropSourceBodyOkNoSwapSplit
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 hwv hauthSolm hliveSolm hposSolm hlenPosSolm hnoswapSolm
-              have hret := RD.cureDropNoSwapStoreAndLogReturn
+              have hfirstWrite := RD.cureDropNoSwapStoreAndLogReturnSplit
                 (g := Sat256.ofUInt256 g)
                 (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (ee := I) (key := key) (R := [sel])
-                hafterLive hcanonKey hposSolc hnoswapSolc _hperm hlenPos hmemAuth hread64 (by simp)
+                hafterLive hcanonKey hposSolc hnoswapSolc hlenPos hmemAuth hread64 (by simp)
+              rcases hfirstWrite with ⟨_, hret⟩ | ⟨hperm, hstatic⟩
+              swap
+              · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+              have hbody := hbodySplit.1
               have haccounts :
                   dropNoSwapFinalAccountMapFor σ I key
-                    (cureSlotWord ⟨2⟩ σ I) = evmAmt.accountMap := by
+                    (solcSlotWordAt ⟨2⟩ σ I) = evmAmt.accountMap := by
                 simp [evmAmt, evmPos, evmPop, evm0, lenSolm,
                   dropAfterDeleteAmtState, dropAfterDeletePosState, dropAfterPopState,
                   dropAfterPopClearState, dropNoSwapFinalAccountMapFor,
@@ -1562,14 +1655,14 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
                   dropDeletePosAccountMap, dropDeleteAmtAccountMap, initState,
                   storageStore_accountMap, storageStore_executionEnv,
                   Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-                  cureSlotWord, solcSlotWord,
+                  solcSlotWordAt, solcSlotWord,
                   hposSlotEq, hamtSlotEq]
               have henc : returnEquiv ByteArray.empty none dropTransition.returnType := by
                 rw [show dropTransition.returnType = [] by rfl]
                 exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
               exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
                 haccounts henc
-      · have hliveSolm : cureSlotWord ⟨1⟩ σ I ≠ ⟨1⟩ := by
+      · have hliveSolm : solcSlotWordAt ⟨1⟩ σ I ≠ ⟨1⟩ := by
           intro hsolm
           exact hliveEvm hsolm
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1609,7 +1702,7 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
           simpa [ExecTransitionBody, dropTransition, nonpayable, auth, live, evm0, locals]
             using ExecFuncBody.execBlockRevert hblock
         have hliveSolc : solcSlotWord σ I ⟨1⟩ ≠ ⟨1⟩ := by
-          simpa [cureSlotWord] using hliveEvm
+          simpa [solcSlotWordAt] using hliveEvm
         have hmemAuth :
             (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
           twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
@@ -1629,7 +1722,7 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
             repeat' first | apply And.intro | native_decide)
           hliveSolc hmemAuth hread64 (by simp)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hauthSolm : cureSlotWord callerSlot σ I ≠ ⟨1⟩ := by
+    · have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := by
         intro hsolm
         exact hauthEvm hsolm
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1664,7 +1757,7 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
           ExecFuncBody.execBlockRevert hblock
       have hauthSolc :
           solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-        simpa [callerSlot, cureCallerWardsSlot, cureSlotWord] using hauthEvm
+        simpa [callerSlot, cureCallerWardsSlot, solcSlotWordAt] using hauthEvm
       have hrev := RD.cureAuthCheckRevert
         (code := cureBytecode) (pc := ⟨2801⟩) (okPc := ⟨2891⟩)
         (key := key) (ret := ⟨484⟩) (R := [sel])

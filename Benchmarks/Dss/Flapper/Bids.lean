@@ -1,3 +1,4 @@
+import Reasoning.ABIComposite
 import Benchmarks.Dss.Flapper.Dispatch
 import Reasoning.MemCascade
 
@@ -58,47 +59,6 @@ theorem bidsPackedSlotFor_eq (I : ExecutionEnv) :
     bidsPackedSlotFor I = solcMappingSlot ⟨1⟩ (bidsArgWord I) + ⟨2⟩ := by
   simp [bidsPackedSlotFor, bidsBaseSlotFor_eq]
 
-/-- Legacy solc-0.5 single-`uint256` calldata decode. -/
-theorem decodeCalldata_legacyUint256_ok {cd : ByteArray} {x : Solm.Ident}
-    (hsz36 : 36 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd =
-      some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256])
-    (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-    (bytes := cd.toList.drop 4) (start := 0) htake4]
-  change decodeCalldata.insertValues [x]
-      [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat)] ∅ =
-    some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat)))
-  rw [hword4]
-  simp [decodeCalldata.insertValues]
-
-theorem decodeCalldata_legacyUint256_none_short {cd : ByteArray} {x : Solm.Ident}
-    (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 36) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256])
-    (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-    (start := 0) (by simpa using htake0n)]
-  simp only [Option.bind, bind]
 
 theorem flapperDecode_bids_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (bidsTransition.params.map Param.name)
@@ -106,7 +66,7 @@ theorem flapperDecode_bids_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size
         some ((∅ : Store).insert "arg0" (bidsArgValue I)) := by
   show decodeCalldataWithMode config.abiDecodeMode ["arg0"] [uint256] I.calldata = _
   simpa [config, bidsArgValue, bidsArgWord, uint256] using
-    decodeCalldata_legacyUint256_ok (cd := I.calldata) (x := "arg0") hsz36
+    decodeCalldata_legacyUInt256_ok (cd := I.calldata) (x := "arg0") hsz36
 
 theorem flapperDecode_bids_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
@@ -114,7 +74,7 @@ theorem flapperDecode_bids_none_short {I : ExecutionEnv}
       (transitionSignature bidsTransition).paramTypes I.calldata = none := by
   show decodeCalldataWithMode config.abiDecodeMode ["arg0"] [uint256] I.calldata = none
   simpa [config, uint256] using
-    decodeCalldata_legacyUint256_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort
+    decodeCalldata_legacyUInt256_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort
 
 theorem flapperBidsBodyReturns {I : ExecutionEnv}
     (evm : EVM.State) (locals : Store)
@@ -123,30 +83,30 @@ theorem flapperBidsBodyReturns {I : ExecutionEnv}
     ExecTransitionBody config contract evm locals bidsTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
-          (flapperSlotWord (bidsBidSlotFor I) evm.accountMap evm.executionEnv).toNat)),
+          (solcSlotWordAt (bidsBidSlotFor I) evm.accountMap evm.executionEnv).toNat)),
           (.int (Int.ofNat
-          (flapperSlotWord (bidsLotSlotFor I) evm.accountMap evm.executionEnv).toNat)),
+          (solcSlotWordAt (bidsLotSlotFor I) evm.accountMap evm.executionEnv).toNat)),
           (.address (AccountAddress.ofNat
-          (flapperAddressReturnWord (bidsPackedSlotFor I) evm.accountMap
+          (solcAddressSlotWord (bidsPackedSlotFor I) evm.accountMap
             evm.executionEnv).toNat)),
           (.int (Int.ofNat
-          (flapperUint48Offset20Word (bidsPackedSlotFor I) evm.accountMap
+          (uint48Offset20Word (bidsPackedSlotFor I) evm.accountMap
             evm.executionEnv).toNat)),
           (.int (Int.ofNat
-          (flapperUint48Offset26Word (bidsPackedSlotFor I) evm.accountMap
+          (uint48Offset26Word (bidsPackedSlotFor I) evm.accountMap
             evm.executionEnv).toNat))])) := by
   subst locals
   let frame : Frame := { contract := contract, locals := (∅ : Store).insert "arg0" (bidsArgValue I) }
   have hbid :
       evalExpr? config frame evm (.storage (bidsF (.var "arg0") "bid")) =
         .ok (.int (Int.ofNat
-          (flapperSlotWord (bidsBidSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (bidsBidSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "bid") (er := bidsBidEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (bidsBidSlotFor I))
       (value := .int (Int.ofNat
-        (flapperSlotWord (bidsBidSlotFor I) evm.accountMap evm.executionEnv).toNat))
+        (solcSlotWordAt (bidsBidSlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, bidsF])
       (by
         simp [frame, bidsBidEvaledRef, bidsArgKey, bidsArgValue, evalStorageRef,
@@ -156,17 +116,17 @@ theorem flapperBidsBodyReturns {I : ExecutionEnv}
         simp [frame, bidsArgKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
           BidStructTy, uint256St])
       (by rfl)
-      (by simpa [flapperSlotWord] using flapperStorageLocLoad_uint256 evm (bidsBidSlotFor I))
+      (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (bidsBidSlotFor I))
   have hlot :
       evalExpr? config frame evm (.storage (bidsF (.var "arg0") "lot")) =
         .ok (.int (Int.ofNat
-          (flapperSlotWord (bidsLotSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (bidsLotSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "lot") (er := bidsLotEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (bidsLotSlotFor I))
       (value := .int (Int.ofNat
-        (flapperSlotWord (bidsLotSlotFor I) evm.accountMap evm.executionEnv).toNat))
+        (solcSlotWordAt (bidsLotSlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, bidsF])
       (by
         simp [frame, bidsLotEvaledRef, bidsArgKey, bidsArgValue, evalStorageRef,
@@ -176,18 +136,18 @@ theorem flapperBidsBodyReturns {I : ExecutionEnv}
         simp [frame, bidsArgKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
           BidStructTy, uint256St])
       (by rfl)
-      (by simpa [flapperSlotWord] using flapperStorageLocLoad_uint256 evm (bidsLotSlotFor I))
+      (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (bidsLotSlotFor I))
   have hguy :
       evalExpr? config frame evm (.storage (bidsF (.var "arg0") "guy")) =
         .ok (.address (AccountAddress.ofNat
-          (flapperAddressReturnWord (bidsPackedSlotFor I) evm.accountMap
+          (solcAddressSlotWord (bidsPackedSlotFor I) evm.accountMap
             evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "guy") (er := bidsGuyEvaledRef I)
       (t := .address) (loc := addrLoc (bidsPackedSlotFor I))
       (value := .address (AccountAddress.ofNat
-        (flapperAddressReturnWord (bidsPackedSlotFor I) evm.accountMap
+        (solcAddressSlotWord (bidsPackedSlotFor I) evm.accountMap
           evm.executionEnv).toNat))
       (by simp [frame, bidsF])
       (by
@@ -199,31 +159,31 @@ theorem flapperBidsBodyReturns {I : ExecutionEnv}
           BidStructTy, addrSt])
       (by rfl)
       (by
-        simpa [flapperAddressReturnWord, flapperSlotWord] using
-          flapperStorageLocLoad_address_offset0 evm (bidsPackedSlotFor I))
+        simpa [solcAddressSlotWord, solcSlotWordAt] using
+          storageLocLoad_address_offset0 evm (bidsPackedSlotFor I))
   have htic :
       evalExpr? config frame evm (.storage (bidsF (.var "arg0") "tic")) =
         .ok (.int (Int.ofNat
-          (flapperUint48Offset20Word (bidsPackedSlotFor I) evm.accountMap
+          (uint48Offset20Word (bidsPackedSlotFor I) evm.accountMap
             evm.executionEnv).toNat)) := by
     have hload :
         storageLocLoad evm (uint48Loc (bidsPackedSlotFor I) ⟨20, by decide⟩ (by decide)) =
           .int (Int.ofNat
-            (flapperUint48Offset20Word (bidsPackedSlotFor I) evm.accountMap
+            (uint48Offset20Word (bidsPackedSlotFor I) evm.accountMap
               evm.executionEnv).toNat) := by
-      rw [flapperStorageLocLoad_uint48_offset20]
+      erw [storageLocLoad_uint48_offset20]
       rw [u256_land_comm
         (UInt256.div
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidsPackedSlotFor I))
           (UInt256.ofNat (256 ^ 20)))
-        flapperUint48Mask]
+        uint48Mask]
       rfl
     exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "tic") (er := bidsTicEvaledRef I)
       (t := .int uint48Int) (loc := uint48Loc (bidsPackedSlotFor I) ⟨20, by decide⟩ (by decide))
       (value := .int (Int.ofNat
-        (flapperUint48Offset20Word (bidsPackedSlotFor I) evm.accountMap
+        (uint48Offset20Word (bidsPackedSlotFor I) evm.accountMap
           evm.executionEnv).toNat))
       (by simp [frame, bidsF])
       (by
@@ -238,26 +198,26 @@ theorem flapperBidsBodyReturns {I : ExecutionEnv}
   have hend :
       evalExpr? config frame evm (.storage (bidsF (.var "arg0") "end")) =
         .ok (.int (Int.ofNat
-          (flapperUint48Offset26Word (bidsPackedSlotFor I) evm.accountMap
+          (uint48Offset26Word (bidsPackedSlotFor I) evm.accountMap
             evm.executionEnv).toNat)) := by
     have hload :
         storageLocLoad evm (uint48Loc (bidsPackedSlotFor I) ⟨26, by decide⟩ (by decide)) =
           .int (Int.ofNat
-            (flapperUint48Offset26Word (bidsPackedSlotFor I) evm.accountMap
+            (uint48Offset26Word (bidsPackedSlotFor I) evm.accountMap
               evm.executionEnv).toNat) := by
-      rw [flapperStorageLocLoad_uint48_offset26]
+      erw [storageLocLoad_uint48_offset26]
       rw [u256_land_comm
         (UInt256.div
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidsPackedSlotFor I))
           (UInt256.ofNat (256 ^ 26)))
-        flapperUint48Mask]
+        uint48Mask]
       rfl
     exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "end") (er := bidsEndEvaledRef I)
       (t := .int uint48Int) (loc := uint48Loc (bidsPackedSlotFor I) ⟨26, by decide⟩ (by decide))
       (value := .int (Int.ofNat
-        (flapperUint48Offset26Word (bidsPackedSlotFor I) evm.accountMap
+        (uint48Offset26Word (bidsPackedSlotFor I) evm.accountMap
           evm.executionEnv).toNat))
       (by simp [frame, bidsF])
       (by
@@ -278,19 +238,19 @@ theorem flapperBidsBodyReturns {I : ExecutionEnv}
           .storage (bidsF (.var "arg0") "end") ] =
           .ok
             [ .int (Int.ofNat
-                (flapperSlotWord (bidsBidSlotFor I) evm.accountMap
+                (solcSlotWordAt (bidsBidSlotFor I) evm.accountMap
                   evm.executionEnv).toNat),
               .int (Int.ofNat
-                (flapperSlotWord (bidsLotSlotFor I) evm.accountMap
+                (solcSlotWordAt (bidsLotSlotFor I) evm.accountMap
                   evm.executionEnv).toNat),
               .address (AccountAddress.ofNat
-                (flapperAddressReturnWord (bidsPackedSlotFor I) evm.accountMap
+                (solcAddressSlotWord (bidsPackedSlotFor I) evm.accountMap
                   evm.executionEnv).toNat),
               .int (Int.ofNat
-                (flapperUint48Offset20Word (bidsPackedSlotFor I) evm.accountMap
+                (uint48Offset20Word (bidsPackedSlotFor I) evm.accountMap
                   evm.executionEnv).toNat),
               .int (Int.ofNat
-                (flapperUint48Offset26Word (bidsPackedSlotFor I) evm.accountMap
+                (uint48Offset26Word (bidsPackedSlotFor I) evm.accountMap
                   evm.executionEnv).toNat) ] := by
     simp [evalExprs?, hbid, hlot, hguy, htic, hend, EvalResult.bind, bind, pure]
   simpa [bidsTransition, nonpayable, frame] using
@@ -381,7 +341,7 @@ theorem flapperBidsBodyReturns {I : ExecutionEnv}
   ∧ decode code p38 = some (.DUP2, .none)
   ∧ decode code p39 = some (.AND, .none)
   ∧ decode code p40 = some (.SWAP1, .none)
-  ∧ decode code p41 = some (.Push .PUSH6, some (flapperUint48Mask, 6))
+  ∧ decode code p41 = some (.Push .PUSH6, some (uint48Mask, 6))
   ∧ decode code p48 = some (.Push .PUSH1, some (⟨1⟩, 1))
   ∧ decode code p50 = some (.Push .PUSH1, some (⟨160⟩, 1))
   ∧ decode code p52 = some (.SHL, .none)
@@ -412,8 +372,8 @@ theorem RD.flapperBidsStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
       (UInt256.land
         (UInt256.div (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨2⟩))
           (UInt256.ofNat (256 ^ 26)))
-        flapperUint48Mask ::
-        UInt256.land flapperUint48Mask
+        uint48Mask ::
+        UInt256.land uint48Mask
           (UInt256.div (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨2⟩))
             (UInt256.ofNat (256 ^ 20))) ::
         UInt256.land (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨2⟩))
@@ -469,7 +429,7 @@ theorem RD.flapperBidsStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
   have rd39 := rd38.dup2 hd38 (by evm_ov)
   have rd40 := rd39.and hd39 (by evm_ov)
   have rd41 := rd40.swap1 hd40 (by evm_ov)
-  have rd48 := rd41.pushConst flapperUint48Mask (width := 6) (op := .PUSH6)
+  have rd48 := rd41.pushConst uint48Mask (width := 6) (op := .PUSH6)
     (by decide) hd41 (by evm_ov)
   have rd50 := rd48.push1 ⟨1⟩ hd48 (by evm_ov)
   have rd52 := rd50.push1 ⟨160⟩ hd50 (by evm_ov)
@@ -500,8 +460,8 @@ abbrev flapperBidsReturnBytes
     (bid lot guy tic endw : UInt256) : ByteArray :=
   UInt256.toByteArray bid ++ UInt256.toByteArray lot ++
     UInt256.toByteArray (UInt256.land guy solcAddrMask) ++
-    UInt256.toByteArray (UInt256.land tic flapperUint48Mask) ++
-    UInt256.toByteArray (UInt256.land endw flapperUint48Mask)
+    UInt256.toByteArray (UInt256.land tic uint48Mask) ++
+    UInt256.toByteArray (UInt256.land endw uint48Mask)
 
 abbrev flapperBidsReturnMem
     (scratch : ByteArray) (bid lot guy tic endw : UInt256) : ByteArray :=
@@ -509,8 +469,8 @@ abbrev flapperBidsReturnMem
     [ (128, bid),
       (160, lot),
       (192, UInt256.land guy solcAddrMask),
-      (224, UInt256.land tic flapperUint48Mask),
-      (256, UInt256.land endw flapperUint48Mask) ]
+      (224, UInt256.land tic uint48Mask),
+      (256, UInt256.land endw uint48Mask) ]
 
 theorem flapperBidsReturnBytes_size (bid lot guy tic endw : UInt256) :
     (flapperBidsReturnBytes bid lot guy tic endw).size = 160 := by
@@ -546,23 +506,23 @@ theorem flapperBidsReturnMem_eq {scratch : ByteArray}
         UInt256.toByteArray lot) ++
         UInt256.toByteArray (UInt256.land guy solcAddrMask)).size by
         simp [ByteArray.size_append, ByteArray_zeroes_size, hscratch]]
-  rw [write_at_end_eq (UInt256.toByteArray (UInt256.land tic flapperUint48Mask))
+  rw [write_at_end_eq (UInt256.toByteArray (UInt256.land tic uint48Mask))
     (((scratch ++ ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
       UInt256.toByteArray lot) ++
       UInt256.toByteArray (UInt256.land guy solcAddrMask)) 32
     (by decide) (by rw [toByteArray_size])]
-  rw [toByteArray_extract_all (UInt256.land tic flapperUint48Mask)]
+  rw [toByteArray_extract_all (UInt256.land tic uint48Mask)]
   rw [show (256 : Nat) =
       ((((scratch ++ ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
         UInt256.toByteArray lot) ++ UInt256.toByteArray (UInt256.land guy solcAddrMask)) ++
-        UInt256.toByteArray (UInt256.land tic flapperUint48Mask)).size by
+        UInt256.toByteArray (UInt256.land tic uint48Mask)).size by
         simp [ByteArray.size_append, ByteArray_zeroes_size, hscratch]]
-  rw [write_at_end_eq (UInt256.toByteArray (UInt256.land endw flapperUint48Mask))
+  rw [write_at_end_eq (UInt256.toByteArray (UInt256.land endw uint48Mask))
     ((((scratch ++ ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
       UInt256.toByteArray lot) ++ UInt256.toByteArray (UInt256.land guy solcAddrMask)) ++
-      UInt256.toByteArray (UInt256.land tic flapperUint48Mask)) 32
+      UInt256.toByteArray (UInt256.land tic uint48Mask)) 32
     (by decide) (by rw [toByteArray_size])]
-  rw [toByteArray_extract_all (UInt256.land endw flapperUint48Mask)]
+  rw [toByteArray_extract_all (UInt256.land endw uint48Mask)]
   rw [hscratch]
   apply ByteArray.ext
   simp [ByteArray.data_append]
@@ -615,8 +575,8 @@ theorem flapperBidsReturnEncoding (bid lot guy tic endw : UInt256) :
       [ .int (Int.ofNat bid.toNat),
         .int (Int.ofNat lot.toNat),
         .address (AccountAddress.ofNat (UInt256.land guy solcAddrMask).toNat),
-        .int (Int.ofNat (UInt256.land tic flapperUint48Mask).toNat),
-        .int (Int.ofNat (UInt256.land endw flapperUint48Mask).toNat) ] =
+        .int (Int.ofNat (UInt256.land tic uint48Mask).toNat),
+        .int (Int.ofNat (UInt256.land endw uint48Mask).toNat) ] =
         some (flapperBidsReturnBytes bid lot guy tic endw) := by
   have hencBid :
       encodeABIValue? uint256 (.int (Int.ofNat bid.toNat)) =
@@ -654,25 +614,25 @@ theorem flapperBidsReturnEncoding (bid lot guy tic endw : UInt256) :
     simp [addr, encodeABIValue?, encodeABIWord?, AccountAddress.ofNat, haddrMod, hword]
   have hencTic :
       encodeABIValue? uint48
-          (.int (Int.ofNat (UInt256.land tic flapperUint48Mask).toNat)) =
-        some (EVM.Word.toBytesBE (UInt256.land tic flapperUint48Mask)) := by
+          (.int (Int.ofNat (UInt256.land tic uint48Mask).toNat)) =
+        some (EVM.Word.toBytesBE (UInt256.land tic uint48Mask)) := by
     have hword :
-        EVM.word (UInt256.land tic flapperUint48Mask).toNat =
-          UInt256.land tic flapperUint48Mask := by
-      show UInt256.ofNat (UInt256.land tic flapperUint48Mask).toNat = _
+        EVM.word (UInt256.land tic uint48Mask).toNat =
+          UInt256.land tic uint48Mask := by
+      show UInt256.ofNat (UInt256.land tic uint48Mask).toNat = _
       exact u256_ofNat_toNat _
-    have hlt := flapperUint48Masked_lt tic
+    have hlt := uint48Masked_lt tic
     simp [uint48, uint48Int, encodeABIValue?, encodeABIWord?, hword, hlt]
   have hencEnd :
       encodeABIValue? uint48
-          (.int (Int.ofNat (UInt256.land endw flapperUint48Mask).toNat)) =
-        some (EVM.Word.toBytesBE (UInt256.land endw flapperUint48Mask)) := by
+          (.int (Int.ofNat (UInt256.land endw uint48Mask).toNat)) =
+        some (EVM.Word.toBytesBE (UInt256.land endw uint48Mask)) := by
     have hword :
-        EVM.word (UInt256.land endw flapperUint48Mask).toNat =
-          UInt256.land endw flapperUint48Mask := by
-      show UInt256.ofNat (UInt256.land endw flapperUint48Mask).toNat = _
+        EVM.word (UInt256.land endw uint48Mask).toNat =
+          UInt256.land endw uint48Mask := by
+      show UInt256.ofNat (UInt256.land endw uint48Mask).toNat = _
       exact u256_ofNat_toNat _
-    have hlt := flapperUint48Masked_lt endw
+    have hlt := uint48Masked_lt endw
     simp [uint48, uint48Int, encodeABIValue?, encodeABIWord?, hword, hlt]
   unfold flapperBidsReturnBytes
   rw [show UInt256.toByteArray bid = (EVM.Word.toBytesBE bid).toByteArray by
@@ -683,14 +643,14 @@ theorem flapperBidsReturnEncoding (bid lot guy tic endw : UInt256) :
       (EVM.Word.toBytesBE (UInt256.land guy solcAddrMask)).toByteArray by
     exact (word_toBytesBE_toByteArray_eq_toByteArray
       (UInt256.land guy solcAddrMask)).symm]
-  rw [show UInt256.toByteArray (UInt256.land tic flapperUint48Mask) =
-      (EVM.Word.toBytesBE (UInt256.land tic flapperUint48Mask)).toByteArray by
+  rw [show UInt256.toByteArray (UInt256.land tic uint48Mask) =
+      (EVM.Word.toBytesBE (UInt256.land tic uint48Mask)).toByteArray by
     exact (word_toBytesBE_toByteArray_eq_toByteArray
-      (UInt256.land tic flapperUint48Mask)).symm]
-  rw [show UInt256.toByteArray (UInt256.land endw flapperUint48Mask) =
-      (EVM.Word.toBytesBE (UInt256.land endw flapperUint48Mask)).toByteArray by
+      (UInt256.land tic uint48Mask)).symm]
+  rw [show UInt256.toByteArray (UInt256.land endw uint48Mask) =
+      (EVM.Word.toBytesBE (UInt256.land endw uint48Mask)).toByteArray by
     exact (word_toBytesBE_toByteArray_eq_toByteArray
-      (UInt256.land endw flapperUint48Mask)).symm]
+      (UInt256.land endw uint48Mask)).symm]
   unfold encodeReturnValues? encodeABIValues?
   rw [show abiTupleHeadSize? [uint256, uint256, addr, uint48, uint48] = some 160
     by native_decide]
@@ -795,7 +755,7 @@ theorem flapperBidsReturnEncoding (bid lot guy tic endw : UInt256) :
   ∧ decode code p28 = some (.DUP5, .none)
   ∧ decode code p29 = some (.ADD, .none)
   ∧ decode code p30 = some (.MSTORE, .none)
-  ∧ decode code p31 = some (.Push .PUSH6, some (flapperUint48Mask, 6))
+  ∧ decode code p31 = some (.Push .PUSH6, some (uint48Mask, 6))
   ∧ decode code p38 = some (.SWAP1, .none)
   ∧ decode code p39 = some (.DUP2, .none)
   ∧ decode code p40 = some (.AND, .none)
@@ -835,8 +795,8 @@ theorem RD.flapperBidsReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
       hd30, hd31, hd38, hd39, hd40, hd41, hd43, hd44, hd45, hd46, hd47, hd49,
       hd50, hd51, hd52, hd53, hd54, hd55, hd56, hd57, hd59, hd60, hd61⟩
   let guyMasked := UInt256.land guy solcAddrMask
-  let ticMasked := UInt256.land tic flapperUint48Mask
-  let endMasked := UInt256.land endw flapperUint48Mask
+  let ticMasked := UInt256.land tic uint48Mask
+  let endMasked := UInt256.land endw uint48Mask
   let mem1 := Reasoning.Theory.writeWord mem 128 bid
   let mem2 := Reasoning.Theory.writeWord mem1 160 lot
   let mem3 := Reasoning.Theory.writeWord mem2 192 guyMasked
@@ -887,7 +847,7 @@ theorem RD.flapperBidsReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
       (by dsimp [mem3, mem2, mem1, guyMasked, Reasoning.Theory.writeWord]; rfl) (by decide)
       (by evm_ov)]
   have rd40 := evm_run rd30 with [
-    raw pushConst flapperUint48Mask (by decide) hd31 (by evm_ov),
+    raw pushConst uint48Mask (by decide) hd31 (by evm_ov),
     raw swap1 hd38 (by evm_ov),
     raw dup2 hd39 (by evm_ov),
     raw and hd40 (by evm_ov)]
@@ -900,7 +860,7 @@ theorem RD.flapperBidsReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
         dsimp [mem4, mem3, mem2, mem1, ticMasked, guyMasked,
           Reasoning.Theory.writeWord]
         rw [show (((⟨128⟩ : UInt256) + ⟨96⟩).toNat = 224) from by decide]
-        rw [u256_land_comm flapperUint48Mask tic])
+        rw [u256_land_comm uint48Mask tic])
       (by decide) (by evm_ov)]
   have rd51 := evm_run rd45 with [
     raw and hd46 (by evm_ov),
@@ -912,7 +872,7 @@ theorem RD.flapperBidsReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
         dsimp [mem5, mem4, mem3, mem2, mem1, endMasked, ticMasked, guyMasked,
           Reasoning.Theory.writeWord]
         rw [show (((⟨128⟩ : UInt256) + ⟨128⟩).toNat = 256) from by decide]
-        rw [u256_land_comm flapperUint48Mask endw])
+        rw [u256_land_comm uint48Mask endw])
       (by decide) (by evm_ov)]
   have hmem5 : mem5 = flapperBidsReturnMem mem bid lot guy tic endw := by
     dsimp [mem5, mem4, mem3, mem2, mem1, endMasked, ticMasked, guyMasked,
@@ -998,9 +958,9 @@ theorem flapperBidsBodyCoreOk
   let bidSlot := baseSlot
   let lotSlot := baseSlot + ⟨1⟩
   let packedSlot := baseSlot + ⟨2⟩
-  let bidWord := flapperSlotWord bidSlot σ I
-  let lotWord := flapperSlotWord lotSlot σ I
-  let packedWord := flapperSlotWord packedSlot σ I
+  let bidWord := solcSlotWordAt bidSlot σ I
+  let lotWord := solcSlotWordAt lotSlot σ I
+  let packedWord := solcSlotWordAt packedSlot σ I
   let ticRaw := UInt256.div packedWord (UInt256.ofNat (256 ^ 20))
   let endRaw := UInt256.div packedWord (UInt256.ofNat (256 ^ 26))
   let locals : Store := (∅ : Store).insert "arg0" (bidsArgValue I)
@@ -1016,15 +976,15 @@ theorem flapperBidsBodyCoreOk
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat
-            (flapperSlotWord (bidsBidSlotFor I) σ I).toNat)),
+            (solcSlotWordAt (bidsBidSlotFor I) σ I).toNat)),
             (.int (Int.ofNat
-            (flapperSlotWord (bidsLotSlotFor I) σ I).toNat)),
+            (solcSlotWordAt (bidsLotSlotFor I) σ I).toNat)),
             (.address (AccountAddress.ofNat
-            (flapperAddressReturnWord (bidsPackedSlotFor I) σ I).toNat)),
+            (solcAddressSlotWord (bidsPackedSlotFor I) σ I).toNat)),
             (.int (Int.ofNat
-            (flapperUint48Offset20Word (bidsPackedSlotFor I) σ I).toNat)),
+            (uint48Offset20Word (bidsPackedSlotFor I) σ I).toNat)),
             (.int (Int.ofNat
-            (flapperUint48Offset26Word (bidsPackedSlotFor I) σ I).toNat))])) := by
+            (uint48Offset26Word (bidsPackedSlotFor I) σ I).toNat))])) := by
     simpa [locals, initState] using
       flapperBidsBodyReturns (I := I)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -1064,12 +1024,12 @@ theorem flapperBidsBodyCoreOk
     have hret' := RD.flapperBidsReturnFromMem
       (pc := ⟨462⟩) (bid := bidWord) (lot := lotWord)
       (guy := UInt256.land packedWord solcAddrMask)
-      (tic := UInt256.land flapperUint48Mask ticRaw)
-      (endw := UInt256.land endRaw flapperUint48Mask) (ret := ⟨462⟩) (R := [sel])
+      (tic := UInt256.land uint48Mask ticRaw)
+      (endw := UInt256.land endRaw uint48Mask) (ret := ⟨462⟩) (R := [sel])
       (mem := solcMappingHashMem ⟨1⟩ (bidsArgWord I))
       (by
         simpa [bidWord, lotWord, packedWord, ticRaw, endRaw, bidSlot, lotSlot,
-          packedSlot, baseSlot, key, flapperSlotWord] using hretPc)
+          packedSlot, baseSlot, key, solcSlotWordAt] using hretPc)
       (by
         unfold flapperBidsReturnFromMemWf
         repeat' first | apply And.intro | native_decide)
@@ -1081,34 +1041,34 @@ theorem flapperBidsBodyCoreOk
           UInt256.land packedWord solcAddrMask :=
       solcAddrMask_clean (solcAddrMask_result_canonical packedWord)
     have hcleanTic :
-        UInt256.land (UInt256.land flapperUint48Mask ticRaw) flapperUint48Mask =
-          UInt256.land ticRaw flapperUint48Mask := by
-      rw [u256_land_comm flapperUint48Mask ticRaw]
-      exact flapperUint48Mask_clean ticRaw
+        UInt256.land (UInt256.land uint48Mask ticRaw) uint48Mask =
+          UInt256.land ticRaw uint48Mask := by
+      rw [u256_land_comm uint48Mask ticRaw]
+      exact uint48Mask_clean ticRaw
     have hcleanEnd :
-        UInt256.land (UInt256.land endRaw flapperUint48Mask) flapperUint48Mask =
-          UInt256.land endRaw flapperUint48Mask :=
-      flapperUint48Mask_clean endRaw
+        UInt256.land (UInt256.land endRaw uint48Mask) uint48Mask =
+          UInt256.land endRaw uint48Mask :=
+      uint48Mask_clean endRaw
     simpa [flapperBidsReturnBytes, hcleanGuy, hcleanTic, hcleanEnd] using hret'
-  have hbidWord : flapperSlotWord bidSlot σ I = flapperSlotWord bidSlot σ I := rfl
-  have hlotWord : flapperSlotWord lotSlot σ I = flapperSlotWord lotSlot σ I := rfl
-  have hpackedWord : flapperSlotWord packedSlot σ I = flapperSlotWord packedSlot σ I := rfl
+  have hbidWord : solcSlotWordAt bidSlot σ I = solcSlotWordAt bidSlot σ I := rfl
+  have hlotWord : solcSlotWordAt lotSlot σ I = solcSlotWordAt lotSlot σ I := rfl
+  have hpackedWord : solcSlotWordAt packedSlot σ I = solcSlotWordAt packedSlot σ I := rfl
   have hval :
-      some [Value.int (Int.ofNat (flapperSlotWord (bidsBidSlotFor I) σ I).toNat),
-        Value.int (Int.ofNat (flapperSlotWord (bidsLotSlotFor I) σ I).toNat),
+      some [Value.int (Int.ofNat (solcSlotWordAt (bidsBidSlotFor I) σ I).toNat),
+        Value.int (Int.ofNat (solcSlotWordAt (bidsLotSlotFor I) σ I).toNat),
         Value.address (AccountAddress.ofNat
-          (flapperAddressReturnWord (bidsPackedSlotFor I) σ I).toNat),
+          (solcAddressSlotWord (bidsPackedSlotFor I) σ I).toNat),
         Value.int (Int.ofNat
-          (flapperUint48Offset20Word (bidsPackedSlotFor I) σ I).toNat),
+          (uint48Offset20Word (bidsPackedSlotFor I) σ I).toNat),
         Value.int (Int.ofNat
-          (flapperUint48Offset26Word (bidsPackedSlotFor I) σ I).toNat)] =
+          (uint48Offset26Word (bidsPackedSlotFor I) σ I).toNat)] =
       some [Value.int (Int.ofNat bidWord.toNat),
         Value.int (Int.ofNat lotWord.toNat),
         Value.address (AccountAddress.ofNat (UInt256.land packedWord solcAddrMask).toNat),
-        Value.int (Int.ofNat (UInt256.land ticRaw flapperUint48Mask).toNat),
-        Value.int (Int.ofNat (UInt256.land endRaw flapperUint48Mask).toNat)] := by
+        Value.int (Int.ofNat (UInt256.land ticRaw uint48Mask).toNat),
+        Value.int (Int.ofNat (UInt256.land endRaw uint48Mask).toNat)] := by
     rw [hbidSlot, hlotSlot, hpackedSlot]
-    simp [flapperAddressReturnWord, flapperUint48Offset20Word, flapperUint48Offset26Word,
+    simp [solcAddressSlotWord, uint48Offset20Word, uint48Offset26Word,
       bidWord, lotWord, packedWord, ticRaw, endRaw, hbidWord, hlotWord, hpackedWord,
       u256_land_comm]
   have henc :
@@ -1116,8 +1076,8 @@ theorem flapperBidsBodyCoreOk
         (some [(.int (Int.ofNat bidWord.toNat)),
           (.int (Int.ofNat lotWord.toNat)),
           (.address (AccountAddress.ofNat (UInt256.land packedWord solcAddrMask).toNat)),
-          (.int (Int.ofNat (UInt256.land ticRaw flapperUint48Mask).toNat)),
-          (.int (Int.ofNat (UInt256.land endRaw flapperUint48Mask).toNat))])
+          (.int (Int.ofNat (UInt256.land ticRaw uint48Mask).toNat)),
+          (.int (Int.ofNat (UInt256.land endRaw uint48Mask).toNat))])
         bidsTransition.returnType := by
     rw [show bidsTransition.returnType = [uint256, uint256, addr, uint48, uint48] by rfl]
     exact returnEquiv.returned rfl
@@ -1152,7 +1112,6 @@ theorem flapperBidsBodyCoreDecodeFailed_short
 theorem flapperBidsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 1)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

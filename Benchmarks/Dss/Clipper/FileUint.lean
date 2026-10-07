@@ -12,7 +12,7 @@ theorem clipperFileUintPatchesWindowDisjoint32 (v : ClipperImmutables) (lo hi : 
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       try omega
@@ -52,7 +52,7 @@ theorem clipperFileUintJumpDest2703 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 3000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -66,7 +66,7 @@ theorem clipperFileUintJumpDest2780 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 3000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -80,7 +80,7 @@ theorem clipperFileUintJumpDest2809 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 3200) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -94,7 +94,7 @@ theorem clipperFileUintJumpDest2834 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 3200) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -108,7 +108,7 @@ theorem clipperFileUintJumpDest2859 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 3200) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -122,7 +122,7 @@ theorem clipperFileUintJumpDest2908 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 3200) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -136,7 +136,7 @@ theorem clipperFileUintJumpDest2960 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 3200) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -150,7 +150,7 @@ theorem clipperFileUintJumpDest2988 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 3200) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -164,7 +164,7 @@ theorem clipperFileUintJumpDest3065 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 3200) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -323,6 +323,33 @@ theorem clipperFileUintX_lockOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, rd2711.jumpiT (by clipper_file_uint_decode) hcond
     (clipperFileUintJumpDest2780 v hpatch) (by evm_ov)⟩
 
+theorem clipperFileUintX_lockStoreSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    (h : RD code I g s0 ⟨2780⟩
+      [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
+      ∃ k' C', RD code I g s0 ⟨2786⟩
+        [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
+        (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
+        (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C') ∨
+      (I.perm = false ∧ RDstatic code g s0) := by
+  have rd2785pre := evm_run h with [
+    raw jumpdest (by clipper_file_uint_decode) (by evm_ov),
+    raw push1 ⟨1⟩ (by clipper_file_uint_decode) (by evm_ov),
+    raw push1 ⟨13⟩ (by clipper_file_uint_decode) (by evm_ov)]
+  have hstoreDec : decode code ⟨2785⟩ = some (.SSTORE, none) := by
+    clipper_file_uint_decode
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2785pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd2786raw⟩ := rd2785pre.sstore hperm hstoreDec
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  exact ⟨_, _, by simpa using rd2786raw⟩
+
 theorem clipperFileUintX_lockStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
@@ -333,14 +360,8 @@ theorem clipperFileUintX_lockStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     ∃ k' C', RD code I g s0 ⟨2786⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' := by
-  have rd2785pre := evm_run h with [
-    raw jumpdest (by clipper_file_uint_decode) (by evm_ov),
-    raw push1 ⟨1⟩ (by clipper_file_uint_decode) (by evm_ov),
-    raw push1 ⟨13⟩ (by clipper_file_uint_decode) (by evm_ov)]
-  obtain ⟨_, _, rd2786raw⟩ := rd2785pre.sstore hperm (by clipper_file_uint_decode)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  exact ⟨_, _, by simpa using rd2786raw⟩
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' :=
+  permSplit_true hperm (clipperFileUintX_lockStoreSplit v hpatch h)
 
 set_option maxHeartbeats 1000000 in
 theorem clipperFileUintX_bufStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -1390,7 +1411,7 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 9)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -1417,6 +1438,18 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
     · have hauthSolm : clipperRelyAuthWord σ I = ⟨1⟩ := hauthEvm
       by_cases hlockedEvm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩
       · have hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩ := hlockedEvm
+        by_cases hperm : I.perm = true
+        swap
+        · have hstaticPerm : I.perm = false := by simpa using hperm
+          obtain ⟨_, _, rdBody⟩ := hreachBody
+          obtain ⟨_, _, rdAuth⟩ := clipperFileUintX_authorized (v := v)
+            hpatch hauthEvm rdBody
+          obtain ⟨_, _, rdLock⟩ := clipperFileUintX_lockOpen (v := v)
+            hpatch hlockedEvm rdAuth
+          have hstatic := permSplit_false hstaticPerm
+            (clipperFileUintX_lockStoreSplit v hpatch rdLock)
+          exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+            ((clipperFileUintBufSourceBodySplit v hwv hauthSolm hlockedSolm).2 hstaticPerm)
         by_cases hbuf : clipperFileUintWhat I = clipperFileUintBufBytes
         · have hbufWord :
               calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintBufBytes := by

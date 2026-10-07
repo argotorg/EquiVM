@@ -9,7 +9,7 @@ namespace Auction
 
 theorem settleCurrentAndCreateNewAuctionBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (entryBytes 18))
+    (hsel : selIs I (entryBytes 18))
     (hreach : EntryReached 18 σ σ₀ A I g) :
     runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
@@ -25,7 +25,13 @@ theorem settleCurrentAndCreateNewAuctionBodyCore {σ σ₀ A I} {g : UInt256}
     obtain ⟨_, _, rd901⟩ := hreach
     obtain ⟨_, _, rd914⟩ := entryGuardZero 18 (by decide) rd901 hwv
     have rd2573 := evm_run rd914 with [push2 ⟨413⟩, push2 ⟨2573⟩, jump (by jump_dest)]
-    rcases settleCreateRoutine rd2573 hs0 hperm freshHeapMemory (by jump_dest) (by evm_ov) with
+    rcases settleCreateRoutineSplit rd2573 hs0 freshHeapMemory (by jump_dest) (by evm_ov) with
+      hnormal | ⟨_hperm, hsrc, hstatic⟩
+    swap
+    · exact hstatic.reEquivStaticHalt hcode hd hdec
+        (ExecFuncBody.execBlockStatic (ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) hsrc))
+    rcases hnormal with
       ⟨evm', σ', locals', mem', aw', out, _, _, hsrc, hs', rd413⟩ | ⟨hsrc, hr⟩
     · have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅
           settleAndCreateTransition.body

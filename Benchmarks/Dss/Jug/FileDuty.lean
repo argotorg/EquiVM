@@ -1,3 +1,4 @@
+import Reasoning.ABIViews
 import Benchmarks.Dss.Jug.FileBase
 import Benchmarks.Dss.Jug.Ilks
 
@@ -60,14 +61,6 @@ theorem fileDutyIlkBytes_length {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.si
   simp [fileDutyIlkBytes, List.length_take, List.length_drop, byteArray_toList_eq]
   omega
 
-theorem fileDutyIlkBytes_len_min {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
-    min 32 (I.calldata.toList.length - 4) = bytes32Width.val + 1 := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [htlen]
-  simp [bytes32Width]
-  omega
 
 theorem fileDutyWhatBytes_length {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     (fileDutyWhatBytes I).length = 32 := by
@@ -136,116 +129,6 @@ theorem fileDutyIlkStoreHashMem_size (I : ExecutionEnv) :
     (fileDutyIlkStoreHashMem I).size = 96 := by
   exact twoWordHashMem_size_96 (fileDutyIlkWord I) ⟨1⟩ (fileDutyIlkHashMem_size I)
 
--- LIBRARY CANDIDATE: legacy solc05 decoding for `(bytes32,bytes32,uint256)`.
-theorem decodeABIValues_bytes32_bytes32_uint256_legacy_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hlen64 : ((bytes.drop 64).take 32).length = 32) :
-    decodeABIValues? [abiBytes32, abiBytes32, abiUInt256] bytes 0 0 96 96
-        DecodeMode.legacySolc05 =
-      some ([.fixedBytes abiBytes32Width (bytes.take 32),
-        .fixedBytes abiBytes32Width ((bytes.drop 32).take 32),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat)], 96) := by
-  simp [decodeABIValues?, abiBytes32, abiBytes32Width, abiUInt256, isDynamicABIType,
-    staticABIEncodedSize?, decodeABIValue?, readBytes?, hlen0]
-  have hlen32le : 32 ≤ bytes.length - 32 := by
-    rw [List.length_take, List.length_drop] at hlen32
-    omega
-  rw [if_pos hlen32le]
-  have hlen64le : 32 ≤ bytes.length - 64 := by
-    rw [List.length_take, List.length_drop] at hlen64
-    omega
-  simp [readWord?, readBytes?, decodeABIWord?, hlen64]
-  exact normalizeInt_uint256_word (ABI.bytesToWord ((bytes.drop 64).take 32))
-
--- LIBRARY CANDIDATE: legacy solc05 short-calldata rejection for `(bytes32,bytes32,uint256)`.
-theorem decodeABIValues_bytes32_bytes32_uint256_legacy_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 96) :
-    decodeABIValues? [abiBytes32, abiBytes32, abiUInt256] bytes 0 0 96 96
-        DecodeMode.legacySolc05 =
-      none := by
-  simp only [decodeABIValues?, abiBytes32, abiBytes32Width, abiUInt256, isDynamicABIType,
-    Bool.false_eq_true, if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have hnot : ¬ 32 ≤ bytes.length := by omega
-    simp [decodeABIValue?, readBytes?, hnot]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    simp [decodeABIValue?, readBytes?, htake0]
-    by_cases h64 : bytes.length < 64
-    · have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
-        rw [List.length_take, List.length_drop]
-        omega
-      have hnot : ¬ 32 ≤ bytes.length - 32 := by
-        rw [List.length_take, List.length_drop] at htake32n
-        omega
-      simp [readBytes?, hnot]
-    · have htake32 : ((bytes.drop 32).take 32).length = 32 := by
-        rw [List.length_take, List.length_drop]
-        omega
-      have hlen32le : 32 ≤ bytes.length - 32 := by omega
-      rw [if_pos hlen32le]
-      have hnot : ¬ 32 ≤ bytes.length - 64 := by omega
-      simp [readWord?, readBytes?, hnot]
-
-theorem decodeCalldata_legacyBytes32_bytes32_uint256_ok {cd : ByteArray}
-    {x y z : Solm.Ident} (hsz100 : 100 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y, z]
-        [abiBytes32, abiBytes32, abiUInt256] cd =
-      some ((((∅ : Solm.Store).insert x
-        (.fixedBytes abiBytes32Width ((cd.toList.drop 4).take 32))).insert y
-        (.fixedBytes abiBytes32Width ((cd.toList.drop 36).take 32))).insert z
-        (.int (Int.ofNat (calldataWord cd 68).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake68 : ((cd.toList.drop 68).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword68 : ABI.bytesToWord ((cd.toList.drop 68).take 32) = calldataWord cd 68 :=
-    decode_word_at_eq cd 68 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiBytes32, abiUInt256] = some 96 by native_decide]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_bytes32_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake68)]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega : ¬ (cd.toList.drop 4).length < 96)]
-  simp [decodeCalldata.insertValues]
-  rw [hword68]
-
-theorem decodeCalldata_legacyBytes32_bytes32_uint256_none_short {cd : ByteArray}
-    {x y z : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 100) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y, z]
-        [abiBytes32, abiBytes32, abiUInt256] cd =
-      none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiBytes32, abiUInt256] = some 96 by native_decide]
-  simp only [bind, Option.bind]
-  by_cases hbytes : (cd.toList.drop 4).length < 96
-  · rw [if_pos hbytes]
-  · rw [if_neg hbytes]
-    rw [decodeABIValues_bytes32_bytes32_uint256_legacy_none_short
-      (bytes := cd.toList.drop 4) (by
-        rw [List.length_drop, htlen]
-        omega)]
 
 theorem jugDecode_fileDuty_ok {I : ExecutionEnv} (hsz100 : 100 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (fileDutyTransition.params.map Param.name)
@@ -347,13 +230,13 @@ theorem evalExpr_fileDutyStorageDuty (evm : EVM.State) (I : ExecutionEnv)
     evalExpr? config { contract := contract, locals := fileDutyLocals I } evm
       (.storage (ilksF (.var "ilk") "duty")) =
         .ok (.int (Int.ofNat
-          (jugSlotWord (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := fileDutyLocals I }) (evm := evm)
     (slot := ilksF (.var "ilk") "duty") (er := fileDutyDutyEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (fileDutyDutySlotFor I))
     (value := .int (Int.ofNat
-      (jugSlotWord (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat))
+      (solcSlotWordAt (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat))
     (fileDutyLocals_get_ilks I)
     (by
       have hkeyLen : (fileDutyIlkBytes I).length = ↑bytes32Width + 1 := by
@@ -366,20 +249,20 @@ theorem evalExpr_fileDutyStorageDuty (evm : EVM.State) (I : ExecutionEnv)
       simp [fileDutyIlkKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         IlkStructTy, uint256St])
     (by rfl)
-    (by simpa [jugSlotWord] using jugStorageLocLoad_uint256 evm (fileDutyDutySlotFor I))
+    (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (fileDutyDutySlotFor I))
 
 theorem evalExpr_fileDutyStorageRho (evm : EVM.State) (I : ExecutionEnv)
     (hsz36 : 36 ≤ I.calldata.size) :
     evalExpr? config { contract := contract, locals := fileDutyLocals I } evm
       (.storage (ilksF (.var "ilk") "rho")) =
         .ok (.int (Int.ofNat
-          (jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := fileDutyLocals I }) (evm := evm)
     (slot := ilksF (.var "ilk") "rho") (er := fileDutyRhoEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (fileDutyRhoSlotFor I))
     (value := .int (Int.ofNat
-      (jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat))
+      (solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat))
     (fileDutyLocals_get_ilks I)
     (by
       have hkeyLen : (fileDutyIlkBytes I).length = ↑bytes32Width + 1 := by
@@ -392,12 +275,12 @@ theorem evalExpr_fileDutyStorageRho (evm : EVM.State) (I : ExecutionEnv)
       simp [fileDutyIlkKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         IlkStructTy, uint256St])
     (by rfl)
-    (by simpa [jugSlotWord] using jugStorageLocLoad_uint256 evm (fileDutyRhoSlotFor I))
+    (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (fileDutyRhoSlotFor I))
 
 theorem evalExpr_fileDutyNowEqRho_true {evm : EVM.State} {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size)
     (htime :
-      jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv =
+      solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv =
         UInt256.ofNat evm.executionEnv.header.timestamp) :
     evalExpr? config { contract := contract, locals := fileDutyLocals I } evm
       (.binary .eq (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) =
@@ -406,7 +289,7 @@ theorem evalExpr_fileDutyNowEqRho_true {evm : EVM.State} {I : ExecutionEnv}
   have hval :
       (Value.int (Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat) ==
         Value.int (Int.ofNat
-          (jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) =
+          (solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) =
         true := by
     rw [← htime]
     simp
@@ -416,7 +299,7 @@ theorem evalExpr_fileDutyNowEqRho_false {evm : EVM.State} {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size)
     (htime :
       UInt256.ofNat evm.executionEnv.header.timestamp ≠
-        jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv) :
+        solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv) :
     evalExpr? config { contract := contract, locals := fileDutyLocals I } evm
       (.binary .eq (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) =
         .ok (.bool false) := by
@@ -424,7 +307,7 @@ theorem evalExpr_fileDutyNowEqRho_false {evm : EVM.State} {I : ExecutionEnv}
   have hval :
       (Value.int (Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat) ==
         Value.int (Int.ofNat
-          (jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) =
+          (solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) =
         false := by
     rw [beq_eq_false_iff_ne]
     intro hbad
@@ -456,19 +339,21 @@ theorem assign_fileDutyStorage (evm : EVM.State) (I : ExecutionEnv)
         simp [fileDutyIlkKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
           IlkStructTy, uint256St])
       (hloc := by rfl)
-  simpa [evm'] using jugStorageLocStore_uint256 evm (fileDutyDutySlotFor I) (fileDutyData I)
+  simpa [evm'] using storageLocStore_uint256 evm (fileDutyDutySlotFor I) (fileDutyData I)
 
-theorem jugFileDutySourceBody {σ σ₀ A I} {g : UInt256}
+theorem jugFileDutySourceBodySplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (htime : jugSlotWord (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp)
+    (htime : solcSlotWordAt (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp)
     (hwhat : fileDutyWhatBytes I = fileDutyBytes) :
     let locals := fileDutyLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (fileDutyDutySlotFor I) (fileDutyData I)
     ExecTransitionBody config contract evm0 locals fileDutyTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) := by
+      (.returned { contract := contract, locals := locals } evm1 none) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 locals fileDutyTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -477,15 +362,15 @@ theorem jugFileDutySourceBody {σ σ₀ A I} {g : UInt256}
       (by simpa [locals] using fileDutyLocals_get_wards I)
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have htimeGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) =
           .ok (.bool true) := by
-    simpa [locals, evm0, initState, jugSlotWord] using
+    simpa [locals, evm0, initState, solcSlotWordAt] using
       (evalExpr_fileDutyNowEqRho_true (evm := evm0) (I := I) hsz36 (by
-        simpa [evm0, initState, jugSlotWord] using htime))
+        simpa [evm0, initState, solcSlotWordAt] using htime))
   have hcond :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.var "what") dutyParamLit) = .ok (.bool true) := by
@@ -502,20 +387,48 @@ theorem jugFileDutySourceBody {σ σ₀ A I} {g : UInt256}
         .storage (ilksF (.var "ilk") "duty") (.int (Int.ofNat (fileDutyData I).toNat)) =
           .ok ({ contract := contract, locals := locals }, evm1) := by
     simpa [locals, evm1] using assign_fileDutyStorage evm0 I hsz36
-  have hthen :
+  have hbody : ∀ r, ExecStmt config { contract := contract, locals := locals } evm0
+      (.assign .storage (ilksF (.var "ilk") "duty") (.var "data")) r →
       ExecBlock config { contract := contract, locals := locals } evm0
-        [.assign .storage (ilksF (.var "ilk") "duty") (.var "data")]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileDutyTransition.body
-        (.ok { contract := contract, locals := locals } evm1) := by
+        fileDutyTransition.body r := by
+    intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue htimeGuard) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
-  simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteTrue hcond
+      (execBlock_singleton h))
+  refine ⟨?_, fun hpf => ?_⟩
+  · simpa [ExecTransitionBody, locals, evm0, evm1] using
+      ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign hdata hassign))
+  · simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockStatic
+      (hbody _ (ExecStmt.assignStatic hdata hassign (by simp [evm0, initState]; exact hpf)))
+
+theorem jugFileDutySourceBody {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (htime : solcSlotWordAt (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp)
+    (hwhat : fileDutyWhatBytes I = fileDutyBytes) :
+    let locals := fileDutyLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (fileDutyDutySlotFor I) (fileDutyData I)
+    ExecTransitionBody config contract evm0 locals fileDutyTransition.body
+      (.returned { contract := contract, locals := locals } evm1 none) :=
+  (jugFileDutySourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hsz36 hauth htime hwhat).1
+
+theorem jugFileDutySourceBodyStatic {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (htime : solcSlotWordAt (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp)
+    (hwhat : fileDutyWhatBytes I = fileDutyBytes)
+    (hperm : I.perm = false) :
+    let locals := fileDutyLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 locals fileDutyTransition.body
+      .staticViolation :=
+  (jugFileDutySourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hsz36 hauth htime hwhat).2 hperm
 
 theorem jugFileDutySourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -531,7 +444,7 @@ theorem jugFileDutySourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
       (by simpa [locals] using fileDutyLocals_get_wards I)
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [fileDutyTransition, nonpayable, auth] using
@@ -552,7 +465,7 @@ theorem jugFileDutySourceBodyRhoReverts {σ σ₀ A I} {g : UInt256}
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (htime :
-      UInt256.ofNat I.header.timestamp ≠ jugSlotWord (fileDutyRhoSlotFor I) σ I) :
+      UInt256.ofNat I.header.timestamp ≠ solcSlotWordAt (fileDutyRhoSlotFor I) σ I) :
     let locals := fileDutyLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileDutyTransition.body .reverted := by
@@ -564,15 +477,15 @@ theorem jugFileDutySourceBodyRhoReverts {σ σ₀ A I} {g : UInt256}
       (by simpa [locals] using fileDutyLocals_get_wards I)
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have htimeGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) =
           .ok (.bool false) := by
-    simpa [locals, evm0, initState, jugSlotWord] using
+    simpa [locals, evm0, initState, solcSlotWordAt] using
       (evalExpr_fileDutyNowEqRho_false (evm := evm0) (I := I) hsz36 (by
-        simpa [evm0, initState, jugSlotWord] using htime))
+        simpa [evm0, initState, solcSlotWordAt] using htime))
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 fileDutyTransition.body
         .reverted := by
@@ -586,7 +499,7 @@ theorem jugFileDutySourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (htime : jugSlotWord (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp)
+    (htime : solcSlotWordAt (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp)
     (hwhat : fileDutyWhatBytes I ≠ fileDutyBytes) :
     let locals := fileDutyLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -599,15 +512,15 @@ theorem jugFileDutySourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
       (by simpa [locals] using fileDutyLocals_get_wards I)
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have htimeGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) =
           .ok (.bool true) := by
-    simpa [locals, evm0, initState, jugSlotWord] using
+    simpa [locals, evm0, initState, solcSlotWordAt] using
       (evalExpr_fileDutyNowEqRho_true (evm := evm0) (I := I) hsz36 (by
-        simpa [evm0, initState, jugSlotWord] using htime))
+        simpa [evm0, initState, solcSlotWordAt] using htime))
   have hcond :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.var "what") dutyParamLit) = .ok (.bool false) := by
@@ -754,7 +667,7 @@ theorem jugFileDutyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (relyAuthWord σ I :: fileDutyData I :: fileDutyWhatWord I :: fileDutyIlkWord I ::
         ⟨226⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k620 C620 := by
-    simpa [relyAuthWord, jugSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd620raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd620raw
   have rd623pre := evm_run rd620 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -803,7 +716,7 @@ theorem jugFileDutyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (relyAuthWord σ I :: fileDutyData I :: fileDutyWhatWord I :: fileDutyIlkWord I ::
         ⟨226⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k620 C620 := by
-    simpa [relyAuthWord, jugSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd620raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd620raw
   have rd623pre := evm_run rd620 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -833,7 +746,7 @@ theorem jugFileDutyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 theorem jugFileDutyX_rhoOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size)
-    (htime : jugSlotWord (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp)
+    (htime : solcSlotWordAt (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp)
     (h : RD jugBytecode I g s0 ⟨692⟩
       [fileDutyData I, fileDutyWhatWord I, fileDutyIlkWord I, ⟨226⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -869,10 +782,10 @@ theorem jugFileDutyX_rhoOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd711 := rd710.add (by native_decide) (by evm_ov)
   obtain ⟨k712, C712, rd712raw⟩ := rd711.sload (by native_decide) (by evm_ov)
   have rd712 : RD jugBytecode I g s0 ⟨712⟩
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I :: fileDutyData I :: fileDutyWhatWord I ::
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I :: fileDutyData I :: fileDutyWhatWord I ::
         fileDutyIlkWord I :: ⟨226⟩ :: [sel])
       (fileDutyIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k712 C712 := by
-    simpa [jugSlotWord, fileDutyRhoSlotFor_eq hsz36] using rd712raw
+    simpa [solcSlotWordAt, fileDutyRhoSlotFor_eq hsz36] using rd712raw
   have rd713 := RD.timestamp rd712 (by native_decide) (by evm_ov)
   have rd714 := rd713.eq (by native_decide) (by evm_ov)
   rw [← htime, u256_eq_refl] at rd714
@@ -884,7 +797,7 @@ theorem jugFileDutyX_rhoOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 theorem jugFileDutyX_rhoReverts {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size)
     (htime :
-      UInt256.ofNat I.header.timestamp ≠ jugSlotWord (fileDutyRhoSlotFor I) σ I)
+      UInt256.ofNat I.header.timestamp ≠ solcSlotWordAt (fileDutyRhoSlotFor I) σ I)
     (h : RD jugBytecode I g s0 ⟨692⟩
       [fileDutyData I, fileDutyWhatWord I, fileDutyIlkWord I, ⟨226⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -918,14 +831,14 @@ theorem jugFileDutyX_rhoReverts {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd711 := rd710.add (by native_decide) (by evm_ov)
   obtain ⟨k712, C712, rd712raw⟩ := rd711.sload (by native_decide) (by evm_ov)
   have rd712 : RD jugBytecode I g s0 ⟨712⟩
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I :: fileDutyData I :: fileDutyWhatWord I ::
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I :: fileDutyData I :: fileDutyWhatWord I ::
         fileDutyIlkWord I :: ⟨226⟩ :: [sel])
       (fileDutyIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k712 C712 := by
-    simpa [jugSlotWord, fileDutyRhoSlotFor_eq hsz36] using rd712raw
+    simpa [solcSlotWordAt, fileDutyRhoSlotFor_eq hsz36] using rd712raw
   have rd713 := RD.timestamp rd712 (by native_decide) (by evm_ov)
   have rd714 := rd713.eq (by native_decide) (by evm_ov)
   have heq : UInt256.eq (UInt256.ofNat I.header.timestamp)
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I) = ⟨0⟩ := by
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I) = ⟨0⟩ := by
     exact u256_eq_of_ne htime
   rw [heq] at rd714
   have rd717 := rd714.pushConst (⟨784⟩ : UInt256)
@@ -949,15 +862,17 @@ theorem jugFileDutyX_rhoReverts {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (fileDutyIlkHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem jugFileDutyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size) (hperm : I.perm = true)
+theorem jugFileDutyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size)
     (hmatch : fileDutyWhatWord I = ABI.bytesToWord fileDutyBytes)
     (h : RD jugBytecode I g s0 ⟨784⟩
       [fileDutyData I, fileDutyWhatWord I, fileDutyIlkWord I, ⟨226⟩, sel]
       (fileDutyIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
     RDret jugBytecode g s0
       (sstoreAccountMap I.codeOwner σ (fileDutyDutySlotFor I) (fileDutyData I))
-      ByteArray.empty := by
+      ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic jugBytecode g s0) := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((fileDutyIlkStoreHashMem I).readWithPadding 0 64))) =
@@ -1000,6 +915,11 @@ theorem jugFileDutyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ
     (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   have rd815 := rd814.dup2 (by native_decide) (by evm_ov)
   have rd816 := rd815.swap1 (by native_decide) (by evm_ov)
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd816.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd817⟩ := rd816.sstore hperm (by native_decide) (by evm_ov)
   have rd820 := rd817.push2 ⟨898⟩ (by native_decide) (by evm_ov)
   have rd898 := rd820.jump (by native_decide) (by jump_dest) (by evm_ov)
@@ -1010,6 +930,17 @@ theorem jugFileDutyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have rd226 := rd902.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd227 := rd226.jumpdest (by native_decide) (by evm_ov)
   simpa [fileDutyDutySlotFor_eq hsz36] using RD.stop rd227 (by native_decide) (by evm_ov)
+
+theorem jugFileDutyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size) (hperm : I.perm = true)
+    (hmatch : fileDutyWhatWord I = ABI.bytesToWord fileDutyBytes)
+    (h : RD jugBytecode I g s0 ⟨784⟩
+      [fileDutyData I, fileDutyWhatWord I, fileDutyIlkWord I, ⟨226⟩, sel]
+      (fileDutyIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret jugBytecode g s0
+      (sstoreAccountMap I.codeOwner σ (fileDutyDutySlotFor I) (fileDutyData I))
+      ByteArray.empty :=
+  permSplit_true hperm (jugFileDutyX_storeAuthorizedSplit hsz36 hmatch h)
 
 theorem jugFileDutyX_unrecognized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
@@ -1070,7 +1001,7 @@ theorem jugFileDutyBodyCoreOk
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (htime : jugSlotWord (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp)
+    (htime : solcSlotWordAt (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp)
     (hwhat : fileDutyWhatBytes I = fileDutyBytes)
     (hdispatch : dispatchMsg contract I.calldata = some fileDutyTransition)
     (hdecode :
@@ -1086,7 +1017,7 @@ theorem jugFileDutyBodyCoreOk
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := Solm.EVM.storageStore evm0 I.codeOwner dutySlot data
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
-  have htimeSolm : jugSlotWord (fileDutyRhoSlotFor I) σ I =
+  have htimeSolm : solcSlotWordAt (fileDutyRhoSlotFor I) σ I =
       UInt256.ofNat I.header.timestamp := htime
   have hbody :
       ExecTransitionBody config contract evm0 locals fileDutyTransition.body
@@ -1108,6 +1039,34 @@ theorem jugFileDutyBodyCoreOk
       simpa [fileDutyTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
           (dvs := []) rfl (by native_decide) (by native_decide)))
+
+theorem jugFileDutyBodyCoreStatic
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = jugBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
+    (hsz100 : 100 ≤ I.calldata.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (htime : solcSlotWordAt (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp)
+    (hwhat : fileDutyWhatBytes I = fileDutyBytes)
+    (hdispatch : dispatchMsg contract I.calldata = some fileDutyTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (fileDutyTransition.params.map Param.name)
+        (transitionSignature fileDutyTransition).paramTypes I.calldata = some (fileDutyLocals I))
+    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨185⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  obtain ⟨_, _, hdecoded⟩ := jugFileDutyX_decoded (g := Sat256.ofUInt256 g)
+    hsz100 hsize hreach
+  obtain ⟨_, _, hauthz⟩ := jugFileDutyX_authorized (I := I) hauth hdecoded
+  obtain ⟨_, _, htimeOk⟩ := jugFileDutyX_rhoOk (I := I) (by omega) htime hauthz
+  have hmatch : fileDutyWhatWord I = ABI.bytesToWord fileDutyBytes :=
+    fileDutyWhatWord_eq_of_bytes_eq (by omega) hwhat
+  exact (permSplit_false hperm
+      (jugFileDutyX_storeAuthorizedSplit (I := I) (by omega) hmatch htimeOk))
+    |>.reEquivStaticHalt hcode hdispatch hdecode
+      (jugFileDutySourceBodyStatic (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        hwv (by omega) hauth htime hwhat hperm)
 
 theorem jugFileDutyBodyCoreUnauthorized
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -1143,7 +1102,7 @@ theorem jugFileDutyBodyCoreRhoMismatch
     (hsz100 : 100 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (htime :
-      UInt256.ofNat I.header.timestamp ≠ jugSlotWord (fileDutyRhoSlotFor I) σ I)
+      UInt256.ofNat I.header.timestamp ≠ solcSlotWordAt (fileDutyRhoSlotFor I) σ I)
     (hdispatch : dispatchMsg contract I.calldata = some fileDutyTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (fileDutyTransition.params.map Param.name)
@@ -1156,7 +1115,7 @@ theorem jugFileDutyBodyCoreRhoMismatch
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
   have htimeSolm :
-      UInt256.ofNat I.header.timestamp ≠ jugSlotWord (fileDutyRhoSlotFor I) σ I := htime
+      UInt256.ofNat I.header.timestamp ≠ solcSlotWordAt (fileDutyRhoSlotFor I) σ I := htime
   have hbody :
       ExecTransitionBody config contract evm0 locals fileDutyTransition.body .reverted := by
     simpa [evm0, locals] using
@@ -1174,7 +1133,7 @@ theorem jugFileDutyBodyCoreUnrecognized
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (htime : jugSlotWord (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp)
+    (htime : solcSlotWordAt (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp)
     (hwhat : fileDutyWhatBytes I ≠ fileDutyBytes)
     (hdispatch : dispatchMsg contract I.calldata = some fileDutyTransition)
     (hdecode :
@@ -1187,7 +1146,7 @@ theorem jugFileDutyBodyCoreUnrecognized
   let locals := fileDutyLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
-  have htimeSolm : jugSlotWord (fileDutyRhoSlotFor I) σ I =
+  have htimeSolm : solcSlotWordAt (fileDutyRhoSlotFor I) σ I =
       UInt256.ofNat I.header.timestamp := htime
   have hbody :
       ExecTransitionBody config contract evm0 locals fileDutyTransition.body .reverted := by
@@ -1233,9 +1192,45 @@ theorem jugFileDutyBody {σ σ₀ A I} {g : UInt256}
   by_cases hsz100 : 100 ≤ I.calldata.size
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
     · by_cases htime :
-        jugSlotWord (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp
+        solcSlotWordAt (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp
       · by_cases hwhat : fileDutyWhatBytes I = fileDutyBytes
         · exact jugFileDutyBodyCoreOk hcode hsize hperm hwv hsz100 hauth htime hwhat
+            hdispatch (jugDecode_fileDuty_ok hsz100) hreach
+        · exact jugFileDutyBodyCoreUnrecognized hcode hsize hwv hsz100 hauth htime hwhat
+            hdispatch (jugDecode_fileDuty_ok hsz100) hreach
+      · exact jugFileDutyBodyCoreRhoMismatch hcode hsize hwv hsz100 hauth (by
+          intro hbad
+          exact htime hbad.symm)
+          hdispatch (jugDecode_fileDuty_ok hsz100) hreach
+    · exact jugFileDutyBodyCoreUnauthorized hcode hsize hwv hsz100 hauth hdispatch
+        (jugDecode_fileDuty_ok hsz100) hreach
+  · exact jugFileDutyBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
+      hdispatch hreach
+
+/-- `file(bytes32,bytes32,uint256)` (`duty`) with any call permission; a static call halts at the
+    `duty` `SSTORE`. -/
+theorem jugFileDutyBodyAnyPerm {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = jugBytecode)
+    (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I (jugSelBytes 4)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact jugFileDutyBody hcode hsize hperm hwv hsel
+  replace hperm : I.perm = false := by simpa using hperm
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I (jugSelBytes 4) rfl hsel
+  have hdispatch : dispatchMsg contract I.calldata = some fileDutyTransition :=
+    jugDispatchFileDuty hsel
+  have hreach := jugReachFileDutyBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz4 hsize hsel
+  by_cases hsz100 : 100 ≤ I.calldata.size
+  · by_cases hauth : relyAuthWord σ I = ⟨1⟩
+    · by_cases htime :
+        solcSlotWordAt (fileDutyRhoSlotFor I) σ I = UInt256.ofNat I.header.timestamp
+      · by_cases hwhat : fileDutyWhatBytes I = fileDutyBytes
+        · exact jugFileDutyBodyCoreStatic hcode hsize hperm hwv hsz100 hauth htime hwhat
             hdispatch (jugDecode_fileDuty_ok hsz100) hreach
         · exact jugFileDutyBodyCoreUnrecognized hcode hsize hwv hsz100 hauth htime hwhat
             hdispatch (jugDecode_fileDuty_ok hsz100) hreach

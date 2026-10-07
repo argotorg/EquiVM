@@ -64,7 +64,7 @@ theorem uniswapBurnBody
               simp only [evalExpr?, EvalResult.ofOption, burnCacheStore_token0])
       by_cases hnoCode : extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
           (UInt256.land solcAddrMask
-            (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) = ⟨0⟩
+            (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) = ⟨0⟩
       · have hbody := uniswapBurnBodyReverts_firstNoCode evmS I
           (by simpa only [evmS, initState] using hwv) hunlockedSolm
           (by simpa only [hnoCode] using hguard)
@@ -74,7 +74,7 @@ theorem uniswapBurnBody
       · have hpositive : 0 < (extCodeSizeWord
             (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))).toNat := by
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))).toNat := by
           exact Nat.pos_of_ne_zero (fun hz => hnoCode (uint256_toNat_eq_zero hz))
         simp only [hpositive, decide_true] at hguard
         let evmL := uniswapLockEnteredState evmS
@@ -91,12 +91,12 @@ theorem uniswapBurnBody
             uniswapBalanceTypedCallFromState_source (evm1S := evmL) (inOff := ⟨128⟩)
               hpost
               (by simp only [evmL, uniswapLockEnteredState, uniswapUnlockedState,
-                balanceCallStorageStore_sigma0, evmS, initState])
+                storageStore_σ0, evmS, initState])
               he hdepth (balanceOfThisCalldataMem_encode I.codeOwner) hΘ
           have hcall : typedCallViaEVM config evmL
               (EVM.address (uniswapAddressAtSlot evmL ⟨6⟩)) "balanceOf" 0
               [.address evmL.executionEnv.codeOwner] (z, evm0, out) false := by
-            rw [balanceCallAddress_self, uniswapAddressAtSlot_eq_runtime ⟨6⟩ hpost he]
+            rw [address_of_val, uniswapAddressAtSlot_eq_runtime ⟨6⟩ hpost he]
             exact hcallRaw
           cases hz : z with
           | false =>
@@ -125,7 +125,7 @@ theorem uniswapBurnBody
               obtain ⟨_, _, rd4324⟩ := hcont hz hout32
               let balance0 := UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))
               let token1 := UInt256.land solcAddrMask
-                (uniswapSlotWord ⟨7⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)
+                (solcSlotWordAt ⟨7⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)
               have hdec0 : config.externalABI.decode? "balanceOf" out =
                   some [uniswapUint256Value balance0] := uniswapBalanceOfDecode_ok hout32
               have hfirst : ExecBlock config { contract := contract, locals := locals } evmL
@@ -137,7 +137,7 @@ theorem uniswapBurnBody
                 rd4324 hout32 houtSize (by simp only [List.length_cons, List.length_nil]; omega)
               have hclean1 : UInt256.land token1 solcAddrMask = token1 := by
                 rw [u256_land_comm token1 solcAddrMask]
-                exact u256_land_solcAddrMask_idem_left _
+                exact solcAddrMask_idem_left_left _
               dsimp only [token1] at hclean1
               simp only [hclean1] at rd4387
               have haddr1 : uniswapAddressAtSlot evmL ⟨7⟩ = AccountAddress.ofUInt256 token1 :=
@@ -171,7 +171,7 @@ theorem uniswapBurnBody
                 have hσ0L : evmL.σ₀ = σ₀ := by
                   simpa [evmL, uniswapLockEnteredState, uniswapUnlockedState, evmS,
                     initState] using
-                    balanceCallStorageStore_sigma0 evmS evmS.executionEnv.codeOwner ⟨12⟩ ⟨0⟩
+                    storageStore_σ0 evmS evmS.executionEnv.codeOwner ⟨12⟩ ⟨0⟩
                 obtain ⟨evm1, hcallRaw1, ha1, he1, hs1⟩ :=
                   uniswapBalanceTypedCallFromState_source (evm1S := evm0) (inOff := ⟨128⟩)
                     ha0.symm hs0 he0I hdepth
@@ -180,7 +180,7 @@ theorem uniswapBurnBody
                 have hcall1 : typedCallViaEVM config evm0
                     (EVM.address (uniswapAddressAtSlot evmL ⟨7⟩)) "balanceOf" 0
                     [.address evm0.executionEnv.codeOwner] (z1, evm1, out1) false := by
-                  rw [balanceCallAddress_self, haddr1]
+                  rw [address_of_val, haddr1]
                   exact hcallRaw1
                 cases hz1 : z1 with
                 | false =>
@@ -304,22 +304,22 @@ theorem uniswapBurnBody
                               storageStore_executionEnv] using heFee
                           have hsBurn : evmBurn.σ₀ = σ₀ := by
                             simpa only [evmBurn, burnFunctionPostState, burnFunctionAfterBalanceState,
-                              balanceCallStorageStore_sigma0, initState] using hsFee
+                              storageStore_σ0, initState] using hsFee
                           obtain ⟨_, _, rd6370⟩ := uniswapBurnRuntimeFirstSafeTransferEntry rd4617
                             (by simp only [List.length_cons, List.length_nil]; omega)
                           have htransferArgs := evalExprs_burn_firstSafeTransferArgs
                             evmL evm1 evmFee evmBurn I balance0 balance1 feeOn
                           have htarget0 : EVM.address (uniswapAddressAtSlot evmL ⟨6⟩) =
                               AccountAddress.ofUInt256 (UInt256.land
-                                (UInt256.land solcAddrMask (uniswapSlotWord ⟨6⟩
+                                (UInt256.land solcAddrMask (solcSlotWordAt ⟨6⟩
                                   (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) solcAddrMask) := by
-                            rw [uniswapAddress_self, uniswapAddressAtSlot_eq_runtime ⟨6⟩ hpost he]
+                            rw [address_of_val, uniswapAddressAtSlot_eq_runtime ⟨6⟩ hpost he]
                             exact congrArg AccountAddress.ofUInt256
                               ((u256_land_comm _ solcAddrMask).trans
-                                (u256_land_solcAddrMask_idem_left _)).symm
+                                (solcAddrMask_idem_left_left _)).symm
                           have hrecipient : UInt256.ofNat (AccountAddress.ofNat (burnToWord I).toNat).val =
                               UInt256.land solcAddrMask (burnToMaskedWord I) := by
-                            rw [burnToMaskedWord, u256_land_solcAddrMask_idem_left]
+                            rw [burnToMaskedWord, solcAddrMask_idem_left_left]
                             exact (keyValueToWord_address _).symm.trans
                               (keyValueToWord_address_ofNat_mask (burnToWord I))
                           rcases uniswapSafeTransferCallRuntimeCases (retVar := "ok0") evmBurn
@@ -343,12 +343,12 @@ theorem uniswapBurnBody
                               evmL evm1 evmFee evmTransfer0 I balance0 balance1 feeOn
                             have htarget1 : EVM.address (uniswapAddressAtSlot evmL ⟨7⟩) =
                                 AccountAddress.ofUInt256 (UInt256.land
-                                  (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩
+                                  (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩
                                     (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) solcAddrMask) := by
-                              rw [uniswapAddress_self, uniswapAddressAtSlot_eq_runtime ⟨7⟩ hpost he]
+                              rw [address_of_val, uniswapAddressAtSlot_eq_runtime ⟨7⟩ hpost he]
                               exact congrArg AccountAddress.ofUInt256
                                 ((u256_land_comm _ solcAddrMask).trans
-                                  (u256_land_solcAddrMask_idem_left _)).symm
+                                  (solcAddrMask_idem_left_left _)).symm
                             rcases uniswapSafeTransferDynamicCallRuntimeCases (ptr := ptr1) (retVar := "ok1") evmTransfer0
                                 (uniswapAddressAtSlot evmL ⟨7⟩) (AccountAddress.ofNat (burnToWord I).toNat)
                                 rd6370Second haTransfer0 heTransfer0 hsTransfer0
@@ -386,7 +386,7 @@ theorem uniswapBurnBody
                               rcases uniswapBurnUpdatedBalanceCallRuntimeCases (second := false)
                                   evmTransfer1 (uniswapAddressAtSlot evmL ⟨6⟩) localsTransfers "_token0" "newBalance0"
                                   rd4697 haTransfer1 heTransfer1 hsTransfer1 hreceiver2
-                                  (by simpa only [uniswapAddress_self] using htarget0) hdepth
+                                  (by simpa only [address_of_val] using htarget0) hdepth
                                   (le_trans (by decide) hmTransfer1) hgapTransfer1 (by omega) hawTransfer1 hfitPtr2 h64Transfer1
                                   (by simp only [List.length_cons, List.length_nil]; omega) with
                                 ⟨hbalance2, rdRev⟩ | ⟨evmBalance2, σBalance2, outBalance2, kBalance2, CBalance2,
@@ -425,7 +425,7 @@ theorem uniswapBurnBody
                                 rcases uniswapBurnUpdatedBalanceCallRuntimeCases (second := true)
                                     evmBalance2 (uniswapAddressAtSlot evmL ⟨7⟩) localsBalance0 "_token1" "newBalance1"
                                     rd4815 haBalance2 heBalance2 hsBalance2 hreceiver3
-                                    (by simpa only [uniswapAddress_self] using htarget1) hdepth
+                                    (by simpa only [address_of_val] using htarget1) hdepth
                                     (le_trans (by decide) hmBalance2) hgapBalance2 (by omega) hawBalance2 hfitPtr2 h64Balance2
                                     (by simp only [List.length_cons, List.length_nil]; omega) with
                                   ⟨hbalance3, rdRev⟩ | ⟨evmBalance3, σBalance3, outBalance3, kBalance3, CBalance3,
@@ -510,6 +510,46 @@ theorem uniswapBurnBody
               hcode hdispatch (uniswapDecode_burn_ok hsz36)
               (uniswapBurnBodyReverts_firstBalanceBlock evmS I
                 (by simpa only [evmS, initState] using hwv) hunlockedSolm hfirst)
+  · exact uniswapBurnBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
+
+/-- `burn` with any call permission; a static call halts at the lock-entry `SSTORE`. -/
+theorem uniswapBurnBodyAnyPerm
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x89, 0xaf, 0xcb, 0x44]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some burnTransition) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact uniswapBurnBody hcode hsize hperm hwv hsel hdispatch
+  replace hperm : I.perm = false := by simpa using hperm
+  by_cases hsz36 : 36 ≤ I.calldata.size
+  · by_cases hlocked :
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
+        ⟨1⟩
+    · exact uniswapBurnBodyRevert_locked hcode hsize hwv hsel hsz36 hlocked hdispatch
+    · have hunlocked :
+        (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
+          ⟨1⟩ := by
+        exact not_not.mp hlocked
+      have hsz4 : 4 ≤ I.calldata.size :=
+        calldata_size_ge_of_selIs I ⟨#[0x89, 0xaf, 0xcb, 0x44]⟩ rfl hsel
+      have hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1163⟩
+          [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+          σ k C :=
+        uniswapReachBurnBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
+      let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
+      have hunlockedSolm :
+          Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
+        simpa [evmS, initState, Solm.EVM.storageLoad,
+          Ethereum.State.lookupAccount, Ethereum.Account.lookupStorage] using hunlocked
+      exact (uniswapBurnX_lockEnteredStatic (g := Sat256.ofUInt256 g) hperm hunlocked
+          (uniswapBurnX_decoded_masked (g := Sat256.ofUInt256 g) hsz36 hsize hreach))
+        |>.reEquivStaticHalt hcode hdispatch (uniswapDecode_burn_ok hsz36)
+          (uniswapBurnBodyStatic evmS I (by simp only [evmS, initState]; exact hwv)
+            hunlockedSolm (by simp only [evmS, initState]; exact hperm))
   · exact uniswapBurnBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
 
 end UniswapV2Pair

@@ -1,3 +1,6 @@
+import Reasoning.SolmArithmetic
+import Reasoning.ABIViews
+import Reasoning.WordArithmetic
 import Examples.Pow.Bytecode
 import Examples.Pow.Spec
 import Reasoning.ABI
@@ -10,6 +13,7 @@ import Reasoning.Solc
 import Reasoning.Reach
 import Reasoning.Constructor
 
+
 /-!
 # Pow — runtime-equivalence proof for `pow2(uint256 n)`
 
@@ -21,6 +25,121 @@ Built on the generic `Reasoning` library; the bytecode and Solm spec live in the
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 10000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Pow
+
+/-- `i < n` evaluates from the locals. -/
+theorem evalLt {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {a b : Int}
+    (hi : L.get? "i" = some (.int a)) (hn : L.get? "n" = some (.int b)) :
+    evalExpr? cfg { contract := C, locals := L } evm (.binary .lt (.var "i") (.var "n"))
+      = .ok (.bool (a < b)) := by
+  simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hi, hn]
+
+/-- `r * 2` evaluates from the locals. -/
+theorem evalMul2 {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {a : Int}
+    (hr : L.get? "r" = some (.int a)) :
+    evalExpr? cfg { contract := C, locals := L } evm (.binary .mul (.var "r") (.intLit 2))
+      = .ok (.int (a * 2)) := by
+  simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hr]
+
+/-- `i + 1` evaluates from the locals. -/
+theorem evalAdd1 {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {a : Int}
+    (hi : L.get? "i" = some (.int a)) :
+    evalExpr? cfg { contract := C, locals := L } evm (.binary .add (.var "i") (.intLit 1))
+      = .ok (.int (a + 1)) := by
+  simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hi]
+
+/-- The loop body of `pow2`. -/
+def powLoopBody : List Stmt :=
+  [ .letDecl "r" (some abiUInt256) (.binary .mul (.var "r") (.intLit 2)),
+    .letDecl "i" (some abiUInt256) (.binary .add (.var "i") (.intLit 1)) ]
+
+/-- The loop condition of `pow2`. -/
+def powLoopCond : Expr := .binary .lt (.var "i") (.var "n")
+
+/-- `require(n < 256)` passes when the argument is in range. -/
+theorem evalReqN {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {N : ℕ}
+    (hn : L.get? "n" = some (.int (Int.ofNat N))) (hN : N < 256) :
+    evalExpr? cfg { contract := C, locals := L } evm
+        (.binary .lt (.var "n") (.intLit 256)) = .ok (.bool true) := by
+  have h : (Int.ofNat N < (256 : Int)) := by simp only [Int.ofNat_eq_natCast]; omega
+  simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hn]
+  rw [decide_eq_true h]
+
+end Pow
+
+section
+
+/-- The shared solc return wrapper computes the fixed one-word return length. -/
+theorem sub_ret32_toNat :
+    (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩).toNat = 32 := by
+  decide
+
+end
+
+namespace Pow
+
+/-- **Solm-side loop core.**  With locals `i ↦ i`, `r ↦ 2^i`, `n ↦ N` and `i ≤ N`, the `while` runs
+    (in unbounded `Int`) to an `.ok` state whose locals read `r ↦ 2^N`.  A direct instance of the
+    generic `execWhile_var` Hoare rule (variant `N − i`, coupling invariant on the locals). -/
+theorem powLoopActCore {cfg : Config} {C : ContractDecl} {evm : EVM.State} (N : ℕ) :
+    ∀ (var i : ℕ) (L : Solm.Store),
+      N - i = var → i ≤ N →
+      L.get? "i" = some (.int (Int.ofNat i)) →
+      L.get? "r" = some (.int (Int.ofNat (2 ^ i))) →
+      L.get? "n" = some (.int (Int.ofNat N)) →
+      ∃ L', ExecStmt cfg { contract := C, locals := L } evm (.while powLoopCond powLoopBody)
+              (.ok { contract := C, locals := L' } evm)
+            ∧ L'.get? "r" = some (.int (Int.ofNat (2 ^ N))) := by
+  -- variant-indexed invariant: `var` iterations left ⟺ a counter `i` with `N − i = var`
+  let P : ℕ → Solm.Store → Prop := fun var L =>
+    ∃ i, N - i = var ∧ i ≤ N ∧ L.get? "i" = some (.int (Int.ofNat i))
+      ∧ L.get? "r" = some (.int (Int.ofNat (2 ^ i))) ∧ L.get? "n" = some (.int (Int.ofNat N))
+  have hfalse : ∀ L, P 0 L →
+      evalExpr? cfg { contract := C, locals := L } evm powLoopCond = .ok (.bool false) := by
+    rintro L ⟨i, hvar, hile, hi, _, hn⟩
+    rw [powLoopCond, evalLt hi hn,
+        decide_eq_false (by simp only [Int.ofNat_eq_natCast, Nat.cast_lt]; omega)]
+  have htrue : ∀ v L, P (v + 1) L →
+      evalExpr? cfg { contract := C, locals := L } evm powLoopCond = .ok (.bool true) := by
+    rintro v L ⟨i, hvar, hile, hi, _, hn⟩
+    rw [powLoopCond, evalLt hi hn,
+        decide_eq_true (by simp only [Int.ofNat_eq_natCast, Nat.cast_lt]; omega)]
+  have hstep : ∀ v L, P (v + 1) L →
+      ∃ L', ExecBlock cfg { contract := C, locals := L } evm powLoopBody
+              (.ok { contract := C, locals := L' } evm) ∧ P v L' := by
+    rintro v L ⟨i, hvar, hile, hi, hr, hn⟩
+    have e1 : (Int.ofNat i + 1 : Int) = Int.ofNat (i + 1) := by
+      simp only [Int.ofNat_eq_natCast]; push_cast; ring
+    have e2 : (Int.ofNat (2 ^ i) * 2 : Int) = Int.ofNat (2 ^ (i + 1)) := by
+      simp only [Int.ofNat_eq_natCast]; push_cast [pow_succ]; ring
+    set L1 := L.insert "r" (.int (Int.ofNat (2 ^ i) * 2)) with hL1
+    set L2 := L1.insert "i" (.int (Int.ofNat i + 1)) with hL2
+    have hL2i : L2.get? "i" = some (.int (Int.ofNat (i + 1))) := by rw [hL2, store_get_self, e1]
+    have hL2r : L2.get? "r" = some (.int (Int.ofNat (2 ^ (i + 1)))) := by
+      rw [hL2, store_get_ne _ _ (by decide), hL1, store_get_self, e2]
+    have hL2n : L2.get? "n" = some (.int (Int.ofNat N)) := by
+      rw [hL2, store_get_ne _ _ (by decide), hL1, store_get_ne _ _ (by decide), hn]
+    refine ⟨L2, ?_, i + 1, by omega, by omega, hL2i, hL2r, hL2n⟩
+    refine ExecBlock.consNormal (ExecStmt.letDecl ?_) (ExecBlock.consNormal (ExecStmt.letDecl ?_)
+              ExecBlock.nil)
+    · rw [evalMul2 hr]
+    · show evalExpr? cfg { contract := C, locals := L1 } evm (.binary .add (.var "i") (.intLit 1))
+          = .ok (.int (Int.ofNat i + 1))
+      rw [evalAdd1 (by rw [hL1, store_get_ne _ _ (by decide), hi])]
+  intro var i L hvar hile hi hr hn
+  obtain ⟨L', hwhile, j, hj, hjN, _, hjr, _⟩ :=
+    execWhile_var P hfalse htrue hstep var L ⟨i, hvar, hile, hi, hr, hn⟩
+  exact ⟨L', hwhile, by rw [hjr, show j = N by omega]⟩
+
+end Pow
+
+end
 
 /-- **Selector decode for `pow2`** (instance of the generic `evmSelectorDecode`): the EVM check
     `eq(0x442b7ffb, SHR(calldataload 0, 224))` equals the dispatcher's 4-byte compare. -/
@@ -183,8 +302,6 @@ theorem powX_dispToEq {σ σ₀ A I} {g : Sat256}
   exact rd
 
 
-
-
 /-- **The dispatcher (match path).**  Reuses `powX_dispToEq`, then resolves the selector `EQ`
     to `1` (via `powEvmSelector` + `hmatch`) and takes the `JUMPI` to the function body at
     `0x2d = 45`.  Same statement as before the refactor; only the prefix is now shared. -/
@@ -204,7 +321,6 @@ theorem powX_disp {σ σ₀ A I} {g : Sat256}
   exact evm_run rd with [
       push2 ⟨45⟩,
       jumpiT (by decide) (by jump_dest) ]
-
 
 
 set_option maxRecDepth 10000
@@ -392,20 +508,6 @@ theorem RD.routineexit {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
 end Reasoning.Reach
 
 
-theorem u0 : (⟨0⟩ : UInt256).toNat = 0 := by
-  show (Fin.ofNat _ 0).val = 0; simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt (lt_size_of_lt256 (by norm_num))
-theorem u32 : (⟨32⟩ : UInt256).toNat = 32 := by
-  show (Fin.ofNat _ 32).val = 32; simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt (lt_size_of_lt256 (by norm_num))
-theorem u128 : (⟨128⟩ : UInt256).toNat = 128 := by
-  show (Fin.ofNat _ 128).val = 128; simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt (lt_size_of_lt256 (by norm_num))
-
-/-- `ADD` of two literals (toNat). -/
-theorem add128_32_toNat : ((⟨128⟩ : UInt256) + ⟨32⟩).toNat = 160 := by
-  rw [uadd_toNat, u128, u32]; show (160:ℕ) % UInt256.size = 160; exact Nat.mod_eq_of_lt (lt_size_of_lt256 (by norm_num))
-
-theorem sub_ret32_toNat : (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩).toNat = 32 := by
-  rw [usub_toNat (by rw [add128_32_toNat, u128]; omega), add128_32_toNat, u128]
-
 /-! ## Encoder `0x47 → RETURN` — the ABI-encode-and-return tail (**proved**)
 
 `pc 71` ABI-encodes the return word `val = 2^n` into `mem[0x80 .. 0xa0]` (via the internal
@@ -457,7 +559,9 @@ theorem RD.routineencode {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : �
         (by decide) (by evm_ov),
       dup1, swap2, sub, swap1,
       raw ret 0 (UInt256.toByteArray val) (by decide) mem_cost
-        (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, sub_ret32_toNat, solcReturnMem_read128])
+        (by
+          rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+            sub_ret32_toNat, solcReturnMem_read128])
         (by evm_ov) ]
 
 end Reasoning.Reach
@@ -509,7 +613,6 @@ theorem powX_success {σ σ₀ A I} {g : Sat256}
   exact rd4.routineexit (by jump_dest)
         (by simp only [List.length_cons, List.length_nil]; omega)
       |>.routineencode (by simp only [List.length_cons, List.length_nil]; omega)
-
 
 
 namespace Pow
@@ -682,105 +785,12 @@ theorem powDispatch_unique {cd : ByteArray} {t : TransitionDecl}
 
 /-! ## Store / expression-evaluation helpers -/
 
-/-- `i < n` evaluates from the locals. -/
-theorem evalLt {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {a b : Int}
-    (hi : L.get? "i" = some (.int a)) (hn : L.get? "n" = some (.int b)) :
-    evalExpr? cfg { contract := C, locals := L } evm (.binary .lt (.var "i") (.var "n"))
-      = .ok (.bool (a < b)) := by
-  simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hi, hn]
-
-/-- `r * 2` evaluates from the locals. -/
-theorem evalMul2 {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {a : Int}
-    (hr : L.get? "r" = some (.int a)) :
-    evalExpr? cfg { contract := C, locals := L } evm (.binary .mul (.var "r") (.intLit 2))
-      = .ok (.int (a * 2)) := by
-  simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hr]
-
-/-- `i + 1` evaluates from the locals. -/
-theorem evalAdd1 {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {a : Int}
-    (hi : L.get? "i" = some (.int a)) :
-    evalExpr? cfg { contract := C, locals := L } evm (.binary .add (.var "i") (.intLit 1))
-      = .ok (.int (a + 1)) := by
-  simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hi]
-
-/-- Reading a plain variable from the locals. -/
-theorem evalVar {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {name : Ident}
-    {v : Value} (h : L.get? name = some v) :
-    evalExpr? cfg { contract := C, locals := L } evm (.var name) = .ok v := by
-  simp only [evalExpr?, EvalResult.ofOption, h]
 
 /-! ## The Solm `while` loop computes `2^n` (by induction on the variant `n − i`) -/
 
-/-- The loop body of `pow2`. -/
-def powLoopBody : List Stmt :=
-  [ .letDecl "r" (some Pow.uint256) (.binary .mul (.var "r") (.intLit 2)),
-    .letDecl "i" (some Pow.uint256) (.binary .add (.var "i") (.intLit 1)) ]
-
-/-- The loop condition of `pow2`. -/
-def powLoopCond : Expr := .binary .lt (.var "i") (.var "n")
-
-/-- **Solm-side loop core.**  With locals `i ↦ i`, `r ↦ 2^i`, `n ↦ N` and `i ≤ N`, the `while` runs
-    (in unbounded `Int`) to an `.ok` state whose locals read `r ↦ 2^N`.  A direct instance of the
-    generic `execWhile_var` Hoare rule (variant `N − i`, coupling invariant on the locals). -/
-theorem powLoopActCore {cfg : Config} {C : ContractDecl} {evm : EVM.State} (N : ℕ) :
-    ∀ (var i : ℕ) (L : Solm.Store),
-      N - i = var → i ≤ N →
-      L.get? "i" = some (.int (Int.ofNat i)) →
-      L.get? "r" = some (.int (Int.ofNat (2 ^ i))) →
-      L.get? "n" = some (.int (Int.ofNat N)) →
-      ∃ L', ExecStmt cfg { contract := C, locals := L } evm (.while powLoopCond powLoopBody)
-              (.ok { contract := C, locals := L' } evm)
-            ∧ L'.get? "r" = some (.int (Int.ofNat (2 ^ N))) := by
-  -- variant-indexed invariant: `var` iterations left ⟺ a counter `i` with `N − i = var`
-  let P : ℕ → Solm.Store → Prop := fun var L =>
-    ∃ i, N - i = var ∧ i ≤ N ∧ L.get? "i" = some (.int (Int.ofNat i))
-      ∧ L.get? "r" = some (.int (Int.ofNat (2 ^ i))) ∧ L.get? "n" = some (.int (Int.ofNat N))
-  have hfalse : ∀ L, P 0 L →
-      evalExpr? cfg { contract := C, locals := L } evm powLoopCond = .ok (.bool false) := by
-    rintro L ⟨i, hvar, hile, hi, _, hn⟩
-    rw [powLoopCond, evalLt hi hn,
-        decide_eq_false (by simp only [Int.ofNat_eq_natCast, Nat.cast_lt]; omega)]
-  have htrue : ∀ v L, P (v + 1) L →
-      evalExpr? cfg { contract := C, locals := L } evm powLoopCond = .ok (.bool true) := by
-    rintro v L ⟨i, hvar, hile, hi, _, hn⟩
-    rw [powLoopCond, evalLt hi hn,
-        decide_eq_true (by simp only [Int.ofNat_eq_natCast, Nat.cast_lt]; omega)]
-  have hstep : ∀ v L, P (v + 1) L →
-      ∃ L', ExecBlock cfg { contract := C, locals := L } evm powLoopBody
-              (.ok { contract := C, locals := L' } evm) ∧ P v L' := by
-    rintro v L ⟨i, hvar, hile, hi, hr, hn⟩
-    have e1 : (Int.ofNat i + 1 : Int) = Int.ofNat (i + 1) := by
-      simp only [Int.ofNat_eq_natCast]; push_cast; ring
-    have e2 : (Int.ofNat (2 ^ i) * 2 : Int) = Int.ofNat (2 ^ (i + 1)) := by
-      simp only [Int.ofNat_eq_natCast]; push_cast [pow_succ]; ring
-    set L1 := L.insert "r" (.int (Int.ofNat (2 ^ i) * 2)) with hL1
-    set L2 := L1.insert "i" (.int (Int.ofNat i + 1)) with hL2
-    have hL2i : L2.get? "i" = some (.int (Int.ofNat (i + 1))) := by rw [hL2, store_get_self, e1]
-    have hL2r : L2.get? "r" = some (.int (Int.ofNat (2 ^ (i + 1)))) := by
-      rw [hL2, store_get_ne _ _ (by decide), hL1, store_get_self, e2]
-    have hL2n : L2.get? "n" = some (.int (Int.ofNat N)) := by
-      rw [hL2, store_get_ne _ _ (by decide), hL1, store_get_ne _ _ (by decide), hn]
-    refine ⟨L2, ?_, i + 1, by omega, by omega, hL2i, hL2r, hL2n⟩
-    refine ExecBlock.consNormal (ExecStmt.letDecl ?_) (ExecBlock.consNormal (ExecStmt.letDecl ?_)
-              ExecBlock.nil)
-    · rw [evalMul2 hr]
-    · show evalExpr? cfg { contract := C, locals := L1 } evm (.binary .add (.var "i") (.intLit 1))
-          = .ok (.int (Int.ofNat i + 1))
-      rw [evalAdd1 (by rw [hL1, store_get_ne _ _ (by decide), hi])]
-  intro var i L hvar hile hi hr hn
-  obtain ⟨L', hwhile, j, hj, hjN, _, hjr, _⟩ :=
-    execWhile_var P hfalse htrue hstep var L ⟨i, hvar, hile, hi, hr, hn⟩
-  exact ⟨L', hwhile, by rw [hjr, show j = N by omega]⟩
 
 /-! ## The Solm body returns `2^n` (callvalue 0, n < 256) -/
-/-- `require(n < 256)` passes when the argument is in range. -/
-theorem evalReqN {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {N : ℕ}
-    (hn : L.get? "n" = some (.int (Int.ofNat N))) (hN : N < 256) :
-    evalExpr? cfg { contract := C, locals := L } evm
-        (.binary .lt (.var "n") (.intLit 256)) = .ok (.bool true) := by
-  have h : (Int.ofNat N < (256 : Int)) := by simp only [Int.ofNat_eq_natCast]; omega
-  simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hn]
-  rw [decide_eq_true h]
+
 
 /-- **The Solm body computes `2^n`.**  With zero call value, `n < 256`, and the decoded argument
     `n ↦ N` in the locals, `pow2`'s body runs to `return (2^N)` (unbounded `Int`). -/
@@ -810,7 +820,7 @@ theorem powBodyReturns (evm : EVM.State) (locals : Solm.Store) {N : ℕ}
       |>.letStep (value := .int 1) (by simp only [evalExpr?]; rfl)
       |>.letStep (value := .int 0) (by simp only [evalExpr?]; rfl)
       |>.whileStep hwhile
-      |>.returns (evalVar hL'r)⟩
+      |>.returns (evalLocalVar hL'r)⟩
 
 /-! ## The Solm body reverts (callvalue ≠ 0, or n ≥ 256) -/
 
@@ -829,28 +839,6 @@ theorem powBodyReverts_n (evm : EVM.State) (locals : Solm.Store) {N : ℕ}
 
 /-! ## ABI encoding of the `uint256` return value `2^n` -/
 
-/-- `EVM.word` and `UInt256.ofNat` agree (both are `⟨n % 2^256⟩`). -/
-theorem evm_word_eq_ofNat (n : ℕ) : EVM.word n = UInt256.ofNat n := rfl
-
-/-- The 32-byte big-endian ABI encoding of `2^N` (for `N < 256`, so it fits a word) is exactly the
-    EVM `RETURN` word `UInt256.ofNat (2^N)`. -/
-theorem powReturnEncoding {N : ℕ} (hN : N < 256) :
-    encodeReturnValue? Pow.uint256 (.int (Int.ofNat (2 ^ N)))
-      = some (UInt256.toByteArray (UInt256.ofNat (2 ^ N))) := by
-  have hlt : Int.ofNat (2 ^ N) < Int.ofNat (EVM.twoPow 256) := by
-    simp only [Int.ofNat_eq_natCast, Nat.cast_lt, EVM.twoPow]
-    exact Nat.pow_lt_pow_right (by norm_num) hN
-  -- the single ABI value encodes to the 32 big-endian bytes of `ofNat (2^N)`
-  have hval : encodeABIValue? Pow.uint256 (.int (Int.ofNat (2 ^ N)))
-                = some (EVM.Word.toBytesBE (UInt256.ofNat (2 ^ N))) := by
-    simp only [Pow.uint256, encodeABIValue?, encodeABIWord?]
-    rw [if_neg (by decide), if_pos ⟨Int.natCast_nonneg _, hlt⟩, evm_word_eq_ofNat]; rfl
-  have hdyn : isDynamicABIType Pow.uint256 = false := rfl
-  have hhead : abiTupleHeadSize? [Pow.uint256] = some 32 := by
-    simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, Pow.uint256, bind,
-      Option.bind]
-    decide
-  exact scalarReturnEncoding hdyn hhead hval
 
 /-! ## The runtime-equivalence assembly -/
 
@@ -889,7 +877,7 @@ theorem powReEquiv_callvalueZero {σ σ₀ A I} {g : Sat256}
                 (by simp only [initState]; exact hwv) hn (by rw [powCallargs, store_get_self])
             exact (powX_success hcode hwv hsz36 hbig hmatch hn).reEquivExecution hcode hd
               (powDecode_n hsz36 hbig) hbody
-              (returnEquiv_of_encode (powReturnEncoding hn))
+              (returnEquiv_of_encode (uint256PowerOfTwoReturnEncoding hn))
           · -- n ≥ 256 ⇒ body reverts (execution)
             rw [not_lt] at hn
             exact (powX_nlarge hcode hwv hsz36 hbig hmatch hn).reEquivExecutionRevert hcode hd
@@ -920,7 +908,7 @@ theorem powXiSuccess {σ σ₀ A I} {g : Sat256}
 
 /-- **Runtime equivalence of `Pow.sol`'s `pow2` bytecode and its Solm specification.** -/
 theorem powCorrect : runtimeEquivalence powConfig powBytecode Pow.powContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize _hperm => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact powReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hwv hsize
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling

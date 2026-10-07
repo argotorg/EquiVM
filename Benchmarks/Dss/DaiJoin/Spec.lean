@@ -6,7 +6,8 @@ import Solm.SolidityLayout
 # MakerDAO/Sky DSS DaiJoin benchmark spec
 
 Faithful Solm benchmark scaffold for upstream `dss/src/join.sol` contract `DaiJoin`.
-Events are omitted, matching the existing event-bearing DSS benchmarks.
+Events are omitted except `Join` and `Exit`: `join` and `exit` write no storage, so under a
+static call their log is the first forbidden operation. Every other event follows a storage write.
 -/
 
 open Solm ABI Ethereum
@@ -208,7 +209,8 @@ def joinTransition : TransitionDecl :=
       checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
         [thisAddr, .var "usr", .var "rad"] "moveRet" ++
       checkedExternalCallStmts (.storage daiRef) "burn" (.intLit 0)
-        [sender, .var "wad"] "burnRet" }
+        [sender, .var "wad"] "burnRet" ++
+      [ .emit "Join" [.var "usr", .var "wad"] ] }
 
 def exitTransition : TransitionDecl :=
   { name := "exit"
@@ -221,7 +223,8 @@ def exitTransition : TransitionDecl :=
       checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
         [sender, thisAddr, .var "rad"] "moveRet" ++
       checkedExternalCallStmts (.storage daiRef) "mint" (.intLit 0)
-        [.var "usr", .var "wad"] "mintRet" }
+        [.var "usr", .var "wad"] "mintRet" ++
+      [ .emit "Exit" [.var "usr", .var "wad"] ] }
 
 def transitions : List TransitionDecl :=
   [cageTransition, daiTransition, denyTransition, exitTransition, joinTransition, liveTransition,

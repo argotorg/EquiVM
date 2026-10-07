@@ -9,7 +9,7 @@ namespace Benchmarks.Dss.Vow
 /-! ## `wait()` getter -/
 
 def waitWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vowSlotWord ⟨7⟩ σ I
+  solcSlotWordAt ⟨7⟩ σ I
 
 theorem vowDispatch_wait {I : ExecutionEnv} (hsel : selIs I ⟨#[0x64, 0xbd, 0x70, 0x13]⟩) :
     dispatchMsg contract I.calldata = some waitTransition := by
@@ -91,7 +91,7 @@ theorem vowWaitBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (waitWord σ I).toNat))])) := by
-    simpa [waitTransition, waitWord, vowSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [waitTransition, waitWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vowUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -113,7 +113,7 @@ theorem vowWaitBodyCore
 
 theorem vowWaitBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x64, 0xbd, 0x70, 0x13]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
