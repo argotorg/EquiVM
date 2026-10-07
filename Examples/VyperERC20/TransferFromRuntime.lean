@@ -265,7 +265,7 @@ theorem erc20TransferFromBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨331⟩
       [transferFromSelectorWord] transferFromDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract
+    runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   have hsz4 := erc20TransferFromSelector_size hsel
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I

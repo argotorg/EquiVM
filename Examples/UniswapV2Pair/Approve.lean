@@ -380,7 +380,7 @@ theorem uniswapApproveBodyCoreOk
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmS (approveStore I) approveTransition.body
@@ -419,7 +419,7 @@ theorem uniswapApproveBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_approve_none_short (I := I) hsz4 hshort
   exact (uniswapApproveX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -434,7 +434,7 @@ theorem uniswapApproveBodyOk
     (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
-    : runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    : runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ rfl hsel
   exact uniswapApproveBodyCoreOk hcode hsize hperm hwv hsz68
@@ -450,7 +450,7 @@ theorem uniswapApproveBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
     (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ rfl hsel
   exact uniswapApproveBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -462,7 +462,7 @@ theorem uniswapApproveBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
-    : runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    : runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz68 : 68 ≤ I.calldata.size
   · exact uniswapApproveBodyOk hcode hsize hperm hwv hsel hsz68 hdispatch
   · exact uniswapApproveBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch

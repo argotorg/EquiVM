@@ -452,7 +452,8 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBounded
     (rd8046 : RD uniswapV2PairBytecode ee g s0 ⟨8046⟩ (y :: ret :: R)
       mem aw rdata acc k C)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
-    (hov : R.length + 10 ≤ 1024) :
+    (hov : R.length + 10 ≤ 1024)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ∃ result k' C',
       ExecStmt config caller evm (.internalCall "sqrt" args retVar)
         (.ok (resumeAfterInternalCall caller retVar (some [.int result])) evm) ∧
@@ -503,9 +504,9 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBounded
         (calleeSolm := { contract := contract, locals := locals' })
         (value := some [.int result])
         hargs
-        (by simpa [hcontract] using uniswapLookupSqrtFunction)
+        (by simpa [hcontract, himm] using uniswapLookupSqrtFunction)
         (bindParams_sqrtFunction_call y)
-        (by simpa [hcontract] using hbody)
+        (by simpa [hcontract, himm] using hbody)
     exact ⟨result, k', C', hstmt, hresultNonneg, hresultSize, rdRet⟩
 
 set_option maxHeartbeats 1000000 in
@@ -519,7 +520,8 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBoundedInput
     (rd8046 : RD uniswapV2PairBytecode ee g s0 ⟨8046⟩ (y :: ret :: R)
       mem aw rdata acc k C)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
-    (hov : R.length + 10 ≤ 1024) :
+    (hov : R.length + 10 ≤ 1024)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ∃ result k' C',
       ExecStmt config caller evm (.internalCall "sqrt" args retVar)
         (.ok (resumeAfterInternalCall caller retVar (some [.int result])) evm) ∧
@@ -573,9 +575,9 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBoundedInput
         (calleeSolm := { contract := contract, locals := locals' })
         (value := some [.int result])
         hargs
-        (by simpa [hcontract] using uniswapLookupSqrtFunction)
+        (by simpa [hcontract, himm] using uniswapLookupSqrtFunction)
         (bindParams_sqrtFunction_call y)
-        (by simpa [hcontract] using hbody)
+        (by simpa [hcontract, himm] using hbody)
     exact ⟨result, k', C', hstmt, hresultNonneg, hresultSize, hresultInput, rdRet⟩
 
 set_option maxHeartbeats 1000000 in

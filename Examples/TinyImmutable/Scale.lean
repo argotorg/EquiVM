@@ -10,19 +10,19 @@ namespace TinyImmutable
 
 theorem tinyScaleDecode_empty {v : TinyImmutables} {I : ExecutionEnv}
     (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldata ((scaleTransition v).params.map Param.name)
-      (transitionSignature (scaleTransition v)).paramTypes I.calldata = some ∅ := by
+    decodeCalldata (scaleTransition.params.map Param.name)
+      (transitionSignature scaleTransition).paramTypes I.calldata = some ∅ := by
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
 theorem tinyScaleBodyReturns (v : TinyImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody (config v) (contract v) evm locals (scaleTransition v).body
-      (.returned { contract := contract v, locals := locals } evm
-        (some [.int (Int.ofNat v.scale.toNat)])) := by
+    ExecTransitionBody config contract evm locals scaleTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm
+        (some [.int (Int.ofNat v.scale.toNat)])) (immStore v) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      simp [scale, evalExpr?, pure])
+      simp [evalExprs?, evalImmutable_scale, pure])
 
 theorem tinyScaleX {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hreach : ∃ k C, RD (patchedRuntime v) I g
@@ -53,7 +53,7 @@ theorem tinyScaleBodyCore
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
     (hquote : (quoteSelBytes == I.calldata.extract 0 4) = false)
     (hsel : (scaleSelBytes == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz := tinyScaleSelector_size hsel
   have hd := tinyDispatch_scale v howner hquote hsel
   have hreach := tinyBlocksReachScaleBody (σ := σ)
@@ -61,12 +61,12 @@ theorem tinyScaleBodyCore
     howner hquote hsel
   have hdec := tinyScaleDecode_empty (v := v) (I := I) hsz
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
-        (scaleTransition v).body
-        (.returned { contract := contract v, locals := ∅ }
+        scaleTransition.body
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [.int (Int.ofNat v.scale.toNat)])) := by
+          (some [.int (Int.ofNat v.scale.toNat)])) (immStore v) := by
     exact tinyScaleBodyReturns v
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       (by simp only [initState]; exact hwv)

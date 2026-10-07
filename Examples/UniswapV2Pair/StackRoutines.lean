@@ -30,17 +30,4 @@ theorem dup12_xstep {s : State} {code : ByteArray}
     omega
   simp only [if_neg hov', GasConstants.Gverylow, stSwap]
 
-theorem RD.dup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
-      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DUP12, .none)) (hov : t.length + 13 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (ll :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepSwap (fun _ hc hp hs => dup12_xstep hc hp hdec hs hov)
-
 end Reasoning.Reach

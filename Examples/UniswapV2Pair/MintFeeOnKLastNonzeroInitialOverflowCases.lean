@@ -298,7 +298,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialMinimumBalanceOverflowFromFactoryCase
     (hcase :
       mintFeeOnKLastNonzeroInitialMinimumBalanceOverflowFromFactoryCaseData feeToWord
         reserve0 reserve1 amount0 amount1 σFee evmFeeS I memFee) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -468,7 +468,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialSecondMintTotalSupplyOverflowFromFact
         (uniswapLockEnteredState
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         I memFee) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -684,7 +684,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialSecondMintBalanceOverflowFromFactoryC
         (uniswapLockEnteredState
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         I memFee) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -918,7 +918,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialOverflowFromFactoryCases
         (uniswapLockEnteredState
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         I memFee) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hcase with hbaseCase | hrest
   · exact
       uniswapMintFeeOnKLastNonzeroInitialFromFactoryCases feeTo hcode hdispatch hsz36

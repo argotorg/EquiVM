@@ -92,7 +92,7 @@ theorem ownable2StepOwnerBody {σ σ₀ A I}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨107⟩
       [ownable2StepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
   have hsz := ownable2StepOwnerSelector_size hsel

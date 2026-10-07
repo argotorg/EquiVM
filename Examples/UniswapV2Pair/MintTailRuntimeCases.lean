@@ -89,7 +89,7 @@ theorem uniswapMintTailRuntimeCases
         (by rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide), hunlocked])
         hmemUpd hmemUpd64 hperm
     refine Or.inr ⟨⟨contract,
-        (locals.insert "_mintResult" Value.unit).insert "_updateResult" Value.unit⟩,
+        (locals.insert "_mintResult" Value.unit).insert "_updateResult" Value.unit, ∅⟩,
       evmRet, σRet, ?_, hRetAccounts, rdRet⟩
     · simpa only [mintAfterLiquidityTailStmts, updateReservesStmtsWith, List.append_assoc,
         List.cons_append, List.nil_append] using

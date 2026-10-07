@@ -435,7 +435,8 @@ theorem uniswapBurnFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     (hargs : evalExprs? config caller evm args =
       .ok [burnFunctionFromValue holder, burnFunctionValueValue value])
     (hbalance : value.toNat ≤ (burnFunctionFromBalanceWord evm holder).toNat)
-    (hsupply : value.toNat ≤ (burnFunctionTotalSupplyWord evm holder value).toNat) :
+    (hsupply : value.toNat ≤ (burnFunctionTotalSupplyWord evm holder value).toNat)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ExecStmt config caller evm (.internalCall "_burn" args retVar)
       (.ok (resumeAfterInternalCall caller retVar none) (burnFunctionPostState evm holder value)) := by
   exact internalCallFunctionReturn
@@ -447,10 +448,10 @@ theorem uniswapBurnFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     (calleeSolm := { contract := contract, locals := burnFunctionAfterTotalSupplyStore evm holder value })
     (value := none)
     hargs
-    (by simpa [hcontract] using uniswapLookupBurnFunction)
+    (by simpa [hcontract, himm] using uniswapLookupBurnFunction)
     (bindParams_burnFunction_call holder value)
     (by
-      simpa [hcontract] using
+      simpa [hcontract, himm] using
         (uniswapBurnFunctionBody evm holder value hbalance hsupply))
 
 end UniswapV2Pair

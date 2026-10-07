@@ -8,6 +8,7 @@ import Examples.SimpleAuction.HighestBid
 import Reasoning.Initcode
 import Reasoning.Memory
 import Reasoning.Solc
+import Solm.Refine
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -26,7 +27,7 @@ PC, then hands control to one per-function body theorem.
 theorem simpleAuctionShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
+    runtimeRefinementFor simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
   exact (simpleAuctionX_short (g := Sat256.ofUInt256 g) hcode hsz).reEquivNoDispatch hcode
     (simpleAuctionDispatch_none_short hsz)
@@ -36,7 +37,7 @@ theorem simpleAuctionNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hnm : ∀ i, i < 7 → (simpleAuctionSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
+    runtimeRefinementFor simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (simpleAuctionX_noMatch (g := Sat256.ofUInt256 g) hcode hsz hsize hnm)
@@ -47,7 +48,7 @@ theorem simpleAuctionNoDispatch {σ σ₀ A I} {g : UInt256}
 
 /-- The deployed SimpleAuction runtime bytecode refines the Solm specification. -/
 theorem simpleAuctionCorrect :
-    runtimeEquivalence simpleAuctionConfig simpleAuctionBytecode simpleAuctionContract := by
+    runtimeRefinement simpleAuctionConfig simpleAuctionBytecode simpleAuctionContract := by
   refine ⟨fun σ σ₀ g A I hcode hsize hperm
       => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
@@ -1036,7 +1037,7 @@ theorem simpleAuctionConstructorEquiv_nonpayable
     (_hcalldata : I.calldata = .empty)
     (_hperm : I.perm = true)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    constructorEquivalenceFor simpleAuctionConfig simpleAuctionContract args σ σ₀ g A I simpleAuctionBytecode := by
+    typedConstructorRefinementFor simpleAuctionConfig simpleAuctionContract args σ σ₀ g A I (fun _ => simpleAuctionBytecode) := by
   rcases simpleAuctionDeployment_shape hdeploy with
     ⟨biddingTime, beneficiaryAddress, hargs, _h0, _hlt, hdeployed⟩
   subst args
@@ -1051,8 +1052,8 @@ theorem simpleAuctionConstructorEquiv_nonpayable
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) tail hcodeTail hwv
   rcases hrd.xiResult hcodeTail with hOOG | ⟨g', o, hrev⟩
-  · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-  · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
+  · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+  · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hrev)
       (simpleAuctionSolmCtorExecReverts_nonpayable
         (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
         biddingTime beneficiaryAddress hwv) ?_
@@ -1076,7 +1077,7 @@ theorem simpleAuctionConstructorEquiv_overflow
       args.head? = some (.int biddingTime) →
       UInt256.size ≤
         (UInt256.ofNat I.header.timestamp).toNat + (EVM.word biddingTime.toNat).toNat) :
-    constructorEquivalenceFor simpleAuctionConfig simpleAuctionContract args σ σ₀ g A I simpleAuctionBytecode := by
+    typedConstructorRefinementFor simpleAuctionConfig simpleAuctionContract args σ σ₀ g A I (fun _ => simpleAuctionBytecode) := by
   rcases simpleAuctionDeployment_shape hdeploy with
     ⟨biddingTime, beneficiaryAddress, hargs, h0, hlt, hdeployed⟩
   subst args
@@ -1093,8 +1094,8 @@ theorem simpleAuctionConstructorEquiv_overflow
     (g := Sat256.ofUInt256 g) (EVM.word biddingTime.toNat) beneficiaryAddress hcodeCtor
     hperm hwv hover
   rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', o, hrev⟩
-  · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-  · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
+  · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+  · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hrev)
       (simpleAuctionSolmCtorExecReverts_overflow
         (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
         biddingTime beneficiaryAddress h0 hlt hwv hover) ?_
@@ -1118,7 +1119,7 @@ theorem simpleAuctionConstructorEquiv_success
       args.head? = some (.int biddingTime) →
       ¬ UInt256.size ≤
         (UInt256.ofNat I.header.timestamp).toNat + (EVM.word biddingTime.toNat).toNat) :
-    constructorEquivalenceFor simpleAuctionConfig simpleAuctionContract args σ σ₀ g A I simpleAuctionBytecode := by
+    typedConstructorRefinementFor simpleAuctionConfig simpleAuctionContract args σ σ₀ g A I (fun _ => simpleAuctionBytecode) := by
   rcases simpleAuctionDeployment_shape hdeploy with
     ⟨biddingTime, beneficiaryAddress, hargs, h0, hlt, hdeployed⟩
   subst args
@@ -1135,7 +1136,7 @@ theorem simpleAuctionConstructorEquiv_success
     (g := Sat256.ofUInt256 g) (EVM.word biddingTime.toNat) beneficiaryAddress hcodeCtor
     hperm hwv hno
   rcases hrd with hOOG | ⟨s, hX, hacc⟩
-  · exact constructorEquivalenceFor.outOfGas
+  · exact typedConstructorRefinementFor.outOfGas
       (Xi_error_of_X (g := g) (by
         rw [← hcodeCtor] at hOOG
         simpa [Sat256.ofUInt256] using hOOG))
@@ -1154,7 +1155,7 @@ theorem simpleAuctionConstructorEquiv_success
           ⟨1⟩ auctionEndWordEvm := by
       simpa [beneficiaryStoreWordEvm, auctionEndWordEvm] using hacc
     rw [hσ'] at hsuccess
-    refine constructorEquivalenceFor.execution hsuccess
+    refine typedConstructorRefinementFor.execution hsuccess
       (simpleAuctionSolmCtorExecSuccess
         (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
         biddingTime beneficiaryAddress h0 hlt hwv hno) ?_
@@ -1172,9 +1173,8 @@ theorem simpleAuctionConstructorEquiv_success
 
 /-- The creation/initcode bytecode refines the Solm constructor specification. -/
 theorem simpleAuctionConstructorCorrect :
-    constructorEquivalence simpleAuctionConfig simpleAuctionInitcode simpleAuctionContract
-      simpleAuctionBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement simpleAuctionConfig simpleAuctionInitcode simpleAuctionContract
+      (fun _ => simpleAuctionBytecode) := by
   intro σ σ₀ g A I
       args deployedInitcode hdeploy hcode hcalldata hperm
   rcases simpleAuctionDeployment_shape hdeploy with
@@ -1212,8 +1212,8 @@ theorem simpleAuctionConstructorCorrect :
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem simpleAuctionContractCorrect :
-    contractEquivalence simpleAuctionConfig simpleAuctionInitcode simpleAuctionBytecode
+    contractRefinement simpleAuctionConfig simpleAuctionInitcode
       simpleAuctionContract :=
-  contractEquivalence.intro simpleAuctionConstructorCorrect simpleAuctionCorrect
+  contractRefinement.of_constant simpleAuctionConstructorCorrect simpleAuctionCorrect
 
 end SimpleAuction

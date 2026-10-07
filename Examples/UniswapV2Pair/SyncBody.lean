@@ -442,7 +442,7 @@ theorem uniswapSyncBodyCoreRevert_firstCallDepth
     (hRuntime :
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let target := EVM.address (uniswapAddressAtSlot evmL ⟨6⟩)
@@ -488,7 +488,7 @@ theorem uniswapSyncBodyRevert_firstCallDepth
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hRuntime :
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
@@ -690,7 +690,7 @@ theorem uniswapSyncBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hlocked :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩
@@ -1190,7 +1190,7 @@ theorem uniswapSyncBody
                                   (uniswapLockExitedState
                                     (syncUpdatePackedReserveState evm1S balance0 balance1))
                                   none)) :
-                            runtimeEquivalenceFor config contract σ σ₀ g A I := by
+                            runtimeRefinementFor config contract σ σ₀ g A I := by
                           obtain ⟨_, _, rd7339⟩ :=
                             RD.uniswapUpdateStorePackedReserves
                               (by

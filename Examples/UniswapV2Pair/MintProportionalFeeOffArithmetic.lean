@@ -141,7 +141,7 @@ theorem uniswapMintProportionalFeeOffKLastZeroArithmeticFromFactoryCases
     (mintAmountProductNat amount0 totalSupply < UInt256.size ∧
       reserve0 ≠ ⟨0⟩ ∧ mintAmountProductNat amount1 totalSupply < UInt256.size ∧
       reserve1 ≠ ⟨0⟩) ∨
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -357,7 +357,7 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroArithmeticFromFactoryCases
     (mintAmountProductNat amount0 totalSupply < UInt256.size ∧
       reserve0 ≠ ⟨0⟩ ∧ mintAmountProductNat amount1 totalSupply < UInt256.size ∧
       reserve1 ≠ ⟨0⟩) ∨
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let evmAfterFee := mintFeeKLastClearedState evmFeeS

@@ -110,7 +110,7 @@ theorem uniswapMintInitialAfterMintFeeCases
     (hkLast : nextLocals.get? "kLast" = none)
     (hunlocked : nextLocals.get? "unlocked" = none)
     (hperm : I.perm = true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let locals := nextLocals.insert "_totalSupply" (uniswapUint256Value (⟨0⟩ : UInt256))
   have hprefix := uniswapMintAfterMintFeeTotalSupplyPrefix_of_call

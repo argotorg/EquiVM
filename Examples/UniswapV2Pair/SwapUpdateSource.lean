@@ -5,11 +5,13 @@ namespace UniswapV2Pair
 set_option maxRecDepth 2000
 
 -- LIBRARY CANDIDATE: express a frame with known contract using its locals.
-theorem frame_eq_of_contract {caller : Frame} {decl : ContractDecl} (h : caller.contract = decl) :
+theorem frame_eq_of_contract {caller : Frame} {decl : ContractDecl} (h : caller.contract = decl)
+    (himm : caller.immutables = ∅ := by rfl) :
     caller = { contract := decl, locals := caller.locals } := by
   cases caller
-  dsimp only at h ⊢
+  dsimp only at h himm ⊢
   cases h
+  cases himm
   rfl
 
 abbrev swapBeforeUpdateFrame (evm : EVM.State) (I : ExecutionEnv)
@@ -22,6 +24,14 @@ theorem swapBeforeUpdateFrame_contract (evm : EVM.State) (I : ExecutionEnv)
     (balance0 balance1 amount0In amount1In : UInt256) :
     (swapBeforeUpdateFrame evm I balance0 balance1 amount0In amount1In).contract = contract := by
   simp only [swapAfterCallbackFrame_contract, swapAfterTransfersFrame_contract]
+
+theorem swapBeforeUpdateFrame_immutables (evm : EVM.State) (I : ExecutionEnv)
+    (balance0 balance1 amount0In amount1In : UInt256) :
+    (swapBeforeUpdateFrame evm I balance0 balance1 amount0In amount1In).immutables = ∅ := by
+  simp only [swapBeforeUpdateFrame, swapAfterAdjustmentsFrame, swapAfterInputsFrame,
+    swapBeforeInputsFrame, swapAfterBalancesFrame, swapAfterCallbackFrame,
+    swapAfterTransfersFrame, optionalSafeTransferFrame]
+  split_ifs <;> rfl
 
 theorem swapBeforeUpdateFrame_balances (evm : EVM.State) (I : ExecutionEnv)
     (balance0 balance1 amount0In amount1In : UInt256) :

@@ -19,7 +19,7 @@ theorem uniswapBurnBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x89, 0xaf, 0xcb, 0x44]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some burnTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hlocked :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠

@@ -617,7 +617,7 @@ theorem erc20ApproveBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨206⟩
       [approveSelectorWord] approveDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract
+    runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   have hd := erc20Dispatch_approve (cd := I.calldata) hsel
   let evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -663,7 +663,7 @@ theorem erc20ApproveRuntimeSuccess
     (hperm : I.perm = true)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract
+    runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20ApproveBodyCore hcode hwv hperm hsize hsel
     (erc20X_approveReach (σ := σ)

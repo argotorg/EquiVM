@@ -45,7 +45,7 @@ theorem scratch_blindAuctionReveal_decoded_times_lengths_ok
         fakesLenWord ((⟨4⟩ + revealFakesOffsetWord I) + ⟨32⟩)
         secretsLenWord ((⟨4⟩ + revealSecretsOffsetWord I) + ⟨32⟩))
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   obtain ⟨_, _, rd887⟩ := h887
   let evmSolm : EVM.State :=

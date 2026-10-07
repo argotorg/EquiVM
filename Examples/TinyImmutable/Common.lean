@@ -1,3 +1,4 @@
+import Solm.Refine
 import Examples.TinyImmutable.Selectors
 import Examples.TinyImmutable.ImmutableCode
 import Reasoning.Dispatch
@@ -38,6 +39,57 @@ def patchedRuntime (v : TinyImmutables) : ByteArray :=
 
 abbrev tinyFirstArmPc : UInt256 := ⟨30⟩
 
+/-- The immutables a contract deployed with `v` runs with. -/
+def immStore (v : TinyImmutables) : Store :=
+  ((∅ : Store).insert "owner" (.address v.owner)).insert "scale" (.int (Int.ofNat v.scale.toNat))
+
+@[simp] theorem immStore_get_owner (v : TinyImmutables) :
+    (immStore v).get? "owner" = some (.address v.owner) := by
+  grind [immStore]
+
+@[simp] theorem immStore_get_scale (v : TinyImmutables) :
+    (immStore v).get? "scale" = some (.int (Int.ofNat v.scale.toNat)) := by
+  grind [immStore]
+
+theorem evalImmutable_owner (cfg : Config) (C : ContractDecl) (locals : Store) (evm : EVM.State)
+    (v : TinyImmutables) :
+    evalExpr? cfg { contract := C, locals := locals, immutables := immStore v } evm
+      (.immutable "owner") = .ok (.address v.owner) := by
+  simp only [evalExpr?, immStore_get_owner, EvalResult.ofOption]
+
+theorem evalImmutable_scale (cfg : Config) (C : ContractDecl) (locals : Store) (evm : EVM.State)
+    (v : TinyImmutables) :
+    evalExpr? cfg { contract := C, locals := locals, immutables := immStore v } evm
+      (.immutable "scale") = .ok (.int (Int.ofNat v.scale.toNat)) := by
+  simp only [evalExpr?, immStore_get_scale, EvalResult.ofOption]
+
+/-- The valuation an immutables store holds (zero for a missing or ill-typed entry). -/
+def immsOf (imms : Store) : TinyImmutables :=
+  { owner := match imms.get? "owner" with
+      | some (.address a) => a
+      | _ => AccountAddress.ofNat 0
+    scale := match imms.get? "scale" with
+      | some (.int i) => EVM.word i.toNat
+      | _ => ⟨0⟩ }
+
+/-- The runtime code deployed for an immutables store: solc's template, patched. -/
+def deployedRuntime (imms : Store) : ByteArray :=
+  patchedRuntime (immsOf imms)
+
+/-- A well-typed immutables store runs as the store of the valuation it holds. -/
+theorem restrictImmutables_of_fit {imms : Store} (h : immutablesFit contract imms) :
+    restrictImmutables contract imms = immStore (immsOf imms) := by
+  obtain ⟨vo, hvo, hfo⟩ := h ⟨"owner", .address⟩ (by simp [contract])
+  obtain ⟨vs, hvs, hfs⟩ := h ⟨"scale", .int uint256Int⟩ (by simp [contract])
+  simp only at hvo hvs
+  cases vo <;> simp [elemValueFits] at hfo
+  cases vs <;> simp [elemValueFits, uint256Int] at hfs
+  rename_i a i
+  have hword : (EVM.word i.toNat).toNat = i.toNat :=
+    constructorUInt256Word_toNat i hfs.1 (by simpa [EVM.twoPow] using hfs.2)
+  have hi : Int.ofNat i.toNat = i := Int.toNat_of_nonneg hfs.1
+  simp only [restrictImmutables, contract, List.foldl, immStore, immsOf, hvo, hvs, hword, hi]
+
 theorem ownerSelBytes_size : ownerSelBytes.size = 4 := rfl
 theorem quoteSelBytes_size : quoteSelBytes.size = 4 := rfl
 theorem scaleSelBytes_size : scaleSelBytes.size = 4 := rfl
@@ -52,13 +104,6 @@ theorem accountAddress_ofNat_toNat (a : AccountAddress) :
 theorem accountAddress_ofNat_val (a : AccountAddress) :
     AccountAddress.ofNat (↑a : Nat) = a :=
   accountAddress_ofNat_toNat a
-
-theorem evalAddrLit (cfg : Config) (frame : Frame) (evm : EVM.State) (a : AccountAddress) :
-    evalExpr? cfg frame evm (addrLit a) = .ok (.address a) := by
-  simp only [addrLit, evalExpr?, EvalResult.bind, bind, pure, castValue?]
-  rw [if_neg]
-  · simp [EvalResult.ofOption, accountAddress_ofNat_val]
-  · exact not_lt.mpr (Int.natCast_nonneg (↑a : Nat))
 
 theorem spliceBytes_toByteArray_eq_writeWord (mem : ByteArray) (off : Nat) (w : UInt256)
     (h : off + 32 ≤ mem.size) :
@@ -256,9 +301,9 @@ theorem patchedRuntime_get?_preserved (v : TinyImmutables) (i : Nat)
 
 theorem tinyDispatch_none_short (v : TinyImmutables) {cd : ByteArray}
     (hcd : cd.size < 4) :
-    dispatchMsg (contract v) cd = none := by
-  rw [dispatchMsg_eq_dispatchList (contract v) cd]
-  refine dispatchList_none_short (transitions v) ?_ hcd
+    dispatchMsg contract cd = none := by
+  rw [dispatchMsg_eq_dispatchList contract cd]
+  refine dispatchList_none_short transitions ?_ hcd
   intro t ht
   simp [transitions] at ht
   rcases ht with ht | ht | ht
@@ -271,10 +316,10 @@ theorem tinyDispatch_none_short (v : TinyImmutables) {cd : ByteArray}
 
 theorem tinyDispatch_owner (v : TinyImmutables) {cd : ByteArray}
     (hmatch : (ownerSelBytes == cd.extract 0 4) = true) :
-    dispatchMsg (contract v) cd = some (ownerTransition v) := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
-    (pre := []) (post := [quoteTransition v, scaleTransition v])
-    (ti := ownerTransition v) (cd := cd) (by rfl) ?_ ?_ ?_ (by rfl)
+    dispatchMsg contract cd = some ownerTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
+    (pre := []) (post := [quoteTransition, scaleTransition])
+    (ti := ownerTransition) (cd := cd) (by rfl) ?_ ?_ ?_ (by rfl)
   · simp [contract, transitions]
   · intro t ht
     simp at ht
@@ -284,10 +329,10 @@ theorem tinyDispatch_owner (v : TinyImmutables) {cd : ByteArray}
 theorem tinyDispatch_quote (v : TinyImmutables) {cd : ByteArray}
     (howner : (ownerSelBytes == cd.extract 0 4) = false)
     (hmatch : (quoteSelBytes == cd.extract 0 4) = true) :
-    dispatchMsg (contract v) cd = some (quoteTransition v) := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
-    (pre := [ownerTransition v]) (post := [scaleTransition v])
-    (ti := quoteTransition v) (cd := cd) (by rfl) ?_ ?_ ?_ (by rfl)
+    dispatchMsg contract cd = some quoteTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
+    (pre := [ownerTransition]) (post := [scaleTransition])
+    (ti := quoteTransition) (cd := cd) (by rfl) ?_ ?_ ?_ (by rfl)
   · simp [contract, transitions]
   · intro t ht
     simp at ht
@@ -301,10 +346,10 @@ theorem tinyDispatch_scale (v : TinyImmutables) {cd : ByteArray}
     (howner : (ownerSelBytes == cd.extract 0 4) = false)
     (hquote : (quoteSelBytes == cd.extract 0 4) = false)
     (hmatch : (scaleSelBytes == cd.extract 0 4) = true) :
-    dispatchMsg (contract v) cd = some (scaleTransition v) := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
-    (pre := [ownerTransition v, quoteTransition v]) (post := [])
-    (ti := scaleTransition v) (cd := cd) (by rfl) ?_ ?_ ?_ (by rfl)
+    dispatchMsg contract cd = some scaleTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
+    (pre := [ownerTransition, quoteTransition]) (post := [])
+    (ti := scaleTransition) (cd := cd) (by rfl) ?_ ?_ ?_ (by rfl)
   · simp [contract, transitions]
   · intro t ht
     simp at ht
@@ -322,8 +367,8 @@ theorem tinyDispatch_none_nomatch (v : TinyImmutables) {cd : ByteArray}
     (howner : (ownerSelBytes == cd.extract 0 4) = false)
     (hquote : (quoteSelBytes == cd.extract 0 4) = false)
     (hscale : (scaleSelBytes == cd.extract 0 4) = false) :
-    dispatchMsg (contract v) cd = none := by
-  refine dispatchMsg_none_of_all_ne (contract := contract v) (cd := cd) (by rfl) (by rfl) ?_
+    dispatchMsg contract cd = none := by
+  refine dispatchMsg_none_of_all_ne (contract := contract) (cd := cd) (by rfl) (by rfl) ?_
   intro t ht
   simp [contract, transitions] at ht
   rcases ht with ht | ht | ht

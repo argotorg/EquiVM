@@ -16,8 +16,8 @@ def quoteAmountValue (I : ExecutionEnv) : Int :=
 
 theorem tinyQuoteDecode_ok {v : TinyImmutables} {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4) :
-    decodeCalldata ((quoteTransition v).params.map Param.name)
-      (transitionSignature (quoteTransition v)).paramTypes I.calldata =
+    decodeCalldata (quoteTransition.params.map Param.name)
+      (transitionSignature quoteTransition).paramTypes I.calldata =
         some (quoteAmountStore I) := by
   show decodeCalldata ["amount"] [uint256] I.calldata = some (quoteAmountStore I)
   simpa [quoteAmountStore, uint256, calldataWord]
@@ -25,16 +25,16 @@ theorem tinyQuoteDecode_ok {v : TinyImmutables} {I : ExecutionEnv}
 
 theorem tinyQuoteDecode_none_short {v : TinyImmutables} {I : ExecutionEnv}
     (hshort : I.calldata.size < 36) :
-    decodeCalldata ((quoteTransition v).params.map Param.name)
-      (transitionSignature (quoteTransition v)).paramTypes I.calldata = none := by
+    decodeCalldata (quoteTransition.params.map Param.name)
+      (transitionSignature quoteTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["amount"] [uint256] I.calldata = none
   simpa [uint256] using
     decodeCalldata_uint256_none_short (cd := I.calldata) (x := "amount") hshort
 
 theorem tinyQuoteDecode_none_huge {v : TinyImmutables} {I : ExecutionEnv}
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
-    decodeCalldata ((quoteTransition v).params.map Param.name)
-      (transitionSignature (quoteTransition v)).paramTypes I.calldata = none := by
+    decodeCalldata (quoteTransition.params.map Param.name)
+      (transitionSignature quoteTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["amount"] [uint256] I.calldata = none
   simpa [uint256] using
     decodeCalldata_uint256_none_huge (cd := I.calldata) (x := "amount") hbig
@@ -44,16 +44,16 @@ theorem tinyQuoteBodyReturns (v : TinyImmutables) (evm : EVM.State) (locals : St
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hcaller : evm.executionEnv.source = v.owner)
     (hamount : locals.get? "amount" = some (.int amount)) :
-    ExecTransitionBody (config v) (contract v) evm locals (quoteTransition v).body
-      (.returned { contract := contract v, locals := locals } evm
-        (some [.int ((amount * Int.ofNat v.scale.toNat) % Int.ofNat EVM.wordModulus)])) := by
+    ExecTransitionBody config contract evm locals quoteTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm
+        (some [.int ((amount * Int.ofNat v.scale.toNat) % Int.ofNat EVM.wordModulus)]))
+      (immStore v) := by
   exact ExecFuncBody.execBlockRet <|
     ((ABlock.start.requireStep (evalCallvalueEq_true hcv)).requireStep (by
-      simp only [sender, owner, evalExpr?, envValue, EvalResult.bind, bind, pure]
-      rw [evalAddrLit (config v) { contract := contract v, locals := locals } evm v.owner,
-        hcaller]
+      simp only [sender, evalExpr?, envValue, EvalResult.bind, bind, pure, immStore_get_owner,
+        EvalResult.ofOption, hcaller]
       simp [evalBinaryOp?])).returns (by
-        simp only [wrap256, scale, evalExpr?, EvalResult.bind, bind, pure]
+        simp only [wrap256, evalExpr?, EvalResult.bind, bind, pure, immStore_get_scale]
         rw [hamount]
         simp only [EvalResult.ofOption, evalBinaryOp?]
         rw [if_neg]
@@ -62,11 +62,12 @@ theorem tinyQuoteBodyReturns (v : TinyImmutables) (evm : EVM.State) (locals : St
 theorem tinyQuoteBodyRevertsUnauthorized (v : TinyImmutables) (evm : EVM.State) (locals : Store)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)
     (hcaller : evm.executionEnv.source ≠ v.owner) :
-    ExecTransitionBody (config v) (contract v) evm locals (quoteTransition v).body .reverted := by
+    ExecTransitionBody config contract evm locals quoteTransition.body .reverted
+      (immStore v) := by
   exact ExecFuncBody.execBlockRevert <|
     (ABlock.start.requireStep (evalCallvalueEq_true hcv)).requireRevert (by
-      simp only [sender, owner, evalExpr?, envValue, EvalResult.bind, bind, pure]
-      rw [evalAddrLit (config v) { contract := contract v, locals := locals } evm v.owner]
+      simp only [sender, evalExpr?, envValue, EvalResult.bind, bind, pure, immStore_get_owner,
+        EvalResult.ofOption]
       simp [evalBinaryOp?, hcaller])
 
 theorem tinyOwnerWord_eq_source_of_caller {I : ExecutionEnv} {v : TinyImmutables}
@@ -277,7 +278,7 @@ theorem tinyQuoteBodyCore
     (hwv : I.weiValue = ⟨0⟩)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
     (hsel : (quoteSelBytes == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz4 := tinyQuoteSelector_size hsel
   have hd := tinyDispatch_quote v howner hsel
   have hreach := tinyBlocksReachQuoteBody (σ := σ)
@@ -296,13 +297,14 @@ theorem tinyQuoteBodyCore
         hsize hszhi hreach
       by_cases hcaller : I.source = v.owner
       · have hbody :
-            ExecTransitionBody (config v) (contract v)
+            ExecTransitionBody config contract
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-              (quoteAmountStore I) (quoteTransition v).body
-              (.returned { contract := contract v, locals := quoteAmountStore I }
+              (quoteAmountStore I) quoteTransition.body
+              (.returned
+                { contract := contract, locals := quoteAmountStore I, immutables := immStore v }
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (some [.int ((quoteAmountValue I * Int.ofNat v.scale.toNat) %
-                  Int.ofNat EVM.wordModulus)])) := by
+                  Int.ofNat EVM.wordModulus)])) (immStore v) := by
           exact tinyQuoteBodyReturns v
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) (quoteAmountStore I)
             (quoteAmountValue I)
@@ -315,9 +317,9 @@ theorem tinyQuoteBodyCore
               (by simpa [quoteAmountValue] using
                 tinyQuoteReturnEncoding v (calldataWord I.calldata 4)))
       · have hbody :
-            ExecTransitionBody (config v) (contract v)
+            ExecTransitionBody config contract
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-              (quoteAmountStore I) (quoteTransition v).body .reverted := by
+              (quoteAmountStore I) quoteTransition.body .reverted (immStore v) := by
           exact tinyQuoteBodyRevertsUnauthorized v
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) (quoteAmountStore I)
             (by simp only [initState]; exact hwv)

@@ -6,7 +6,7 @@ import Examples.VyperERC20.Allowance
 import Examples.VyperERC20.Approve
 import Examples.VyperERC20.Transfer
 import Examples.VyperERC20.TransferFromRuntime
-import Solm.Equiv
+import Solm.Refine
 import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.Stepping
@@ -1242,7 +1242,7 @@ theorem erc20SelectorMissRuntime_mod4
     (hcode : I.code = vyperERC20Bytecode)
     (hmod : (vyperRuntimeSelectorWord I).toNat % 7 = 4)
     (hdisp : dispatchMsg erc20Contract I.calldata = none) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd797⟩ := erc20X_selectorMissReach_of_mod4
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hmod
@@ -1256,7 +1256,7 @@ theorem erc20TransferFromRuntime
     (hperm : I.perm = true)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact erc20TransferFromBodyCore hcode hwv hperm hsize
     (by
       have hcd : I.calldata.extract 0 4 = (⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) :=
@@ -1278,7 +1278,7 @@ theorem erc20NoDispatchRuntimeCore
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode)
     (hnm : ∀ i, i < 6 → (erc20SelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz4 : 4 ≤ I.calldata.size
   · have hdisp : dispatchMsg erc20Contract I.calldata = none := erc20Dispatch_none_nomatch hnm
     set m : Nat := (vyperRuntimeSelectorWord I).toNat % 7 with hm
@@ -1397,7 +1397,7 @@ theorem erc20NoDispatchRuntime
     (hcode : I.code = vyperERC20Bytecode) (_hwv : I.weiValue = ⟨0⟩)
     (_hsize : I.calldata.size < UInt256.size) (_hperm : I.perm = true)
     (hnm : ∀ i, i < 6 → (erc20SelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor config contract σ σ₀ g A I :=
   erc20NoDispatchRuntimeCore hcode hnm
 
 theorem erc20RuntimeNonPayableOfDispatch
@@ -1409,7 +1409,7 @@ theorem erc20RuntimeNonPayableOfDispatch
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs t.body .reverted)
     (hrev : RDrev vyperERC20Bytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hdec : decodeCalldataWithMode config.abiDecodeMode (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = none
   · exact hrev.reEquivDecodingFailed hcode hd hdec
@@ -1421,7 +1421,7 @@ theorem erc20ApproveNonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd206⟩ := erc20X_approveReach
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsel
@@ -1446,7 +1446,7 @@ theorem erc20TotalSupplyNonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsel : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd769⟩ := erc20X_totalSupplyReach
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsel
@@ -1481,7 +1481,7 @@ theorem erc20TransferFromNonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsel : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd331⟩ := erc20X_transferFromReach
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsel
@@ -1506,7 +1506,7 @@ theorem erc20BalanceOfNonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd623⟩ := erc20X_balanceOfReach
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsel
@@ -1531,7 +1531,7 @@ theorem erc20TransferNonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsel : ((⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd24⟩ := erc20X_transferReach
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsel
@@ -1556,7 +1556,7 @@ theorem erc20AllowanceNonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsel : ((⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd681⟩ := erc20X_allowanceReach
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsel
@@ -1581,7 +1581,7 @@ theorem erc20NonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (_hsize : I.calldata.size < UInt256.size) (_hperm : I.perm = true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases h0 : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true
   · exact erc20ApproveNonPayableRuntime hcode hwv h0
   · by_cases h1 : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true
@@ -1609,7 +1609,7 @@ The dispatcher routing is explicit here.  The proven Vyper function-body obligat
 `approve`, `totalSupply`, `balanceOf`, `transfer`, and `allowance`; only `transferFrom`
 success remains isolated above as a bytecode obligation. -/
 theorem runtimeCorrect :
-    runtimeEquivalence config vyperERC20Bytecode contract := by
+    runtimeRefinement config vyperERC20Bytecode contract := by
   refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases h0 : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true
@@ -1637,8 +1637,7 @@ theorem runtimeCorrect :
 
 /-- Constructor equivalence for the Vyper 0.4.3 ERC20 deployment bytecode. -/
 theorem constructorCorrect :
-    constructorEquivalence config vyperERC20Initcode contract vyperERC20Bytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config vyperERC20Initcode contract (fun _ => vyperERC20Bytecode) := by
   intro σ σ₀ g A I
       args deployedInitcode hdeploy hcode hcalldata hperm
   rcases erc20Deployment_shape hdeploy with ⟨initialSupply, hargs, h0, hlt, hdeployed⟩
@@ -1652,7 +1651,7 @@ theorem constructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) (EVM.word initialSupply.toNat) hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
-    · exact constructorEquivalenceFor.outOfGas
+    · exact typedConstructorRefinementFor.outOfGas
         (Xi_error_of_X (g := g) (by
           rw [← hcodeCtor] at hOOG
           simpa [Sat256.ofUInt256] using hOOG))
@@ -1666,7 +1665,7 @@ theorem constructorCorrect :
             ⟨2⟩ (EVM.word initialSupply.toNat) :=
         hacc
       rw [hσ'] at hsuccess
-      refine constructorEquivalenceFor.execution hsuccess
+      refine typedConstructorRefinementFor.execution hsuccess
         (erc20SolmCtorExecSuccess
           (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
           initialSupply h0 hlt hwv) ?_
@@ -1680,8 +1679,8 @@ theorem constructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) tail hcodeTail hwv
     rcases hrd.xiResult hcodeTail with hOOG | ⟨g', o, hrev⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-    · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hrev)
         (erc20SolmCtorExecReverts_nonpayable
           (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
           initialSupply hwv) ?_
@@ -1689,7 +1688,7 @@ theorem constructorCorrect :
 
 /-- Full Vyper ERC20 equivalence, combining constructor and runtime obligations. -/
 theorem contractCorrect :
-    contractEquivalence config vyperERC20Initcode vyperERC20Bytecode contract :=
-  contractEquivalence.intro constructorCorrect runtimeCorrect
+    contractRefinement config vyperERC20Initcode contract :=
+  contractRefinement.of_constant constructorCorrect runtimeCorrect
 
 end VyperERC20

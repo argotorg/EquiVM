@@ -51,7 +51,7 @@ theorem uniswapMintFinishProportionalUpdateFirstBoundReverts
     (hfail0 : reserve112Mask.toNat < balance0.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have rdRev :
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
@@ -104,7 +104,7 @@ theorem uniswapMintFinishProportionalUpdateSecondBoundReverts
     (hfail1 : reserve112Mask.toNat < balance1.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have rdRev :
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
@@ -187,7 +187,7 @@ theorem uniswapMintFinishProportionalFeeOffCumulative
     (hfeeOff : feeOn = ⟨0⟩)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let postMint :=
     mintFunctionPostState evmFeeS (AccountAddress.ofNat (mintToWord I).toNat) liquidity
   let σAfterMint :=
@@ -338,7 +338,7 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
         UInt256.size)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let postMint :=
     mintFunctionPostState evmFeeS (AccountAddress.ofNat (mintToWord I).toNat) liquidity
   let σAfterMint :=
@@ -560,7 +560,7 @@ theorem uniswapMintFinishProportionalFeeOnKLastUpdated
         UInt256.size)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let postMint :=
     mintFunctionPostState evmFeeS (AccountAddress.ofNat (mintToWord I).toNat) liquidity
   let σAfterMint :=
@@ -866,7 +866,7 @@ theorem uniswapMintFeeOnKLastNonzeroNoMintCase
               balance0 balance1)) < UInt256.size)
     (hmem : memFee.size = 164)
     (hmem64 : memFee.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hfeeToAddr : feeTo ≠ AccountAddress.ofNat 0 := by
     rw [hfeeTo]
@@ -1177,7 +1177,7 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveNoLiquidityCase
               balance0 balance1)) < UInt256.size)
     (hmem : memFee.size = 164)
     (hmem64 : memFee.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hfeeToAddr : feeTo ≠ AccountAddress.ofNat 0 := by
     rw [hfeeTo]
@@ -1520,7 +1520,7 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveWithLiquidityCase
               balance0 balance1)) < UInt256.size)
     (hmem : memFee.size = 164)
     (hmem64 : memFee.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let feeLiquidity := mintFeeLiquidityWord evmFeeS rootK rootKLast
   let evmAfterFee := mintFunctionPostState evmFeeS feeTo feeLiquidity
@@ -1838,7 +1838,7 @@ theorem uniswapMintFeeOnKLastNonzeroSmallNoMintCase
               balance0 balance1)) < UInt256.size)
     (hmem : memFee.size = 164)
     (hmem64 : memFee.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let rootK : Int := if UInt256.mul reserve0 reserve1 = ⟨0⟩ then 0 else 1
   let rootKLast : Int := if mintFeeKLastSlotWord σFee I = ⟨0⟩ then 0 else 1

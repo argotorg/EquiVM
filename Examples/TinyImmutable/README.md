@@ -20,18 +20,18 @@ and `metadata.bytecodeHash: none`. `runtime.hex` is the deployed runtime templat
 immutable words. The patch table in `Immutables.lean` comes from
 `evm.deployedBytecode.immutableReferences`:
 
-- `imm_owner`: offsets `72`, `245`
-- `imm_scale`: offsets `186`, `361`
+- `owner`: offsets `72`, `245`
+- `scale`: offsets `186`, `361`
 
-The runtime is 432 bytes. `immutableReferences` records each constructor local,
-summary key, and list of patch offsets once; the constructor patch table and
-`immutableLayout` are derived from it. `TinyImmutables` gives the specification typed
-`owner` and `scale` fields. `immutableWords` converts those fields to the generator's
-`String → UInt256` interface. `patchedRuntime` is defined once as
-`immutableLayout.runtime tinyImmutableBytecode (immutableWords v)`.
-`patchRuntime_eq_patchedRuntime` proves that the constructor's patch operation
-produces this same bytecode. The runtime and contract correctness theorems are
-stated directly for `patchedRuntime v`.
+The runtime is 432 bytes. `immutableReferences` records each immutable's name, summary key,
+and patch offsets once; the patch table and `immutableLayout` are derived from it. The spec
+declares `owner` and `scale` as Solm immutables: the constructor assigns them and the getters and
+`quote` read them. The EVM-side proofs work with a valuation `v : TinyImmutables`;
+`immutableWords` converts it to the generator's `String → UInt256` interface, and
+`patchedRuntime v` is `immutableLayout.runtime tinyImmutableBytecode (immutableWords v)`.
+`tinyImmutableCorrect v` proves the runtime refinement of `patchedRuntime v` with the spec run
+with the immutables `immStore v`; `tinyImmutableContractCorrect` combines it with the
+constructor proof into `contractRefinement`.
 
 ## Generated runtime summaries
 

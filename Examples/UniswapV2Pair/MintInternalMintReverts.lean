@@ -86,17 +86,18 @@ theorem uniswapMintFunctionCallRevert_totalSupplyOverflow
     (hcontract : caller.contract = contract)
     (hargs : evalExprs? config caller evm args =
       .ok [mintFunctionToValue recipient, mintFunctionValueValue value])
-    (hover : UInt256.size ≤ mintFunctionTotalSupplyNewNat evm value) :
+    (hover : UInt256.size ≤ mintFunctionTotalSupplyNewNat evm value)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ExecStmt config caller evm (.internalCall "_mint" args retVar) .reverted := by
   exact internalCallFunctionRevert
     (cfg := config) (caller := caller) (evm := evm)
     (name := "_mint") (retVar := retVar) (args := args)
     (argVals := [mintFunctionToValue recipient, mintFunctionValueValue value])
     (callee := mintFunction) (locals := mintFunctionCallStore recipient value)
-    hargs (by simpa [hcontract] using uniswapLookupMintFunction)
+    hargs (by simpa [hcontract, himm] using uniswapLookupMintFunction)
     (bindParams_mintFunction_call recipient value)
     (by
-      simpa [hcontract] using
+      simpa [hcontract, himm] using
         (uniswapMintFunctionBodyReverts_totalSupplyOverflow evm recipient value hover))
 
 theorem uniswapMintFunctionCallRevert_balanceOverflow
@@ -106,17 +107,18 @@ theorem uniswapMintFunctionCallRevert_balanceOverflow
     (hargs : evalExprs? config caller evm args =
       .ok [mintFunctionToValue recipient, mintFunctionValueValue value])
     (hfitSupply : mintFunctionTotalSupplyNewNat evm value < UInt256.size)
-    (hover : UInt256.size ≤ mintFunctionToBalanceNewNat evm recipient value) :
+    (hover : UInt256.size ≤ mintFunctionToBalanceNewNat evm recipient value)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ExecStmt config caller evm (.internalCall "_mint" args retVar) .reverted := by
   exact internalCallFunctionRevert
     (cfg := config) (caller := caller) (evm := evm)
     (name := "_mint") (retVar := retVar) (args := args)
     (argVals := [mintFunctionToValue recipient, mintFunctionValueValue value])
     (callee := mintFunction) (locals := mintFunctionCallStore recipient value)
-    hargs (by simpa [hcontract] using uniswapLookupMintFunction)
+    hargs (by simpa [hcontract, himm] using uniswapLookupMintFunction)
     (bindParams_mintFunction_call recipient value)
     (by
-      simpa [hcontract] using
+      simpa [hcontract, himm] using
         (uniswapMintFunctionBodyReverts_balanceOverflow evm recipient value hfitSupply hover))
 
 set_option maxHeartbeats 1000000 in

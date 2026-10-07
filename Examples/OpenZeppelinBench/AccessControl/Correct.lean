@@ -22,7 +22,7 @@ matched body PC to its per-function proof.
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem accessControlNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (accessControlX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -46,7 +46,7 @@ theorem accessControlNonPayable {σ σ₀ A I} {g : UInt256}
 theorem accessControlShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (accessControlX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch
     hcode (accessControlDispatch_none_short hsz)
@@ -56,7 +56,7 @@ theorem accessControlNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 7 → (accessControlSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (accessControlX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
@@ -67,7 +67,7 @@ theorem accessControlNoDispatch {σ σ₀ A I} {g : UInt256}
 
 /-- The deployed AccessControl benchmark runtime bytecode refines the Solm specification. -/
 theorem accessControlCorrect :
-    runtimeEquivalence config accessControlBenchBytecode contract := by
+    runtimeRefinement config accessControlBenchBytecode contract := by
   refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size

@@ -37,7 +37,7 @@ theorem stringStoreLiteSetValidRuntime
       uInt256OfByteArray
         (I.calldata.readBytes
           ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) ≠ ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   by_cases hnewShort :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32

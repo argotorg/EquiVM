@@ -3,7 +3,7 @@ import Examples.StringStoreLite.SetLong
 /-!
 # StringStoreLite — top-level runtime assembly
 
-This file assembles the proved per-branch facts into a `runtimeEquivalence` entry point.
+This file assembles the proved per-branch facts into a `runtimeRefinement` entry point.
 Dispatch, revert, getter, malformed calldata/header, zero-header empty-string, valid empty
 old-long, and short non-empty old-short execution branches are proved in imported modules.
 -/
@@ -25,7 +25,7 @@ theorem stringStoreLiteClearCurrentLongValid
     (hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   let len := UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩
   have hlen : len = UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩ := rfl
@@ -109,7 +109,7 @@ theorem stringStoreLiteSetRuntime
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz : 4 ≤ I.calldata.size) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   by_cases hheadShort : I.calldata.size < 36
   · exact stringStoreLiteSetHeadShortRuntime hcode hsize hperm hwv hsel hsz hheadShort
@@ -229,7 +229,7 @@ theorem stringStoreLiteClearCurrentRuntime
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa6, 0xdf, 0xa2, 0x62]⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   by_cases hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ = ⟨0⟩
   · by_cases hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
@@ -262,8 +262,8 @@ theorem stringStoreLiteClearCurrentRuntime
 
 set_option maxHeartbeats 1200000 in
 theorem stringStoreLiteCorrect :
-    runtimeEquivalence stringStoreLiteConfig stringStoreLiteBytecode stringStoreLiteContract := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement stringStoreLiteConfig stringStoreLiteBytecode stringStoreLiteContract := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size

@@ -372,7 +372,7 @@ theorem uniswapMintInitialAfterMintFeeMinimumMintTotalSupplyOverflowRevertCase
       UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let afterTotalSupplyLocals :=
     nextLocals.insert "_totalSupply"
       (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter))
@@ -542,7 +542,7 @@ theorem uniswapMintInitialAfterMintFeeMinimumMintBalanceOverflowRevertCase
     (hperm : I.perm = true)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let afterTotalSupplyLocals :=
     nextLocals.insert "_totalSupply"
       (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter))

@@ -768,7 +768,7 @@ theorem setRuntimeOfWriteAccountMapEq
       { base := "current", steps := [] } .string (.bytes value) = .ok evmCurrent)
     (hAccounts : acc = evmCurrent.accountMap)
     (henc : returnEquiv o (some [.int value.size]) setTransition.returnType) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody := setBodyReturnsOfWrite
@@ -797,7 +797,7 @@ theorem setRuntimeOfWriteEVMStateEq
     (hAccounts : acc = evmEvm.accountMap)
     (hPostAccounts : evmEvm.accountMap = evmCurrent.accountMap)
     (henc : returnEquiv o (some [.int value.size]) setTransition.returnType) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody := setBodyReturnsOfWrite
@@ -1955,7 +1955,7 @@ theorem stringStoreLiteNonPayable {σ σ₀ A I} {g : UInt256}
     (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   exact (stringStoreLiteX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -1978,7 +1978,7 @@ theorem stringStoreLiteNonPayable {σ σ₀ A I} {g : UInt256}
 theorem stringStoreLiteShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   exact (stringStoreLiteX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch
     hcode (stringStoreLiteDispatch_none_short hsz)
@@ -1987,7 +1987,7 @@ theorem stringStoreLiteNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 3 → (stringStoreLiteSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (stringStoreLiteX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
@@ -5764,7 +5764,7 @@ theorem stringStoreLiteCurrentLengthLongMalformedBodyCore {σ σ₀ A I}
     (hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
     (hbad : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) = ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0xa3, 0xd3, 0x5f, 0x36]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -5819,7 +5819,7 @@ theorem stringStoreLiteCurrentLengthShortMalformedBodyCore {σ σ₀ A I}
     (hbad : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩) ⟨32⟩) = ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0xa3, 0xd3, 0x5f, 0x36]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -5878,7 +5878,7 @@ theorem stringStoreLiteCurrentLengthLongValidBodyCore {σ σ₀ A I}
     (hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0xa3, 0xd3, 0x5f, 0x36]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -5938,7 +5938,7 @@ theorem stringStoreLiteCurrentLengthShortValidBodyCore {σ σ₀ A I}
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠ ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0xa3, 0xd3, 0x5f, 0x36]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -6002,7 +6002,7 @@ theorem stringStoreLiteCurrentLengthBodyCore {σ σ₀ A I}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨115⟩
       [stringStoreLiteSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   by_cases hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ = ⟨0⟩
   · by_cases hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
@@ -6031,7 +6031,7 @@ theorem stringStoreLiteCurrentLengthRuntime {σ σ₀ A I}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa3, 0xd3, 0x5f, 0x36]⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   exact stringStoreLiteCurrentLengthBodyCore hcode hsize hperm hwv hsel
     (stringStoreLiteReachCurrentLength (g := Sat256.ofUInt256 g) hcode hwv
@@ -6045,7 +6045,7 @@ theorem stringStoreLiteClearCurrentLongMalformedRuntime {σ σ₀ A I}
     (hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
     (hbad : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) = ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0xa6, 0xdf, 0xa2, 0x62]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -6098,7 +6098,7 @@ theorem stringStoreLiteClearCurrentShortMalformedRuntime {σ σ₀ A I}
     (hbad : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩) ⟨32⟩) = ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0xa6, 0xdf, 0xa2, 0x62]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -6153,7 +6153,7 @@ theorem stringStoreLiteClearCurrentShortZeroRuntime {σ σ₀ A I}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa6, 0xdf, 0xa2, 0x62]⟩)
     (hheader : currentLengthHeaderWord σ I = ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 I.codeOwner ⟨0⟩ ⟨0⟩
@@ -6238,7 +6238,7 @@ theorem stringStoreLiteClearCurrentShortDecodedZeroRuntime {σ σ₀ A I}
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠ ⟨0⟩)
     (hzero : UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩ =
         ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 I.codeOwner ⟨0⟩ ⟨0⟩
@@ -6308,7 +6308,7 @@ theorem stringStoreLiteClearCurrentShortNonzeroRuntime {σ σ₀ A I}
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩)
     (hnonzero : len ≠ ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 I.codeOwner ⟨0⟩ ⟨0⟩
@@ -6377,7 +6377,7 @@ theorem stringStoreLiteSetShortEmptyRuntime {σ σ₀ A I}
         (I.calldata.readBytes
           ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) = ⟨0⟩)
     (hheader : currentLengthHeaderWord σ I = ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 I.codeOwner ⟨0⟩ ⟨0⟩
@@ -6433,7 +6433,7 @@ theorem stringStoreLiteSetEmptyShortValidRuntime {σ σ₀ A I}
         (UInt256.lt
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠
         ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 I.codeOwner ⟨0⟩ ⟨0⟩
@@ -6528,7 +6528,7 @@ theorem stringStoreLiteSetEmptyLongMalformedRuntime {σ σ₀ A I}
     (hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
     (hbad : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) = ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let payloadStart : UInt256 :=
@@ -6610,7 +6610,7 @@ theorem stringStoreLiteSetEmptyShortMalformedRuntime {σ σ₀ A I}
         (UInt256.lt
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩) ⟨32⟩) =
         ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let payloadStart : UInt256 :=
@@ -6699,7 +6699,7 @@ theorem stringStoreLiteSetShortNonemptyLongMalformedRuntime
     (hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
     (hbad : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) = ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let len : UInt256 :=
@@ -6811,7 +6811,7 @@ theorem stringStoreLiteSetShortNonemptyShortMalformedRuntime
         (UInt256.lt
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩)
           ⟨32⟩) = ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let len : UInt256 :=
@@ -6902,7 +6902,7 @@ theorem stringStoreLiteSetHeadShortRuntime {σ σ₀ A I}
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -6921,7 +6921,7 @@ theorem stringStoreLiteSetHeadHugeRuntime {σ σ₀ A I}
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz : 4 ≤ I.calldata.size) (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -6941,7 +6941,7 @@ theorem stringStoreLiteSetOffsetHugeRuntime {σ σ₀ A I}
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoff : ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -6962,7 +6962,7 @@ theorem stringStoreLiteSetLengthShortRuntime {σ σ₀ A I}
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
     (hshort : I.calldata.size < 4 + (calldataWord I.calldata 4).toNat + 32) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -6987,7 +6987,7 @@ theorem stringStoreLiteSetLengthHugeRuntime {σ σ₀ A I}
     (hlenHuge :
       ABI.solcMaxU64 <
         (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -7027,7 +7027,7 @@ theorem stringStoreLiteSetPayloadShortRuntime {σ σ₀ A I}
               (I.calldata.readBytes
                 ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) ⟨1⟩))
         (UInt256.ofNat I.calldata.size) = ⟨1⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by

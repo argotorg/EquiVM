@@ -66,16 +66,17 @@ theorem uniswapBurnFunctionCallRevert_balanceUnderflow
     (hcontract : caller.contract = contract)
     (hargs : evalExprs? config caller evm args =
       .ok [burnFunctionFromValue holder, burnFunctionValueValue value])
-    (hlt : (burnFunctionFromBalanceWord evm holder).toNat < value.toNat) :
+    (hlt : (burnFunctionFromBalanceWord evm holder).toNat < value.toNat)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ExecStmt config caller evm (.internalCall "_burn" args retVar) .reverted := by
   exact internalCallFunctionRevert
     (cfg := config) (caller := caller) (evm := evm)
     (name := "_burn") (retVar := retVar) (args := args)
     (argVals := [burnFunctionFromValue holder, burnFunctionValueValue value])
     (callee := burnFunction) (locals := burnFunctionCallStore holder value)
-    hargs (by simpa [hcontract] using uniswapLookupBurnFunction)
+    hargs (by simpa [hcontract, himm] using uniswapLookupBurnFunction)
     (bindParams_burnFunction_call holder value)
-    (by simpa [hcontract] using
+    (by simpa [hcontract, himm] using
       uniswapBurnFunctionBodyReverts_balanceUnderflow evm holder value hlt)
 
 theorem uniswapBurnFunctionCallRevert_totalSupplyUnderflow
@@ -85,16 +86,17 @@ theorem uniswapBurnFunctionCallRevert_totalSupplyUnderflow
     (hargs : evalExprs? config caller evm args =
       .ok [burnFunctionFromValue holder, burnFunctionValueValue value])
     (hbalance : value.toNat ≤ (burnFunctionFromBalanceWord evm holder).toNat)
-    (hlt : (burnFunctionTotalSupplyWord evm holder value).toNat < value.toNat) :
+    (hlt : (burnFunctionTotalSupplyWord evm holder value).toNat < value.toNat)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ExecStmt config caller evm (.internalCall "_burn" args retVar) .reverted := by
   exact internalCallFunctionRevert
     (cfg := config) (caller := caller) (evm := evm)
     (name := "_burn") (retVar := retVar) (args := args)
     (argVals := [burnFunctionFromValue holder, burnFunctionValueValue value])
     (callee := burnFunction) (locals := burnFunctionCallStore holder value)
-    hargs (by simpa [hcontract] using uniswapLookupBurnFunction)
+    hargs (by simpa [hcontract, himm] using uniswapLookupBurnFunction)
     (bindParams_burnFunction_call holder value)
-    (by simpa [hcontract] using
+    (by simpa [hcontract, himm] using
       uniswapBurnFunctionBodyReverts_totalSupplyUnderflow evm holder value hbalance hlt)
 
 end UniswapV2Pair

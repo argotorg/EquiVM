@@ -935,7 +935,7 @@ theorem erc6909AllowanceBodyCore
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨266⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   have hsz4 := erc6909AllowanceSelector_size hsel
   have hd := erc6909Dispatch_allowance (cd := I.calldata) hsel

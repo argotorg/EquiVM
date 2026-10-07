@@ -1801,7 +1801,7 @@ theorem uniswapSyncBodyCumulativeSuccess
       UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Shift)
           reserve112Mask ≠
         ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hmemSize128 :
       128 ≤ (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1).size := by
     rw [hmemSize]

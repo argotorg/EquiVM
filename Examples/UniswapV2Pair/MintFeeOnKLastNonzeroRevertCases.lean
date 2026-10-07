@@ -680,7 +680,7 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
     (hcase :
       mintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCaseData feeToWord σFee
         evmFeeS I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hcase with ⟨hfeeToNonzero, hkLastNonzero, hrootCase⟩
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
@@ -726,7 +726,7 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
       (rdRev :
         RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-      runtimeEquivalenceFor config contract σ σ₀ g A I := by
+      runtimeRefinementFor config contract σ σ₀ g A I := by
     have hrootBlock :
         ExecBlock config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastSlotWord σFee I))

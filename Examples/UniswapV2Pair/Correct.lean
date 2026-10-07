@@ -31,7 +31,7 @@ import Examples.UniswapV2Pair.TransferFrom
 import Examples.UniswapV2Pair.TransferFromFinite
 import Examples.UniswapV2Pair.TransferFromSuccess
 import Examples.UniswapV2Pair.TransferFromDecode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # UniswapV2Pair benchmark correctness stub
@@ -45,7 +45,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 
 theorem uniswapV2PairCorrect :
-    runtimeEquivalence config uniswapV2PairBytecode contract := by
+    runtimeRefinement config uniswapV2PairBytecode contract := by
   refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
@@ -173,7 +173,7 @@ theorem uniswapV2PairCorrect :
   · exact uniswapNonPayable hcode hwv
 
 theorem uniswapV2PairContractCorrect :
-    contractEquivalence config uniswapV2PairInitcode uniswapV2PairBytecode contract :=
-  contractEquivalence.intro uniswapV2PairConstructorCorrect uniswapV2PairCorrect
+    contractRefinement config uniswapV2PairInitcode contract :=
+  contractRefinement.of_constant uniswapV2PairConstructorCorrect uniswapV2PairCorrect
 
 end UniswapV2Pair

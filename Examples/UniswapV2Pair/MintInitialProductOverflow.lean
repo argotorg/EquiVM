@@ -188,7 +188,7 @@ theorem uniswapMintInitialProductOverflowFromAfterFeeCase
       mem feeToStaticcallActiveWords rdata σFee k C)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let afterTotalSupplyLocals :=
     nextLocals.insert "_totalSupply" (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter))
   have hamount0After :
@@ -359,7 +359,7 @@ theorem uniswapMintInitialFeeOffKLastZeroProductOverflowFromFactoryCase
     (hkLastZero : mintFeeKLastSlotWord σFee I = ⟨0⟩)
     (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
     (hover : UInt256.size ≤ amount0.toNat * amount1.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -537,7 +537,7 @@ theorem uniswapMintInitialFeeOnKLastZeroProductOverflowFromFactoryCase
     (hkLastZero : mintFeeKLastSlotWord σFee I = ⟨0⟩)
     (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
     (hover : UInt256.size ≤ amount0.toNat * amount1.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -718,7 +718,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroProductOverflowFromFactoryCase
     (htotalZero :
       uniswapSlotWord ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I = ⟨0⟩)
     (hover : UInt256.size ≤ amount0.toNat * amount1.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let σCleared := sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩
@@ -930,7 +930,7 @@ theorem uniswapMintInitialProductOverflowFromFactoryCases
         uniswapSlotWord ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I =
           ⟨0⟩ ∧
         UInt256.size ≤ amount0.toNat * amount1.toNat)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hcase with hfeeOff | hrest
   · rcases hfeeOff with ⟨hfeeToZero, hkLastZero, htotalZero, hover⟩
     exact uniswapMintInitialFeeOffKLastZeroProductOverflowFromFactoryCase feeTo

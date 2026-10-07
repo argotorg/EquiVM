@@ -131,7 +131,7 @@ theorem simpleAuctionAuctionEndTimeBody {σ σ₀ A I}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨239⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
+    runtimeRefinementFor simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
   have hsz := simpleAuctionAuctionEndTimeSelector_size hsel
   have hd := simpleAuctionDispatch_auctionEndTime (cd := I.calldata) hsel

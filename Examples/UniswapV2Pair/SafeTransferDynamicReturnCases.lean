@@ -21,7 +21,8 @@ theorem uniswapSafeTransferDynamicReturnCases
     (hin : 128 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size) (hptrLo : 128 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hfit : ptr.toNat + out.size + 355 < UInt256.size)
     (hzero : base.readWithPadding 96 32 = (⟨0⟩ : UInt256).toByteArray) (hout : out.size < 2 ^ 255)
-    (hret : (D_J uniswapV2PairBytecode 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
+    (hret : (D_J uniswapV2PairBytecode 0).contains ret = true) (hov : R.length + 16 ≤ 1024)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     (ExecStmt config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
       .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
     (ExecStmt config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)

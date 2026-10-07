@@ -45,7 +45,7 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
         (UInt256.lt
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩)
           ⟨32⟩) ≠ ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by

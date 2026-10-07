@@ -230,7 +230,7 @@ theorem uniswapTransferFromBodyCoreOk_finiteAllowance
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hnotMaxS : (transferFromCurrentAllowanceWord evmS I).toNat ≠ UInt256.size - 1 := by
@@ -309,7 +309,7 @@ theorem uniswapTransferFromBodyOk_finiteAllowance
     (hfit : transferFromNewToNat
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) I < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ rfl hsel
   exact uniswapTransferFromBodyCoreOk_finiteAllowance hcode hsize hperm hwv hsz100

@@ -816,7 +816,7 @@ theorem ballotDelegateChainSenderRevertEquiv
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨245⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanon

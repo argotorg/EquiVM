@@ -42,7 +42,7 @@ theorem RDinvalid.reEquivExecutionInvalid {cfg : Config} {contract : ContractDec
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs t.body .reverted)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeEquivalenceFor cfg contract σ σ₀ g A I := by
+    runtimeRefinementFor cfg contract σ σ₀ g A I := by
   rcases h with hoog | hinvalid
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g) (by rwa [← hcode] at hoog))
   · refine reEquiv_execution hd hdec hbody ?_ hfallback hreceive

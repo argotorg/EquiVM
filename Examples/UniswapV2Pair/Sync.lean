@@ -688,7 +688,7 @@ theorem uniswapSyncBodyCoreRevert_locked
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hlockedSolm :
       Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩ := by
@@ -717,7 +717,7 @@ theorem uniswapSyncBodyCoreRevert_firstNoCode
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hunlockedSolm :
       Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
@@ -746,7 +746,7 @@ theorem uniswapSyncBodyRevert_locked
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩ rfl hsel
   exact uniswapSyncBodyCoreRevert_locked hcode hwv hsz4 hlocked hdispatch
@@ -766,7 +766,7 @@ theorem uniswapSyncBodyRevert_firstNoCode
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact uniswapSyncBodyCoreRevert_firstNoCode hcode hsize hperm hwv hsel
     hunlocked htoken0NoCode hdispatch
 

@@ -774,7 +774,7 @@ theorem erc20ApproveBodyCore
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨100⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor erc20Config erc20Contract
+    runtimeRefinementFor erc20Config erc20Contract
       σ σ₀ g A I := by
   have hsz4 := erc20ApproveSelector_size hsel
   have hd := erc20Dispatch_approve (cd := I.calldata) hsel

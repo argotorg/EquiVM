@@ -1610,7 +1610,7 @@ theorem ballotVoteBodyCore_short
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨137⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hshort : I.calldata.size < 36) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hsz4 := ballotVoteSelector_size hsel
   have hd := ballotDispatch_vote (cd := I.calldata) hsel
@@ -1627,7 +1627,7 @@ theorem ballotVoteBodyCore_huge
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨137⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hbigge : 2 ^ 255 + 4 ≤ I.calldata.size) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_vote (cd := I.calldata) hsel
   have hdec := ballotDecode_vote_none_huge (I := I) hbigge
@@ -1645,7 +1645,7 @@ theorem ballotVoteBodyCore_weight
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hweight : voteSenderWeightWord σ I = ⟨0⟩) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_vote (cd := I.calldata) hsel
   have hdec := ballotDecode_vote_ok (I := I) hsz36 hbig
@@ -1678,7 +1678,7 @@ theorem ballotVoteBodyCore_success
       (voteProposalCountWord (voteAfterVoteMap σ I) I).toNat +
           (voteSenderWeightWord (voteAfterVoteMap σ I) I).toNat <
         UInt256.size) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_vote (cd := I.calldata) hsel
   have hdec := ballotDecode_vote_ok (I := I) hsz36 hbig
@@ -1724,7 +1724,7 @@ theorem ballotVoteBodyCore_overflow
     (hover : UInt256.size ≤
       (voteProposalCountWord (voteAfterVoteMap σ I) I).toNat +
         (voteSenderWeightWord (voteAfterVoteMap σ I) I).toNat) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_vote (cd := I.calldata) hsel
   have hdec := ballotDecode_vote_ok (I := I) hsz36 hbig
@@ -1763,7 +1763,7 @@ theorem ballotVoteBodyCore_oob
     (hbound :
       ¬ (voteProposalWord I).toNat <
         (voteProposalsLengthWord (voteAfterVoteMap σ I) I).toNat) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_vote (cd := I.calldata) hsel
   have hdec := ballotDecode_vote_ok (I := I) hsz36 hbig
@@ -1795,7 +1795,7 @@ theorem ballotVoteBodyCore_voted
     (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hweight : voteSenderWeightWord σ I ≠ ⟨0⟩)
     (hvoted : voteSenderVotedByte σ I ≠ ⟨0⟩) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_vote (cd := I.calldata) hsel
   have hdec := ballotDecode_vote_ok (I := I) hsz36 hbig
@@ -1821,7 +1821,7 @@ theorem ballotVoteBodyCore
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨137⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4

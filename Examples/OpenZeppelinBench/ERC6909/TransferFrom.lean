@@ -22,7 +22,7 @@ theorem erc6909TransferFromBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨388⟩
       [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   have hsz4 := erc6909TransferFromSelector_size hsel
   have hd := erc6909Dispatch_transferFrom (cd := I.calldata) hsel

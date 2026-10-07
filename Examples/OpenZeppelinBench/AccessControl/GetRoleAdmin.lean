@@ -515,7 +515,7 @@ theorem accessControlGetRoleAdminBody {σ σ₀ A I}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨166⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   have _hperm : I.perm = true := hperm
   have hsz4 := accessControlGetRoleAdminSelector_size hsel

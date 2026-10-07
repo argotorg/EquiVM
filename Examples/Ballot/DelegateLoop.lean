@@ -783,7 +783,7 @@ theorem ballotDelegateLoopSenderRevertEquiv
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨245⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanon
@@ -844,9 +844,9 @@ theorem ballotDelegateBodyCoreLoopFrontier
       I.perm = true →
       delegateVoterDelegateWord σ I (delegateToWord I) ≠ ⟨0⟩ →
       delegateVoterDelegateWord σ I (delegateToWord I) ≠ delegateSourceWord I →
-      runtimeEquivalenceFor ballotConfig ballotContract
+      runtimeRefinementFor ballotConfig ballotContract
         σ σ₀ g A I) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   refine ballotDelegateBodyCoreFrontier hcode hsize hperm hwv hsel hreach ?_
   intro hsz36 hbig hcanon hweight hvoted hnotself hperm hnext

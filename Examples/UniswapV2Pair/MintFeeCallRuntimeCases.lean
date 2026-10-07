@@ -98,7 +98,8 @@ theorem uniswapMintFeeCallRuntimeCasesWithMemory
     (hperm : I.perm = true) (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
-    (hov : R.length + 32 ≤ 1024) :
+    (hov : R.length + 32 ≤ 1024)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     (ExecStmt config caller evm (.internalCall "_mintFee" args retVar) .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
     (∃ feeOn : Bool, ∃ evm' σ' mem' rdata' k' C',
       ExecStmt config caller evm (.internalCall "_mintFee" args retVar)
@@ -115,15 +116,15 @@ theorem uniswapMintFeeCallRuntimeCasesWithMemory
   · refine Or.inl ⟨?_, rdRev⟩
     exact internalCallFunctionRevert (callee := mintFeeFunction)
       (locals := mintFeeCallStore reserve0 reserve1) hargs
-      (by simpa only [hcontract] using uniswapLookupMintFeeFunction)
+      (by simpa only [hcontract, himm] using uniswapLookupMintFeeFunction)
       (bindParams_mintFeeFunction_call reserve0 reserve1)
-      (by simpa only [hcontract] using hbody)
+      (by simpa only [hcontract, himm] using hbody)
   · refine Or.inr ⟨feeOn, e, σ', m, data, k', C', ?_, ha, he, hs, rd, hm, h64, h96⟩
     exact internalCallFunctionReturn (callee := mintFeeFunction) (calleeSolm := f)
       (locals := mintFeeCallStore reserve0 reserve1) hargs
-      (by simpa only [hcontract] using uniswapLookupMintFeeFunction)
+      (by simpa only [hcontract, himm] using uniswapLookupMintFeeFunction)
       (bindParams_mintFeeFunction_call reserve0 reserve1)
-      (by simpa only [hcontract] using hbody)
+      (by simpa only [hcontract, himm] using hbody)
 
 
 set_option maxRecDepth 2000000 in
@@ -181,7 +182,8 @@ theorem uniswapMintFeeCallRuntimeCases
     (hperm : I.perm = true) (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
-    (hov : R.length + 32 ≤ 1024) :
+    (hov : R.length + 32 ≤ 1024)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     (ExecStmt config caller evm (.internalCall "_mintFee" args retVar) .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
     (∃ feeOn : Bool, ∃ evm' σ' mem' rdata' k' C',
       ExecStmt config caller evm (.internalCall "_mintFee" args retVar)

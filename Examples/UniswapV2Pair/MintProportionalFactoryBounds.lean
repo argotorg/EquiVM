@@ -159,7 +159,7 @@ theorem uniswapMintProportionalFeeOnKLastZeroUpdateBoundsFromFactoryCases
             (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
             outFee))).toNat + liquidity.toNat < UInt256.size) :
     (balance0.toNat ≤ reserve112Mask.toNat ∧ balance1.toNat ≤ reserve112Mask.toNat) ∨
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=

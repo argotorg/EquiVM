@@ -1255,7 +1255,7 @@ theorem ballotDelegateTailWeightRevertEquiv
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
@@ -2441,7 +2441,7 @@ theorem ballotDelegateTailNotVotedSuccessEquiv
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
@@ -2518,7 +2518,7 @@ theorem ballotDelegateTailNotVotedOverflowEquiv
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
@@ -2594,7 +2594,7 @@ theorem ballotDelegateTailVotedSuccessEquiv
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
@@ -2677,7 +2677,7 @@ theorem ballotDelegateTailVotedOobEquiv
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
@@ -2751,7 +2751,7 @@ theorem ballotDelegateTailVotedOverflowEquiv
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit

@@ -5033,7 +5033,7 @@ theorem stringStoreLiteSetShortNonemptyLongValidRuntime
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠
         ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -5181,7 +5181,7 @@ theorem stringStoreLiteSetEmptyLongValidRuntime {σ σ₀ A I}
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠
         ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let len : UInt256 := UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩

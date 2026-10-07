@@ -71,7 +71,7 @@ theorem scratch_blindAuctionReveal_nonempty_fromLoopResult
           scratch_revealLoopBodyStmts .reverted ∧
         RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I))) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   rcases hloopResult with hdone | hrevLoop
   · rcases hdone with

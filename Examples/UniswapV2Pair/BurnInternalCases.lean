@@ -110,7 +110,8 @@ theorem uniswapInternalBurnCallRuntimeCasesWithMemory
     (hperm : I.perm = true) (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
-    (hov : R.length + 16 ≤ 1024) :
+    (hov : R.length + 16 ≤ 1024)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     (ExecStmt config caller evm (.internalCall "_burn" args retVar) .reverted ∧
       RDrev uniswapV2PairBytecode g s0) ∨
     (∃ mem' k' C',
@@ -193,7 +194,8 @@ theorem uniswapInternalBurnCallRuntimeCases
     (hperm : I.perm = true) (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
-    (hov : R.length + 16 ≤ 1024) :
+    (hov : R.length + 16 ≤ 1024)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     (ExecStmt config caller evm (.internalCall "_burn" args retVar) .reverted ∧
       RDrev uniswapV2PairBytecode g s0) ∨
     (∃ mem' k' C',

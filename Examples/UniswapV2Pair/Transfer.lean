@@ -827,7 +827,7 @@ theorem uniswapTransferBodyCoreOk
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1234⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have henoughS :
@@ -878,7 +878,7 @@ theorem uniswapTransferBodyCoreRevert_insufficient
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1234⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hltS : (transferFromBalanceWord evmS).toNat < (transferValueWord I).toNat := by
@@ -910,7 +910,7 @@ theorem uniswapTransferBodyCoreRevert_overflow
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1234⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have henoughS :
@@ -939,7 +939,7 @@ theorem uniswapTransferBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1234⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_transfer_none_short (I := I) hsz4 hshort
   exact (uniswapTransferX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -960,7 +960,7 @@ theorem uniswapTransferBodyOk
       transferNewToNat (initState σ σ₀ (Sat256.ofUInt256 g) A I) I <
         UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some transferTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ rfl hsel
   exact uniswapTransferBodyCoreOk hcode hsize hperm hwv hsz68 henough hfit
@@ -976,7 +976,7 @@ theorem uniswapTransferBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩)
     (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some transferTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ rfl hsel
   exact uniswapTransferBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -994,7 +994,7 @@ theorem uniswapTransferBodyRevert_insufficient
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)).toNat <
         (transferValueWord I).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some transferTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ rfl hsel
   exact uniswapTransferBodyCoreRevert_insufficient hcode hsize hwv hsz68 hlt
@@ -1016,7 +1016,7 @@ theorem uniswapTransferBodyRevert_overflow
     (hover : UInt256.size ≤
       transferNewToNat (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
     (hdispatch : dispatchMsg contract I.calldata = some transferTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ rfl hsel
   exact uniswapTransferBodyCoreRevert_overflow hcode hsize hperm hwv hsz68
@@ -1030,7 +1030,7 @@ theorem uniswapTransferBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some transferTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz68 : 68 ≤ I.calldata.size
   · by_cases henough : (transferValueWord I).toNat ≤
       (transferFromBalanceWord

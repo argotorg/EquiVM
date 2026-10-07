@@ -881,7 +881,7 @@ theorem ballotVotersBodyCore
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hsz4 := ballotVotersSelector_size hsel
   have hd := ballotDispatch_voters (cd := I.calldata) hsel

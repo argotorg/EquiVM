@@ -403,7 +403,7 @@ theorem uniswapSwapBodyCoreDecodeFailed_headShort
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨430⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_swap_none_head_short (I := I) hsz4 hshort
   exact (uniswapSwapX_shortHead (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
@@ -414,7 +414,7 @@ theorem uniswapSwapBodyDecodeFailed_headShort
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩)
     (hshort : I.calldata.size < 132)
     (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩ rfl hsel
   exact uniswapSwapBodyCoreDecodeFailed_headShort hcode hsize hsz4 hshort hdispatch
@@ -428,7 +428,7 @@ theorem uniswapSwapBodyCoreDecodeFailed_offsetHuge
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨430⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_swap_none_offset_huge (I := I) hsz132 hoff
   exact (uniswapSwapX_offsetHuge (g := Sat256.ofUInt256 g)
       hsize hsz132 hoff hreach)
@@ -440,7 +440,7 @@ theorem uniswapSwapBodyDecodeFailed_offsetHuge
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩)
     (hsz132 : 132 ≤ I.calldata.size) (hoff : solcLegacyMaxU32 < swapDataOffset I)
     (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩ rfl hsel
   exact uniswapSwapBodyCoreDecodeFailed_offsetHuge hcode hsize hsz132 hoff hdispatch
@@ -456,7 +456,7 @@ theorem uniswapSwapBodyCoreDecodeFailed_lengthShort
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨430⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_swap_none_length_short (I := I) hsz132 hoffMax hlenShort
   exact (uniswapSwapX_lengthShort (g := Sat256.ofUInt256 g)
       hsize hsz132 hoffMax hlenShort hreach)
@@ -469,7 +469,7 @@ theorem uniswapSwapBodyDecodeFailed_lengthShort
     (hsz132 : 132 ≤ I.calldata.size) (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
     (hlenShort : I.calldata.size < 4 + swapDataOffset I + 32)
     (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩ rfl hsel
   exact uniswapSwapBodyCoreDecodeFailed_lengthShort hcode hsize hsz132 hoffMax hlenShort
@@ -487,7 +487,7 @@ theorem uniswapSwapBodyCoreDecodeFailed_lengthHuge
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨430⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_swap_none_length_huge (I := I) hsz132 hoffMax hlenWord hlenHuge
   exact (uniswapSwapX_lengthHuge (g := Sat256.ofUInt256 g)
       hsize hsz132 hoffMax hlenWord hlenHuge hreach)
@@ -501,7 +501,7 @@ theorem uniswapSwapBodyDecodeFailed_lengthHuge
     (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
     (hlenHuge : solcLegacyMaxU32 < swapDataSize I)
     (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩ rfl hsel
   exact uniswapSwapBodyCoreDecodeFailed_lengthHuge hcode hsize hsz132 hoffMax hlenWord
@@ -521,7 +521,7 @@ theorem uniswapSwapBodyCoreDecodeFailed_payloadShort
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨430⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_swap_none_payload_short (I := I) hsz132 hoffMax hlenWord
     hlenMax hpayload
   exact (uniswapSwapX_payloadShort (g := Sat256.ofUInt256 g)
@@ -538,7 +538,7 @@ theorem uniswapSwapBodyDecodeFailed_payloadShort
     (hpayload : (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
       (swapDataSize I)).length ≠ swapDataSize I)
     (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩ rfl hsel
   exact uniswapSwapBodyCoreDecodeFailed_payloadShort hcode hsize hsz132 hoffMax hlenWord

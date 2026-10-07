@@ -1,15 +1,14 @@
 import Examples.TinyImmutable.Common
 import Reasoning.SolmBody
-import Solm.Equiv
+import Solm.Refine
 
 /-!
-# TinyImmutable constructor correctness stub
+# TinyImmutable constructor correctness
 
-Parameterized over the two final immutable values. The constructor has two source paths for `scale`:
-one assigns `_scale`, and the other leaves the immutable at its default `0`. The constructor returns
-a runtime whose bytes depend on the final `owner` and `scale`; `constructorEquivalenceWith` checks
-that the EVM-returned runtime equals `runtimeCodeOf` applied to the constructor's final
-`imm_<name>` locals.
+The constructor has two source paths for `scale`: one assigns `_scale`, and the other leaves the
+immutable at its zero value. The constructor returns a runtime whose bytes depend on the final
+`owner` and `scale`; `typedConstructorRefinement` checks that the EVM-returned runtime is
+`deployedRuntime` of the Solm constructor's final immutables, and that those are well typed.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -30,20 +29,18 @@ def tinyCtorCode (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) : ByteArray :=
   tinyImmutableCreationBytecode ++ tinyCtorTail owner scale useScale
 
-def tinyCtorArgLocals (v : TinyImmutables) (owner : AccountAddress) (scaleInt : Int)
-    (useScale : Bool) : Store :=
+def tinyCtorArgLocals (owner : AccountAddress) (scaleInt : Int) (useScale : Bool) : Store :=
   Std.HashMap.ofList
-    (List.zip ((contract v).ctor.params.map Param.name)
+    (List.zip (contract.ctor.params.map Param.name)
       [.address owner, .int scaleInt, .bool useScale])
 
-def tinyCtorFinalLocals (v : TinyImmutables) (owner : AccountAddress) (scaleInt : Int)
-    (useScale : Bool) : Store :=
-  ((tinyCtorArgLocals v owner scaleInt useScale).insert "imm_owner" (.address owner)).insert
-    "imm_scale" (.int (if useScale then scaleInt else 0))
+/-- The constructor's final immutables: `owner` always set, `scale` only on the `useScale` path. -/
+def tinyCtorFinalImms (owner : AccountAddress) (scaleInt : Int) (useScale : Bool) : Store :=
+  let withOwner := (initialImmutables contract).insert "owner" (.address owner)
+  if useScale then withOwner.insert "scale" (.int scaleInt) else withOwner
 
-theorem tinyCtorDeployment_shape {args : List Value} {deployedInitcode : ByteArray}
-    (v : TinyImmutables) :
-    (config v).selfDeployment tinyImmutableCreationBytecode args = some deployedInitcode →
+theorem tinyCtorDeployment_shape {args : List Value} {deployedInitcode : ByteArray} :
+    config.selfDeployment tinyImmutableCreationBytecode args = some deployedInitcode →
     ∃ owner : AccountAddress, ∃ scaleInt : Int, ∃ useScale : Bool,
       args = [.address owner, .int scaleInt, .bool useScale] ∧
       0 ≤ scaleInt ∧ scaleInt < Int.ofNat (EVM.twoPow 256) ∧
@@ -523,50 +520,18 @@ theorem tinyCtorPatchedRuntime_read (owner : AccountAddress) (scale : UInt256) :
   have hself := byteArray_extract_self (tinyCtorPatchedRuntime owner scale)
   simpa [tinyCtorPatchedRuntime_eq_patchedRuntime, Nat.zero_add] using hself
 
-theorem tinyCtorArgLocals_get_owner (v : TinyImmutables) (owner : AccountAddress)
-    (scaleInt : Int) (useScale : Bool) :
-    (tinyCtorArgLocals v owner scaleInt useScale).get? "_owner" = some (.address owner) := by
+theorem tinyCtorArgLocals_get_owner (owner : AccountAddress) (scaleInt : Int) (useScale : Bool) :
+    (tinyCtorArgLocals owner scaleInt useScale).get? "_owner" = some (.address owner) := by
   grind [tinyCtorArgLocals, contract, constructorDecl]
 
-theorem tinyCtorArgLocals_get_scale (v : TinyImmutables) (owner : AccountAddress)
-    (scaleInt : Int) (useScale : Bool) :
-    (tinyCtorArgLocals v owner scaleInt useScale).get? "_scale" = some (.int scaleInt) := by
+theorem tinyCtorArgLocals_get_scale (owner : AccountAddress) (scaleInt : Int) (useScale : Bool) :
+    (tinyCtorArgLocals owner scaleInt useScale).get? "_scale" = some (.int scaleInt) := by
   grind [tinyCtorArgLocals, contract, constructorDecl]
 
-theorem tinyCtorArgLocals_get_useScale (v : TinyImmutables) (owner : AccountAddress)
-    (scaleInt : Int) (useScale : Bool) :
-    (tinyCtorArgLocals v owner scaleInt useScale).get? "useScale" = some (.bool useScale) := by
+theorem tinyCtorArgLocals_get_useScale (owner : AccountAddress) (scaleInt : Int)
+    (useScale : Bool) :
+    (tinyCtorArgLocals owner scaleInt useScale).get? "useScale" = some (.bool useScale) := by
   grind [tinyCtorArgLocals, contract, constructorDecl]
-
-theorem tinyCtorOwnerLocals_get_useScale (v : TinyImmutables) (owner : AccountAddress)
-    (scaleInt : Int) (useScale : Bool) :
-    ((tinyCtorArgLocals v owner scaleInt useScale).insert "imm_owner" (.address owner)).get?
-      "useScale" = some (.bool useScale) := by
-  grind [tinyCtorArgLocals, contract, constructorDecl]
-
-theorem tinyCtorOwnerLocals_get_scale (v : TinyImmutables) (owner : AccountAddress)
-    (scaleInt : Int) (useScale : Bool) :
-    ((tinyCtorArgLocals v owner scaleInt useScale).insert "imm_owner" (.address owner)).get?
-      "_scale" = some (.int scaleInt) := by
-  grind [tinyCtorArgLocals, contract, constructorDecl]
-
-theorem tinyCtorFinalLocals_get_owner (v : TinyImmutables) (owner : AccountAddress)
-    (scaleInt : Int) (useScale : Bool) :
-    (tinyCtorFinalLocals v owner scaleInt useScale).get? "imm_owner" =
-      some (.address owner) := by
-  grind [tinyCtorFinalLocals, tinyCtorArgLocals, contract, constructorDecl]
-
-theorem tinyCtorFinalLocals_get_scale_true (v : TinyImmutables) (owner : AccountAddress)
-    (scaleInt : Int) :
-    (tinyCtorFinalLocals v owner scaleInt true).get? "imm_scale" =
-      some (.int scaleInt) := by
-  grind [tinyCtorFinalLocals, tinyCtorArgLocals, contract, constructorDecl]
-
-theorem tinyCtorFinalLocals_get_scale_false (v : TinyImmutables) (owner : AccountAddress)
-    (scaleInt : Int) :
-    (tinyCtorFinalLocals v owner scaleInt false).get? "imm_scale" =
-      some (.int 0) := by
-  grind [tinyCtorFinalLocals, tinyCtorArgLocals, contract, constructorDecl]
 
 theorem tinyCtorAbiMem_read160 (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) :
@@ -698,107 +663,75 @@ theorem tinyCtorDecodedMem_mload160_false (owner : AccountAddress) (scale : UInt
   · simpa [show (⟨160⟩ : UInt256).toNat = 160 from by decide] using
       tinyCtorDecodedMem_read160_false owner scale
 
-theorem tinyCtorRuntimeCodeOf_true (v : TinyImmutables) (owner : AccountAddress)
-    (scaleInt : Int) (h0 : 0 ≤ scaleInt)
-    (hlt : scaleInt < Int.ofNat (EVM.twoPow 256)) :
-    runtimeCodeOf tinyImmutableBytecode (tinyCtorFinalLocals v owner scaleInt true) =
-      some (patchedRuntime { owner := owner, scale := EVM.word scaleInt.toNat }) := by
-  have hword : (EVM.word scaleInt.toNat).toNat = scaleInt.toNat :=
-    constructorUInt256Word_toNat scaleInt h0 hlt
-  unfold runtimeCodeOf patchesFrom offsets immutableReferences wordBytes?
-  simp [List.foldrM]
-  rw [show (tinyCtorFinalLocals v owner scaleInt true)["imm_owner"]? =
-      some (.address owner) by
-    exact tinyCtorFinalLocals_get_owner v owner scaleInt true]
-  rw [show (tinyCtorFinalLocals v owner scaleInt true)["imm_scale"]? =
-      some (.int scaleInt) by
-    exact tinyCtorFinalLocals_get_scale_true v owner scaleInt]
-  simp [valueToWord, wordOfInt_nonneg _ h0]
-  simpa [patches, patchesFrom, offsets, immutableReferences, immValues, wordBytes?, valueToWord,
-    List.lookup_cons,
-    hword, Int.toNat_of_nonneg h0, wordOfInt_nonneg _ h0] using
-    (patchRuntime_eq_patchedRuntime
-      (v := { owner := owner, scale := EVM.word scaleInt.toNat }))
+theorem tinyCtorFinalImms_get_owner (owner : AccountAddress) (scaleInt : Int)
+    (useScale : Bool) :
+    (tinyCtorFinalImms owner scaleInt useScale).get? "owner" = some (.address owner) := by
+  cases useScale <;>
+    simp only [tinyCtorFinalImms, initialImmutables, contract, List.foldl] <;> grind
 
-theorem tinyCtorRuntimeCodeOf_false (v : TinyImmutables) (owner : AccountAddress)
-    (scaleInt : Int) :
-    runtimeCodeOf tinyImmutableBytecode (tinyCtorFinalLocals v owner scaleInt false) =
-      some (patchedRuntime { owner := owner, scale := ⟨0⟩ }) := by
-  unfold runtimeCodeOf patchesFrom offsets immutableReferences wordBytes?
-  simp [List.foldrM]
-  rw [show (tinyCtorFinalLocals v owner scaleInt false)["imm_owner"]? =
-      some (.address owner) by
-    exact tinyCtorFinalLocals_get_owner v owner scaleInt false]
-  rw [show (tinyCtorFinalLocals v owner scaleInt false)["imm_scale"]? =
-      some (.int 0) by
-    exact tinyCtorFinalLocals_get_scale_false v owner scaleInt]
-  simp [valueToWord]
-  simpa [patches, patchesFrom, offsets, immutableReferences, immValues, wordBytes?, valueToWord,
-    show EVM.wordOfInt 0 = (⟨0⟩ : UInt256) by decide] using
-    (patchRuntime_eq_patchedRuntime
-      (v := { owner := owner, scale := (⟨0⟩ : UInt256) }))
+theorem tinyCtorFinalImms_get_scale_true (owner : AccountAddress) (scaleInt : Int) :
+    (tinyCtorFinalImms owner scaleInt true).get? "scale" = some (.int scaleInt) := by
+  simp only [tinyCtorFinalImms, initialImmutables, contract, List.foldl]; grind
 
-theorem tinyCtorBodyReturns (v : TinyImmutables) (evm : EVM.State)
+theorem tinyCtorFinalImms_get_scale_false (owner : AccountAddress) (scaleInt : Int) :
+    (tinyCtorFinalImms owner scaleInt false).get? "scale" = some (.int 0) := by
+  simp only [tinyCtorFinalImms, initialImmutables, contract, List.foldl, elemDefaultValue]
+  grind
+
+theorem tinyCtorFinalImms_fit (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
+    (h0 : 0 ≤ scaleInt) (hlt : scaleInt < Int.ofNat (EVM.twoPow 256)) :
+    immutablesFit contract (tinyCtorFinalImms owner scaleInt useScale) := by
+  have hlt' : scaleInt < 2 ^ 256 := by simpa [EVM.twoPow] using hlt
+  intro d hd
+  simp only [contract, List.mem_cons, List.not_mem_nil, or_false] at hd
+  rcases hd with rfl | rfl
+  · exact ⟨_, tinyCtorFinalImms_get_owner owner scaleInt useScale, rfl⟩
+  · cases useScale
+    · exact ⟨_, tinyCtorFinalImms_get_scale_false owner scaleInt, by decide⟩
+    · exact ⟨_, tinyCtorFinalImms_get_scale_true owner scaleInt,
+        by simp [elemValueFits, uint256Int, h0]; exact lt_of_lt_of_eq hlt' (by norm_num)⟩
+
+theorem tinyCtorFinalImms_true (owner : AccountAddress) (scaleInt : Int) :
+    immsOf (tinyCtorFinalImms owner scaleInt true) =
+      { owner := owner, scale := EVM.word scaleInt.toNat } := by
+  simp only [immsOf, tinyCtorFinalImms_get_owner, tinyCtorFinalImms_get_scale_true]
+
+theorem tinyCtorFinalImms_false (owner : AccountAddress) (scaleInt : Int) :
+    immsOf (tinyCtorFinalImms owner scaleInt false) = { owner := owner, scale := ⟨0⟩ } := by
+  simp only [immsOf, tinyCtorFinalImms_get_owner, tinyCtorFinalImms_get_scale_false]
+  rfl
+
+theorem tinyCtorBodyReturns (evm : EVM.State)
     (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
+    (h0 : 0 ≤ scaleInt) (hlt : scaleInt < Int.ofNat (EVM.twoPow 256))
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody (config v) (contract v) evm
-      (tinyCtorArgLocals v owner scaleInt useScale) (contract v).ctor.body
+    ExecTransitionBody config contract evm
+      (tinyCtorArgLocals owner scaleInt useScale) contract.ctor.body
       (.returned
-        { contract := contract v
-          locals := tinyCtorFinalLocals v owner scaleInt useScale }
-        evm none) := by
+        { contract := contract
+          locals := tinyCtorArgLocals owner scaleInt useScale
+          immutables := tinyCtorFinalImms owner scaleInt useScale }
+        evm none) (initialImmutables contract) := by
+  have hlt' : scaleInt < 2 ^ 256 := by simpa [EVM.twoPow] using hlt
   simp only [contract, constructorDecl, nonpayable, List.append_assoc, List.nil_append]
   refine ExecFuncBody.execBlockOK ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (value := .address owner) ?_) ?_
-  · show evalExpr? (config v)
-        { contract := contract v, locals := tinyCtorArgLocals v owner scaleInt useScale } evm
-        (.var "_owner") = .ok (.address owner)
-    simp [evalExpr?, EvalResult.ofOption]
-    rw [show (tinyCtorArgLocals v owner scaleInt useScale)["_owner"]? =
-        some (.address owner) by
-      exact tinyCtorArgLocals_get_owner v owner scaleInt useScale]
+  refine ExecBlock.consNormal (ExecStmt.setImmutable (value := .address owner) (ty := .address)
+    ?_ rfl rfl) ?_
+  · simp only [evalExpr?, EvalResult.ofOption, ← Std.HashMap.get?_eq_getElem?,
+        tinyCtorArgLocals_get_owner]
   · cases useScale
-    · refine ExecBlock.consNormal (ExecStmt.iteFalse ?_ ?_) ExecBlock.nil
-      · show evalExpr? (config v)
-            { contract := contract v
-              locals := (tinyCtorArgLocals v owner scaleInt false).insert "imm_owner"
-                (.address owner) } evm
-            (.var "useScale") = .ok (.bool false)
-        simp [evalExpr?, EvalResult.ofOption]
-        rw [show ((tinyCtorArgLocals v owner scaleInt false).insert "imm_owner"
-            (.address owner))["useScale"]? = some (.bool false) by
-          exact tinyCtorOwnerLocals_get_useScale v owner scaleInt false]
-      · simpa [tinyCtorFinalLocals] using
-          (ExecBlock.consNormal (ExecStmt.letDecl (value := .int 0) (by
-            show evalExpr? (config v)
-              { contract := contract v
-                locals := (tinyCtorArgLocals v owner scaleInt false).insert "imm_owner"
-                  (.address owner) } evm
-              (.intLit 0) = .ok (.int 0)
-            simp [evalExpr?, pure])) ExecBlock.nil)
+    · refine ExecBlock.consNormal (ExecStmt.iteFalse ?_ ExecBlock.nil) ExecBlock.nil
+      simp only [evalExpr?, EvalResult.ofOption, ← Std.HashMap.get?_eq_getElem?,
+        tinyCtorArgLocals_get_useScale]
     · refine ExecBlock.consNormal (ExecStmt.iteTrue ?_ ?_) ExecBlock.nil
-      · show evalExpr? (config v)
-            { contract := contract v
-              locals := (tinyCtorArgLocals v owner scaleInt true).insert "imm_owner"
-                (.address owner) } evm
-            (.var "useScale") = .ok (.bool true)
-        simp [evalExpr?, EvalResult.ofOption]
-        rw [show ((tinyCtorArgLocals v owner scaleInt true).insert "imm_owner"
-            (.address owner))["useScale"]? = some (.bool true) by
-          exact tinyCtorOwnerLocals_get_useScale v owner scaleInt true]
-      · simpa [tinyCtorFinalLocals] using
-          (ExecBlock.consNormal (ExecStmt.letDecl (value := .int scaleInt) (by
-            show evalExpr? (config v)
-              { contract := contract v
-                locals := (tinyCtorArgLocals v owner scaleInt true).insert "imm_owner"
-                  (.address owner) } evm
-              (.var "_scale") = .ok (.int scaleInt)
-            simp [evalExpr?, EvalResult.ofOption]
-            rw [show ((tinyCtorArgLocals v owner scaleInt true).insert "imm_owner"
-                (.address owner))["_scale"]? = some (.int scaleInt) by
-              exact tinyCtorOwnerLocals_get_scale v owner scaleInt true]))
-          ExecBlock.nil)
+      · simp only [evalExpr?, EvalResult.ofOption, ← Std.HashMap.get?_eq_getElem?,
+        tinyCtorArgLocals_get_useScale]
+      · refine ExecBlock.consNormal (ExecStmt.setImmutable (value := .int scaleInt)
+          (ty := .int uint256Int) ?_ rfl ?_) ExecBlock.nil
+        · simp only [evalExpr?, EvalResult.ofOption, ← Std.HashMap.get?_eq_getElem?,
+        tinyCtorArgLocals_get_scale]
+        · simp [elemValueFits, uint256Int, h0]; exact lt_of_lt_of_eq hlt' (by norm_num)
 
 theorem tinySolmCtorExecSuccess
     {σ : AccountMap}
@@ -806,22 +739,24 @@ theorem tinySolmCtorExecSuccess
     {g : UInt256}
     {A : Substate}
     {I : ExecutionEnv}
-    (v : TinyImmutables) (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
+    (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
+    (h0 : 0 ≤ scaleInt) (hlt : scaleInt < Int.ofNat (EVM.twoPow 256))
     (hwv : I.weiValue = ⟨0⟩) :
-    solmCtorExec (config v) (contract v) [.address owner, .int scaleInt, .bool useScale]
+    solmCtorExec config contract [.address owner, .int scaleInt, .bool useScale]
       σ σ₀ g A I
       (.returned
-        { contract := contract v
-          locals := tinyCtorFinalLocals v owner scaleInt useScale }
+        { contract := contract
+          locals := tinyCtorArgLocals owner scaleInt useScale
+          immutables := tinyCtorFinalImms owner scaleInt useScale }
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         none) := by
   refine solmCtorExec.intro
     (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
-    (argsStore := tinyCtorArgLocals v owner scaleInt useScale)
+    (argsStore := tinyCtorArgLocals owner scaleInt useScale)
     ?_ rfl ?_ ?_
   · rfl
   · simp [tinyCtorArgLocals, contract, constructorDecl]
-  · exact tinyCtorBodyReturns v _ owner scaleInt useScale (by simp [initState, hwv])
+  · exact tinyCtorBodyReturns _ owner scaleInt useScale h0 hlt (by simp [initState, hwv])
 
 theorem tinySolmCtorExecReverts_nonpayable
     {σ : AccountMap}
@@ -829,27 +764,18 @@ theorem tinySolmCtorExecReverts_nonpayable
     {g : UInt256}
     {A : Substate}
     {I : ExecutionEnv}
-    (v : TinyImmutables) (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
+    (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    solmCtorExec (config v) (contract v) [.address owner, .int scaleInt, .bool useScale]
+    solmCtorExec config contract [.address owner, .int scaleInt, .bool useScale]
       σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
     (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
-    (argsStore := tinyCtorArgLocals v owner scaleInt useScale)
+    (argsStore := tinyCtorArgLocals owner scaleInt useScale)
     ?_ rfl ?_ ?_
   · rfl
   · simp [tinyCtorArgLocals, contract, constructorDecl]
-  · simpa [contract, constructorDecl, nonpayable] using
-      (bodyReverts_nonPayable (cfg := config v) (contract := contract v)
-        (evm := initState σ σ₀
-          (Sat256.ofUInt256 g) A I)
-        (locals := tinyCtorArgLocals v owner scaleInt useScale)
-        (rest :=
-          [ .letDecl "imm_owner" (some addr) (.var "_owner"),
-            .ite (.var "useScale")
-              [ .letDecl "imm_scale" (some uint256) (.var "_scale") ]
-              [ .letDecl "imm_scale" (some uint256) (.intLit 0) ] ])
-        (by simp [initState, hwv]))
+  · simp only [contract, constructorDecl, nonpayable, List.append_assoc, List.nil_append]
+    exact ExecFuncBody.execBlockRevert (blockReverts_nonPayable (by simp [initState, hwv]))
 
 theorem tinyCtorCreation_decode_append (tail : ByteArray) (pc : UInt256)
     (hpc : pc.toNat + 33 ≤ tinyImmutableCreationBytecode.size) :
@@ -1192,12 +1118,10 @@ theorem tinyCtorInitcodeNonpayableRevert
   exact rd12.revertStub (by tiny_ctor_decode) (by tiny_ctor_decode) (by tiny_ctor_decode)
     (by simp)
 
-theorem tinyImmutableConstructorCorrect (v : TinyImmutables) :
-    constructorEquivalenceWith (config v) tinyImmutableCreationBytecode (contract v)
-      (runtimeCodeOf tinyImmutableBytecode) := by
-  refine constructorEquivalenceWith.intro ?_
+theorem tinyImmutableConstructorCorrect :
+    typedConstructorRefinement config tinyImmutableCreationBytecode contract deployedRuntime := by
   intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata _hperm
-  rcases tinyCtorDeployment_shape v hdeploy with
+  rcases tinyCtorDeployment_shape hdeploy with
     ⟨owner, scaleInt, useScale, hargs, h0, hlt, hdeployed⟩
   subst args
   rw [hdeployed] at hcode
@@ -1210,16 +1134,13 @@ theorem tinyImmutableConstructorCorrect (v : TinyImmutables) :
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) owner (EVM.word scaleInt.toNat) hcodeCtor hwv
       rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', A', hsuccess⟩
-      · exact constructorEquivalenceForWith.outOfGas
-          (by simpa [Sat256.ofUInt256] using hOOG)
-      · refine constructorEquivalenceForWith.execution
-          (by simpa [Sat256.ofUInt256] using hsuccess)
-          (tinySolmCtorExecSuccess
-            (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
-            v owner scaleInt false hwv) ?_
-        refine ctorResultEquivWith.success rfl rfl ?_ ?_
-        · rfl
-        · exact tinyCtorRuntimeCodeOf_false v owner scaleInt
+      · exact .outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+      · refine .execution (by simpa [Sat256.ofUInt256] using hsuccess)
+          (tinySolmCtorExecSuccess (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+            owner scaleInt false h0 hlt hwv)
+          (ctorResultEquiv.success rfl rfl rfl ?_)
+          (tinyCtorFinalImms_fit owner scaleInt false h0 hlt)
+        simp [deployedRuntime, tinyCtorFinalImms_false]
     · have hcodeCtor :
           I.code = tinyCtorCode owner (EVM.word scaleInt.toNat) true := by
         simpa [tinyCtorCode] using hcode
@@ -1227,28 +1148,22 @@ theorem tinyImmutableConstructorCorrect (v : TinyImmutables) :
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) owner (EVM.word scaleInt.toNat) hcodeCtor hwv
       rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', A', hsuccess⟩
-      · exact constructorEquivalenceForWith.outOfGas
-          (by simpa [Sat256.ofUInt256] using hOOG)
-      · refine constructorEquivalenceForWith.execution
-          (by simpa [Sat256.ofUInt256] using hsuccess)
-          (tinySolmCtorExecSuccess
-            (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
-            v owner scaleInt true hwv) ?_
-        refine ctorResultEquivWith.success rfl rfl ?_ ?_
-        · rfl
-        · exact tinyCtorRuntimeCodeOf_true v owner scaleInt h0 hlt
+      · exact .outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+      · refine .execution (by simpa [Sat256.ofUInt256] using hsuccess)
+          (tinySolmCtorExecSuccess (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+            owner scaleInt true h0 hlt hwv)
+          (ctorResultEquiv.success rfl rfl rfl ?_)
+          (tinyCtorFinalImms_fit owner scaleInt true h0 hlt)
+        simp [deployedRuntime, tinyCtorFinalImms_true]
   · have hrd := tinyCtorInitcodeNonpayableRevert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g)
       (tail := tinyCtorTail owner (EVM.word scaleInt.toNat) useScale) hcode hwv
     rcases hrd.xiResult hcode with hOOG | ⟨g', o, hrev⟩
-    · exact constructorEquivalenceForWith.outOfGas
-        (by simpa [Sat256.ofUInt256] using hOOG)
-    · refine constructorEquivalenceForWith.execution
-        (by simpa [Sat256.ofUInt256] using hrev)
-        (tinySolmCtorExecReverts_nonpayable
-          (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
-          v owner scaleInt useScale hwv) ?_
-      exact ctorResultEquivWith.revert rfl rfl
+    · exact .outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · exact .execution (by simpa [Sat256.ofUInt256] using hrev)
+        (tinySolmCtorExecReverts_nonpayable (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+          owner scaleInt useScale hwv)
+        (ctorResultEquiv.revert rfl rfl) trivial
 
 end TinyImmutable

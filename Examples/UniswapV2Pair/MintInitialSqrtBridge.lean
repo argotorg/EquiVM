@@ -537,7 +537,8 @@ theorem mintInitialLiquiditySqrtPrefixRuntimeBounded
         toWord, ⟨861⟩, sel]
       mem aw rdata σFee k C)
     (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
-    (hfit : mintAmountProductNat amount0 amount1 < UInt256.size) :
+    (hfit : mintAmountProductNat amount0 amount1 < UInt256.size)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ∃ root k' C',
       ExecStmt config caller evm
         (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]

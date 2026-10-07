@@ -164,7 +164,7 @@ theorem uniswapMintInitialFeeOffKLastZeroSecondMintTotalSupplyOverflowFromFactor
       UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -357,7 +357,7 @@ theorem uniswapMintInitialFeeOnKLastZeroSecondMintTotalSupplyOverflowFromFactory
       UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -567,7 +567,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroSecondMintTotalSupplyOverflowFromFac
       UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let evmAfterFee := mintFeeKLastClearedState evmFeeS

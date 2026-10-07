@@ -915,7 +915,7 @@ theorem blindAuctionBidsBodyCore {σ σ₀ A I} {g : UInt256}
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
       k C)
  :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   have _hperm : I.perm = true := hperm
 

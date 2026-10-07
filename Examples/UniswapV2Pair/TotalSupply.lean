@@ -55,7 +55,7 @@ theorem uniswapTotalSupplyBodyCore
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨853⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ totalSupplyTransition.body
@@ -78,7 +78,7 @@ theorem uniswapTotalSupplyBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x18, 0x16, 0x0d, 0xdd]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some totalSupplyTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ rfl hsel
   exact uniswapTotalSupplyBodyCore hcode hwv hdispatch (uniswapDecode_totalSupply hsz)
