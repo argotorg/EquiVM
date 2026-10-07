@@ -1,4 +1,4 @@
-import Benchmarks.Scaffolds.EAS.Attester.Bytecode
+import Benchmarks.EAS.Attester.Bytecode
 import Reasoning.Dispatch
 
 /-!
@@ -23,32 +23,21 @@ abbrev attesterRevokeSelBytes : ByteArray := ⟨#[0xc2, 0x66, 0x46, 0x10]⟩
 /-- Selector fact: `keccak256("attest(bytes32,uint256)")[0:4]`. -/
 theorem attestSelectorOf :
     selectorOf (attestTransition) = attesterAttestSelBytes := by
-  simp [selectorOf, transitionSigStr, transitionSignature, ABI.printSignature,
-    ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, attestTransition,
-    bytes32, bytes32Width, uint256, uint256Int]
-  decide +kernel
+  native_decide
 
 /-- Selector fact: `keccak256("revoke(bytes32,bytes32)")[0:4]`. -/
 theorem revokeSelectorOf :
     selectorOf (revokeTransition) = attesterRevokeSelBytes := by
-  simp [selectorOf, transitionSigStr, transitionSignature, ABI.printSignature,
-    ABI.abiToSigStr, revokeTransition, bytes32, bytes32Width]
-  decide +kernel
+  native_decide
 
 /-- Selector fact: `keccak256("multiAttest(bytes32[],uint256[][])")[0:4]`. -/
 theorem multiAttestSelectorOf :
     selectorOf (multiAttestTransition) = attesterMultiAttestSelBytes := by
-  simp [selectorOf, transitionSigStr, transitionSignature, ABI.printSignature,
-    ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, multiAttestTransition,
-    bytes32, bytes32Width, bytes32Array, uint256, uint256Int, uint256Array, uint256NestedArray]
-  decide +kernel
+  native_decide
 
 /-- Selector fact: `keccak256("multiRevoke(bytes32[],bytes32[][])")[0:4]`. -/
 theorem multiRevokeSelectorOf :
     selectorOf (multiRevokeTransition) = attesterMultiRevokeSelBytes := by
-  simp [selectorOf, transitionSigStr, transitionSignature, ABI.printSignature,
-    ABI.abiToSigStr, revokeTransition, multiRevokeTransition,
-    bytes32, bytes32Width, bytes32Array, bytes32NestedArray]
-  decide +kernel
+  native_decide
 
 end Benchmarks.EAS.Attester

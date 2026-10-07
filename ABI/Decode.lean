@@ -34,6 +34,19 @@ def solcRejectsDynamicArrayElementOffset (mode : DecodeMode) (relativeOffset : N
   | DecodeMode.vyper => false
   | DecodeMode.legacySolc05 => decide (solcMaxLen mode < relativeOffset)
 
+/-- Modern solc's calldata access helper adds a nested array's relative offset with EVM `ADD`.
+    The offset is not capped at 64 bits: a two's-complement negative offset can refer back to
+    an earlier array. Keep that addition modulo 2^256 instead of rejecting an accepted alias
+    by attempting to read a mathematical-natural address beyond the input. -/
+def solcDynamicArrayElementTarget (mode : DecodeMode) (base relativeOffset : Nat) : Nat :=
+  match mode with
+  | DecodeMode.modern => (base + relativeOffset) % EVM.wordModulus
+  | _ => base + relativeOffset
+
+-- A nested offset of -96 aliases a preceding array instead of addressing an enormous Nat.
+#guard solcDynamicArrayElementTarget DecodeMode.modern 160 (2^256 - 96) = 64
+#guard solcDynamicArrayElementTarget DecodeMode.legacySolc05 160 (2^256 - 96) = 2^256 + 64
+
 @[simp] theorem solcRejectsDynamicArrayElementOffset_modern (relativeOffset : Nat) :
     solcRejectsDynamicArrayElementOffset DecodeMode.modern relativeOffset = false := rfl
 
@@ -293,7 +306,8 @@ mutual
         if solcRejectsDynamicArrayElementOffset mode relativeOffset then
           none
         else
-          let (value, valueEnd) <- decodeABIValue? ty bytes (base + relativeOffset) mode
+          let (value, valueEnd) <-
+            decodeABIValue? ty bytes (solcDynamicArrayElementTarget mode base relativeOffset) mode
           let (values, restEnd) <-
             decodeABIArrayDynamicElemsFrom? ty n bytes base (headCursor + 32) headSize
               (max maxEnd valueEnd) mode

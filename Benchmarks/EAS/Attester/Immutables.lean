@@ -20,7 +20,7 @@ def easExpr : Expr := .immutable "_eas"
 
 /-- solc `immutableReferences` offsets, keyed by immutable name (AST id 516 = `_eas`). -/
 def offsets : List (Ident × List Nat) :=
-  [("_eas", [722, 1465, 1598, 1939])]
+  [("_eas", [824, 1719, 1888, 2289])]
 
 /-- The constructor's immutable offsets as a layout for generated runtime summaries. -/
 def immutableLayout : Reasoning.Immutables.Layout :=

@@ -1,4 +1,8 @@
-import Benchmarks.Scaffolds.EAS.Attester.Constructor
+import Benchmarks.EAS.Attester.Constructor
+import Benchmarks.EAS.Attester.Attest
+import Benchmarks.EAS.Attester.MultiAttest
+import Benchmarks.EAS.Attester.MultiRevoke
+import Benchmarks.EAS.Attester.Revoke
 import Solm.Refine
 
 /-!
@@ -16,6 +20,8 @@ namespace Benchmarks.EAS.Attester
 theorem attesterCorrect (imms : Store) (_hfit : immutablesFit contract imms) :
     runtimeRefinement config (deployedRuntime attesterBytecode imms) contract
       (restrictImmutables contract imms) := by
+  -- Route nonzero value to attesterNonPayable, the four selectors to their ...Body targets,
+  -- and every remaining selector/short input to attesterNoDispatch.
   sorry
 
 theorem attesterContractCorrect : contractRefinement config attesterCreationBytecode contract :=

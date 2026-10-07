@@ -1,4 +1,4 @@
-import Benchmarks.Scaffolds.EAS.Attester.Bytecode
+import Benchmarks.EAS.Attester.Common
 import Solm.Refine
 
 /-!

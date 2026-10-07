@@ -1,10 +1,10 @@
 # Benchmarks
 
-Real-world contracts used to evaluate the framework at scale. The layout separates finished work
-from prepared targets:
+Real-world contracts used to evaluate the framework at scale. The layout tracks completed proofs,
+active proof targets, and prepared scaffolds:
 
-- **This directory** holds benchmarks whose refinement proof is complete (top-level
-  `…ContractCorrect` theorem, no `sorry`), with one exception noted below.
+- **This directory** holds completed proofs (top-level `…ContractCorrect` theorem, no `sorry`)
+  and targets promoted for active proof work. Their status is listed separately below.
 - **`Scaffolds/`** holds benchmarks that are prepared for proving but not yet
   proved: the Sol⁻ specification, the exact compiled bytecode, the verified
   jump-destination table, and the top-level theorem statements (as `sorry`
@@ -38,10 +38,20 @@ Sizes are bytes of checked-in `runtime.hex`.
 | `Dss/LinearDecrease` | [`makerdao/dss` `abaci.sol`](https://github.com/makerdao/dss/blob/master/src/abaci.sol) | 0.6.12 | 1128 | `linearDecreaseContractCorrect` |
 | `Dss/StairstepExponentialDecrease` | [`makerdao/dss` `abaci.sol`](https://github.com/makerdao/dss/blob/master/src/abaci.sol) | 0.6.12 | 1433 | `stairstepExponentialDecreaseContractCorrect` |
 | `Dss/ExponentialDecrease` | [`makerdao/dss` `abaci.sol`](https://github.com/makerdao/dss/blob/master/src/abaci.sol) | 0.6.12 | 1321 | `exponentialDecreaseContractCorrect` |
-| `Dss/Clipper` | [`makerdao/dss` `clip.sol`](https://github.com/makerdao/dss/blob/master/src/clip.sol) | 0.6.12 | 9360 | `clipperContractCorrect` — **in progress**|
+
+## Active proof targets
+
+| Benchmark | Upstream source | solc | Runtime bytes | Status |
+|---|---|---|---|---|
+| `Dss/Clipper` | [`makerdao/dss` `clip.sol`](https://github.com/makerdao/dss/blob/master/src/clip.sol) | 0.6.12 | 9360 | Proof in progress |
+| `EAS/Attester` | [`ethereum-attestation-service/eas-contracts-example`](https://github.com/ethereum-attestation-service/eas-contracts-example/blob/d2864b166a08f9b3f9314f8b302316d67f227462/contracts/Attester.sol) | 0.8.26 (Paris, 1M runs) | 3865 | Audited; ready for proof |
 
 `Dss/Clipper` stays here rather than in `Scaffolds/` because it completes the Dss suite and its
 proof is substantially under way.
+
+`EAS/Attester` has an audited specification, executable regression checks, generated block
+summaries, and ten open functional proof targets. Start with its [proof handoff](EAS/Attester/README.md#proof-handoff)
+and [semantic audit](EAS/Attester/AUDIT.md). Its refinement proof is not complete.
 
 ## Scaffolds
 
@@ -50,7 +60,6 @@ proof is substantially under way.
 | `Scaffolds/Safe` | [`safe-global/safe-smart-account`](https://github.com/safe-global/safe-smart-account/blob/77901a5a1ad835b74ad3b72f73a8412cfe491c57/contracts/Safe.sol) | 0.8.35 | 11874 |
 | `Scaffolds/Klima` | [`KlimaDAO/klimadao-solidity`](https://github.com/KlimaDAO/klimadao-solidity/blob/0eb4770c1e9cbead8dd23ef0c23a9a27d761d029/src/protocol/tokens/regular/KlimaToken.sol) | 0.7.5 | 6975 |
 | `Scaffolds/ERC721` | Benchmark-local compact ERC721 core ([`ERC721.sol`](Scaffolds/ERC721/ERC721.sol)) | 0.8.35 | 1482 |
-| `Scaffolds/EAS/Attester` | [`ethereum-attestation-service/eas-contracts-example`](https://github.com/ethereum-attestation-service/eas-contracts-example/blob/d2864b166a08f9b3f9314f8b302316d67f227462/contracts/Attester.sol) | 0.8.26 | 3186 |
 | `Scaffolds/CometRewards` | [`compound-finance/comet`](https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/contracts/CometRewards.sol) | 0.8.15 via-IR | 4063 |
 | `Scaffolds/Comet` | [`compound-finance/comet`](https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/contracts/Comet.sol) | 0.8.15 via-IR | 18655 |
 | `Scaffolds/VestingWallet` | [OpenZeppelin `VestingWallet.sol`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/finance/VestingWallet.sol) | 0.8.35 | 2277 |
@@ -71,7 +80,7 @@ Each benchmark directory contains:
   jump-destination table.
 - `Selectors.lean` — proofs of concrete 4-byte function selectors.
 - `Constructor.lean` / `Correct.lean` — constructor and runtime equivalence; `…ContractCorrect`
-  bundles both. In `Scaffolds/` these are `sorry` stubs.
+  bundles both. Scaffolds and active proof targets retain `sorry` for unfinished obligations.
 - Artifacts: `runtime.hex`, `creation.hex`, `*.abi.json`, `*.storage.json`, `sources.sha256`
   (pins the upstream sources), and `contracts/` (the exact source closure used to reproduce the
   bytecode). Compiler version and flags are recorded per benchmark in its own `README.md` where
