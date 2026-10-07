@@ -78,7 +78,7 @@ theorem clipperDecode_list {I : ExecutionEnv}
 theorem clipperEvalActiveArray (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "active" = none) :
     evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.storage activeRef) =
-      readStorage? config evm ({ base := "active", steps := [] } : EvaledStorageRef)
+      solidityReadStorage? storageLayoutRaw evm ({ base := "active", steps := [] } : EvaledStorageRef)
         (.dynamicArray uint256St) := by
   let er : EvaledStorageRef := { base := "active", steps := [] }
   have her : evalStorageRef config
@@ -137,7 +137,7 @@ theorem clipperEncodeActiveArrayElemsFrom (evm : EVM.State) :
   | k, n + 1 => by
       simp only [clipperActiveArrayValuesFrom, clipperActiveArrayWordBytesFrom,
         encodeABIStaticArrayElems?, bind, Option.bind]
-      rw [clipperEncodeABIValue_uint256,
+      erw [encodeABIValue_uint256,
         clipperEncodeActiveArrayElemsFrom evm (k + 1) n]
 
 theorem clipperActiveArrayReturnEncoding (evm : EVM.State) :
@@ -165,71 +165,76 @@ theorem clipperListReturnEquiv (evm : EVM.State) :
   exact returnEquiv_of_encode (clipperActiveArrayReturnEncoding evm)
 
 theorem clipperReadActiveElemAt (evm : EVM.State) (k : Nat) :
-    readStorage? config evm
+    solidityReadStorage? storageLayoutRaw evm
       ({ base := "active", steps := [.aindex (.int (Int.ofNat k))] } : EvaledStorageRef)
       uint256St =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (activeSlot (.int (Int.ofNat k)))).toNat)) := by
-  simp [readStorage?, config, storageLayout, solidityStorageLayout, storageLayoutRaw,
-    clipperStorageLocLoad_uint256, uint256St]
+  simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
+    solidityReadStorage?, solidityLeafLoc?, EvalResult.ofOption,
+    storageLocLoad_uint256, uint256St]
+  simp only [EvalResult.bind, bind, pure]
+  rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
+  rfl
 
 theorem clipperReadActiveArrayElemsFrom (v : ClipperImmutables) (evm : EVM.State) :
     ∀ k n,
-      readArrayElems? config evm ({ base := "active", steps := [] } : EvaledStorageRef)
+      solidityReadArray? storageLayoutRaw evm ({ base := "active", steps := [] } : EvaledStorageRef)
         uint256St k n = .ok (clipperActiveArrayValuesFrom evm k n)
   | _k, 0 => by
-      rw [readArrayElems?]
-      rfl
+      change solidityReadArray? storageLayoutRaw evm
+        ({ base := "active", steps := [] } : EvaledStorageRef) uint256St _k 0 =
+          .ok (clipperActiveArrayValuesFrom evm _k 0)
+      simp [solidityReadArray?, clipperActiveArrayValuesFrom]
   | k, n + 1 => by
-      rw [readArrayElems?]
-      simp only [List.nil_append]
+      change solidityReadArray? storageLayoutRaw evm
+        ({ base := "active", steps := [] } : EvaledStorageRef) uint256St k (n + 1) =
+          .ok (clipperActiveArrayValuesFrom evm k (n + 1))
+      rw [solidityReadArray?]
       change (do
-          let elem ← readStorage? config evm
+          let elem ← solidityReadStorage? storageLayoutRaw evm
             ({ base := "active",
                steps := [EvaledStorageRefStep.aindex (KeyValue.int (Int.ofNat k))] } :
               EvaledStorageRef)
             uint256St
-          let vrest ← readArrayElems? config evm
+          let vrest ← solidityReadArray? storageLayoutRaw evm
             ({ base := "active", steps := [] } : EvaledStorageRef) uint256St (k + 1) n
           pure (elem :: vrest)) = .ok (clipperActiveArrayValuesFrom evm k (n + 1))
-      rw [clipperReadActiveElemAt evm k]
+      have hread : solidityReadStorage? storageLayoutRaw evm
+          ({ base := "active", steps := [.aindex (.int (Int.ofNat k))] } : EvaledStorageRef)
+          uint256St =
+            .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+              (activeSlot (.int (Int.ofNat k)))).toNat)) := by
+        exact clipperReadActiveElemAt evm k
+      rw [hread]
       simp only [bind, EvalResult.bind, pure]
-      rw [clipperReadActiveArrayElemsFrom v evm (k + 1) n]
+      have hrest : solidityReadArray? storageLayoutRaw evm
+          ({ base := "active", steps := [] } : EvaledStorageRef) uint256St (k + 1) n =
+            .ok (clipperActiveArrayValuesFrom evm (k + 1) n) := by
+        exact clipperReadActiveArrayElemsFrom v evm (k + 1) n
+      rw [hrest]
       rfl
 
 theorem clipperReadActiveArray (v : ClipperImmutables) (evm : EVM.State) :
-    readStorage? config evm ({ base := "active", steps := [] } : EvaledStorageRef)
+    solidityReadStorage? storageLayoutRaw evm ({ base := "active", steps := [] } : EvaledStorageRef)
       (.dynamicArray uint256St) = .ok (.array (clipperActiveArrayValues evm)) := by
-  rw [readStorage?]
-  change (match config.storage.layout
-      ({ base := "active", steps := [.length] } : EvaledStorageRef) evm with
-    | some lenLoc =>
-        match storageLocLoad evm lenLoc with
-        | Value.int len => do
-            let vs <- readArrayElems? config evm
-              ({ base := "active", steps := [] } : EvaledStorageRef) uint256St 0 len.toNat
-            pure (Value.array vs)
-        | _ => EvalResult.error .storageError
-    | none => EvalResult.error .storageError) =
-      .ok (Value.array (clipperActiveArrayValues evm))
-  rw [show config.storage.layout
-      ({ base := "active", steps := [.length] } : EvaledStorageRef) evm =
-        some (wordLoc ⟨11⟩) from rfl]
-  simp only [clipperStorageLocLoad_uint256, bind, EvalResult.bind]
-  change (do
-      let vs ← readArrayElems? config evm
-        ({ base := "active", steps := [] } : EvaledStorageRef) uint256St 0
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat
-      pure (Value.array vs)) = .ok (Value.array (clipperActiveArrayValues evm))
-  rw [clipperReadActiveArrayElemsFrom v evm 0
-    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat]
-  rfl
+  change solidityReadStorage? storageLayoutRaw evm
+    ({ base := "active", steps := [] } : EvaledStorageRef) (.dynamicArray uint256St) =
+      .ok (.array (clipperActiveArrayValues evm))
+  rw [solidityReadStorage?, clipperActiveDynamicLength]
+  have harray : solidityReadArray? storageLayoutRaw evm
+      ({ base := "active", steps := [] } : EvaledStorageRef) uint256St 0
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat =
+        .ok (clipperActiveArrayValues evm) := by
+    exact clipperReadActiveArrayElemsFrom v evm 0
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat
+  simp only [harray, EvalResult.bind, bind, pure]
 
 theorem clipperListBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "active" = none)
     {value : Value}
     (hread :
-      readStorage? config evm ({ base := "active", steps := [] } : EvaledStorageRef)
+      solidityReadStorage? storageLayoutRaw evm ({ base := "active", steps := [] } : EvaledStorageRef)
         (.dynamicArray uint256St) = .ok value) :
     ExecTransitionBody config contract evm locals listTransition.body
       (.returned { contract := contract, locals := locals, immutables := immStore v } evm (some [value])) (immStore v) := by
@@ -254,7 +259,7 @@ theorem clipperReachListBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
       [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h32⟩ := clipperReachRoot (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperListSelectorWord hsz hsel
-  have h260 := clipperSplitTaken (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
         change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none)
@@ -277,7 +282,7 @@ theorem clipperReachListBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
     (by simp)
-  have h369 := clipperSplitTaken (pc := (⟨261⟩ : UInt256)) (pivot := clipperSelNat 9)
+  have h369 := RD.selectorSplitTakenPush2 (pc := (⟨261⟩ : UInt256)) (pivot := clipperSelNat 9)
     (tgt := (⟨369⟩ : UInt256))
     (h260.jumpdest
       (by
@@ -305,7 +310,7 @@ theorem clipperReachListBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨369⟩ : UInt256) (by native_decide))
     (by simp)
-  have h429 := clipperSplitTaken (pc := (⟨370⟩ : UInt256)) (pivot := clipperSelNat 21)
+  have h429 := RD.selectorSplitTakenPush2 (pc := (⟨370⟩ : UInt256)) (pivot := clipperSelNat 21)
     (tgt := (⟨429⟩ : UInt256))
     (h369.jumpdest
       (by
@@ -333,7 +338,7 @@ theorem clipperReachListBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨429⟩ : UInt256) (by native_decide))
     (by simp)
-  have h441 := clipperArmNotTaken (pc := (⟨430⟩ : UInt256))
+  have h441 := RD.selectorArmNotTakenPush2 (pc := (⟨430⟩ : UInt256))
     (next := (⟨441⟩ : UInt256)) (sel := clipperSelNat 5)
     (tgt := (⟨468⟩ : UInt256))
     (h429.jumpdest
@@ -362,7 +367,7 @@ theorem clipperReachListBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h452 := clipperArmNotTaken (pc := (⟨441⟩ : UInt256))
+  have h452 := RD.selectorArmNotTakenPush2 (pc := (⟨441⟩ : UInt256))
     (next := (⟨452⟩ : UInt256)) (sel := clipperSelNat 24)
     (tgt := (⟨494⟩ : UInt256)) h441
     (by
@@ -386,7 +391,7 @@ theorem clipperReachListBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h504 := clipperArmTaken (pc := (⟨452⟩ : UInt256)) (sel := clipperSelNat 15)
+  have h504 := RD.selectorArmTakenPush2 (pc := (⟨452⟩ : UInt256)) (sel := clipperSelNat 15)
     (tgt := (⟨504⟩ : UInt256)) h452
     (by
         change decode code (⟨452⟩ : UInt256) = some (.DUP1, .none)
@@ -427,7 +432,7 @@ theorem clipperJumpDest1812 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -456,7 +461,7 @@ theorem clipperJumpDest1870 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -470,7 +475,7 @@ theorem clipperJumpDest1890 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -828,7 +833,7 @@ theorem clipperListPatchesWindowDisjoint32 (v : ClipperImmutables) {lo hi : Nat}
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
   | some bs =>

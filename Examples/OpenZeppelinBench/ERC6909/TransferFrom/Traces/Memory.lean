@@ -11,14 +11,6 @@ set_option linter.unnecessarySimpa false
 
 namespace OpenZeppelinBench.ERC6909
 
-theorem erc6909ScratchMem_mload64 {base : ByteArray}
-    (hbase : base.size = 96)
-    (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ base.size then ⟨0⟩
-     else UInt256.ofNat
-       (fromByteArrayBigEndian (base.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
-      = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [hbase]; decide) hread64
 
 def solcReturnBaseMem (base : ByteArray) (selector : UInt256) : ByteArray :=
   (UInt256.toByteArray selector).write 0 base 128 32

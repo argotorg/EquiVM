@@ -1,3 +1,5 @@
+import Solm.SolidityStorage
+import Reasoning.EVMWord
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -31,7 +33,7 @@ def addrSt : StorageType := .elem .address
 
 def sender : Expr := .env .caller
 def one : Int := 1000000000000000000000000000
-def maxInt256 : Int := (2 : Int) ^ 255 - 1
+
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
 def s256 (e : Expr) : Expr := .inRange int256Int e
@@ -127,19 +129,19 @@ def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "ilks", steps := [.mindex ilk, .field "duty"] }, _ =>
-      some (wordLoc (ilksBase ilk))
-  | { base := "ilks", steps := [.mindex ilk, .field "rho"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨1⟩))
-  | { base := "vat", steps := [] }, _ => some (addrLoc ⟨2⟩)
-  | { base := "vow", steps := [] }, _ => some (addrLoc ⟨3⟩)
-  | { base := "base", steps := [] }, _ => some (wordLoc ⟨4⟩)
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } => some (.leaf (wordLoc (wardsSlot usr)))
+  | { base := "ilks", steps := [.mindex ilk, .field "duty"] } =>
+      some (.leaf (wordLoc (ilksBase ilk)))
+  | { base := "ilks", steps := [.mindex ilk, .field "rho"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨1⟩)))
+  | { base := "vat", steps := [] } => some (.leaf (addrLoc ⟨2⟩))
+  | { base := "vow", steps := [] } => some (.leaf (addrLoc ⟨3⟩))
+  | { base := "base", steps := [] } => some (.leaf (wordLoc ⟨4⟩))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -179,8 +181,8 @@ def diffFunction : FunctionDecl :=
     returnType := [int256]
     body :=
       [ .letDecl "z" (some int256) (s256 (.binary .sub (.var "x") (.var "y"))),
-        .require (.binary .le (.var "x") (.intLit maxInt256)),
-        .require (.binary .le (.var "y") (.intLit maxInt256)),
+        .require (.binary .le (.var "x") (.intLit Reasoning.Theory.maxInt256)),
+        .require (.binary .le (.var "y") (.intLit Reasoning.Theory.maxInt256)),
         .return [.var "z"] ] }
 
 def rmulFunction : FunctionDecl :=
@@ -380,7 +382,7 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := jugExternalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }

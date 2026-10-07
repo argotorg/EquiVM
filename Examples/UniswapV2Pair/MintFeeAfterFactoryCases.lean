@@ -66,7 +66,7 @@ theorem uniswapMintFeeFunctionBodyRuntimeAfterFactoryCasesWithMemory
       · simpa only [mintFeeKLastClearedState, storageStore_accountMap, henv] using
           congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨11⟩ ⟨0⟩) hAccounts
       · simpa only [mintFeeKLastClearedState, storageStore_executionEnv] using henv
-      · simp only [mintFeeKLastClearedState, balanceCallStorageStore_sigma0]
+      · simp only [mintFeeKLastClearedState, storageStore_σ0]
   · have hfeeTo : feeTo ≠ AccountAddress.ofNat 0 := by
       rw [hrecipient]
       exact accountAddress_ofNat_ne_zero_of_land_solcAddrMask_ne_zero

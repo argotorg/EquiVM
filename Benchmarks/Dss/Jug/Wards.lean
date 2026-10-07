@@ -86,8 +86,8 @@ theorem jugWardsBodyCoreOk
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals wardsTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (jugSlotWord (wardsMappingSlotFor I) σ I).toNat))])) := by
-    simpa [wardsTransition, wardsMappingSlotFor, jugSlotWord, initState, Solm.EVM.storageLoad,
+          (some [(.int (Int.ofNat (solcSlotWordAt (wardsMappingSlotFor I) σ I).toNat))])) := by
+    simpa [wardsTransition, wardsMappingSlotFor, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount, locals, key] using
       jugUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -123,36 +123,36 @@ theorem jugWardsBodyCoreOk
   have hret :
       RDret jugBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (jugSlotWord slot σ I)) := by
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨357⟩) (val := jugSlotWord slot σ I) (ret := ⟨357⟩) (R := [sel])
+      (pc := ⟨357⟩) (val := solcSlotWordAt slot σ I) (ret := ⟨357⟩) (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨0⟩ key)
-        (jugSlotWord slot σ I))
-      (by simpa [slot, jugSlotWord] using hretPc)
+        (solcSlotWordAt slot σ I))
+      (by simpa [slot, solcSlotWordAt] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
         repeat' first | apply And.intro | native_decide)
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨0⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (jugSlotWord slot σ I)
+        exact solcScratchReturnMem_mload64 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key) (solcMappingHashMem_read64 ⟨0⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (jugSlotWord slot σ I)
+        exact solcScratchReturnMem_read128 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key))
       (by simp)
-    simpa [slot, jugSlotWord] using hret'
+    simpa [slot, solcSlotWordAt] using hret'
   have hval :
-      some [Value.int (Int.ofNat (jugSlotWord (wardsMappingSlotFor I) σ I).toNat)] =
-        some [Value.int (Int.ofNat (jugSlotWord slot σ I).toNat)] := by
+      some [Value.int (Int.ofNat (solcSlotWordAt (wardsMappingSlotFor I) σ I).toNat)] =
+        some [Value.int (Int.ofNat (solcSlotWordAt slot σ I).toNat)] := by
     rw [hslot]
   have henc :
-      returnEquiv (UInt256.toByteArray (jugSlotWord slot σ I))
-        (some [(.int (Int.ofNat (jugSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         wardsTransition.returnType := by
     rw [show wardsTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (jugSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 theorem jugWardsBodyCoreDecodeFailed_short
@@ -183,7 +183,6 @@ theorem jugWardsBodyCoreDecodeFailed_short
 theorem jugWardsBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = jugBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (jugSelBytes 11)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

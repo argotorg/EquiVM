@@ -6,7 +6,7 @@ namespace Benchmarks.Dss.Pot
 
 /-! ## `rho()` public getter (time of last drip, slot 7). Group @223 arm 2. -/
 
-def rhoWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := potSlotWord ⟨7⟩ σ I
+def rhoWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := solcSlotWordAt ⟨7⟩ σ I
 
 theorem potDecode_rho {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (rhoTransition.params.map Param.name)
@@ -54,7 +54,7 @@ theorem potRhoBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (rhoWord σ I).toNat))])) := by
-    simpa [rhoTransition, rhoWord, potSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [rhoTransition, rhoWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -75,7 +75,6 @@ theorem potRhoBodyCore
 theorem potRhoBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 13)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

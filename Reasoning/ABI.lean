@@ -4424,4 +4424,359 @@ theorem encodeABIValues_single_dynArray_static
       simp [ABI.abiTupleHeadSize?, ABI.isDynamicABIType, ABI.encodeABIValuesFrom?,
         ABI.encodeABIValue?, ABI.encodeABIArrayElems?, hstatic, h]
 
+theorem calldataWord_bytes_at {out : ByteArray} {off : Nat} (hs : off + 32 ≤ out.size) :
+    (calldataWord out off).toByteArray = out.extract off (off + 32) := by
+  have hl : ((out.toList.drop off).take 32).length = 32 := by
+    simp only [List.length_take, List.length_drop, byteArray_toList_eq, Array.length_toList]
+    change min 32 (out.size - off) = 32
+    omega
+  have hw := toBytesBE_bytesToWord_of_length hl
+  rw [decode_word_at_eq_any out off hs] at hw
+  rw [toByteArray_eq_toBytesBE, hw]
+  apply ByteArray.ext
+  apply Array.toList_inj.mp
+  simp [ByteArray.data_extract, Array.toList_extract, List.extract, byteArray_toList_eq]
+
+theorem calldataWord_bytes {out : ByteArray} (hs : 32 ≤ out.size) :
+    (calldataWord out 0).toByteArray = out.extract 0 32 :=
+  calldataWord_bytes_at hs
+
+theorem loadedWord_zero {mem} (hm : 32 ≤ mem.size) :
+    loadedWord mem ⟨0⟩ = calldataWord mem 0 := by
+  apply loadedWord_of_read (off := ⟨0⟩) (by change 0 + 32 ≤ mem.size; omega)
+  change mem.readWithPadding 0 32 = _
+  rw [readWithPadding_eq_extract _ _ hm, calldataWord_bytes hm]
+
+theorem decodeScalarWord_uint_result (bits : BitWidth) {bytes : List UInt8} {start : Nat}
+    (hlen : ((bytes.drop start).take 32).length = 32) :
+    decodeScalarWord? (.elem (.int (.uint bits))) bytes start =
+      if (ABI.bytesToWord ((bytes.drop start).take 32)).toNat < EVM.twoPow bits.val then
+        some (.int (Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat), start + 32)
+      else none := by
+  simp only [decodeScalarWord?, readWord?, readBytes?, hlen, if_true, bind, Option.bind,
+    decodeABIWord?]
+  rw [if_neg (Nat.ne_of_gt bits.property.1)]
+  by_cases hc : (ABI.bytesToWord ((bytes.drop start).take 32)).toNat < EVM.twoPow bits.val
+  · dsimp only [UInt256.toNat] at hc
+    simp only [UInt256.toNat, if_pos hc]
+  · dsimp only [UInt256.toNat] at hc
+    simp only [UInt256.toNat, if_neg hc]
+
+theorem decodeCalldata_uint_result (bits : BitWidth) {cd : ByteArray} {name : Ident}
+    (hlen : 36 ≤ cd.size) (hhi : cd.size < 2 ^ 255 + 4) :
+    decodeCalldata [name] [.elem (.int (.uint bits))] cd =
+      if (calldataWord cd 4).toNat < EVM.twoPow bits.val then
+        some ((∅ : Store).insert name (.int (Int.ofNat (calldataWord cd 4).toNat)))
+      else none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake : ((cd.toList.drop 4).take 32).length = 32 := by
+    rw [List.length_take, List.length_drop, htlen]; omega
+  have hword : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
+    decode_word_at_eq cd 4 (by omega) (by norm_num)
+  rw [decodeCalldata_scalarWords_eq (by rfl)]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+  simp only [decodeScalarWords?]
+  rw [decodeScalarWord_uint_result bits (by simpa only [List.drop_zero] using htake)]
+  simp only [List.drop_zero, hword]
+  by_cases hc : (calldataWord cd 4).toNat < EVM.twoPow bits.val
+  · simp [hc, decodeCalldata.insertValues]
+  · simp [hc]
+
+theorem decodeCalldata_uint_none_short (bits : BitWidth) {cd : ByteArray} {name : Ident}
+    (hshort : cd.size < 36) :
+    decodeCalldata [name] [.elem (.int (.uint bits))] cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [decodeCalldata_scalarWords_eq (by rfl)]
+  by_cases hsz4 : cd.toList.length < 4
+  · rw [if_pos hsz4]
+  · rw [if_neg hsz4]
+    rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
+    simp only [decodeScalarWords?, decodeScalarWord?, readWord?, readBytes?, List.drop_zero]
+    rw [if_neg (by rw [List.length_take, List.length_drop, htlen]; omega)]
+    rfl
+
+theorem decodeCalldata_uint_none_huge (bits : BitWidth) {cd : ByteArray} {name : Ident}
+    (hhuge : 2 ^ 255 + 4 ≤ cd.size) :
+    decodeCalldata [name] [.elem (.int (.uint bits))] cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [decodeCalldata_scalarWords_eq (by rfl)]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_pos ⟨rfl, by rw [List.length_drop, htlen]; omega⟩]
+
+theorem decodeCalldata_scalar_none_short {cd : ByteArray} {names : List Ident}
+    {types : List ABIType} (hscalar : types.all isABIScalarWordType = true)
+    (hshort : cd.size < 4 + 32 * types.length) : decodeCalldata names types cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [decodeCalldata_scalarWords_eq hscalar]
+  split_ifs
+  · rfl
+  · rfl
+  · cases hd : decodeScalarWords? types (cd.toList.drop 4) 0 with
+    | none => rfl
+    | some values =>
+        have hlen := decodeScalarWords?_some_length (Nat.zero_le _) hd
+        rw [List.length_drop, htlen] at hlen
+        omega
+
+theorem decodeCalldata_scalar_none_huge {cd : ByteArray} {names : List Ident}
+    {types : List ABIType} (hscalar : types.all isABIScalarWordType = true)
+    (hnil : types.isEmpty = false) (hhuge : 2 ^ 255 + 4 ≤ cd.size) :
+    decodeCalldata names types cd = none := by
+  have htlen : cd.toList.length = cd.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [decodeCalldata_scalarWords_eq hscalar]
+  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
+  rw [if_pos ⟨hnil, by rw [List.length_drop, htlen]; omega⟩]
+
+theorem decodeReturnUint_long {out : ByteArray} (hl : 32 ≤ out.size) (hb : out.size < 2 ^ 255) :
+    ABI.decodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩))) out =
+      some (.int (Int.ofNat (calldataWord out 0).toNat)) := by
+  have hlen : out.toList.length = out.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have hword := decode_word_at_eq out 0 (by omega) (by decide)
+  have h32 : ((out.toList.drop 0).take 32).length = 32 := by
+    simp only [List.drop_zero, List.length_take, hlen]
+    omega
+  unfold ABI.decodeReturnValue?
+  rw [decodeReturnValues_scalarWords_eq (by decide)]
+  rw [if_neg (by simp only [List.isEmpty_cons, hlen]; omega)]
+  simp only [decodeScalarWords?, decodeScalarWord_uint256_ok h32, hword, bind, Option.bind]
+
+theorem decodeReturnUint_short {out : ByteArray} (hl : out.size < 32) :
+    ABI.decodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩))) out = none := by
+  have hlen : out.toList.length = out.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have h32 : ¬ ((out.toList.drop 0).take 32).length = 32 := by
+    simp only [List.drop_zero, List.length_take, hlen]
+    omega
+  unfold ABI.decodeReturnValue?
+  rw [decodeReturnValues_scalarWords_eq (by decide)]
+  rw [if_neg (by simp only [List.isEmpty_cons, hlen]; omega)]
+  simp only [decodeScalarWords?, decodeScalarWord_uint256_none_short h32, bind, Option.bind]
+
+theorem extract_toList (out : ByteArray) (start finish : Nat) :
+    (out.extract start finish).toList = (out.toList.drop start).take (finish - start) := by
+  simp only [byteArray_toList_eq, ByteArray.data_extract, Array.toList_extract,
+    List.extract_eq_take_drop]
+
+theorem calldataWord_extract_zero {out : ByteArray} {start finish : Nat}
+    (hs : start + 32 ≤ finish) (he : finish ≤ out.size) :
+    calldataWord (out.extract start finish) 0 = calldataWord out start := by
+  have hl : 32 ≤ (out.extract start finish).size := by
+    rw [ByteArray.size_extract]
+    omega
+  have hw : bytesToWord (((out.extract start finish).toList.drop 0).take 32) =
+      calldataWord (out.extract start finish) 0 :=
+    decode_word_at_eq_any (out.extract start finish) 0 hl
+  rw [← hw,
+    extract_toList, List.drop_zero, List.take_take, Nat.min_eq_left (by omega),
+    decode_word_at_eq_any out start (by omega)]
+
+theorem decodeReturnUint_extract {out : ByteArray} {start finish : Nat}
+    (hs : start + 32 ≤ finish) (he : finish ≤ out.size) (hb : finish - start < 2 ^ 255) :
+    ABI.decodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩)))
+      (out.extract start finish) = some (.int (Int.ofNat (calldataWord out start).toNat)) := by
+  rw [decodeReturnUint_long (by rw [ByteArray.size_extract]; omega)
+    (by rw [ByteArray.size_extract]; omega), calldataWord_extract_zero hs he]
+
+theorem decodeReturnString_of_reads {out : ByteArray} {offset len : Nat} {payload : List UInt8}
+    (hb : out.toList.length < 2 ^ 255)
+    (ho : readNat? out.toList 0 = some offset)
+    (hl : readNat? out.toList offset = some len)
+    (hp : readBytes? out.toList (offset + 32) len = some payload)
+    (ho64 : offset ≤ solcMaxU64) (hl64 : len ≤ solcMaxU64) :
+    ABI.decodeReturnValue? .string out = some (.bytes ⟨payload.toArray⟩) := by
+  unfold ABI.decodeReturnValue? ABI.decodeReturnValues?
+  rw [if_neg (by simp only [List.isEmpty_cons]; omega)]
+  have hh : abiTupleHeadSize? [.string] = some 32 := by
+    simp [abiTupleHeadSize?, isDynamicABIType]
+  simp only [hh, bind, Option.bind, decodeABIValues?, isDynamicABIType, ↓reduceIte,
+    Nat.zero_add, ho, solcMaxLen, show ¬ solcMaxU64 < offset by omega,
+    decodeABIValue?, hl, show ¬ solcMaxU64 < len by omega, hp]
+
+abbrev wordBytes32Value (w : UInt256) : Value :=
+  .fixedBytes abiBytes32Width (EVM.Word.toBytesBE w)
+
+theorem encodePacked_uint256 (w : UInt256) :
+    encodePackedValue? abiUInt256 (.int (Int.ofNat w.toNat)) =
+      some (EVM.Word.toBytesBE w) := by
+  have hword : EVM.word w.toNat = w := u256_ofNat_toNat w
+  have hlt : w.toNat < EVM.twoPow 256 := by
+    change w.val.val < EVM.twoPow 256
+    exact w.val.isLt
+  simp [encodePackedValue?, abiUInt256, encodeABIWord?, hword, hlt]
+
+theorem encodePacked_bytes32 (w : UInt256) :
+    encodePackedValue? abiBytes32 (wordBytes32Value w) =
+      some (EVM.Word.toBytesBE w) := by
+  have hlen : (EVM.Word.toBytesBE w).length = 32 := by
+    simpa using word_toBytesBE_toByteArray_size w
+  simp [encodePackedValue?, abiBytes32, abiBytes32Width, wordBytes32Value,
+    fixedBytesSize, hlen]
+
+theorem uintReturnEncoding (width : ABI.BitWidth) (v : UInt256)
+    (hlt : v.toNat < EVM.twoPow width.val) :
+    encodeReturnValue? (.elem (.int (.uint width))) (.int (Int.ofNat v.toNat)) =
+      some (UInt256.toByteArray v) := by
+  have hword : EVM.word v.toNat = v := by
+    show UInt256.ofNat v.toNat = v
+    exact u256_ofNat_toNat v
+  refine scalarReturnEncoding (t := (.int (.uint width))) (w := v) rfl ?_ ?_
+  · simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
+    cases width with
+    | mk bits hbits => rfl
+  · cases width with
+    | mk bits hbits =>
+        change v.toNat < EVM.twoPow bits at hlt
+        simp only [encodeABIValue?, encodeABIWord?]
+        have hcond : 0 ≤ Int.ofNat v.toNat ∧
+            Int.ofNat v.toNat < Int.ofNat (EVM.twoPow bits) :=
+          ⟨Int.natCast_nonneg _, Int.ofNat_lt.mpr hlt⟩
+        rw [if_pos hcond]
+        rw [if_neg (Nat.ne_of_gt hbits.1)]
+        simp [hword]
+
+theorem encodeABIValue_uint256 (v : UInt256) :
+    encodeABIValue? abiUInt256 (.int (Int.ofNat v.toNat)) =
+      some (EVM.Word.toBytesBE v) := by
+  have hword : EVM.word v.toNat = v := by
+    show UInt256.ofNat v.toNat = v
+    exact u256_ofNat_toNat v
+  have hlt : v.toNat < EVM.twoPow 256 := by
+    change v.val.val < EVM.twoPow 256
+    exact v.val.isLt
+  simp [abiUInt256, encodeABIValue?, encodeABIWord?, hword, hlt]
+
+theorem padRightToWord_toByteArray (data : ByteArray) :
+    (ABI.padRightToWord data.toList).toByteArray =
+      data ++ ByteArray.zeroes (ABI.paddedSize data.size - data.size) := by
+  apply ByteArray.ext
+  apply Array.toList_inj.mp
+  simp [ABI.padRightToWord, ABI.zeroBytes, byteArray_zeroes_toList, byteArray_toList_eq]
+
+theorem uint48ReturnEncoding (v : UInt256) (h48 : v.toNat < EVM.twoPow 48) :
+    encodeReturnValue? (.elem (.int (.uint ⟨48, by decide⟩))) (.int (Int.ofNat v.toNat)) =
+      some (UInt256.toByteArray v) := by
+  have hword : EVM.word v.toNat = v := by
+    show UInt256.ofNat v.toNat = v
+    exact u256_ofNat_toNat v
+  refine scalarReturnEncoding (t := (.int (.uint ⟨48, by decide⟩))) (w := v) rfl ?_ ?_
+  · simp only [abiTupleHeadSize?, staticABIEncodedSize?, isDynamicABIType, bind, Option.bind]
+    decide
+  · simp [encodeABIValue?, encodeABIWord?, hword, h48]
+
+end Reasoning.Theory
+
+/-! ## Byte encodings and calldata word reads -/
+
+namespace Reasoning.Theory
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
+
+set_option autoImplicit false
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+
+theorem natBytes_toByteArray (n : Nat) :
+    (ABI.natBytes n).toByteArray = UInt256.toByteArray (UInt256.ofNat n) := by
+  show (EVM.Word.toBytesBE (UInt256.ofNat n)).toByteArray = _
+  exact word_toBytesBE_toByteArray_eq_toByteArray _
+
+theorem uInt256_toByteArray_natBytes (w : UInt256) :
+    UInt256.toByteArray w = ⟨(ABI.natBytes w.toNat).toArray⟩ := by
+  symm
+  rw [mk_toArray_eq, natBytes_toByteArray, u256_ofNat_toNat]
+
+theorem natBytes_toByteArray' (n : ℕ) :
+    (ABI.natBytes n).toByteArray = UInt256.toByteArray (UInt256.ofNat n) := by
+  show (EVM.Word.toBytesBE (UInt256.ofNat n)).toByteArray = _
+  exact word_toBytesBE_toByteArray_eq_toByteArray _
+
+/-- The big-endian value of a 32-byte ABI `natBytes` word is the number itself. -/
+theorem fromByteArrayBigEndian_natBytes (n : ℕ) (hn : n < UInt256.size) :
+    fromByteArrayBigEndian ((ABI.natBytes n).toByteArray) = n := by
+  unfold ABI.natBytes
+  rw [word_toBytesBE_toByteArray_eq_toByteArray, fromByteArrayBigEndian_toByteArray]
+  exact UInt256.toNat_ofNat_of_lt hn
+
+theorem natBytes_toByteArray_size (n : ℕ) : (ABI.natBytes n).toByteArray.size = 32 := by
+  unfold ABI.natBytes; exact word_toBytesBE_toByteArray_size _
+
+/-- Reading the first 32-byte word of `natBytes m ‖ rest` returns `natBytes m`. -/
+theorem natBytes_read0 (m : ℕ) (rest : List UInt8) :
+    ((ABI.natBytes m ++ rest).toByteArray).readWithPadding 0 32 = (ABI.natBytes m).toByteArray := by
+  have hm := natBytes_toByteArray_size m
+  rw [List.toByteArray_append,
+      readWithPadding_eq_extract _ _ (by rw [ByteArray.size_append, hm]; omega),
+      extract_append_left _ _ _ _ (by rw [hm])]
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (le_of_eq hm)
+
+/-- Reading the second 32-byte word of `natBytes a ‖ natBytes b ‖ rest` returns `natBytes b`. -/
+theorem natBytes_read1 (a b : ℕ) (rest : List UInt8) :
+    ((ABI.natBytes a ++ (ABI.natBytes b ++ rest)).toByteArray).readWithPadding 32 32
+      = (ABI.natBytes b).toByteArray := by
+  have ha := natBytes_toByteArray_size a
+  have hb := natBytes_toByteArray_size b
+  rw [List.toByteArray_append, List.toByteArray_append,
+      readWithPadding_eq_extract _ _
+        (by rw [ByteArray.size_append, ByteArray.size_append, ha, hb]; omega),
+      extract_append_right_window _ _ _ _ (le_of_eq ha), ha,
+      show (32 - 32 : ℕ) = 0 from rfl, show (32 + 32 - 32 : ℕ) = 32 from rfl,
+      extract_append_left _ _ _ _ (by rw [hb])]
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (le_of_eq hb)
+
+/-- `argBytes.size = 0x40 + 0x20·n` for the `bytes32[]` deployment shape. -/
+theorem abiArrayWords_size (n : ℕ) (elemBytes : List UInt8) (argBytes : ByteArray)
+    (hstruct : argBytes = (ABI.natBytes 32 ++ (ABI.natBytes n ++ elemBytes)).toByteArray)
+    (helems : elemBytes.length = 32 * n) :
+    argBytes.size = 64 + 32 * n := by
+  rw [hstruct, List.toByteArray_append, ByteArray.size_append, List.toByteArray_append,
+    ByteArray.size_append, natBytes_toByteArray_size, natBytes_toByteArray_size,
+    List.size_toByteArray, helems]
+  omega
+
+theorem readNat_drop4_eq_calldataWord {I : ExecutionEnv} {headOff : Nat}
+    (h : 4 + headOff + 32 ≤ I.calldata.size) :
+    readNat? (List.drop 4 I.calldata.toList) headOff =
+      some (calldataWord I.calldata (4 + headOff)).toNat := by
+  unfold readNat? readWord? readBytes?
+  have htlen : I.calldata.toList.length = I.calldata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have hslice :
+      (List.take 32 (List.drop headOff (List.drop 4 I.calldata.toList))).length = 32 := by
+    rw [List.length_take, List.length_drop, List.length_drop, htlen]
+    omega
+  rw [if_pos hslice]
+  rw [calldataWord]
+  rw [List.drop_drop]
+  rw [← decode_word_at_eq_any I.calldata (4 + headOff) h]
+  rfl
+
+theorem copiedSelector {mem out} (hm : 96 ≤ mem.size)
+    (hl : 4 ≤ out.size) :
+    UInt256.shiftRight (loadedWord (out.write 0 mem 0 4) ⟨0⟩) ⟨224⟩ =
+      UInt256.shiftRight (calldataWord out 0) ⟨224⟩ := by
+  have hsz : 96 ≤ (out.write 0 mem 0 4).size := by
+    rw [copyWindow_size out mem 0 0 4 (by decide) hl (by omega)]
+    omega
+  rw [loadedWord_zero (by omega)]
+  apply u256_inj
+  rw [selector_toNat _ (by omega), selector_toNat out hl]
+  have hx := copyWindow_extract out mem 0 0 4 0 4 (by decide) hl (by omega) (by decide)
+  have ht := congrArg (fun b : ByteArray ↦ b.data.toList) hx
+  simpa only [ByteArray.data_extract, Array.toList_extract, List.extract_eq_take_drop,
+    List.drop_zero] using congrArg fromBytesBigEndian ht
+
 end Reasoning.Theory

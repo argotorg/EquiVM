@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Pot.Dispatch
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -36,7 +37,7 @@ def relyAuthStorageSlot (I : ExecutionEnv) : UInt256 :=
   wardsSlot (relyAuthKey I)
 
 def relyAuthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  potSlotWord (relyAuthStorageSlot I) σ I
+  solcSlotWordAt (relyAuthStorageSlot I) σ I
 
 def relyPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (relyGuyStorageSlot I) ⟨1⟩
@@ -96,9 +97,6 @@ theorem evalStorageRef_rely_auth (evm : EVM.State) (I : ExecutionEnv)
     relyAuthKey, hsrc, valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure,
     evalExpr?]
 
-theorem uint256_toNat_eq_one {a : UInt256} (h : a.toNat = 1) : a = ⟨1⟩ := by
-  apply u256_inj
-  simpa using h
 
 theorem evalExpr_rely_auth_true (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source)
@@ -109,7 +107,7 @@ theorem evalExpr_rely_auth_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := relyStore I } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := relyStore I })
       (slot := wardsRef sender)
@@ -122,7 +120,7 @@ theorem evalExpr_rely_auth_true (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using potStorageLocLoad_uint256 evm (relyAuthStorageSlot I))]
+        simpa [hload] using storageLocLoad_uint256 evm (relyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -138,7 +136,7 @@ theorem evalExpr_rely_auth_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (relyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := relyStore I })
       (slot := wardsRef sender)
@@ -150,7 +148,7 @@ theorem evalExpr_rely_auth_false (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        exact potStorageLocLoad_uint256 evm (relyAuthStorageSlot I))
+        exact storageLocLoad_uint256 evm (relyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -158,7 +156,7 @@ theorem evalExpr_rely_auth_false (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact uint256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -176,15 +174,15 @@ theorem relyAssign (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := relyStore I } evm
       .storage (wardsRef (.var "guy")) (.int 1) =
         .ok ({ contract := contract, locals := relyStore I }, relyPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (relyGuyStorageSlot I))
+      (loc := wordLoc (relyGuyStorageSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := relyStore_wards I)
       (her := evalStorageRef_rely_guy evm I)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa [relyPostState] using
-    potStorageLocStore_uint256 evm (relyGuyStorageSlot I) ⟨1⟩
+    storageLocStore_uint256 evm (relyGuyStorageSlot I) ⟨1⟩
 
 theorem potRelyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -208,6 +206,30 @@ theorem potRelyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       (evalExpr_rely_auth_true evm I hsrc hauth)
       (by simp [evalExpr?, pure])
       (relyAssign evm I)
+
+theorem potRelyBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hauth :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (relyStore I) relyTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  simpa [relyTransition, nonpayable, auth] using
+    nonpayableRequireAssignStorageBlockStatic
+      (cfg := config)
+      (solm := { contract := contract, locals := relyStore I })
+      (evm := evm)
+      (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
+      (rhs := .intLit 1)
+      (ref := wardsRef (.var "guy"))
+      (value := .int 1)
+      (rest := [])
+      hwv
+      (evalExpr_rely_auth_true evm I hsrc hauth)
+      (by simp [evalExpr?, pure])
+      (relyAssign evm I)
+      hperm
 
 theorem potRelyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -363,7 +385,7 @@ theorem potRelyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1389 : RD potBytecode I g s0 ⟨1389⟩
       (relyAuthWord σ I :: relyGuyMaskedWord I :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1389 C1389 := by
-    simpa [relyAuthWord, potSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1389raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1389raw
   have rd1392pre := evm_run rd1389 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -411,7 +433,7 @@ theorem potRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1389 : RD potBytecode I g s0 ⟨1389⟩
       (relyAuthWord σ I :: relyGuyMaskedWord I :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1389 C1389 := by
-    simpa [relyAuthWord, potSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1389raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1389raw
   have rd1392pre := evm_run rd1389 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -440,14 +462,16 @@ theorem potRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem potRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem potRelyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (h : RD potBytecode I g s0 ⟨1461⟩
       [relyGuyMaskedWord I, ⟨301⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
     RDret potBytecode g s0
       (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨1⟩)
-      ByteArray.empty := by
+      ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic potBytecode g s0) := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
@@ -497,12 +521,33 @@ theorem potRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1489pre := evm_run rd1486 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1489pre.sstoreStatic (by simpa using hperm) (by native_decide)
+        (by simp only [List.length_cons, List.length_nil]; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd1490raw⟩ := rd1489pre.sstore hperm (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd301 := rd1490raw.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd302 := rd301.jumpdest (by native_decide) (by evm_ov)
   simpa [relyGuyStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd302 (by native_decide) (by evm_ov)
+
+theorem potX_rely_split {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hreach : ∃ k C, RD potBytecode I g
+      (initState σ σ₀ g A I) ⟨462⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
+    RDret potBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨1⟩)
+      ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic potBytecode g (initState σ σ₀ g A I)) := by
+  obtain ⟨_, _, rd1372⟩ := potRelyX_decoded (g := g) hsz36 hsize hreach
+  obtain ⟨_, _, rd1461⟩ := potRelyX_authorized (I := I) hauth rd1372
+  exact potRelyX_storeAuthorizedSplit rd1461
 
 theorem potX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -512,10 +557,17 @@ theorem potX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret potBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨1⟩)
-      ByteArray.empty := by
-  obtain ⟨_, _, rd1372⟩ := potRelyX_decoded (g := g) hsz36 hsize hreach
-  obtain ⟨_, _, rd1461⟩ := potRelyX_authorized (I := I) hauth rd1372
-  exact potRelyX_storeAuthorized hperm rd1461
+      ByteArray.empty :=
+  permSplit_true hperm (potX_rely_split hsz36 hsize hauth hreach)
+
+theorem potX_rely_static {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = false) (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hreach : ∃ k C, RD potBytecode I g
+      (initState σ σ₀ g A I) ⟨462⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDstatic potBytecode g (initState σ σ₀ g A I) :=
+  permSplit_false hperm (potX_rely_split hsz36 hsize hauth hreach)
 
 theorem potX_rely_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -548,7 +600,7 @@ theorem potRelyBodyCoreOk
         relyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (relyPostState evmSolm I) none) := by
-    simpa [evmSolm, relyAuthWord, potSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potRelyBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -561,6 +613,35 @@ theorem potRelyBodyCoreOk
         simpa [relyTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
             (dvs := []) rfl (by native_decide) (by native_decide)))
+
+theorem potRelyBodyCoreStatic
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = potBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some relyTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (relyTransition.params.map Param.name)
+        (transitionSignature relyTransition).paramTypes I.calldata = some (relyStore I))
+    (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨462⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
+  have hbody :
+      ExecTransitionBody config contract evmSolm (relyStore I) relyTransition.body
+        .staticViolation := by
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
+      State.lookupAccount] using
+      potRelyBodyStatic evmSolm I
+        (by simp only [evmSolm, initState]; exact hwv)
+        (by simp [evmSolm, initState])
+        hauthWord
+        (by simp only [evmSolm, initState]; exact hperm)
+  exact (potX_rely_static (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
+    |>.reEquivStaticHalt hcode hdispatch hdecode hbody
 
 theorem potRelyBodyCoreUnauthorized
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -581,7 +662,7 @@ theorem potRelyBodyCoreUnauthorized
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         relyTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, potSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potRelyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -619,6 +700,32 @@ theorem potRelyBody {σ σ₀ A I} {g : UInt256}
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
     · exact potRelyBodyCoreOk hcode hsize _hperm hwv hsz36 hauth hdispatch
+        (potDecode_rely_ok hsz36) hreach
+    · exact potRelyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
+        (potDecode_rely_ok hsz36) hreach
+  · exact potRelyBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
+      hdispatch hreach
+
+/-- `rely` with any call permission; a static call halts at the `wards` `SSTORE`. -/
+theorem potRelyBodyAnyPerm {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = potBytecode)
+    (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I (potSelBytes 12)) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact potRelyBody hcode hsize hperm hwv hsel
+  replace hperm : I.perm = false := by simpa using hperm
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I (potSelBytes 12) rfl hsel
+  have hdispatch : dispatchMsg contract I.calldata = some relyTransition :=
+    potDispatchRely hsel
+  have hreach := potReachRelyBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz4 hsize hsel
+  by_cases hsz36 : 36 ≤ I.calldata.size
+  · by_cases hauth : relyAuthWord σ I = ⟨1⟩
+    · exact potRelyBodyCoreStatic hcode hsize hperm hwv hsz36 hauth hdispatch
         (potDecode_rely_ok hsz36) hreach
     · exact potRelyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
         (potDecode_rely_ok hsz36) hreach

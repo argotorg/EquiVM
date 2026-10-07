@@ -11,7 +11,7 @@ set_option maxHeartbeats 1000000
 
 private def jugDripFeeZeroScript : String := r#"
 by_cases hprevMaxNot :
-    ¬ ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256
+    ¬ ((dripVatIlksPrevWord out).toNat : Int) ≤ Reasoning.Theory.maxInt256
 · let locals := dripLocals I
   let evm :=
     initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -39,7 +39,7 @@ by_cases hprevMaxNot :
       EVM.address (dripVatAddress σ I) =
         AccountAddress.ofUInt256 (dripVatTargetWord σ I) := by
     rw [htgtAddr]
-    exact evmAddress_accountAddress _
+    exact address_of_val _
   have hΘE :
       (σ', g'', A', true, out) =
         Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
@@ -55,8 +55,8 @@ by_cases hprevMaxNot :
             (dripIlkHashMem I)).readWithPadding
               dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
           (evm.executionEnv.depth + 1)
-          (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) true := by
-    simpa [evm, initState, hperm] using hΘ'
+          (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) (true && evm.executionEnv.perm) := by
+    simpa [evm, initState] using hΘ'
   have hcall :
       typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
@@ -65,7 +65,7 @@ by_cases hprevMaxNot :
   have hbody :
       ExecTransitionBody config contract evm locals
         dripTransition.body .reverted := by
-    simpa [evm, locals, initState, jugSlotWord] using
+    simpa [evm, locals, initState, solcSlotWordAt] using
       (jugDripSourceBodyVatIlksDiffYBoundRevertsXZeroNNonzero
         (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -73,13 +73,13 @@ by_cases hprevMaxNot :
         (out := out) hwv hsz36 hle hvatCodeSolm
         (by simpa [evm] using hcall) _hdecOut
         (by
-          simpa [evm, initState, jugSlotWord] using
+          simpa [evm, initState, solcSlotWordAt] using
             haddOverflow)
         (by
-          simpa [evm, initState, jugSlotWord, fee] using
+          simpa [evm, initState, solcSlotWordAt, fee] using
             hfeeZero)
         (by
-          simpa [evm, initState, jugSlotWord, age] using
+          simpa [evm, initState, solcSlotWordAt, age] using
             hageNZ)
         hprevMaxNot)
   have hfitZero :
@@ -105,8 +105,8 @@ by_cases hprevMaxNot :
     simpa [hzeroRate] using rd1530Raw
   obtain ⟨_, _, rd2397⟩ := RD.jugDripToDiffRoutine rd1530
   have hzeroMax :
-      (((⟨0⟩ : UInt256).toNat : Int) ≤ maxInt256) := by
-    norm_num [maxInt256]
+      (((⟨0⟩ : UInt256).toNat : Int) ≤ Reasoning.Theory.maxInt256) := by
+    norm_num [Reasoning.Theory.maxInt256]
   have hrev := RD.jugDiffRevertYBound
     (R := [dripVowTargetWord σ' I, fileDutyIlkWord I,
       dripVatFoldSelectorWord, dripVatTargetWord σ' I,
@@ -118,7 +118,7 @@ by_cases hprevMaxNot :
   exact hrev.reEquivExecutionRevert hcode hdispatch
     (jugDecode_drip_ok hsz36) hbody
 · have hprevMax :
-      ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256 := by
+      ((dripVatIlksPrevWord out).toNat : Int) ≤ Reasoning.Theory.maxInt256 := by
     by_contra hbad
     exact hprevMaxNot hbad
   by_cases hfoldNoCode :
@@ -151,7 +151,7 @@ by_cases hprevMaxNot :
         EVM.address (dripVatAddress σ I) =
           AccountAddress.ofUInt256 (dripVatTargetWord σ I) := by
       rw [htgtAddr]
-      exact evmAddress_accountAddress _
+      exact address_of_val _
     have hΘE :
         (σ', g'', A', true, out) =
           Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
@@ -167,8 +167,8 @@ by_cases hprevMaxNot :
               (dripIlkHashMem I)).readWithPadding
                 dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
             (evm.executionEnv.depth + 1)
-            (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) true := by
-      simpa [evm, initState, hperm] using hΘ'
+            (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) (true && evm.executionEnv.perm) := by
+      simpa [evm, initState] using hΘ'
     have hcall :
         typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
           [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
@@ -178,14 +178,14 @@ by_cases hprevMaxNot :
         (UInt256.ofNat
           ((σ'.get? (dripVatAddress σ' I)).option 0
             (fun acc => acc.code.size))).toNat = 0 :=
-      drip_extCodeSizeWord_zero_lookup_code_zero
+      extCodeSizeWord_zero_lookup_code_zero
         (σ := σ') (target := dripVatTargetWord σ' I)
         (addr := dripVatAddress σ' I)
         (dripVatAddress_eq_target σ' I) hfoldNoCode
     have hbody :
         ExecTransitionBody config contract evm locals
           dripTransition.body .reverted := by
-      simpa [evm, locals, initState, jugSlotWord] using
+      simpa [evm, locals, initState, solcSlotWordAt] using
         (jugDripSourceBodyVatFoldNoCodeRevertsXZeroNNonzero
           (σ := σ)
           (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -193,13 +193,13 @@ by_cases hprevMaxNot :
           (out := out) hwv hsz36 hle hvatCodeSolm
           (by simpa [evm] using hcall) _hdecOut
           (by
-            simpa [evm, initState, jugSlotWord] using
+            simpa [evm, initState, solcSlotWordAt] using
               haddOverflow)
           (by
-            simpa [evm, initState, jugSlotWord, fee] using
+            simpa [evm, initState, solcSlotWordAt, fee] using
               hfeeZero)
           (by
-            simpa [evm, initState, jugSlotWord, age] using
+            simpa [evm, initState, solcSlotWordAt, age] using
               hageNZ)
           hprevMax
           (by
@@ -228,8 +228,8 @@ by_cases hprevMaxNot :
       simpa [hzeroRate] using rd1530Raw
     obtain ⟨_, _, rd2397⟩ := RD.jugDripToDiffRoutine rd1530
     have hzeroMax :
-        (((⟨0⟩ : UInt256).toNat : Int) ≤ maxInt256) := by
-      norm_num [maxInt256]
+        (((⟨0⟩ : UInt256).toNat : Int) ≤ Reasoning.Theory.maxInt256) := by
+      norm_num [Reasoning.Theory.maxInt256]
     obtain ⟨_, _, rd1570⟩ := RD.jugDiffReturns
       (R := [dripVowTargetWord σ' I, fileDutyIlkWord I,
         dripVatFoldSelectorWord, dripVatTargetWord σ' I,
@@ -251,23 +251,23 @@ by_cases hprevMaxNot :
     have hinnerSize :
         (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
           (dripVatIlksPostCallMem I out)).size = 192 := by
-      rw [drip_twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
+      rw [twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
         (⟨1⟩ : UInt256) (by rw [hpostSize]; omega), hpostSize]
     have hinnerRead64 :
         (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
           (dripVatIlksPostCallMem I out)).readWithPadding 64 32 =
           UInt256.toByteArray ⟨128⟩ :=
-      drip_twoWordHashMem_read64_of_ge96 (fileDutyIlkWord I)
+      twoWordHashMem_read64_of_ge_96 (fileDutyIlkWord I)
         (⟨1⟩ : UInt256) (by rw [hpostSize]; omega) hpostRead64
     have hfoldBaseSize : foldBaseMem.size = 192 := by
       dsimp [foldBaseMem]
-      rw [drip_twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
+      rw [twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
         (⟨1⟩ : UInt256) (by rw [hinnerSize]; omega), hinnerSize]
     have hfoldBaseRead64 :
         foldBaseMem.readWithPadding 64 32 =
           UInt256.toByteArray ⟨128⟩ := by
       dsimp [foldBaseMem]
-      exact drip_twoWordHashMem_read64_of_ge96
+      exact twoWordHashMem_read64_of_ge_96
         (fileDutyIlkWord I) (⟨1⟩ : UInt256)
         (by rw [hinnerSize]; omega) hinnerRead64
     have hrev := RD.jugDripVatFoldNoCode hfoldBaseSize
@@ -290,23 +290,23 @@ by_cases hprevMaxNot :
     have hinnerSize :
         (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
           (dripVatIlksPostCallMem I out)).size = 192 := by
-      rw [drip_twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
+      rw [twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
         (⟨1⟩ : UInt256) (by rw [hpostSize]; omega), hpostSize]
     have hinnerRead64 :
         (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
           (dripVatIlksPostCallMem I out)).readWithPadding 64 32 =
           UInt256.toByteArray ⟨128⟩ :=
-      drip_twoWordHashMem_read64_of_ge96 (fileDutyIlkWord I)
+      twoWordHashMem_read64_of_ge_96 (fileDutyIlkWord I)
         (⟨1⟩ : UInt256) (by rw [hpostSize]; omega) hpostRead64
     have hfoldBaseSize : foldBaseMem.size = 192 := by
       dsimp [foldBaseMem]
-      rw [drip_twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
+      rw [twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
         (⟨1⟩ : UInt256) (by rw [hinnerSize]; omega), hinnerSize]
     have hfoldBaseRead64 :
         foldBaseMem.readWithPadding 64 32 =
           UInt256.toByteArray ⟨128⟩ := by
       dsimp [foldBaseMem]
-      exact drip_twoWordHashMem_read64_of_ge96
+      exact twoWordHashMem_read64_of_ge_96
         (fileDutyIlkWord I) (⟨1⟩ : UInt256)
         (by rw [hinnerSize]; omega) hinnerRead64
     have hfitZero :
@@ -332,8 +332,8 @@ by_cases hprevMaxNot :
       simpa [hzeroRate] using rd1530Raw
     obtain ⟨_, _, rd2397⟩ := RD.jugDripToDiffRoutine rd1530
     have hzeroMax :
-        (((⟨0⟩ : UInt256).toNat : Int) ≤ maxInt256) := by
-      norm_num [maxInt256]
+        (((⟨0⟩ : UInt256).toNat : Int) ≤ Reasoning.Theory.maxInt256) := by
+      norm_num [Reasoning.Theory.maxInt256]
     obtain ⟨_, _, rd1570⟩ := RD.jugDiffReturns
       (R := [dripVowTargetWord σ' I, fileDutyIlkWord I,
         dripVatFoldSelectorWord, dripVatTargetWord σ' I,
@@ -375,7 +375,7 @@ by_cases hprevMaxNot :
           EVM.address (dripVatAddress σ I) =
             AccountAddress.ofUInt256 (dripVatTargetWord σ I) := by
         rw [htgtAddr]
-        exact evmAddress_accountAddress _
+        exact address_of_val _
       have hΘE :
           (σ', g'', A', true, out) =
             Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
@@ -391,8 +391,8 @@ by_cases hprevMaxNot :
                 (dripIlkHashMem I)).readWithPadding
                   dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
               (evm.executionEnv.depth + 1)
-              (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) true := by
-        simpa [evm, initState, hperm] using hΘ'
+              (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) (true && evm.executionEnv.perm) := by
+        simpa [evm, initState] using hΘ'
       have hcall :
           typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
             [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
@@ -409,7 +409,7 @@ by_cases hprevMaxNot :
           EVM.address (dripVatAddress σ' I) =
             AccountAddress.ofUInt256 (dripVatTargetWord σ' I) := by
         rw [hfoldTargetAddr]
-        exact evmAddress_accountAddress _
+        exact address_of_val _
       have hfoldEncode :
           config.externalABI.encode? "fold"
               [.fixedBytes bytes32Width (fileDutyIlkBytes I),
@@ -442,8 +442,8 @@ by_cases hprevMaxNot :
                   (dripVatIlksPrevWord out)) foldBaseMem).readWithPadding
                     dripVatFoldOutPtr.toNat dripVatFoldInSize.toNat)
               (evmVat.executionEnv.depth + 1)
-              (evmVat.executionEnv.header) (evmVat.executionEnv.blobVersionedHashes) (evmVat.executionEnv.blocks) true := by
-        simpa [evmVat, evm, initState, hperm, foldBaseMem] using
+              (evmVat.executionEnv.header) (evmVat.executionEnv.blobVersionedHashes) (evmVat.executionEnv.blocks) (true && evmVat.executionEnv.perm) := by
+        simpa [evmVat, evm, initState, foldBaseMem] using
           hΘFold'
       have hfoldCall :
           typedCallViaEVM config evmVat (EVM.address (dripVatAddress σ' I))
@@ -469,7 +469,7 @@ by_cases hprevMaxNot :
       have hbody :
           ExecTransitionBody config contract evm locals
             dripTransition.body .reverted := by
-        simpa [evm, evmVat, locals, initState, jugSlotWord] using
+        simpa [evm, evmVat, locals, initState, solcSlotWordAt] using
           (jugDripSourceBodyVatFoldCallFailedRevertsXZeroNNonzero
             (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -483,13 +483,13 @@ by_cases hprevMaxNot :
             (by simpa [evm, evmVat] using hcall)
             _hdecOut
             (by
-              simpa [evmVat, evm, initState, jugSlotWord] using
+              simpa [evmVat, evm, initState, solcSlotWordAt] using
                 haddOverflow)
             (by
-              simpa [evmVat, evm, initState, jugSlotWord] using
+              simpa [evmVat, evm, initState, solcSlotWordAt] using
                 (by simpa [fee] using hfeeZero))
             (by
-              simpa [evmVat, evm, initState, jugSlotWord] using
+              simpa [evmVat, evm, initState, solcSlotWordAt] using
                 (by simpa [age] using hageNZ))
             hprevMax hfoldCodeSolm
             (by simpa [evmVat] using hfoldCall))
@@ -538,7 +538,7 @@ by_cases hprevMaxNot :
           EVM.address (dripVatAddress σ I) =
             AccountAddress.ofUInt256 (dripVatTargetWord σ I) := by
         rw [htgtAddr]
-        exact evmAddress_accountAddress _
+        exact address_of_val _
       have hΘE :
           (σ', g'', A', true, out) =
             Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
@@ -554,8 +554,8 @@ by_cases hprevMaxNot :
                 (dripIlkHashMem I)).readWithPadding
                   dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
               (evm.executionEnv.depth + 1)
-              (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) true := by
-        simpa [evm, initState, hperm] using hΘ'
+              (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) (true && evm.executionEnv.perm) := by
+        simpa [evm, initState] using hΘ'
       have hcall :
           typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
             [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
@@ -572,7 +572,7 @@ by_cases hprevMaxNot :
           EVM.address (dripVatAddress σ' I) =
             AccountAddress.ofUInt256 (dripVatTargetWord σ' I) := by
         rw [hfoldTargetAddr]
-        exact evmAddress_accountAddress _
+        exact address_of_val _
       have hfoldEncode :
           config.externalABI.encode? "fold"
               [.fixedBytes bytes32Width (fileDutyIlkBytes I),
@@ -605,8 +605,8 @@ by_cases hprevMaxNot :
                   (dripVatIlksPrevWord out)) foldBaseMem).readWithPadding
                     dripVatFoldOutPtr.toNat dripVatFoldInSize.toNat)
               (evmVat.executionEnv.depth + 1)
-              (evmVat.executionEnv.header) (evmVat.executionEnv.blobVersionedHashes) (evmVat.executionEnv.blocks) true := by
-        simpa [evmVat, evm, initState, hperm, foldBaseMem] using
+              (evmVat.executionEnv.header) (evmVat.executionEnv.blobVersionedHashes) (evmVat.executionEnv.blocks) (true && evmVat.executionEnv.perm) := by
+        simpa [evmVat, evm, initState, foldBaseMem] using
           hΘFold'
       have hfoldCall :
           typedCallViaEVM config evmVat (EVM.address (dripVatAddress σ' I))
@@ -635,8 +635,8 @@ by_cases hprevMaxNot :
           substate := AFold' }
       let finalLocals :=
         (dripDeltaLocalsInt I out
-          (jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv +
-            jugSlotWord (fileDutyDutySlotFor I) evmVat.accountMap
+          (solcSlotWordAt ⟨4⟩ evmVat.accountMap evmVat.executionEnv +
+            solcSlotWordAt (fileDutyDutySlotFor I) evmVat.accountMap
               evmVat.executionEnv)
           ⟨0⟩ ⟨0⟩
           (((⟨0⟩ : UInt256).toNat : Int) -
@@ -646,15 +646,8 @@ by_cases hprevMaxNot :
         Solm.EVM.storageStore evmFoldS evmFoldS.executionEnv.codeOwner
           (fileDutyRhoSlotFor I)
           (UInt256.ofNat evmFoldS.executionEnv.header.timestamp)
-      have hbody :
-          ExecTransitionBody config contract evm locals
-            dripTransition.body
-            (.returned { contract := contract, locals := finalLocals }
-              evmRhoS
-              (some [.int (Int.ofNat (⟨0⟩ : UInt256).toNat)])) := by
-        simpa [evm, evmVat, evmFoldS, finalLocals, evmRhoS,
-          locals, initState, jugSlotWord] using
-          (jugDripSourceBodyVatFoldCallSucceededReturnsXZeroNNonzero
+      have hboth :=
+          (jugDripSourceBodyVatFoldCallSucceededReturnsXZeroNNonzeroSplit
             (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := g)
             (evmVat := evmVat) (evmFold := evmFoldS)
@@ -663,31 +656,42 @@ by_cases hprevMaxNot :
             (by simpa [evm, evmVat] using hcall)
             _hdecOut
             (by
-              simpa [evmVat, evm, initState, jugSlotWord] using
+              simpa [evmVat, evm, initState, solcSlotWordAt] using
                 haddOverflow)
             (by
-              simpa [evmVat, evm, initState, jugSlotWord] using
+              simpa [evmVat, evm, initState, solcSlotWordAt] using
                 (by simpa [fee] using hfeeZero))
             (by
-              simpa [evmVat, evm, initState, jugSlotWord] using
+              simpa [evmVat, evm, initState, solcSlotWordAt] using
                 (by simpa [age] using hageNZ))
             hprevMax hfoldCodeSolm
             (by simpa [evmVat] using hfoldCall))
+      have hbody :
+          ExecTransitionBody config contract evm locals
+            dripTransition.body
+            (.returned { contract := contract, locals := finalLocals }
+              evmRhoS
+              (some [.int (Int.ofNat (⟨0⟩ : UInt256).toNat)])) := by
+        simpa [evm, evmVat, evmFoldS, finalLocals, evmRhoS,
+          locals, initState, solcSlotWordAt] using hboth.1
       obtain ⟨_, _, rd1669⟩ :=
         RD.jugDripVatFoldCallSucceeded
           (targetWord := dripVatTargetWord σ' I) rd1651
-      have hret := RD.jugDripVatFoldStoreRhoReturns
-        (targetWord := dripVatTargetWord σ' I)
-        hsz36 hperm hfoldCallMemSize hfoldCallMemRead64 rd1669
-      exact hret.reEquivExecutionGen hcode hdispatch
-        (jugDecode_drip_ok hsz36) hbody
-        (by simp [evmRhoS, evmFoldS, evmVat, evm, initState,
-          storageStore_accountMap])
-        (by
-          rw [show dripTransition.returnType = [uint256] by rfl]
-          exact returnEquiv_of_encode
-            (by simpa [uint256] using
-              uint256ReturnEncoding (⟨0⟩ : UInt256)))
+      rcases RD.jugDripVatFoldStoreRhoReturnsSplit
+          (targetWord := dripVatTargetWord σ' I)
+          hsz36 hfoldCallMemSize hfoldCallMemRead64 rd1669 with
+        ⟨_, hret⟩ | ⟨hpf, hstatic⟩
+      · exact hret.reEquivExecutionGen hcode hdispatch
+          (jugDecode_drip_ok hsz36) hbody
+          (by simp [evmRhoS, evmFoldS, evmVat, evm, initState,
+            storageStore_accountMap])
+          (by
+            rw [show dripTransition.returnType = [uint256] by rfl]
+            exact returnEquiv_of_encode
+              (by simpa [uint256] using
+                uint256ReturnEncoding (⟨0⟩ : UInt256)))
+      · exact hstatic.reEquivStaticHalt hcode hdispatch (jugDecode_drip_ok hsz36)
+          (hboth.2 hpf)
 "#
 
 elab "jug_drip_fee_zero_tac" : tactic => do

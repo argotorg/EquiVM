@@ -1,3 +1,4 @@
+import Reasoning.ABI
 import Examples.CtorTruth.Bytecode
 import Examples.Truth.Correct
 import Reasoning.Memory
@@ -45,9 +46,6 @@ theorem ctorTruthBodyReturns (evm : EVM.State) (locals : Store)
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by simp only [evalExpr?]; rfl)
 
-theorem ctorTruthReturnEncoding :
-    encodeReturnValue? (.elem .bool) (.bool true) = some (UInt256.toByteArray ⟨1⟩) :=
-  boolTrueReturnEncoding
 
 /-- The EVM selector test agrees with the dispatcher comparison. -/
 theorem ctorTruthEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
@@ -81,7 +79,7 @@ theorem ctorTruthReEquiv_callvalueZero
         (ctorTruthDecode_empty hsz)
         (ctorTruthBodyReturns (initState σ σ₀ g A I) ∅
           (by simp only [initState]; exact hwv))
-        (returnEquiv_of_encode ctorTruthReturnEncoding)
+        (returnEquiv_of_encode Reasoning.Theory.boolTrueReturnEncoding)
     · rw [Bool.not_eq_true] at hmatch
       exact (truthX_cvz_revertB hcode' hwv hsz hsize hmatch).reEquivNoDispatch hcode'
         (ctorTruthDispatch.none_nomatch hmatch)
@@ -89,7 +87,7 @@ theorem ctorTruthReEquiv_callvalueZero
 /-- Runtime bytecode refines the Solm runtime specification. -/
 theorem ctorTruthRuntimeCorrect :
     runtimeRefinement ctorTruthConfig ctorTruthRuntimeBytecode CtorTruth.contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize _hperm => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact ctorTruthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
   · have hcode' : I.code = truthBytecode := by

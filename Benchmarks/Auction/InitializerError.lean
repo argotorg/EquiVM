@@ -36,13 +36,13 @@ theorem initializeGuardRevert {I g s0 R mem aw rdata σ k C}
   obtain ⟨_, _, rd2133⟩ := rd2132.sload (by native_decide) (by evm_ov)
   have rd2141 := evm_run rd2133 with [push2 ⟨256⟩, swap1, div, push1 ⟨255⟩, and]
   change RD _ _ _ _ _
-    (UInt256.land ⟨255⟩ (UInt256.div (storedWord σ I ⟨0⟩) ⟨256⟩) :: R)
+    (UInt256.land ⟨255⟩ (UInt256.div (solcSlotWord σ I ⟨0⟩) ⟨256⟩) :: R)
     _ _ _ _ _ _ at rd2141
   rw [u256_land_comm ⟨255⟩] at rd2141
   have rd2148 := evm_run rd2141 with [dup1, push2 ⟨2153⟩, jumpiNT hi, pop, push0]
   obtain ⟨_, _, rd2149⟩ := rd2148.sload (by native_decide) (by evm_ov)
   have rd2153 := evm_run rd2149 with [push1 ⟨255⟩, and, iszero]
-  change RD _ _ _ _ _ (UInt256.isZero (UInt256.land ⟨255⟩ (storedWord σ I ⟨0⟩)) :: R)
+  change RD _ _ _ _ _ (UInt256.isZero (UInt256.land ⟨255⟩ (solcSlotWord σ I ⟨0⟩)) :: R)
     _ _ _ _ _ _ at rd2153
   rw [u256_land_comm ⟨255⟩] at rd2153
   have rd2161 := evm_run rd2153 with [

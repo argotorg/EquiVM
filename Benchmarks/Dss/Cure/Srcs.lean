@@ -103,10 +103,10 @@ theorem cureReachSrcsBody {σ σ₀ A I} {g : Sat256}
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
 abbrev srcsLenWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord ⟨2⟩ σ I
+  solcSlotWordAt ⟨2⟩ σ I
 
 abbrev srcsRawWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord (srcsSlotFor I) σ I
+  solcSlotWordAt (srcsSlotFor I) σ I
 
 abbrev srcsAddressValue (σ : AccountMap) (I : ExecutionEnv) : Value :=
   .address (AccountAddress.ofNat (UInt256.land (srcsRawWord σ I) solcAddrMask).toNat)
@@ -118,29 +118,32 @@ theorem evalExpr_srcsStorage_inBounds {σ σ₀ A I} {g : Sat256}
       (initState σ σ₀ g A I) (.storage (srcElemRef (.var "arg0"))) =
         .ok (srcsAddressValue σ I) := by
   intro locals
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (er := srcsEvaledRef I) (t := .address) (loc := addrLoc (srcsSlotFor I))]
   · rw [show addrLoc (srcsSlotFor I) = addressOffset0Loc (srcsSlotFor I) by rfl]
     rw [storageLocLoad_address_offset0]
-    simp [srcsAddressValue, srcsRawWord, cureSlotWord, solcSlotWord, initState,
+    simp [srcsAddressValue, srcsRawWord, solcSlotWordAt, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   · simp [locals, srcElemRef]
   · have hlenLoad :
         storageLocLoad (initState σ σ₀ g A I) (wordLoc ⟨2⟩) =
           .int (Int.ofNat (srcsLenWord σ I).toNat) := by
-      rw [cureStorageLocLoad_uint256]
-      simp [srcsLenWord, cureSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad,
+      erw [storageLocLoad_uint256]
+      simp [srcsLenWord, solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad,
         State.lookupAccount, Account.lookupStorage]
-    simp only [wordLoc] at hlenLoad
+    have hlength : Solm.EVM.storageLoad (initState σ σ₀ g A I)
+        (initState σ σ₀ g A I).executionEnv.codeOwner ⟨2⟩ = srcsLenWord σ I := by
+      simp [srcsLenWord, solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad,
+        State.lookupAccount, Account.lookupStorage]
     simp [srcsEvaledRef, srcElemRef, evalStorageRef, evalStorageRefSteps,
       evalStorageRefStep, evalExpr?, EvalResult.ofOption, EvalResult.bind, pure, bind,
-      valueToKey?, locals, arrayIndexInBounds?, config, storageLayout, solidityStorageLayout,
+      valueToKey?, locals, arrayIndexInBounds?, config, storageLayout, solidityStorageBackend,
       storageLayoutRaw, storageTypeAt?, contract, storageDecls, wordLoc]
-    rw [hlenLoad]
+    rw [cureSrcsLength, hlength]
     simp [hlt]
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, addrSt]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, srcsEvaledRef,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, srcsEvaledRef,
       srcsSlotFor, srcElemSlot, srcsIndex]
 
 theorem cureSrcsSourceBodyOk {σ σ₀ A I} {g : UInt256}
@@ -180,24 +183,28 @@ theorem evalExpr_srcsStorage_oob {σ σ₀ A I} {g : Sat256}
   have hlenLoad :
       storageLocLoad (initState σ σ₀ g A I) (wordLoc ⟨2⟩) =
         .int (Int.ofNat (srcsLenWord σ I).toNat) := by
-    rw [cureStorageLocLoad_uint256]
-    simp [srcsLenWord, cureSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad,
+    erw [storageLocLoad_uint256]
+    simp [srcsLenWord, solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage]
   simp only [wordLoc] at hlenLoad
   have her :
       evalStorageRef config { contract := contract, locals := locals }
         (initState σ σ₀ g A I) (srcElemRef (.var "arg0")) = .revert := by
+    have hlength : Solm.EVM.storageLoad (initState σ σ₀ g A I)
+        (initState σ σ₀ g A I).executionEnv.codeOwner ⟨2⟩ = srcsLenWord σ I := by
+      simp [srcsLenWord, solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad,
+        State.lookupAccount, Account.lookupStorage]
     simp [srcElemRef, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
       EvalResult.ofOption, EvalResult.bind, pure, bind, valueToKey?, locals,
-      arrayIndexInBounds?, config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      arrayIndexInBounds?, config, storageLayout, solidityStorageBackend, storageLayoutRaw,
       storageTypeAt?, contract, storageDecls, wordLoc]
-    rw [hlenLoad]
+    rw [cureSrcsLength, hlength]
     simp [Nat.not_lt.mpr hle]
   simp only [evalExpr?]
   change (do
       let __discr ← resolveStorageRef? config { contract := contract, locals := locals }
         (initState σ σ₀ g A I) (srcElemRef (.var "arg0"))
-      readStorage? config (initState σ σ₀ g A I) __discr.1 __discr.2) =
+      solidityReadStorage? storageLayoutRaw (initState σ σ₀ g A I) __discr.1 __discr.2) =
     EvalResult.revert
   have hresolve :
       resolveStorageRef? config { contract := contract, locals := locals }
@@ -494,7 +501,7 @@ theorem RD.cureSrcsOutOfBoundsInvalid {σ I} {g : Sat256} {s0 : State}
       RD cureBytecode I g s0 ⟨3615⟩
         [srcsLenWord σ I, srcsIndex I, ⟨2⟩, srcsIndex I, ⟨845⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k6 C6 := by
-    simpa [srcsLenWord, cureSlotWord, solcSlotWord, srcsIndex, calldataWord,
+    simpa [srcsLenWord, solcSlotWordAt, solcSlotWord, srcsIndex, calldataWord,
       show (⟨4⟩ : UInt256).toNat = 4 from by decide] using rd6'
   have rd7 := rd6.dup2 (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -510,13 +517,6 @@ theorem RD.cureSrcsOutOfBoundsInvalid {σ I} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact rdInvalidHalt rd3621 (by native_decide)
 
-private theorem Xi_error_of_X_sat_local {σ σ₀ A I}
-    {g : Sat256} {e : ExecutionException}
-    (h : X (g.toNat + 1) (D_J I.code 0)
-            (initState σ σ₀ g A I) = .error e) :
-    Ξ σ σ₀ g.toUInt256 A I = .error e :=
-  Xi_error_of_X (g := g.toUInt256) (by
-    simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using h)
 
 theorem RDinvalid.reEquivExecutionInvalid {cfg : Config} {contract : ContractDecl}
     {t : TransitionDecl} {σ σ₀ A I} {g : Sat256}
@@ -532,10 +532,10 @@ theorem RDinvalid.reEquivExecutionInvalid {cfg : Config} {contract : ContractDec
     (hreceive : contract.receive = none := by rfl) :
     runtimeRefinementFor cfg contract σ σ₀ g.toUInt256 A I := by
   rcases h with hoog | hinv
-  · exact reEquiv_outOfGas (Xi_error_of_X_sat_local (by rw [← hcode] at hoog; exact hoog))
+  · exact reEquiv_outOfGas (xi_error_of_X_sat_local (by rw [← hcode] at hoog; exact hoog))
   · exact reEquiv_execution hd hdec hbody
       (by
-        rw [Xi_error_of_X_sat_local (by rw [← hcode] at hinv; exact hinv)]
+        rw [xi_error_of_X_sat_local (by rw [← hcode] at hinv; exact hinv)]
         exact execResultsEquiv.invalidHalt rfl rfl)
       hfallback hreceive
 
@@ -657,7 +657,6 @@ theorem cureSrcsBodyCoreOob
 theorem cureSrcsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 14)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

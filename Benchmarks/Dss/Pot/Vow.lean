@@ -51,8 +51,8 @@ theorem potVowBodyCore
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ vowTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.address (AccountAddress.ofNat (potAddressReturnWord ⟨6⟩ σ I).toNat))])) := by
-    simpa [vowTransition, potAddressReturnWord, potSlotWord, initState, Solm.EVM.storageLoad,
+          (some [(.address (AccountAddress.ofNat (solcAddressSlotWord ⟨6⟩ σ I).toNat))])) := by
+    simpa [vowTransition, solcAddressSlotWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -73,7 +73,6 @@ theorem potVowBodyCore
 theorem potVowBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 15)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

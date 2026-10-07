@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flipper
 /-! ## `ilk()` getter -/
 
 def ilkWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperSlotWord ⟨3⟩ σ I
+  solcSlotWordAt ⟨3⟩ σ I
 
 theorem flipperDecode_ilk {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (ilkTransition.params.map Param.name)
@@ -51,7 +51,6 @@ theorem flipperReachIlkBody {σ σ₀ A I} {g : Sat256}
 theorem flipperIlkBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 8)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -63,7 +62,7 @@ theorem flipperIlkBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.fixedBytes bytes32Width (EVM.Word.toBytesBE (ilkWord σ I)))])) := by
-    simpa [ilkTransition, ilkWord, flipperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [ilkTransition, ilkWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flipperBytes32GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

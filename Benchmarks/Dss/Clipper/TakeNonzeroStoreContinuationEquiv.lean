@@ -98,7 +98,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
         (UInt256.ofNat
           ((evmCb.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat = 0 := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_zero_lookup_code_zero
+        extCodeSizeWord_zero_lookup_code_zero
           (clipperTakeVatTargetAddress v).symm
           (by simpa only [← hAccountsCb] using hnoCode)
     exact closeRevert hrev
@@ -112,7 +112,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
       _,
       _,
       _⟩ :=
-      clipperTypedCallSyncFromState hAccountsCb
+      typedCallViaEVM_syncFromState hAccountsCb
         (by simp [evmCbEvm, initState, hevmCbSigma0])
 
 
@@ -121,7 +121,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
     have hmoveCodeSolm : 0 < (UInt256.ofNat
         ((evmCb.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+        extCodeSizeWord_ne_zero_lookup_code_pos
           (clipperTakeVatTargetAddress v).symm
           (by simpa only [← hAccountsCb] using hmoveCode)
     have hcallMoveSolm' : typedCallViaEVM config evmCb
@@ -148,7 +148,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
       hAccountsMove,
       _,
       _⟩ :=
-      clipperTypedCallSyncFromState hAccountsCb
+      typedCallViaEVM_syncFromState hAccountsCb
         (by simp [evmCbEvm, initState, hevmCbSigma0])
 
 
@@ -157,7 +157,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
     have hmoveCodeSolm : 0 < (UInt256.ofNat
         ((evmCb.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+        extCodeSizeWord_ne_zero_lookup_code_pos
           (clipperTakeVatTargetAddress v).symm
           (by simpa only [← hAccountsCb] using hmoveCode)
     have hcallMoveSolm' : typedCallViaEVM config evmCb
@@ -170,7 +170,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
         ((evmMove.lookupAccount (AccountAddress.ofNat dog.toNat)).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
       simpa [State.lookupAccount, hdogAddress] using
-        clipperExtCodeSizeWord_zero_lookup_code_zero
+        extCodeSizeWord_zero_lookup_code_zero
           rfl
           (by simpa only [← hAccountsMove] using hdogNoCode)
     have hmove := clipperTakeGenericVatMoveSuccess hmoveArgs hmoveCodeSolm hcallMoveSolm'
@@ -194,7 +194,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
       hAccountsMove,
       hevmMoveSigma0,
       hevmMoveEnv⟩ :=
-      clipperTypedCallSyncFromState hAccountsCb
+      typedCallViaEVM_syncFromState hAccountsCb
         (by simp [evmCbEvm, initState, hevmCbSigma0])
 
 
@@ -205,7 +205,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
       hAccountsDog,
       _,
       _⟩ :=
-      clipperTypedCallSyncFromState
+      typedCallViaEVM_syncFromState
         (cfg := config) (evmEvm := evmMoveEvm) (evmSolm := evmMove)
         (evmEvm' := evmDogEvm) hAccountsMove
         (by simp [evmMoveEvm, initState, hevmMoveSigma0])
@@ -216,7 +216,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
     have hmoveCodeSolm : 0 < (UInt256.ofNat
         ((evmCb.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+        extCodeSizeWord_ne_zero_lookup_code_pos
           (clipperTakeVatTargetAddress v).symm
           (by simpa only [← hAccountsCb] using hmoveCode)
     have hcallMoveSolm' : typedCallViaEVM config evmCb
@@ -229,7 +229,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
         ((evmMove.lookupAccount (AccountAddress.ofNat dog.toNat)).option 0
           (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount, hdogAddress] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+        extCodeSizeWord_ne_zero_lookup_code_pos
           rfl
           (by simpa only [← hAccountsMove] using hdogCode)
     have hcallDogSolm' : typedCallViaEVM config evmMove
@@ -258,7 +258,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
       hAccountsMove,
       hevmMoveSigma0,
       hevmMoveEnv⟩ :=
-      clipperTypedCallSyncFromState hAccountsCb
+      typedCallViaEVM_syncFromState hAccountsCb
         (by simp [evmCbEvm, initState, hevmCbSigma0])
 
 
@@ -269,7 +269,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
       hAccountsDog,
       _hevmDogSigma0,
       hevmDogEnv⟩ :=
-      clipperTypedCallSyncFromState
+      typedCallViaEVM_syncFromState
         (cfg := config) (evmEvm := evmMoveEvm) (evmSolm := evmMove)
         (evmEvm' := evmDogEvm) hAccountsMove
         (by simp [evmMoveEvm, initState, hevmMoveSigma0])
@@ -280,7 +280,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
     have hmoveCodeSolm : 0 < (UInt256.ofNat
         ((evmCb.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+        extCodeSizeWord_ne_zero_lookup_code_pos
           (clipperTakeVatTargetAddress v).symm
           (by simpa only [← hAccountsCb] using hmoveCode)
     have hcallMoveSolm' : typedCallViaEVM config evmCb
@@ -293,7 +293,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
         ((evmMove.lookupAccount (AccountAddress.ofNat dog.toNat)).option 0
           (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount, hdogAddress] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+        extCodeSizeWord_ne_zero_lookup_code_pos
           rfl
           (by simpa only [← hAccountsMove] using hdogCode)
     have hcallDogSolm' : typedCallViaEVM config evmMove
@@ -326,7 +326,8 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
       (clipperTakeSalesTabSlot I) tabNew
     let evmLot := Solm.EVM.storageStore evmTab evmTab.executionEnv.codeOwner
       (clipperTakeSalesLotSlot I) lotNew
-    have hpost := clipperTakeGenericPostDogNonzeroStore (v := v) (evm := evmDog) htab' hlot' hid' hlocked' hsales' htabNe hlotNe
+    have hpost := clipperTakeGenericPostDogNonzeroStore
+      (v := v) (evm := evmDog) htab' hlot' hid' hlocked' hsales' htabNe hlotNe
     have hafter : ExecBlock config
         (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evmMove
         (clipperTakeAfterMoveStmts)

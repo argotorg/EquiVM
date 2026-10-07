@@ -40,37 +40,6 @@ def unpausePostState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
     (pausedSetFalseWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩))
 
-theorem pausableStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (boolLoc slot)
-      = wordToElem .bool
-          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩) := by
-  simpa [boolLoc, boolOffset0Loc] using storageLocLoad_bool_offset0 evm slot
-
-theorem pausableStorageLocLoad_bool_offset0_false (evm : EVM.State) (slot : UInt256)
-    (hzero : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ =
-      ⟨0⟩) :
-    storageLocLoad evm (boolLoc slot) = .bool false := by
-  simpa [boolLoc, boolOffset0Loc] using storageLocLoad_bool_offset0_false evm slot hzero
-
-theorem pausableStorageLocLoad_bool_offset0_true (evm : EVM.State) (slot : UInt256)
-    (hnz : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ ≠
-      ⟨0⟩) :
-    storageLocLoad evm (boolLoc slot) = .bool true := by
-  simpa [boolLoc, boolOffset0Loc] using storageLocLoad_bool_offset0_true evm slot hnz
-
-theorem pausableStorageLocStore_bool_true_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocStore evm (boolLoc slot) (.bool true) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (pausedSetTrueWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))) := by
-  simpa [boolLoc, boolOffset0Loc, pausedSetTrueWord] using
-    storageLocStore_bool_true_offset0 evm slot
-
-theorem pausableStorageLocStore_bool_false_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocStore evm (boolLoc slot) (.bool false) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (pausedSetFalseWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))) := by
-  simpa [boolLoc, boolOffset0Loc, pausedSetFalseWord] using
-    storageLocStore_bool_false_offset0 evm slot
 
 theorem pausePostState_accountMap (evm : EVM.State) :
     (pausePostState evm).accountMap =

@@ -28,9 +28,9 @@ theorem simpleAuctionAuctionEndTimeBodyReturns (evm : EVM.State) (locals : Store
           ({ base := "auctionEndTime", steps := [] } : EvaledStorageRef)
           = some (.elem (.int uint256Int)) := by
         decide
-      rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
+      erw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := simpleAuctionConfig_storage_auctionEndTime),
-        simpleAuctionStorageLocLoad_uint256])
+        storageLocLoad_uint256])
 
 theorem simpleAuctionX_auctionEndTime {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -126,7 +126,7 @@ theorem simpleAuctionDecode_auctionEndTime {I : ExecutionEnv} (hsz : 4 ≤ I.cal
 theorem simpleAuctionAuctionEndTimeBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I ⟨#[0x4b, 0x44, 0x9c, 0xba]⟩)
+    (hsel : selIs I ⟨#[0x4b, 0x44, 0x9c, 0xba]⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨239⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty

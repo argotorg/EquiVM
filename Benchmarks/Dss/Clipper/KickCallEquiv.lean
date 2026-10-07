@@ -64,7 +64,7 @@ theorem clipperKickNoCode_of_aligned
   have hzeroEvm : extCodeSizeWord evm.accountMap target = ⟨0⟩ := by
     simpa only [← halign.accounts] using hzero
   simpa [State.lookupAccount] using
-    clipperExtCodeSizeWord_zero_lookup_code_zero haddr hzeroEvm
+    extCodeSizeWord_zero_lookup_code_zero haddr hzeroEvm
 
 theorem clipperKickHasCode_of_aligned
     {s0 evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv} {target : UInt256}
@@ -77,6 +77,6 @@ theorem clipperKickHasCode_of_aligned
   have hneEvm : extCodeSizeWord evm.accountMap target ≠ ⟨0⟩ := by
     simpa only [← halign.accounts] using hne
   simpa [State.lookupAccount] using
-    clipperExtCodeSizeWord_ne_zero_lookup_code_pos haddr hneEvm
+    extCodeSizeWord_ne_zero_lookup_code_pos haddr hneEvm
 
 end Benchmarks.Dss.Clipper

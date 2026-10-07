@@ -10,7 +10,7 @@ namespace Benchmarks.Dss.End
 /-! ## `pot()` getter -/
 
 def potWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endAddressReturnWord ⟨5⟩ σ I
+  solcAddressSlotWord ⟨5⟩ σ I
 
 theorem endDecode_pot {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (potTransition.params.map Param.name)
@@ -79,7 +79,7 @@ theorem endPotBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (potWord σ I).toNat))])) := by
-    simpa [potTransition, potWord, endAddressReturnWord, endSlotWord, initState,
+    simpa [potTransition, potWord, solcAddressSlotWord, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       endAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -106,7 +106,7 @@ theorem endPotBodyCore
 
 theorem endPotBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf potTransition)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endPotConcreteSelector := by

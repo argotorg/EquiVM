@@ -9,7 +9,7 @@ namespace Benchmarks.Dss.Vow
 /-! ## `vat()` getter -/
 
 def vatWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vowAddressReturnWord ⟨1⟩ σ I
+  solcAddressSlotWord ⟨1⟩ σ I
 
 theorem vowDispatch_vat {I : ExecutionEnv} (hsel : selIs I ⟨#[0x36, 0x56, 0x9e, 0x77]⟩) :
     dispatchMsg contract I.calldata = some vatTransition := by
@@ -91,7 +91,7 @@ theorem vowVatBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (vatWord σ I).toNat))])) := by
-    simpa [vatTransition, vatWord, vowAddressReturnWord, initState, Solm.EVM.storageLoad,
+    simpa [vatTransition, vatWord, solcAddressSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vowAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -113,7 +113,7 @@ theorem vowVatBodyCore
 
 theorem vowVatBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x36, 0x56, 0x9e, 0x77]⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=

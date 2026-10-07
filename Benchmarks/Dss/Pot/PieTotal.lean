@@ -6,7 +6,7 @@ namespace Benchmarks.Dss.Pot
 
 /-! ## `Pie()` public getter (total normalised savings dai, slot 2). -/
 
-def PieTotalWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := potSlotWord ⟨2⟩ σ I
+def PieTotalWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := solcSlotWordAt ⟨2⟩ σ I
 
 theorem potDecode_PieTotal {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (PieTransition.params.map Param.name)
@@ -54,7 +54,7 @@ theorem potPieTotalBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (PieTotalWord σ I).toNat))])) := by
-    simpa [PieTransition, PieTotalWord, potSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [PieTransition, PieTotalWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -75,7 +75,6 @@ theorem potPieTotalBodyCore
 theorem potPieTotalBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 0)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

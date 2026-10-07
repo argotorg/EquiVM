@@ -10,11 +10,11 @@ def statusState (evm : EVM.State) (word : UInt256) : EVM.State :=
 theorem statusRead {s0 I σ evm locals} (hs : SourceState s0 I σ evm)
     (hl : locals.get? "_status" = none) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
-      (.storage statusRef) = .ok (.int (Int.ofNat (storedWord σ I ⟨101⟩).toNat)) := by
+      (.storage statusRef) = .ok (.int (Int.ofNat (solcSlotWord σ I ⟨101⟩).toNat)) := by
   rw [statusRef, scalarRead evm locals "_status" (.int uint256Int) (auctionUint256Loc ⟨101⟩)
     hl (by native_decide) rfl, loadUint256]
   have hw : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨101⟩ =
-      storedWord σ I ⟨101⟩ := by
+      solcSlotWord σ I ⟨101⟩ := by
     exact hs.storageRead _
   rw [hw]
 
@@ -22,21 +22,36 @@ theorem statusGuardSource {s0 I σ evm locals} (hs : SourceState s0 I σ evm)
     (hl : locals.get? "_status" = none) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       (.binary .ne (.storage statusRef) entered) =
-      .ok (.bool (decide (storedWord σ I ⟨101⟩ ≠ ⟨2⟩))) := by
+      .ok (.bool (decide (solcSlotWord σ I ⟨101⟩ ≠ ⟨2⟩))) := by
   simp only [entered, evalExpr?, statusRead hs hl, pure, bind, EvalResult.bind, evalBinaryOp?]
   congr 2
-  by_cases hz : storedWord σ I ⟨101⟩ = ⟨2⟩
+  by_cases hz : solcSlotWord σ I ⟨101⟩ = ⟨2⟩
   · rw [hz]; rfl
-  · have hv : Value.int (Int.ofNat (storedWord σ I ⟨101⟩).toNat) ≠ .int 2 := by
+  · have hv : Value.int (Int.ofNat (solcSlotWord σ I ⟨101⟩).toNat) ≠ .int 2 := by
       intro he
       have hn := Value.int.inj he
       apply hz
       apply u256_inj
-      change (storedWord σ I ⟨101⟩).toNat = 2
+      change (solcSlotWord σ I ⟨101⟩).toNat = 2
       simp only [Int.ofNat_eq_natCast] at hn
       exact_mod_cast hn
     rw [beq_eq_false_iff_ne.mpr hv, decide_eq_true hz]
     rfl
+
+theorem statusStoreSourceSplit {evm locals e word}
+    (hl : locals.get? "_status" = none)
+    (he : evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm e =
+      .ok (.int (Int.ofNat (UInt256.toNat word)))) :
+    (ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+      (.assign .storage statusRef e)
+      (.ok { contract := auctionContract, locals := locals } (statusState evm word))) ∧
+      (evm.executionEnv.perm = false →
+        ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+        (.assign .storage statusRef e) .staticViolation) := by
+  have hassign := scalarWrite evm _ locals "_status" (.elem (.int uint256Int))
+    (auctionUint256Loc ⟨101⟩) _ hl (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩)
+    (storageLocStore_uint256 evm ⟨101⟩ word)
+  exact ⟨ExecStmt.assign he hassign, fun hperm ↦ ExecStmt.assignStatic he hassign hperm⟩
 
 theorem statusStoreSource {evm locals e word}
     (hl : locals.get? "_status" = none)
@@ -44,10 +59,8 @@ theorem statusStoreSource {evm locals e word}
       .ok (.int (Int.ofNat (UInt256.toNat word)))) :
     ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
       (.assign .storage statusRef e)
-      (.ok { contract := auctionContract, locals := locals } (statusState evm word)) := by
-  apply ExecStmt.assign he
-  exact scalarWrite evm _ locals "_status" (.elem (.int uint256Int)) (auctionUint256Loc ⟨101⟩)
-    _ hl (by native_decide) rfl (by trivial) (storageLocStore_uint256 evm ⟨101⟩ word)
+      (.ok { contract := auctionContract, locals := locals } (statusState evm word)) :=
+  (statusStoreSourceSplit hl he).1
 
 theorem SourceState.status {s0 I σ evm} (hs : SourceState s0 I σ evm) (word : UInt256) :
     SourceState s0 I (sstoreAccountMap I.codeOwner σ ⟨101⟩ word) (statusState evm word) := by

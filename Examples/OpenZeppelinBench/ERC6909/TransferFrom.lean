@@ -16,7 +16,7 @@ set_option maxHeartbeats 20000000 in
 theorem erc6909TransferFromBodyCore
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 7))
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨388⟩
@@ -65,13 +65,13 @@ theorem erc6909TransferFromBodyCore
                 AccountAddress.ofNat (transferFromSenderWord I).toNat = zeroAccountAddress := by
             intro hz
             simpa [zeroAccountAddress] using
-              (approveAccountAddress_ofNat_zero_iff hcanonSender).mpr hz
+              (accountAddress_ofNat_zero_iff hcanonSender).mpr hz
           have hsenderNZAddr :
               transferFromSenderWord I ≠ ⟨0⟩ →
                 AccountAddress.ofNat (transferFromSenderWord I).toNat ≠
                   zeroAccountAddress := by
             intro hnz hz
-            exact hnz ((approveAccountAddress_ofNat_zero_iff hcanonSender).mp
+            exact hnz ((accountAddress_ofNat_zero_iff hcanonSender).mp
               (by simpa [zeroAccountAddress] using hz))
           have hreceiverZeroAddr :
               transferFromReceiverWord I = ⟨0⟩ →
@@ -79,13 +79,13 @@ theorem erc6909TransferFromBodyCore
                   zeroAccountAddress := by
             intro hz
             simpa [zeroAccountAddress] using
-              (approveAccountAddress_ofNat_zero_iff hcanonReceiver).mpr hz
+              (accountAddress_ofNat_zero_iff hcanonReceiver).mpr hz
           have hreceiverNZAddr :
               transferFromReceiverWord I ≠ ⟨0⟩ →
                 AccountAddress.ofNat (transferFromReceiverWord I).toNat ≠
                   zeroAccountAddress := by
             intro hnz hz
-            exact hnz ((approveAccountAddress_ofNat_zero_iff hcanonReceiver).mp
+            exact hnz ((accountAddress_ofNat_zero_iff hcanonReceiver).mp
               (by simpa [zeroAccountAddress] using hz))
           by_cases hsenderCaller : transferFromSenderWord I = transferFromCallerWord I
           · have hgate :=
@@ -110,7 +110,25 @@ theorem erc6909TransferFromBodyCore
               · by_cases henough :
                   (transferFromAmountWord I).toNat ≤
                     (transferFromSenderBalanceWord evmE I).toNat
-                · by_cases hfit : transferFromTailReceiverCreditNat evmE I < UInt256.size
+                · by_cases hperm : I.perm = true
+                  swap
+                  · -- static mode: both sides halt at the sender debit
+                    have hpf : I.perm = false := by simpa using hperm
+                    have hbody := erc6909TransferFromBodyStaticNoAllowance evmS I
+                      (by simp only [evmS, initState]; exact hwv) hgate
+                      (evalExpr_transferFrom_sender_nonzero_true_of_get evmS
+                        (transferFromStore I) I (transferFromStore_sender I)
+                        (hsenderNZAddr hsenderZero))
+                      (evalExpr_transferFrom_receiver_nonzero_true_of_get evmS
+                        (transferFromStore I) I (transferFromStore_receiver I)
+                        (hreceiverNZAddr hreceiverZero))
+                      (by simpa [hTailSenderBalance] using henough)
+                      (by simp only [evmS, initState]; exact hpf)
+                    exact (permSplit_false hpf (erc6909TransferFromX_skipCaller_afterDebit
+                        (g := Sat256.ofUInt256 g) hsz132 hsize hbig hcanonSender
+                        hcanonReceiver hsenderCaller hsenderZero hreceiverZero henough hreach))
+                      |>.reEquivStaticHalt hcode hd hdec hbody
+                  by_cases hfit : transferFromTailReceiverCreditNat evmE I < UInt256.size
                   · have henoughS :
                         (transferFromAmountWord I).toNat ≤
                           (transferFromSenderBalanceWord evmS I).toNat := by
@@ -221,7 +239,28 @@ theorem erc6909TransferFromBodyCore
                   · by_cases henough :
                       (transferFromAmountWord I).toNat ≤
                         (transferFromSenderBalanceWord evmE I).toNat
-                    · by_cases hfit :
+                    · by_cases hperm : I.perm = true
+                      swap
+                      · -- static mode: both sides halt at the sender debit
+                        have hpf : I.perm = false := by simpa using hperm
+                        have hbody := erc6909TransferFromBodyStaticAllowanceMax evmS I
+                          (by simp only [evmS, initState]; exact hwv) hgate hallowanceMaxExpr
+                          (evalExpr_transferFrom_sender_nonzero_true_of_get evmS
+                            (transferFromStoreCurrentAllowance evmS I) I
+                            (transferFromStoreCurrentAllowance_sender evmS I)
+                            (hsenderNZAddr hsenderZero))
+                          (evalExpr_transferFrom_receiver_nonzero_true_of_get evmS
+                            (transferFromStoreCurrentAllowance evmS I) I
+                            (transferFromStoreCurrentAllowance_receiver evmS I)
+                            (hreceiverNZAddr hreceiverZero))
+                          (by simpa [hTailSenderBalance] using henough)
+                          (by simp only [evmS, initState]; exact hpf)
+                        exact (erc6909TransferFromX_operatorFalse_allowanceMax_static
+                            (g := Sat256.ofUInt256 g) hsz132 hsize hbig hpf
+                            hcanonSender hcanonReceiver hsenderCaller hopZero hallowanceMax
+                            hsenderZero hreceiverZero henough hreach)
+                          |>.reEquivStaticHalt hcode hd hdec hbody
+                      by_cases hfit :
                         transferFromTailReceiverCreditNat evmE I < UInt256.size
                       · have henoughS :
                             (transferFromAmountWord I).toNat ≤
@@ -304,6 +343,28 @@ theorem erc6909TransferFromBodyCore
                       (transferFromAmountWord I).toNat ≤
                         (transferFromCurrentAllowanceWord evmS I).toNat := by
                     simpa [hAllowance] using hallowanceEnough
+                  by_cases hperm : I.perm = true
+                  swap
+                  · -- static mode: both sides halt at the allowance debit
+                    have hpf : I.perm = false := by simpa using hperm
+                    have hbody := erc6909TransferFromBodyStaticAllowanceDebit evmS I
+                      (by simp only [evmS, initState]; exact hwv) hgate
+                      hallowanceNotMaxExpr hallowanceEnoughS
+                      (by simp only [evmS, initState]; exact hpf)
+                    obtain ⟨_, _, rd1193⟩ :=
+                      erc6909TransferFromX_operatorFalse_afterAllowanceLoad
+                        (σ := σ)
+                        (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
+                        (sel := erc6909SelWord I) hsz132 hsize hbig hcanonSender
+                        hcanonReceiver hsenderCaller hopZero hreach
+                    exact (permSplit_false hpf
+                        (erc6909TransferFromX_from1193_allowanceDebit_to661_base
+                          (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
+                          (sel := erc6909SelWord I)
+                          (base := transferFromOperatorAllowanceScratchMem I)
+                          (transferFromOperatorAllowanceScratchMem_size I) hcanonSender
+                          hallowanceNotMax hallowanceEnough rd1193))
+                      |>.reEquivStaticHalt hcode hd hdec hbody
                   let σAllowance := sstoreAccountMap I.codeOwner σ
                     (transferFromAllowanceSlotI I) (transferFromAllowanceDebitWord evmE I)
                   have hAfterAllowanceInit :
@@ -341,13 +402,13 @@ theorem erc6909TransferFromBodyCore
                       (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
                       (sel := erc6909SelWord I) hsz132 hsize hbig hcanonSender
                       hcanonReceiver hsenderCaller hopZero hreach
-                  obtain ⟨_, _, rd661⟩ :=
+                  obtain ⟨_, _, rd661⟩ := permSplit_true hperm <|
                     erc6909TransferFromX_from1193_allowanceDebit_to661_base
                       (σ := σ)
                       (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
                       (sel := erc6909SelWord I)
                       (base := transferFromOperatorAllowanceScratchMem I)
-                      hbase hperm hcanonSender hallowanceNotMax hallowanceEnough rd1193
+                      hbase hcanonSender hallowanceNotMax hallowanceEnough rd1193
                   by_cases hsenderZero : transferFromSenderWord I = ⟨0⟩
                   · have hbody :=
                       erc6909TransferFromBodyRevertsAllowance_sender_zero evmS I
@@ -550,7 +611,26 @@ theorem erc6909TransferFromBodyCore
                 · by_cases henough :
                     (transferFromAmountWord I).toNat ≤
                       (transferFromSenderBalanceWord evmE I).toNat
-                  · by_cases hfit : transferFromTailReceiverCreditNat evmE I < UInt256.size
+                  · by_cases hperm : I.perm = true
+                    swap
+                    · -- static mode: both sides halt at the sender debit
+                      have hpf : I.perm = false := by simpa using hperm
+                      have hbody := erc6909TransferFromBodyStaticNoAllowance evmS I
+                        (by simp only [evmS, initState]; exact hwv) hgate
+                        (evalExpr_transferFrom_sender_nonzero_true_of_get evmS
+                          (transferFromStore I) I (transferFromStore_sender I)
+                          (hsenderNZAddr hsenderZero))
+                        (evalExpr_transferFrom_receiver_nonzero_true_of_get evmS
+                          (transferFromStore I) I (transferFromStore_receiver I)
+                          (hreceiverNZAddr hreceiverZero))
+                        (by simpa [hTailSenderBalance] using henough)
+                        (by simp only [evmS, initState]; exact hpf)
+                      exact (erc6909TransferFromX_operatorApproved_static
+                          (g := Sat256.ofUInt256 g) hsz132 hsize hbig hpf
+                          hcanonSender hcanonReceiver hsenderCaller hopZero hsenderZero
+                          hreceiverZero henough hreach)
+                        |>.reEquivStaticHalt hcode hd hdec hbody
+                    by_cases hfit : transferFromTailReceiverCreditNat evmE I < UInt256.size
                     · have henoughS :
                           (transferFromAmountWord I).toNat ≤
                             (transferFromSenderBalanceWord evmS I).toNat := by

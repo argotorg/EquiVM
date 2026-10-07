@@ -133,7 +133,7 @@ theorem clipperConstructorCorrect :
   · have hrd := clipperInitcodeSuccess
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       vat spotter dog ilk hilk hcodeCtor hperm hwv
-    rcases clipperRDretXiResultAccountMap (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    rcases RDretXiResultAccountMap (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) (code := clipperCtorCode vat spotter dog ilk)
       (o := clipperCtorPatchedRuntime vat ilk) hcodeCtor hrd with hOOG | ⟨g', A', hsuccess⟩
     · exact .outOfGas

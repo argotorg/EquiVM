@@ -19,7 +19,7 @@ def bidExtendStmts : List Stmt :=
 theorem bidTimeBufferSource {s0 I σ evm locals s noun}
     (hs : SourceState s0 I σ evm) (hv : BidValues locals s noun) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
-      (.storage timeBufferRef) = .ok (.int (Int.ofNat (storedWord σ I ⟨203⟩).toNat)) := by
+      (.storage timeBufferRef) = .ok (.int (Int.ofNat (solcSlotWord σ I ⟨203⟩).toNat)) := by
   rw [timeBufferRef, scalarRead evm locals "timeBuffer" (.int uint256Int)
     (auctionUint256Loc ⟨203⟩) (hv.storage _ (by decide)) (by native_decide) rfl,
     loadUint256, hs.storageRead]
@@ -30,7 +30,7 @@ theorem bidExtendedSource {s0 I σ evm locals s noun}
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       bidExtendedExpr = .ok (.bool (decide
         ((UInt256.sub s.endTime (UInt256.ofNat I.header.timestamp)).toNat <
-          (storedWord σ I ⟨203⟩).toNat))) := by
+          (solcSlotWord σ I ⟨203⟩).toNat))) := by
   have hsub := subSourceOk (snapshotEndSource (evm := evm) hv.snapshot)
     (rhs := now) (by simp only [now, evalExpr?, envValue, hs.env, pure]) ht
   simp only [bidExtendedExpr, evalExpr?, hsub, bidTimeBufferSource hs hv,
@@ -44,9 +44,9 @@ theorem bidExtensionPrefix {I g s0 s bidder snap noun ret R mem aw rdata σ k C}
     (hov : R.length + 13 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨1768⟩
       (⟨1792⟩ :: UInt256.isZero (UInt256.lt
-          (UInt256.sub s.endTime (UInt256.ofNat I.header.timestamp)) (storedWord σ I ⟨203⟩)) ::
+          (UInt256.sub s.endTime (UInt256.ofNat I.header.timestamp)) (solcSlotWord σ I ⟨203⟩)) ::
         UInt256.lt (UInt256.sub s.endTime (UInt256.ofNat I.header.timestamp))
-          (storedWord σ I ⟨203⟩) :: bidder :: snap :: noun :: ret :: R)
+          (solcSlotWord σ I ⟨203⟩) :: bidder :: snap :: noun :: ret :: R)
       mem aw rdata σ k' C' := by
   have rd1740 := evm_run h with [push1 ⟨203⟩]
   obtain ⟨_, _, rd1741⟩ := rd1740.sload (by native_decide) (by evm_ov)
@@ -79,14 +79,14 @@ theorem bidExtensionRoutine {I g s0 s bidder snap noun ret R mem aw rdata σ k C
   obtain ⟨_, _, rd1768⟩ := bidExtensionPrefix h hm (by omega) hov
   have he := bidExtendedSource hs hv (by omega)
   by_cases hex : (UInt256.sub s.endTime (UInt256.ofNat I.header.timestamp)).toNat <
-      (storedWord σ I ⟨203⟩).toNat
+      (solcSlotWord σ I ⟨203⟩).toNat
   · rw [decide_eq_true hex] at he
     rw [ult_one hex] at rd1768
     have rd1769 := evm_run rd1768 with [jumpiNT (by decide)]
     have rd1771 := evm_run rd1769 with [push1 ⟨203⟩]
     obtain ⟨_, _, rd1772⟩ := rd1771.sload (by native_decide) (by evm_ov)
     change RD _ _ _ _ ⟨1772⟩
-      (storedWord σ I ⟨203⟩ :: ⟨1⟩ :: bidder :: snap :: noun :: ret :: R)
+      (solcSlotWord σ I ⟨203⟩ :: ⟨1⟩ :: bidder :: snap :: noun :: ret :: R)
       mem aw rdata σ _ _ at rd1772
     have rd5704 := evm_run rd1772 with [push2 ⟨1781⟩, swap1, timestamp,
       push2 ⟨5704⟩, jump (by jump_dest)]
@@ -98,15 +98,15 @@ theorem bidExtensionRoutine {I g s0 s bidder snap noun ret R mem aw rdata σ k C
     have hn : evalExpr? auctionConfig { contract := auctionContract, locals := locals1 } evm now =
         .ok (.int (Int.ofNat (UInt256.ofNat I.header.timestamp).toNat)) := by
       simp only [now, evalExpr?, envValue, hs.env, pure]
-    by_cases hno : (UInt256.ofNat I.header.timestamp).toNat + (storedWord σ I ⟨203⟩).toNat <
+    by_cases hno : (UInt256.ofNat I.header.timestamp).toNat + (solcSlotWord σ I ⟨203⟩).toNat <
         UInt256.size
     · have ha := checkedAddSourceOk hn (bidTimeBufferSource hs hv1) hno
       obtain ⟨_, _, rd1781⟩ := checkedAddOk rd5704 hno (by jump_dest) (by evm_ov)
-      rw [u256_add_comm (storedWord σ I ⟨203⟩)] at rd1781
+      rw [u256_add_comm (solcSlotWord σ I ⟨203⟩)] at rd1781
       have rd1791 := evm_run rd1781 with [jumpdest, push1 ⟨96⟩, dup5, add, dup2, swap1,
         raw mstoreSymbolic (by native_decide) (by evm_ov), push1 ⟨210⟩]
       obtain ⟨_, _, rd1792⟩ := rd1791.sstore hperm (by native_decide) (by evm_ov)
-      let finish := UInt256.ofNat I.header.timestamp + storedWord σ I ⟨203⟩
+      let finish := UInt256.ofNat I.header.timestamp + solcSlotWord σ I ⟨203⟩
       let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨210⟩ finish
       have hs' : SourceState s0 I (sstoreAccountMap I.codeOwner σ ⟨210⟩ finish) evm' := by
         simpa only [evm', hs.env] using hs.storageWrite ⟨210⟩ finish
@@ -116,7 +116,7 @@ theorem bidExtensionRoutine {I g s0 s bidder snap noun ret R mem aw rdata σ k C
       exact ExecBlock.consNormal (ExecStmt.assign ha
         (auctionFieldWrite evm evm' locals1 "endTime" (.elem (.int uint256Int))
           (auctionUint256Loc ⟨210⟩) _ (hv1.storage _ (by decide)) (by native_decide) rfl
-          (by trivial) (storageLocStore_uint256 evm ⟨210⟩ finish))) ExecBlock.nil
+          (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 evm ⟨210⟩ finish))) ExecBlock.nil
     · have ha := checkedAddSourceOverflow hn (bidTimeBufferSource hs hv1) (by omega)
       refine Or.inr ⟨?_, checkedAddOverflow rd5704 (by omega) (by evm_ov)⟩
       apply ExecBlock.consNormal (ExecStmt.letDecl he)

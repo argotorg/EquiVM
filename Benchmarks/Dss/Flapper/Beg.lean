@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flapper
 /-! ## `beg()` getter -/
 
 def begWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flapperSlotWord ⟨4⟩ σ I
+  solcSlotWordAt ⟨4⟩ σ I
 
 theorem flapperDecode_beg {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (begTransition.params.map Param.name)
@@ -56,7 +56,6 @@ theorem flapperReachBegBody {σ σ₀ A I} {g : Sat256}
 theorem flapperBegBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 0)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -68,7 +67,7 @@ theorem flapperBegBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (begWord σ I).toNat))])) := by
-    simpa [begTransition, begWord, flapperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [begTransition, begWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flapperUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

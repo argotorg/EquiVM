@@ -526,8 +526,7 @@ theorem clipperTakeOweGtTabEquiv
     intro htail
     have htail' :
         ExecBlock config
-          (Frame.mk contract
-            (clipperTakeLocalsSlice evmLock evmPrice I false price
+          (Frame.mk contract (clipperTakeLocalsSlice evmLock evmPrice I false price
               (clipperMinWord (clipperTakeSalesLotEVMWord evmPrice I)
                 (clipperTakeAmtWord I))) (immStore v))
           evmPrice (clipperTakeAfterSliceStmts) .reverted := by
@@ -547,8 +546,7 @@ theorem clipperTakeOweGtTabEquiv
     intro finalFrame finalEvm htail
     have htail' :
         ExecBlock config
-          (Frame.mk contract
-            (clipperTakeLocalsSlice evmLock evmPrice I false price
+          (Frame.mk contract (clipperTakeLocalsSlice evmLock evmPrice I false price
               (clipperMinWord (clipperTakeSalesLotEVMWord evmPrice I)
                 (clipperTakeAmtWord I))) (immStore v))
           evmPrice (clipperTakeAfterSliceStmts) (.ok finalFrame finalEvm) := by

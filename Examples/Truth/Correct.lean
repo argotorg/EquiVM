@@ -9,7 +9,6 @@ import Reasoning.Memory
 import Reasoning.Solc
 import Reasoning.Reach
 import Reasoning.Constructor
-import Solm.Refine
 
 /-!
 # Truth — runtime-equivalence proof for `truth()`
@@ -248,7 +247,7 @@ theorem truthReEquiv_callvalueZero
 /-- The runtime bytecode refines the Solm specification, for every initial state. -/
 theorem truthCorrect :
     runtimeRefinement truthConfig truthBytecode truthContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize _hperm => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact truthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling

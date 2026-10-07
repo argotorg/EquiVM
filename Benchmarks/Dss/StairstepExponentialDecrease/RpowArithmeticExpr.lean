@@ -1,3 +1,5 @@
+import Reasoning.WordArithmetic
+import Reasoning.EVMWord
 import Benchmarks.Dss.StairstepExponentialDecrease.Dispatch
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -16,25 +18,6 @@ theorem rpowRay_toNat : rpowRay.toNat = 1000000000000000000000000000 := by
     1000000000000000000000000000
   exact ulit_toNat' _ (by native_decide)
 
-theorem rpowUInt256Zero_toNat : (⟨0⟩ : UInt256).toNat = 0 := by
-  native_decide
-
-theorem rpowUInt256One_toNat : (⟨1⟩ : UInt256).toNat = 1 := by
-  native_decide
-
-theorem rpowUInt256Two_toNat : (⟨2⟩ : UInt256).toNat = 2 := by
-  native_decide
-
-theorem rpowUInt256Two_ne_zero : (⟨2⟩ : UInt256) ≠ ⟨0⟩ := by
-  native_decide
-
-theorem rpowUInt256DivZeroTwo :
-    UInt256.div (⟨0⟩ : UInt256) (⟨2⟩ : UInt256) = ⟨0⟩ := by
-  native_decide
-
-theorem rpowUInt256DivOneTwo :
-    UInt256.div (⟨1⟩ : UInt256) (⟨2⟩ : UInt256) = ⟨0⟩ := by
-  native_decide
 
 theorem RAY_eq_rpowRay_toNat : RAY = Int.ofNat rpowRay.toNat := by
   simp [RAY, rpowRay_toNat]
@@ -54,44 +37,12 @@ theorem rpowRay_mul_div_cancel (y : UInt256)
   rw [hprod]
   simpa [Nat.mul_comm] using Nat.mul_div_right y.toNat hRayPos
 
-theorem u256_mul_div_overflow_ne (x y : UInt256)
-    (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    UInt256.div (y * x) y ≠ x := by
-  intro hEq
-  have hyNatNe : y.toNat ≠ 0 := by
-    intro hy0
-    have hprod0 : x.toNat * y.toNat = 0 := by simp [hy0]
-    have hsizePos : 0 < UInt256.size := by norm_num [UInt256.size]
-    omega
-  have hnat := congrArg UInt256.toNat hEq
-  rw [udiv_toNat, u256_mul_op_toNat] at hnat
-  have hremLt : y.toNat * x.toNat % UInt256.size < y.toNat * x.toNat := by
-    have hmodLt : y.toNat * x.toNat % UInt256.size < UInt256.size :=
-      Nat.mod_lt _ (by norm_num [UInt256.size])
-    have hover' : UInt256.size ≤ y.toNat * x.toNat := by
-      simpa [Nat.mul_comm] using hover
-    omega
-  have hle0 :=
-    Nat.mul_div_le (y.toNat * x.toNat % UInt256.size) y.toNat
-  rw [hnat] at hle0
-  have hle : y.toNat * x.toNat ≤ y.toNat * x.toNat % UInt256.size := by
-    simpa [Nat.mul_comm] using hle0
-  omega
 
 theorem rpowRay_mul_div_overflow_ne (y : UInt256)
     (hover : UInt256.size ≤ rpowRay.toNat * y.toNat) :
     UInt256.div (y * rpowRay) y ≠ rpowRay :=
   u256_mul_div_overflow_ne rpowRay y hover
 
-theorem u256_sub_eq_zero_iff_eq {a b : UInt256} :
-    UInt256.sub a b = ⟨0⟩ ↔ a = b := by
-  constructor
-  · intro h
-    by_contra hne
-    exact u256_sub_ne_zero_of_ne hne h
-  · intro h
-    rw [h]
-    exact u256_sub_self b
 
 theorem evalExpr_varInt {evm : EVM.State} {locals : Store}
     {name : Ident} {value : Int}

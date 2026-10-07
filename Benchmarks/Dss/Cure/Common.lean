@@ -1,3 +1,4 @@
+import Reasoning.SolcRoutines
 import Benchmarks.Dss.Cure.Selectors
 import Reasoning.ABI
 import Reasoning.Stepping
@@ -116,8 +117,6 @@ theorem cureDispatch_none_nomatch {cd : ByteArray}
   · rw [selectorOf, cureWardsSelectorBytes]; simpa [cureSelBytes] using hnm 18 (by omega)
   · rw [selectorOf, cureWhenSelectorBytes]; simpa [cureSelBytes] using hnm 19 (by omega)
 
-def cureSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  solcSlotWord σ I slot
 
 /-- Storage well-formedness for the generated `srcs` dynamic-array getter and source index map.
 
@@ -129,17 +128,28 @@ It accounts for a 128-byte array base, 32-byte length word, 64-byte ABI prefix, 
 This intentionally does not assume relationships between mapping slots and array length slots:
 aliasing storage states are handled in the per-function proofs. -/
 def cureStorageWF (σ : AccountMap) (I : ExecutionEnv) : Prop :=
-  224 + 64 * (cureSlotWord ⟨2⟩ σ I).toNat < 2 ^ 64
+  224 + 64 * (solcSlotWordAt ⟨2⟩ σ I).toNat < 2 ^ 64
 
 theorem cureStorageWF_returnBound {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    224 + 64 * (cureSlotWord ⟨2⟩ σ I).toNat < 2 ^ 64 :=
+    224 + 64 * (solcSlotWordAt ⟨2⟩ σ I).toNat < 2 ^ 64 :=
   hwf
 
-theorem cureStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (wordLoc slot) =
-      .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
+
+theorem cureSrcsLength (evm : EVM.State) :
+    solidityStorageLength? storageLayoutRaw { base := "srcs" } (.dynamicArray addrSt) evm =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat := by
+  have hloc : solidityAnchorWordLoc ⟨2⟩ = wordLoc ⟨2⟩ := rfl
+  simp only [solidityStorageLength?, solidityDynamicLength?, solidityLengthLoc?,
+    solidityAnchor?, storageLayoutRaw, hloc, Option.map_some,
+    EvalResult.ofOption, EvalResult.bind, bind]
+  rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
+  simp
+
+theorem cureSrcsDynamicLength (evm : EVM.State) :
+    solidityDynamicLength? storageLayoutRaw evm { base := "srcs" } =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat := by
+  simpa only [solidityStorageLength?] using cureSrcsLength evm
 
 theorem cureUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -147,15 +157,15 @@ theorem cureUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm slot))
+      rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      exact congrArg EvalResult.ok (storageLocLoad_uint256 evm slot))
 
 theorem cureUint256GetterBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -179,125 +189,25 @@ theorem cureUint256GetterBodyCore
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (cureSlotWord slot σ I).toNat))]))) :
+          (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (cureSlotWord slot σ I))
-        (some [(.int (Int.ofNat (cureSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (cureSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   have hret := RD.solcWordGetterExternal (code := cureBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret cureBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (cureSlotWord slot σ I)) := by
-    simpa [cureSlotWord] using hret
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
+    simpa [solcSlotWordAt] using hret
   exact hret'.reEquivExecution hcode hdispatch hdecode hbody henc
 
--- LIBRARY CANDIDATE: variant of the solc word-slot getter that swaps the return pc before jumping.
-@[reducible] def solcWordSlotGetterSwapJumpWf
-    (code : ByteArray) (pc slot : UInt256) : Prop :=
-  let p1 := pc + ⟨1⟩
-  let p3 := p1 + UInt256.ofNat 2
-  let p4 := p3 + ⟨1⟩
-  let p5 := p4 + ⟨1⟩
-  decode code pc = some (.JUMPDEST, .none)
-  ∧ decode code p1 = some (.Push .PUSH1, some (slot, 1))
-  ∧ decode code p3 = some (.SLOAD, .none)
-  ∧ decode code p4 = some (.SWAP1, .none)
-  ∧ decode code p5 = some (.JUMP, .none)
-
-theorem RD.solcWordSlotGetterSwapJump {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc slot ret : UInt256} {R : List UInt256}
-    {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem aw rdata σ k C)
-    (hwf : solcWordSlotGetterSwapJumpWf code pc slot)
-    (hret : (D_J code 0).contains ret = true)
-    (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
-      ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) :: R)
-      mem aw rdata σ k' C' := by
-  rcases hwf with ⟨hd0, hd1, hd2, hd3, hd4⟩
-  have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
-  have rd3 := rd1.push1 slot hd1 (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rd4⟩ := rd3.sload hd2 (by simp only [List.length_cons]; omega)
-  have rd5 := rd4.swap1 hd3 (by omega)
-  have rdRet := rd5.jump hd4 hret (by simp only [List.length_cons]; omega)
-  exact ⟨_, _, rdRet⟩
-
--- LIBRARY CANDIDATE: generic solc getter for a mapping stored at slot zero.
-@[reducible] def solcZeroSlotMappingGetterWf (code : ByteArray) (pc : UInt256) : Prop :=
-  let p1 := pc + ⟨1⟩
-  let p3 := p1 + UInt256.ofNat 2
-  let p5 := p3 + UInt256.ofNat 2
-  let p6 := p5 + ⟨1⟩
-  let p7 := p6 + ⟨1⟩
-  let p8 := p7 + ⟨1⟩
-  let p9 := p8 + ⟨1⟩
-  let p10 := p9 + ⟨1⟩
-  let p11 := p10 + ⟨1⟩
-  let p13 := p11 + UInt256.ofNat 2
-  let p14 := p13 + ⟨1⟩
-  let p15 := p14 + ⟨1⟩
-  let p16 := p15 + ⟨1⟩
-  let p17 := p16 + ⟨1⟩
-  decode code pc = some (.JUMPDEST, .none)
-  ∧ decode code p1 = some (.Push .PUSH1, some (⟨0⟩, 1))
-  ∧ decode code p3 = some (.Push .PUSH1, some (⟨32⟩, 1))
-  ∧ decode code p5 = some (.DUP2, .none)
-  ∧ decode code p6 = some (.SWAP1, .none)
-  ∧ decode code p7 = some (.MSTORE, .none)
-  ∧ decode code p8 = some (.SWAP1, .none)
-  ∧ decode code p9 = some (.DUP2, .none)
-  ∧ decode code p10 = some (.MSTORE, .none)
-  ∧ decode code p11 = some (.Push .PUSH1, some (⟨64⟩, 1))
-  ∧ decode code p13 = some (.SWAP1, .none)
-  ∧ decode code p14 = some (.KECCAK256, .none)
-  ∧ decode code p15 = some (.SLOAD, .none)
-  ∧ decode code p16 = some (.DUP2, .none)
-  ∧ decode code p17 = some (.JUMP, .none)
-
-theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
-    (hwf : solcZeroSlotMappingGetterWf code pc)
-    (hret : (D_J code 0).contains ret = true)
-    (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
-      (solcSlotWord σ ee (solcMappingSlot ⟨0⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
-  rcases hwf with
-    ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
-      hd16, hd17⟩
-  have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
-  have rd3 := rd1.push1 ⟨0⟩ hd1 (by evm_ov)
-  have rd5 := rd3.push1 ⟨32⟩ hd3 (by evm_ov)
-  have rd6 := rd5.dup2 hd5 (by evm_ov)
-  have rd7 := rd6.swap1 hd6 (by evm_ov)
-  have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨0⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd9 := rd8.swap1 hd8 (by evm_ov)
-  have rd10 := rd9.dup2 hd9 (by evm_ov)
-  have rd11 := rd10.mstore 0 (solcMappingHashMem ⟨0⟩ key)
-    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd13 := rd11.push1 ⟨64⟩ hd11 (by evm_ov)
-  have rd14 := rd13.swap1 hd13 (by evm_ov)
-  have hslot := solcMappingKeccakSlot ⟨0⟩ key
-  have rd15 := rd14.keccak256 0 (solcMappingSlot ⟨0⟩ key)
-    (UInt256.ofNat 3) hd14 mem_cost
-    (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
-      show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd16⟩ := rd15.sload hd15 (by evm_ov)
-  have rd17 := rd16.dup2 hd16 (by evm_ov)
-  exact ⟨_, _, rd17.jump hd17 hret (by evm_ov)⟩
 
 /-- Every Cure transition body reverts when the non-payable guard sees non-zero callvalue. -/
 theorem cureBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.transitions)
@@ -309,56 +219,6 @@ theorem cureBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.tra
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     exact bodyReverts_nonPayable h
 
--- GENERALIZES Reasoning.Solc.solcGuardCallvalueNonzeroRevert — supports legacy
--- `PUSH1 0; DUP1; REVERT` revert stubs emitted before `PUSH0` was available.
-theorem solcGuardCallvalueNonzeroRevertLegacy {σ σ₀ A I} {g : Sat256}
-    {code : ByteArray} {ctgt : UInt256} {wC : ℕ} {opC : Operation.POp} {k0 C0 : ℕ}
-    (h : RD code I g (initState σ σ₀ g A I) ⟨8⟩
-          [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3)
-          ByteArray.empty σ k0 C0)
-    (hwv : I.weiValue ≠ ⟨0⟩) (hopC : opC ≠ .PUSH0)
-    (hpushC : decode code ⟨8⟩ = some (.Push opC, some (ctgt, wC)))
-    (hjumpi : decode code (⟨8⟩ + UInt256.ofNat wC.succ) = some (.JUMPI, .none))
-    (hr0 : decode code (⟨8⟩ + UInt256.ofNat wC.succ + ⟨1⟩) =
-      some (.Push .PUSH1, some (⟨0⟩, 1)))
-    (hr1 : decode code (⟨8⟩ + UInt256.ofNat wC.succ + ⟨1⟩ + UInt256.ofNat 2) =
-      some (.DUP1, .none))
-    (hr2 : decode code (⟨8⟩ + UInt256.ofNat wC.succ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) =
-      some (.REVERT, .none)) :
-    RDrev code g (initState σ σ₀ g A I) :=
-  (h.pushConst ctgt hopC hpushC (by simp only [List.length]; omega)
-    |>.jumpiNT hjumpi (isZero_eq_zero_of_ne hwv)
-      (by simp only [List.length]; omega))
-    |>.solcPush1Dup1Revert0 hr0 hr1 hr2 (by simp only [List.length]; omega)
-
-/-- Legacy solc short-calldata revert for `PUSH1 0; DUP1; REVERT` stubs. -/
-theorem solcCalldataShortRevertLegacy {σ σ₀ A I} {g : Sat256}
-    {code : ByteArray} {bodyPc rtgt : UInt256} {wR : ℕ} {opR : Operation.POp} {k0 C0 : ℕ}
-    (h : RD code I g (initState σ σ₀ g A I) bodyPc [] solcFreePtrMem
-          (UInt256.ofNat 3) ByteArray.empty σ k0 C0)
-    (hsz : I.calldata.size < 4)
-    (hd_p4 : decode code bodyPc = some (.Push .PUSH1, some (⟨4⟩, 1)))
-    (hd_cds : decode code (bodyPc + UInt256.ofNat 2) = some (.CALLDATASIZE, .none))
-    (hd_lt : decode code (bodyPc + UInt256.ofNat 2 + ⟨1⟩) = some (.LT, .none))
-    (hopR : opR ≠ .PUSH0)
-    (hd_pR : decode code (bodyPc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
-      some (.Push opR, some (rtgt, wR)))
-    (hd_ji :
-      decode code (bodyPc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat wR.succ) =
-        some (.JUMPI, .none))
-    (hd_jd : decode code rtgt = some (.JUMPDEST, .none))
-    (hjd : (D_J code 0).contains rtgt = true)
-    (hr0 : decode code (rtgt + ⟨1⟩) = some (.Push .PUSH1, some (⟨0⟩, 1)))
-    (hr1 : decode code (rtgt + ⟨1⟩ + UInt256.ofNat 2) = some (.DUP1, .none))
-    (hr2 : decode code (rtgt + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) = some (.REVERT, .none)) :
-    RDrev code g (initState σ σ₀ g A I) :=
-  (h.push1 ⟨4⟩ hd_p4 (by simp only [List.length]; omega)
-    |>.calldatasize hd_cds (by simp only [List.length]; omega)
-    |>.lt hd_lt (by simp only [List.length]; omega)
-    |>.pushConst rtgt hopR hd_pR (by simp only [List.length]; omega)
-    |>.jumpiT hd_ji (lt_four_ne_zero_of_lt hsz) hjd (by simp only [List.length]; omega)
-    |>.jumpdest hd_jd (by simp only [List.length]; omega))
-    |>.solcPush1Dup1Revert0 hr0 hr1 hr2 (by simp only [List.length]; omega)
 
 /-- `callvalue ≠ 0` makes the global solc non-payable guard revert before dispatch. -/
 theorem cureX_callvalue_ne {σ σ₀ A I} {g : Sat256}
@@ -985,7 +845,6 @@ theorem cureX_noMatch {σ σ₀ A I} {g : Sat256}
 theorem cureNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 20 → (cureSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

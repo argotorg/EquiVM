@@ -22,12 +22,12 @@ theorem pausedX {σ σ₀ A I} {g : UInt256}
     RDret auctionBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (UInt256.toByteArray
-        (UInt256.isZero (UInt256.isZero (UInt256.land (storedWord σ I ⟨51⟩) ⟨255⟩)))) := by
+        (UInt256.isZero (UInt256.isZero (UInt256.land (solcSlotWord σ I ⟨51⟩) ⟨255⟩)))) := by
   obtain ⟨_, _, rd466⟩ := hreach
   obtain ⟨_, _, rd479⟩ := entryGuardZero 5 (by decide) rd466 hwv
   have rd481 := evm_run rd479 with [push1 ⟨51⟩]
   obtain ⟨_, _, rd482⟩ := rd481.sload (by native_decide) (by evm_ov)
-  let val := UInt256.isZero (UInt256.isZero (UInt256.land ⟨255⟩ (storedWord σ I ⟨51⟩)))
+  let val := UInt256.isZero (UInt256.isZero (UInt256.land ⟨255⟩ (solcSlotWord σ I ⟨51⟩)))
   have rd318 := evm_run rd482 with [
     push1 ⟨255⟩, and, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
@@ -37,11 +37,11 @@ theorem pausedX {σ σ₀ A I} {g : UInt256}
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨318⟩, jump (by jump_dest) ]
   have hret := rd318.auctionReturn32 (by evm_ov)
-  simpa only [val, u256_land_comm ⟨255⟩ (storedWord σ I ⟨51⟩)] using hret
+  simpa only [val, u256_land_comm ⟨255⟩ (solcSlotWord σ I ⟨51⟩)] using hret
 
 theorem pausedBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (entryBytes 5))
+    (hsel : selIs I (entryBytes 5))
     (hreach : EntryReached 5 σ σ₀ A I g) :
     runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
@@ -55,12 +55,12 @@ theorem pausedBodyCore {σ σ₀ A I} {g : UInt256}
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ pausedGetter.body
         (.returned { contract := auctionContract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [wordToElem .bool (UInt256.land (storedWord σ I ⟨51⟩) ⟨255⟩)])) := by
-      simpa [storedWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
+          (some [wordToElem .bool (UInt256.land (solcSlotWord σ I ⟨51⟩) ⟨255⟩)])) := by
+      simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
         pausedBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           ∅ hwv (by simp)
     exact (pausedX hreach hwv).reEquivExecution hcode hd hdec hbody
-      (returnEquiv_of_encode (boolWordReturnEncoding (storedWord σ I ⟨51⟩)))
+      (returnEquiv_of_encode (boolWordReturnEncoding (solcSlotWord σ I ⟨51⟩)))
   · exact entryNonpayableRevert 5 (by decide) hcode hsel hreach hwv
 
 end Auction

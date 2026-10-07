@@ -107,7 +107,7 @@ theorem flopperFileX_unrecognized {σ I} {g : Sat256} {s0 : State}
 theorem flopperFileBodyCoreBeg
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hwhat : fileWhat I = fileBegBytes)
@@ -124,19 +124,24 @@ theorem flopperFileBodyCoreBeg
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := fileBegPostState evm0 I
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
-  have hbody :
-      ExecTransitionBody config contract evm0 locals fileTransition.body
-        (.returned { contract := contract, locals := locals } evm1 none) := by
+  have hbodySplit :
+      (ExecTransitionBody config contract evm0 locals fileTransition.body
+        (.returned { contract := contract, locals := locals } evm1 none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evm0 locals
+        fileTransition.body .staticViolation) := by
     simpa [evm0, evm1, locals, data] using
-      (flopperFileBegSourceBody (σ := σ)
+      (flopperFileBegSourceBodySplit (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hwhat)
   obtain ⟨_, _, hdecoded⟩ := flopperFileX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
   obtain ⟨_, _, hswitch⟩ := flopperFileX_authorized (I := I) hauth hdecoded
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileBegBytes :=
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
-  have hret := flopperFileX_storeBegAuthorized hperm hmatch hswitch
-  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+  rcases flopperFileX_storeBegAuthorizedSplit hmatch hswitch with
+      ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
     (by simp [evm1, evm0, initState, fileBegPostState, storageStore_accountMap, data])
     (by
       simpa [fileTransition] using
@@ -146,7 +151,7 @@ theorem flopperFileBodyCoreBeg
 theorem flopperFileBodyCorePad
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hbeg : fileWhat I ≠ fileBegBytes)
@@ -164,11 +169,13 @@ theorem flopperFileBodyCorePad
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := filePadPostState evm0 I
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
-  have hbody :
-      ExecTransitionBody config contract evm0 locals fileTransition.body
-        (.returned { contract := contract, locals := locals } evm1 none) := by
+  have hbodySplit :
+      (ExecTransitionBody config contract evm0 locals fileTransition.body
+        (.returned { contract := contract, locals := locals } evm1 none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evm0 locals
+        fileTransition.body .staticViolation) := by
     simpa [evm0, evm1, locals, data] using
-      (flopperFilePadSourceBody (σ := σ)
+      (flopperFilePadSourceBodySplit (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hbeg hwhat)
   obtain ⟨_, _, hdecoded⟩ := flopperFileX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
@@ -177,8 +184,11 @@ theorem flopperFileBodyCorePad
     fileWhatWord_ne_of_bytes_ne (by omega) hbeg (by native_decide)
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord filePadBytes :=
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
-  have hret := flopperFileX_storePadAuthorized hperm hbegWord hmatch hswitch
-  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+  rcases flopperFileX_storePadAuthorizedSplit hbegWord hmatch hswitch with
+      ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
     (by simp [evm1, evm0, initState, filePadPostState, storageStore_accountMap, data])
     (by
       simpa [fileTransition] using
@@ -188,7 +198,7 @@ theorem flopperFileBodyCorePad
 theorem flopperFileBodyCoreTtl
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hbeg : fileWhat I ≠ fileBegBytes)
@@ -206,11 +216,13 @@ theorem flopperFileBodyCoreTtl
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := fileTtlPostState evm0 I
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
-  have hbody :
-      ExecTransitionBody config contract evm0 locals fileTransition.body
-        (.returned { contract := contract, locals := locals } evm1 none) := by
+  have hbodySplit :
+      (ExecTransitionBody config contract evm0 locals fileTransition.body
+        (.returned { contract := contract, locals := locals } evm1 none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evm0 locals
+        fileTransition.body .staticViolation) := by
     simpa [evm0, evm1, locals] using
-      (flopperFileTtlSourceBody (σ := σ)
+      (flopperFileTtlSourceBodySplit (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hbeg hpad hwhat)
   obtain ⟨_, _, hdecoded⟩ := flopperFileX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
@@ -221,8 +233,11 @@ theorem flopperFileBodyCoreTtl
     fileWhatWord_ne_of_bytes_ne (by omega) hpad (by native_decide)
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileTtlBytes :=
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
-  have hret := flopperFileX_storeTtlAuthorized hperm hbegWord hpadWord hmatch hswitch
-  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+  rcases flopperFileX_storeTtlAuthorizedSplit hbegWord hpadWord hmatch hswitch with
+      ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
     (by
       simp [evm1, evm0, initState, fileTtlPostState, fileTtlPostAccountMap,
         fileTtlStoredWord, fileTtlStoredWordMap, storageStore_accountMap,
@@ -235,7 +250,7 @@ theorem flopperFileBodyCoreTtl
 theorem flopperFileBodyCoreTau
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hbeg : fileWhat I ≠ fileBegBytes)
@@ -254,11 +269,13 @@ theorem flopperFileBodyCoreTau
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := fileTauPostState evm0 I
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
-  have hbody :
-      ExecTransitionBody config contract evm0 locals fileTransition.body
-        (.returned { contract := contract, locals := locals } evm1 none) := by
+  have hbodySplit :
+      (ExecTransitionBody config contract evm0 locals fileTransition.body
+        (.returned { contract := contract, locals := locals } evm1 none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evm0 locals
+        fileTransition.body .staticViolation) := by
     simpa [evm0, evm1, locals] using
-      (flopperFileTauSourceBody (σ := σ)
+      (flopperFileTauSourceBodySplit (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hbeg hpad httl hwhat)
   obtain ⟨_, _, hdecoded⟩ := flopperFileX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
@@ -271,9 +288,12 @@ theorem flopperFileBodyCoreTau
     fileWhatWord_ne_of_bytes_ne (by omega) httl (by native_decide)
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileTauBytes :=
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
-  have hret := flopperFileX_storeTauAuthorized hperm hbegWord hpadWord httlWord hmatch
-    hswitch
-  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+  rcases flopperFileX_storeTauAuthorizedSplit hbegWord hpadWord httlWord hmatch
+    hswitch with
+      ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
     (by
       simp [evm1, evm0, initState, fileTauPostState, fileTauPostAccountMap,
         fileTauStoredWord, fileTauStoredWordMap, storageStore_accountMap,
@@ -365,7 +385,6 @@ theorem flopperFileBodyCoreDecodeFailed_short
 theorem flopperFileBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 6)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -379,16 +398,16 @@ theorem flopperFileBodyCore {σ σ₀ A I} {g : UInt256}
   by_cases hsz68 : 68 ≤ I.calldata.size
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
     · by_cases hbeg : fileWhat I = fileBegBytes
-      · exact flopperFileBodyCoreBeg hcode hsize hperm hwv hsz68 hauth hbeg
+      · exact flopperFileBodyCoreBeg hcode hsize hwv hsz68 hauth hbeg
           hdispatch (flopperDecode_file_ok hsz68) hreach
       · by_cases hpad : fileWhat I = filePadBytes
-        · exact flopperFileBodyCorePad hcode hsize hperm hwv hsz68 hauth hbeg hpad
+        · exact flopperFileBodyCorePad hcode hsize hwv hsz68 hauth hbeg hpad
             hdispatch (flopperDecode_file_ok hsz68) hreach
         · by_cases httl : fileWhat I = fileTtlBytes
-          · exact flopperFileBodyCoreTtl hcode hsize hperm hwv hsz68 hauth hbeg hpad httl
+          · exact flopperFileBodyCoreTtl hcode hsize hwv hsz68 hauth hbeg hpad httl
               hdispatch (flopperDecode_file_ok hsz68) hreach
           · by_cases htau : fileWhat I = fileTauBytes
-            · exact flopperFileBodyCoreTau hcode hsize hperm hwv hsz68 hauth hbeg hpad
+            · exact flopperFileBodyCoreTau hcode hsize hwv hsz68 hauth hbeg hpad
                 httl htau hdispatch (flopperDecode_file_ok hsz68) hreach
             · exact flopperFileBodyCoreUnrecognized hcode hsize hwv hsz68 hauth hbeg hpad
                 httl htau hdispatch (flopperDecode_file_ok hsz68) hreach

@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.VyperERC20.TotalSupply
 import Examples.VyperERC20.Storage
 import Examples.ERC20.Common
@@ -32,18 +33,6 @@ theorem balanceOfOwnerWord_eq_readBytes (I : ExecutionEnv) :
       balanceOfOwnerWord I := by
   rfl
 
-theorem u256_shiftRight160_zero_of_lt (w : UInt256)
-    (h : w.toNat < EVM.addressModulus) :
-    UInt256.shiftRight w ⟨160⟩ = ⟨0⟩ := by
-  apply u256_inj
-  cases w with
-  | mk val =>
-    unfold UInt256.shiftRight
-    simp
-    change (val >>> 160).val = 0
-    rw [Fin.shiftRight_val, Nat.shiftRight_eq_div_pow]
-    apply Nat.div_eq_of_lt
-    simpa [EVM.addressModulus] using h
 
 theorem erc20Decode_balanceOf_ok {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size)
@@ -84,7 +73,7 @@ theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (balanceOfSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar (t := .int uint256Int)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
         (hbase := by simp [balanceOfStore, balanceOfRef, ERC20.balanceOfRef])
         (her := by
           simp [evalStorageRef, evalStorageRefStep, balanceOfRef, ERC20.balanceOfRef,
@@ -97,7 +86,7 @@ theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       rw [show erc20BalanceOfSlot
             (KeyValue.address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat)) =
           balanceOfSlot I from rfl]
-      rw [vyperERC20StorageLocLoad_uint256])
+      erw [storageLocLoad_uint256])
 
 def balanceOfDispatchMem : ByteArray :=
   vyperERC20Bytecode.write 805 ByteArray.empty 30 2

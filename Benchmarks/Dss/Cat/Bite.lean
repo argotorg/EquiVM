@@ -12,10 +12,9 @@ namespace Benchmarks.Dss.Cat
 theorem catBiteBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I :=
-  catBiteBodyImpl hcode hsize hperm hwv hsel
+  catBiteBodyImpl hcode hsize hwv hsel
 
 end Benchmarks.Dss.Cat

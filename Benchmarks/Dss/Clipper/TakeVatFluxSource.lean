@@ -279,35 +279,28 @@ theorem clipperTakeOweGtTabVatFluxCallSuccessTailBlock (v : ClipperImmutables)
       (clipperTakeSalesTabEVMWord evmRead I)
     let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice'
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
+      (Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
       evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
         [ .letDecl "owe" (some uint256) (.var "owe0"),
           clipperTakeOweAdjustmentStmt ] ++
         clipperTakePostOweFluxStmts)
       (.ok
-        (Frame.mk contract
-          (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0
+        (Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0
             slice' tabNew lotNew) (immStore v))
         evmVat) := by
   intro owe0 slice' tabNew lotNew
   let sliceFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v)
+    Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v)
   let oweFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v)
+    Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v)
   let adjustedFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsOweTabSlice evmLoc evmRead I false price slice owe0 owe0 slice') (immStore v)
+    Frame.mk contract (clipperTakeLocalsOweTabSlice evmLoc evmRead I false price slice owe0 owe0 slice') (immStore v)
   let postSubFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsLotAssigned evmLoc evmRead I false price slice owe0 owe0 slice'
+    Frame.mk contract (clipperTakeLocalsLotAssigned evmLoc evmRead I false price slice owe0 owe0 slice'
         tabNew lotNew) (immStore v)
   let fluxFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 slice'
+    Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 slice'
         tabNew lotNew) (immStore v)
   have hmulBlock :
       ExecBlock config sliceFrame evmRead

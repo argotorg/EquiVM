@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -5,7 +6,8 @@ import Solm.SolidityLayout
 # MakerDAO/Sky DSS GemJoin benchmark spec
 
 Faithful Solm benchmark scaffold for upstream `dss/src/join.sol` contract `GemJoin`.
-Events are omitted, matching the existing event-bearing DSS benchmarks.
+Events are omitted except `Join` and `Exit`: `join` and `exit` write no storage, so under a
+static call their log is the first forbidden operation. Every other event follows a storage write.
 -/
 
 open Solm ABI Ethereum
@@ -130,17 +132,17 @@ def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def bytes32Loc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 32, hbound := by decide, type := .bytes bytes32Width }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "vat", steps := [] }, _ => some (addrLoc ⟨1⟩)
-  | { base := "ilk", steps := [] }, _ => some (bytes32Loc ⟨2⟩)
-  | { base := "gem", steps := [] }, _ => some (addrLoc ⟨3⟩)
-  | { base := "dec", steps := [] }, _ => some (wordLoc ⟨4⟩)
-  | { base := "live", steps := [] }, _ => some (wordLoc ⟨5⟩)
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } => some (.leaf (wordLoc (wardsSlot usr)))
+  | { base := "vat", steps := [] } => some (.leaf (addrLoc ⟨1⟩))
+  | { base := "ilk", steps := [] } => some (.leaf (bytes32Loc ⟨2⟩))
+  | { base := "gem", steps := [] } => some (.leaf (addrLoc ⟨3⟩))
+  | { base := "dec", steps := [] } => some (.leaf (wordLoc ⟨4⟩))
+  | { base := "live", steps := [] } => some (.leaf (wordLoc ⟨5⟩))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -237,7 +239,8 @@ def joinTransition : TransitionDecl :=
         [.storage ilkRef, .var "usr", asInt256 (.var "wad")] "slipRet" ++
       checkedExternalCallStmts (.storage gemRef) "transferFrom" (.intLit 0)
         [sender, thisAddr, .var "wad"] "transferFromOk" ++
-      [ .require (.var "transferFromOk") ] }
+      [ .require (.var "transferFromOk"),
+        .emit "Join" [.var "usr", .var "wad"] ] }
 
 def exitTransition : TransitionDecl :=
   { name := "exit"
@@ -250,7 +253,8 @@ def exitTransition : TransitionDecl :=
         [.storage ilkRef, sender, asInt256 (.unary .neg (asInt256 (.var "wad")))] "slipRet" ++
       checkedExternalCallStmts (.storage gemRef) "transfer" (.intLit 0)
         [.var "usr", .var "wad"] "transferOk" ++
-      [ .require (.var "transferOk") ] }
+      [ .require (.var "transferOk"),
+        .emit "Exit" [.var "usr", .var "wad"] ] }
 
 def transitions : List TransitionDecl :=
   [cageTransition, decTransition, denyTransition, exitTransition, gemTransition, ilkTransition,
@@ -264,7 +268,7 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := externalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }

@@ -86,7 +86,7 @@ theorem initializerGuardOk {I g s0 R mem aw rdata σ k C} (i : InitializerSite)
     raw push2 ⟨256⟩ h3 (by evm_ov), raw swap1 h4 (by evm_ov), raw div h5 (by evm_ov),
     raw push1 ⟨255⟩ h6 (by evm_ov), raw and h7 (by evm_ov) ]
   change RD _ _ _ _ _
-    (UInt256.land ⟨255⟩ (UInt256.div (storedWord σ I ⟨0⟩) ⟨256⟩) :: R)
+    (UInt256.land ⟨255⟩ (UInt256.div (solcSlotWord σ I ⟨0⟩) ⟨256⟩) :: R)
     _ _ _ _ _ _ at rdTest
   rw [u256_land_comm ⟨255⟩] at rdTest
   by_cases hi : initializingWord σ I = ⟨0⟩
@@ -99,7 +99,7 @@ theorem initializerGuardOk {I g s0 R mem aw rdata σ k C} (i : InitializerSite)
     have rdMerge := evm_run rdSecondWord with [
       raw push1 ⟨255⟩ h14 (by evm_ov), raw and h15 (by evm_ov),
       raw iszero h16 (by evm_ov) ]
-    change RD _ _ _ _ _ (UInt256.isZero (UInt256.land ⟨255⟩ (storedWord σ I ⟨0⟩)) :: R)
+    change RD _ _ _ _ _ (UInt256.isZero (UInt256.land ⟨255⟩ (solcSlotWord σ I ⟨0⟩)) :: R)
       _ _ _ _ _ _ at rdMerge
     rw [u256_land_comm ⟨255⟩] at rdMerge
     have ht : UInt256.isZero (initializedWord σ I) ≠ ⟨0⟩ := by rw [hz]; decide
@@ -122,7 +122,7 @@ theorem initializerGuardReady {I g s0 R mem aw rdata σ k C} (i : InitializerSit
   rcases hr with hi | ha
   · exact Or.inl hi
   · right
-    rw [initializedWord, storedWord_absent ha]
+    rw [initializedWord, solcSlotWord_absent ha]
     decide
 
 end Auction

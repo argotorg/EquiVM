@@ -80,55 +80,55 @@ theorem flipperNoSelectorMatches {I : ExecutionEnv}
 theorem flipperCorrect :
     runtimeRefinement config flipperBytecode contract := by
   refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize hperm
+  intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbeg : selIs I (flipperSelBytes 0)
-    · exact flipperBegBodyCore hcode hsize hperm hwv hbeg
+    · exact flipperBegBodyCore hcode hsize hwv hbeg
     · by_cases hbids : selIs I (flipperSelBytes 1)
-      · exact flipperBidsBodyCore hcode hsize hperm hwv hbids
+      · exact flipperBidsBodyCore hcode hsize hwv hbids
       · by_cases hcat : selIs I (flipperSelBytes 2)
-        · exact flipperCatBodyCore hcode hsize hperm hwv hcat
+        · exact flipperCatBodyCore hcode hsize hwv hcat
         · by_cases hdeal : selIs I (flipperSelBytes 3)
-          · exact flipperDealBodyCore hcode hsize hperm hwv hdeal
+          · exact flipperDealBodyCore hcode hsize hwv hdeal
           · by_cases hdent : selIs I (flipperSelBytes 4)
-            · exact flipperDentBodyCore hcode hsize hperm hwv hdent
+            · exact flipperDentBodyCore hcode hsize hwv hdent
             · by_cases hdeny : selIs I (flipperSelBytes 5)
-              · exact flipperDenyBodyCore hcode hsize hperm hwv hdeny
+              · exact flipperDenyBodyCore hcode hsize hwv hdeny
               · by_cases hfileAddress : selIs I (flipperSelBytes 6)
-                · exact flipperFileAddressBodyCore hcode hsize hperm hwv hfileAddress
+                · exact flipperFileAddressBodyCore hcode hsize hwv hfileAddress
 
                 · by_cases hfileUint : selIs I (flipperSelBytes 7)
-                  · exact flipperFileUintBodyCore hcode hsize hperm hwv hfileUint
+                  · exact flipperFileUintBodyCore hcode hsize hwv hfileUint
 
                   · by_cases hilk : selIs I (flipperSelBytes 8)
-                    · exact flipperIlkBodyCore hcode hsize hperm hwv hilk
+                    · exact flipperIlkBodyCore hcode hsize hwv hilk
                     · by_cases hkick : selIs I (flipperSelBytes 9)
-                      · exact flipperKickBodyCore hcode hsize hperm hwv hkick
+                      · exact flipperKickBodyCore hcode hsize hwv hkick
                       · by_cases hkicks : selIs I (flipperSelBytes 10)
-                        · exact flipperKicksBodyCore hcode hsize hperm hwv hkicks
+                        · exact flipperKicksBodyCore hcode hsize hwv hkicks
                         · by_cases hrely : selIs I (flipperSelBytes 11)
-                          · exact flipperRelyBodyCore hcode hsize hperm hwv hrely
+                          · exact flipperRelyBodyCore hcode hsize hwv hrely
                           · by_cases htau : selIs I (flipperSelBytes 12)
-                            · exact flipperTauBodyCore hcode hsize hperm hwv htau
+                            · exact flipperTauBodyCore hcode hsize hwv htau
                             · by_cases htend : selIs I (flipperSelBytes 13)
-                              · exact flipperTendBodyCore hcode hsize hperm hwv htend
+                              · exact flipperTendBodyCore hcode hsize hwv htend
 
                               · by_cases htick : selIs I (flipperSelBytes 14)
-                                · exact flipperTickBodyCore hcode hsize hperm hwv htick
+                                · exact flipperTickBodyCore hcode hsize hwv htick
 
                                 · by_cases httl : selIs I (flipperSelBytes 15)
-                                  · exact flipperTtlBodyCore hcode hsize hperm hwv httl
+                                  · exact flipperTtlBodyCore hcode hsize hwv httl
 
                                   · by_cases hvat : selIs I (flipperSelBytes 16)
-                                    · exact flipperVatBodyCore hcode hsize hperm hwv hvat
+                                    · exact flipperVatBodyCore hcode hsize hwv hvat
 
                                     · by_cases hwards : selIs I (flipperSelBytes 17)
-                                      · exact flipperWardsBodyCore hcode hsize hperm hwv
+                                      · exact flipperWardsBodyCore hcode hsize hwv
                                           hwards
                                       · by_cases hyank : selIs I (flipperSelBytes 18)
-                                        · exact flipperYankBodyCore hcode hsize hperm hwv
+                                        · exact flipperYankBodyCore hcode hsize hwv
                                             hyank
-                                        · exact flipperNoDispatch hcode hsize hperm hwv
+                                        · exact flipperNoDispatch hcode hsize hwv
                                             (flipperNoSelectorMatches hbeg hbids hcat
                                               hdeal hdent hdeny hfileAddress hfileUint
                                               hilk hkick hkicks hrely htau htend htick httl

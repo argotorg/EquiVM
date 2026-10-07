@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.BlindAuction.Bid
 import Examples.BlindAuction.Reveal
 import Examples.BlindAuction.Withdraw
@@ -10,6 +11,7 @@ import Examples.BlindAuction.RevealEnd
 import Examples.BlindAuction.HighestBidder
 import Examples.BlindAuction.HighestBid
 import Reasoning.Initcode
+import Reasoning.SolmArithmetic
 import Solm.Refine
 
 /-!
@@ -32,10 +34,10 @@ namespace BlindAuction
 /-- The deployed BlindAuction runtime bytecode refines the Solm specification. -/
 theorem blindAuctionCorrect :
     runtimeRefinement blindAuctionConfig blindAuctionBytecode blindAuctionContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   · by_cases h0 : selIs I ⟨#[0x95, 0x7b, 0xb1, 0xe0]⟩
-    · exact blindAuctionBidBodyCore hcode hsize hperm h0
+    · exact blindAuctionBidBodyCore hcode hsize h0
         (blindAuctionReachHighBody 3 (by omega) ⟨449⟩ hcode hsz hsize
           (blindAuctionPivotNotTaken 3 (by omega) hsz
             (by simpa [selIs, blindAuctionHighSelBytes] using h0))
@@ -45,7 +47,7 @@ theorem blindAuctionCorrect :
             (by simpa [selIs, blindAuctionHighSelBytes] using h0)).2
           (by jump_dest) (by decide))
     · by_cases h1 : selIs I ⟨#[0x90, 0x0f, 0x08, 0x0a]⟩
-      · exact blindAuctionRevealBodyCore hcode hsize hperm h1
+      · exact blindAuctionRevealBodyCore hcode hsize h1
           (blindAuctionReachHighBody 1 (by omega) ⟨387⟩ hcode hsz hsize
             (blindAuctionPivotNotTaken 1 (by omega) hsz
               (by simpa [selIs, blindAuctionHighSelBytes] using h1))
@@ -55,7 +57,7 @@ theorem blindAuctionCorrect :
               (by simpa [selIs, blindAuctionHighSelBytes] using h1)).2
             (by jump_dest) (by decide))
       · by_cases h2 : selIs I ⟨#[0x3c, 0xcf, 0xd6, 0x0b]⟩
-        · exact blindAuctionWithdrawBodyCore hcode hsize hperm h2
+        · exact blindAuctionWithdrawBodyCore hcode hsize h2
             (blindAuctionReachLowBody 4 (by omega) ⟨332⟩ hcode hsz hsize
               (blindAuctionPivotTaken 4 (by omega) hsz
                 (by simpa [selIs, blindAuctionLowSelBytes] using h2))
@@ -65,7 +67,7 @@ theorem blindAuctionCorrect :
                 (by simpa [selIs, blindAuctionLowSelBytes] using h2)).2
               (by jump_dest) (by decide))
         · by_cases h3 : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩
-          · exact blindAuctionAuctionEndBodyCore hcode hsize hperm h3
+          · exact blindAuctionAuctionEndBodyCore hcode hsize h3
               (blindAuctionReachLowBody 2 (by omega) ⟨256⟩ hcode hsz hsize
                 (blindAuctionPivotTaken 2 (by omega) hsz
                   (by simpa [selIs, blindAuctionLowSelBytes] using h3))
@@ -75,7 +77,7 @@ theorem blindAuctionCorrect :
                   (by simpa [selIs, blindAuctionLowSelBytes] using h3)).2
                 (by jump_dest) (by decide))
           · by_cases h4 : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩
-            · exact blindAuctionBeneficiaryBodyCore hcode hsize hperm h4
+            · exact blindAuctionBeneficiaryBodyCore hcode hsize h4
                 (blindAuctionReachLowBody 3 (by omega) ⟨278⟩ hcode hsz hsize
                   (blindAuctionPivotTaken 3 (by omega) hsz
                     (by simpa [selIs, blindAuctionLowSelBytes] using h4))
@@ -85,7 +87,7 @@ theorem blindAuctionCorrect :
                     (by simpa [selIs, blindAuctionLowSelBytes] using h4)).2
                   (by jump_dest) (by decide))
             · by_cases h5 : selIs I ⟨#[0x42, 0x3b, 0x21, 0x7f]⟩
-              · exact blindAuctionBiddingEndBodyCore hcode hsize hperm h5
+              · exact blindAuctionBiddingEndBodyCore hcode hsize h5
                   (blindAuctionReachHighBody 0 (by omega) ⟨352⟩ hcode hsz hsize
                     (blindAuctionPivotNotTaken 0 (by omega) hsz
                       (by simpa [selIs, blindAuctionHighSelBytes] using h5))
@@ -95,7 +97,7 @@ theorem blindAuctionCorrect :
                       (by simpa [selIs, blindAuctionHighSelBytes] using h5)).2
                     (by jump_dest) (by decide))
               · by_cases h6 : selIs I ⟨#[0xa6, 0xe6, 0x64, 0x77]⟩
-                · exact blindAuctionRevealEndBodyCore hcode hsize hperm h6
+                · exact blindAuctionRevealEndBodyCore hcode hsize h6
                     (blindAuctionReachHighBody 4 (by omega) ⟨468⟩ hcode hsz hsize
                       (blindAuctionPivotNotTaken 4 (by omega) hsz
                         (by simpa [selIs, blindAuctionHighSelBytes] using h6))
@@ -105,7 +107,7 @@ theorem blindAuctionCorrect :
                         (by simpa [selIs, blindAuctionHighSelBytes] using h6)).2
                       (by jump_dest) (by decide))
                 · by_cases h7 : selIs I ⟨#[0x12, 0xfa, 0x6f, 0xeb]⟩
-                  · exact blindAuctionEndedBodyCore hcode hsize hperm h7
+                  · exact blindAuctionEndedBodyCore hcode hsize h7
                       (blindAuctionReachLowBody 1 (by omega) ⟨215⟩ hcode hsz hsize
                         (blindAuctionPivotTaken 1 (by omega) hsz
                           (by simpa [selIs, blindAuctionLowSelBytes] using h7))
@@ -115,7 +117,7 @@ theorem blindAuctionCorrect :
                           (by simpa [selIs, blindAuctionLowSelBytes] using h7)).2
                         (by jump_dest) (by decide))
                   · by_cases h8 : selIs I ⟨#[0x91, 0xf9, 0x01, 0x57]⟩
-                    · exact blindAuctionHighestBidderBodyCore hcode hsize hperm h8
+                    · exact blindAuctionHighestBidderBodyCore hcode hsize h8
                         (blindAuctionReachHighBody 2 (by omega) ⟨418⟩ hcode hsz hsize
                           (blindAuctionPivotNotTaken 2 (by omega) hsz
                             (by simpa [selIs, blindAuctionHighSelBytes] using h8))
@@ -125,7 +127,7 @@ theorem blindAuctionCorrect :
                             (by simpa [selIs, blindAuctionHighSelBytes] using h8)).2
                           (by jump_dest) (by decide))
                     · by_cases h9 : selIs I ⟨#[0xd5, 0x7b, 0xde, 0x79]⟩
-                      · exact blindAuctionHighestBidBodyCore hcode hsize hperm h9
+                      · exact blindAuctionHighestBidBodyCore hcode hsize h9
                           (blindAuctionReachHighBody 5 (by omega) ⟨489⟩ hcode hsz hsize
                             (blindAuctionPivotNotTaken 5 (by omega) hsz
                               (by simpa [selIs, blindAuctionHighSelBytes] using h9))
@@ -135,7 +137,7 @@ theorem blindAuctionCorrect :
                               (by simpa [selIs, blindAuctionHighSelBytes] using h9)).2
                             (by jump_dest) (by decide))
                       · by_cases h10 : selIs I ⟨#[0x01, 0x49, 0x5c, 0x1c]⟩
-                        · exact blindAuctionBidsBodyCore hcode hsize hperm h10
+                        · exact blindAuctionBidsBodyCore hcode hsize h10
                             (blindAuctionReachLowBody 0 (by omega) ⟨158⟩ hcode hsz hsize
                               (blindAuctionPivotTaken 0 (by omega) hsz
                                 (by simpa [selIs, blindAuctionLowSelBytes] using h10))
@@ -144,7 +146,7 @@ theorem blindAuctionCorrect :
                               (blindAuctionLowMatches 0 (by omega) hsz
                                 (by simpa [selIs, blindAuctionLowSelBytes] using h10)).2
                               (by jump_dest) (by decide))
-                        · refine blindAuctionNoDispatch hcode hsize hperm ?_
+                        · refine blindAuctionNoDispatch hcode hsize ?_
                           intro i hi
                           interval_cases i
                           · simpa [selIs, blindAuctionSelBytes] using h0
@@ -158,7 +160,7 @@ theorem blindAuctionCorrect :
                           · simpa [selIs, blindAuctionSelBytes] using h8
                           · simpa [selIs, blindAuctionSelBytes] using h9
                           · simpa [selIs, blindAuctionSelBytes] using h10
-  · exact blindAuctionShortRevert hcode hsize hperm (by omega)
+  · exact blindAuctionShortRevert hcode hsize (by omega)
 
 /-! ## Constructor side -/
 
@@ -428,16 +430,6 @@ theorem blindAuctionBeneficiaryArg_extract (biddingTime revealTime : UInt256)
     rw [word_toBytesBE_toByteArray_size]]
   exact byteArray_extract_self _
 
-theorem blindAuction_write0_size_ge_32 (src base : ByteArray) (srcAddr : ℕ)
-    (hsrc : srcAddr + 32 ≤ src.size) :
-    32 ≤ (src.write srcAddr base 0 32).size := by
-  show 32 ≤ (src.write srcAddr base 0 32).data.size
-  rw [write0_data_from src base srcAddr 32 (by decide) hsrc, Array.size_append]
-  have hpart : (src.data.extract srcAddr (srcAddr + 32)).size = 32 := by
-    rw [Array.size_extract]
-    have : src.data.size = src.size := rfl
-    omega
-  omega
 
 theorem blindAuctionBeneficiaryMem_read (biddingTime revealTime : UInt256)
     (beneficiaryAddress : AccountAddress) :
@@ -483,7 +475,7 @@ theorem blindAuctionBeneficiaryMem_mload (biddingTime revealTime : UInt256)
     (mem := blindAuctionBeneficiaryMem biddingTime revealTime beneficiaryAddress) (off := ⟨0⟩) (v := EVM.word beneficiaryAddress)
     (by
       unfold blindAuctionBeneficiaryMem
-      have hsz := blindAuction_write0_size_ge_32
+      have hsz := write0_size_ge_32
           (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) ByteArray.empty 2347
         (by simp [blindAuctionCtorCode_size])
       have hz : (⟨0⟩ : UInt256).toNat = 0 := by decide
@@ -502,7 +494,7 @@ theorem blindAuctionBiddingMem_mload (biddingTime revealTime : UInt256)
     (mem := blindAuctionBiddingMem biddingTime revealTime beneficiaryAddress) (off := ⟨0⟩) (v := biddingTime)
     (by
       unfold blindAuctionBiddingMem
-      have hsz := blindAuction_write0_size_ge_32
+      have hsz := write0_size_ge_32
         (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress)
           (blindAuctionBeneficiaryMem biddingTime revealTime beneficiaryAddress) 2283
         (by simp [blindAuctionCtorCode_size])
@@ -522,7 +514,7 @@ theorem blindAuctionRevealMem_mload (biddingTime revealTime : UInt256)
     (mem := blindAuctionRevealMem biddingTime revealTime beneficiaryAddress) (off := ⟨0⟩) (v := revealTime)
     (by
       unfold blindAuctionRevealMem
-      have hsz := blindAuction_write0_size_ge_32
+      have hsz := write0_size_ge_32
         (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress)
           (blindAuctionBiddingMem biddingTime revealTime beneficiaryAddress) 2315
         (by simp [blindAuctionCtorCode_size])
@@ -531,15 +523,6 @@ theorem blindAuctionRevealMem_mload (biddingTime revealTime : UInt256)
       omega)
     (blindAuctionRevealMem_read biddingTime revealTime beneficiaryAddress)
 
-theorem blindAuctionCtorCheckedAddOverflowLt (base addend : UInt256)
-    (hover : UInt256.size ≤ base.toNat + addend.toNat) :
-    UInt256.lt (addend + base) base = ⟨1⟩ :=
-  constructorCheckedAddOverflowLt base addend hover
-
-theorem blindAuctionCtorCheckedAddNoOverflowLt (base addend : UInt256)
-    (hno : ¬ UInt256.size ≤ base.toNat + addend.toNat) :
-    UInt256.lt (addend + base) base = ⟨0⟩ :=
-  constructorCheckedAddNoOverflowLt base addend hno
 
 def blindAuctionReturnMem (biddingTime revealTime : UInt256)
     (beneficiaryAddress : AccountAddress) : ByteArray :=
@@ -678,7 +661,7 @@ theorem blindAuctionInitcodeBiddingOverflowRevert
       (blindAuctionBiddingMem_mload biddingTime revealTime beneficiaryAddress)
       (by decide) (by evm_ov),
     timestamp, dup1, dup3, add, lt]
-  have hlt := blindAuctionCtorCheckedAddOverflowLt (UInt256.ofNat I.header.timestamp)
+  have hlt := constructorCheckedAddOverflowLt (UInt256.ofNat I.header.timestamp)
     biddingTime hover
   have rdBeforeJump := rdBeforeLt
   rw [hlt] at rdBeforeJump
@@ -759,7 +742,7 @@ theorem blindAuctionInitcodeRevealOverflowRevert
       (blindAuctionBiddingMem_mload biddingTime revealTime beneficiaryAddress)
       (by decide) (by evm_ov),
     timestamp, dup1, dup3, add, lt]
-  have hbidLt := blindAuctionCtorCheckedAddNoOverflowLt (UInt256.ofNat I.header.timestamp)
+  have hbidLt := constructorCheckedAddNoOverflowLt (UInt256.ofNat I.header.timestamp)
     biddingTime hnoBid
   have rdBeforeBidJump := rdBeforeBidLt
   rw [hbidLt] at rdBeforeBidJump
@@ -808,7 +791,7 @@ theorem blindAuctionInitcodeRevealOverflowRevert
     simpa [biddingEndWord, beneficiaryStoreWord, oldBeneficiarySlot,
       blindAuctionCtorBiddingEndWord, blindAuctionCtorAfterBiddingEndMap,
       blindAuctionCtorBeneficiaryStoreWord, blindAuctionCtorOldBeneficiarySlot] using hoverReveal
-  have hrevLt := blindAuctionCtorCheckedAddOverflowLt
+  have hrevLt := constructorCheckedAddOverflowLt
     biddingEndWord revealTime hoverReveal'
   have rdBeforeRevealJump := rdBeforeRevealLt
   rw [hrevLt] at rdBeforeRevealJump
@@ -898,7 +881,7 @@ theorem blindAuctionInitcodeSuccess
       (blindAuctionBiddingMem_mload biddingTime revealTime beneficiaryAddress)
       (by decide) (by evm_ov),
     timestamp, dup1, dup3, add, lt]
-  have hbidLt := blindAuctionCtorCheckedAddNoOverflowLt (UInt256.ofNat I.header.timestamp)
+  have hbidLt := constructorCheckedAddNoOverflowLt (UInt256.ofNat I.header.timestamp)
     biddingTime hnoBid
   have rdBeforeBidJump := rdBeforeBidLt
   rw [hbidLt] at rdBeforeBidJump
@@ -947,7 +930,7 @@ theorem blindAuctionInitcodeSuccess
     simpa [biddingEndWord, beneficiaryStoreWord, oldBeneficiarySlot,
       blindAuctionCtorBiddingEndWord, blindAuctionCtorAfterBiddingEndMap,
       blindAuctionCtorBeneficiaryStoreWord, blindAuctionCtorOldBeneficiarySlot] using hnoReveal
-  have hrevLt := blindAuctionCtorCheckedAddNoOverflowLt
+  have hrevLt := constructorCheckedAddNoOverflowLt
     biddingEndWord revealTime hnoReveal'
   have rdBeforeRevealJump := rdBeforeRevealLt
   rw [hrevLt] at rdBeforeRevealJump
@@ -990,34 +973,6 @@ def blindAuctionCtorLocals (biddingTime revealTime : Int)
     (List.zip (blindAuctionContract.ctor.params.map Param.name)
       [.int biddingTime, .int revealTime, .address beneficiaryAddress])
 
-theorem blindAuctionBeneficiaryWord_toNat (beneficiaryAddress : AccountAddress) :
-    (EVM.word beneficiaryAddress).toNat = beneficiaryAddress.val := by
-  exact ulit_toNat' _ (lt_of_lt_of_le beneficiaryAddress.isLt
-    (show AccountAddress.size ≤ UInt256.size from by decide))
-
-theorem blindAuctionBeneficiary_ofNat (beneficiaryAddress : AccountAddress) :
-    AccountAddress.ofNat (EVM.word beneficiaryAddress).toNat = beneficiaryAddress := by
-  apply Fin.ext
-  unfold AccountAddress.ofNat
-  rw [blindAuctionBeneficiaryWord_toNat, Fin.val_ofNat]
-  exact Nat.mod_eq_of_lt beneficiaryAddress.isLt
-
-theorem blindAuctionBeneficiaryWord_canonical (beneficiaryAddress : AccountAddress) :
-    (EVM.word beneficiaryAddress).toNat < EVM.addressModulus := by
-  rw [blindAuctionBeneficiaryWord_toNat]
-  simp [EVM.addressModulus, EVM.twoPow, AccountAddress.size]
-
-theorem blindAuctionBiddingWord_toNat (biddingTime : Int)
-    (h0 : 0 ≤ biddingTime)
-    (hlt : biddingTime < Int.ofNat (EVM.twoPow 256)) :
-    (EVM.word biddingTime.toNat).toNat = biddingTime.toNat :=
-  constructorUInt256Word_toNat biddingTime h0 hlt
-
-theorem blindAuctionRevealWord_toNat (revealTime : Int)
-    (h0 : 0 ≤ revealTime)
-    (hlt : revealTime < Int.ofNat (EVM.twoPow 256)) :
-    (EVM.word revealTime.toNat).toNat = revealTime.toNat :=
-  constructorUInt256Word_toNat revealTime h0 hlt
 
 theorem blindAuctionCtorLocals_get_biddingTime (biddingTime revealTime : Int)
     (beneficiaryAddress : AccountAddress) :
@@ -1070,21 +1025,6 @@ theorem blindAuctionCtorLocals_get_beneficiaryAddress (biddingTime revealTime : 
         "beneficiaryAddress" (Value.address beneficiaryAddress)) from rfl]
   rw [store_get_self]
 
-theorem blindAuctionCtorBiddingEndWord_eq (evm : EVM.State) (biddingTime : Int)
-    (h0 : 0 ≤ biddingTime)
-    (hlt : biddingTime < Int.ofNat (EVM.twoPow 256))
-    (hno : ¬ UInt256.size ≤
-      (UInt256.ofNat evm.executionEnv.header.timestamp).toNat +
-        (EVM.word biddingTime.toNat).toNat) :
-    EVM.word ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat) =
-      UInt256.ofNat evm.executionEnv.header.timestamp + EVM.word biddingTime.toNat :=
-  constructorCheckedAddIntWordBaseFirst_eq
-    (UInt256.ofNat evm.executionEnv.header.timestamp) biddingTime h0 hlt hno
-
-theorem blindAuctionCtorCheckedAddWord_eq (base addend : UInt256)
-    (hno : ¬ UInt256.size ≤ base.toNat + addend.toNat) :
-    EVM.word (base.toNat + addend.toNat) = addend + base :=
-  constructorCheckedAddWord_eq base addend hno
 
 def blindAuctionCtorAfterBeneficiaryState
     (evm : EVM.State) (beneficiaryAddress : AccountAddress) : EVM.State :=
@@ -1138,7 +1078,7 @@ theorem blindAuctionCtorAssignBeneficiary (evm : EVM.State) (biddingTime revealT
         .ok ({ contract := blindAuctionContract,
                locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress },
              blindAuctionCtorAfterBeneficiaryState evm beneficiaryAddress) := by
-  apply assignStorageRef_storage_scalar_value (ty := addrSt)
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := addrSt)
       (hbase := by simp [blindAuctionCtorLocals, beneficiaryRef, blindAuctionContract,
         constructorDecl])
       (her := by
@@ -1148,10 +1088,9 @@ theorem blindAuctionCtorAssignBeneficiary (evm : EVM.State) (biddingTime revealT
           EvaledStorageRef) = some addrSt
         decide)
       (hloc := blindAuctionConfig_storage_beneficiary)
-      (hscalar := by trivial)
-  simpa [blindAuctionCtorAfterBeneficiaryState, blindAuctionBeneficiary_ofNat] using
-    blindAuctionStorageLocStore_address_offset0 evm ⟨0⟩ (EVM.word beneficiaryAddress)
-      (blindAuctionBeneficiaryWord_canonical beneficiaryAddress)
+  simpa [blindAuctionCtorAfterBeneficiaryState, accountAddress_of_addressWord_toNat] using
+    storageLocStore_address_offset0 evm ⟨0⟩ (EVM.word beneficiaryAddress)
+      (addressWord_canonical_of_address beneficiaryAddress)
 
 theorem blindAuctionCtorBiddingEndExprReverts
     (evm : EVM.State) (biddingTime revealTime : Int) (beneficiaryAddress : AccountAddress)
@@ -1164,7 +1103,7 @@ theorem blindAuctionCtorBiddingEndExprReverts
       { contract := blindAuctionContract,
         locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
       evm (u256 (.binary .add now (.var "biddingTime"))) = .revert := by
-  have hword := blindAuctionBiddingWord_toNat biddingTime h0 hlt
+  have hword := uint256Word_of_nonneg_int_toNat biddingTime h0 hlt
   have hge :
       Int.ofNat ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat)
         ≥ (2 : Int) ^ 256 := by
@@ -1199,7 +1138,7 @@ theorem blindAuctionCtorBiddingEndExprOK
       evm (u256 (.binary .add now (.var "biddingTime"))) =
         .ok (.int (Int.ofNat
           (blindAuctionCtorBiddingEndSolmWord evm biddingTime).toNat)) := by
-  have hword := blindAuctionBiddingWord_toNat biddingTime h0 hlt
+  have hword := uint256Word_of_nonneg_int_toNat biddingTime h0 hlt
   have hsumlt :
       (UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat <
         UInt256.size := by
@@ -1249,7 +1188,7 @@ theorem blindAuctionCtorAssignBiddingEnd (evm : EVM.State) (biddingTime revealTi
                locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress },
              Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨1⟩
                (blindAuctionCtorBiddingEndSolmWord evm biddingTime)) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (hbase := by
         unfold blindAuctionCtorLocals
         simp only [blindAuctionContract, constructorDecl, List.map_cons, List.map_nil,
@@ -1268,7 +1207,7 @@ theorem blindAuctionCtorAssignBiddingEnd (evm : EVM.State) (biddingTime revealTi
       (hty := by
         simp [storageTypeAt?, blindAuctionContract, storageDecls, uint256St])
       (hloc := blindAuctionConfig_storage_biddingEnd)
-  exact blindAuctionStorageLocStore_uint256 evm ⟨1⟩
+  exact storageLocStore_uint256 evm ⟨1⟩
     (blindAuctionCtorBiddingEndSolmWord evm biddingTime)
 
 theorem blindAuctionCtorRevealEndExprReverts
@@ -1282,7 +1221,7 @@ theorem blindAuctionCtorRevealEndExprReverts
       { contract := blindAuctionContract,
         locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
       evm (u256 (.binary .add (.storage biddingEndRef) (.var "revealTime"))) = .revert := by
-  have hword := blindAuctionRevealWord_toNat revealTime h0 hlt
+  have hword := uint256Word_of_nonneg_int_toNat' revealTime h0 hlt
   have hstorage :
       evalExpr? blindAuctionConfig
         { contract := blindAuctionContract,
@@ -1299,11 +1238,11 @@ theorem blindAuctionCtorRevealEndExprReverts
         ({ base := "biddingEnd", steps := [] } : EvaledStorageRef) =
         some uint256St := by
       decide
-    rw [evalExpr_storage_scalar (t := .int uint256Int)
+    rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
       (hbase := by simp [blindAuctionCtorLocals, biddingEndRef, blindAuctionContract,
         constructorDecl])
       (her := her) (hty := hty) (hloc := blindAuctionConfig_storage_biddingEnd)]
-    rw [blindAuctionStorageLocLoad_uint256]
+    erw [storageLocLoad_uint256]
   have hge :
       Int.ofNat ((Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat +
           revealTime.toNat) ≥ (2 : Int) ^ 256 := by
@@ -1342,7 +1281,7 @@ theorem blindAuctionCtorRevealEndExprOK
         .ok (.int (Int.ofNat
           (EVM.word ((Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat +
             revealTime.toNat)).toNat)) := by
-  have hword := blindAuctionRevealWord_toNat revealTime h0 hlt
+  have hword := uint256Word_of_nonneg_int_toNat' revealTime h0 hlt
   have hstorage :
       evalExpr? blindAuctionConfig
         { contract := blindAuctionContract,
@@ -1359,11 +1298,11 @@ theorem blindAuctionCtorRevealEndExprOK
         ({ base := "biddingEnd", steps := [] } : EvaledStorageRef) =
         some uint256St := by
       decide
-    rw [evalExpr_storage_scalar (t := .int uint256Int)
+    rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
       (hbase := by simp [blindAuctionCtorLocals, biddingEndRef, blindAuctionContract,
         constructorDecl])
       (her := her) (hty := hty) (hloc := blindAuctionConfig_storage_biddingEnd)]
-    rw [blindAuctionStorageLocLoad_uint256]
+    erw [storageLocLoad_uint256]
   have hsumlt :
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat + revealTime.toNat <
         UInt256.size := by
@@ -1409,7 +1348,7 @@ theorem blindAuctionCtorAssignRevealEnd (evm : EVM.State) (biddingTime revealTim
         .ok ({ contract := blindAuctionContract,
                locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress },
              Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨2⟩ val) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (hbase := by
         unfold blindAuctionCtorLocals
         simp only [blindAuctionContract, constructorDecl, List.map_cons, List.map_nil,
@@ -1428,7 +1367,7 @@ theorem blindAuctionCtorAssignRevealEnd (evm : EVM.State) (biddingTime revealTim
       (hty := by
         simp [storageTypeAt?, blindAuctionContract, storageDecls, uint256St])
       (hloc := blindAuctionConfig_storage_revealEnd)
-  exact blindAuctionStorageLocStore_uint256 evm ⟨2⟩ val
+  exact storageLocStore_uint256 evm ⟨2⟩ val
 
 theorem blindAuctionSolmCtorExecReverts_nonpayable
     {σ : AccountMap}
@@ -1749,7 +1688,7 @@ theorem blindAuctionCtorRevealBaseWord_equiv
     simp [beneficiaryStoreWordEvm, beneficiaryStoreWordSolm, oldSlotEvm, oldSlotSolm, hOldSlot]
   have hBiddingEndWord : biddingEndWordEvm = biddingEndWordSolm := by
     simpa [biddingEndWordEvm, biddingEndWordSolm, blindAuctionCtorBiddingEndSolmWord,
-      initState] using (blindAuctionCtorBiddingEndWord_eq
+      initState] using (timestamp_add_duration_word_eq_left
       (initState σ σ₀
         (Sat256.ofUInt256 g) A I)
       biddingTime h0Bid hltBid (by simpa [initState] using hnoBid)).symm
@@ -1889,7 +1828,7 @@ theorem blindAuctionConstructorCorrect :
                 oldSlotSolm, hOldSlot]
             have hBiddingEndWord : biddingEndWordEvm = biddingEndWordSolm := by
               simpa [biddingEndWordEvm, biddingEndWordSolm, blindAuctionCtorBiddingEndSolmWord,
-                bidWord, initState] using (blindAuctionCtorBiddingEndWord_eq
+                bidWord, initState] using (timestamp_add_duration_word_eq_left
                 (initState σ σ₀
                   (Sat256.ofUInt256 g) A I)
                 biddingTime h0Bid hltBid (by simpa [initState, bidWord] using hoverBid)).symm
@@ -1897,8 +1836,8 @@ theorem blindAuctionConstructorCorrect :
               unfold revealEndWordEvm revealEndWordSolm
               rw [hRevealBase]
               unfold blindAuctionCtorRevealEndSolmWord
-              rw [← blindAuctionRevealWord_toNat revealTime h0Reveal hltReveal]
-              exact (blindAuctionCtorCheckedAddWord_eq
+              rw [← uint256Word_of_nonneg_int_toNat' revealTime h0Reveal hltReveal]
+              exact (constructorCheckedAddWord_eq
                 (blindAuctionCtorRevealBaseWord
                   (initState σ σ₀
                     (Sat256.ofUInt256 g) A I)

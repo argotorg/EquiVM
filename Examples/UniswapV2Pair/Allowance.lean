@@ -113,7 +113,7 @@ theorem uniswapAllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   have hgspender := allowanceStore_spender_getElem? I
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar (t := .int uint256Int)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
         (er := allowanceEvaledRef I)
         (loc := wordLoc (allowanceStorageSlot I))
         (hbase := by simp [allowanceStore, allowanceRef])
@@ -124,7 +124,7 @@ theorem uniswapAllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             allowanceOwnerValue, allowanceSpenderValue, allowanceOwnerKey, allowanceSpenderKey])
         (hty := by rfl)
         (hloc := by rfl)]
-      exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm (allowanceStorageSlot I)))
+      exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (allowanceStorageSlot I)))
 
 /-! ## EVM trace -/
 

@@ -10,14 +10,6 @@ namespace Benchmarks.Dss.Clipper
    lemmas evaluate the callback guard from only its four live bindings, so the source
    proof does not depend on a particular scratch-store layout. -/
 
-private theorem clipperEvalBinaryOpGtIntGeneric (x y : Int) :
-    evalBinaryOp? .gt (.int x) (.int y) = .ok (.bool (x > y)) := by
-  rfl
-
-private theorem clipperEvalBinaryOpNeAddressGeneric (a b : AccountAddress) :
-    evalBinaryOp? .ne (.address a) (.address b) =
-      .ok (.bool (!(Value.address a == Value.address b))) := by
-  rfl
 
 theorem clipperEvalTakeGenericDataLength
     {v : ClipperImmutables} {locals : Store} {evm : EVM.State}
@@ -49,7 +41,7 @@ theorem clipperEvalTakeGenericDataGtZero
   simp only [evalExpr?, pure]
   change evalBinaryOp? .gt (.int (Int.ofNat (clipperTakeDataBytes I).length))
       (.int 0) = .ok (.bool true)
-  rw [clipperEvalBinaryOpGtIntGeneric]
+  rw [evalBinaryOpGtInt]
   exact congrArg (fun b => EvalResult.ok (Value.bool b))
     (decide_eq_true (Int.ofNat_lt_ofNat_of_lt hpos))
   all_goals decide
@@ -67,7 +59,7 @@ theorem clipperEvalTakeGenericDataGtZero_false
   simp only [evalExpr?, pure]
   change evalBinaryOp? .gt (.int (Int.ofNat (clipperTakeDataBytes I).length))
       (.int 0) = .ok (.bool false)
-  rw [clipperEvalBinaryOpGtIntGeneric]
+  rw [evalBinaryOpGtInt]
   have hlen : (clipperTakeDataBytes I).length = 0 := by
     simp [clipperTakeDataBytes, hempty]
   rw [hlen]
@@ -85,7 +77,7 @@ theorem clipperEvalTakeGenericWhoNeVat
   simp only [EvalResult.bind, bind]
   rw [clipperEvalTakeGenericVar hwho, clipperEvalVat]
   simp only [EvalResult.bind, bind]
-  rw [clipperEvalBinaryOpNeAddressGeneric]
+  rw [evalBinaryOpNeAddress]
   cases b <;> simp_all
   all_goals decide
 
@@ -101,7 +93,7 @@ theorem clipperEvalTakeGenericWhoNeDog
   simp only [EvalResult.bind, bind]
   rw [clipperEvalTakeGenericVar hwho, clipperEvalTakeGenericVar hdog]
   simp only [EvalResult.bind, bind]
-  rw [clipperEvalBinaryOpNeAddressGeneric]
+  rw [evalBinaryOpNeAddress]
   cases b <;> simp_all
   all_goals decide
 

@@ -12,7 +12,6 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
     {callargs : Store} {values fakes secrets : List Value}
     {valuesLenWord fakesLenWord secretsLenWord : UInt256}
     (hcode : I.code = blindAuctionBytecode)
-    (hperm : I.perm = true)
     (hd : dispatchMsg blindAuctionContract I.calldata = some revealTransition)
     (hdec : decodeCalldata (revealTransition.params.map Param.name)
       (transitionSignature revealTransition).paramTypes I.calldata = some callargs)
@@ -184,7 +183,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
         (σ' := σ') (g' := g'') (A' := A')
         wordOfInt_zero.symm ?_ ?_ ?_ ?_
       · refine ⟨callGas, A_in, ?_⟩
-        simpa [evmECall, initState, hperm, revealScratchSenderWord,
+        simpa [evmECall, initState, revealScratchSenderWord,
           hAddressId, accountAddress_roundtrip] using hThetaEq
       · rfl
       · show (⟨0⟩ : UInt256) ≤ _

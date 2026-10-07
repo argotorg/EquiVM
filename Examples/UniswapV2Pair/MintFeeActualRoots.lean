@@ -17,7 +17,7 @@ theorem uniswapMintFeeActualRootArithmeticCases
         ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1,
         balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
       mem feeToStaticcallActiveWords rdata σFee k C)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hroot : rootK > rootKLast) (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)
     (hrootKLastSize : rootKLast.toNat < UInt256.size)

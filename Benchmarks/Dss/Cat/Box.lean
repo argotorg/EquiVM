@@ -57,7 +57,6 @@ theorem catReachBoxBody {σ σ₀ A I} {g : Sat256}
 theorem catBoxBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x75, 0x42, 0x15, 0xa1]⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -68,8 +67,8 @@ theorem catBoxBody {σ σ₀ A I} {g : UInt256}
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ boxTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (catSlotWord ⟨5⟩ σ I).toNat))])) := by
-    simpa [boxTransition, catSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount,
+          (some [(.int (Int.ofNat (solcSlotWordAt ⟨5⟩ σ I).toNat))])) := by
+    simpa [boxTransition, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount,
       solcSlotWord] using
       catUint256GetterBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := boxRef) (er := ({ base := "box", steps := [] } : EvaledStorageRef)) (slot := ⟨5⟩)
@@ -81,6 +80,6 @@ theorem catBoxBody {σ σ₀ A I} {g : UInt256}
     (catReachBoxBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
     (by unfold solcGetterEntryWf; repeat' first | apply And.intro | native_decide)
     (by unfold solcWordSlotGetterWf; repeat' first | apply And.intro | native_decide)
-    (by jump_dest) (by rfl) (by simpa [catSlotWord] using hbody)
+    (by jump_dest) (by rfl) (by simpa [solcSlotWordAt] using hbody)
 
 end Benchmarks.Dss.Cat

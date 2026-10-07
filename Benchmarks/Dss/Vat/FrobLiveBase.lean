@@ -65,7 +65,7 @@ theorem vatFrobSuccessEquivFromSourceFinal
     (by simpa using hsourceAccounts)
 
 theorem vatFrobLiveOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hdecoded : ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I) ⟨2975⟩
       [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
         frobUMaskedWord I, frobIWord I, ⟨524⟩, sel]
@@ -76,7 +76,7 @@ theorem vatFrobLiveOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := hdecoded
   have hliveSolc : solcSlotWord σ I ⟨10⟩ = ⟨1⟩ := by
-    simpa [vatSlotWord] using hlive
+    simpa [solcSlotWordAt] using hlive
   exact RD.vatLiveGuardOk
     (code := vatBytecode) (pc := ⟨2975⟩) (okPc := ⟨3045⟩)
     (key := frobDartWord I) (ret := frobDinkWord I)
@@ -181,7 +181,7 @@ def frobLiveSuccessGuards (σ : AccountMap) (I : ExecutionEnv) : Prop :=
       (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) ≠ ⟨0⟩ ∧
   UInt256.lor
     (UInt256.lor
-      (UInt256.eq (vatSlotWord (frobUWishSlot I)
+      (UInt256.eq (solcSlotWordAt (frobUWishSlot I)
         (sstoreAccountMap I.codeOwner σ foldDebtSlot
           (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
             solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)
@@ -191,7 +191,7 @@ def frobLiveSuccessGuards (σ : AccountMap) (I : ExecutionEnv) : Prop :=
       (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) ≠ ⟨0⟩ ∧
   UInt256.lor
     (UInt256.lor
-      (UInt256.eq (vatSlotWord (frobVWishSlot I)
+      (UInt256.eq (solcSlotWordAt (frobVWishSlot I)
         (sstoreAccountMap I.codeOwner σ foldDebtSlot
           (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
             solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)
@@ -199,7 +199,7 @@ def frobLiveSuccessGuards (σ : AccountMap) (I : ExecutionEnv) : Prop :=
     (UInt256.isZero (UInt256.sgt (frobDinkWord I) ⟨0⟩)) ≠ ⟨0⟩ ∧
   UInt256.lor
     (UInt256.lor
-      (UInt256.eq (vatSlotWord (frobWWishSlot I)
+      (UInt256.eq (solcSlotWordAt (frobWWishSlot I)
         (sstoreAccountMap I.codeOwner σ foldDebtSlot
           (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
             solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)

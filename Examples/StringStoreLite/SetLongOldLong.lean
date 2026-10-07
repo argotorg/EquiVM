@@ -19,7 +19,6 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -73,12 +72,14 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
           (solidityBytesDataWordCount (setDecodedValueBytes I).size)).executionEnv.codeOwner
         ⟨0⟩ (solidityBytesHeaderWord (setDecodedValueBytes I).size) =
           evmSolm1) :
-    ∃ evmEvm1,
+    (I.perm = true ∧ ∃ evmEvm1,
       EVMStateEquiv evmEvm1 evmSolm1 ∧
       RDret stringStoreLiteBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         evmEvm1.accountMap
-        (UInt256.toByteArray (UInt256.ofNat (setDecodedValueBytes I).size)) := by
+        (UInt256.toByteArray (UInt256.ofNat (setDecodedValueBytes I).size))) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let len : UInt256 :=
     uInt256OfByteArray
@@ -89,7 +90,7 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
   let oldLen : UInt256 := UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩
   have hlenAbi :
       len = calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) := by
-    simpa [len] using setLengthWord_eq_abi I.calldata hoffMax
+    simpa [len] using calldataLengthWord_eq_abi I.calldata hoffMax
   have hlenMaxLen : len.toNat ≤ ABI.solcMaxU64 := by
     rw [hlenAbi]
     exact Nat.le_of_not_gt hlenMax
@@ -102,8 +103,8 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
     exact hz
   have hsrc : payloadStart.toNat + len.toNat ≤ I.calldata.size := by
     dsimp [payloadStart]
-    rw [hlenAbi, setPayloadStart_toNat I.calldata hoffMax]
-    have hle := setPayloadStartLen_le_of_payload I.calldata hlenWord hpayload
+    rw [hlenAbi, calldataPayloadStart_toNat I.calldata hoffMax]
+    have hle := calldataPayloadStartLen_le_of_payload I.calldata hlenWord hpayload
     omega
   have hvalueLenMax : (setDecodedValueBytes I).size ≤ ABI.solcMaxU64 := by
     rw [setDecodedValueBytes_size hpayload, ← hlenAbi]
@@ -125,14 +126,14 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
   have hstart :
       UInt256.slt ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨31⟩))
           (UInt256.ofNat I.calldata.size) = ⟨1⟩ :=
-    setStart_slt_one I.calldata hoffMax hlenWord hsizeSign
+    calldataStart_slt_one I.calldata hoffMax hlenWord hsizeSign
   have hlenMaxWord :
       UInt256.gt
           (uInt256OfByteArray
             (I.calldata.readBytes
               ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32))
           ⟨18446744073709551615⟩ = ⟨0⟩ :=
-    setLengthMaxWord_of_abi I.calldata hoffMax hlenMax
+    calldataLengthMaxWord_of_abi I.calldata hoffMax hlenMax
   have hpayloadWord :
       UInt256.gt
         (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩) +
@@ -141,7 +142,7 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
               (I.calldata.readBytes
                 ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) ⟨1⟩))
         (UInt256.ofNat I.calldata.size) = ⟨0⟩ :=
-    setPayloadWord_zero_of_payload I.calldata hsize hoffMax hlenWord hlenMax hpayload
+    calldataPayloadWord_zero_of_payload I.calldata hsize hoffMax hlenWord hlenMax hpayload
   obtain ⟨k175, C175, rd175₀⟩ := stringStoreLiteX_setDecoderOkCore
     (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := Sat256.ofUInt256 g)
@@ -163,7 +164,7 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
   let oldFuel := (oldLen.toNat + 31) / 32
   let clearFuel := ((setDecodedValueBytes I).size + 31) / 32
   have holdLenLt : oldLen.toNat < 2 ^ 255 :=
-    clearCurrent_len_toNat_lt_sign_of_div2
+    u256_div2_toNat_lt_sign
       (header := currentLengthHeaderWord σ I) rfl
   have hsolmMap :
       evmSolm1.accountMap =
@@ -183,15 +184,16 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
     simp [writeSolidityBytesDataWordsFrom_executionEnv,
       clearSolidityBytesDataWordsFrom_executionEnv, storageStore_executionEnv, initState]
   have holdLenLe : oldLen.toNat ≤ len.toNat :=
-    ugt_eq_zero_toNat_le hgtOldNew'
+    ugt_eq_zero_to_le hgtOldNew'
   by_cases hmod : len.toNat % 32 = 0
-  · obtain ⟨k261, C261, rd261₀⟩ :=
+  · refine permSplit_bind (
       stringStoreLiteX_setWriteLongFrom1405NoTail
         (payloadStart := payloadStart) (len := len) (oldLen := oldLen)
         (aw := setHelperEntryAw len) (mem := setPaddedMem I.calldata len payloadStart)
         (rdata := ByteArray.empty)
-        hperm hlong hmod rd1405
-        (longDataWordsLoopMloadCost_setHelper_zero (len := len) hlenMaxLen)
+        hlong hmod rd1405
+        (longDataWordsLoopMloadCost_setHelper_zero (len := len) hlenMaxLen)) fun _ hrd261 => ?_
+    obtain ⟨k261, C261, rd261₀⟩ := hrd261
     have hawLoop :
         longDataWordsLoopAw (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩ ⟨32⟩
           (len.toNat / 32) =
@@ -284,13 +286,13 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
               (32 - ((setDecodedValueBytes I).toList.drop (32 * (len.toNat / 32))).length)
               0)) := by
       rfl
-    obtain ⟨k261, C261, rd261₀⟩ :=
+    refine permSplit_bind (
       stringStoreLiteX_setWriteLongFrom1405Tail
         (payloadStart := payloadStart) (len := len) (oldLen := oldLen)
         (wordTail := wordTail) (awTail := clearCurrentHashAw (setHelperEntryAw len))
         (aw := setHelperEntryAw len) (mem := setPaddedMem I.calldata len payloadStart)
         (rdata := ByteArray.empty)
-        hperm hlong hmod rd1405
+        hlong hmod rd1405
         (longDataWordsLoopMloadCost_setHelper_zero (len := len) hlenMaxLen)
         (longDataWordsLoopTailMloadCost_setHelper_zero (len := len) hlenMaxLen hmod)
         (by
@@ -298,7 +300,9 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
           exact longDataWordsLoopMload_setHelper_decoded_tail_word
             (I := I) (len := len) (payloadStart := payloadStart)
             hnz hlenMaxLen hsrc hmod hlenAbi rfl hoffMax)
-        (longDataWordsLoopAw_setHelper_tail_mload_eq (len := len) hlenMaxLen hmod)
+        (longDataWordsLoopAw_setHelper_tail_mload_eq (len := len) hlenMaxLen hmod))
+      fun _ hrd261 => ?_
+    obtain ⟨k261, C261, rd261₀⟩ := hrd261
     have hreach261 :
         ∃ k C, RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨261⟩
@@ -393,7 +397,6 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -447,12 +450,14 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
           (solidityBytesDataWordCount (setDecodedValueBytes I).size)).executionEnv.codeOwner
         ⟨0⟩ (solidityBytesHeaderWord (setDecodedValueBytes I).size) =
           evmSolm1) :
-    ∃ evmEvm1,
+    (I.perm = true ∧ ∃ evmEvm1,
       EVMStateEquiv evmEvm1 evmSolm1 ∧
       RDret stringStoreLiteBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         evmEvm1.accountMap
-        (UInt256.toByteArray (UInt256.ofNat (setDecodedValueBytes I).size)) := by
+        (UInt256.toByteArray (UInt256.ofNat (setDecodedValueBytes I).size))) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let len : UInt256 :=
     uInt256OfByteArray
@@ -463,7 +468,7 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
   let oldLen : UInt256 := UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩
   have hlenAbi :
       len = calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) := by
-    simpa [len] using setLengthWord_eq_abi I.calldata hoffMax
+    simpa [len] using calldataLengthWord_eq_abi I.calldata hoffMax
   have hlenMaxLen : len.toNat ≤ ABI.solcMaxU64 := by
     rw [hlenAbi]
     exact Nat.le_of_not_gt hlenMax
@@ -476,8 +481,8 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
     exact hz
   have hsrc : payloadStart.toNat + len.toNat ≤ I.calldata.size := by
     dsimp [payloadStart]
-    rw [hlenAbi, setPayloadStart_toNat I.calldata hoffMax]
-    have hle := setPayloadStartLen_le_of_payload I.calldata hlenWord hpayload
+    rw [hlenAbi, calldataPayloadStart_toNat I.calldata hoffMax]
+    have hle := calldataPayloadStartLen_le_of_payload I.calldata hlenWord hpayload
     omega
   have hvalueLenMax : (setDecodedValueBytes I).size ≤ ABI.solcMaxU64 := by
     rw [setDecodedValueBytes_size hpayload, ← hlenAbi]
@@ -499,14 +504,14 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
   have hstart :
       UInt256.slt ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨31⟩))
           (UInt256.ofNat I.calldata.size) = ⟨1⟩ :=
-    setStart_slt_one I.calldata hoffMax hlenWord hsizeSign
+    calldataStart_slt_one I.calldata hoffMax hlenWord hsizeSign
   have hlenMaxWord :
       UInt256.gt
           (uInt256OfByteArray
             (I.calldata.readBytes
               ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32))
           ⟨18446744073709551615⟩ = ⟨0⟩ :=
-    setLengthMaxWord_of_abi I.calldata hoffMax hlenMax
+    calldataLengthMaxWord_of_abi I.calldata hoffMax hlenMax
   have hpayloadWord :
       UInt256.gt
         (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩) +
@@ -515,7 +520,7 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
               (I.calldata.readBytes
                 ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) ⟨1⟩))
         (UInt256.ofNat I.calldata.size) = ⟨0⟩ :=
-    setPayloadWord_zero_of_payload I.calldata hsize hoffMax hlenWord hlenMax hpayload
+    calldataPayloadWord_zero_of_payload I.calldata hsize hoffMax hlenWord hlenMax hpayload
   obtain ⟨k175, C175, rd175₀⟩ := stringStoreLiteX_setDecoderOkCore
     (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := Sat256.ofUInt256 g)
@@ -529,15 +534,16 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
     stringStoreLiteX_setReachStorageWriteMem (payloadStart := payloadStart) (len := len) rd175
   have hgtOldNew' : UInt256.gt oldLen len = ⟨1⟩ := by
     simpa [oldLen, hlenAbi] using hgtOldNew
-  obtain ⟨_, _, rd1405⟩ :=
+  refine staticOr_bind (
     stringStoreLiteX_setLongNonemptyWriteLongValidClearTo1405
       (payloadStart := payloadStart) (newLen := len) (oldLen := oldLen)
-      hperm hnz hlong hlenMaxLen hsrc rd1350 hflag rfl (by simpa [oldLen] using hvalid)
-      hgtOldNew'
+      hnz hlong hlenMaxLen hsrc rd1350 hflag rfl (by simpa [oldLen] using hvalid)
+      hgtOldNew') fun hrd1405 => ?_
+  obtain ⟨_, _, rd1405⟩ := hrd1405
   let oldFuel := (oldLen.toNat + 31) / 32
   let clearFuel := ((setDecodedValueBytes I).size + 31) / 32
   have holdLenLt : oldLen.toNat < 2 ^ 255 :=
-    clearCurrent_len_toNat_lt_sign_of_div2
+    u256_div2_toNat_lt_sign
       (header := currentLengthHeaderWord σ I) rfl
   have hsolmMap :
       evmSolm1.accountMap =
@@ -611,10 +617,11 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
     dsimp [tailFuel]
     omega
   by_cases hmod : len.toNat % 32 = 0
-  · obtain ⟨k261, C261, rd261₀⟩ :=
+  · refine permSplit_bind (
       stringStoreLiteX_setWriteLongFrom1405NoTailAfterClearBase
         (payloadStart := payloadStart) (len := len) (oldLen := oldLen)
-        hperm hnz hlong hlenMaxLen hsrc hmod rd1405
+        hnz hlong hlenMaxLen hsrc hmod rd1405) fun _ hrd261 => ?_
+    obtain ⟨k261, C261, rd261₀⟩ := hrd261
     have hreach261 :
         ∃ k C, RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨261⟩
@@ -744,11 +751,12 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
               (32 - ((setDecodedValueBytes I).toList.drop (32 * (len.toNat / 32))).length)
               0)) := by
       rfl
-    obtain ⟨k261, C261, rd261₀⟩ :=
+    refine permSplit_bind (
       stringStoreLiteX_setWriteLongFrom1405TailAfterClearBase
         (payloadStart := payloadStart) (len := len) (oldLen := oldLen)
         (wordTail := wordTail)
-        hperm hnz hlong hlenMaxLen hsrc hmod hlenAbi rfl hoffMax hwordTail rd1405
+        hnz hlong hlenMaxLen hsrc hmod hlenAbi rfl hoffMax hwordTail rd1405) fun _ hrd261 => ?_
+    obtain ⟨k261, C261, rd261₀⟩ := hrd261
     have hreach261 :
         ∃ k C, RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨261⟩
@@ -891,7 +899,6 @@ theorem stringStoreLiteX_setLongValueLongValidResidual
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -941,12 +948,14 @@ theorem stringStoreLiteX_setLongValueLongValidResidual
           (solidityBytesDataWordCount (setDecodedValueBytes I).size)).executionEnv.codeOwner
         ⟨0⟩ (solidityBytesHeaderWord (setDecodedValueBytes I).size) =
           evmSolm1) :
-    ∃ evmEvm1,
+    (I.perm = true ∧ ∃ evmEvm1,
       EVMStateEquiv evmEvm1 evmSolm1 ∧
       RDret stringStoreLiteBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         evmEvm1.accountMap
-        (UInt256.toByteArray (UInt256.ofNat (setDecodedValueBytes I).size)) := by
+        (UInt256.toByteArray (UInt256.ofNat (setDecodedValueBytes I).size))) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   by_cases hlt :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat <
         (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩).toNat
@@ -956,7 +965,7 @@ theorem stringStoreLiteX_setLongValueLongValidResidual
           (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨1⟩ :=
       ugt_one hlt
     exact
-      stringStoreLiteX_setLongValueLongValidClearResidual hcode hsize hperm hwv hsel
+      stringStoreLiteX_setLongValueLongValidClearResidual hcode hsize hwv hsel
         hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayload hvalueNonempty
         hresidual hflag hvalid hgtOldNew accSolm0 haccSolm0 evmSolm1 hdataWrite
   · have hle :
@@ -969,7 +978,7 @@ theorem stringStoreLiteX_setLongValueLongValidResidual
           (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨0⟩ :=
       ugt_zero hle
     exact
-      stringStoreLiteX_setLongValueLongValidNoClearResidual hcode hsize hperm hwv hsel
+      stringStoreLiteX_setLongValueLongValidNoClearResidual hcode hsize hwv hsel
         hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayload hvalueNonempty
         hresidual hflag hvalid hgtOldNew accSolm0 haccSolm0 evmSolm1 hdataWrite
 

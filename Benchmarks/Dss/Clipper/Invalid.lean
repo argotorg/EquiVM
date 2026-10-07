@@ -33,7 +33,8 @@ theorem RD.invalidHalt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 :
       exact Ethereum.EVM.Xstep_X_X_except _ s _ _ hstep))
 
 theorem RDinvalid.reEquivExecutionInvalid {cfg : Config} {contract : ContractDecl}
-    {immutables : Store} {t : TransitionDecl} {σ σ₀ A I} {g : UInt256}
+    {immutables : Store}
+    {t : TransitionDecl} {σ σ₀ A I} {g : UInt256}
     {code : ByteArray} {callargs}
     (hcode : I.code = code)
     (h : RDinvalid code (Sat256.ofUInt256 g)

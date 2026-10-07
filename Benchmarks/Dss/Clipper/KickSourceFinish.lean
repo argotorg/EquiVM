@@ -138,8 +138,7 @@ theorem clipperKickIncentiveSucceeds (v : ClipperImmutables)
         locals := clipperKickLocalsCoin evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (checkedExternalCallStmts vatExpr "suck" (.intLit 0)
         [.storage vowRef, .var "kpr", .var "coin"] "_suckRet")
-      (.ok (Frame.mk contract
-        (clipperKickLocalsSuckRet evmLock evmTop I feedPrice top) (immStore v)) evmAfter)) :
+      (.ok (Frame.mk contract (clipperKickLocalsSuckRet evmLock evmTop I feedPrice top) (immStore v)) evmAfter)) :
     ExecBlock config
       { contract := contract,
         locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
@@ -159,8 +158,7 @@ theorem clipperKickIncentiveSucceeds (v : ClipperImmutables)
       { contract := contract,
         locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop (clipperKickIncentiveBody)
-      (.ok (Frame.mk contract
-        (clipperKickLocalsSuckRet evmLock evmTop I feedPrice top) (immStore v)) evmAfter) := by
+      (.ok (Frame.mk contract (clipperKickLocalsSuckRet evmLock evmTop I feedPrice top) (immStore v)) evmAfter) := by
     simpa [clipperKickIncentiveBody] using ExecBlock.consNormal hmulStmt
       (execBlock_append haddBlock
         (ExecBlock.consNormal hcoinStmt hsuck))

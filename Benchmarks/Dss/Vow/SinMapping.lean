@@ -115,8 +115,8 @@ theorem vowSinMappingBodyCore
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals sinTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (vowSlotWord (sinMappingSlotFor I) σ I).toNat))])) := by
-    simpa [sinTransition, sinMappingSlotFor, vowSlotWord, initState, Solm.EVM.storageLoad,
+          (some [(.int (Int.ofNat (solcSlotWordAt (sinMappingSlotFor I) σ I).toNat))])) := by
+    simpa [sinTransition, sinMappingSlotFor, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount, locals, key] using
       vowUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -158,38 +158,38 @@ theorem vowSinMappingBodyCore
   have hret :
       RDret vowBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (vowSlotWord slot σ I)) := by
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨357⟩) (val := vowSlotWord slot σ I) (ret := ⟨357⟩) (R := [sel])
+      (pc := ⟨357⟩) (val := solcSlotWordAt slot σ I) (ret := ⟨357⟩) (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨4⟩ key)
-        (vowSlotWord slot σ I))
-      (by simpa [slot, vowSlotWord] using hretPc)
+        (solcSlotWordAt slot σ I))
+      (by simpa [slot, solcSlotWordAt] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
         repeat' first | apply And.intro | native_decide)
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨4⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (vowSlotWord slot σ I)
+        exact solcScratchReturnMem_mload64 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨4⟩ key) (solcMappingHashMem_read64 ⟨4⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (vowSlotWord slot σ I)
+        exact solcScratchReturnMem_read128 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨4⟩ key))
       (by simp)
-    simpa [slot, vowSlotWord] using hret'
+    simpa [slot, solcSlotWordAt] using hret'
   have henc :
-      returnEquiv (UInt256.toByteArray (vowSlotWord slot σ I))
-        (some [(.int (Int.ofNat (vowSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         sinTransition.returnType := by
     rw [show sinTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (vowSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   rw [hslot] at hbody
   exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem vowSinMappingBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0xcb, 0x5c, 0xc1, 0x09]⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -200,7 +200,7 @@ theorem vowSinMappingBody {σ σ₀ A I} {g : UInt256}
 
 theorem vowSinMappingShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xcb, 0x5c, 0xc1, 0x09]⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

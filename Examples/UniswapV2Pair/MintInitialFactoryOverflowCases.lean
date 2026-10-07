@@ -90,7 +90,7 @@ theorem uniswapMintInitialMinimumMintBalanceOverflowFromAfterFeeCase
     (hPostAccountsAfter : Eq σFee evmAfter.accountMap)
     (henvAfterI : evmAfter.executionEnv = I)
     (htotalSource : mintFunctionTotalSupplyWord evmAfter = ⟨0⟩)
-    (htotalRuntimeZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
+    (htotalRuntimeZero : solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩)
     (hfit : amount0.toNat * amount1.toNat < UInt256.size)
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
@@ -101,7 +101,7 @@ theorem uniswapMintInitialMinimumMintBalanceOverflowFromAfterFeeCase
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem)).toNat +
           (⟨1000⟩ : UInt256).toNat)
     (hperm : I.perm = true)
@@ -153,7 +153,7 @@ theorem uniswapMintInitialMinimumMintBalanceOverflowFromAfterFeeCase
       simp [mintFunctionTotalSupplyNewNat, htotalSource]
       native_decide
     have hruntimeSupplyFit :
-        (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
+        (solcSlotWordAt ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
           UInt256.size := by
       rw [htotalRuntimeZero]
       native_decide
@@ -162,7 +162,7 @@ theorem uniswapMintInitialMinimumMintBalanceOverflowFromAfterFeeCase
             (⟨1000⟩ : UInt256) =
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem)).toNat +
             (⟨1000⟩ : UInt256).toNat := by
       simpa using
@@ -290,7 +290,7 @@ theorem uniswapMintInitialFeeOffKLastZeroMinimumMintBalanceOverflowFromFactoryCa
     (hzFeeTrue : zFee = true)
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hamount0Eq :
       mintAmount0Word
           (uniswapLockEnteredState
@@ -306,13 +306,13 @@ theorem uniswapMintInitialFeeOffKLastZeroMinimumMintBalanceOverflowFromFactoryCa
           solcAddrMask =
         ⟨0⟩)
     (hkLastZero : mintFeeKLastSlotWord σFee I = ⟨0⟩)
-    (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
+    (htotalZero : solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩)
     (hfit : amount0.toNat * amount1.toNat < UInt256.size)
     (hbalanceOverflow :
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
             (feeToStaticcallMem
               (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -418,7 +418,7 @@ theorem uniswapMintInitialFeeOffKLastZeroMinimumMintBalanceOverflowFromFactoryCa
       simp [mintFunctionTotalSupplyNewNat, htotalSource]
       native_decide
     have hruntimeSupplyFit :
-        (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
+        (solcSlotWordAt ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
           UInt256.size := by
       rw [htotalZero]
       native_decide
@@ -427,7 +427,7 @@ theorem uniswapMintInitialFeeOffKLastZeroMinimumMintBalanceOverflowFromFactoryCa
             (⟨1000⟩ : UInt256) =
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ memFee)).toNat +
             (⟨1000⟩ : UInt256).toNat := by
       simpa using
@@ -563,7 +563,7 @@ theorem uniswapMintInitialFeeOnKLastZeroMinimumMintBalanceOverflowFromFactoryCas
     (hzFeeTrue : zFee = true)
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hamount0Eq :
       mintAmount0Word
           (uniswapLockEnteredState
@@ -579,13 +579,13 @@ theorem uniswapMintInitialFeeOnKLastZeroMinimumMintBalanceOverflowFromFactoryCas
           solcAddrMask ≠
         ⟨0⟩)
     (hkLastZero : mintFeeKLastSlotWord σFee I = ⟨0⟩)
-    (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
+    (htotalZero : solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩)
     (hfit : amount0.toNat * amount1.toNat < UInt256.size)
     (hbalanceOverflow :
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
             (feeToStaticcallMem
               (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -771,14 +771,14 @@ theorem uniswapMintInitialFeeOffKLastNonzeroMinimumMintBalanceOverflowFromFactor
         ⟨0⟩)
     (hkLastNonzero : mintFeeKLastSlotWord σFee I ≠ ⟨0⟩)
     (htotalZero :
-      uniswapSlotWord ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I = ⟨0⟩)
+      solcSlotWordAt ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I = ⟨0⟩)
     (hfit : amount0.toNat * amount1.toNat < UInt256.size)
     (hbalanceOverflow :
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I +
+            (solcSlotWordAt ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I +
               (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
             (feeToStaticcallMem
@@ -825,7 +825,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroMinimumMintBalanceOverflowFromFactor
   have henvCleared : evmAfterFee.executionEnv = I := by
     simp [evmAfterFee, mintFeeKLastClearedState, henvFeeI, storageStore_executionEnv]
   have htotalEqCleared :
-      mintFunctionTotalSupplyWord evmAfterFee = uniswapSlotWord ⟨0⟩ σCleared I := by
+      mintFunctionTotalSupplyWord evmAfterFee = solcSlotWordAt ⟨0⟩ σCleared I := by
     simpa [σCleared] using
       mintFunctionTotalSupplyWord_eq_slot hPostCleared henvCleared
   have htotalSource : mintFunctionTotalSupplyWord evmAfterFee = ⟨0⟩ := by

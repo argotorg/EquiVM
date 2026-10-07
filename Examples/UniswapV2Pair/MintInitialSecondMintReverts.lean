@@ -200,12 +200,12 @@ theorem uniswapMintInitialAfterMintFeeSecondMintTotalSupplyOverflowRevertCase
           (⟨1000⟩ : UInt256) <
         UInt256.size)
     (htotalFitMin :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
         UInt256.size)
     (hbalanceFitMin :
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+          (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem)).toNat +
           (⟨1000⟩ : UInt256).toNat <
         UInt256.size)
@@ -218,14 +218,14 @@ theorem uniswapMintInitialAfterMintFeeSecondMintTotalSupplyOverflowRevertCase
       let σAfterMinimum :=
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
             (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
-      UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat)
+      UInt256.size ≤ (solcSlotWordAt ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat)
     (hperm : I.perm = true)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
@@ -311,12 +311,12 @@ theorem uniswapMintInitialAfterMintFeeSecondMintTotalSupplyOverflowRevertCase
   let σAfterMinimum :=
     sstoreAccountMap I.codeOwner
       (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-        (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+        (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
       (uniswapInternalMintBalanceHashSlot ⟨0⟩
         (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+          (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
   rcases mintInitialRootLiquidityRuntimeFacts hrootSize hrootGeMin hliquiditySource with
     ⟨hrootGeWord, hliquidityRuntime⟩
@@ -461,12 +461,12 @@ theorem uniswapMintInitialAfterMintFeeSecondMintBalanceOverflowRevertCase
           (⟨1000⟩ : UInt256) <
         UInt256.size)
     (htotalFitMin :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
         UInt256.size)
     (hbalanceFitMin :
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+          (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem)).toNat +
           (⟨1000⟩ : UInt256).toNat <
         UInt256.size)
@@ -484,14 +484,14 @@ theorem uniswapMintInitialAfterMintFeeSecondMintBalanceOverflowRevertCase
       let σAfterMinimum :=
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
             (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
-      (uniswapSlotWord ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat < UInt256.size)
+      (solcSlotWordAt ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat < UInt256.size)
     (hruntimeOverflow :
       let minimumMem :=
         uniswapInternalMintLogMem (⟨1000⟩ : UInt256)
@@ -500,17 +500,17 @@ theorem uniswapMintInitialAfterMintFeeSecondMintBalanceOverflowRevertCase
       let σAfterMinimum :=
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
             (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σAfterMinimum ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σAfterMinimum I + liquidity))
+            (solcSlotWordAt ⟨0⟩ σAfterMinimum I + liquidity))
           (uniswapInternalMintBalanceHashSlot toWord minimumMem)).toNat + liquidity.toNat)
     (hperm : I.perm = true)
     (hmem : mem.size = 164)
@@ -597,12 +597,12 @@ theorem uniswapMintInitialAfterMintFeeSecondMintBalanceOverflowRevertCase
   let σAfterMinimum :=
     sstoreAccountMap I.codeOwner
       (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-        (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+        (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
       (uniswapInternalMintBalanceHashSlot ⟨0⟩
         (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+          (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
   rcases mintInitialRootLiquidityRuntimeFacts hrootSize hrootGeMin hliquiditySource with
     ⟨hrootGeWord, hliquidityRuntime⟩

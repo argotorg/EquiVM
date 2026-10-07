@@ -1,3 +1,4 @@
+import Reasoning.Reach
 import Benchmarks.Dss.Spot.PokeTrace
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -96,7 +97,7 @@ theorem RD.spotPokeToPeekExtcodesizeGuard
     (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd615Raw⟩ := rd614.sload (by native_decide) (by evm_ov)
   have rd615 := by
-    simpa [pokePipRawWord, spotSlotWord, pokePipSlotFor_eq (I := I) hsz36,
+    simpa [pokePipRawWord, solcSlotWordAt, pokePipSlotFor_eq (I := I) hsz36,
       solcSlotWord] using rd615Raw
   have rd616 := rd615.dup2 (by native_decide) (by evm_ov)
   have rd617 := rd616.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
@@ -139,7 +140,7 @@ theorem RD.spotPokeToPeekExtcodesizeGuard
     dup8,
     dup1]
   exact ⟨_, _, by
-    simpa [pokePipTargetWord, pokePipRawWord, spotSlotWord,
+    simpa [pokePipTargetWord, pokePipRawWord, solcSlotWordAt,
       pokePipSlotFor_eq (I := I) hsz36, solcSlotWord, hmask] using rd664⟩
 
 theorem RD.spotPokePeekNoCode
@@ -434,28 +435,6 @@ theorem RD.spotPokePeekReturnDecodeOk
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa using rdPop1'⟩
 
-theorem spotRDInvalidError {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
-    {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
-    (hdec : decode code pc = some (.INVALID, .none)) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
-      X (g.toNat + 1) (D_J code 0) s0 = .error .InvalidInstruction := by
-  rcases RD.conclude h with hoog | ⟨k', C', s', hX, hcode, hpc, _hstk, _hgas, hk, _hC,
-    _hmem, _haw, _hrdata, _hacc⟩
-  · exact Or.inl hoog
-  · have hdec' : decode s'.executionEnv.code s'.machineState.pc = some (.INVALID, .none) := by
-      rw [hcode, hpc]
-      exact hdec
-    have hstep : Xstep (D_J code 0) s' = .error .InvalidInstruction := by
-      have hstep' := Ethereum.EVM.step_invalid s' hdec'
-      simpa [hcode] using hstep'
-    have hfuel : g.toNat + 1 - k' = (g.toNat + 1 - (k' + 1)) + 1 := by
-      omega
-    exact Or.inr (by
-      rw [hX, hfuel]
-      exact Ethereum.EVM.Xstep_X_X_except _ s' _ _ hstep)
 
 theorem RD.spotCheckedMulReturns
     {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
@@ -556,7 +535,7 @@ theorem RD.spotCheckedMulOverflowReverts
     omega
   have hdivNe : UInt256.div (x * y) y ≠ x := by
     intro hbad
-    have h := spot_u256_mul_div_overflow_ne x y hover
+    have h := u256_mul_div_overflow_ne x y hover
     exact h (by
       have hcomm : y * x = x * y := by
         simpa using u256_mul_comm y x
@@ -706,7 +685,7 @@ theorem RD.spotRdivDivZeroInvalid
     raw dup2 (by native_decide) (by evm_ov),
     raw push2 ⟨2125⟩ (by native_decide) (by evm_ov)]
   have rd2124 := rd2123.jumpiNT (by native_decide) hdenom (by evm_ov)
-  exact spotRDInvalidError rd2124 (by native_decide)
+  exact RD.invalidError rd2124 (by native_decide)
 
 theorem RD.spotPokeHasTrueToValScaledMul
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -761,7 +740,7 @@ theorem RD.spotPokeValScaledToRdivPar
       (pokeParWord σ' I :: valScaled :: ⟨774⟩ :: ⟨798⟩ :: ⟨0⟩ :: has :: val ::
         pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k770 C770 := by
-    simpa [pokeParWord, spotSlotWord, solcSlotWord] using rd770raw
+    simpa [pokeParWord, solcSlotWordAt, solcSlotWord] using rd770raw
   have rd2093 := evm_run rd770 with [
     raw push2 ⟨2093⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
@@ -788,7 +767,7 @@ theorem RD.spotPokeAfterRdivParToRdivMat
       UInt256.ofNat (fromByteArrayBigEndian (KEC (mem1.readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (pokeIlkWord I) := by
     dsimp [mem1]
-    exact poke_twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256)
+    exact twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256)
       (pokeIlkWord I) (by rw [hmem]; omega)
   have rd775 := rd774.jumpdest (by native_decide) (by evm_ov)
   have rd779pre := evm_run rd775 with [
@@ -819,7 +798,7 @@ theorem RD.spotPokeAfterRdivParToRdivMat
       (pokeMatWord σ' I :: spot1 :: ⟨798⟩ :: ⟨0⟩ :: has :: val ::
         pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem1 (UInt256.ofNat 6) out σ' k794 C794 := by
-    simpa [pokeMatWord, spotSlotWord, solcSlotWord, pokeMatSlotFor_eq hsz36]
+    simpa [pokeMatWord, solcSlotWordAt, solcSlotWord, pokeMatSlotFor_eq hsz36]
       using rd794raw
   have rd2093 := evm_run rd794 with [
     raw push2 ⟨2093⟩ (by native_decide) (by evm_ov),
@@ -866,7 +845,7 @@ theorem RD.spotPokeVatFileCallGuard
         pokeVatFileSelectorPlainWord :: pokeVatTargetWord σ' I :: spot :: has :: val ::
         pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       (pokeVatFileCalldataMem I spot mem) (UInt256.ofNat 8) out σ' k' C' := by
-  let vatRaw := spotSlotWord ⟨2⟩ σ' I
+  let vatRaw := solcSlotWordAt ⟨2⟩ σ' I
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -896,7 +875,7 @@ theorem RD.spotPokeVatFileCallGuard
       (initState σ σ₀ g A I) ⟨802⟩
       (vatRaw :: spot :: scratch :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k802 C802 := by
-    simpa [vatRaw, spotSlotWord, solcSlotWord] using rd802raw
+    simpa [vatRaw, solcSlotWordAt, solcSlotWord] using rd802raw
   have rd886 := evm_run rd802 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -1105,11 +1084,10 @@ theorem RD.spotPokeVatFileCallSucceeded
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.spotPokeVatFileLogReturns
+theorem RD.spotPokeVatFileLogReturnsSplit
     {σ σ' σ₀ A I} {g : Sat256} {spot has val sel : UInt256}
     {mem rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
-    (hperm : I.perm = true)
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (rd920 : RD spotBytecode I g
@@ -1117,7 +1095,9 @@ theorem RD.spotPokeVatFileLogReturns
       (pokeVatFileEndPtr :: pokeVatFileSelectorPlainWord :: pokeVatTargetWord σ' I ::
         spot :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k C) :
-    RDret spotBytecode g (initState σ σ₀ g A I) acc ByteArray.empty := by
+    (I.perm = true ∧
+      RDret spotBytecode g (initState σ σ₀ g A I) acc ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic spotBytecode g (initState σ σ₀ g A I)) := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -1162,7 +1142,7 @@ theorem RD.spotPokeVatFileLogReturns
       hmload64Log (by native_decide) (by evm_ov)]
   have rd976 := rd943.pushConst pokeEventTopic (width := 32) (op := .PUSH32)
     (by decide) (by native_decide) (by evm_ov)
-  have rd992 := evm_run rd976 with [
+  have rd987 := evm_run rd976 with [
     raw swap4 (by native_decide) (by evm_ov),
     raw pop (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
@@ -1172,8 +1152,16 @@ theorem RD.spotPokeVatFileLogReturns
     raw push1 ⟨96⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw log1 0 (UInt256.ofNat 8) (by native_decide) hperm mem_cost
+    raw pop (by native_decide) (by evm_ov)]
+  have hlogDec : decode spotBytecode ⟨987⟩ = some (.LOG1, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd987.log1Static (by simpa using hperm) hlogDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  have rd992 := evm_run rd987 with [
+    raw log1 0 (UInt256.ofNat 8) hlogDec hperm mem_cost
       (by native_decide) (by evm_ov),
     raw pop (by native_decide) (by evm_ov),
     raw pop (by native_decide) (by evm_ov),
@@ -1182,4 +1170,5 @@ theorem RD.spotPokeVatFileLogReturns
   have rd214 := rd992.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd215 := rd214.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd215 (by native_decide) (by evm_ov)
+
 end Benchmarks.Dss.Spot

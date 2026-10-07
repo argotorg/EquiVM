@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -183,24 +184,24 @@ def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "vat", steps := [] }, _ => some (addrLoc ⟨1⟩)
-  | { base := "flapper", steps := [] }, _ => some (addrLoc ⟨2⟩)
-  | { base := "flopper", steps := [] }, _ => some (addrLoc ⟨3⟩)
-  | { base := "sin", steps := [.mindex era] }, _ => some (wordLoc (sinSlot era))
-  | { base := "Sin", steps := [] }, _ => some (wordLoc ⟨5⟩)
-  | { base := "Ash", steps := [] }, _ => some (wordLoc ⟨6⟩)
-  | { base := "wait", steps := [] }, _ => some (wordLoc ⟨7⟩)
-  | { base := "dump", steps := [] }, _ => some (wordLoc ⟨8⟩)
-  | { base := "sump", steps := [] }, _ => some (wordLoc ⟨9⟩)
-  | { base := "bump", steps := [] }, _ => some (wordLoc ⟨10⟩)
-  | { base := "hump", steps := [] }, _ => some (wordLoc ⟨11⟩)
-  | { base := "live", steps := [] }, _ => some (wordLoc ⟨12⟩)
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } => some (.leaf (wordLoc (wardsSlot usr)))
+  | { base := "vat", steps := [] } => some (.leaf (addrLoc ⟨1⟩))
+  | { base := "flapper", steps := [] } => some (.leaf (addrLoc ⟨2⟩))
+  | { base := "flopper", steps := [] } => some (.leaf (addrLoc ⟨3⟩))
+  | { base := "sin", steps := [.mindex era] } => some (.leaf (wordLoc (sinSlot era)))
+  | { base := "Sin", steps := [] } => some (.leaf (wordLoc ⟨5⟩))
+  | { base := "Ash", steps := [] } => some (.leaf (wordLoc ⟨6⟩))
+  | { base := "wait", steps := [] } => some (.leaf (wordLoc ⟨7⟩))
+  | { base := "dump", steps := [] } => some (.leaf (wordLoc ⟨8⟩))
+  | { base := "sump", steps := [] } => some (.leaf (wordLoc ⟨9⟩))
+  | { base := "bump", steps := [] } => some (.leaf (wordLoc ⟨10⟩))
+  | { base := "hump", steps := [] } => some (.leaf (wordLoc ⟨11⟩))
+  | { base := "live", steps := [] } => some (.leaf (wordLoc ⟨12⟩))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -532,7 +533,7 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := vowExternalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }

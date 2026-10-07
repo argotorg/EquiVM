@@ -199,7 +199,7 @@ theorem clipperEvalGetFeedPriceValBlnRequire_true
   have hy0 : y.toNat ≠ 0 := by native_decide
   have hdiv :
       Int.ofNat (UInt256.mul x y).toNat / Int.ofNat y.toNat = Int.ofNat x.toNat := by
-    have hcancel := Reasoning.Theory.clipperMulDiv_cancel (x := y) (y := x)
+    have hcancel := Reasoning.Theory.mulDiv_cancel (x := y) (y := x)
       (by native_decide) (by simpa [x, y, Nat.mul_comm] using hmul)
     have hnat := congrArg UInt256.toNat hcancel
     rw [udiv_toNat, u256_mul_comm y x] at hnat
@@ -478,8 +478,7 @@ theorem clipperGetFeedPriceRdivRevertsMul
         (.internalCall "rdiv" [.var "valBln", .var "par"] "feedPrice") .reverted :=
     internalCallFunctionRevert
       (cfg := config)
-      (caller := Frame.mk contract
-        (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v))
+      (caller := Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v))
       (evm := evm) (name := "rdiv") (retVar := "feedPrice")
       (args := [.var "valBln", .var "par"])
       (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
@@ -509,8 +508,7 @@ theorem clipperGetFeedPriceRdivRevertsDivZero
         (.internalCall "rdiv" [.var "valBln", .var "par"] "feedPrice") .reverted :=
     internalCallFunctionRevert
       (cfg := config)
-      (caller := Frame.mk contract
-        (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v))
+      (caller := Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v))
       (evm := evm) (name := "rdiv") (retVar := "feedPrice")
       (args := [.var "valBln", .var "par"])
       (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
@@ -534,8 +532,7 @@ theorem clipperGetFeedPriceRdivReturns
       [ .internalCall "rdiv" [.var "valBln", .var "par"] "feedPrice",
         .return [.var "feedPrice"] ]
       (.returned
-        (Frame.mk contract
-          (clipperGetFeedPriceResultLocals outIlks outPeek outPar) (immStore v)) evm
+        (Frame.mk contract (clipperGetFeedPriceResultLocals outIlks outPeek outPar) (immStore v)) evm
         (some [.int (Int.ofNat
           (UInt256.div
             (UInt256.mul
@@ -556,15 +553,13 @@ theorem clipperGetFeedPriceRdivReturns
       resumeAfterInternalCall, x, y] using
       (internalCallFunctionReturn
         (cfg := config)
-        (caller := Frame.mk contract
-          (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v))
+        (caller := Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v))
         (evm := evm) (calleeEvm := evm)
         (name := "rdiv") (retVar := "feedPrice")
         (args := [.var "valBln", .var "par"])
         (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
         (callee := rdivFunction) (locals := clipperUintBinaryLocals x y)
-        (calleeSolm := Frame.mk contract
-          (clipperRdivReturnLocals x y (UInt256.mul x clipperRayWord)) (immStore v))
+        (calleeSolm := Frame.mk contract (clipperRdivReturnLocals x y (UInt256.mul x clipperRayWord)) (immStore v))
         (value := some [.int (Int.ofNat result.toNat)])
         (by simpa [x, y] using
           clipperEvalGetFeedPriceRdivArgs v evm outIlks outPeek outPar)
@@ -739,8 +734,7 @@ theorem clipperGetFeedPriceSuccessBlockOfTail
     (hprefix :
       ExecBlock config (Frame.mk contract ∅ (immStore v)) evm
         (clipperGetFeedPriceSuccessPrefixStmts)
-        (.ok (Frame.mk contract
-          (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
+        (.ok (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
     (htail :
       ExecBlock config
         (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek
@@ -757,8 +751,7 @@ theorem clipperGetFeedPriceSuccessFunctionRevertsOfTail
     (hprefix :
       ExecBlock config (Frame.mk contract ∅ (immStore v)) evm
         (clipperGetFeedPriceSuccessPrefixStmts)
-        (.ok (Frame.mk contract
-          (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
+        (.ok (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
     (htail :
       ExecBlock config
         (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek
@@ -774,8 +767,7 @@ theorem clipperGetFeedPriceSuccessFunctionReturnsOfTail
     (hprefix :
       ExecBlock config (Frame.mk contract ∅ (immStore v)) evm
         (clipperGetFeedPriceSuccessPrefixStmts)
-        (.ok (Frame.mk contract
-          (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
+        (.ok (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
     (htail :
       ExecBlock config
         (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek
@@ -793,8 +785,7 @@ theorem clipperGetFeedPriceSuccessCallRevertsOfTail
     (hprefix :
       ExecBlock config (Frame.mk contract ∅ (immStore v)) evm
         (clipperGetFeedPriceSuccessPrefixStmts)
-        (.ok (Frame.mk contract
-          (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
+        (.ok (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
     (htail :
       ExecBlock config
         (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek
@@ -815,8 +806,7 @@ theorem clipperGetFeedPriceSuccessCallReturnsOfTail
     (hprefix :
       ExecBlock config (Frame.mk contract ∅ (immStore v)) evm
         (clipperGetFeedPriceSuccessPrefixStmts)
-        (.ok (Frame.mk contract
-          (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
+        (.ok (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
     (htail :
       ExecBlock config
         (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek
@@ -824,8 +814,7 @@ theorem clipperGetFeedPriceSuccessCallReturnsOfTail
         (.returned resultFrame evmResult (some values))) :
     ExecStmt config (Frame.mk contract callerLocals (immStore v)) evm
       (.internalCall "getFeedPrice" [] retVar)
-      (.ok (Frame.mk contract
-        (callerLocals.insert retVar (collapseReturns values)) (immStore v)) evmResult) := by
+      (.ok (Frame.mk contract (callerLocals.insert retVar (collapseReturns values)) (immStore v)) evmResult) := by
   simpa [resumeAfterInternalCall] using
     (internalCallFunctionReturn
       (cfg := config) (caller := Frame.mk contract callerLocals (immStore v))

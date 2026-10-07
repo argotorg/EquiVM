@@ -1,3 +1,4 @@
+import Reasoning.ABIViews
 import Benchmarks.Dss.Jug.Dispatch
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -32,65 +33,6 @@ abbrev ilksDutySlotFor (I : ExecutionEnv) : UInt256 :=
 abbrev ilksRhoSlotFor (I : ExecutionEnv) : UInt256 :=
   ilksDutySlotFor I + ⟨1⟩
 
-theorem decodeCalldataWithMode_legacyBytes32_ok {cd : ByteArray} {x : Ident}
-    (hsz36 : 36 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiBytes32] cd =
-      some ((∅ : Store).insert x (.fixedBytes abiBytes32Width ((cd.toList.drop 4).take 32))) := by
-  unfold decodeCalldataWithMode decodeCalldata
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have hnot4 : ¬ cd.toList.length < 4 := by
-    rw [htlen]
-    omega
-  rw [if_neg hnot4]
-  have hnotDyn : ¬ ([abiBytes32].any isDynamicABIType = true ∧ 2 ^ 255 ≤ cd.toList.length) := by
-    simp [abiBytes32, isDynamicABIType]
-  rw [if_neg hnotDyn]
-  have hread : readBytes? (cd.toList.drop 4) 0 32 =
-      some ((cd.toList.drop 4).take 32) := by
-    unfold readBytes?
-    have hlen : (((cd.toList.drop 4).drop 0).take 32).length = 32 := by
-      rw [List.drop_zero, List.length_take, List.length_drop, htlen]
-      omega
-    rw [if_pos hlen, List.drop_zero]
-  have hblen : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hpad : zeroPadding? ((cd.toList.drop 4).take 32) 32 0 = some () := by
-    unfold zeroPadding? readBytes?
-    simp
-  have htake : List.take 32 ((cd.toList.drop 4).take 32) = (cd.toList.drop 4).take 32 :=
-    List.take_of_length_le (by rw [hblen])
-  have hnotArgShort : ¬ cd.toList.length - 4 < 32 := by
-    rw [htlen]
-    omega
-  simp [decodeCalldata.decodeArgs, decodeCalldata.insertValues, abiBytes32,
-    ABI.decodeABIValues?, ABI.decodeABIValue?, isDynamicABIType, staticABIEncodedSize?,
-    abiTupleHeadSize?, hread, abiBytes32Width, htake, hnotArgShort]
-
-theorem decodeCalldataWithMode_legacyBytes32_none_short {cd : ByteArray} {x : Ident}
-    (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 36) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiBytes32] cd = none := by
-  unfold decodeCalldataWithMode decodeCalldata
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have hnot4 : ¬ cd.toList.length < 4 := by
-    rw [htlen]
-    omega
-  rw [if_neg hnot4]
-  have hnotDyn : ¬ ([abiBytes32].any isDynamicABIType = true ∧ 2 ^ 255 ≤ cd.toList.length) := by
-    simp [abiBytes32, isDynamicABIType]
-  rw [if_neg hnotDyn]
-  have hread : readBytes? (cd.toList.drop 4) 0 32 = none := by
-    unfold readBytes?
-    have hlen : ¬ (((cd.toList.drop 4).drop 0).take 32).length = 32 := by
-      rw [List.drop_zero, List.length_take, List.length_drop, htlen]
-      omega
-    rw [if_neg hlen]
-  simp [decodeCalldata.decodeArgs, abiBytes32, ABI.decodeABIValues?, ABI.decodeABIValue?,
-    isDynamicABIType, staticABIEncodedSize?, abiTupleHeadSize?, hread]
 
 theorem jugDecode_ilks_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (ilksTransition.params.map Param.name)
@@ -118,14 +60,6 @@ theorem ilksArgBytes_len {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
   simp [bytes32Width]
   omega
 
-theorem ilksArgBytes_len_min {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
-    min 32 (I.calldata.toList.length - 4) = bytes32Width.val + 1 := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [htlen]
-  simp [bytes32Width]
-  omega
 
 theorem keyValueToWord_ilksArgKey {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     keyValueToWord (ilksArgKey I) = ilksArgWord I := by
@@ -436,50 +370,6 @@ theorem RD.solcIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
   exact ⟨_, _, by
     simpa [solcSlotWord, u256_add_comm] using rd24.jump hd24 hret (by evm_ov)⟩
 
-theorem uint256PairReturnEncoding (first second : UInt256) :
-    encodeReturnValues? [uint256, uint256]
-      [.int (Int.ofNat first.toNat), .int (Int.ofNat second.toNat)] =
-        some (UInt256.toByteArray first ++ UInt256.toByteArray second) := by
-  have hencFirst :
-      encodeABIValue? uint256 (.int (Int.ofNat first.toNat)) =
-        some (EVM.Word.toBytesBE first) := by
-    have hword : EVM.word first.toNat = first := by
-      show UInt256.ofNat first.toNat = first
-      exact u256_ofNat_toNat first
-    have hlt : first.toNat < EVM.twoPow 256 := by
-      change first.val.val < EVM.twoPow 256
-      exact first.val.isLt
-    simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hlt]
-  have hencSecond :
-      encodeABIValue? uint256 (.int (Int.ofNat second.toNat)) =
-        some (EVM.Word.toBytesBE second) := by
-    have hword : EVM.word second.toNat = second := by
-      show UInt256.ofNat second.toNat = second
-      exact u256_ofNat_toNat second
-    have hlt : second.toNat < EVM.twoPow 256 := by
-      change second.val.val < EVM.twoPow 256
-      exact second.val.isLt
-    simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hlt]
-  rw [show UInt256.toByteArray first = (EVM.Word.toBytesBE first).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray first).symm]
-  rw [show UInt256.toByteArray second = (EVM.Word.toBytesBE second).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray second).symm]
-  unfold encodeReturnValues? encodeABIValues?
-  rw [show abiTupleHeadSize? [uint256, uint256] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  unfold encodeABIValuesFrom?
-  rw [hencFirst]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
-  unfold encodeABIValuesFrom?
-  rw [hencSecond]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
-  unfold encodeABIValuesFrom?
-  simp only [Bool.false_eq_true, if_false, List.nil_append, List.append_nil]
-  apply congrArg some
-  apply ByteArray.ext
-  simp [ByteArray.data_append]
 
 theorem jugIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
     (evm : EVM.State) (locals : Store)
@@ -488,24 +378,25 @@ theorem jugIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
     ExecTransitionBody config contract evm locals ilksTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
-          (jugSlotWord (ilksDutySlotFor I) evm.accountMap evm.executionEnv).toNat)),
+          (solcSlotWordAt (ilksDutySlotFor I) evm.accountMap evm.executionEnv).toNat)),
           (.int (Int.ofNat
-          (jugSlotWord (ilksRhoSlotFor I) evm.accountMap evm.executionEnv).toNat))])) := by
+          (solcSlotWordAt (ilksRhoSlotFor I) evm.accountMap evm.executionEnv).toNat))])) := by
   subst locals
   let frame : Frame := { contract := contract, locals := (∅ : Store).insert "arg0" (ilksArgValue I) }
   have hduty :
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "duty")) =
         .ok (.int (Int.ofNat
-          (jugSlotWord (ilksDutySlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+          (solcSlotWordAt (ilksDutySlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "duty") (er := ilksDutyEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksDutySlotFor I))
       (value := .int (Int.ofNat
-        (jugSlotWord (ilksDutySlotFor I) evm.accountMap evm.executionEnv).toNat))
+        (solcSlotWordAt (ilksDutySlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, ilksF])
       (by
-        have hkeyLen := ilksArgBytes_len_min (I := I) hsz36
+        have hkeyLen := calldata_first_word_min_length (I := I) hsz36
+        change _ = bytes32Width.val + 1 at hkeyLen
         simp [frame, ilksDutyEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef, evalStorageRefSteps,
           evalStorageRefStep, ilksF, evalExpr?, valueToKey?, EvalResult.ofOption,
           EvalResult.bind, pure, bind, hkeyLen])
@@ -513,20 +404,21 @@ theorem jugIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
         simp [frame, ilksArgKey, storageTypeAt?, storageTypeStep?, contract,
           storageDecls, IlkStructTy, uint256St])
       (by rfl)
-      (by simpa [jugSlotWord] using jugStorageLocLoad_uint256 evm (ilksDutySlotFor I))
+      (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (ilksDutySlotFor I))
   have hrho :
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "rho")) =
         .ok (.int (Int.ofNat
-          (jugSlotWord (ilksRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+          (solcSlotWordAt (ilksRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "rho") (er := ilksRhoEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksRhoSlotFor I))
       (value := .int (Int.ofNat
-        (jugSlotWord (ilksRhoSlotFor I) evm.accountMap evm.executionEnv).toNat))
+        (solcSlotWordAt (ilksRhoSlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, ilksF])
       (by
-        have hkeyLen := ilksArgBytes_len_min (I := I) hsz36
+        have hkeyLen := calldata_first_word_min_length (I := I) hsz36
+        change _ = bytes32Width.val + 1 at hkeyLen
         simp [frame, ilksRhoEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef, evalStorageRefSteps,
           evalStorageRefStep, ilksF, evalExpr?, valueToKey?, EvalResult.ofOption,
           EvalResult.bind, pure, bind, hkeyLen])
@@ -534,15 +426,15 @@ theorem jugIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
         simp [frame, ilksArgKey, storageTypeAt?, storageTypeStep?, contract,
           storageDecls, IlkStructTy, uint256St])
       (by rfl)
-      (by simpa [jugSlotWord] using jugStorageLocLoad_uint256 evm (ilksRhoSlotFor I))
+      (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (ilksRhoSlotFor I))
   have hreturns :
       evalExprs? config frame evm
         [.storage (ilksF (.var "arg0") "duty"), .storage (ilksF (.var "arg0") "rho")] =
           .ok
             [ .int (Int.ofNat
-                (jugSlotWord (ilksDutySlotFor I) evm.accountMap evm.executionEnv).toNat),
+                (solcSlotWordAt (ilksDutySlotFor I) evm.accountMap evm.executionEnv).toNat),
               .int (Int.ofNat
-                (jugSlotWord (ilksRhoSlotFor I) evm.accountMap evm.executionEnv).toNat) ] := by
+                (solcSlotWordAt (ilksRhoSlotFor I) evm.accountMap evm.executionEnv).toNat) ] := by
     simp [evalExprs?, hduty, hrho, EvalResult.bind, bind, pure]
   simpa [ilksTransition, nonpayable, frame] using
     (ExecFuncBody.execBlockRet <|
@@ -591,8 +483,8 @@ theorem jugIlksBodyCoreOk
     runtimeRefinementFor config contract σ σ₀ g A I := by
   let dutySlot := solcMappingSlot ⟨1⟩ (ilksArgWord I)
   let rhoSlot := dutySlot + ⟨1⟩
-  let dutyWord := jugSlotWord dutySlot σ I
-  let rhoWord := jugSlotWord rhoSlot σ I
+  let dutyWord := solcSlotWordAt dutySlot σ I
+  let rhoWord := solcSlotWordAt rhoSlot σ I
   let locals : Store := (∅ : Store).insert "arg0" (ilksArgValue I)
   have hdutySlot : ilksDutySlotFor I = dutySlot := by
     simp [dutySlot, ilksDutySlotFor_eq hsz36]
@@ -603,8 +495,8 @@ theorem jugIlksBodyCoreOk
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals ilksTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (jugSlotWord (ilksDutySlotFor I) σ I).toNat)),
-            (.int (Int.ofNat (jugSlotWord (ilksRhoSlotFor I) σ I).toNat))])) := by
+          (some [(.int (Int.ofNat (solcSlotWordAt (ilksDutySlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (solcSlotWordAt (ilksRhoSlotFor I) σ I).toNat))])) := by
     simpa [locals, initState] using
       jugIlksBodyReturns hsz36
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -645,7 +537,7 @@ theorem jugIlksBodyCoreOk
       (pc := ⟨578⟩) (first := dutyWord) (second := rhoWord) (ret := ⟨578⟩)
       (R := [sel]) (mem := solcMappingHashMem ⟨1⟩ (ilksArgWord I))
       (by
-        simpa [dutyWord, rhoWord, dutySlot, rhoSlot, jugSlotWord] using hretPc)
+        simpa [dutyWord, rhoWord, dutySlot, rhoSlot, solcSlotWordAt] using hretPc)
       (by
         unfold solcTwoWordReturnFromMemWf
         repeat' first | apply And.intro | native_decide)
@@ -661,8 +553,8 @@ theorem jugIlksBodyCoreOk
     rw [show ilksTransition.returnType = [uint256, uint256] by rfl]
     exact returnEquiv.returned rfl (uint256PairReturnEncoding dutyWord rhoWord)
   have hval :
-      some [Value.int (Int.ofNat (jugSlotWord (ilksDutySlotFor I) σ I).toNat),
-        Value.int (Int.ofNat (jugSlotWord (ilksRhoSlotFor I) σ I).toNat)] =
+      some [Value.int (Int.ofNat (solcSlotWordAt (ilksDutySlotFor I) σ I).toNat),
+        Value.int (Int.ofNat (solcSlotWordAt (ilksRhoSlotFor I) σ I).toNat)] =
       some [Value.int dutyWord.toNat, Value.int rhoWord.toNat] := by
     rw [hdutySlot, hrhoSlot]
     rfl
@@ -696,7 +588,6 @@ theorem jugIlksBodyCoreDecodeFailed_short
 theorem jugIlksBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = jugBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (jugSelBytes 6)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

@@ -18,11 +18,11 @@ by_cases hageOne : age = ⟨1⟩
     let evm :=
       initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hrhoWord :
-        jugSlotWord (fileDutyRhoSlotFor I) σ I =
-          jugSlotWord (fileDutyRhoSlotFor I) σ I :=
+        solcSlotWordAt (fileDutyRhoSlotFor I) σ I =
+          solcSlotWordAt (fileDutyRhoSlotFor I) σ I :=
       rfl
     have hleSolm :
-        (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+        (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
           (UInt256.ofNat I.header.timestamp).toNat := by
       rw [← hrhoWord]
       exact hle
@@ -54,7 +54,7 @@ by_cases hageOne : age = ⟨1⟩
         EVM.address (dripVatAddress σ I) =
           AccountAddress.ofUInt256 (dripVatTargetWord σ I) := by
       rw [htgtAddr]
-      exact evmAddress_accountAddress _
+      exact address_of_val _
     have hΘE :
         (σ', g'', A', true, out) =
           Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
@@ -70,8 +70,8 @@ by_cases hageOne : age = ⟨1⟩
               (dripIlkHashMem I)).readWithPadding
                 dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
             (evm.executionEnv.depth + 1)
-            evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks true := by
-      simpa [evm, initState, hperm] using hΘ'
+            evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (true && evm.executionEnv.perm) := by
+      simpa [evm, initState] using hΘ'
     let σ'_solm := σ'
     let A'_solm := A'
     have hcallSolm :
@@ -80,48 +80,48 @@ by_cases hageOne : age = ⟨1⟩
           (true, { evm with accountMap := σ', substate := A' }, out) true := by
       simpa [evm, evm] using
         callCoincides hdepthNe htgt (dripVatIlksEncode_eq I hsz36) hΘE
-    have hbaseWord : jugSlotWord ⟨4⟩ σ' I =
-        jugSlotWord ⟨4⟩ σ'_solm I :=
+    have hbaseWord : solcSlotWordAt ⟨4⟩ σ' I =
+        solcSlotWordAt ⟨4⟩ σ'_solm I :=
       rfl
     have hdutyWord :
-        jugSlotWord (fileDutyDutySlotFor I) σ' I =
-          jugSlotWord (fileDutyDutySlotFor I) σ'_solm I :=
+        solcSlotWordAt (fileDutyDutySlotFor I) σ' I =
+          solcSlotWordAt (fileDutyDutySlotFor I) σ'_solm I :=
       rfl
     have haddNoSolm :
-        ¬ UInt256.size ≤ (jugSlotWord ⟨4⟩ σ'_solm I).toNat +
-          (jugSlotWord (fileDutyDutySlotFor I) σ'_solm I).toNat := by
+        ¬ UInt256.size ≤ (solcSlotWordAt ⟨4⟩ σ'_solm I).toNat +
+          (solcSlotWordAt (fileDutyDutySlotFor I) σ'_solm I).toNat := by
       intro hbad
       exact haddOverflow (by
         simpa [hbaseWord, hdutyWord] using hbad)
     have hfeeNZSolm :
-        jugSlotWord ⟨4⟩ σ'_solm I +
-            jugSlotWord (fileDutyDutySlotFor I) σ'_solm I ≠
+        solcSlotWordAt ⟨4⟩ σ'_solm I +
+            solcSlotWordAt (fileDutyDutySlotFor I) σ'_solm I ≠
           ⟨0⟩ := by
       intro hbad
       exact hfeeZero (by
         simpa [fee, hbaseWord, hdutyWord] using hbad)
     have hrhoPostWord :
-        jugSlotWord (fileDutyRhoSlotFor I) σ' I =
-          jugSlotWord (fileDutyRhoSlotFor I) σ'_solm I :=
+        solcSlotWordAt (fileDutyRhoSlotFor I) σ' I =
+          solcSlotWordAt (fileDutyRhoSlotFor I) σ'_solm I :=
       rfl
     have hageOneEvm :
         UInt256.sub (UInt256.ofNat I.header.timestamp)
-          (jugSlotWord (fileDutyRhoSlotFor I) σ' I) = ⟨1⟩ := by
+          (solcSlotWordAt (fileDutyRhoSlotFor I) σ' I) = ⟨1⟩ := by
       simpa [age] using hageOne
     have hageOneSolm :
         UInt256.sub (UInt256.ofNat I.header.timestamp)
-          (jugSlotWord (fileDutyRhoSlotFor I) σ'_solm I) = ⟨1⟩ := by
+          (solcSlotWordAt (fileDutyRhoSlotFor I) σ'_solm I) = ⟨1⟩ := by
       simpa [hrhoPostWord] using hageOneEvm
     have hrmulOverflowSolm :
         UInt256.size ≤
-          (jugSlotWord ⟨4⟩ σ'_solm I +
-            jugSlotWord (fileDutyDutySlotFor I) σ'_solm I).toNat *
+          (solcSlotWordAt ⟨4⟩ σ'_solm I +
+            solcSlotWordAt (fileDutyDutySlotFor I) σ'_solm I).toNat *
             (dripVatIlksPrevWord out).toNat := by
       simpa [fee, hbaseWord, hdutyWord] using hRmulOverflowOne
     have hbody :
         ExecTransitionBody config contract evm locals
           dripTransition.body .reverted := by
-      simpa [evm, locals, initState, jugSlotWord] using
+      simpa [evm, locals, initState, solcSlotWordAt] using
         (jugDripSourceBodyVatIlksRmulOverflowRevertsNOne
           (σ := σ)
           (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -132,16 +132,16 @@ by_cases hageOne : age = ⟨1⟩
           (out := out) hwv hsz36 hleSolm hvatCodeSolm
           (by simpa [evm] using hcallSolm) _hdecOut
           (by
-            simpa [evm, initState, jugSlotWord] using
+            simpa [evm, initState, solcSlotWordAt] using
               haddNoSolm)
           (by
-            simpa [evm, initState, jugSlotWord] using
+            simpa [evm, initState, solcSlotWordAt] using
               hfeeNZSolm)
           (by
-            simpa [evm, initState, jugSlotWord] using
+            simpa [evm, initState, solcSlotWordAt] using
               hageOneSolm)
           (by
-            simpa [evm, initState, jugSlotWord] using
+            simpa [evm, initState, solcSlotWordAt] using
               hrmulOverflowSolm))
     have rd2153One := by
       simpa [fee, age, hageOne] using _rd2153
@@ -160,18 +160,18 @@ by_cases hageOne : age = ⟨1⟩
           UInt256.size :=
       Nat.lt_of_not_ge hRmulOverflowOne
     let rate := UInt256.div (dripVatIlksPrevWord out * fee) jugRay
-    by_cases hrateMax : (rate.toNat : Int) ≤ maxInt256
+    by_cases hrateMax : (rate.toNat : Int) ≤ Reasoning.Theory.maxInt256
     · by_cases hprevMaxNot :
-          ¬ ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256
+          ¬ ((dripVatIlksPrevWord out).toNat : Int) ≤ Reasoning.Theory.maxInt256
       · let locals := dripLocals I
         let evm :=
           initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hrhoWord :
-            jugSlotWord (fileDutyRhoSlotFor I) σ I =
-              jugSlotWord (fileDutyRhoSlotFor I) σ I :=
+            solcSlotWordAt (fileDutyRhoSlotFor I) σ I =
+              solcSlotWordAt (fileDutyRhoSlotFor I) σ I :=
           rfl
         have hleSolm :
-            (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+            (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
               (UInt256.ofNat I.header.timestamp).toNat := by
           rw [← hrhoWord]
           exact hle
@@ -205,7 +205,7 @@ by_cases hageOne : age = ⟨1⟩
               AccountAddress.ofUInt256
                 (dripVatTargetWord σ I) := by
           rw [htgtAddr]
-          exact evmAddress_accountAddress _
+          exact address_of_val _
         have hΘE :
             (σ', g'', A', true, out) =
               Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
@@ -223,8 +223,8 @@ by_cases hageOne : age = ⟨1⟩
                   (dripIlkHashMem I)).readWithPadding
                     dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
                 (evm.executionEnv.depth + 1)
-                evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks true := by
-          simpa [evm, initState, hperm] using hΘ'
+                evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (true && evm.executionEnv.perm) := by
+          simpa [evm, initState] using hΘ'
         let σ'_solm := σ'
         let A'_solm := A'
         have hcallSolm :
@@ -233,58 +233,58 @@ by_cases hageOne : age = ⟨1⟩
               (true, { evm with accountMap := σ', substate := A' }, out) true := by
           simpa [evm, evm] using
             callCoincides hdepthNe htgt (dripVatIlksEncode_eq I hsz36) hΘE
-        have hbaseWord : jugSlotWord ⟨4⟩ σ' I =
-            jugSlotWord ⟨4⟩ σ'_solm I :=
+        have hbaseWord : solcSlotWordAt ⟨4⟩ σ' I =
+            solcSlotWordAt ⟨4⟩ σ'_solm I :=
           rfl
         have hdutyWord :
-            jugSlotWord (fileDutyDutySlotFor I) σ' I =
-              jugSlotWord (fileDutyDutySlotFor I) σ'_solm I :=
+            solcSlotWordAt (fileDutyDutySlotFor I) σ' I =
+              solcSlotWordAt (fileDutyDutySlotFor I) σ'_solm I :=
           rfl
         have haddNoSolm :
-            ¬ UInt256.size ≤ (jugSlotWord ⟨4⟩ σ'_solm I).toNat +
-              (jugSlotWord (fileDutyDutySlotFor I)
+            ¬ UInt256.size ≤ (solcSlotWordAt ⟨4⟩ σ'_solm I).toNat +
+              (solcSlotWordAt (fileDutyDutySlotFor I)
                 σ'_solm I).toNat := by
           intro hbad
           exact haddOverflow (by
             simpa [hbaseWord, hdutyWord] using hbad)
         have hfeeNZSolm :
-            jugSlotWord ⟨4⟩ σ'_solm I +
-                jugSlotWord (fileDutyDutySlotFor I) σ'_solm I ≠
+            solcSlotWordAt ⟨4⟩ σ'_solm I +
+                solcSlotWordAt (fileDutyDutySlotFor I) σ'_solm I ≠
               ⟨0⟩ := by
           intro hbad
           exact hfeeZero (by
             simpa [fee, hbaseWord, hdutyWord] using hbad)
         have hrhoPostWord :
-            jugSlotWord (fileDutyRhoSlotFor I) σ' I =
-              jugSlotWord (fileDutyRhoSlotFor I) σ'_solm I :=
+            solcSlotWordAt (fileDutyRhoSlotFor I) σ' I =
+              solcSlotWordAt (fileDutyRhoSlotFor I) σ'_solm I :=
           rfl
         have hageOneEvm :
             UInt256.sub (UInt256.ofNat I.header.timestamp)
-              (jugSlotWord (fileDutyRhoSlotFor I) σ' I) = ⟨1⟩ := by
+              (solcSlotWordAt (fileDutyRhoSlotFor I) σ' I) = ⟨1⟩ := by
           simpa [age] using hageOne
         have hageOneSolm :
             UInt256.sub (UInt256.ofNat I.header.timestamp)
-              (jugSlotWord (fileDutyRhoSlotFor I) σ'_solm I) =
+              (solcSlotWordAt (fileDutyRhoSlotFor I) σ'_solm I) =
                 ⟨1⟩ := by
           simpa [hrhoPostWord] using hageOneEvm
         have hfitRmulSolm :
-            (jugSlotWord ⟨4⟩ σ'_solm I +
-                jugSlotWord (fileDutyDutySlotFor I)
+            (solcSlotWordAt ⟨4⟩ σ'_solm I +
+                solcSlotWordAt (fileDutyDutySlotFor I)
                   σ'_solm I).toNat *
               (dripVatIlksPrevWord out).toNat < UInt256.size := by
           simpa [fee, hbaseWord, hdutyWord] using hfitRmulOne
         have hrateMaxSolm :
             ((UInt256.div
                 (dripVatIlksPrevWord out *
-                  (jugSlotWord ⟨4⟩ σ'_solm I +
-                    jugSlotWord (fileDutyDutySlotFor I)
+                  (solcSlotWordAt ⟨4⟩ σ'_solm I +
+                    solcSlotWordAt (fileDutyDutySlotFor I)
                       σ'_solm I))
-                jugRay).toNat : Int) ≤ maxInt256 := by
+                jugRay).toNat : Int) ≤ Reasoning.Theory.maxInt256 := by
           simpa [rate, fee, hbaseWord, hdutyWord] using hrateMax
         have hbody :
             ExecTransitionBody config contract evm locals
               dripTransition.body .reverted := by
-          simpa [evm, locals, initState, jugSlotWord] using
+          simpa [evm, locals, initState, solcSlotWordAt] using
             (jugDripSourceBodyVatIlksDiffYBoundRevertsNOne
               (σ := σ)
               (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -295,19 +295,19 @@ by_cases hageOne : age = ⟨1⟩
               (out := out) hwv hsz36 hleSolm hvatCodeSolm
               (by simpa [evm] using hcallSolm) _hdecOut
               (by
-                simpa [evm, initState, jugSlotWord] using
+                simpa [evm, initState, solcSlotWordAt] using
                   haddNoSolm)
               (by
-                simpa [evm, initState, jugSlotWord] using
+                simpa [evm, initState, solcSlotWordAt] using
                   hfeeNZSolm)
               (by
-                simpa [evm, initState, jugSlotWord] using
+                simpa [evm, initState, solcSlotWordAt] using
                   hageOneSolm)
               (by
-                simpa [evm, initState, jugSlotWord] using
+                simpa [evm, initState, solcSlotWordAt] using
                   hfitRmulSolm)
               (by
-                simpa [evm, initState, jugSlotWord] using
+                simpa [evm, initState, solcSlotWordAt] using
                   hrateMaxSolm)
               hprevMaxNot)
         have rd2153One := by
@@ -336,7 +336,7 @@ by_cases hageOne : age = ⟨1⟩
           (jugDecode_drip_ok hsz36) hbody
       · have hprevMax :
             ((dripVatIlksPrevWord out).toNat : Int) ≤
-              maxInt256 := by
+              Reasoning.Theory.maxInt256 := by
           by_contra hbad
           exact hprevMaxNot hbad
         by_cases hfoldNoCode :
@@ -346,11 +346,11 @@ by_cases hageOne : age = ⟨1⟩
           let evm :=
             initState σ σ₀ (Sat256.ofUInt256 g) A I
           have hrhoWord :
-              jugSlotWord (fileDutyRhoSlotFor I) σ I =
-                jugSlotWord (fileDutyRhoSlotFor I) σ I :=
+              solcSlotWordAt (fileDutyRhoSlotFor I) σ I =
+                solcSlotWordAt (fileDutyRhoSlotFor I) σ I :=
             rfl
           have hleSolm :
-              (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+              (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
                 (UInt256.ofNat I.header.timestamp).toNat := by
             rw [← hrhoWord]
             exact hle
@@ -384,7 +384,7 @@ by_cases hageOne : age = ⟨1⟩
                 AccountAddress.ofUInt256
                   (dripVatTargetWord σ I) := by
             rw [htgtAddr]
-            exact evmAddress_accountAddress _
+            exact address_of_val _
           have hΘE :
               (σ', g'', A', true, out) =
                 Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
@@ -402,8 +402,8 @@ by_cases hageOne : age = ⟨1⟩
                     (dripIlkHashMem I)).readWithPadding
                       dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
                   (evm.executionEnv.depth + 1)
-                  evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks true := by
-            simpa [evm, initState, hperm] using hΘ'
+                  evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (true && evm.executionEnv.perm) := by
+            simpa [evm, initState] using hΘ'
           let σ'_solm := σ'
           let A'_solm := A'
           have hcallSolm :
@@ -412,55 +412,55 @@ by_cases hageOne : age = ⟨1⟩
                 (true, { evm with accountMap := σ', substate := A' }, out) true := by
             simpa [evm, evm] using
               callCoincides hdepthNe htgt (dripVatIlksEncode_eq I hsz36) hΘE
-          have hbaseWord : jugSlotWord ⟨4⟩ σ' I =
-              jugSlotWord ⟨4⟩ σ'_solm I :=
+          have hbaseWord : solcSlotWordAt ⟨4⟩ σ' I =
+              solcSlotWordAt ⟨4⟩ σ'_solm I :=
             rfl
           have hdutyWord :
-              jugSlotWord (fileDutyDutySlotFor I) σ' I =
-                jugSlotWord (fileDutyDutySlotFor I) σ'_solm I :=
+              solcSlotWordAt (fileDutyDutySlotFor I) σ' I =
+                solcSlotWordAt (fileDutyDutySlotFor I) σ'_solm I :=
             rfl
           have haddNoSolm :
               ¬ UInt256.size ≤
-                (jugSlotWord ⟨4⟩ σ'_solm I).toNat +
-                  (jugSlotWord (fileDutyDutySlotFor I)
+                (solcSlotWordAt ⟨4⟩ σ'_solm I).toNat +
+                  (solcSlotWordAt (fileDutyDutySlotFor I)
                     σ'_solm I).toNat := by
             intro hbad
             exact haddOverflow (by
               simpa [hbaseWord, hdutyWord] using hbad)
           have hfeeNZSolm :
-              jugSlotWord ⟨4⟩ σ'_solm I +
-                  jugSlotWord (fileDutyDutySlotFor I) σ'_solm I ≠
+              solcSlotWordAt ⟨4⟩ σ'_solm I +
+                  solcSlotWordAt (fileDutyDutySlotFor I) σ'_solm I ≠
                 ⟨0⟩ := by
             intro hbad
             exact hfeeZero (by
               simpa [fee, hbaseWord, hdutyWord] using hbad)
           have hrhoPostWord :
-              jugSlotWord (fileDutyRhoSlotFor I) σ' I =
-                jugSlotWord (fileDutyRhoSlotFor I) σ'_solm I :=
+              solcSlotWordAt (fileDutyRhoSlotFor I) σ' I =
+                solcSlotWordAt (fileDutyRhoSlotFor I) σ'_solm I :=
             rfl
           have hageOneEvm :
               UInt256.sub (UInt256.ofNat I.header.timestamp)
-                (jugSlotWord (fileDutyRhoSlotFor I) σ' I) =
+                (solcSlotWordAt (fileDutyRhoSlotFor I) σ' I) =
                   ⟨1⟩ := by
             simpa [age] using hageOne
           have hageOneSolm :
               UInt256.sub (UInt256.ofNat I.header.timestamp)
-                (jugSlotWord (fileDutyRhoSlotFor I) σ'_solm I) =
+                (solcSlotWordAt (fileDutyRhoSlotFor I) σ'_solm I) =
                   ⟨1⟩ := by
             simpa [hrhoPostWord] using hageOneEvm
           have hfitRmulSolm :
-              (jugSlotWord ⟨4⟩ σ'_solm I +
-                  jugSlotWord (fileDutyDutySlotFor I)
+              (solcSlotWordAt ⟨4⟩ σ'_solm I +
+                  solcSlotWordAt (fileDutyDutySlotFor I)
                     σ'_solm I).toNat *
                 (dripVatIlksPrevWord out).toNat < UInt256.size := by
             simpa [fee, hbaseWord, hdutyWord] using hfitRmulOne
           have hrateMaxSolm :
               ((UInt256.div
                   (dripVatIlksPrevWord out *
-                    (jugSlotWord ⟨4⟩ σ'_solm I +
-                      jugSlotWord (fileDutyDutySlotFor I)
+                    (solcSlotWordAt ⟨4⟩ σ'_solm I +
+                      solcSlotWordAt (fileDutyDutySlotFor I)
                         σ'_solm I))
-                  jugRay).toNat : Int) ≤ maxInt256 := by
+                  jugRay).toNat : Int) ≤ Reasoning.Theory.maxInt256 := by
             simpa [rate, fee, hbaseWord, hdutyWord] using hrateMax
           have hfoldCodeSolm :
               Reasoning.Theory.extCodeSizeWord σ'_solm
@@ -470,7 +470,7 @@ by_cases hageOne : age = ⟨1⟩
               (UInt256.ofNat
                 ((σ'_solm.get? (dripVatAddress σ'_solm I)).option
                   0 (fun acc => acc.code.size))).toNat = 0 :=
-            drip_extCodeSizeWord_zero_lookup_code_zero
+            extCodeSizeWord_zero_lookup_code_zero
               (σ := σ'_solm)
               (target := dripVatTargetWord σ'_solm I)
               (addr := dripVatAddress σ'_solm I)
@@ -478,7 +478,7 @@ by_cases hageOne : age = ⟨1⟩
           have hbody :
               ExecTransitionBody config contract evm locals
                 dripTransition.body .reverted := by
-            simpa [evm, locals, initState, jugSlotWord] using
+            simpa [evm, locals, initState, solcSlotWordAt] using
               (jugDripSourceBodyVatFoldNoCodeRevertsNOne
                 (σ := σ)
                 (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -489,19 +489,19 @@ by_cases hageOne : age = ⟨1⟩
                 (out := out) hwv hsz36 hleSolm hvatCodeSolm
                 (by simpa [evm] using hcallSolm) _hdecOut
                 (by
-                  simpa [evm, initState, jugSlotWord] using
+                  simpa [evm, initState, solcSlotWordAt] using
                     haddNoSolm)
                 (by
-                  simpa [evm, initState, jugSlotWord] using
+                  simpa [evm, initState, solcSlotWordAt] using
                     hfeeNZSolm)
                 (by
-                  simpa [evm, initState, jugSlotWord] using
+                  simpa [evm, initState, solcSlotWordAt] using
                     hageOneSolm)
                 (by
-                  simpa [evm, initState, jugSlotWord] using
+                  simpa [evm, initState, solcSlotWordAt] using
                     hfitRmulSolm)
                 (by
-                  simpa [evm, initState, jugSlotWord] using
+                  simpa [evm, initState, solcSlotWordAt] using
                     hrateMaxSolm)
                 hprevMax
                 (by
@@ -545,26 +545,26 @@ by_cases hageOne : age = ⟨1⟩
           have hinnerSize :
               (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
                 (dripVatIlksPostCallMem I out)).size = 192 := by
-            rw [drip_twoWordHashMem_size_of_ge64
+            rw [twoWordHashMem_size_of_ge64
               (fileDutyIlkWord I) (⟨1⟩ : UInt256)
               (by rw [hpostSize]; omega), hpostSize]
           have hinnerRead64 :
               (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
                 (dripVatIlksPostCallMem I out)).readWithPadding
                   64 32 = UInt256.toByteArray ⟨128⟩ :=
-            drip_twoWordHashMem_read64_of_ge96
+            twoWordHashMem_read64_of_ge_96
               (fileDutyIlkWord I) (⟨1⟩ : UInt256)
               (by rw [hpostSize]; omega) hpostRead64
           have hfoldBaseSize : foldBaseMem.size = 192 := by
             dsimp [foldBaseMem]
-            rw [drip_twoWordHashMem_size_of_ge64
+            rw [twoWordHashMem_size_of_ge64
               (fileDutyIlkWord I) (⟨1⟩ : UInt256)
               (by rw [hinnerSize]; omega), hinnerSize]
           have hfoldBaseRead64 :
               foldBaseMem.readWithPadding 64 32 =
                 UInt256.toByteArray ⟨128⟩ := by
             dsimp [foldBaseMem]
-            exact drip_twoWordHashMem_read64_of_ge96
+            exact twoWordHashMem_read64_of_ge_96
               (fileDutyIlkWord I) (⟨1⟩ : UInt256)
               (by rw [hinnerSize]; omega) hinnerRead64
           have hrev := RD.jugDripVatFoldNoCode hfoldBaseSize
@@ -588,26 +588,26 @@ by_cases hageOne : age = ⟨1⟩
           have hinnerSize :
               (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
                 (dripVatIlksPostCallMem I out)).size = 192 := by
-            rw [drip_twoWordHashMem_size_of_ge64
+            rw [twoWordHashMem_size_of_ge64
               (fileDutyIlkWord I) (⟨1⟩ : UInt256)
               (by rw [hpostSize]; omega), hpostSize]
           have hinnerRead64 :
               (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
                 (dripVatIlksPostCallMem I out)).readWithPadding
                   64 32 = UInt256.toByteArray ⟨128⟩ :=
-            drip_twoWordHashMem_read64_of_ge96
+            twoWordHashMem_read64_of_ge_96
               (fileDutyIlkWord I) (⟨1⟩ : UInt256)
               (by rw [hpostSize]; omega) hpostRead64
           have hfoldBaseSize : foldBaseMem.size = 192 := by
             dsimp [foldBaseMem]
-            rw [drip_twoWordHashMem_size_of_ge64
+            rw [twoWordHashMem_size_of_ge64
               (fileDutyIlkWord I) (⟨1⟩ : UInt256)
               (by rw [hinnerSize]; omega), hinnerSize]
           have hfoldBaseRead64 :
               foldBaseMem.readWithPadding 64 32 =
                 UInt256.toByteArray ⟨128⟩ := by
             dsimp [foldBaseMem]
-            exact drip_twoWordHashMem_read64_of_ge96
+            exact twoWordHashMem_read64_of_ge_96
               (fileDutyIlkWord I) (⟨1⟩ : UInt256)
               (by rw [hinnerSize]; omega) hinnerRead64
           have rd2153One := by
@@ -657,11 +657,11 @@ by_cases hageOne : age = ⟨1⟩
               (UInt256.sub rate (dripVatIlksPrevWord out))
               hfoldBaseSize hfoldBaseRead64
           have hrhoWord :
-              jugSlotWord (fileDutyRhoSlotFor I) σ I =
-                jugSlotWord (fileDutyRhoSlotFor I) σ I :=
+              solcSlotWordAt (fileDutyRhoSlotFor I) σ I =
+                solcSlotWordAt (fileDutyRhoSlotFor I) σ I :=
             rfl
           have hleSolm :
-              (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+              (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
                 (UInt256.ofNat I.header.timestamp).toNat := by
             rw [← hrhoWord]
             exact hle
@@ -695,7 +695,7 @@ by_cases hageOne : age = ⟨1⟩
                 AccountAddress.ofUInt256
                   (dripVatTargetWord σ I) := by
             rw [htgtAddr]
-            exact evmAddress_accountAddress _
+            exact address_of_val _
           have hΘE :
               (σ', g'', A', true, out) =
                 Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
@@ -713,8 +713,8 @@ by_cases hageOne : age = ⟨1⟩
                     (dripIlkHashMem I)).readWithPadding
                       dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
                   (evm.executionEnv.depth + 1)
-                  evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks true := by
-            simpa [evm, initState, hperm] using hΘ'
+                  evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (true && evm.executionEnv.perm) := by
+            simpa [evm, initState] using hΘ'
           let σ'_solm := σ'
           let A'_solm := A'
           have hcallSolm :
@@ -741,7 +741,7 @@ by_cases hageOne : age = ⟨1⟩
               EVM.address (dripVatAddress σ'_solm I) =
                 AccountAddress.ofUInt256 (dripVatTargetWord σ' I) := by
             rw [hfoldTargetAddr]
-            exact evmAddress_accountAddress _
+            exact address_of_val _
           have hvowWord :
               dripVowTargetWord σ'_solm I = dripVowTargetWord σ' I :=
             rfl
@@ -762,55 +762,55 @@ by_cases hageOne : age = ⟨1⟩
               (dripVatIlksPrevWord out)
               (UInt256.sub rate (dripVatIlksPrevWord out))
               hfoldBaseSize hsz36 hrateMax hprevMax rfl
-          have hbaseWord : jugSlotWord ⟨4⟩ σ' I =
-              jugSlotWord ⟨4⟩ σ'_solm I :=
+          have hbaseWord : solcSlotWordAt ⟨4⟩ σ' I =
+              solcSlotWordAt ⟨4⟩ σ'_solm I :=
             rfl
           have hdutyWord :
-              jugSlotWord (fileDutyDutySlotFor I) σ' I =
-                jugSlotWord (fileDutyDutySlotFor I) σ'_solm I :=
+              solcSlotWordAt (fileDutyDutySlotFor I) σ' I =
+                solcSlotWordAt (fileDutyDutySlotFor I) σ'_solm I :=
             rfl
           have haddNoSolm :
               ¬ UInt256.size ≤
-                (jugSlotWord ⟨4⟩ σ'_solm I).toNat +
-                  (jugSlotWord (fileDutyDutySlotFor I)
+                (solcSlotWordAt ⟨4⟩ σ'_solm I).toNat +
+                  (solcSlotWordAt (fileDutyDutySlotFor I)
                     σ'_solm I).toNat := by
             intro hbad
             exact haddOverflow (by
               simpa [hbaseWord, hdutyWord] using hbad)
           have hfeeNZSolm :
-              jugSlotWord ⟨4⟩ σ'_solm I +
-                  jugSlotWord (fileDutyDutySlotFor I) σ'_solm I ≠
+              solcSlotWordAt ⟨4⟩ σ'_solm I +
+                  solcSlotWordAt (fileDutyDutySlotFor I) σ'_solm I ≠
                 ⟨0⟩ := by
             intro hbad
             exact hfeeZero (by
               simpa [fee, hbaseWord, hdutyWord] using hbad)
           have hrhoPostWord :
-              jugSlotWord (fileDutyRhoSlotFor I) σ' I =
-                jugSlotWord (fileDutyRhoSlotFor I) σ'_solm I :=
+              solcSlotWordAt (fileDutyRhoSlotFor I) σ' I =
+                solcSlotWordAt (fileDutyRhoSlotFor I) σ'_solm I :=
             rfl
           have hageOneEvm :
               UInt256.sub (UInt256.ofNat I.header.timestamp)
-                (jugSlotWord (fileDutyRhoSlotFor I) σ' I) =
+                (solcSlotWordAt (fileDutyRhoSlotFor I) σ' I) =
                   ⟨1⟩ := by
             simpa [age] using hageOne
           have hageOneSolm :
               UInt256.sub (UInt256.ofNat I.header.timestamp)
-                (jugSlotWord (fileDutyRhoSlotFor I) σ'_solm I) =
+                (solcSlotWordAt (fileDutyRhoSlotFor I) σ'_solm I) =
                   ⟨1⟩ := by
             simpa [hrhoPostWord] using hageOneEvm
           have hfitRmulSolm :
-              (jugSlotWord ⟨4⟩ σ'_solm I +
-                  jugSlotWord (fileDutyDutySlotFor I)
+              (solcSlotWordAt ⟨4⟩ σ'_solm I +
+                  solcSlotWordAt (fileDutyDutySlotFor I)
                     σ'_solm I).toNat *
                 (dripVatIlksPrevWord out).toNat < UInt256.size := by
             simpa [fee, hbaseWord, hdutyWord] using hfitRmulOne
           have hrateMaxSolm :
               ((UInt256.div
                   (dripVatIlksPrevWord out *
-                    (jugSlotWord ⟨4⟩ σ'_solm I +
-                      jugSlotWord (fileDutyDutySlotFor I)
+                    (solcSlotWordAt ⟨4⟩ σ'_solm I +
+                      solcSlotWordAt (fileDutyDutySlotFor I)
                         σ'_solm I))
-                  jugRay).toNat : Int) ≤ maxInt256 := by
+                  jugRay).toNat : Int) ≤ Reasoning.Theory.maxInt256 := by
             simpa [rate, fee, hbaseWord, hdutyWord] using hrateMax
           have hrateSolmEq :
               UInt256.div
@@ -822,8 +822,8 @@ by_cases hageOne : age = ⟨1⟩
                 rate := by
             change UInt256.div
                 (dripVatIlksPrevWord out *
-                  (jugSlotWord ⟨4⟩ σ'_solm I +
-                    jugSlotWord (fileDutyDutySlotFor I) σ'_solm I))
+                  (solcSlotWordAt ⟨4⟩ σ'_solm I +
+                    solcSlotWordAt (fileDutyDutySlotFor I) σ'_solm I))
                 jugRay = rate
             simpa [rate, fee, hbaseWord, hdutyWord]
           have hfoldCodeSolmNe :
@@ -865,8 +865,8 @@ by_cases hageOne : age = ⟨1⟩
                         dripVatFoldOutPtr.toNat
                         dripVatFoldInSize.toNat)
                     (evmVatE.executionEnv.depth + 1)
-                    evmVatE.executionEnv.header evmVatE.executionEnv.blobVersionedHashes evmVatE.executionEnv.blocks true := by
-              simpa [evmVatE, evm, initState, hperm, foldBaseMem] using
+                    evmVatE.executionEnv.header evmVatE.executionEnv.blobVersionedHashes evmVatE.executionEnv.blocks (true && evmVatE.executionEnv.perm) := by
+              simpa [evmVatE, evm, initState, foldBaseMem] using
                 hΘFold'
             let σ''_solm := σ''
             let A''_solm := AFold'
@@ -883,7 +883,7 @@ by_cases hageOne : age = ⟨1⟩
             have hbody :
                 ExecTransitionBody config contract evm locals
                   dripTransition.body .reverted := by
-              simpa [evm, evmVatS, locals, initState, jugSlotWord,
+              simpa [evm, evmVatS, locals, initState, solcSlotWordAt,
                 hrateSolmEq] using
                 (jugDripSourceBodyVatFoldCallFailedRevertsNOne
                   (σ := σ)
@@ -898,23 +898,23 @@ by_cases hageOne : age = ⟨1⟩
                   (by simpa [evm, evmVatS] using hcallSolm)
                   _hdecOut
                   (by
-                    simpa [evmVatS, evm, initState, jugSlotWord]
+                    simpa [evmVatS, evm, initState, solcSlotWordAt]
                       using haddNoSolm)
                   (by
-                    simpa [evmVatS, evm, initState, jugSlotWord]
+                    simpa [evmVatS, evm, initState, solcSlotWordAt]
                       using hfeeNZSolm)
                   (by
-                    simpa [evmVatS, evm, initState, jugSlotWord]
+                    simpa [evmVatS, evm, initState, solcSlotWordAt]
                       using hageOneSolm)
                   (by
-                    simpa [evmVatS, evm, initState, jugSlotWord]
+                    simpa [evmVatS, evm, initState, solcSlotWordAt]
                       using hfitRmulSolm)
                   (by
-                    simpa [evmVatS, evm, initState, jugSlotWord]
+                    simpa [evmVatS, evm, initState, solcSlotWordAt]
                       using hrateMaxSolm)
                   hprevMax hfoldCodeSolm
                   (by
-                    simpa [evmVatS, evm, initState, jugSlotWord,
+                    simpa [evmVatS, evm, initState, solcSlotWordAt,
                       hrateSolmEq] using hfoldCallSolm))
             have hrev := RD.jugDripVatFoldCallFailed
               (targetWord := dripVatTargetWord σ' I) rd1651
@@ -944,8 +944,8 @@ by_cases hageOne : age = ⟨1⟩
                         dripVatFoldOutPtr.toNat
                         dripVatFoldInSize.toNat)
                     (evmVatE.executionEnv.depth + 1)
-                    evmVatE.executionEnv.header evmVatE.executionEnv.blobVersionedHashes evmVatE.executionEnv.blocks true := by
-              simpa [evmVatE, evm, initState, hperm, foldBaseMem] using
+                    evmVatE.executionEnv.header evmVatE.executionEnv.blobVersionedHashes evmVatE.executionEnv.blocks (true && evmVatE.executionEnv.perm) := by
+              simpa [evmVatE, evm, initState, foldBaseMem] using
                 hΘFold'
             let σ''_solm := σ''
             let A''_solm := AFold'
@@ -965,13 +965,13 @@ by_cases hageOne : age = ⟨1⟩
                 substate := A''_solm }
             let finalLocals :=
               (dripDeltaLocalsInt I out
-                (jugSlotWord ⟨4⟩
+                (solcSlotWordAt ⟨4⟩
                   evmVatS.accountMap evmVatS.executionEnv +
-                  jugSlotWord (fileDutyDutySlotFor I)
+                  solcSlotWordAt (fileDutyDutySlotFor I)
                     evmVatS.accountMap evmVatS.executionEnv)
-                (jugSlotWord ⟨4⟩
+                (solcSlotWordAt ⟨4⟩
                   evmVatS.accountMap evmVatS.executionEnv +
-                  jugSlotWord (fileDutyDutySlotFor I)
+                  solcSlotWordAt (fileDutyDutySlotFor I)
                     evmVatS.accountMap evmVatS.executionEnv)
                 rate
                 ((rate.toNat : Int) -
@@ -982,16 +982,8 @@ by_cases hageOne : age = ⟨1⟩
                 evmFoldS.executionEnv.codeOwner
                 (fileDutyRhoSlotFor I)
                 (UInt256.ofNat evmFoldS.executionEnv.header.timestamp)
-            have hbody :
-                ExecTransitionBody config contract evm locals
-                  dripTransition.body
-                  (.returned
-                    { contract := contract, locals := finalLocals }
-                    evmRhoS
-                    (some [.int (Int.ofNat rate.toNat)])) := by
-              simpa [evm, evmVatS, evmFoldS, finalLocals, evmRhoS,
-                locals, initState, jugSlotWord, hrateSolmEq] using
-                (jugDripSourceBodyVatFoldCallSucceededReturnsNOne
+            have hboth :=
+                (jugDripSourceBodyVatFoldCallSucceededReturnsNOneSplit
                   (σ := σ)
                   (σ₀ := σ₀) (A := A) (I := I) (g := g)
                   (evmVat := evmVatS) (evmFold := evmFoldS)
@@ -1000,49 +992,61 @@ by_cases hageOne : age = ⟨1⟩
                   (by simpa [evm, evmVatS] using hcallSolm)
                   _hdecOut
                   (by
-                    simpa [evmVatS, evm, initState, jugSlotWord]
+                    simpa [evmVatS, evm, initState, solcSlotWordAt]
                       using haddNoSolm)
                   (by
-                    simpa [evmVatS, evm, initState, jugSlotWord]
+                    simpa [evmVatS, evm, initState, solcSlotWordAt]
                       using hfeeNZSolm)
                   (by
-                    simpa [evmVatS, evm, initState, jugSlotWord]
+                    simpa [evmVatS, evm, initState, solcSlotWordAt]
                       using hageOneSolm)
                   (by
-                    simpa [evmVatS, evm, initState, jugSlotWord]
+                    simpa [evmVatS, evm, initState, solcSlotWordAt]
                       using hfitRmulSolm)
                   (by
-                    simpa [evmVatS, evm, initState, jugSlotWord]
+                    simpa [evmVatS, evm, initState, solcSlotWordAt]
                       using hrateMaxSolm)
                   hprevMax hfoldCodeSolm
                   (by
-                    simpa [evmVatS, evm, initState, jugSlotWord,
+                    simpa [evmVatS, evm, initState, solcSlotWordAt,
                       hrateSolmEq] using hfoldCallSolm))
+            have hbody :
+                ExecTransitionBody config contract evm locals
+                  dripTransition.body
+                  (.returned
+                    { contract := contract, locals := finalLocals }
+                    evmRhoS
+                    (some [.int (Int.ofNat rate.toNat)])) := by
+              simpa [evm, evmVatS, evmFoldS, finalLocals, evmRhoS,
+                locals, initState, solcSlotWordAt, hrateSolmEq] using hboth.1
             obtain ⟨_, _, rd1669⟩ :=
               RD.jugDripVatFoldCallSucceeded
                 (targetWord := dripVatTargetWord σ' I) rd1651
-            have hret := RD.jugDripVatFoldStoreRhoReturns
-              (targetWord := dripVatTargetWord σ' I)
-              hsz36 hperm hfoldCallMemSize hfoldCallMemRead64 rd1669
-            exact hret.reEquivExecutionGen hcode hdispatch
-              (jugDecode_drip_ok hsz36) hbody
-              (by
-                simp [evmRhoS, evmFoldS, evmVatS, evm, σ''_solm,
-                  A''_solm, σ'_solm, initState, storageStore_accountMap])
-              (by
-                rw [show dripTransition.returnType = [uint256] by rfl]
-                exact returnEquiv_of_encode
-                  (by simpa [uint256] using
-                    uint256ReturnEncoding rate))
+            rcases RD.jugDripVatFoldStoreRhoReturnsSplit
+                (targetWord := dripVatTargetWord σ' I)
+                hsz36 hfoldCallMemSize hfoldCallMemRead64 rd1669 with
+              ⟨_, hret⟩ | ⟨hpf, hstatic⟩
+            · exact hret.reEquivExecutionGen hcode hdispatch
+                (jugDecode_drip_ok hsz36) hbody
+                (by
+                  simp [evmRhoS, evmFoldS, evmVatS, evm, σ''_solm,
+                    A''_solm, σ'_solm, initState, storageStore_accountMap])
+                (by
+                  rw [show dripTransition.returnType = [uint256] by rfl]
+                  exact returnEquiv_of_encode
+                    (by simpa [uint256] using
+                      uint256ReturnEncoding rate))
+            · exact hstatic.reEquivStaticHalt hcode hdispatch (jugDecode_drip_ok hsz36)
+                (hboth.2 hpf)
     · let locals := dripLocals I
       let evm :=
         initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hrhoWord :
-          jugSlotWord (fileDutyRhoSlotFor I) σ I =
-            jugSlotWord (fileDutyRhoSlotFor I) σ I :=
+          solcSlotWordAt (fileDutyRhoSlotFor I) σ I =
+            solcSlotWordAt (fileDutyRhoSlotFor I) σ I :=
         rfl
       have hleSolm :
-          (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+          (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
             (UInt256.ofNat I.header.timestamp).toNat := by
         rw [← hrhoWord]
         exact hle
@@ -1076,7 +1080,7 @@ by_cases hageOne : age = ⟨1⟩
             AccountAddress.ofUInt256
               (dripVatTargetWord σ I) := by
         rw [htgtAddr]
-        exact evmAddress_accountAddress _
+        exact address_of_val _
       have hΘE :
           (σ', g'', A', true, out) =
             Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
@@ -1094,8 +1098,8 @@ by_cases hageOne : age = ⟨1⟩
                 (dripIlkHashMem I)).readWithPadding
                   dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
               (evm.executionEnv.depth + 1)
-              evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks true := by
-        simpa [evm, initState, hperm] using hΘ'
+              evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (true && evm.executionEnv.perm) := by
+        simpa [evm, initState] using hΘ'
       let σ'_solm := σ'
       let A'_solm := A'
       have hcallSolm :
@@ -1104,59 +1108,59 @@ by_cases hageOne : age = ⟨1⟩
             (true, { evm with accountMap := σ', substate := A' }, out) true := by
         simpa [evm, evm] using
           callCoincides hdepthNe htgt (dripVatIlksEncode_eq I hsz36) hΘE
-      have hbaseWord : jugSlotWord ⟨4⟩ σ' I =
-          jugSlotWord ⟨4⟩ σ'_solm I :=
+      have hbaseWord : solcSlotWordAt ⟨4⟩ σ' I =
+          solcSlotWordAt ⟨4⟩ σ'_solm I :=
         rfl
       have hdutyWord :
-          jugSlotWord (fileDutyDutySlotFor I) σ' I =
-            jugSlotWord (fileDutyDutySlotFor I) σ'_solm I :=
+          solcSlotWordAt (fileDutyDutySlotFor I) σ' I =
+            solcSlotWordAt (fileDutyDutySlotFor I) σ'_solm I :=
         rfl
       have haddNoSolm :
-          ¬ UInt256.size ≤ (jugSlotWord ⟨4⟩ σ'_solm I).toNat +
-            (jugSlotWord (fileDutyDutySlotFor I)
+          ¬ UInt256.size ≤ (solcSlotWordAt ⟨4⟩ σ'_solm I).toNat +
+            (solcSlotWordAt (fileDutyDutySlotFor I)
               σ'_solm I).toNat := by
         intro hbad
         exact haddOverflow (by
           simpa [hbaseWord, hdutyWord] using hbad)
       have hfeeNZSolm :
-          jugSlotWord ⟨4⟩ σ'_solm I +
-              jugSlotWord (fileDutyDutySlotFor I) σ'_solm I ≠
+          solcSlotWordAt ⟨4⟩ σ'_solm I +
+              solcSlotWordAt (fileDutyDutySlotFor I) σ'_solm I ≠
             ⟨0⟩ := by
         intro hbad
         exact hfeeZero (by
           simpa [fee, hbaseWord, hdutyWord] using hbad)
       have hrhoPostWord :
-          jugSlotWord (fileDutyRhoSlotFor I) σ' I =
-            jugSlotWord (fileDutyRhoSlotFor I) σ'_solm I :=
+          solcSlotWordAt (fileDutyRhoSlotFor I) σ' I =
+            solcSlotWordAt (fileDutyRhoSlotFor I) σ'_solm I :=
         rfl
       have hageOneEvm :
           UInt256.sub (UInt256.ofNat I.header.timestamp)
-            (jugSlotWord (fileDutyRhoSlotFor I) σ' I) = ⟨1⟩ := by
+            (solcSlotWordAt (fileDutyRhoSlotFor I) σ' I) = ⟨1⟩ := by
         simpa [age] using hageOne
       have hageOneSolm :
           UInt256.sub (UInt256.ofNat I.header.timestamp)
-            (jugSlotWord (fileDutyRhoSlotFor I) σ'_solm I) =
+            (solcSlotWordAt (fileDutyRhoSlotFor I) σ'_solm I) =
               ⟨1⟩ := by
         simpa [hrhoPostWord] using hageOneEvm
       have hfitRmulSolm :
-          (jugSlotWord ⟨4⟩ σ'_solm I +
-              jugSlotWord (fileDutyDutySlotFor I)
+          (solcSlotWordAt ⟨4⟩ σ'_solm I +
+              solcSlotWordAt (fileDutyDutySlotFor I)
                 σ'_solm I).toNat *
             (dripVatIlksPrevWord out).toNat < UInt256.size := by
         simpa [fee, hbaseWord, hdutyWord] using hfitRmulOne
       have hrateMaxNotSolm :
           ¬ ((UInt256.div
               (dripVatIlksPrevWord out *
-                (jugSlotWord ⟨4⟩ σ'_solm I +
-                  jugSlotWord (fileDutyDutySlotFor I) σ'_solm I))
-              jugRay).toNat : Int) ≤ maxInt256 := by
+                (solcSlotWordAt ⟨4⟩ σ'_solm I +
+                  solcSlotWordAt (fileDutyDutySlotFor I) σ'_solm I))
+              jugRay).toNat : Int) ≤ Reasoning.Theory.maxInt256 := by
         intro hbad
         exact hrateMax (by
           simpa [rate, fee, hbaseWord, hdutyWord] using hbad)
       have hbody :
           ExecTransitionBody config contract evm locals
             dripTransition.body .reverted := by
-        simpa [evm, locals, initState, jugSlotWord] using
+        simpa [evm, locals, initState, solcSlotWordAt] using
           (jugDripSourceBodyVatIlksDiffXBoundRevertsNOne
             (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1167,19 +1171,19 @@ by_cases hageOne : age = ⟨1⟩
             (out := out) hwv hsz36 hleSolm hvatCodeSolm
             (by simpa [evm] using hcallSolm) _hdecOut
             (by
-              simpa [evm, initState, jugSlotWord] using
+              simpa [evm, initState, solcSlotWordAt] using
                 haddNoSolm)
             (by
-              simpa [evm, initState, jugSlotWord] using
+              simpa [evm, initState, solcSlotWordAt] using
                 hfeeNZSolm)
             (by
-              simpa [evm, initState, jugSlotWord] using
+              simpa [evm, initState, solcSlotWordAt] using
                 hageOneSolm)
             (by
-              simpa [evm, initState, jugSlotWord] using
+              simpa [evm, initState, solcSlotWordAt] using
                 hfitRmulSolm)
             (by
-              simpa [evm, initState, jugSlotWord] using
+              simpa [evm, initState, solcSlotWordAt] using
                 hrateMaxNotSolm))
       have rd2153One := by
         simpa [fee, age, hageOne] using _rd2153

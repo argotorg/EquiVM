@@ -1,3 +1,4 @@
+import Benchmarks.WETH9.ScalarStorage
 import Benchmarks.WETH9.Bytecode
 import Reasoning.ABI
 import Reasoning.Stepping

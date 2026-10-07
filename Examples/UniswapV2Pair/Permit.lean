@@ -61,7 +61,7 @@ theorem uniswapPermitBodyCoreOk_afterNonce
   have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredValue] := by
     simpa [recoveredValue] using uniswapEcrecoverDecode_ok (returndata := o) ho32
   have hnzSource : recoveredValue ≠ .address (AccountAddress.ofNat 0) := by
-    simpa [recoveredValue] using permitRecoveredAddress_ne_zero_of_mask_ne_zero ho32 hnz
+    simpa [recoveredValue] using recoveredAddress_ne_zero_of_mask_ne_zero ho32 hnz
   have hmatchSource : recoveredValue = permitOwnerValue I := by
     simpa [recoveredValue] using permitRecoveredAddress_eq_owner_of_mask_eq ho32 hmatch
   have hrest :
@@ -182,7 +182,7 @@ theorem uniswapPermitBodyCoreOk_afterNonce_short
   have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredValue] := by
     simpa [recoveredValue] using uniswapEcrecoverDecode_padded (returndata := o)
   have hnzSource : recoveredValue ≠ .address (AccountAddress.ofNat 0) := by
-    simpa [recoveredValue] using permitRecoveredPaddedAddress_ne_zero_of_mask_ne_zero hnz
+    simpa [recoveredValue] using recoveredPaddedAddress_ne_zero_of_mask_ne_zero hnz
   have hmatchSource : recoveredValue = permitOwnerValue I := by
     simpa [recoveredValue] using permitRecoveredPaddedAddress_eq_owner_of_mask_eq hmatch
   have hrest :
@@ -362,7 +362,7 @@ theorem uniswapPermitBodyCoreRevert_zero_afterNonce
   have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredValue] := by
     simpa [recoveredValue] using uniswapEcrecoverDecode_ok (returndata := o) ho32
   have hzeroSource : recoveredValue = .address (AccountAddress.ofNat 0) := by
-    simpa [recoveredValue] using permitRecoveredAddress_eq_zero_of_mask_eq_zero ho32 hzero
+    simpa [recoveredValue] using recoveredAddress_eq_zero_of_mask_eq_zero ho32 hzero
   have hrest :
       ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore evmS I }
         evmNonceS permitAfterNonceBody .reverted := by
@@ -438,7 +438,7 @@ theorem uniswapPermitBodyCoreRevert_mismatch_afterNonce
     simpa [recoveredValue, recoveredAddr] using uniswapEcrecoverDecode_ok (returndata := o) ho32
   have hnzValue : recoveredValue ≠ .address (AccountAddress.ofNat 0) := by
     simpa [recoveredValue, recoveredAddr] using
-      permitRecoveredAddress_ne_zero_of_mask_ne_zero ho32 hnz
+      recoveredAddress_ne_zero_of_mask_ne_zero ho32 hnz
   have hnzAddr : recoveredAddr ≠ AccountAddress.ofNat 0 := by
     intro haddr
     apply hnzValue
@@ -519,7 +519,7 @@ theorem uniswapPermitBodyCoreRevert_zero_afterNonce_short
   have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredValue] := by
     simpa [recoveredValue] using uniswapEcrecoverDecode_padded (returndata := o)
   have hzeroSource : recoveredValue = .address (AccountAddress.ofNat 0) := by
-    simpa [recoveredValue] using permitRecoveredPaddedAddress_eq_zero_of_mask_eq_zero hzero
+    simpa [recoveredValue] using recoveredPaddedAddress_eq_zero_of_mask_eq_zero hzero
   have hrest :
       ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore evmS I }
         evmNonceS permitAfterNonceBody .reverted := by
@@ -597,7 +597,7 @@ theorem uniswapPermitBodyCoreRevert_mismatch_afterNonce_short
     simpa [recoveredValue, recoveredAddr] using uniswapEcrecoverDecode_padded (returndata := o)
   have hnzValue : recoveredValue ≠ .address (AccountAddress.ofNat 0) := by
     simpa [recoveredValue, recoveredAddr] using
-      permitRecoveredPaddedAddress_ne_zero_of_mask_ne_zero hnz
+      recoveredPaddedAddress_ne_zero_of_mask_ne_zero hnz
   have hnzAddr : recoveredAddr ≠ AccountAddress.ofNat 0 := by
     intro haddr
     apply hnzValue
@@ -639,6 +639,21 @@ theorem uniswapPermitBodyReverts_expired (evm : EVM.State) (I : ExecutionEnv)
       (evm := evm)
       hwv
       (evalExpr_permit_deadline_ge_now_false evm I hexpired))
+
+theorem uniswapPermitBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hnotExpired : ¬ (permitDeadlineWord I).toNat <
+      (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (permitStore I) permitTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic (uniswapPermitBlockAfterDeadline hwv hnotExpired ?_)
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_permit_domainSeparator_storage evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_permit_afterDomain_nonce_storage evm I)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_permit_nonce_next evm I) (permitAssignNonce evm I) hperm)
 
 theorem uniswapPermitBodyCoreDecodeFailed_short
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -925,5 +940,36 @@ theorem uniswapPermitBody
     have hdepth1024 : I.depth = 1024 := Fin.ext (by have := I.depth.isLt; omega)
     exact uniswapPermitBody_depthLimit
       hcode hsize hperm hwv hsel hdispatch hdepth1024
+
+/-- `permit` with any call permission; a static call halts at the nonce `SSTORE`. -/
+theorem uniswapPermitBodyAnyPerm
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xd5, 0x05, 0xac, 0xcf]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some permitTransition) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact uniswapPermitBody hcode hsize hperm hwv hsel hdispatch
+  replace hperm : I.perm = false := by simpa using hperm
+  by_cases hsz228 : 228 ≤ I.calldata.size
+  · by_cases hexpired :
+      (permitDeadlineWord I).toNat < (UInt256.ofNat I.header.timestamp).toNat
+    · exact uniswapPermitBodyRevert_expired hcode hsize hwv hsel hsz228 hexpired hdispatch
+    · have hsz4 : 4 ≤ I.calldata.size :=
+        calldata_size_ge_of_selIs I ⟨#[0xd5, 0x05, 0xac, 0xcf]⟩ rfl hsel
+      have hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1340⟩
+          [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+          σ k C :=
+        uniswapReachPermitBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
+      exact (uniswapPermitX_nonceStoredStatic (g := Sat256.ofUInt256 g) hperm
+          (uniswapPermitX_deadlineOk (g := Sat256.ofUInt256 g) hexpired
+            (uniswapPermitX_decoded_masked (g := Sat256.ofUInt256 g) hsz228 hsize hreach)))
+        |>.reEquivStaticHalt hcode hdispatch (uniswapDecode_permit_ok hsz228)
+          (uniswapPermitBodyStatic (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+            (by simp only [initState]; exact hwv) (by simpa [initState] using hexpired)
+            (by simp only [initState]; exact hperm))
+  · exact uniswapPermitBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
 
 end UniswapV2Pair

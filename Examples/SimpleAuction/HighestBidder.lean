@@ -33,9 +33,9 @@ theorem simpleAuctionHighestBidderBodyReturns (evm : EVM.State) (locals : Store)
           ({ base := "highestBidder", steps := [] } : EvaledStorageRef) =
           some (.elem .address) := by
         decide
-      rw [evalExpr_storage_scalar (t := .address) (hbase := hlocals) (her := her)
+      erw [evalExpr_storage_scalar (hbackend := rfl) (t := .address) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := simpleAuctionConfig_storage_highestBidder),
-        simpleAuctionStorageLocLoad_address_offset0])
+        storageLocLoad_address_offset0])
 
 theorem simpleAuctionHighestBidderSelector_size {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x91, 0xf9, 0x01, 0x57]⟩) :
@@ -115,7 +115,7 @@ theorem simpleAuctionHighestBidderX_nonpayable {σ σ₀ A I} {g : Sat256}
 theorem simpleAuctionHighestBidderBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I ⟨#[0x91, 0xf9, 0x01, 0x57]⟩)
+    (hsel : selIs I ⟨#[0x91, 0xf9, 0x01, 0x57]⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨274⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty

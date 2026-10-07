@@ -1,3 +1,5 @@
+import Reasoning.SolmBody
+import Reasoning.BytecodePatching
 import Solm
 import Reasoning.PatchRuntime
 import Reasoning.Immutables
@@ -62,13 +64,11 @@ def immutableLayout : Reasoning.Immutables.Layout :=
 def immValues (v : ClipperImmutables) : List (Ident × Value) :=
   [("ilk", v.ilk), ("vat", .address v.vat)]
 
-def wordBytes? (x : Value) : Option ByteArray :=
-  (valueToWord x).map (fun w => ByteArray.mk (EVM.Word.toBytesBE w).toArray)
 
 def patchesFrom (get : Ident → Option Value) : Option (List (Nat × ByteArray)) :=
   offsets.foldrM (fun p acc => do
     let x ← get p.1
-    let bytes ← wordBytes? x
+    let bytes ← Reasoning.Theory.wordBytes? x
     pure (p.2.map (fun o => (o, bytes)) ++ acc)) []
 
 def patches (v : ClipperImmutables) : List (Nat × ByteArray) :=

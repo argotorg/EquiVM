@@ -1,3 +1,5 @@
+import Reasoning.Solc
+import Reasoning.EVMWord
 import Benchmarks.Auction.ValueGuard
 import Benchmarks.Auction.Returns
 import Reasoning.Storage
@@ -6,17 +8,15 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-def storedWord (σ : AccountMap) (I : ExecutionEnv) (slot : UInt256) : UInt256 :=
-  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)
 
 theorem scalarRead (evm : EVM.State) (locals : Store) (name : Ident)
     (ty : ABI.ElemType) (loc : StorageLoc)
     (hbase : locals.get? name = none)
     (hty : storageTypeAt? auctionContract.storage { base := name } = some (.elem ty))
-    (hloc : auctionConfig.storage.layout { base := name } = fun _ => some loc) :
+    (hloc : auctionConfig.storageBackend.locate? { base := name } = some (.leaf loc)) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       (.storage { base := name }) = .ok (storageLocLoad evm loc) := by
-  apply evalExpr_storage_scalar hbase _ hty hloc
+  apply evalExpr_storage_scalar (hbackend := rfl) hbase _ hty hloc
   simp [evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
 
 theorem loadUint256 (evm : EVM.State) (slot : UInt256) :
@@ -29,11 +29,11 @@ theorem auctionFieldRead (evm : EVM.State) (locals : Store) (name : Ident)
     (hbase : locals.get? "auction" = none)
     (hty : storageTypeAt? auctionContract.storage
       { base := "auction", steps := [.field name] } = some (.elem ty))
-    (hloc : auctionConfig.storage.layout
-      { base := "auction", steps := [.field name] } = fun _ => some loc) :
+    (hloc : auctionConfig.storageBackend.locate?
+      { base := "auction", steps := [.field name] } = some (.leaf loc)) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       (.storage (aField name)) = .ok (storageLocLoad evm loc) := by
-  apply evalExpr_storage_scalar hbase _ hty hloc
+  apply evalExpr_storage_scalar (hbackend := rfl) hbase _ hty hloc
   simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, aField,
     EvalResult.bind, pure, bind]
 
@@ -73,16 +73,5 @@ theorem loadBoolAt (evm : EVM.State) (slot : UInt256) (offset : Fin 32) :
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) offset.val 1
       (by have := offset.isLt; omega) (by decide)
 
-theorem maskTwice (w mask : UInt256) :
-    UInt256.land (UInt256.land w mask) mask = UInt256.land w mask := by
-  apply u256_inj
-  simp only [uland_toNat, Nat.and_assoc, Nat.and_self]
-
-theorem lowByte_bound (w : UInt256) : (UInt256.land w ⟨255⟩).toNat < EVM.twoPow 8 := by
-  rw [uland_toNat]
-  have h : w.toNat &&& (⟨255⟩ : UInt256).toNat ≤ (⟨255⟩ : UInt256).toNat := Nat.and_le_right
-  change w.toNat &&& 255 < 256
-  change w.toNat &&& 255 ≤ 255 at h
-  omega
 
 end Auction

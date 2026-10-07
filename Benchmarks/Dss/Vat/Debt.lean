@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Vat
 /-! ## `debt()` getter -/
 
 def debtWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vatSlotWord ⟨7⟩ σ I
+  solcSlotWordAt ⟨7⟩ σ I
 
 theorem vatDecode_debt {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (debtTransition.params.map Param.name)
@@ -48,8 +48,8 @@ theorem vatReachDebtBody {σ σ₀ A I} {g : Sat256}
   exact vatReachArms419Body 0 (by omega) ⟨457⟩ hcode hwv hsz hsize
     hroot hlow hlowlow heq0 htake (by jump_dest) (by native_decide)
 
-theorem vatDebtBodyCore : VatBodyTheorem 4 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatDebtBodyCore : VatBodyTheoremAnyPerm 4 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 4) rfl hsel
   have hbody :
@@ -58,7 +58,7 @@ theorem vatDebtBodyCore : VatBodyTheorem 4 := by
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (debtWord σ I).toNat))])) := by
-    simpa [debtTransition, debtWord, vatSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [debtTransition, debtWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vatUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

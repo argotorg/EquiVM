@@ -1,3 +1,4 @@
+import Reasoning.ABI
 import Benchmarks.Auction.CalldataHead
 import Benchmarks.Auction.DynamicMemory
 
@@ -31,33 +32,5 @@ theorem uintReturnDecodeShort {I g s0 off finish ret R mem aw rdata acc k C}
     (hov : R.length + 8 ≤ 1024) : RDrev auctionBytecode g s0 :=
   calldataHeadFail h uintReturnHeadWf hcheck hov
 
--- LIBRARY CANDIDATE: strict one-word return decoding, independent of the contract.
-theorem decodeReturnUint_long {out : ByteArray} (hl : 32 ≤ out.size) (hb : out.size < 2 ^ 255) :
-    ABI.decodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩))) out =
-      some (.int (Int.ofNat (calldataWord out 0).toNat)) := by
-  have hlen : out.toList.length = out.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have hword := decode_word_at_eq out 0 (by omega) (by decide)
-  have h32 : ((out.toList.drop 0).take 32).length = 32 := by
-    simp only [List.drop_zero, List.length_take, hlen]
-    omega
-  unfold ABI.decodeReturnValue?
-  rw [decodeReturnValues_scalarWords_eq (by decide)]
-  rw [if_neg (by simp only [List.isEmpty_cons, hlen]; omega)]
-  simp only [decodeScalarWords?, decodeScalarWord_uint256_ok h32, hword, bind, Option.bind]
-
-theorem decodeReturnUint_short {out : ByteArray} (hl : out.size < 32) :
-    ABI.decodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩))) out = none := by
-  have hlen : out.toList.length = out.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have h32 : ¬ ((out.toList.drop 0).take 32).length = 32 := by
-    simp only [List.drop_zero, List.length_take, hlen]
-    omega
-  unfold ABI.decodeReturnValue?
-  rw [decodeReturnValues_scalarWords_eq (by decide)]
-  rw [if_neg (by simp only [List.isEmpty_cons, hlen]; omega)]
-  simp only [decodeScalarWords?, decodeScalarWord_uint256_none_short h32, bind, Option.bind]
 
 end Auction

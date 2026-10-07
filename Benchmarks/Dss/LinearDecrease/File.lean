@@ -1,4 +1,5 @@
 import Benchmarks.Dss.LinearDecrease.Rely
+import Reasoning.ABIComposite
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -56,94 +57,6 @@ theorem fileWhatWord_ne_of_bytes_ne {I : ExecutionEnv} {bs : List UInt8}
   intro hword
   exact hneq (fileWhat_eq_of_word_eq hsz36 hword hbsLen)
 
--- LIBRARY CANDIDATE: legacy solc05 decoding for `(bytes32,uint256)`.
-theorem stairstepDecodeABIValues_bytes32_uint256_legacy_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32) :
-    decodeABIValues? [abiBytes32, abiUInt256] bytes 0 0 64 64 DecodeMode.legacySolc05 =
-      some ([.fixedBytes abiBytes32Width (bytes.take 32),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)], 64) := by
-  simp [decodeABIValues?, abiBytes32, abiBytes32Width, abiUInt256, isDynamicABIType,
-    staticABIEncodedSize?, decodeABIValue?, readBytes?, hlen0]
-  simp [readWord?, readBytes?, decodeABIWord?, hlen32]
-  exact normalizeInt_uint256_word (ABI.bytesToWord ((bytes.drop 32).take 32))
-
--- LIBRARY CANDIDATE: legacy solc05 short-calldata rejection for `(bytes32,uint256)`.
-theorem stairstepDecodeABIValues_bytes32_uint256_legacy_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 64) :
-    decodeABIValues? [abiBytes32, abiUInt256] bytes 0 0 64 64 DecodeMode.legacySolc05 =
-      none := by
-  simp only [decodeABIValues?, abiBytes32, abiBytes32Width, abiUInt256, isDynamicABIType,
-    Bool.false_eq_true, if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have htake0n : ¬ (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have hnot : ¬ 32 ≤ bytes.length := by omega
-    simp [decodeABIValue?, readBytes?, hnot]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop]
-      omega
-    simp [decodeABIValue?, readBytes?, htake0]
-    have hnot : ¬ 32 ≤ bytes.length - 32 := by
-      rw [List.length_take, List.length_drop] at htake32n
-      omega
-    simp [readWord?, readBytes?, hnot]
-
-theorem stairstepDecodeCalldata_legacyBytes32_uint256_ok {cd : ByteArray}
-    {x y : Solm.Ident} (hsz68 : 68 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiBytes32, abiUInt256] cd =
-      some (((∅ : Solm.Store).insert x
-        (.fixedBytes abiBytes32Width ((cd.toList.drop 4).take 32))).insert y
-        (.int (Int.ofNat (calldataWord cd 36).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [stairstepDecodeABIValues_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (cd.toList.drop 4).length < 64)]
-  simp [decodeCalldata.insertValues]
-  rw [hword36]
-
-theorem stairstepDecodeCalldata_legacyBytes32_uint256_none_short {cd : ByteArray}
-    {x y : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 68) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiBytes32, abiUInt256] cd =
-      none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  by_cases hbytes : (cd.toList.drop 4).length < 64
-  · rw [if_pos hbytes]
-  · rw [if_neg hbytes]
-    rw [stairstepDecodeABIValues_bytes32_uint256_legacy_none_short
-      (bytes := cd.toList.drop 4) (by
-        rw [List.length_drop, htlen]
-        omega)]
 
 theorem stairstepDecode_file_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (fileTransition.params.map Param.name)
@@ -151,7 +64,7 @@ theorem stairstepDecode_file_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.si
         some (fileLocals I) := by
   simpa [config, fileTransition, bytes32, bytes32Width, uint256, uint256Int,
     fileLocals, fileWhat, fileData, abiBytes32, abiBytes32Width, abiUInt256] using
-    (stairstepDecodeCalldata_legacyBytes32_uint256_ok (cd := I.calldata) (x := "what")
+    (decodeCalldata_legacyBytes32_uint256_ok (cd := I.calldata) (x := "what")
       (y := "data") hsz68)
 
 theorem stairstepDecode_file_none_short {I : ExecutionEnv}
@@ -160,7 +73,7 @@ theorem stairstepDecode_file_none_short {I : ExecutionEnv}
       (transitionSignature fileTransition).paramTypes I.calldata = none := by
   simpa [config, fileTransition, bytes32, bytes32Width, uint256, uint256Int, abiBytes32,
     abiBytes32Width, abiUInt256] using
-    (stairstepDecodeCalldata_legacyBytes32_uint256_none_short (cd := I.calldata)
+    (decodeCalldata_legacyBytes32_uint256_none_short (cd := I.calldata)
       (x := "what") (y := "data") hsz4 hshort)
 
 theorem fileLocals_get_what (I : ExecutionEnv) :
@@ -248,7 +161,7 @@ theorem evalExpr_file_auth_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := fileLocals I } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := fileLocals I })
       (slot := wardsRef sender)
@@ -261,7 +174,7 @@ theorem evalExpr_file_auth_true (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using stairstepStorageLocLoad_uint256 evm (relyAuthStorageSlot I))]
+        simpa [hload] using storageLocLoad_uint256 evm (relyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -277,7 +190,7 @@ theorem evalExpr_file_auth_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (relyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := fileLocals I })
       (slot := wardsRef sender)
@@ -288,7 +201,7 @@ theorem evalExpr_file_auth_false (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_file_auth evm I hsrc)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact stairstepStorageLocLoad_uint256 evm (relyAuthStorageSlot I))
+      (hload := by exact storageLocLoad_uint256 evm (relyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -296,7 +209,7 @@ theorem evalExpr_file_auth_false (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact uint256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -317,17 +230,17 @@ theorem assign_fileTauStorage (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := fileLocals I } evm
       .storage tauRef (.int (Int.ofNat (fileData I).toNat)) =
         .ok ({ contract := contract, locals := fileLocals I }, fileTauPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "tau", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨1⟩)
+      (loc := wordLoc ⟨1⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileLocals_get_tau I)
       (her := by simp [tauRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-  simpa [fileTauPostState] using stairstepStorageLocStore_uint256 evm ⟨1⟩ (fileData I)
+  simpa [fileTauPostState] using storageLocStore_uint256 evm ⟨1⟩ (fileData I)
 
-theorem stairstepFileSourceBodyTauOk {σ σ₀ A I} {g : UInt256}
+theorem stairstepFileSourceBodyTauSplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hwhat : fileWhat I = fileTauBytes) :
@@ -335,12 +248,14 @@ theorem stairstepFileSourceBodyTauOk {σ σ₀ A I} {g : UInt256}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := fileTauPostState evm0 I
     ExecTransitionBody config contract evm0 locals fileTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) := by
+      (.returned { contract := contract, locals := locals } evm1 none) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 locals fileTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, relyAuthWord, stairstepSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_file_auth_true evm0 I (by simp [evm0, initState]) hauth
   have hcond :
@@ -354,25 +269,36 @@ theorem stairstepFileSourceBodyTauOk {σ σ₀ A I} {g : UInt256}
         .ok (.int (Int.ofNat (fileData I).toNat)) := by
     simpa [locals] using
       evalExpr_fileData (evm := evm0) (I := I) (locals := locals)
-        (by simpa [locals] using fileLocals_get_data I)
+        (fileLocals_get_data I)
   have hassign :
       assignStorageRef? config { contract := contract, locals := locals } evm0
         .storage tauRef (.int (Int.ofNat (fileData I).toNat)) =
           .ok ({ contract := contract, locals := locals }, evm1) := by
     simpa [locals, evm1] using assign_fileTauStorage evm0 I
-  have hthen :
-      ExecBlock config { contract := contract, locals := locals } evm0
-        [.assign .storage tauRef (.var "data")]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileTransition.body
-        (.ok { contract := contract, locals := locals } evm1) := by
+  have hbody : ∀ r, ExecStmt config { contract := contract, locals := locals } evm0
+      (.assign .storage tauRef (.var "data")) r →
+      ExecBlock config { contract := contract, locals := locals } evm0 fileTransition.body r := by
+    intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
-  simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteTrue hcond (execBlock_singleton h))
+  refine ⟨?_, fun hpf ↦ ?_⟩
+  · simpa [ExecTransitionBody, locals, evm0, evm1] using
+      ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign hdata hassign))
+  · simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockStatic
+      (hbody _ (ExecStmt.assignStatic hdata hassign (by simp [evm0, initState]; exact hpf)))
+
+theorem stairstepFileSourceBodyTauOk {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hwhat : fileWhat I = fileTauBytes) :
+    let locals := fileLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1 := fileTauPostState evm0 I
+    ExecTransitionBody config contract evm0 locals fileTransition.body
+      (.returned { contract := contract, locals := locals } evm1 none) :=
+  (stairstepFileSourceBodyTauSplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hwhat).1
 
 theorem stairstepFileSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -384,7 +310,7 @@ theorem stairstepFileSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool false) := by
-    simpa [locals, evm0, relyAuthWord, stairstepSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_file_auth_false evm0 I (by simp [evm0, initState]) hauth
   refine ExecFuncBody.execBlockRevert ?_
@@ -413,7 +339,7 @@ theorem stairstepFileSourceBodyUnrecognizedReverts {σ σ₀ A I} {g : UInt256}
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, relyAuthWord, stairstepSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_file_auth_true evm0 I (by simp [evm0, initState]) hauth
   have htau :
@@ -591,7 +517,7 @@ theorem stairstepFileX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd367 : RD linearDecreaseBytecode I g s0 ⟨332⟩
       (relyAuthWord σ I :: fileData I :: calldataWord I.calldata 4 :: ⟨138⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k367 C367 := by
-    simpa [relyAuthWord, stairstepSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd367raw
   have rd370pre := evm_run rd367 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -642,7 +568,7 @@ theorem stairstepFileX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd367 : RD linearDecreaseBytecode I g s0 ⟨332⟩
       (relyAuthWord σ I :: fileData I :: calldataWord I.calldata 4 :: ⟨138⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k367 C367 := by
-    simpa [relyAuthWord, stairstepSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd367raw
   have rd370pre := evm_run rd367 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -730,14 +656,16 @@ theorem stairstepFileX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact RD.stop rd166 (by native_decide) (by evm_ov)
 
 set_option maxHeartbeats 3000000 in
-theorem stairstepFileX_tau_ok {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem stairstepFileX_tau_okSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (hwhatWord : calldataWord I.calldata 4 = ABI.bytesToWord fileTauBytes)
     (h : RD linearDecreaseBytecode I g s0 ⟨415⟩
       [fileData I, calldataWord I.calldata 4, ⟨138⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret linearDecreaseBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨1⟩ (fileData I)) ByteArray.empty := by
+    (I.perm = true ∧
+      RDret linearDecreaseBytecode g s0
+        (sstoreAccountMap I.codeOwner σ ⟨1⟩ (fileData I)) ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic linearDecreaseBytecode g s0) := by
   have rd424pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov)]
@@ -756,7 +684,15 @@ theorem stairstepFileX_tau_ok {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨k435, C435, rd435raw⟩ := rd434pre.sstore hperm (by native_decide)
+  have hstoreDec : decode linearDecreaseBytecode ⟨434⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd434pre.sstoreStatic (by simpa using hperm) hstoreDec
+        (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨k435, C435, rd435raw⟩ := rd434pre.sstore hperm hstoreDec
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd435 : RD linearDecreaseBytecode I g s0 ⟨435⟩
       [fileData I, UInt256.shiftLeft (⟨0x746175⟩ : UInt256) ⟨232⟩, ⟨138⟩, sel]
@@ -767,6 +703,16 @@ theorem stairstepFileX_tau_ok {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw push2 ⟨494⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   exact stairstepFileX_logReturn hperm rd494
+
+theorem stairstepFileX_tau_ok {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hperm : I.perm = true)
+    (hwhatWord : calldataWord I.calldata 4 = ABI.bytesToWord fileTauBytes)
+    (h : RD linearDecreaseBytecode I g s0 ⟨415⟩
+      [fileData I, calldataWord I.calldata 4, ⟨138⟩, sel]
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret linearDecreaseBytecode g s0
+      (sstoreAccountMap I.codeOwner σ ⟨1⟩ (fileData I)) ByteArray.empty :=
+  permSplit_true hperm (stairstepFileX_tau_okSplit hwhatWord h)
 
 set_option maxHeartbeats 3000000 in
 theorem stairstepFileX_unrecognized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -815,7 +761,6 @@ theorem stairstepFileX_unrecognized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 theorem stairstepFileBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = linearDecreaseBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (stairstepSelBytes 1)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -838,6 +783,13 @@ theorem stairstepFileBody {σ σ₀ A I} {g : UInt256}
       · have htauWord :
             calldataWord I.calldata 4 = ABI.bytesToWord fileTauBytes := by
           rw [← fileWhatWord_eq (I := I) hsz36, htau]
+        by_cases hperm : I.perm = true
+        swap
+        · have hpf : I.perm = false := by simpa using hperm
+          exact (permSplit_false hpf (stairstepFileX_tau_okSplit htauWord rd428))
+            |>.reEquivStaticHalt hcode hdispatch hdecode
+              ((stairstepFileSourceBodyTauSplit (σ₀ := σ₀) (A := A) (g := g)
+                hwv hauth htau).2 hpf)
         have hbody :
             ExecTransitionBody config contract evmSolm (fileLocals I) fileTransition.body
               (.returned { contract := contract, locals := fileLocals I }

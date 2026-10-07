@@ -1,7 +1,40 @@
+import Reasoning.ABIViews
+import Reasoning.Memory
 import Benchmarks.Dss.Spot.Ilks
 import Reasoning.ExternalCall
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Spot
+
+theorem pokePeekPostCallWrite_size_gt64 (out base : ByteArray) (L : Nat)
+    (hbase : base.size = 160) (hLo : L ≤ out.size) :
+    64 < (out.write 0 base 128 L).size := by
+  rcases Nat.eq_zero_or_pos L with hzero | hpos
+  · subst L
+    rw [byteArray_write_len_zero, hbase]
+    norm_num
+  · by_cases hin : 128 + L ≤ base.size
+    · rw [write_eq_gen out base 128 L (by omega) hLo hin, ByteArray.size_append,
+        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
+        ByteArray.size_extract, hbase]
+      omega
+    · have hdest : 128 ≤ base.size := by
+        rw [hbase]
+        omega
+      have hext : base.size < 128 + L := Nat.lt_of_not_ge hin
+      rw [write_eq_gen_extend out base 128 L (by omega) hLo hdest hext,
+        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract, hbase]
+      omega
+
+end Benchmarks.Dss.Spot
+
+end
 
 namespace Benchmarks.Dss.Spot
 
@@ -32,7 +65,7 @@ abbrev pokeMatSlotFor (I : ExecutionEnv) : UInt256 :=
   pokePipSlotFor I + ⟨1⟩
 
 abbrev pokePipRawWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  spotSlotWord (pokePipSlotFor I) σ I
+  solcSlotWordAt (pokePipSlotFor I) σ I
 
 abbrev pokePipTargetWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (pokePipRawWord σ I) solcAddrMask
@@ -85,7 +118,7 @@ abbrev pokePipAddress (σ : AccountMap) (I : ExecutionEnv) : AccountAddress :=
   AccountAddress.ofNat (pokePipTargetWord σ I).toNat
 
 abbrev pokeVatTargetWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  spotAddressReturnWord ⟨2⟩ σ I
+  solcAddressSlotWord ⟨2⟩ σ I
 
 abbrev pokeVatAddress (σ : AccountMap) (I : ExecutionEnv) : AccountAddress :=
   AccountAddress.ofNat (pokeVatTargetWord σ I).toNat
@@ -190,7 +223,8 @@ abbrev pokeTrueBranchStmts : List Stmt :=
 abbrev pokeAfterSpotStmts : List Stmt :=
   [ .ite (.var "has") pokeTrueBranchStmts [] ] ++
     checkedExternalCallStmts (.storage vatRef) "file" (.intLit 0)
-      [.var "ilk", spotParamLit, .var "spot"] "_fileRet"
+      [.var "ilk", spotParamLit, .var "spot"] "_fileRet" ++
+    [.emit "Poke" [.var "ilk", .var "val", .var "spot"]]
 
 abbrev spotUintBinaryLocals (x y : UInt256) : Store :=
   (((∅ : Store).insert "y" (.int (Int.ofNat y.toNat))).insert "x"
@@ -263,25 +297,6 @@ theorem pokePeekEncode_eq (I : ExecutionEnv) :
   rw [pokePeekCalldataMem_read128_4]
   simp [config, spotExternalABI, pipPeekSelector]
 
-theorem pokePeekPostCallWrite_size_gt64 (out base : ByteArray) (L : Nat)
-    (hbase : base.size = 160) (hLo : L ≤ out.size) :
-    64 < (out.write 0 base 128 L).size := by
-  rcases Nat.eq_zero_or_pos L with hzero | hpos
-  · subst L
-    rw [byteArray_write_len_zero, hbase]
-    norm_num
-  · by_cases hin : 128 + L ≤ base.size
-    · rw [write_eq_gen out base 128 L (by omega) hLo hin, ByteArray.size_append,
-        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
-        ByteArray.size_extract, hbase]
-      omega
-    · have hdest : 128 ≤ base.size := by
-        rw [hbase]
-        omega
-      have hext : base.size < 128 + L := Nat.lt_of_not_ge hin
-      rw [write_eq_gen_extend out base 128 L (by omega) hLo hdest hext,
-        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract, hbase]
-      omega
 
 theorem pokePeekPostCallMem_size_gt64 (I : ExecutionEnv) (out : ByteArray)
     (hshort : out.size < 64) (hout : out.size < UInt256.size) :
@@ -484,75 +499,13 @@ theorem pokePeek_bytesToWord_drop32_eq_extract32_64 (out : ByteArray) :
     Array.toList_extract, List.extract_eq_take_drop, byteArray_toList_eq]
   simp [byteArray_toList_eq]
 
-theorem pokePeekDecodeABIValues_legacy_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 64) :
-    decodeABIValues? [abiBytes32, abiBool] bytes 0 0 64 64 DecodeMode.legacySolc05 =
-      none := by
-  simp only [decodeABIValues?, abiBytes32, abiBytes32Width, abiBool, isDynamicABIType,
-    Bool.false_eq_true, if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have hnot : ¬ 32 ≤ bytes.length := by omega
-    simp [decodeABIValue?, readBytes?, hnot]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop]
-      omega
-    have hbool : decodeABIValue? abiBool bytes 32 DecodeMode.legacySolc05 = none := by
-      rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
-        (ty := abiBool) (bytes := bytes) (start := 32) (by decide)]
-      exact decodeScalarWordWithMode_legacy_bool_none_short (bytes := bytes) (start := 32)
-        htake32n
-    simp [decodeABIValue?, readBytes?, htake0, hbool]
-
-theorem pokePeekDecode_none_short_aux {out : ByteArray} (hshort : out.size < 64) :
-    ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [abiBytes32, abiBool] out =
-      none := by
-  have hlen : out.toList.length = out.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold ABI.decodeReturnValuesWithMode?
-  rw [show abiTupleHeadSize? [abiBytes32, abiBool] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [pokePeekDecodeABIValues_legacy_none_short (bytes := out.toList) (by omega)]
 
 theorem pokePeekDecode_none_short {out : ByteArray} (hshort : out.size < 64) :
     config.externalABI.decode? "peek" out = none := by
-  have h := pokePeekDecode_none_short_aux (out := out) hshort
+  have h := decode_none_short_aux (out := out) hshort
   simpa [config, spotExternalABI, bytes32, bytes32Width, boolTy, abiBytes32, abiBytes32Width,
     abiBool] using h
 
-theorem pokePeekDecodeABIValues_legacy_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32) :
-    decodeABIValues? [abiBytes32, abiBool] bytes 0 0 64 64 DecodeMode.legacySolc05 =
-      some ([.fixedBytes abiBytes32Width (bytes.take 32),
-        .bool (ABI.bytesToWord ((bytes.drop 32).take 32) ≠ ⟨0⟩)], 64) := by
-  have hbytes0 : decodeABIValue? abiBytes32 bytes 0 DecodeMode.legacySolc05 =
-      some (.fixedBytes abiBytes32Width (bytes.take 32), 32) := by
-    simp [decodeABIValue?, abiBytes32, abiBytes32Width, readBytes?, hlen0]
-  by_cases hhas : ABI.bytesToWord ((bytes.drop 32).take 32) = ⟨0⟩
-  · have hbool : decodeABIValue? abiBool bytes 32 DecodeMode.legacySolc05 =
-        some (.bool false, 64) := by
-      rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
-        (ty := abiBool) (bytes := bytes) (start := 32) (by decide)]
-      exact decodeScalarWordWithMode_legacy_bool_false (bytes := bytes) (start := 32)
-        hlen32 hhas
-    simp only [decodeABIValues?, abiBytes32, abiBool, isDynamicABIType, Bool.false_eq_true,
-      if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-    rw [hbytes0, hbool]
-    simp [hhas]
-  · have hbool : decodeABIValue? abiBool bytes 32 DecodeMode.legacySolc05 =
-        some (.bool true, 64) := by
-      rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
-        (ty := abiBool) (bytes := bytes) (start := 32) (by decide)]
-      exact decodeScalarWordWithMode_legacy_bool_true (bytes := bytes) (start := 32)
-        hlen32 hhas
-    simp only [decodeABIValues?, abiBytes32, abiBool, isDynamicABIType, Bool.false_eq_true,
-      if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-    rw [hbytes0, hbool]
-    simp [hhas]
 
 theorem pokePeekDecode_ok_aux {out : ByteArray} (hlo : 64 ≤ out.size) :
     ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [abiBytes32, abiBool] out =
@@ -570,7 +523,7 @@ theorem pokePeekDecode_ok_aux {out : ByteArray} (hlo : 64 ≤ out.size) :
   unfold ABI.decodeReturnValuesWithMode?
   rw [show abiTupleHeadSize? [abiBytes32, abiBool] = some 64 by native_decide]
   simp only [bind, Option.bind]
-  rw [pokePeekDecodeABIValues_legacy_ok (bytes := out.toList) htake0 htake32]
+  rw [decodeABIValues_legacy_ok (bytes := out.toList) htake0 htake32]
   simp [pokePeekReturnValues, pokePeekValBytes, pokePeekHasBool, hword1, bytes32Width,
     abiBytes32Width]
 
@@ -735,99 +688,6 @@ theorem pokeEventSpotMem_mload64 (I : ExecutionEnv) (val spot : UInt256)
       ⟨128⟩ := by
   exact mloadFreePtrValue (by rw [pokeEventSpotMem_size I val spot hmem]; decide) (pokeEventSpotMem_read64 I val spot hmem hread64)
 
-theorem poke_wordAt0Mem_size_of_ge32 {mem : ByteArray} (word : UInt256)
-    (hmem : 32 ≤ mem.size) :
-    (wordAt0Mem word mem).size = mem.size := by
-  unfold wordAt0Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, toByteArray_size]
-  omega
-
-theorem poke_wordAt32Mem_size_of_ge64 {mem : ByteArray} (word : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (wordAt32Mem word mem).size = mem.size := by
-  unfold wordAt32Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, toByteArray_size]
-  omega
-
-theorem poke_twoWordHashMem_size_of_ge64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).size = mem.size := by
-  unfold twoWordHashMem
-  rw [poke_wordAt32Mem_size_of_ge64 slot (by
-    rw [poke_wordAt0Mem_size_of_ge32 key (by omega)]
-    exact hmem)]
-  exact poke_wordAt0Mem_size_of_ge32 key (by omega)
-
-theorem poke_twoWordHashMem_read0_of_ge64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 = UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-    (by rw [poke_wordAt0Mem_size_of_ge32 key (by omega)]; omega) (by omega)]
-  exact wordAt0Mem_read0 key mem
-
-theorem poke_twoWordHashMem_read32_of_ge64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 = UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-    (by rw [poke_wordAt0Mem_size_of_ge32 key (by omega)]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray slot).size ≤ 32
-    rw [toByteArray_size])
-
-theorem poke_twoWordHashMem_read64_of_ge96 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 96 ≤ mem.size)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (twoWordHashMem key slot mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [poke_wordAt0Mem_size_of_ge32 key (by omega)]; omega) (by omega)
-      (by
-        rw [poke_wordAt0Mem_size_of_ge32 key (by omega)]
-        exact hmem)]
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by omega) (by omega)
-      (by omega)]
-  exact hread64
-
-theorem poke_twoWordHashMem_read0_64_of_ge64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [poke_twoWordHashMem_size_of_ge64 key slot hmem]; omega)]
-  have hleft :
-      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [poke_twoWordHashMem_size_of_ge64 key slot hmem]; omega),
-      poke_twoWordHashMem_read0_of_ge64 key slot hmem]
-  have hright :
-      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by rw [poke_twoWordHashMem_size_of_ge64 key slot hmem]; omega),
-      poke_twoWordHashMem_read32_of_ge64 key slot hmem]
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-        (twoWordHashMem key slot mem).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      norm_num]
-  rw [hleft, hright]
-
-theorem poke_twoWordHashMem_solcMappingSlot_of_ge64 (baseSlot key : UInt256)
-    {mem : ByteArray} (hmem : 64 ≤ mem.size) :
-    UInt256.ofNat (fromByteArrayBigEndian
-        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
-      solcMappingSlot baseSlot key := by
-  rw [poke_twoWordHashMem_read0_64_of_ge64 key baseSlot hmem]
-  unfold solcMappingSlot
-  exact mappingSlot_single key baseSlot
 
 theorem pokeVatFileCalldataMem_read128_100
     (I : ExecutionEnv) (spot : UInt256) {mem : ByteArray}

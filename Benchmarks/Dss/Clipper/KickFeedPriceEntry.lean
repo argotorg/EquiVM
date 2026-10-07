@@ -419,28 +419,6 @@ theorem clipperKickSpotterIlksPostCallMem_size_long
         0 128).size = 128 by rw [ByteArray.size_extract, hbase]; omega,
     show (out.extract 0 64).size = 64 by rw [ByteArray.size_extract]; omega]
 
-theorem byteArray_write_extend_read_first_word_back (src base : ByteArray)
-    (destAddr len : Nat) (hlen : len ≠ 0) (hsrc : len ≤ src.size)
-    (hword : 32 ≤ len) (hdest : destAddr ≤ base.size)
-    (hext : base.size < destAddr + len) :
-    (src.write 0 base destAddr len).readWithPadding destAddr 32 =
-      src.extract 0 32 := by
-  rw [write_eq_gen_extend src base destAddr len hlen hsrc hdest hext]
-  have hprefix : (base.extract 0 destAddr).size = destAddr := by
-    rw [ByteArray.size_extract]
-    omega
-  have hsrcPrefix : (src.extract 0 len).size = len := by
-    rw [ByteArray.size_extract]
-    omega
-  rw [readWithPadding_eq_extract _ destAddr (by
-    rw [ByteArray.size_append, hprefix, hsrcPrefix]
-    omega)]
-  rw [extract_append_right_window (base.extract 0 destAddr) (src.extract 0 len)
-    destAddr (destAddr + 32) (by rw [hprefix])]
-  rw [show destAddr - (base.extract 0 destAddr).size = 0 by rw [hprefix]; omega]
-  rw [show destAddr + 32 - (base.extract 0 destAddr).size = 32 by
-    rw [hprefix]; omega]
-  exact extract_prefix src len 0 32 hword
 
 theorem clipperKickSpotterIlksPostCallMem_read128_long
     (v : ClipperImmutables) {mem out : ByteArray}

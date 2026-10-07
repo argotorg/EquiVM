@@ -131,6 +131,25 @@ theorem uniswapBurnX_lockEntered {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa using rd4179⟩
 
+/-- In a static call, `burn(address)` halts at the lock-entry `SSTORE`. -/
+theorem uniswapBurnX_lockEnteredStatic {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hperm : I.perm = false)
+    (hunlocked :
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
+        ⟨1⟩)
+    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+      (initState σ σ₀ g A I) ⟨4093⟩
+      [burnToMaskedWord I, ⟨1201⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd4093⟩ := hdecoded
+  have rd4097 := evm_run rd4093 with [jumpdest, push1 ⟨0⟩, dup1]
+  exact RD.uniswapLockEnterBodyOkStatic
+    (pc := ⟨4097⟩) (okPc := ⟨4171⟩)
+    (R := [⟨0⟩, ⟨0⟩, burnToMaskedWord I, ⟨1201⟩, sel])
+    rd4097 uniswap_lock_enter_body_ok_wf hperm hunlocked (by jump_dest)
+      (by simp only [List.length_cons, List.length_nil]; omega)
+
 theorem uniswapBurnBodyReverts_locked (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩) :
@@ -138,6 +157,17 @@ theorem uniswapBurnBodyReverts_locked (evm : EVM.State) (I : ExecutionEnv)
   have hlock :=
     uniswapLockEnterLockedRevert evm (burnStore I) hwv (by simp [burnStore]) hlocked
   exact ExecFuncBody.execBlockRevert (by
+    simpa [burnTransition, List.append_assoc] using
+      (execBlock_append_term hlock (by intro f e h; cases h)))
+
+theorem uniswapBurnBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (burnStore I) burnTransition.body
+      .staticViolation := by
+  have hlock := uniswapLockEnterStatic evm (burnStore I) hwv (by simp [burnStore]) hunlocked hperm
+  exact ExecFuncBody.execBlockStatic (by
     simpa [burnTransition, List.append_assoc] using
       (execBlock_append_term hlock (by intro f e h; cases h)))
 

@@ -53,7 +53,7 @@ theorem tinyNonPayable {σ σ₀ A I} {g : UInt256}
 
 theorem tinyImmutableCorrect (v : TinyImmutables) :
     runtimeRefinement config (deployedRuntime v) contract (immStore v) := by
-  refine ⟨fun σ σ₀ g A I hIcode hsize _hperm => ?_⟩
+  refine ⟨fun σ σ₀ g A I hIcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hshort : I.calldata.size < 4
     · exact (tinyBlocksX_short (g := Sat256.ofUInt256 g) v hIcode hwv hshort)

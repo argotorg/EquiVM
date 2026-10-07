@@ -249,6 +249,8 @@ syntax "continue" ";" : solStmt
 syntax "delete " solExpr:max ";" : solStmt
 syntax "try " solExpr:max ident "(" ident ")" "{" solStmt* "}"
     " catch " "(" ident ")" "{" solStmt* "}" : solStmt                -- try …(…) returns (r) {…} catch (e) {…}
+-- `emit E(e, …);`.  High priority: with one argument the `new T(e)` expression form also parses.
+syntax (priority := high) ident ident "(" solExpr,* ")" ";" : solStmt
 syntax "${" term "}" : solStmt                                        -- Lean `List Stmt` splice
 
 syntax solExpr:max " = " solExpr : solForPost
@@ -271,6 +273,7 @@ syntax (name := solItemCtorRets)                                      -- fallbac
 syntax ident ident "(" solParam,* ")" ident* "{" solStmt* "}" : solItem
 syntax (name := solItemFnRets)
   ident ident "(" solParam,* ")" ident* "(" solTy,* ")" "{" solStmt* "}" : solItem
+syntax ident ident "(" solParam,* ")" ident* ";" : solItem            -- event E(T indexed x, …) [anonymous];
 syntax "${" term "}" : solItem                                        -- Lean `TransitionDecl` splice
 
 syntax:max "solidity% " ident ident "{" solItem* "}" : term
@@ -874,6 +877,11 @@ private partial def elabStmt (env : Env) (stx : TSyntax `solStmt) : MacroM (Term
         $(quote ret.getId.toString) $okT $(quote err.getId.toString) $errT)
       return (t, env.withAdditions
         [Env.additionsFrom envOk okEnv, Env.additionsFrom envErr errEnv])
+  | `(solStmt| $kw:ident $ev:ident ($args:solExpr,*) ;) => do
+      unless kw.getId.toString == "emit" do
+        Macro.throwErrorAt kw.raw "solm: unrecognized statement"
+      let ts ← args.getElems.mapM (elabExpr env)
+      return (← `(Solm.Stmt.emit $(quote ev.getId.toString) [$ts,*]), env)
   | _ => Macro.throwErrorAt stx "solm: unrecognized statement"
 
 private partial def elabPushPop (env : Env) (stx : Syntax) (comps : List String)
@@ -1218,6 +1226,11 @@ macro_rules
             fnTerms := fnTerms.push (← functionTerm env fn)
       | `(solItem| ${ $t }) =>
           transitionTerms := transitionTerms.push (← `(($t : Solm.TransitionDecl)))
+      -- `event E(…);` declarations are accepted and dropped: `emit` carries the name and
+      -- arguments, and logs are not modelled.
+      | `(solItem| $kw:ident $_:ident ($_:solParam,*) $_:ident* ;) =>
+          unless kw.getId.toString == "event" do
+            Macro.throwErrorAt kw.raw "solm: unrecognized contract item"
       | _ =>
           if let some (kw, params, mods, rets, body) := destructCtorRets item then
             let ps ← params.mapM (parseParam env)

@@ -96,16 +96,15 @@ theorem assign_endCtorWardsCaller (evm : EVM.State) {locals : Store}
       storageLocStore evm (wordLoc (wardsSlot (.address evm.executionEnv.source))) (.int 1) =
         some (endCtorAfterWardsState evm) := by
     simpa [endCtorAfterWardsState] using
-      endStorageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
-  exact assignStorageRef_storage_scalar
+      storageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (ty := .elem (.int uint256Int))
-    (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
+    (loc := wordLoc (wardsSlot (.address evm.executionEnv.source))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_endCtorLive (evm : EVM.State) {locals : Store}
@@ -120,16 +119,15 @@ theorem assign_endCtorLive (evm : EVM.State) {locals : Store}
   have hstore :
       storageLocStore evm (wordLoc ⟨8⟩) (.int 1) =
         some (endCtorAfterLiveState evm) := by
-    simpa [endCtorAfterLiveState] using endStorageLocStore_uint256 evm ⟨8⟩ ⟨1⟩
-  exact assignStorageRef_storage_scalar
+    simpa [endCtorAfterLiveState] using storageLocStore_uint256 evm ⟨8⟩ ⟨1⟩
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (ty := .elem (.int uint256Int))
-    (loc := wordLoc ⟨8⟩)
+    (loc := wordLoc ⟨8⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [liveRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem endCtorBodySuccess

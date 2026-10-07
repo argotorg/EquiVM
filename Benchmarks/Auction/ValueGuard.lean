@@ -64,7 +64,7 @@ theorem entryGuardNonzero {I g s0 sel mem aw rdata acc k C} (i : Entry) (hi : i 
   exact evm_run rd with [
     raw push2 (guardTarget i) hpush (by evm_ov),
     raw jumpiNT hji (isZero_eq_zero_of_ne hwv) (by evm_ov),
-    raw auctionRevert0 hr0 hr1 hr2 (by evm_ov) ]
+    raw solcPush0Dup1Revert0 hr0 hr1 hr2 (by evm_ov) ]
 
 theorem entryNonpayableRevert {σ σ₀ A I} {g : UInt256}
     (i : Entry) (hi : i ≠ 6) (hcode : I.code = auctionBytecode)

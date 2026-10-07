@@ -1,3 +1,6 @@
+import Reasoning.SolcRoutines
+import Reasoning.ABIViews
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.End.Pack
 import Reasoning.MemCascade
 
@@ -5,6 +8,157 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.End
+
+theorem endFree_solcErrorStringMem0_size_of_size196 {mem : ByteArray} (hmem : mem.size = 196) :
+    (solcErrorStringMem0 mem).size = 196 := by
+  unfold solcErrorStringMem0
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract, hmem]
+
+theorem endFree_solcErrorStringMem1_size_of_size196 {mem : ByteArray} (hmem : mem.size = 196) :
+    (solcErrorStringMem1 mem).size = 196 := by
+  unfold solcErrorStringMem1
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [endFree_solcErrorStringMem0_size_of_size196 hmem]; omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    endFree_solcErrorStringMem0_size_of_size196 hmem]
+
+theorem endFree_solcErrorStringMem2_size_of_size196 (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 196) :
+    (solcErrorStringMem2 len mem).size = 196 := by
+  unfold solcErrorStringMem2
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [endFree_solcErrorStringMem1_size_of_size196 hmem]; omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    endFree_solcErrorStringMem1_size_of_size196 hmem]
+
+theorem endFree_solcErrorStringMem3_size_of_size196 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 196) :
+    (solcErrorStringMem3 len word mem).size = 228 := by
+  unfold solcErrorStringMem3
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [endFree_solcErrorStringMem2_size_of_size196 len hmem])]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    endFree_solcErrorStringMem2_size_of_size196 len hmem]
+
+theorem endFree_solcErrorStringMem3_read64_of_size196 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 196)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcErrorStringMem3
+  rw [toByteArray_write_read_below_of_gap word _ 196 64
+      (by rw [endFree_solcErrorStringMem2_size_of_size196 len hmem]; omega) (by omega)
+      (by
+        rw [endFree_solcErrorStringMem2_size_of_size196 len hmem]
+        exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem2
+  rw [toByteArray_write_read_below_of_gap len _ 164 64
+      (by rw [endFree_solcErrorStringMem1_size_of_size196 hmem]; omega) (by omega)
+      (by rw [endFree_solcErrorStringMem1_size_of_size196 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem1
+  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
+      (by rw [endFree_solcErrorStringMem0_size_of_size196 hmem]; omega) (by omega)
+      (by rw [endFree_solcErrorStringMem0_size_of_size196 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem0
+  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
+      (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
+  exact hread64
+
+theorem endFree_solcErrorStringMem3_mload64_of_size196 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 196)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((solcErrorStringMem3 len word mem).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [endFree_solcErrorStringMem3_size_of_size196 len word hmem]; decide)
+    (endFree_solcErrorStringMem3_read64_of_size196 len word hmem hread64)
+
+set_option maxHeartbeats 1000000 in
+theorem endFree_solcErrorStringRevertTail_aw7 {code : ByteArray} {g : Sat256}
+    {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len rawWord shift word : UInt256}
+    {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
+    {acc : AccountMap}
+    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 7) rdata acc k C)
+    (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
+    (hpush : op ≠ .PUSH0)
+    (hword : UInt256.shiftLeft rawWord shift = word)
+    (hmem : mem.size = 196)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : stk.length + 5 ≤ 1024) :
+    RDrev code g s0 := by
+  rcases hwf with
+    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
+      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
+      hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
+      hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
+  have rdMload := evm_run h with [
+    raw push1 ⟨64⟩ hd0 (by evm_ov),
+    raw dup1 hd2 (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) hd3
+      mem_cost
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
+      (by decide) (by evm_ov)]
+  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
+    (width := 3) (op := .PUSH3) (by decide) hd4
+    (by simp only [List.length_cons]; omega)
+  have rdPrefix := evm_run rdSelectorRaw with [
+    raw push1 ⟨229⟩ hd8 (by evm_ov),
+    raw shl hd10 (by evm_ov),
+    raw dup2 hd11 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 7)
+      hd12 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ hd13 (by evm_ov),
+    raw push1 ⟨4⟩ hd15 (by evm_ov),
+    raw dup3 hd17 (by evm_ov),
+    raw add hd18 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 7)
+      hd19 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 len hd20 (by evm_ov),
+    raw push1 ⟨36⟩ hd22 (by evm_ov),
+    raw dup3 hd24 (by evm_ov),
+    raw add hd25 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem2 len mem)
+      (UInt256.ofNat 7) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
+  have rdRaw := rdPrefix.pushConst rawWord (width := width) (op := op)
+    hpush hd27 (by simp only [List.length_cons]; omega)
+  have rdWord := evm_run rdRaw with [
+    raw push1 shift hdRawOut (by evm_ov),
+    raw shl hdShl (by evm_ov)]
+  rw [hword] at rdWord
+  exact evm_run rdWord with [
+    raw push1 ⟨68⟩ hd68 (by evm_ov),
+    raw dup3 hdDup3 (by evm_ov),
+    raw add hdAdd (by evm_ov),
+    raw mstore 3 (solcErrorStringMem3 len word mem)
+      (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 hdSwap (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
+      mem_cost
+      (endFree_solcErrorStringMem3_mload64_of_size196 len word hmem hread64)
+      (by decide) (by evm_ov),
+    raw swap1 hdSwap2 (by evm_ov),
+    raw dup2 hdDup2 (by evm_ov),
+    raw swap1 hdSwap3 (by evm_ov),
+    raw sub hdSub (by evm_ov),
+    raw push1 ⟨100⟩ hd100 (by evm_ov),
+    raw add hdAdd2 (by evm_ov),
+    raw swap1 hdSwap4 (by evm_ov),
+    raw rev 0 hdRev mem_cost (by evm_ov)]
+
+end Benchmarks.Dss.End
+
+end
 
 namespace Benchmarks.Dss.End
 
@@ -109,7 +263,8 @@ abbrev endFreeAfterUrnsStmts : List Stmt :=
     .require (.binary .le (.var "ink") (.intLit int256Limit)) ] ++
   checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
     [.var "ilk", sender, sender, vowAddr, asInt256 (.unary .neg (asInt256 (.var "ink"))),
-      .intLit 0] "_grab"
+      .intLit 0] "_grab" ++
+  [.emit "Free" [.var "ilk", sender, .var "ink"]]
 
 def endFreeUrnsSelectorMem (mem : ByteArray) : ByteArray :=
   endFreeUrnsSelectorShifted.toByteArray.write 0 mem endFreeUrnsOutPtr.toNat 32
@@ -177,45 +332,6 @@ theorem endFreeGrabMem7_eq (σ : AccountMap) (I : ExecutionEnv) (out : ByteArray
     endFreeGrabMem7 σ I out = endFreeGrabCalldataMem σ I out := by
   rfl
 
-private theorem endFreeWordOfIntNeg_toNat (i : Int) (hneg : i < 0)
-    (hle : i.natAbs < EVM.wordModulus) :
-    (EVM.wordOfInt i).toNat = UInt256.size - i.natAbs := by
-  have hdiffPos : i.natAbs ≠ 0 := by
-    intro h
-    have : i = 0 := by omega
-    omega
-  have hpos : 0 < i.natAbs := Nat.pos_of_ne_zero hdiffPos
-  unfold EVM.wordOfInt
-  rw [if_pos hneg]
-  rw [Nat.mod_eq_of_lt hle, if_neg hdiffPos]
-  change (UInt256.ofNat (EVM.wordModulus - i.natAbs)).toNat = UInt256.size - i.natAbs
-  rw [ulit_toNat']
-  · rw [show EVM.wordModulus = UInt256.size by native_decide]
-  · rw [show EVM.wordModulus = UInt256.size by native_decide]
-    exact Nat.sub_lt (by native_decide : 0 < UInt256.size) hpos
-
-theorem endFreeWordOfInt_neg_ofNat_toNat (w : UInt256) (hle : w.toNat ≤ 2 ^ 255) :
-    EVM.wordOfInt (-(Int.ofNat w.toNat)) = UInt256.sub ⟨0⟩ w := by
-  by_cases hz0 : w.toNat = 0
-  · have hw : w = ⟨0⟩ := by
-      apply u256_inj
-      exact hz0
-    subst hw
-    rw [u256_sub_self]
-    rfl
-  · have hpos : 0 < w.toNat := Nat.pos_of_ne_zero hz0
-    apply u256_inj
-    rw [endFreeWordOfIntNeg_toNat]
-    · rw [usub_toNat_underflow (a := (⟨0⟩ : UInt256)) (b := w) hpos]
-      have habs : (-(Int.ofNat w.toNat)).natAbs = w.toNat := by simp
-      rw [habs]
-      norm_num
-    · have hcastPos : (0 : Int) < Int.ofNat w.toNat := by
-        simpa using (Int.ofNat_lt.mpr hpos)
-      exact neg_neg_of_pos hcastPos
-    · have habs : (-(Int.ofNat w.toNat)).natAbs = w.toNat := by simp
-      rw [habs]
-      exact lt_of_le_of_lt hle (by native_decide : 2 ^ 255 < EVM.wordModulus)
 
 theorem endFreeUrnsSelectorMem_size {mem : ByteArray} (hmem : mem.size = 96) :
     (endFreeUrnsSelectorMem mem).size = 160 := by
@@ -631,7 +747,7 @@ theorem endFreeGrabEncode_eq (σ : AccountMap) (I : ExecutionEnv) (out : ByteArr
     rfl
   have hvowCanon : (endPackVowWord σ I).toNat < EVM.addressModulus := by
     simpa [endPackVowWord] using
-      solcAddrMask_result_canonical (endSlotWord ⟨4⟩ σ I)
+      solcAddrMask_result_canonical (solcSlotWordAt ⟨4⟩ σ I)
   have hvowVal :
       (endPackVowAddr σ I).val = (endPackVowWord σ I).toNat := by
     unfold endPackVowAddr AccountAddress.ofNat
@@ -646,7 +762,7 @@ theorem endFreeGrabEncode_eq (σ : AccountMap) (I : ExecutionEnv) (out : ByteArr
   have hdinkWord :
       EVM.wordOfInt (-(Int.ofNat (endFreeUrnInkWord out).toNat)) =
         endFreeGrabDinkWord out :=
-    endFreeWordOfInt_neg_ofNat_toNat (endFreeUrnInkWord out) hink
+    wordOfInt_neg_natCast_eq_sub_zero_of_le_sign (endFreeUrnInkWord out) hink
   have hdinkWordCast :
       EVM.wordOfInt (-((endFreeUrnInkWord out).toNat : Int)) =
         endFreeGrabDinkWord out := by
@@ -964,184 +1080,12 @@ theorem endFreeUrnsDecode_ok {out : ByteArray} (hlo : 64 ≤ out.size) :
   have h := endFreeUrnsDecode_ok_aux (out := out) hlo
   simpa [config, externalABI, uint256, uint256Int, abiUInt256] using h
 
-theorem endFreeUrnsDecode_none_short_aux {out : ByteArray} (hshort : out.size < 64) :
-    ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [abiUInt256, abiUInt256] out =
-      none := by
-  have hlen : out.toList.length = out.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold ABI.decodeReturnValuesWithMode?
-  rw [abiTupleHeadSize_scalarWords_eq (types := [abiUInt256, abiUInt256]) (by decide)]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
-    (types := [abiUInt256, abiUInt256]) (bytes := out.toList) (cursor := 0)
-    (total := 32 * [abiUInt256, abiUInt256].length)
-    (by decide) (by simp)]
-  simp only [decodeScalarWordsWithMode?]
-  by_cases hfirst : ((out.toList.drop 0).take 32).length = 32
-  · rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-      (bytes := out.toList) (start := 0) hfirst]
-    simp only [Option.bind_eq_bind, Option.bind_some]
-    have htake32n : ¬ ((out.toList.drop 32).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop, hlen]
-      omega
-    rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-      (bytes := out.toList) (start := 32) htake32n]
-    simp
-  · rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-      (bytes := out.toList) (start := 0) hfirst]
-    simp
 
 theorem endFreeUrnsDecode_none_short {out : ByteArray} (hshort : out.size < 64) :
     config.externalABI.decode? "urns" out = none := by
-  have h := endFreeUrnsDecode_none_short_aux (out := out) hshort
+  have h := decodeReturnValues_legacyUint256Pair_none_short (out := out) hshort
   simpa [config, externalABI, uint256, uint256Int, abiUInt256] using h
 
-theorem endFree_solcErrorStringMem0_size_of_size196 {mem : ByteArray}
-    (hmem : mem.size = 196) :
-    (solcErrorStringMem0 mem).size = 196 := by
-  unfold solcErrorStringMem0
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract, hmem]
-
-theorem endFree_solcErrorStringMem1_size_of_size196 {mem : ByteArray}
-    (hmem : mem.size = 196) :
-    (solcErrorStringMem1 mem).size = 196 := by
-  unfold solcErrorStringMem1
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-    (by rw [endFree_solcErrorStringMem0_size_of_size196 hmem]; omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract,
-    endFree_solcErrorStringMem0_size_of_size196 hmem]
-
-theorem endFree_solcErrorStringMem2_size_of_size196 (len : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 196) :
-    (solcErrorStringMem2 len mem).size = 196 := by
-  unfold solcErrorStringMem2
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-    (by rw [endFree_solcErrorStringMem1_size_of_size196 hmem]; omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract,
-    endFree_solcErrorStringMem1_size_of_size196 hmem]
-
-theorem endFree_solcErrorStringMem3_size_of_size196 (len word : UInt256)
-    {mem : ByteArray} (hmem : mem.size = 196) :
-    (solcErrorStringMem3 len word mem).size = 228 := by
-  unfold solcErrorStringMem3
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-    (by rw [endFree_solcErrorStringMem2_size_of_size196 len hmem])]
-  simp [ByteArray.size_append, ByteArray.size_extract,
-    endFree_solcErrorStringMem2_size_of_size196 len hmem]
-
-theorem endFree_solcErrorStringMem3_read64_of_size196 (len word : UInt256)
-    {mem : ByteArray} (hmem : mem.size = 196)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold solcErrorStringMem3
-  rw [toByteArray_write_read_below_of_gap word _ 196 64
-      (by rw [endFree_solcErrorStringMem2_size_of_size196 len hmem]; omega) (by omega)
-      (by
-        rw [endFree_solcErrorStringMem2_size_of_size196 len hmem]
-        exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem2
-  rw [toByteArray_write_read_below_of_gap len _ 164 64
-      (by rw [endFree_solcErrorStringMem1_size_of_size196 hmem]; omega) (by omega)
-      (by
-        rw [endFree_solcErrorStringMem1_size_of_size196 hmem]
-        exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem1
-  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
-      (by rw [endFree_solcErrorStringMem0_size_of_size196 hmem]; omega) (by omega)
-      (by
-        rw [endFree_solcErrorStringMem0_size_of_size196 hmem]
-        exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem0
-  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
-      (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
-  exact hread64
-
-theorem endFree_solcErrorStringMem3_mload64_of_size196 (len word : UInt256)
-    {mem : ByteArray} (hmem : mem.size = 196)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
-     else UInt256.ofNat
-       (fromByteArrayBigEndian
-        ((solcErrorStringMem3 len word mem).readWithPadding
-          (⟨64⟩ : UInt256).toNat 32)))
-      = ⟨128⟩ :=
-  mloadFreePtrValue
-    (by rw [endFree_solcErrorStringMem3_size_of_size196 len word hmem]; decide) (endFree_solcErrorStringMem3_read64_of_size196 len word hmem hread64)
-
-set_option maxHeartbeats 1000000 in
-theorem endFree_solcErrorStringRevertTail_aw7 {code : ByteArray} {g : Sat256}
-    {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len rawWord shift word : UInt256}
-    {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : AccountMap}
-    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 7) rdata acc k C)
-    (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
-    (hpush : op ≠ .PUSH0)
-    (hword : UInt256.shiftLeft rawWord shift = word)
-    (hmem : mem.size = 196)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : stk.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
-  rcases hwf with
-    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
-      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
-      hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
-      hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
-  have rdMload := evm_run h with [
-    raw push1 ⟨64⟩ hd0 (by evm_ov),
-    raw dup1 hd2 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) hd3
-      mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
-      (by decide) (by evm_ov)]
-  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) hd4
-    (by simp only [List.length_cons]; omega)
-  have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ hd8 (by evm_ov),
-    raw shl hd10 (by evm_ov),
-    raw dup2 hd11 (by evm_ov),
-    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 7)
-      hd12 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ hd13 (by evm_ov),
-    raw push1 ⟨4⟩ hd15 (by evm_ov),
-    raw dup3 hd17 (by evm_ov),
-    raw add hd18 (by evm_ov),
-    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 7)
-      hd19 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 len hd20 (by evm_ov),
-    raw push1 ⟨36⟩ hd22 (by evm_ov),
-    raw dup3 hd24 (by evm_ov),
-    raw add hd25 (by evm_ov),
-    raw mstore 0 (solcErrorStringMem2 len mem)
-      (UInt256.ofNat 7) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
-  have rdRaw := rdPrefix.pushConst rawWord (width := width) (op := op)
-    hpush hd27 (by simp only [List.length_cons]; omega)
-  have rdWord := evm_run rdRaw with [
-    raw push1 shift hdRawOut (by evm_ov),
-    raw shl hdShl (by evm_ov)]
-  rw [hword] at rdWord
-  exact evm_run rdWord with [
-    raw push1 ⟨68⟩ hd68 (by evm_ov),
-    raw dup3 hdDup3 (by evm_ov),
-    raw add hdAdd (by evm_ov),
-    raw mstore 3 (solcErrorStringMem3 len word mem)
-      (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 hdSwap (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
-      mem_cost
-      (endFree_solcErrorStringMem3_mload64_of_size196 len word hmem hread64)
-      (by decide) (by evm_ov),
-    raw swap1 hdSwap2 (by evm_ov),
-    raw dup2 hdDup2 (by evm_ov),
-    raw swap1 hdSwap3 (by evm_ov),
-    raw sub hdSub (by evm_ov),
-    raw push1 ⟨100⟩ hd100 (by evm_ov),
-    raw add hdAdd2 (by evm_ov),
-    raw swap1 hdSwap4 (by evm_ov),
-    raw rev 0 hdRev mem_cost (by evm_ov)]
 
 abbrev endFreeLiveEvaledRef : EvaledStorageRef :=
   { base := "live", steps := [] }
@@ -1163,7 +1107,7 @@ theorem evalExpr_endFree_live_zero_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := endFreeStore I } evm
         (.storage liveRef) = .ok (.int 0) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endFreeStore I })
       (slot := liveRef)
@@ -1175,7 +1119,7 @@ theorem evalExpr_endFree_live_zero_true (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_endFree_live evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by simpa [hload] using endStorageLocLoad_uint256 evm ⟨8⟩)]
+      (hload := by simpa [hload] using storageLocLoad_uint256 evm ⟨8⟩)]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -1188,7 +1132,7 @@ theorem evalExpr_endFree_live_zero_false (evm : EVM.State) (I : ExecutionEnv)
         (.storage liveRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endFreeStore I })
       (slot := liveRef)
@@ -1199,7 +1143,7 @@ theorem evalExpr_endFree_live_zero_false (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_endFree_live evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact endStorageLocLoad_uint256 evm ⟨8⟩)
+      (hload := by exact storageLocLoad_uint256 evm ⟨8⟩)
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat) ≠
@@ -1277,7 +1221,7 @@ theorem evalExprs_endFree_urnsArgs (evm : EVM.State) (I : ExecutionEnv)
 
 theorem endFreeSourceLiveReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I ≠ ⟨0⟩) :
+    (hlive : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨0⟩) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endFreeStore I) freeTransition.body .reverted := by
   intro evm0
@@ -1286,7 +1230,7 @@ theorem endFreeSourceLiveReverts {σ σ₀ A I} {g : UInt256}
     intro hbad
     apply hlive
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endSlotWord, solcSlotWord] using hbad
+      solcSlotWordAt, solcSlotWord] using hbad
   have hguard :
       evalExpr? config { contract := contract, locals := endFreeStore I } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool false) :=
@@ -1307,13 +1251,14 @@ theorem endFreeSourceLiveReverts {σ σ₀ A I} {g : UInt256}
           .require (.binary .le (.var "ink") (.intLit int256Limit)) ] ++
         checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
           [.var "ilk", sender, sender, vowAddr, asInt256 (.unary .neg (asInt256 (.var "ink"))),
-            .intLit 0] "_grab")
+            .intLit 0] "_grab" ++
+        [.emit "Free" [.var "ilk", sender, .var "ink"]])
       (by simp only [evm0, initState]; exact hwv)
       hguard
 
 theorem endFreeBodyReverts_urnsNoCode {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1322,7 +1267,7 @@ theorem endFreeBodyReverts_urnsNoCode {σ σ₀ A I} {g : UInt256}
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endSlotWord, solcSlotWord] using hlive
+      solcSlotWordAt, solcSlotWord] using hlive
   have hguardLive :
       evalExpr? config { contract := contract, locals := endFreeStore I } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) :=
@@ -1333,7 +1278,7 @@ theorem endFreeBodyReverts_urnsNoCode {σ σ₀ A I} {g : UInt256}
     have hbase : (endFreeStore I).get? "vat" = none := by
       simp [endFreeStore, endFreeIlkValue]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endFreeStore I) evm0 hbase
   have hcodeZero :
       (UInt256.ofNat
@@ -1375,7 +1320,7 @@ theorem endFreeBodyReverts_urnsNoCode {σ σ₀ A I} {g : UInt256}
 theorem endFreeBodyReverts_urnsCallFailed {σ σ₀ A I} {g : UInt256}
     {evmUrns : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
@@ -1390,7 +1335,7 @@ theorem endFreeBodyReverts_urnsCallFailed {σ σ₀ A I} {g : UInt256}
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endSlotWord, solcSlotWord] using hlive
+      solcSlotWordAt, solcSlotWord] using hlive
   have hguardLive :
       evalExpr? config { contract := contract, locals := endFreeStore I } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) :=
@@ -1401,7 +1346,7 @@ theorem endFreeBodyReverts_urnsCallFailed {σ σ₀ A I} {g : UInt256}
     have hbase : (endFreeStore I).get? "vat" = none := by
       simp [endFreeStore, endFreeIlkValue]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endFreeStore I) evm0 hbase
   have hcodePos :
       0 < (UInt256.ofNat
@@ -1449,7 +1394,7 @@ theorem endFreeBodyReverts_urnsCallFailed {σ σ₀ A I} {g : UInt256}
 theorem endFreeBodyReverts_urnsDecodeShort {σ σ₀ A I} {g : UInt256}
     {evmUrns : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
@@ -1465,7 +1410,7 @@ theorem endFreeBodyReverts_urnsDecodeShort {σ σ₀ A I} {g : UInt256}
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endSlotWord, solcSlotWord] using hlive
+      solcSlotWordAt, solcSlotWord] using hlive
   have hguardLive :
       evalExpr? config { contract := contract, locals := endFreeStore I } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) :=
@@ -1476,7 +1421,7 @@ theorem endFreeBodyReverts_urnsDecodeShort {σ σ₀ A I} {g : UInt256}
     have hbase : (endFreeStore I).get? "vat" = none := by
       simp [endFreeStore, endFreeIlkValue]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endFreeStore I) evm0 hbase
   have hcodePos :
       0 < (UInt256.ofNat
@@ -1525,7 +1470,7 @@ theorem endFreeBodyReverts_urnsDecodeShort {σ σ₀ A I} {g : UInt256}
 theorem endFreePrefixUrnsSuccess {σ σ₀ A I} {g : UInt256}
     {evmUrns : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
@@ -1545,7 +1490,7 @@ theorem endFreePrefixUrnsSuccess {σ σ₀ A I} {g : UInt256}
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endSlotWord, solcSlotWord] using hlive
+      solcSlotWordAt, solcSlotWord] using hlive
   have hguardLive :
       evalExpr? config { contract := contract, locals := endFreeStore I } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) :=
@@ -1556,7 +1501,7 @@ theorem endFreePrefixUrnsSuccess {σ σ₀ A I} {g : UInt256}
     have hbase : (endFreeStore I).get? "vat" = none := by
       simp [endFreeStore, endFreeIlkValue]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endFreeStore I) evm0 hbase
   have hcodePos :
       0 < (UInt256.ofNat
@@ -1721,7 +1666,7 @@ theorem evalExprs_endFree_grabArgs (evm : EVM.State) (I : ExecutionEnv)
     have hbase : (endFreeStoreArt I out).get? "vow" = none := by
       simp [endFreeStoreArt, endFreeStoreInk, endFreeStoreVatUrn, endFreeStore]
     simpa [vowAddr, howner, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVowAddr, endPackVowWord, endSlotWord, solcSlotWord] using
+      endPackVowAddr, endPackVowWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vow (locals := endFreeStoreArt I out) evm hbase
   have hneg := evalExpr_endFree_negInk_afterArt evm I out hinkBound
   have hzero :
@@ -1838,14 +1783,14 @@ theorem endFreeTailReverts_grabNoCode (evm : EVM.State) (I : ExecutionEnv)
     have hbase : (endFreeStoreArt I out).get? "vat" = none := by
       simp [endFreeStoreArt, endFreeStoreInk, endFreeStoreVatUrn, endFreeStore]
     simpa [howner, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endFreeStoreArt I out) evm hbase
   have hcodeZero :
       (UInt256.ofNat
         ((evm.lookupAccount (endPackVatAddr evm.accountMap I)).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
     simpa [State.lookupAccount] using
-      endUniswapExtCodeSizeWord_zero_lookup_code_zero
+      extCodeSizeWord_zero_lookup_code_zero
         (σ := evm.accountMap) (target := endPackVatWord evm.accountMap I)
         (addr := endPackVatAddr evm.accountMap I)
         (endPackVatAddr_eq_ofUInt256 evm.accountMap I) hcodeSize
@@ -1873,7 +1818,8 @@ theorem endFreeTailReverts_grabNoCode (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal (ExecStmt.letDecl hartTuple) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqArt) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqInk) ?_
-  simpa using hgrabBlock
+  exact execBlockAppendReverted
+    (suff := [.emit "Free" [.var "ilk", sender, .var "ink"]]) hgrabBlock
 
 theorem endFreeTailReverts_grabCallFailed (evm evmGrab : EVM.State) (I : ExecutionEnv)
     (out grabOut : ByteArray)
@@ -1929,14 +1875,14 @@ theorem endFreeTailReverts_grabCallFailed (evm evmGrab : EVM.State) (I : Executi
     have hbase : (endFreeStoreArt I out).get? "vat" = none := by
       simp [endFreeStoreArt, endFreeStoreInk, endFreeStoreVatUrn, endFreeStore]
     simpa [howner, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endFreeStoreArt I out) evm hbase
   have hcodePos :
       0 < (UInt256.ofNat
         ((evm.lookupAccount (endPackVatAddr evm.accountMap I)).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evm.accountMap) (target := endPackVatWord evm.accountMap I)
         (addr := endPackVatAddr evm.accountMap I)
         (endPackVatAddr_eq_ofUInt256 evm.accountMap I) hcodeSize
@@ -1984,9 +1930,19 @@ theorem endFreeTailReverts_grabCallFailed (evm evmGrab : EVM.State) (I : Executi
   refine ExecBlock.consNormal (ExecStmt.letDecl hartTuple) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqArt) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqInk) ?_
-  simpa using hgrabBlock
+  exact execBlockAppendReverted
+    (suff := [.emit "Free" [.var "ilk", sender, .var "ink"]]) hgrabBlock
 
-theorem endFreeTailReturns_grabSuccess (evm evmGrab : EVM.State) (I : ExecutionEnv)
+theorem evalExprs_endFreeEvent (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
+    evalExprs? config { contract := contract, locals := endFreeStoreGrab I out } evm
+      [.var "ilk", sender, .var "ink"] =
+        .ok [endFreeIlkValue I, .address evm.executionEnv.source,
+          .int (Int.ofNat (endFreeUrnInkWord out).toNat)] := by
+  simp [evalExprs?, evalExpr?, sender, envValue, endFreeStoreGrab, endFreeStoreArt,
+    endFreeStoreInk, endFreeStoreVatUrn, endFreeStore, Std.HashMap.getElem_insert,
+    EvalResult.ofOption, EvalResult.bind, pure, bind]
+
+theorem endFreeTailReturns_grabSuccessSplit (evm evmGrab : EVM.State) (I : ExecutionEnv)
     (out grabOut : ByteArray)
     (hsrc : evm.executionEnv.source = I.source)
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
@@ -2005,9 +1961,12 @@ theorem endFreeTailReturns_grabSuccess (evm evmGrab : EVM.State) (I : ExecutionE
           .int (-(Int.ofNat (endFreeUrnInkWord out).toNat)),
           .int 0]
         (true, evmGrab, grabOut) true) :
-    ExecBlock config { contract := contract, locals := endFreeStoreVatUrn I out } evm
+    (ExecBlock config { contract := contract, locals := endFreeStoreVatUrn I out } evm
       endFreeAfterUrnsStmts
-      (.ok { contract := contract, locals := endFreeStoreGrab I out } evmGrab) := by
+      (.ok { contract := contract, locals := endFreeStoreGrab I out } evmGrab)) ∧
+      (evm.executionEnv.perm = false →
+        ExecBlock config { contract := contract, locals := endFreeStoreVatUrn I out } evm
+          endFreeAfterUrnsStmts .staticViolation) := by
   have hinkTuple := evalExpr_endFree_vatUrn_ink evm I out
   have hartTuple := evalExpr_endFree_vatUrn_art_afterInk evm I out
   have hartVar := evalExpr_endFree_art_afterArt evm I out
@@ -2041,14 +2000,14 @@ theorem endFreeTailReturns_grabSuccess (evm evmGrab : EVM.State) (I : ExecutionE
     have hbase : (endFreeStoreArt I out).get? "vat" = none := by
       simp [endFreeStoreArt, endFreeStoreInk, endFreeStoreVatUrn, endFreeStore]
     simpa [howner, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endFreeStoreArt I out) evm hbase
   have hcodePos :
       0 < (UInt256.ofNat
         ((evm.lookupAccount (endPackVatAddr evm.accountMap I)).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evm.accountMap) (target := endPackVatWord evm.accountMap I)
         (addr := endPackVatAddr evm.accountMap I)
         (endPackVatAddr_eq_ofUInt256 evm.accountMap I) hcodeSize
@@ -2093,17 +2052,28 @@ theorem endFreeTailReturns_grabSuccess (evm evmGrab : EVM.State) (I : ExecutionE
       (out := grabOut) (perm := true) (value := [])
       hguardGrab hreceiver hargs hcall hdec
     simpa [checkedExternalCallStmts, endFreeStoreGrab, collapseReturns] using hblock
-  simp only [endFreeAfterUrnsStmts, List.cons_append, List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.letDecl hinkTuple) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hartTuple) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hreqArt) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hreqInk) ?_
-  simpa using hgrabBlock
+  have hargsEvent := evalExprs_endFreeEvent evmGrab I out
+  have hfinish {result : ExecResult}
+      (htail : ExecBlock config { contract := contract, locals := endFreeStoreGrab I out }
+        evmGrab [.emit "Free" [.var "ilk", sender, .var "ink"]] result) :
+      ExecBlock config { contract := contract, locals := endFreeStoreVatUrn I out } evm
+        endFreeAfterUrnsStmts result := by
+    simp only [endFreeAfterUrnsStmts, List.cons_append, List.nil_append]
+    refine ExecBlock.consNormal (ExecStmt.letDecl hinkTuple) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hartTuple) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hreqArt) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hreqInk) ?_
+    exact execBlock_append_ok hgrabBlock htail
+  constructor
+  · exact hfinish (ExecBlock.consNormal (ExecStmt.emit hargsEvent) ExecBlock.nil)
+  · intro hperm
+    exact hfinish (ExecBlock.consStatic (ExecStmt.emitStatic hargsEvent
+      (by rw [typedCallViaEVM_executionEnv_eq hcall]; exact hperm)))
 
 theorem endFreeBodyReverts_artNonzero {σ σ₀ A I} {g : UInt256}
     {evmUrns : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
@@ -2141,7 +2111,7 @@ theorem endFreeBodyReverts_artNonzero {σ σ₀ A I} {g : UInt256}
 theorem endFreeBodyReverts_inkOverflow {σ σ₀ A I} {g : UInt256}
     {evmUrns : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
@@ -2180,7 +2150,7 @@ theorem endFreeBodyReverts_inkOverflow {σ σ₀ A I} {g : UInt256}
 theorem endFreeBodyReverts_grabNoCode {σ σ₀ A I} {g : UInt256}
     {evmUrns : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
@@ -2224,7 +2194,7 @@ theorem endFreeBodyReverts_grabNoCode {σ σ₀ A I} {g : UInt256}
 theorem endFreeBodyReverts_grabCallFailed {σ σ₀ A I} {g : UInt256}
     {evmUrns evmGrab : EVM.State} {out grabOut : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
@@ -2277,10 +2247,10 @@ theorem endFreeBodyReverts_grabCallFailed {σ σ₀ A I} {g : UInt256}
       checkedExternalCallStmts, List.cons_append, List.nil_append, List.append_assoc] using hseq
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem endFreeBodyReturns_grabSuccess {σ σ₀ A I} {g : UInt256}
+theorem endFreeBodyReturns_grabSuccessSplit {σ σ₀ A I} {g : UInt256}
     {evmUrns evmGrab : EVM.State} {out grabOut : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
@@ -2308,8 +2278,10 @@ theorem endFreeBodyReturns_grabSuccess {σ σ₀ A I} {g : UInt256}
           .int 0]
         (true, evmGrab, grabOut) true) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 (endFreeStore I) freeTransition.body
-      (.returned { contract := contract, locals := endFreeStoreGrab I out } evmGrab none) := by
+    (ExecTransitionBody config contract evm0 (endFreeStore I) freeTransition.body
+      (.returned { contract := contract, locals := endFreeStoreGrab I out } evmGrab none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evm0 (endFreeStore I)
+        freeTransition.body .staticViolation) := by
   intro evm0
   have hprefix :
       ExecBlock config { contract := contract, locals := endFreeStore I } evm0
@@ -2322,22 +2294,25 @@ theorem endFreeBodyReturns_grabSuccess {σ σ₀ A I} {g : UInt256}
         (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) (evmUrns := evmUrns) (out := out)
         hwv hlive hcodeSize hcall hlo
-  have htail :=
-    endFreeTailReturns_grabSuccess evmUrns evmGrab I out grabOut hsrc howner hart
-      hink hgrabCodeSize hgrabCall
-  have hblock :
+  have htailSplit := endFreeTailReturns_grabSuccessSplit
+    evmUrns evmGrab I out grabOut hsrc howner hart hink hgrabCodeSize hgrabCall
+  have hfinish {result : ExecResult}
+      (htail : ExecBlock config { contract := contract, locals := endFreeStoreVatUrn I out }
+        evmUrns endFreeAfterUrnsStmts result) :
       ExecBlock config { contract := contract, locals := endFreeStore I } evm0
-        freeTransition.body
-        (.ok { contract := contract, locals := endFreeStoreGrab I out } evmGrab) := by
-    have hseq := execBlock_append
-      (s2 := endFreeAfterUrnsStmts) hprefix htail
+        freeTransition.body result := by
     simpa [freeTransition, nonpayable, endFreeUrnsCallStmts, endFreeAfterUrnsStmts,
-      checkedExternalCallStmts, List.cons_append, List.nil_append, List.append_assoc] using hseq
-  simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockOK hblock
+      checkedExternalCallStmts, List.cons_append, List.nil_append, List.append_assoc] using
+      execBlock_append hprefix htail
+  constructor
+  · exact ExecFuncBody.execBlockOK (hfinish htailSplit.1)
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hfinish (htailSplit.2 (by rw [typedCallViaEVM_executionEnv_eq hcall]; exact hperm)))
 
 theorem endFreeX_liveZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩)
     (h : RD endBytecode I g (initState σ σ₀ g A I) endFreeBodyPc
       [endFreeIlkWord I, endFreeReturnPc, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -2351,7 +2326,7 @@ theorem endFreeX_liveZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hraw :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
-    simpa [endSlotWord, solcSlotWord] using hlive
+    simpa [solcSlotWordAt, solcSlotWord] using hlive
   have rd7694 := rd7694raw
   rw [hraw] at rd7694
   have rd7695raw := rd7694.iszero (by native_decide) (by evm_ov)
@@ -2364,7 +2339,7 @@ theorem endFreeX_liveZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem endFreeX_liveNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
-    (hlive : endSlotWord ⟨8⟩ σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨0⟩)
     (h : RD endBytecode I g (initState σ σ₀ g A I) endFreeBodyPc
       [endFreeIlkWord I, endFreeReturnPc, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -2375,12 +2350,12 @@ theorem endFreeX_liveNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, rd7694raw⟩ := rd7693.sload (by native_decide) (by evm_ov)
   have rd7694 : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨7694⟩
-        (endSlotWord ⟨8⟩ σ I :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
+        (solcSlotWordAt ⟨8⟩ σ I :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd7694raw⟩
+    exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd7694raw⟩
   obtain ⟨_, _, rd7694⟩ := rd7694
   have rd7695raw := rd7694.iszero (by native_decide) (by evm_ov)
-  have hzero : UInt256.isZero (endSlotWord ⟨8⟩ σ I) = ⟨0⟩ :=
+  have hzero : UInt256.isZero (solcSlotWordAt ⟨8⟩ σ I) = ⟨0⟩ :=
     isZero_eq_zero_of_ne hlive
   have rd7695 := rd7695raw
   rw [hzero] at rd7695
@@ -2440,18 +2415,18 @@ theorem endFreeX_urnsExtcodesizeGuard {σ σ₀ A I} {g : Sat256} {sel : UInt256
         endFreeUrnsSelectorShifted := by
     native_decide
   have hvatMask :
-      UInt256.land solcAddrMask (endSlotWord ⟨1⟩ σ I) = endPackVatWord σ I := by
+      UInt256.land solcAddrMask (solcSlotWordAt ⟨1⟩ σ I) = endPackVatWord σ I := by
     simpa [endPackVatWord, solcAddrMask] using
-      u256_land_comm solcAddrMask (endSlotWord ⟨1⟩ σ I)
+      u256_land_comm solcAddrMask (solcSlotWordAt ⟨1⟩ σ I)
   have rd7763 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd7764raw⟩ := rd7763.sload (by native_decide) (by evm_ov)
   have rd7764 : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨7764⟩
-        (endSlotWord ⟨1⟩ σ I :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
+        (solcSlotWordAt ⟨1⟩ σ I :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd7764raw⟩
+    exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd7764raw⟩
   obtain ⟨_, _, rd7764⟩ := rd7764
   have rd7831 := evm_run rd7764 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -2518,7 +2493,7 @@ theorem endFreeX_urnsExtcodesizeGuard {σ σ₀ A I} {g : Sat256} {sel : UInt256
   exact ⟨_, _, by
     simpa [endFreeUrnsSelectorMem, endFreeUrnsArg0Mem, endFreeUrnsCalldataMem,
       endFreeUrnsOutPtr, endFreeUrnsInSize, endFreeUrnsOutSize, endFreeUrnsEndPtr,
-      endFreeUrnsSelectorShifted, endFreeUrnsSelectorWord, endPackVatWord, endSlotWord,
+      endFreeUrnsSelectorShifted, endFreeUrnsSelectorWord, endPackVatWord, solcSlotWordAt,
       solcSlotWord, solcAddrMask, hselectorShift, hvatMask] using rd7831⟩
 
 theorem endFreeX_urnsNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -2932,19 +2907,19 @@ theorem endFreeX_grabExtcodesizeGuard {σ σ' σ₀ A I} {g : Sat256}
     change UInt256.ofNat I.source.val = solcSourceWord I
     rfl
   have hvowMask :
-      UInt256.land (endSlotWord ⟨4⟩ σ' I) solcAddrMask = endPackVowWord σ' I := by
+      UInt256.land (solcSlotWordAt ⟨4⟩ σ' I) solcAddrMask = endPackVowWord σ' I := by
     rfl
   have hvowMaskLeft :
-      UInt256.land solcAddrMask (endSlotWord ⟨4⟩ σ' I) = endPackVowWord σ' I := by
+      UInt256.land solcAddrMask (solcSlotWordAt ⟨4⟩ σ' I) = endPackVowWord σ' I := by
     simpa [endPackVowWord] using
-      u256_land_comm solcAddrMask (endSlotWord ⟨4⟩ σ' I)
+      u256_land_comm solcAddrMask (solcSlotWordAt ⟨4⟩ σ' I)
   have hvatMask :
-      UInt256.land (endSlotWord ⟨1⟩ σ' I) solcAddrMask = endPackVatWord σ' I := by
+      UInt256.land (solcSlotWordAt ⟨1⟩ σ' I) solcAddrMask = endPackVatWord σ' I := by
     rfl
   have hvatMaskLeft :
-      UInt256.land solcAddrMask (endSlotWord ⟨1⟩ σ' I) = endPackVatWord σ' I := by
+      UInt256.land solcAddrMask (solcSlotWordAt ⟨1⟩ σ' I) = endPackVatWord σ' I := by
     simpa [endPackVatWord] using
-      u256_land_comm solcAddrMask (endSlotWord ⟨1⟩ σ' I)
+      u256_land_comm solcAddrMask (solcSlotWordAt ⟨1⟩ σ' I)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
@@ -2957,10 +2932,10 @@ theorem endFreeX_grabExtcodesizeGuard {σ σ' σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd8045raw⟩ := rd8044.sload (by native_decide) (by evm_ov)
   have rd8045 : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨8045⟩
-        (endSlotWord ⟨1⟩ σ' I :: ⟨0⟩ :: endFreeUrnInkWord out ::
+        (solcSlotWordAt ⟨1⟩ σ' I :: ⟨0⟩ :: endFreeUrnInkWord out ::
           endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
         (endFreeUrnsPostCallMem I out) (UInt256.ofNat 7) out σ' k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd8045raw⟩
+    exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd8045raw⟩
   obtain ⟨_, _, rd8045⟩ := rd8045
   have rd8048 := evm_run rd8045 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
@@ -2968,11 +2943,11 @@ theorem endFreeX_grabExtcodesizeGuard {σ σ' σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd8049raw⟩ := rd8048.sload (by native_decide) (by evm_ov)
   have rd8049 : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨8049⟩
-        (endSlotWord ⟨4⟩ σ' I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σ' I ::
+        (solcSlotWordAt ⟨4⟩ σ' I :: ⟨4⟩ :: solcSlotWordAt ⟨1⟩ σ' I ::
           ⟨0⟩ :: endFreeUrnInkWord out :: endFreeIlkWord I :: endFreeReturnPc ::
           sel :: [])
         (endFreeUrnsPostCallMem I out) (UInt256.ofNat 7) out σ' k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd8049raw⟩
+    exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd8049raw⟩
   obtain ⟨_, _, rd8049⟩ := rd8049
   have rd8143raw := evm_run rd8049 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -3097,7 +3072,7 @@ theorem endFreeX_grabExtcodesizeGuard {σ σ' σ₀ A I} {g : Sat256}
     exact ⟨_, _, by
       simpa [endFreeGrabOutPtr, endFreeGrabInSize, endFreeGrabOutSize,
         endFreeGrabEndPtr, endFreeGrabSelectorWord, endPackVatWord, endPackVowWord,
-        endSlotWord, solcSlotWord, solcAddrMask, hvatMask, hvatMaskLeft, hvowMask,
+        solcSlotWordAt, solcSlotWord, solcAddrMask, hvatMask, hvatMaskLeft, hvowMask,
         hvowMaskLeft, haddrMask] using rd8143raw⟩
   obtain ⟨k', C', rd8143⟩ := rd8143
   exact ⟨k', C', by simpa [endFreeGrabMem7_eq] using rd8143⟩
@@ -3247,15 +3222,16 @@ theorem endFreeX_grabCallSucceeded {σ σpre σpost σ₀ A I} {g : Sat256}
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp)
 
-theorem endFreeX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem endFreeX_grabLogReturnSplit {I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} {σ : AccountMap} {out ret : ByteArray}
     {acc : AccountMap}
-    (hperm : I.perm = true)
     (h : RD endBytecode I g s0 ⟨8177⟩
       (endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: endFreeUrnInkWord out :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
       (endFreeGrabPostCallMem σ I out ret) (UInt256.ofNat 11) ret acc k C) :
-    RDret endBytecode g s0 acc ByteArray.empty := by
+    (I.perm = true ∧
+      RDret endBytecode g s0 acc ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic endBytecode g s0) := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ (endFreeGrabPostCallMem σ I out ret).size then ⟨0⟩
         else UInt256.ofNat
@@ -3314,6 +3290,12 @@ theorem endFreeX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
       (endFreeLogDataMem σ I out ret) (UInt256.ofNat 11) ret acc k' C' := by
     exact ⟨_, _, by simpa [solcSourceWord] using rd8234pre⟩
   obtain ⟨_, _, rd8234⟩ := rd8234
+  have hlogDec : decode endBytecode ⟨8234⟩ = some (.LOG3, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd8234.log3Static (by simpa using hperm) hlogDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   have rdLog := RD.log3
     (a := ⟨128⟩) (b := ⟨32⟩)
     (c := ⟨0xf26f2b994a5e16f0960958e62541681f9e3e84d4caac2e487d25e0c75243f0d8⟩)
@@ -3323,7 +3305,7 @@ theorem endFreeX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 11).toNat (⟨128⟩ : UInt256).toNat
         (⟨32⟩ : UInt256).toNat))
-    rd8234 (by native_decide) hperm mem_cost (by native_decide)
+    rd8234 hlogDec hperm mem_cost (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdPop0 := RD.pop (a := (⟨0⟩ : UInt256))
     (t := [endFreeUrnInkWord out, endFreeIlkWord I, endFreeReturnPc, sel])
@@ -3346,7 +3328,7 @@ theorem endDecode_free_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode ["ilk"] [bytes32] I.calldata = _
   simpa [config, endFreeStore, endFreeIlkValue, endFreeIlkWord, bytes32, bytes32Width,
     abiBytes32, abiBytes32Width] using
-    endDecode_legacyBytes32_ok (cd := I.calldata) (x := "ilk") hsz36
+    decodeCalldataWithMode_legacyBytes32_ok (cd := I.calldata) (x := "ilk") hsz36
 
 theorem endDecode_free_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
@@ -3354,7 +3336,7 @@ theorem endDecode_free_none_short {I : ExecutionEnv}
       (transitionSignature freeTransition).paramTypes I.calldata = none := by
   show decodeCalldataWithMode config.abiDecodeMode ["ilk"] [bytes32] I.calldata = none
   simpa [config, bytes32, bytes32Width, abiBytes32, abiBytes32Width] using
-    endDecode_legacyBytes32_none_short (cd := I.calldata) (x := "ilk") hsz4 hshort
+    decodeCalldataWithMode_legacyBytes32_none_short (cd := I.calldata) (x := "ilk") hsz4 hshort
 
 theorem endDispatchFree {I : ExecutionEnv}
     (hsel : selIs I (selectorOf freeTransition)) :
@@ -3457,7 +3439,7 @@ theorem endFreeBodyCoreDecodeFailed_short
 
 theorem endFreeBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf freeTransition)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endFreeConcreteSelector := by
@@ -3474,7 +3456,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
     obtain ⟨_, _, hbodyReach⟩ :=
       endFreeX_decoded (g := Sat256.ofUInt256 g) hsz36 hsize hreach
     let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    by_cases hlive : endSlotWord ⟨8⟩ σ I = ⟨0⟩
+    by_cases hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩
     · obtain ⟨_, _, hlivePc⟩ := endFreeX_liveZero (I := I) hlive hbodyReach
       have hAddressId (a : AccountAddress) : EVM.address a = a := by
         apply Fin.ext
@@ -3540,7 +3522,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
               (inOff := endFreeUrnsOutPtr) (inSize := endFreeUrnsInSize)
               (callPerm := true)
               hdepthNe htgt (endFreeUrnsEncode_eq I hsz36 solcFreePtrMem_size)
-              (by simpa [initState, hperm] using hΘeq))
+              (by simpa [initState] using hΘeq))
           cases z
           · have hbody :
                 ExecTransitionBody config contract evmSolm (endFreeStore I)
@@ -3705,7 +3687,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
                           (callPerm := true)
                           hdepthNeGrab htgtGrab
                           (endFreeGrabEncode_eq σ' I out hsz36 hinkOk)
-                          (by simpa [evmUrnsEvm, initState, hperm] using hΘGrabEq))
+                          (by simpa [evmUrnsEvm, initState] using hΘGrabEq))
                       cases zGrab
                       · have hbody :
                             ExecTransitionBody config contract evmSolm (endFreeStore I)
@@ -3735,15 +3717,17 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
                         have rd8159Succ := rd8159
                         simp at rd8159Succ
                         obtain ⟨_, _, rd8177⟩ := endFreeX_grabCallSucceeded rd8159Succ
-                        have hretEvm := endFreeX_grabLogReturn
-                          (σ := σ') (out := out) (ret := ret) hperm rd8177
-                        have hbody :
-                            ExecTransitionBody config contract evmSolm (endFreeStore I)
+                        have hretSplit := endFreeX_grabLogReturnSplit
+                          (σ := σ') (out := out) (ret := ret) rd8177
+                        have hbodySplit :
+                            (ExecTransitionBody config contract evmSolm (endFreeStore I)
                               freeTransition.body
                               (.returned { contract := contract, locals := endFreeStoreGrab I out }
-                                evmGrabSolm none) := by
+                                evmGrabSolm none)) ∧
+                            (I.perm = false → ExecTransitionBody config contract evmSolm
+                              (endFreeStore I) freeTransition.body .staticViolation) := by
                           simpa [evmSolm, evmUrnsSolm, evmGrabSolm] using
-                            endFreeBodyReturns_grabSuccess
+                            endFreeBodyReturns_grabSuccessSplit
                               (σ := σ)
                               (σ₀ := σ₀) (A := A) (I := I) (g := g)
                               (evmUrns := evmUrnsSolm) (evmGrab := evmGrabSolm)
@@ -3752,8 +3736,12 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
                               (by simpa [evmSolm, evmUrnsSolm] using hcallSolm)
                               hlo hsrcUrns hownerUrns hartZero hinkOk hgrabCodeSolmNE
                               (by simpa [evmUrnsSolm, evmGrabSolm] using hgrabCallSolm)
+                        rcases hretSplit with ⟨_hperm, hretEvm⟩ | ⟨hperm, hstatic⟩
+                        swap
+                        · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2
+                          hperm)
                         exact hretEvm.reEquivExecutionGen
-                          hcode hdispatch hdecode hbody
+                          hcode hdispatch hdecode hbodySplit.1
                           (by simp [evmGrabSolm])
                           (by
                             simpa [freeTransition] using

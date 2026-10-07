@@ -74,8 +74,8 @@ theorem cureLoadedBodyCoreOk
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals loadedTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (cureSlotWord (loadedMappingSlotFor I) σ I).toNat))])) := by
-    simpa [loadedTransition, loadedMappingSlotFor, cureSlotWord, initState, Solm.EVM.storageLoad,
+          (some [(.int (Int.ofNat (solcSlotWordAt (loadedMappingSlotFor I) σ I).toNat))])) := by
+    simpa [loadedTransition, loadedMappingSlotFor, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount, locals, key] using
       cureUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -112,33 +112,33 @@ theorem cureLoadedBodyCoreOk
   have hret :
       RDret cureBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (cureSlotWord slot σ I)) := by
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨343⟩) (val := cureSlotWord slot σ I) (ret := ⟨343⟩) (R := [sel])
+      (pc := ⟨343⟩) (val := solcSlotWordAt slot σ I) (ret := ⟨343⟩) (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨7⟩ key)
-        (cureSlotWord slot σ I))
-      (by simpa [slot, cureSlotWord] using hretPc)
+        (solcSlotWordAt slot σ I))
+      (by simpa [slot, solcSlotWordAt] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
         repeat' first | apply And.intro | native_decide)
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨7⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (cureSlotWord slot σ I)
+        exact solcScratchReturnMem_mload64 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨7⟩ key) (solcMappingHashMem_read64 ⟨7⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (cureSlotWord slot σ I)
+        exact solcScratchReturnMem_read128 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨7⟩ key))
       (by simp)
-    simpa [slot, cureSlotWord] using hret'
+    simpa [slot, solcSlotWordAt] using hret'
   have henc :
-      returnEquiv (UInt256.toByteArray (cureSlotWord slot σ I))
-        (some [(.int (Int.ofNat (cureSlotWord (loadedMappingSlotFor I) σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt (loadedMappingSlotFor I) σ I).toNat))])
         loadedTransition.returnType := by
     rw [show loadedTransition.returnType = [uint256] by rfl]
     rw [hslot]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (cureSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem cureLoadedBodyCoreDecodeFailed_short
@@ -169,7 +169,6 @@ theorem cureLoadedBodyCoreDecodeFailed_short
 theorem cureLoadedBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 10)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

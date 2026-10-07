@@ -36,8 +36,7 @@ theorem clipperTakeOweGtTabCallbackTailSource
         (clipperTakeSalesTabEVMWord evmRead I)
       let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice'
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe0
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe0
             slice' tabNew lotNew) (immStore v))
         evmVat
         (.ite
@@ -55,21 +54,17 @@ theorem clipperTakeOweGtTabCallbackTailSource
           [sender, .storage vowRef, .var "owe"] "_moveRet" ++
         clipperTakeAfterMoveStmts) result) :
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
+      (Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
       evmRead (clipperTakeAfterSliceStmts) result := by
   let owe0 := UInt256.mul slice price
   let slice' := UInt256.div (clipperTakeSalesTabEVMWord evmRead I) price
   let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I)
     (clipperTakeSalesTabEVMWord evmRead I)
   let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice'
-  let sliceFrame := Frame.mk contract
-    (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v)
-  let fluxFrame := Frame.mk contract
-    (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 slice'
+  let sliceFrame := Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v)
+  let fluxFrame := Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 slice'
       tabNew lotNew) (immStore v)
-  let dogFrame := Frame.mk contract
-    (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe0 slice'
+  let dogFrame := Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe0 slice'
       tabNew lotNew) (immStore v)
   have hflux : ExecBlock config sliceFrame evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++

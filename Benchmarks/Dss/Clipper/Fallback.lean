@@ -1,3 +1,4 @@
+import Reasoning.Reach
 import Benchmarks.Dss.Clipper.Dispatch
 
 /-!
@@ -16,71 +17,6 @@ macro "clipper_decode" : tactic =>
     (rw [clipperDecodeBeforeFirstPatch _ (by assumption) _ (by native_decide)]
      native_decide))
 
-theorem clipperSplitNotTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc next selWord pivot tgt : UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : AccountMap}
-    {k C : ℕ} {rest : List UInt256}
-    (h : RD code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
-    (hdup : decode code pc = some (.DUP1, .none))
-    (hpush4 : decode code (selArmPush4Pc pc) = some (.Push .PUSH4, some (pivot, 4)))
-    (hgt : decode code (selArmEqPc pc) = some (.GT, .none))
-    (hop : Operation.POp.PUSH2 ≠ .PUSH0)
-    (hpushT : decode code (selArmPushTgtPc pc) = some (.Push .PUSH2, some (tgt, 2)))
-    (hjumpi : decode code (selArmJumpiPc pc 2) = some (.JUMPI, .none))
-    (hb : UInt256.gt pivot selWord = ⟨0⟩) (hnext : selArmNextPc pc 2 = next)
-    (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 next (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
-  rw [← hnext]
-  exact h.selectorSplitNotTaken hdup hpush4 hgt hop hpushT hjumpi hb hov
-
-theorem clipperSplitTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc selWord pivot tgt : UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : AccountMap}
-    {k C : ℕ} {rest : List UInt256}
-    (h : RD code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
-    (hdup : decode code pc = some (.DUP1, .none))
-    (hpush4 : decode code (selArmPush4Pc pc) = some (.Push .PUSH4, some (pivot, 4)))
-    (hgt : decode code (selArmEqPc pc) = some (.GT, .none))
-    (hop : Operation.POp.PUSH2 ≠ .PUSH0)
-    (hpushT : decode code (selArmPushTgtPc pc) = some (.Push .PUSH2, some (tgt, 2)))
-    (hjumpi : decode code (selArmJumpiPc pc 2) = some (.JUMPI, .none))
-    (hb : UInt256.gt pivot selWord ≠ ⟨0⟩) (hjd : (D_J code 0).contains tgt = true)
-    (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
-  h.selectorSplitTaken hdup hpush4 hgt hop hpushT hjumpi hb hjd hov
-
-theorem clipperArmNotTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc next selWord sel tgt : UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : AccountMap}
-    {k C : ℕ} {rest : List UInt256}
-    (h : RD code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
-    (hdup : decode code pc = some (.DUP1, .none))
-    (hpush4 : decode code (selArmPush4Pc pc) = some (.Push .PUSH4, some (sel, 4)))
-    (heq : decode code (selArmEqPc pc) = some (.EQ, .none))
-    (hop : Operation.POp.PUSH2 ≠ .PUSH0)
-    (hpushT : decode code (selArmPushTgtPc pc) = some (.Push .PUSH2, some (tgt, 2)))
-    (hjumpi : decode code (selArmJumpiPc pc 2) = some (.JUMPI, .none))
-    (hb : UInt256.eq sel selWord = ⟨0⟩) (hnext : selArmNextPc pc 2 = next)
-    (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 next (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) := by
-  rw [← hnext]
-  exact h.selectorArmNotTaken hdup hpush4 heq hop hpushT hjumpi hb hov
-
-theorem clipperArmTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc selWord sel tgt : UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : AccountMap}
-    {k C : ℕ} {rest : List UInt256}
-    (h : RD code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
-    (hdup : decode code pc = some (.DUP1, .none))
-    (hpush4 : decode code (selArmPush4Pc pc) = some (.Push .PUSH4, some (sel, 4)))
-    (heq : decode code (selArmEqPc pc) = some (.EQ, .none))
-    (hop : Operation.POp.PUSH2 ≠ .PUSH0)
-    (hpushT : decode code (selArmPushTgtPc pc) = some (.Push .PUSH2, some (tgt, 2)))
-    (hjumpi : decode code (selArmJumpiPc pc 2) = some (.JUMPI, .none))
-    (hb : UInt256.eq sel selWord ≠ ⟨0⟩) (hjd : (D_J code 0).contains tgt = true)
-    (hov : rest.length + 3 ≤ 1024) :
-    RD code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
-  h.selectorArmTaken hdup hpush4 heq hop hpushT hjumpi hb hjd hov
 
 theorem clipperFallbackRevertAt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
@@ -364,7 +300,7 @@ theorem clipperNoMatchGroupARevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h65 : RD code ee g s0 (⟨65⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
     RDrev code g s0 := by
-  have h76 := clipperArmNotTaken (pc := (⟨65⟩ : UInt256)) (next := (⟨76⟩ : UInt256))
+  have h76 := RD.selectorArmNotTakenPush2 (pc := (⟨65⟩ : UInt256)) (next := (⟨76⟩ : UInt256))
     (sel := clipperSelNat 12) (tgt := (⟨1349⟩ : UInt256)) h65
     (by
         change decode code (⟨65⟩ : UInt256) = some (.DUP1, .none)
@@ -385,7 +321,7 @@ theorem clipperNoMatchGroupARevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨65⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 12 (by omega)) (by native_decide) (by simp)
-  have h87 := clipperArmNotTaken (pc := (⟨76⟩ : UInt256)) (next := (⟨87⟩ : UInt256))
+  have h87 := RD.selectorArmNotTakenPush2 (pc := (⟨76⟩ : UInt256)) (next := (⟨87⟩ : UInt256))
     (sel := clipperSelNat 14) (tgt := (⟨1357⟩ : UInt256)) h76
     (by
         change decode code (⟨76⟩ : UInt256) = some (.DUP1, .none)
@@ -406,7 +342,7 @@ theorem clipperNoMatchGroupARevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨76⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 14 (by omega)) (by native_decide) (by simp)
-  have h98 := clipperArmNotTaken (pc := (⟨87⟩ : UInt256)) (next := (⟨98⟩ : UInt256))
+  have h98 := RD.selectorArmNotTakenPush2 (pc := (⟨87⟩ : UInt256)) (next := (⟨98⟩ : UInt256))
     (sel := clipperSelNat 10) (tgt := (⟨1365⟩ : UInt256)) h87
     (by
         change decode code (⟨87⟩ : UInt256) = some (.DUP1, .none)
@@ -427,7 +363,7 @@ theorem clipperNoMatchGroupARevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨87⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 10 (by omega)) (by native_decide) (by simp)
-  have h109 := clipperArmNotTaken (pc := (⟨98⟩ : UInt256)) (next := (⟨109⟩ : UInt256))
+  have h109 := RD.selectorArmNotTakenPush2 (pc := (⟨98⟩ : UInt256)) (next := (⟨109⟩ : UInt256))
     (sel := clipperSelNat 16) (tgt := (⟨1409⟩ : UInt256)) h98
     (by
         change decode code (⟨98⟩ : UInt256) = some (.DUP1, .none)
@@ -464,7 +400,7 @@ theorem clipperNoMatchGroupBRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h114 : RD code ee g s0 (⟨114⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
     RDrev code g s0 := by
-  have h125 := clipperArmNotTaken (pc := (⟨114⟩ : UInt256)) (next := (⟨125⟩ : UInt256))
+  have h125 := RD.selectorArmNotTakenPush2 (pc := (⟨114⟩ : UInt256)) (next := (⟨125⟩ : UInt256))
     (sel := clipperSelNat 3) (tgt := (⟨1258⟩ : UInt256)) h114
     (by
         change decode code (⟨114⟩ : UInt256) = some (.DUP1, .none)
@@ -485,7 +421,7 @@ theorem clipperNoMatchGroupBRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨114⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 3 (by omega)) (by native_decide) (by simp)
-  have h136 := clipperArmNotTaken (pc := (⟨125⟩ : UInt256)) (next := (⟨136⟩ : UInt256))
+  have h136 := RD.selectorArmNotTakenPush2 (pc := (⟨125⟩ : UInt256)) (next := (⟨136⟩ : UInt256))
     (sel := clipperSelNat 4) (tgt := (⟨1295⟩ : UInt256)) h125
     (by
         change decode code (⟨125⟩ : UInt256) = some (.DUP1, .none)
@@ -506,7 +442,7 @@ theorem clipperNoMatchGroupBRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨125⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 4 (by omega)) (by native_decide) (by simp)
-  have h147 := clipperArmNotTaken (pc := (⟨136⟩ : UInt256)) (next := (⟨147⟩ : UInt256))
+  have h147 := RD.selectorArmNotTakenPush2 (pc := (⟨136⟩ : UInt256)) (next := (⟨147⟩ : UInt256))
     (sel := clipperSelNat 27) (tgt := (⟨1303⟩ : UInt256)) h136
     (by
         change decode code (⟨136⟩ : UInt256) = some (.DUP1, .none)
@@ -527,7 +463,7 @@ theorem clipperNoMatchGroupBRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨136⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 27 (by omega)) (by native_decide) (by simp)
-  have h158 := clipperArmNotTaken (pc := (⟨147⟩ : UInt256)) (next := (⟨158⟩ : UInt256))
+  have h158 := RD.selectorArmNotTakenPush2 (pc := (⟨147⟩ : UInt256)) (next := (⟨158⟩ : UInt256))
     (sel := clipperSelNat 8) (tgt := (⟨1341⟩ : UInt256)) h147
     (by
         change decode code (⟨147⟩ : UInt256) = some (.DUP1, .none)
@@ -564,7 +500,7 @@ theorem clipperNoMatchGroupCRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h174 : RD code ee g s0 (⟨174⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
     RDrev code g s0 := by
-  have h185 := clipperArmNotTaken (pc := (⟨174⟩ : UInt256)) (next := (⟨185⟩ : UInt256))
+  have h185 := RD.selectorArmNotTakenPush2 (pc := (⟨174⟩ : UInt256)) (next := (⟨185⟩ : UInt256))
     (sel := clipperSelNat 13) (tgt := (⟨1057⟩ : UInt256)) h174
     (by
         change decode code (⟨174⟩ : UInt256) = some (.DUP1, .none)
@@ -585,7 +521,7 @@ theorem clipperNoMatchGroupCRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨174⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 13 (by omega)) (by native_decide) (by simp)
-  have h196 := clipperArmNotTaken (pc := (⟨185⟩ : UInt256)) (next := (⟨196⟩ : UInt256))
+  have h196 := RD.selectorArmNotTakenPush2 (pc := (⟨185⟩ : UInt256)) (next := (⟨196⟩ : UInt256))
     (sel := clipperSelNat 2) (tgt := (⟨1115⟩ : UInt256)) h185
     (by
         change decode code (⟨185⟩ : UInt256) = some (.DUP1, .none)
@@ -606,7 +542,7 @@ theorem clipperNoMatchGroupCRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨185⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 2 (by omega)) (by native_decide) (by simp)
-  have h207 := clipperArmNotTaken (pc := (⟨196⟩ : UInt256)) (next := (⟨207⟩ : UInt256))
+  have h207 := RD.selectorArmNotTakenPush2 (pc := (⟨196⟩ : UInt256)) (next := (⟨207⟩ : UInt256))
     (sel := clipperSelNat 7) (tgt := (⟨1123⟩ : UInt256)) h196
     (by
         change decode code (⟨196⟩ : UInt256) = some (.DUP1, .none)
@@ -627,7 +563,7 @@ theorem clipperNoMatchGroupCRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨196⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 7 (by omega)) (by native_decide) (by simp)
-  have h218 := clipperArmNotTaken (pc := (⟨207⟩ : UInt256)) (next := (⟨218⟩ : UInt256))
+  have h218 := RD.selectorArmNotTakenPush2 (pc := (⟨207⟩ : UInt256)) (next := (⟨218⟩ : UInt256))
     (sel := clipperSelNat 18) (tgt := (⟨1161⟩ : UInt256)) h207
     (by
         change decode code (⟨207⟩ : UInt256) = some (.DUP1, .none)
@@ -664,7 +600,7 @@ theorem clipperNoMatchGroupDRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h223 : RD code ee g s0 (⟨223⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
     RDrev code g s0 := by
-  have h234 := clipperArmNotTaken (pc := (⟨223⟩ : UInt256)) (next := (⟨234⟩ : UInt256))
+  have h234 := RD.selectorArmNotTakenPush2 (pc := (⟨223⟩ : UInt256)) (next := (⟨234⟩ : UInt256))
     (sel := clipperSelNat 20) (tgt := (⟨875⟩ : UInt256)) h223
     (by
         change decode code (⟨223⟩ : UInt256) = some (.DUP1, .none)
@@ -685,7 +621,7 @@ theorem clipperNoMatchGroupDRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨223⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 20 (by omega)) (by native_decide) (by simp)
-  have h245 := clipperArmNotTaken (pc := (⟨234⟩ : UInt256)) (next := (⟨245⟩ : UInt256))
+  have h245 := RD.selectorArmNotTakenPush2 (pc := (⟨234⟩ : UInt256)) (next := (⟨245⟩ : UInt256))
     (sel := clipperSelNat 0) (tgt := (⟨883⟩ : UInt256)) h234
     (by
         change decode code (⟨234⟩ : UInt256) = some (.DUP1, .none)
@@ -706,7 +642,7 @@ theorem clipperNoMatchGroupDRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨234⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 0 (by omega)) (by native_decide) (by simp)
-  have h256 := clipperArmNotTaken (pc := (⟨245⟩ : UInt256)) (next := (⟨256⟩ : UInt256))
+  have h256 := RD.selectorArmNotTakenPush2 (pc := (⟨245⟩ : UInt256)) (next := (⟨256⟩ : UInt256))
     (sel := clipperSelNat 22) (tgt := (⟨912⟩ : UInt256)) h245
     (by
         change decode code (⟨245⟩ : UInt256) = some (.DUP1, .none)
@@ -743,7 +679,7 @@ theorem clipperNoMatchGroupERevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h283 : RD code ee g s0 (⟨283⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
     RDrev code g s0 := by
-  have h294 := clipperArmNotTaken (pc := (⟨283⟩ : UInt256)) (next := (⟨294⟩ : UInt256))
+  have h294 := RD.selectorArmNotTakenPush2 (pc := (⟨283⟩ : UInt256)) (next := (⟨294⟩ : UInt256))
     (sel := clipperSelNat 6) (tgt := (⟨752⟩ : UInt256)) h283
     (by
         change decode code (⟨283⟩ : UInt256) = some (.DUP1, .none)
@@ -764,7 +700,7 @@ theorem clipperNoMatchGroupERevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨283⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 6 (by omega)) (by native_decide) (by simp)
-  have h305 := clipperArmNotTaken (pc := (⟨294⟩ : UInt256)) (next := (⟨305⟩ : UInt256))
+  have h305 := RD.selectorArmNotTakenPush2 (pc := (⟨294⟩ : UInt256)) (next := (⟨305⟩ : UInt256))
     (sel := clipperSelNat 11) (tgt := (⟨760⟩ : UInt256)) h294
     (by
         change decode code (⟨294⟩ : UInt256) = some (.DUP1, .none)
@@ -785,7 +721,7 @@ theorem clipperNoMatchGroupERevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨294⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 11 (by omega)) (by native_decide) (by simp)
-  have h316 := clipperArmNotTaken (pc := (⟨305⟩ : UInt256)) (next := (⟨316⟩ : UInt256))
+  have h316 := RD.selectorArmNotTakenPush2 (pc := (⟨305⟩ : UInt256)) (next := (⟨316⟩ : UInt256))
     (sel := clipperSelNat 26) (tgt := (⟨829⟩ : UInt256)) h305
     (by
         change decode code (⟨305⟩ : UInt256) = some (.DUP1, .none)
@@ -806,7 +742,7 @@ theorem clipperNoMatchGroupERevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨305⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 26 (by omega)) (by native_decide) (by simp)
-  have h327 := clipperArmNotTaken (pc := (⟨316⟩ : UInt256)) (next := (⟨327⟩ : UInt256))
+  have h327 := RD.selectorArmNotTakenPush2 (pc := (⟨316⟩ : UInt256)) (next := (⟨327⟩ : UInt256))
     (sel := clipperSelNat 17) (tgt := (⟨837⟩ : UInt256)) h316
     (by
         change decode code (⟨316⟩ : UInt256) = some (.DUP1, .none)
@@ -843,7 +779,7 @@ theorem clipperNoMatchGroupFRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h332 : RD code ee g s0 (⟨332⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
     RDrev code g s0 := by
-  have h343 := clipperArmNotTaken (pc := (⟨332⟩ : UInt256)) (next := (⟨343⟩ : UInt256))
+  have h343 := RD.selectorArmNotTakenPush2 (pc := (⟨332⟩ : UInt256)) (next := (⟨343⟩ : UInt256))
     (sel := clipperSelNat 9) (tgt := (⟨673⟩ : UInt256)) h332
     (by
         change decode code (⟨332⟩ : UInt256) = some (.DUP1, .none)
@@ -864,7 +800,7 @@ theorem clipperNoMatchGroupFRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨332⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 9 (by omega)) (by native_decide) (by simp)
-  have h354 := clipperArmNotTaken (pc := (⟨343⟩ : UInt256)) (next := (⟨354⟩ : UInt256))
+  have h354 := RD.selectorArmNotTakenPush2 (pc := (⟨343⟩ : UInt256)) (next := (⟨354⟩ : UInt256))
     (sel := clipperSelNat 19) (tgt := (⟨708⟩ : UInt256)) h343
     (by
         change decode code (⟨343⟩ : UInt256) = some (.DUP1, .none)
@@ -885,7 +821,7 @@ theorem clipperNoMatchGroupFRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨343⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 19 (by omega)) (by native_decide) (by simp)
-  have h365 := clipperArmNotTaken (pc := (⟨354⟩ : UInt256)) (next := (⟨365⟩ : UInt256))
+  have h365 := RD.selectorArmNotTakenPush2 (pc := (⟨354⟩ : UInt256)) (next := (⟨365⟩ : UInt256))
     (sel := clipperSelNat 25) (tgt := (⟨744⟩ : UInt256)) h354
     (by
         change decode code (⟨354⟩ : UInt256) = some (.DUP1, .none)
@@ -922,7 +858,7 @@ theorem clipperNoMatchGroupGRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h381 : RD code ee g s0 (⟨381⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
     RDrev code g s0 := by
-  have h392 := clipperArmNotTaken (pc := (⟨381⟩ : UInt256)) (next := (⟨392⟩ : UInt256))
+  have h392 := RD.selectorArmNotTakenPush2 (pc := (⟨381⟩ : UInt256)) (next := (⟨392⟩ : UInt256))
     (sel := clipperSelNat 21) (tgt := (⟨592⟩ : UInt256)) h381
     (by
         change decode code (⟨381⟩ : UInt256) = some (.DUP1, .none)
@@ -943,7 +879,7 @@ theorem clipperNoMatchGroupGRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨381⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 21 (by omega)) (by native_decide) (by simp)
-  have h403 := clipperArmNotTaken (pc := (⟨392⟩ : UInt256)) (next := (⟨403⟩ : UInt256))
+  have h403 := RD.selectorArmNotTakenPush2 (pc := (⟨392⟩ : UInt256)) (next := (⟨403⟩ : UInt256))
     (sel := clipperSelNat 1) (tgt := (⟨600⟩ : UInt256)) h392
     (by
         change decode code (⟨392⟩ : UInt256) = some (.DUP1, .none)
@@ -964,7 +900,7 @@ theorem clipperNoMatchGroupGRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨392⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 1 (by omega)) (by native_decide) (by simp)
-  have h414 := clipperArmNotTaken (pc := (⟨403⟩ : UInt256)) (next := (⟨414⟩ : UInt256))
+  have h414 := RD.selectorArmNotTakenPush2 (pc := (⟨403⟩ : UInt256)) (next := (⟨414⟩ : UInt256))
     (sel := clipperSelNat 28) (tgt := (⟨608⟩ : UInt256)) h403
     (by
         change decode code (⟨403⟩ : UInt256) = some (.DUP1, .none)
@@ -985,7 +921,7 @@ theorem clipperNoMatchGroupGRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨403⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 28 (by omega)) (by native_decide) (by simp)
-  have h425 := clipperArmNotTaken (pc := (⟨414⟩ : UInt256)) (next := (⟨425⟩ : UInt256))
+  have h425 := RD.selectorArmNotTakenPush2 (pc := (⟨414⟩ : UInt256)) (next := (⟨425⟩ : UInt256))
     (sel := clipperSelNat 23) (tgt := (⟨637⟩ : UInt256)) h414
     (by
         change decode code (⟨414⟩ : UInt256) = some (.DUP1, .none)
@@ -1022,7 +958,7 @@ theorem clipperNoMatchGroupHRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h430 : RD code ee g s0 (⟨430⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
     RDrev code g s0 := by
-  have h441 := clipperArmNotTaken (pc := (⟨430⟩ : UInt256)) (next := (⟨441⟩ : UInt256))
+  have h441 := RD.selectorArmNotTakenPush2 (pc := (⟨430⟩ : UInt256)) (next := (⟨441⟩ : UInt256))
     (sel := clipperSelNat 5) (tgt := (⟨468⟩ : UInt256)) h430
     (by
         change decode code (⟨430⟩ : UInt256) = some (.DUP1, .none)
@@ -1043,7 +979,7 @@ theorem clipperNoMatchGroupHRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨430⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 5 (by omega)) (by native_decide) (by simp)
-  have h452 := clipperArmNotTaken (pc := (⟨441⟩ : UInt256)) (next := (⟨452⟩ : UInt256))
+  have h452 := RD.selectorArmNotTakenPush2 (pc := (⟨441⟩ : UInt256)) (next := (⟨452⟩ : UInt256))
     (sel := clipperSelNat 24) (tgt := (⟨494⟩ : UInt256)) h441
     (by
         change decode code (⟨441⟩ : UInt256) = some (.DUP1, .none)
@@ -1064,7 +1000,7 @@ theorem clipperNoMatchGroupHRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         change decode code (selArmJumpiPc (⟨441⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
     (hzero 24 (by omega)) (by native_decide) (by simp)
-  have h463 := clipperArmNotTaken (pc := (⟨452⟩ : UInt256)) (next := (⟨463⟩ : UInt256))
+  have h463 := RD.selectorArmNotTakenPush2 (pc := (⟨452⟩ : UInt256)) (next := (⟨463⟩ : UInt256))
     (sel := clipperSelNat 15) (tgt := (⟨504⟩ : UInt256)) h452
     (by
         change decode code (⟨452⟩ : UInt256) = some (.DUP1, .none)
@@ -1116,7 +1052,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 29 → (clipperSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   by_cases hsz : 4 ≤ I.calldata.size
@@ -1132,7 +1068,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
         v hpatch hcode hwv hsz hsize
       by_cases hroot :
           UInt256.gt (clipperSelNat 20) (clipperSelWord I) = ⟨0⟩
-      · have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
+      · have h43 := RD.selectorSplitNotTakenPush2 (pc := (⟨32⟩ : UInt256))
           (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
           (tgt := (⟨260⟩ : UInt256)) h32
           (by
@@ -1157,7 +1093,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
           hroot (by native_decide) (by simp)
         by_cases h43pivot :
             UInt256.gt (clipperSelNat 3) (clipperSelWord I) = ⟨0⟩
-        · have h54 := clipperSplitNotTaken (pc := (⟨43⟩ : UInt256))
+        · have h54 := RD.selectorSplitNotTakenPush2 (pc := (⟨43⟩ : UInt256))
             (next := (⟨54⟩ : UInt256)) (pivot := clipperSelNat 3)
             (tgt := (⟨162⟩ : UInt256)) h43
             (by
@@ -1182,7 +1118,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
             h43pivot (by native_decide) (by simp)
           by_cases h54pivot :
               UInt256.gt (clipperSelNat 12) (clipperSelWord I) = ⟨0⟩
-          · have h65 := clipperSplitNotTaken (pc := (⟨54⟩ : UInt256))
+          · have h65 := RD.selectorSplitNotTakenPush2 (pc := (⟨54⟩ : UInt256))
               (next := (⟨65⟩ : UInt256)) (pivot := clipperSelNat 12)
               (tgt := (⟨113⟩ : UInt256)) h54
               (by
@@ -1207,7 +1143,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
                   clipper_decode)
               h54pivot (by native_decide) (by simp)
             exact clipperNoMatchGroupARevert v hpatch hzero h65
-          · have h113 := clipperSplitTaken (pc := (⟨54⟩ : UInt256))
+          · have h113 := RD.selectorSplitTakenPush2 (pc := (⟨54⟩ : UInt256))
               (pivot := clipperSelNat 12) (tgt := (⟨113⟩ : UInt256)) h54
               (by
                   change decode code (⟨54⟩ : UInt256) = some (.DUP1, .none)
@@ -1239,7 +1175,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
                   clipper_decode)
               (by simp)
             exact clipperNoMatchGroupBRevert v hpatch hzero h114
-        · have h162 := clipperSplitTaken (pc := (⟨43⟩ : UInt256))
+        · have h162 := RD.selectorSplitTakenPush2 (pc := (⟨43⟩ : UInt256))
             (pivot := clipperSelNat 3) (tgt := (⟨162⟩ : UInt256)) h43
             (by
                 change decode code (⟨43⟩ : UInt256) = some (.DUP1, .none)
@@ -1271,7 +1207,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
             (by simp)
           by_cases h163pivot :
               UInt256.gt (clipperSelNat 13) (clipperSelWord I) = ⟨0⟩
-          · have h174 := clipperSplitNotTaken (pc := (⟨163⟩ : UInt256))
+          · have h174 := RD.selectorSplitNotTakenPush2 (pc := (⟨163⟩ : UInt256))
               (next := (⟨174⟩ : UInt256)) (pivot := clipperSelNat 13)
               (tgt := (⟨222⟩ : UInt256)) h163
               (by
@@ -1296,7 +1232,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
                   clipper_decode)
               h163pivot (by native_decide) (by simp)
             exact clipperNoMatchGroupCRevert v hpatch hzero h174
-          · have h222 := clipperSplitTaken (pc := (⟨163⟩ : UInt256))
+          · have h222 := RD.selectorSplitTakenPush2 (pc := (⟨163⟩ : UInt256))
               (pivot := clipperSelNat 13) (tgt := (⟨222⟩ : UInt256)) h163
               (by
                   change decode code (⟨163⟩ : UInt256) = some (.DUP1, .none)
@@ -1328,7 +1264,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
                   clipper_decode)
               (by simp)
             exact clipperNoMatchGroupDRevert v hpatch hzero h223
-      · have h260 := clipperSplitTaken (pc := (⟨32⟩ : UInt256))
+      · have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256))
           (pivot := clipperSelNat 20) (tgt := (⟨260⟩ : UInt256)) h32
           (by
               change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none)
@@ -1360,7 +1296,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
           (by simp)
         by_cases h261pivot :
             UInt256.gt (clipperSelNat 9) (clipperSelWord I) = ⟨0⟩
-        · have h272 := clipperSplitNotTaken (pc := (⟨261⟩ : UInt256))
+        · have h272 := RD.selectorSplitNotTakenPush2 (pc := (⟨261⟩ : UInt256))
             (next := (⟨272⟩ : UInt256)) (pivot := clipperSelNat 9)
             (tgt := (⟨369⟩ : UInt256)) h261
             (by
@@ -1385,7 +1321,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
             h261pivot (by native_decide) (by simp)
           by_cases h272pivot :
               UInt256.gt (clipperSelNat 6) (clipperSelWord I) = ⟨0⟩
-          · have h283 := clipperSplitNotTaken (pc := (⟨272⟩ : UInt256))
+          · have h283 := RD.selectorSplitNotTakenPush2 (pc := (⟨272⟩ : UInt256))
               (next := (⟨283⟩ : UInt256)) (pivot := clipperSelNat 6)
               (tgt := (⟨331⟩ : UInt256)) h272
               (by
@@ -1410,7 +1346,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
                   clipper_decode)
               h272pivot (by native_decide) (by simp)
             exact clipperNoMatchGroupERevert v hpatch hzero h283
-          · have h331 := clipperSplitTaken (pc := (⟨272⟩ : UInt256))
+          · have h331 := RD.selectorSplitTakenPush2 (pc := (⟨272⟩ : UInt256))
               (pivot := clipperSelNat 6) (tgt := (⟨331⟩ : UInt256)) h272
               (by
                   change decode code (⟨272⟩ : UInt256) = some (.DUP1, .none)
@@ -1442,7 +1378,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
                   clipper_decode)
               (by simp)
             exact clipperNoMatchGroupFRevert v hpatch hzero h332
-        · have h369 := clipperSplitTaken (pc := (⟨261⟩ : UInt256))
+        · have h369 := RD.selectorSplitTakenPush2 (pc := (⟨261⟩ : UInt256))
             (pivot := clipperSelNat 9) (tgt := (⟨369⟩ : UInt256)) h261
             (by
                 change decode code (⟨261⟩ : UInt256) = some (.DUP1, .none)
@@ -1474,7 +1410,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
             (by simp)
           by_cases h370pivot :
               UInt256.gt (clipperSelNat 21) (clipperSelWord I) = ⟨0⟩
-          · have h381 := clipperSplitNotTaken (pc := (⟨370⟩ : UInt256))
+          · have h381 := RD.selectorSplitNotTakenPush2 (pc := (⟨370⟩ : UInt256))
               (next := (⟨381⟩ : UInt256)) (pivot := clipperSelNat 21)
               (tgt := (⟨429⟩ : UInt256)) h370
               (by
@@ -1499,7 +1435,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
                   clipper_decode)
               h370pivot (by native_decide) (by simp)
             exact clipperNoMatchGroupGRevert v hpatch hzero h381
-          · have h429 := clipperSplitTaken (pc := (⟨370⟩ : UInt256))
+          · have h429 := RD.selectorSplitTakenPush2 (pc := (⟨370⟩ : UInt256))
               (pivot := clipperSelNat 21) (tgt := (⟨429⟩ : UInt256)) h370
               (by
                   change decode code (⟨370⟩ : UInt256) = some (.DUP1, .none)

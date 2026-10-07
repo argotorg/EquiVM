@@ -1,3 +1,10 @@
+import Reasoning.SolmBody
+import Reasoning.ABIViews
+import Reasoning.WordArithmetic
+import Reasoning.Memory
+import Reasoning.ABIComposite
+import Reasoning.Stepping
+import Reasoning.Reach
 import Benchmarks.Dss.Dai.Dispatch
 import Benchmarks.Dss.Dai.DomainSeparator
 import Benchmarks.Dss.Dai.Storage
@@ -327,20 +334,6 @@ theorem permitAllowedCleanWord_stable (I : ExecutionEnv) :
   · rw [isZero_eq_zero_of_ne h]
     native_decide
 
-theorem word_toBytesBE_length_32 (w : UInt256) :
-    (EVM.Word.toBytesBE w).length = 32 := by
-  simpa using word_toBytesBE_toByteArray_size w
-
-theorem byteArray_mk_toArray_eq_toByteArray (xs : List UInt8) :
-    ByteArray.mk xs.toArray = xs.toByteArray := by
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  change xs.toArray.toList = xs.toByteArray.data.toList
-  rw [show xs.toArray.toList = xs by simp]
-  rw [List.toList_data_toByteArray]
-
-theorem eip191ByteArray_toList : (⟨#[25, 1]⟩ : ByteArray).toList = [25, 1] := by
-  native_decide
 
 theorem permitStructPackedByteArray_eq (I : ExecutionEnv) :
     ByteArray.mk
@@ -375,53 +368,6 @@ theorem permitEcrecoverCalldata_eq (evm : EVM.State) (I : ExecutionEnv) :
   rw [byteArray_mk_toArray_eq_toByteArray]
   simp only [List.toByteArray_append, ByteArray.append_assoc]
 
-theorem addressOfNat_toNat_masked (w : UInt256) :
-    (AccountAddress.ofNat w.toNat).toNat = (UInt256.land w solcAddrMask).toNat := by
-  have hmaskAddr :
-      AccountAddress.ofNat w.toNat = AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat := by
-    apply Fin.ext
-    unfold AccountAddress.ofNat
-    simp only [Fin.val_ofNat]
-    rw [uland_toNat]
-    change w.val.val % AccountAddress.size =
-      Nat.land w.val.val solcAddrMask.toNat % AccountAddress.size
-    rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide]
-    rw [nat_land_mask_eq_mod]
-    rw [show AccountAddress.size = 2 ^ 160 by rfl]
-    rw [Nat.mod_mod]
-  have hcanon : (UInt256.land w solcAddrMask).toNat < AccountAddress.size := by
-    simpa [EVM.addressModulus] using solcAddrMask_result_canonical w
-  rw [hmaskAddr]
-  unfold AccountAddress.ofNat
-  change (UInt256.land w solcAddrMask).toNat % AccountAddress.size =
-    (UInt256.land w solcAddrMask).toNat
-  exact Nat.mod_eq_of_lt hcanon
-
-theorem addressOfNat_eq_iff_solcAddrMask_eq (a b : UInt256) :
-    AccountAddress.ofNat a.toNat = AccountAddress.ofNat b.toNat ↔
-      UInt256.land solcAddrMask a = UInt256.land solcAddrMask b := by
-  constructor
-  · intro haddr
-    have h := congrArg (fun addr : AccountAddress => keyValueToWord (.address addr)) haddr
-    simpa [keyValueToWord_address_ofNat_mask] using h
-  · intro hmask
-    apply Fin.ext
-    change (AccountAddress.ofNat a.toNat).toNat = (AccountAddress.ofNat b.toNat).toNat
-    have ha := addressOfNat_toNat_masked a
-    have hb := addressOfNat_toNat_masked b
-    rw [ha, hb]
-    have hmask' : UInt256.land a solcAddrMask = UInt256.land b solcAddrMask := by
-      simpa [u256_land_comm solcAddrMask a, u256_land_comm solcAddrMask b] using hmask
-    rw [hmask']
-
-theorem encodePacked_uint256_word (value : UInt256) :
-    encodePackedValue? uint256 (.int (Int.ofNat value.toNat)) =
-      some (EVM.Word.toBytesBE value) := by
-  have hword : EVM.word value.toNat = value := u256_ofNat_toNat value
-  have hlt : value.toNat < EVM.twoPow 256 := by
-    change value.val.val < EVM.twoPow 256
-    exact value.val.isLt
-  simp [encodePackedValue?, uint256, uint256Int, encodeABIWord?, hword, hlt]
 
 theorem encodePacked_uint256_v (I : ExecutionEnv) :
     encodePackedValue? uint256 (permitVValue I) =
@@ -441,26 +387,8 @@ theorem encodePacked_uint256_v (I : ExecutionEnv) :
       rfl
     exact hland.symm
   rw [hmod]
-  exact encodePacked_uint256_word (UInt256.land (permitVWord I) ⟨255⟩)
+  exact encodePacked_uint256' (UInt256.land (permitVWord I) ⟨255⟩)
 
-theorem encodePacked_bytes32_of_length {bytes : List UInt8}
-    (hlen : bytes.length = fixedBytesSize bytes32Width) :
-    encodePackedValue? bytes32 (.fixedBytes bytes32Width bytes) = some bytes := by
-  simp [encodePackedValue?, bytes32, fixedBytesSize, hlen]
-
-theorem encodePacked_dynamic_bytes (bytes : ByteArray) :
-    encodePackedValue? ABIType.bytes (.bytes bytes) = some bytes.toList := by
-  rfl
-
-theorem evalPackedArgs_cons_ok {cfg : Config} {solm : Frame} {evm : EVM.State}
-    {ty : ABIType} {e : Expr} {v : Value} {head tailBytes : List UInt8}
-    {rest : List (ABIType × Expr)}
-    (heval : evalExpr? cfg solm evm e = .ok v)
-    (henc : encodePackedValue? ty v = some head)
-    (htail : evalPackedArgs? cfg solm evm rest = .ok tailBytes) :
-    evalPackedArgs? cfg solm evm ((ty, e) :: rest) = .ok (head ++ tailBytes) := by
-  rw [evalPackedArgs?]
-  simp only [heval, henc, htail, EvalResult.bind, EvalResult.ofOption, bind, pure]
 
 theorem evalExpr_zeroAddr (evm : EVM.State) (locals : Store) :
     evalExpr? config { contract := contract, locals := locals } evm zeroAddr =
@@ -635,7 +563,7 @@ theorem evalExpr_permit_domainSeparator (evm : EVM.State) (I : ExecutionEnv) :
     .ok (.fixedBytes bytes32Width
       (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         domainSeparatorStorageSlot))) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := permitStore I })
     (slot := domainSeparatorRef)
@@ -670,7 +598,7 @@ theorem evalExpr_permitStructHash (evm : EVM.State) (I : ExecutionEnv) :
               (EVM.Word.toBytesBE (permitNonceWord I) ++
                 (EVM.Word.toBytesBE (permitExpiryWord I) ++
                   EVM.Word.toBytesBE (permitAllowedCleanWord I)))))) := by
-    refine evalPackedArgs_cons_ok
+    refine evalPackedArgs_cons
       (cfg := config) (solm := { contract := contract, locals := permitStore I })
       (evm := evm) (ty := bytes32) (e := permitTypehashExpr)
       (v := .fixedBytes bytes32Width permitTypehashBytes) (head := permitTypehashBytes)
@@ -691,7 +619,7 @@ theorem evalExpr_permitStructHash (evm : EVM.State) (I : ExecutionEnv) :
     · unfold permitTypehashExpr
       rw [evalExpr?]
       rfl
-    · refine evalPackedArgs_cons_ok
+    · refine evalPackedArgs_cons
         (cfg := config) (solm := { contract := contract, locals := permitStore I })
         (evm := evm) (ty := uint256) (e := addressAsUint256 (.var "holder"))
         (v := .int (Int.ofNat (permitHolderMaskedWord I).toNat))
@@ -703,8 +631,8 @@ theorem evalExpr_permitStructHash (evm : EVM.State) (I : ExecutionEnv) :
                 EVM.Word.toBytesBE (permitAllowedCleanWord I))))
         ?_ ?_ ?_
       · exact evalExpr_permitStore_holder_uint256 evm I
-      · exact encodePacked_uint256_word (permitHolderMaskedWord I)
-      · refine evalPackedArgs_cons_ok
+      · exact encodePacked_uint256' (permitHolderMaskedWord I)
+      · refine evalPackedArgs_cons
           (cfg := config) (solm := { contract := contract, locals := permitStore I })
           (evm := evm) (ty := uint256) (e := addressAsUint256 (.var "spender"))
           (v := .int (Int.ofNat (permitSpenderMaskedWord I).toNat))
@@ -715,8 +643,8 @@ theorem evalExpr_permitStructHash (evm : EVM.State) (I : ExecutionEnv) :
                 EVM.Word.toBytesBE (permitAllowedCleanWord I)))
           ?_ ?_ ?_
         · exact evalExpr_permitStore_spender_uint256 evm I
-        · exact encodePacked_uint256_word (permitSpenderMaskedWord I)
-        · refine evalPackedArgs_cons_ok
+        · exact encodePacked_uint256' (permitSpenderMaskedWord I)
+        · refine evalPackedArgs_cons
             (cfg := config) (solm := { contract := contract, locals := permitStore I })
             (evm := evm) (ty := uint256) (e := .var "nonce")
             (v := .int (Int.ofNat (permitNonceWord I).toNat))
@@ -726,8 +654,8 @@ theorem evalExpr_permitStructHash (evm : EVM.State) (I : ExecutionEnv) :
                 EVM.Word.toBytesBE (permitAllowedCleanWord I))
             ?_ ?_ ?_
           · simpa [permitNonceValue] using evalExpr_permitStore_nonce evm I
-          · exact encodePacked_uint256_word (permitNonceWord I)
-          · refine evalPackedArgs_cons_ok
+          · exact encodePacked_uint256' (permitNonceWord I)
+          · refine evalPackedArgs_cons
               (cfg := config) (solm := { contract := contract, locals := permitStore I })
               (evm := evm) (ty := uint256) (e := .var "expiry")
               (v := .int (Int.ofNat (permitExpiryWord I).toNat))
@@ -735,9 +663,9 @@ theorem evalExpr_permitStructHash (evm : EVM.State) (I : ExecutionEnv) :
               (tailBytes := EVM.Word.toBytesBE (permitAllowedCleanWord I))
               ?_ ?_ ?_
             · simpa [permitExpiryValue] using evalExpr_permitStore_expiry evm I
-            · exact encodePacked_uint256_word (permitExpiryWord I)
+            · exact encodePacked_uint256' (permitExpiryWord I)
             · simpa using
-                evalPackedArgs_cons_ok
+                evalPackedArgs_cons
                   (cfg := config) (solm := { contract := contract, locals := permitStore I })
                   (evm := evm) (ty := uint256)
                   (e := .ite (.var "allowed") (.intLit 1) (.intLit 0))
@@ -745,7 +673,7 @@ theorem evalExpr_permitStructHash (evm : EVM.State) (I : ExecutionEnv) :
                   (head := EVM.Word.toBytesBE (permitAllowedCleanWord I))
                   (tailBytes := []) (rest := [])
                   (evalExpr_permitStore_allowed_clean evm I)
-                  (encodePacked_uint256_word (permitAllowedCleanWord I))
+                  (encodePacked_uint256' (permitAllowedCleanWord I))
                   (by rw [evalPackedArgs?]; rfl)
   unfold permitStructHashExpr permitStructHashBytes permitStructPackedByteArray
   rw [evalExpr?]
@@ -764,7 +692,7 @@ theorem evalExpr_permitDigest (evm : EVM.State) (I : ExecutionEnv) :
         .ok ([25, 1] ++
           (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
             domainSeparatorStorageSlot) ++ permitStructHashBytes I)) := by
-    refine evalPackedArgs_cons_ok
+    refine evalPackedArgs_cons
       (cfg := config) (solm := { contract := contract, locals := permitStore I })
       (evm := evm) (ty := ABIType.bytes) (e := eip191Prefix)
       (v := .bytes ⟨#[25, 1]⟩) (head := [25, 1])
@@ -776,7 +704,7 @@ theorem evalExpr_permitDigest (evm : EVM.State) (I : ExecutionEnv) :
     · unfold eip191Prefix
       rw [evalExpr?]
       rfl
-    · refine evalPackedArgs_cons_ok
+    · refine evalPackedArgs_cons
         (cfg := config) (solm := { contract := contract, locals := permitStore I })
         (evm := evm) (ty := bytes32) (e := .storage domainSeparatorRef)
         (v := .fixedBytes bytes32Width
@@ -790,7 +718,7 @@ theorem evalExpr_permitDigest (evm : EVM.State) (I : ExecutionEnv) :
       · exact encodePacked_bytes32_of_length
           (by rw [word_toBytesBE_length_32]; rfl)
       · simpa using
-          evalPackedArgs_cons_ok
+          evalPackedArgs_cons
             (cfg := config) (solm := { contract := contract, locals := permitStore I })
             (evm := evm) (ty := bytes32) (e := permitStructHashExpr)
             (v := .fixedBytes bytes32Width (permitStructHashBytes I))
@@ -826,7 +754,7 @@ theorem evalExpr_ecrecoverCalldata (evm : EVM.State) {I : ExecutionEnv}
         .ok (permitDigestBytes evm I ++
           (EVM.Word.toBytesBE (permitVMaskedWord I) ++
             (permitRBytes I ++ permitSBytes I))) := by
-    refine evalPackedArgs_cons_ok
+    refine evalPackedArgs_cons
       (cfg := config) (solm := { contract := contract, locals := permitDigestStore evm I })
       (evm := evm) (ty := bytes32) (e := .var "digest")
       (v := .fixedBytes bytes32Width (permitDigestBytes evm I))
@@ -838,7 +766,7 @@ theorem evalExpr_ecrecoverCalldata (evm : EVM.State) {I : ExecutionEnv}
       (encodePacked_bytes32_of_length
         (by simpa [fixedBytesSize] using permitDigestBytes_length evm I))
       ?_
-    refine evalPackedArgs_cons_ok
+    refine evalPackedArgs_cons
       (cfg := config) (solm := { contract := contract, locals := permitDigestStore evm I })
       (evm := evm) (ty := uint256) (e := .var "v")
       (v := permitVValue I)
@@ -848,7 +776,7 @@ theorem evalExpr_ecrecoverCalldata (evm : EVM.State) {I : ExecutionEnv}
       (evalExpr_permitDigestStore_v evm I)
       (encodePacked_uint256_v I)
       ?_
-    refine evalPackedArgs_cons_ok
+    refine evalPackedArgs_cons
       (cfg := config) (solm := { contract := contract, locals := permitDigestStore evm I })
       (evm := evm) (ty := bytes32) (e := .var "r")
       (v := permitRValue I)
@@ -860,7 +788,7 @@ theorem evalExpr_ecrecoverCalldata (evm : EVM.State) {I : ExecutionEnv}
     · unfold permitRValue
       exact encodePacked_bytes32_of_length (by rw [permitRBytes_length hsz260]; rfl)
     · simpa using
-        evalPackedArgs_cons_ok
+        evalPackedArgs_cons
           (cfg := config) (solm := { contract := contract, locals := permitDigestStore evm I })
           (evm := evm) (ty := bytes32) (e := .var "s")
           (v := permitSValue I)
@@ -913,53 +841,6 @@ theorem evalExpr_ecrecoverSuccess_true
   rw [store_get_ne _ _ (by native_decide)]
   simp
 
-theorem decodeReturnValueWithMode_legacy_addr_none_short {returndata : ByteArray}
-    (hshort : returndata.size < 32) :
-    ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 addr returndata = none := by
-  have hlen : returndata.toList.length = returndata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake0n : ¬ ((returndata.toList.drop 0).take 32).length = 32 := by
-    rw [List.drop_zero, List.length_take, hlen]
-    omega
-  unfold ABI.decodeReturnValueWithMode? ABI.decodeReturnValuesWithMode?
-  rw [abiTupleHeadSize_scalarWords_eq (types := [addr]) (by decide)]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
-    (types := [addr]) (bytes := returndata.toList) (cursor := 0)
-    (total := 32 * [addr].length)
-    (by decide) (by simp)]
-  simp only [decodeScalarWordsWithMode?]
-  unfold addr
-  simp only
-  rw [decodeScalarWord_legacyAddress_none_short (bytes := returndata.toList) (start := 0)
-    htake0n]
-  rfl
-
-theorem decodeReturnValueWithMode_legacy_addr_ok {returndata : ByteArray}
-    (hlo : 32 ≤ returndata.size) :
-    ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 addr returndata =
-      some (.address (AccountAddress.ofNat
-        (fromByteArrayBigEndian (returndata.extract 0 32)))) := by
-  have hlen : returndata.toList.length = returndata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake0 : ((returndata.toList.drop 0).take 32).length = 32 := by
-    rw [List.drop_zero, List.length_take, hlen]
-    omega
-  have hword := bytesToWord_take32_eq_extract0_32 (returndata := returndata)
-  unfold ABI.decodeReturnValueWithMode? ABI.decodeReturnValuesWithMode?
-  rw [abiTupleHeadSize_scalarWords_eq (types := [addr]) (by decide)]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
-    (types := [addr]) (bytes := returndata.toList) (cursor := 0)
-    (total := 32 * [addr].length)
-    (by decide) (by simp)]
-  simp only [decodeScalarWordsWithMode?]
-  unfold addr
-  simp only
-  rw [decodeScalarWord_legacyAddress_ok (bytes := returndata.toList) (start := 0) htake0]
-  simp [hword, UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)]
 
 abbrev permitEcrecoverCallStore (evm : EVM.State) (I : ExecutionEnv)
     (success : Bool) (out : ByteArray) : Store :=
@@ -1085,14 +966,6 @@ theorem permitRecoveredStore_get_nonces (evm : EVM.State) (I : ExecutionEnv)
   rw [store_get_ne _ _ (by native_decide)]
   exact permitStore_get_nonces I
 
-theorem evalExpr_binary_nonshort {cfg solm evm op lhs rhs}
-    (hand : op ≠ BinaryOp.and) (hor : op ≠ BinaryOp.or) :
-    evalExpr? cfg solm evm (.binary op lhs rhs) =
-      (do
-        let lhsValue <- evalExpr? cfg solm evm lhs
-        let rhsValue <- evalExpr? cfg solm evm rhs
-        evalBinaryOp? op lhsValue rhsValue) := by
-  cases op <;> simp [evalExpr?] at hand hor ⊢
 
 theorem evalExpr_permitRecoveredStore_holder_eq_recovered_true
     (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
@@ -1146,7 +1019,7 @@ theorem evalExpr_permitRecoveredStore_nonce_storage
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
           (permitNonceStorageSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := permitRecoveredStore evm I out recovered })
     (slot := noncesRef (.var "holder"))
@@ -1334,6 +1207,136 @@ theorem evalExpr_permitRecoveredStore_expiry_false
   rw [evalExpr_permitRecoveredStore_timestamp_le_expiry_false evm evm' I out recovered hlt]
   rfl
 
+abbrev permitSavedNonceStore (evm : EVM.State) (I : ExecutionEnv)
+    (out : ByteArray) (recovered : AccountAddress) (oldNonce : UInt256) : Store :=
+  (permitRecoveredStore evm I out recovered).insert "oldNonce" (.int oldNonce.toNat)
+
+theorem evalExpr_permitSavedNonceStore_holder
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (recovered : AccountAddress) (oldNonce : UInt256) :
+    evalExpr? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm' (.var "holder") = .ok (permitHolderValue I) := by
+  simpa only [evalExpr?, permitSavedNonceStore,
+    store_get_ne (k := "oldNonce") (a := "holder") _ _ (by decide)] using
+    evalExpr_permitRecoveredStore_holder evm evm' I out recovered
+
+theorem evalExpr_permitSavedNonceStore_nonce
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (recovered : AccountAddress) (oldNonce : UInt256) :
+    evalExpr? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm' (.var "nonce") = .ok (permitNonceValue I) := by
+  simpa only [evalExpr?, permitSavedNonceStore,
+    store_get_ne (k := "oldNonce") (a := "nonce") _ _ (by decide)] using
+    evalExpr_permitRecoveredStore_nonce evm evm' I out recovered
+
+theorem evalExpr_permitSavedNonceStore_allowed
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (recovered : AccountAddress) (oldNonce : UInt256) :
+    evalExpr? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm' (.var "allowed") = .ok (permitAllowedValue I) := by
+  simpa only [evalExpr?, permitSavedNonceStore,
+    store_get_ne (k := "oldNonce") (a := "allowed") _ _ (by decide)] using
+    evalExpr_permitRecoveredStore_allowed evm evm' I out recovered
+
+theorem evalExpr_permitSavedNonceStore_oldNonce
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (recovered : AccountAddress) (oldNonce : UInt256) :
+    evalExpr? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm' (.var "oldNonce") = .ok (.int oldNonce.toNat) := by
+  simp [evalExpr?, permitSavedNonceStore, EvalResult.ofOption]
+
+theorem evalExpr_permitSavedNonceStore_increment
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (recovered : AccountAddress) (oldNonce : UInt256) :
+    evalExpr? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm' (uncheckedAdd256 (.var "oldNonce") (.intLit 1)) =
+      .ok (.int (Int.ofNat oldNonce.toNat + 1)) := by
+  rw [uncheckedAdd256, evalExpr_binary_nonshort (by decide) (by decide)]
+  rw [evalExpr_permitSavedNonceStore_oldNonce]
+  simp [evalExpr?, EvalResult.bind, bind, pure, evalBinaryOp?]
+
+theorem evalExpr_permitSavedNonceStore_eq
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (recovered : AccountAddress) (oldNonce : UInt256) :
+    evalExpr? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm' (.binary .eq (.var "nonce") (.var "oldNonce")) =
+      .ok (.bool (decide (permitNonceWord I = oldNonce))) := by
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
+  rw [evalExpr_permitSavedNonceStore_nonce, evalExpr_permitSavedNonceStore_oldNonce]
+  by_cases h : permitNonceWord I = oldNonce
+  · simp [EvalResult.bind, bind, evalBinaryOp?, permitNonceValue, h]
+  · simp [EvalResult.bind, bind, evalBinaryOp?, permitNonceValue, h]
+    intro heq
+    exact h (u256_inj heq)
+
+
+theorem permitAssignSavedNonce (evm evm' : EVM.State) (I : ExecutionEnv)
+    (out : ByteArray) (recovered : AccountAddress) (oldNonce : UInt256)
+    (hmatch :
+      oldNonce =
+        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I)) :
+    assignStorageRef? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm' .storage (noncesRef (.var "holder"))
+        (.int (Int.ofNat (oldNonce).toNat + 1)) =
+      .ok ({ contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce },
+        permitPostNonceState evm' I) := by
+  have hbase :
+      (permitSavedNonceStore evm I out recovered oldNonce).get? "nonces" = none :=
+    by
+      simp [permitSavedNonceStore]
+
+  have her :
+      evalStorageRef config
+          { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+          evm' (noncesRef (.var "holder")) =
+        .ok (permitNonceEvaledRef I) :=
+    by
+      simp [evalStorageRef, evalStorageRefStep, noncesRef,
+        evalExpr_permitSavedNonceStore_holder, permitHolderValue, permitHolderKey,
+        permitNonceEvaledRef, valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure]
+  have hty :
+      storageTypeAt? contract.storage (permitNonceEvaledRef I) = some uint256St := by
+    simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
+      permitHolderKey, uint256St]
+  have hloc :
+      config.storageBackend.locate? (permitNonceEvaledRef I) =
+        some (.leaf (wordLoc (permitNonceStorageSlot I) (.int uint256Int))) := by
+    rfl
+  have hstore :
+      storageLocStore evm' (wordLoc (permitNonceStorageSlot I) (.int uint256Int))
+          (.int (Int.ofNat (oldNonce).toNat + 1)) =
+        some (permitPostNonceState evm' I) := by
+    rw [show wordLoc (permitNonceStorageSlot I) (ElemType.int uint256Int) =
+      uint256Loc (permitNonceStorageSlot I) by rfl]
+    rw [show Int.ofNat (oldNonce).toNat + 1 =
+        Int.ofNat ((oldNonce).toNat + 1) by
+          exact Eq.symm (Int.natCast_add (oldNonce).toNat 1)]
+    rw [storageLocStore_uint256_ofNat]
+    rw [show (Int.ofNat ((oldNonce).toNat + 1)).toNat =
+        (oldNonce).toNat + 1 by simp]
+    have hword : EVM.word ((oldNonce).toNat + 1) =
+        UInt256.add (oldNonce) ⟨1⟩ := by
+      rw [show UInt256.add (oldNonce) ⟨1⟩ =
+        EVM.word ((oldNonce).toNat + 1) by
+          rw [← u256_ofNat_toNat (oldNonce)]
+          rfl]
+    unfold permitPostNonceState
+    rw [← hmatch, hword]
+  exact assignStorageRef_storage_scalar
+    (cfg := config)
+    (solm := { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce })
+    (evm := evm') (evm' := permitPostNonceState evm' I)
+    (slot := noncesRef (.var "holder")) (er := permitNonceEvaledRef I)
+    (ty := uint256St) (loc := wordLoc (permitNonceStorageSlot I) (.int uint256Int))
+    hbase her hty (by rfl) hloc (by exact Or.inl ⟨_, rfl⟩) hstore
+
 theorem evalExpr_permitRecoveredStore_nonce_increment
     (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
     (recovered : AccountAddress)
@@ -1361,26 +1364,6 @@ theorem evalExpr_permitRecoveredStore_nonce_increment
     .ok (.int (Int.ofNat (permitNonceWord I).toNat + 1))
   simp [evalBinaryOp?, hmatch]
 
-theorem storageLocStore_uint256_ofNat (evm : EVM.State) (slot : UInt256) (n : Nat) :
-    storageLocStore evm (uint256Loc slot) (.int (Int.ofNat n)) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (EVM.word (Int.ofNat n).toNat)) := by
-  unfold storageLocStore storageLocWriteWord uint256Loc
-  simp only [valueToWord, bind, Option.bind, pure]
-  rw [wordOfInt_nonneg]
-  · have hslen := (EVM.Word.toBytesLEWithSizeProof
-      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
-    have hvlen := (EVM.Word.toBytesLEWithSizeProof (EVM.word (Int.ofNat n).toNat)).2
-    congr 2
-    apply u256_inj
-    show fromBytes'
-        (List.take (0 : Fin 32).val _ ++ List.take (32 : Fin 33).val _
-          ++ List.drop ((0 : Fin 32).val + (32 : Fin 33).val) _) =
-        (EVM.word (Int.ofNat n).toNat).toNat
-    rw [show (0 : Fin 32).val = 0 from rfl, show (32 : Fin 33).val = 32 from rfl,
-      List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by rw [hslen]),
-      List.append_nil, List.take_of_length_le (by rw [hvlen]), fromBytes'_toBytesLEWithSizeProof]
-  · simp
 
 theorem permitAssignNonce (evm evm' : EVM.State) (I : ExecutionEnv)
     (out : ByteArray) (recovered : AccountAddress)
@@ -1407,8 +1390,8 @@ theorem permitAssignNonce (evm evm' : EVM.State) (I : ExecutionEnv)
     simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
       permitNonceEvaledRef, permitHolderKey, uint256St]
   have hloc :
-      config.storage.layout (permitNonceEvaledRef I) =
-        fun _ => some (wordLoc (permitNonceStorageSlot I) (.int uint256Int)) := by
+      config.storageBackend.locate? (permitNonceEvaledRef I) =
+        some (.leaf (wordLoc (permitNonceStorageSlot I) (.int uint256Int))) := by
     rfl
   have hstore :
       storageLocStore evm' (wordLoc (permitNonceStorageSlot I) (.int uint256Int))
@@ -1430,12 +1413,12 @@ theorem permitAssignNonce (evm evm' : EVM.State) (I : ExecutionEnv)
           rfl]
     unfold permitPostNonceState
     rw [← hmatch, hword]
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := permitRecoveredStore evm I out recovered })
     (evm := evm') (evm' := permitPostNonceState evm' I)
     (slot := noncesRef (.var "holder")) (er := permitNonceEvaledRef I)
-    (ty := uint256St) (loc := wordLoc (permitNonceStorageSlot I) (.int uint256Int))
+    (ty := uint256St) (loc := wordLoc (permitNonceStorageSlot I) (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     hbase her hty hloc hstore
 
 theorem evalExpr_permitRecoveredStore_wad
@@ -1458,9 +1441,21 @@ theorem evalExpr_permitRecoveredStore_wad
     simp only [evalExpr?]
     native_decide
 
+theorem evalExpr_permitSavedNonceStore_wad
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (recovered : AccountAddress) (oldNonce : UInt256) :
+    evalExpr? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm'
+        (.ite (.var "allowed") (.intLit maxUint256) (.intLit 0)) =
+      .ok (.int (Int.ofNat (permitWadWord I).toNat)) := by
+  simpa only [evalExpr?, permitSavedNonceStore,
+    store_get_ne (k := "oldNonce") (a := "allowed") _ _ (by decide)] using
+    evalExpr_permitRecoveredStore_wad evm evm' I out recovered
+
 abbrev permitWadStore (evm : EVM.State) (I : ExecutionEnv)
     (out : ByteArray) (recovered : AccountAddress) : Store :=
-  (permitRecoveredStore evm I out recovered).insert "wad"
+  (permitSavedNonceStore evm I out recovered (permitNonceWord I)).insert "wad"
     (.int (Int.ofNat (permitWadWord I).toNat))
 
 theorem permitRecoveredStore_get_allowance (evm : EVM.State) (I : ExecutionEnv)
@@ -1476,7 +1471,8 @@ theorem permitRecoveredStore_get_allowance (evm : EVM.State) (I : ExecutionEnv)
 theorem permitWadStore_get_allowance (evm : EVM.State) (I : ExecutionEnv)
     (out : ByteArray) (recovered : AccountAddress) :
     (permitWadStore evm I out recovered).get? "allowance" = none := by
-  unfold permitWadStore
+  unfold permitWadStore permitSavedNonceStore
+  rw [store_get_ne _ _ (by decide)]
   rw [store_get_ne _ _ (by native_decide)]
   exact permitRecoveredStore_get_allowance evm I out recovered
 
@@ -1500,8 +1496,10 @@ theorem evalExpr_permitWadStore_holder
         evm' (.var "holder") =
       .ok (permitHolderValue I) := by
   rw [evalExpr?]
-  unfold permitWadStore permitRecoveredStore permitEcrecoverCallStore permitDigestStore
+  unfold permitWadStore permitSavedNonceStore permitRecoveredStore
+    permitEcrecoverCallStore permitDigestStore
   simp only [EvalResult.ofOption]
+  rw [store_get_ne _ _ (by decide)]
   rw [store_get_ne _ _ (by native_decide)]
   rw [store_get_ne _ _ (by native_decide)]
   rw [store_get_ne _ _ (by native_decide)]
@@ -1517,8 +1515,10 @@ theorem evalExpr_permitWadStore_spender
         evm' (.var "spender") =
       .ok (permitSpenderValue I) := by
   rw [evalExpr?]
-  unfold permitWadStore permitRecoveredStore permitEcrecoverCallStore permitDigestStore
+  unfold permitWadStore permitSavedNonceStore permitRecoveredStore
+    permitEcrecoverCallStore permitDigestStore
   simp only [EvalResult.ofOption]
+  rw [store_get_ne _ _ (by decide)]
   rw [store_get_ne _ _ (by native_decide)]
   rw [store_get_ne _ _ (by native_decide)]
   rw [store_get_ne _ _ (by native_decide)]
@@ -1568,8 +1568,8 @@ theorem permitAssignAllowance (evm evm' : EVM.State) (I : ExecutionEnv)
     simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
       permitAllowanceEvaledRef, permitHolderKey, permitSpenderKey, uint256St]
   have hloc :
-      config.storage.layout (permitAllowanceEvaledRef I) =
-        fun _ => some (wordLoc (permitAllowanceStorageSlot I) (.int uint256Int)) := by
+      config.storageBackend.locate? (permitAllowanceEvaledRef I) =
+        some (.leaf (wordLoc (permitAllowanceStorageSlot I) (.int uint256Int))) := by
     rfl
   have hstore :
       storageLocStore (permitPostNonceState evm' I)
@@ -1584,13 +1584,13 @@ theorem permitAssignAllowance (evm evm' : EVM.State) (I : ExecutionEnv)
         evm'.executionEnv.codeOwner by
       unfold permitPostNonceState
       rw [storageStore_executionEnv]]
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := permitWadStore evm I out recovered })
     (evm := permitPostNonceState evm' I) (evm' := permitPostState evm' I)
     (slot := allowanceRef (.var "holder") (.var "spender"))
     (er := permitAllowanceEvaledRef I) (ty := uint256St)
-    (loc := wordLoc (permitAllowanceStorageSlot I) (.int uint256Int))
+    (loc := wordLoc (permitAllowanceStorageSlot I) (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     hbase her hty hloc hstore
 
 theorem permitHolderMaskedWord_eq_zero_of_address_zero (I : ExecutionEnv)
@@ -1844,8 +1844,7 @@ theorem daiPermitBodyReverts_expired (evm evm' : EVM.State) (I : ExecutionEnv)
                     (evalExpr_permitRecoveredStore_expiry_false evm evm' I out recovered
                       hexpiryNonzero hexpired))))))))
 
-/-- The Solm `permit(...)` body reverts when calldata nonce mismatches storage. -/
-theorem daiPermitBodyReverts_nonceMismatch (evm evm' : EVM.State) (I : ExecutionEnv)
+theorem daiPermitBodyPrefix (evm evm' : EVM.State) (I : ExecutionEnv)
     (out : ByteArray) (recovered : AccountAddress)
     (hsz260 : 260 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -1859,68 +1858,15 @@ theorem daiPermitBodyReverts_nonceMismatch (evm evm' : EVM.State) (I : Execution
     (hexpiryOk :
       permitExpiryWord I = ⟨0⟩ ∨
         (UInt256.ofNat evm'.executionEnv.header.timestamp).toNat ≤ (permitExpiryWord I).toNat)
-    (hnonce :
-      permitNonceWord I ≠
-        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I)) :
-    ExecTransitionBody config contract evm (permitStore I) permitTransition.body .reverted := by
-  refine ExecFuncBody.execBlockRevert ?_
-  simpa [permitTransition, nonpayable, permitEcrecoverCallStore, permitRecoveredStore] using
-    ((((ABlock.start
-      |>.requireStep (evalCallvalueEq_true hwv)
-      |>.letStep (evalExpr_permitDigest evm I))
-      |>.requireStep (evalExpr_permitDigestStore_holder_ne_zero_true evm I hnz)).run <|
-        ExecBlock.consNormal
-          (ExecStmt.lowLevelCallSuccess
-            (evalExpr_ecrecoverPrecompile evm (permitDigestStore evm I))
-            (evalExpr_zeroInt evm (permitDigestStore evm I))
-            (evalExpr_ecrecoverCalldata evm hsz260)
-            hcall)
-          (ExecBlock.consNormal
-            (ExecStmt.requireTrue
-              (evalExpr_ecrecoverSuccess_true evm'
-                (permitDigestStore evm I) out))
-            (ExecBlock.consNormal
-              (ExecStmt.letDecl
-                (evalExpr_permitEcrecoverCallStore_recovered_ok
-                  evm evm' I out recovered hdec))
-              (ExecBlock.consNormal
-                (ExecStmt.requireTrue
-                  (evalExpr_permitRecoveredStore_holder_eq_recovered_true
-                    evm evm' I out recovered heq))
-                (ExecBlock.consNormal
-                  (ExecStmt.requireTrue
-                    (evalExpr_permitRecoveredStore_expiry_ok
-                      evm evm' I out recovered hexpiryOk))
-                  (ExecBlock.consRevert
-                    (ExecStmt.requireFalse
-                      (evalExpr_permitRecoveredStore_nonce_eq_storage_false
-                        evm evm' I out recovered hnonce)))))))))
-
-set_option maxHeartbeats 10000000
-/-- The Solm `permit(...)` body updates nonce and allowance after successful recovery. -/
-theorem daiPermitBodyReturns_success (evm evm' : EVM.State) (I : ExecutionEnv)
-    (out : ByteArray) (recovered : AccountAddress)
-    (hsz260 : 260 ≤ I.calldata.size)
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
-    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
-      (permitEcrecoverCalldata evm I) (true, evm', out) false)
-    (hdec :
-      ABI.decodeReturnValueWithMode? config.abiDecodeMode addr out =
-        some (.address recovered))
-    (heq : AccountAddress.ofNat (permitHolderWord I).toNat = recovered)
-    (hexpiryOk :
-      permitExpiryWord I = ⟨0⟩ ∨
-        (UInt256.ofNat evm'.executionEnv.header.timestamp).toNat ≤ (permitExpiryWord I).toNat)
-    (hnonce :
-      permitNonceWord I =
-        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I)) :
-    ExecTransitionBody config contract evm (permitStore I) permitTransition.body
-      (.returned { contract := contract, locals := permitWadStore evm I out recovered }
-        (permitPostState evm' I) none) := by
-  refine ExecFuncBody.execBlockOK ?_
+    {result : ExecResult}
+    (htail : ExecBlock config
+      { contract := contract, locals := permitSavedNonceStore evm I out recovered
+          (Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I)) }
+      evm' (permitTransition.body.drop 9) result) :
+    ExecBlock config { contract := contract, locals := permitStore I } evm
+      permitTransition.body result := by
   simpa [permitTransition, nonpayable, permitEcrecoverCallStore, permitRecoveredStore,
-    permitWadStore] using
+    permitSavedNonceStore] using
     ((((ABlock.start
       |>.requireStep (evalCallvalueEq_true hwv)
       |>.letStep (evalExpr_permitDigest evm I))
@@ -1948,46 +1894,104 @@ theorem daiPermitBodyReturns_success (evm evm' : EVM.State) (I : ExecutionEnv)
                     (evalExpr_permitRecoveredStore_expiry_ok
                       evm evm' I out recovered hexpiryOk))
                   (ExecBlock.consNormal
-                    (ExecStmt.requireTrue
-                      (evalExpr_permitRecoveredStore_nonce_eq_storage_true
-                        evm evm' I out recovered hnonce))
-                    (ExecBlock.consNormal
-                      (ExecStmt.assign
-                        (evalExpr_permitRecoveredStore_nonce_increment
-                          evm evm' I out recovered hnonce)
-                        (permitAssignNonce evm evm' I out recovered hnonce))
-                      (ExecBlock.consNormal
-                        (ExecStmt.letDecl
-                          (evalExpr_permitRecoveredStore_wad
-                            evm (permitPostNonceState evm' I) I out recovered))
-                        (ExecBlock.consNormal
-                          (ExecStmt.assign
-                            (evalExpr_permitWadStore_wad
-                              evm (permitPostNonceState evm' I) I out recovered)
-                            (permitAssignAllowance evm evm' I out recovered))
-                          ExecBlock.nil))))))))))
+                    (ExecStmt.letDecl
+                      (evalExpr_permitRecoveredStore_nonce_storage evm evm' I out recovered))
+                    htail)))))))
 
-theorem decodeScalarWordWithMode_legacy_uint8_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeScalarWordWithMode? DecodeMode.legacySolc05 (ABIType.elem (ElemType.int uint8Int))
-        bytes start =
-      some (.int (Int.ofNat ((ABI.bytesToWord ((bytes.drop start).take 32)).toNat %
-        EVM.twoPow 8)), start + 32) := by
-  simp only [uint8Int, decodeScalarWordWithMode?, readWord?, readBytes?, decodeABIWord?, bind,
-    Option.bind]
-  rw [if_pos hlen]
-  rfl
+theorem daiPermitBodyStatic (evm evm' : EVM.State) (I : ExecutionEnv)
+    (out : ByteArray) (recovered : AccountAddress)
+    (hsz260 : 260 ≤ I.calldata.size)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
+    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+      (permitEcrecoverCalldata evm I) (true, evm', out) false)
+    (hdec :
+      ABI.decodeReturnValueWithMode? config.abiDecodeMode addr out =
+        some (.address recovered))
+    (heq : AccountAddress.ofNat (permitHolderWord I).toNat = recovered)
+    (hexpiryOk :
+      permitExpiryWord I = ⟨0⟩ ∨
+        (UInt256.ofNat evm'.executionEnv.header.timestamp).toNat ≤ (permitExpiryWord I).toNat)
+    (hperm : evm'.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (permitStore I) permitTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  apply daiPermitBodyPrefix evm evm' I out recovered hsz260 hwv hnz hcall hdec heq hexpiryOk
+  exact ExecBlock.consStatic (ExecStmt.assignStatic
+    (evalExpr_permitSavedNonceStore_increment evm evm' I out recovered _)
+    (permitAssignSavedNonce evm evm' I out recovered _ rfl) hperm)
 
-theorem decodeABIValue_legacy_bytes32_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? (ABIType.elem (ElemType.bytes bytes32Width)) bytes start
-        DecodeMode.legacySolc05 =
-      some (.fixedBytes bytes32Width ((bytes.drop start).take 32), start + 32) := by
-  simp only [bytes32Width, decodeABIValue?, readBytes?, bind, Option.bind]
-  rw [if_pos hlen]
-  have htake : List.take 32 ((bytes.drop start).take 32) = (bytes.drop start).take 32 :=
-    List.take_of_length_le (by rw [hlen])
-  simp [htake]
+
+/-- The Solm `permit(...)` body reverts when calldata nonce mismatches storage. -/
+theorem daiPermitBodyReverts_nonceMismatch (evm evm' : EVM.State) (I : ExecutionEnv)
+    (out : ByteArray) (recovered : AccountAddress)
+    (hsz260 : 260 ≤ I.calldata.size)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
+    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+      (permitEcrecoverCalldata evm I) (true, evm', out) false)
+    (hdec :
+      ABI.decodeReturnValueWithMode? config.abiDecodeMode addr out =
+        some (.address recovered))
+    (heq : AccountAddress.ofNat (permitHolderWord I).toNat = recovered)
+    (hexpiryOk :
+      permitExpiryWord I = ⟨0⟩ ∨
+        (UInt256.ofNat evm'.executionEnv.header.timestamp).toNat ≤ (permitExpiryWord I).toNat)
+    (hnonce :
+      permitNonceWord I ≠
+        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I)) :
+    ExecTransitionBody config contract evm (permitStore I) permitTransition.body .reverted := by
+  refine ExecFuncBody.execBlockRevert ?_
+  apply daiPermitBodyPrefix evm evm' I out recovered hsz260 hwv hnz hcall hdec heq hexpiryOk
+  refine ExecBlock.consNormal
+    (ExecStmt.assign
+      (evalExpr_permitSavedNonceStore_increment evm evm' I out recovered _)
+      (permitAssignSavedNonce evm evm' I out recovered _ rfl)) ?_
+  exact ExecBlock.consRevert (ExecStmt.requireFalse (by
+    simpa [hnonce] using evalExpr_permitSavedNonceStore_eq evm
+      (permitPostNonceState evm' I) I out recovered
+      (Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I))))
+
+set_option maxHeartbeats 10000000
+/-- The Solm `permit(...)` body updates nonce and allowance after successful recovery. -/
+theorem daiPermitBodyReturns_success (evm evm' : EVM.State) (I : ExecutionEnv)
+    (out : ByteArray) (recovered : AccountAddress)
+    (hsz260 : 260 ≤ I.calldata.size)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
+    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+      (permitEcrecoverCalldata evm I) (true, evm', out) false)
+    (hdec :
+      ABI.decodeReturnValueWithMode? config.abiDecodeMode addr out =
+        some (.address recovered))
+    (heq : AccountAddress.ofNat (permitHolderWord I).toNat = recovered)
+    (hexpiryOk :
+      permitExpiryWord I = ⟨0⟩ ∨
+        (UInt256.ofNat evm'.executionEnv.header.timestamp).toNat ≤ (permitExpiryWord I).toNat)
+    (hnonce :
+      permitNonceWord I =
+        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I)) :
+    ExecTransitionBody config contract evm (permitStore I) permitTransition.body
+      (.returned { contract := contract, locals := permitWadStore evm I out recovered }
+        (permitPostState evm' I) none) := by
+  refine ExecFuncBody.execBlockOK ?_
+  apply daiPermitBodyPrefix evm evm' I out recovered hsz260 hwv hnz hcall hdec heq hexpiryOk
+  rw [← hnonce]
+  refine ExecBlock.consNormal
+    (ExecStmt.assign
+      (evalExpr_permitSavedNonceStore_increment evm evm' I out recovered _)
+      (permitAssignSavedNonce evm evm' I out recovered _ hnonce)) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (by
+    simpa using evalExpr_permitSavedNonceStore_eq evm
+      (permitPostNonceState evm' I) I out recovered (permitNonceWord I))) ?_
+  exact ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_permitSavedNonceStore_wad evm
+      (permitPostNonceState evm' I) I out recovered (permitNonceWord I)))
+    (ExecBlock.consNormal
+      (ExecStmt.assign
+        (evalExpr_permitWadStore_wad evm (permitPostNonceState evm' I) I out recovered)
+        (permitAssignAllowance evm evm' I out recovered)) ExecBlock.nil)
+
 
 theorem decodeABIValues_permit_ok {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32)
@@ -2070,8 +2074,8 @@ theorem decodeABIValues_permit_ok {bytes : List UInt8}
     simp only [decodeABIValues?, isDynamicABIType, Bool.false_eq_true, if_false,
       staticABIEncodedSize?, Option.bind, bind]
     simp only [Nat.zero_add, Nat.add_assoc]
-    rw [haddr0, haddr32, huint64, huint96, hbool, huint8, hbytes192, hbytes224]
-    simp [hzero, bytes32Width]
+    erw [haddr0, haddr32, huint64, huint96, hbool, huint8, hbytes192, hbytes224]
+    simp [hzero, bytes32Width, abiBytes32Width]
   · have hbools := decodeScalarWordWithMode_legacy_bool_true (bytes := bytes) (start := 128)
       hlen128 (fun h => hzero (congrArg UInt256.toNat h))
     have hbool :
@@ -2083,8 +2087,8 @@ theorem decodeABIValues_permit_ok {bytes : List UInt8}
     simp only [decodeABIValues?, isDynamicABIType, Bool.false_eq_true, if_false,
       staticABIEncodedSize?, Option.bind, bind]
     simp only [Nat.zero_add, Nat.add_assoc]
-    rw [haddr0, haddr32, huint64, huint96, hbool, huint8, hbytes192, hbytes224]
-    simp [hzero, bytes32Width]
+    erw [haddr0, haddr32, huint64, huint96, hbool, huint8, hbytes192, hbytes224]
+    simp [hzero, bytes32Width, abiBytes32Width]
 
 theorem daiDecode_permit_ok {I : ExecutionEnv}
     (hsz260 : 260 ≤ I.calldata.size) :
@@ -2348,172 +2352,31 @@ theorem daiPermitX_decoded {σ σ₀ A I} {g : Sat256}
       permitExpiryWord, permitAllowedWord, permitVWord, permitRWord, permitSWord,
       calldataWord, solcAddrMask] using rd2428⟩
 
-abbrev permitWordMem (mem : ByteArray) (off : Nat) (word : UInt256) :
-    ByteArray :=
-  Reasoning.Theory.writeWord mem off word
-
-theorem permitWordMem_size (mem : ByteArray) (off : Nat) (word : UInt256)
-    (hgap : off - mem.size < USize.size) :
-    (permitWordMem mem off word).size = max mem.size (off + 32) := by
-  simpa [permitWordMem] using Reasoning.Theory.writeWord_size mem off word hgap
-
-theorem permitWordMem_read64_preserve {mem : ByteArray} {off : Nat} {word : UInt256}
-    (hsize : 96 ≤ mem.size) (hoff : 96 ≤ off) (hgap : off - mem.size < USize.size) :
-    (permitWordMem mem off word).readWithPadding 64 32 =
-      mem.readWithPadding 64 32 := by
-  simpa [permitWordMem] using
-    Reasoning.Theory.writeWord_read_preserved mem off 64 word hgap
-      (Or.inl ⟨by omega, by omega⟩)
-
-theorem permitWordMem_read_preserve {mem : ByteArray} {off read : Nat} {word : UInt256}
-    (hgap : off - mem.size < USize.size)
-    (hdisj :
-      (read + 32 ≤ off ∧ read + 32 ≤ mem.size) ∨
-      (off + 32 ≤ read ∧ read + 32 ≤ mem.size)) :
-    (permitWordMem mem off word).readWithPadding read 32 =
-      mem.readWithPadding read 32 := by
-  simpa [permitWordMem] using
-    Reasoning.Theory.writeWord_read_preserved mem off read word hgap hdisj
-
-theorem permitWordMem_read_preserve_len {mem : ByteArray} {off read len : Nat}
-    {word : UInt256}
-    (hgap : off - mem.size < USize.size)
-    (hdisj :
-      (read + len ≤ off ∧ read + len ≤ mem.size) ∨
-      (off + 32 ≤ read ∧ read + len ≤ mem.size))
-    (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
-    (permitWordMem mem off word).readWithPadding read len =
-      mem.readWithPadding read len := by
-  simpa [permitWordMem] using
-    Reasoning.Theory.writeWord_read_preserved_len mem off read len word hgap hdisj hpos hlen64
-
-theorem permitWordMem_read_back (mem : ByteArray) (off : Nat) (word : UInt256)
-    (hgap : off - mem.size < USize.size) :
-    (permitWordMem mem off word).readWithPadding off 32 = UInt256.toByteArray word := by
-  simpa [permitWordMem, Reasoning.Theory.writeWord] using
-    Reasoning.Theory.writeWord_read_back mem off word hgap
-
-abbrev permitTwoWordHashMem
-    (mem : ByteArray) (key slot : UInt256) : ByteArray :=
-  permitWordMem (permitWordMem mem 0 key) 32 slot
 
 abbrev permitNonceHashMem (mem : ByteArray) (I : ExecutionEnv) : ByteArray :=
-  permitTwoWordHashMem mem (permitHolderMaskedWord I) (⟨4⟩ : UInt256)
+  twoWordHashMemAt mem (permitHolderMaskedWord I) (⟨4⟩ : UInt256)
 
 abbrev permitAllowanceOwnerHashMem (mem : ByteArray) (I : ExecutionEnv) :
     ByteArray :=
-  permitTwoWordHashMem mem (permitHolderMaskedWord I) (⟨3⟩ : UInt256)
+  twoWordHashMemAt mem (permitHolderMaskedWord I) (⟨3⟩ : UInt256)
 
 abbrev permitAllowanceHashMem (mem : ByteArray) (I : ExecutionEnv) :
     ByteArray :=
-  permitTwoWordHashMem (permitAllowanceOwnerHashMem mem I) (permitSpenderMaskedWord I)
+  twoWordHashMemAt (permitAllowanceOwnerHashMem mem I) (permitSpenderMaskedWord I)
     (mapSlot (permitHolderMaskedWord I) ⟨3⟩)
 
 abbrev permitApprovalLogMem (mem : ByteArray) (I : ExecutionEnv) : ByteArray :=
-  permitWordMem mem 482 (permitWadWord I)
+  Reasoning.Theory.writeWord mem 482 (permitWadWord I)
 
 abbrev permitApprovalTopic : UInt256 :=
   ⟨0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925⟩
 
-theorem permitTwoWordHashMem_size {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (permitTwoWordHashMem mem key slot).size = mem.size := by
-  have hzero : 0 < USize.size := lt_usize 0 (by norm_num)
-  have hkey : (permitWordMem mem 0 key).size = mem.size := by
-    rw [permitWordMem_size]
-    · omega
-    · omega
-  unfold permitTwoWordHashMem
-  rw [permitWordMem_size]
-  · rw [hkey]
-    omega
-  · rw [hkey]
-    omega
-
-theorem permitTwoWordHashMem_read64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 96 ≤ mem.size) :
-    (permitTwoWordHashMem mem key slot).readWithPadding 64 32 =
-      mem.readWithPadding 64 32 := by
-  have hzero : 0 < USize.size := lt_usize 0 (by norm_num)
-  have hkeySize : (permitWordMem mem 0 key).size = mem.size := by
-    rw [permitWordMem_size]
-    · omega
-    · omega
-  calc
-    (permitTwoWordHashMem mem key slot).readWithPadding 64 32 =
-        (permitWordMem mem 0 key).readWithPadding 64 32 := by
-      simpa [permitTwoWordHashMem] using
-        permitWordMem_read_preserve
-          (mem := permitWordMem mem 0 key) (off := 32) (read := 64) (word := slot)
-          (hgap := by rw [hkeySize]; omega)
-          (hdisj := Or.inr ⟨by norm_num, by rw [hkeySize]; omega⟩)
-    _ = mem.readWithPadding 64 32 := by
-      simpa using
-        permitWordMem_read_preserve
-          (mem := mem) (off := 0) (read := 64) (word := key)
-          (hgap := by omega)
-          (hdisj := Or.inr ⟨by norm_num, by omega⟩)
-
-set_option maxHeartbeats 800000 in
-theorem permitTwoWordHashMem_read0_64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (permitTwoWordHashMem mem key slot).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  have hzero : 0 < USize.size := lt_usize 0 (by norm_num)
-  have hkeySize : (permitWordMem mem 0 key).size = mem.size := by
-    rw [permitWordMem_size]
-    · omega
-    · omega
-  have hhashSize : (permitTwoWordHashMem mem key slot).size = mem.size :=
-    permitTwoWordHashMem_size key slot hmem
-  have hread0 :
-      (permitTwoWordHashMem mem key slot).readWithPadding 0 32 =
-        UInt256.toByteArray key := by
-    calc
-      (permitTwoWordHashMem mem key slot).readWithPadding 0 32 =
-          (permitWordMem mem 0 key).readWithPadding 0 32 := by
-        simpa [permitTwoWordHashMem] using
-          permitWordMem_read_preserve
-            (mem := permitWordMem mem 0 key) (off := 32) (read := 0) (word := slot)
-            (hgap := by rw [hkeySize]; omega)
-            (hdisj := Or.inl ⟨by norm_num, by rw [hkeySize]; omega⟩)
-      _ = UInt256.toByteArray key := by
-        simpa using permitWordMem_read_back mem 0 key (by omega)
-  have hread32 :
-      (permitTwoWordHashMem mem key slot).readWithPadding 32 32 =
-        UInt256.toByteArray slot := by
-    simpa [permitTwoWordHashMem] using
-      permitWordMem_read_back (permitWordMem mem 0 key) 32 slot
-        (by rw [hkeySize]; omega)
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [hhashSize]; omega)]
-  have hleft :
-      (permitTwoWordHashMem mem key slot).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0 (by rw [hhashSize]; omega), hread0]
-  have hright :
-      (permitTwoWordHashMem mem key slot).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32 (by rw [hhashSize]; omega), hread32]
-  rw [show (permitTwoWordHashMem mem key slot).extract 0 64 =
-      (permitTwoWordHashMem mem key slot).extract 0 32 ++
-        (permitTwoWordHashMem mem key slot).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      norm_num]
-  rw [hleft, hright]
-
-theorem permitTwoWordHashMem_slot {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    UInt256.ofNat (fromByteArrayBigEndian
-        (KEC ((permitTwoWordHashMem mem key slot).readWithPadding 0 64))) =
-      mapSlot key slot := by
-  rw [permitTwoWordHashMem_read0_64 key slot hmem]
-  unfold mapSlot
-  rw [uInt256OfByteArray_eq]
 
 theorem permitApprovalLogMem_size {mem : ByteArray} (I : ExecutionEnv)
     (hmem : mem.size = 610) :
     (permitApprovalLogMem mem I).size = 610 := by
   unfold permitApprovalLogMem
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [hmem]
     norm_num
   · rw [hmem]
@@ -2537,29 +2400,29 @@ theorem permitTypehashBytes_eq_wordLit :
   native_decide
 
 abbrev permitStructMem1 (I : ExecutionEnv) : ByteArray :=
-  permitWordMem solcFreePtrMem 160 permitTypehashWordLit
+  Reasoning.Theory.writeWord solcFreePtrMem 160 permitTypehashWordLit
 
 abbrev permitStructMem2 (I : ExecutionEnv) : ByteArray :=
-  permitWordMem (permitStructMem1 I) 192 (permitHolderMaskedWord I)
+  Reasoning.Theory.writeWord (permitStructMem1 I) 192 (permitHolderMaskedWord I)
 
 abbrev permitStructMem3 (I : ExecutionEnv) : ByteArray :=
-  permitWordMem (permitStructMem2 I) 224 (permitSpenderMaskedWord I)
+  Reasoning.Theory.writeWord (permitStructMem2 I) 224 (permitSpenderMaskedWord I)
 
 abbrev permitStructMem4 (I : ExecutionEnv) : ByteArray :=
-  permitWordMem (permitStructMem3 I) 256 (permitNonceWord I)
+  Reasoning.Theory.writeWord (permitStructMem3 I) 256 (permitNonceWord I)
 
 abbrev permitStructMem5 (I : ExecutionEnv) : ByteArray :=
-  permitWordMem (permitStructMem4 I) 288 (permitExpiryWord I)
+  Reasoning.Theory.writeWord (permitStructMem4 I) 288 (permitExpiryWord I)
 
 abbrev permitStructMem6 (I : ExecutionEnv) : ByteArray :=
-  permitWordMem (permitStructMem5 I) 320
+  Reasoning.Theory.writeWord (permitStructMem5 I) 320
     (UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
 
 abbrev permitDigestMem7 (I : ExecutionEnv) : ByteArray :=
-  permitWordMem (permitStructMem6 I) 128 (⟨192⟩ : UInt256)
+  Reasoning.Theory.writeWord (permitStructMem6 I) 128 (⟨192⟩ : UInt256)
 
 abbrev permitDigestMem8 (I : ExecutionEnv) : ByteArray :=
-  permitWordMem (permitDigestMem7 I) 64 (⟨352⟩ : UInt256)
+  Reasoning.Theory.writeWord (permitDigestMem7 I) 64 (⟨352⟩ : UInt256)
 
 abbrev permitStructHashMemWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian (KEC ((permitDigestMem8 I).readWithPadding 160 192)))
@@ -2574,111 +2437,111 @@ theorem permitEip191Word_prefix :
 
 abbrev permitDigestMem9 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
-  permitWordMem (permitDigestMem8 I) 384 permitEip191Word
+  Reasoning.Theory.writeWord (permitDigestMem8 I) 384 permitEip191Word
 
 abbrev permitDigestMem10 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
-  permitWordMem (permitDigestMem9 I domainWord) 386 domainWord
+  Reasoning.Theory.writeWord (permitDigestMem9 I domainWord) 386 domainWord
 
 abbrev permitDigestMem11 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
-  permitWordMem (permitDigestMem10 I domainWord) 418 (permitStructHashMemWord I)
+  Reasoning.Theory.writeWord (permitDigestMem10 I domainWord) 418 (permitStructHashMemWord I)
 
 abbrev permitDigestMem12 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
-  permitWordMem (permitDigestMem11 I domainWord) 352 (⟨66⟩ : UInt256)
+  Reasoning.Theory.writeWord (permitDigestMem11 I domainWord) 352 (⟨66⟩ : UInt256)
 
 abbrev permitDigestMem13 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
-  permitWordMem (permitDigestMem12 I domainWord) 64 (⟨450⟩ : UInt256)
+  Reasoning.Theory.writeWord (permitDigestMem12 I domainWord) 64 (⟨450⟩ : UInt256)
 
 theorem permitStructMem1_size (I : ExecutionEnv) : (permitStructMem1 I).size = 192 := by
   unfold permitStructMem1
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [solcFreePtrMem_size]; native_decide
   · rw [solcFreePtrMem_size]; native_decide
 
 theorem permitStructMem2_size (I : ExecutionEnv) : (permitStructMem2 I).size = 224 := by
   unfold permitStructMem2
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitStructMem1_size]; native_decide
   · rw [permitStructMem1_size]; native_decide
 
 theorem permitStructMem3_size (I : ExecutionEnv) : (permitStructMem3 I).size = 256 := by
   unfold permitStructMem3
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitStructMem2_size]; native_decide
   · rw [permitStructMem2_size]; native_decide
 
 theorem permitStructMem4_size (I : ExecutionEnv) : (permitStructMem4 I).size = 288 := by
   unfold permitStructMem4
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitStructMem3_size]; native_decide
   · rw [permitStructMem3_size]; native_decide
 
 theorem permitStructMem5_size (I : ExecutionEnv) : (permitStructMem5 I).size = 320 := by
   unfold permitStructMem5
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitStructMem4_size]; native_decide
   · rw [permitStructMem4_size]; native_decide
 
 theorem permitStructMem6_size (I : ExecutionEnv) : (permitStructMem6 I).size = 352 := by
   unfold permitStructMem6
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitStructMem5_size]; native_decide
   · rw [permitStructMem5_size]; native_decide
 
 theorem permitDigestMem7_size (I : ExecutionEnv) : (permitDigestMem7 I).size = 352 := by
   unfold permitDigestMem7
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitStructMem6_size]; native_decide
   · rw [permitStructMem6_size]; native_decide
 
 theorem permitDigestMem8_size (I : ExecutionEnv) : (permitDigestMem8 I).size = 352 := by
   unfold permitDigestMem8
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitDigestMem7_size]; native_decide
   · rw [permitDigestMem7_size]; native_decide
 
 theorem permitDigestMem9_size (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem9 I domainWord).size = 416 := by
   unfold permitDigestMem9
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitDigestMem8_size]; native_decide
   · rw [permitDigestMem8_size]; native_decide
 
 theorem permitDigestMem10_size (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem10 I domainWord).size = 418 := by
   unfold permitDigestMem10
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitDigestMem9_size]; native_decide
   · rw [permitDigestMem9_size]; native_decide
 
 theorem permitDigestMem11_size (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem11 I domainWord).size = 450 := by
   unfold permitDigestMem11
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitDigestMem10_size]; native_decide
   · rw [permitDigestMem10_size]; native_decide
 
 theorem permitDigestMem12_size (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem12 I domainWord).size = 450 := by
   unfold permitDigestMem12
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitDigestMem11_size]; native_decide
   · rw [permitDigestMem11_size]; native_decide
 
 theorem permitDigestMem13_size (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem13 I domainWord).size = 450 := by
   unfold permitDigestMem13
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitDigestMem12_size]; native_decide
   · rw [permitDigestMem12_size]; native_decide
 
 theorem permitStructMem1_read64 (I : ExecutionEnv) :
     (permitStructMem1 I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   simpa [permitStructMem1] using
-    permitWordMem_read64_preserve (mem := solcFreePtrMem) (off := 160)
+    writeWord_read64_preserved_of_ge96 (mem := solcFreePtrMem) (off := 160)
       (word := permitTypehashWordLit)
       (hsize := by rw [solcFreePtrMem_size])
       (hoff := by norm_num)
@@ -2687,7 +2550,7 @@ theorem permitStructMem1_read64 (I : ExecutionEnv) :
 theorem permitStructMem2_read64 (I : ExecutionEnv) :
     (permitStructMem2 I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   simpa [permitStructMem2] using
-    permitWordMem_read64_preserve (mem := permitStructMem1 I) (off := 192)
+    writeWord_read64_preserved_of_ge96 (mem := permitStructMem1 I) (off := 192)
       (word := permitHolderMaskedWord I)
       (hsize := by rw [permitStructMem1_size]; norm_num)
       (hoff := by norm_num)
@@ -2697,7 +2560,7 @@ theorem permitStructMem2_read64 (I : ExecutionEnv) :
 theorem permitStructMem3_read64 (I : ExecutionEnv) :
     (permitStructMem3 I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   simpa [permitStructMem3] using
-    permitWordMem_read64_preserve (mem := permitStructMem2 I) (off := 224)
+    writeWord_read64_preserved_of_ge96 (mem := permitStructMem2 I) (off := 224)
       (word := permitSpenderMaskedWord I)
       (hsize := by rw [permitStructMem2_size]; norm_num)
       (hoff := by norm_num)
@@ -2707,7 +2570,7 @@ theorem permitStructMem3_read64 (I : ExecutionEnv) :
 theorem permitStructMem4_read64 (I : ExecutionEnv) :
     (permitStructMem4 I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   simpa [permitStructMem4] using
-    permitWordMem_read64_preserve (mem := permitStructMem3 I) (off := 256)
+    writeWord_read64_preserved_of_ge96 (mem := permitStructMem3 I) (off := 256)
       (word := permitNonceWord I)
       (hsize := by rw [permitStructMem3_size]; norm_num)
       (hoff := by norm_num)
@@ -2717,7 +2580,7 @@ theorem permitStructMem4_read64 (I : ExecutionEnv) :
 theorem permitStructMem5_read64 (I : ExecutionEnv) :
     (permitStructMem5 I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   simpa [permitStructMem5] using
-    permitWordMem_read64_preserve (mem := permitStructMem4 I) (off := 288)
+    writeWord_read64_preserved_of_ge96 (mem := permitStructMem4 I) (off := 288)
       (word := permitExpiryWord I)
       (hsize := by rw [permitStructMem4_size]; norm_num)
       (hoff := by norm_num)
@@ -2727,7 +2590,7 @@ theorem permitStructMem5_read64 (I : ExecutionEnv) :
 theorem permitStructMem6_read64 (I : ExecutionEnv) :
     (permitStructMem6 I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   simpa [permitStructMem6] using
-    permitWordMem_read64_preserve (mem := permitStructMem5 I) (off := 320)
+    writeWord_read64_preserved_of_ge96 (mem := permitStructMem5 I) (off := 320)
       (word := UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
       (hsize := by rw [permitStructMem5_size]; norm_num)
       (hoff := by norm_num)
@@ -2747,14 +2610,14 @@ theorem permitDigestMem7_read128 (I : ExecutionEnv) :
     (permitDigestMem7 I).readWithPadding 128 32 =
       UInt256.toByteArray (⟨192⟩ : UInt256) := by
   simpa [permitDigestMem7] using
-    permitWordMem_read_back (permitStructMem6 I) 128 (⟨192⟩ : UInt256)
+    writeWord_read_back (permitStructMem6 I) 128 (⟨192⟩ : UInt256)
       (by rw [permitStructMem6_size]; native_decide)
 
 theorem permitDigestMem8_read128 (I : ExecutionEnv) :
     (permitDigestMem8 I).readWithPadding 128 32 =
       UInt256.toByteArray (⟨192⟩ : UInt256) := by
   simpa [permitDigestMem8] using
-    permitWordMem_read_preserve (mem := permitDigestMem7 I) (off := 64) (read := 128)
+    writeWord_read_preserved_of_disjoint (mem := permitDigestMem7 I) (off := 64) (read := 128)
       (word := (⟨352⟩ : UInt256))
       (hgap := by rw [permitDigestMem7_size]; native_decide)
       (hdisj := Or.inr ⟨by norm_num, by rw [permitDigestMem7_size]; norm_num⟩) |>.trans
@@ -2779,13 +2642,13 @@ theorem permitDigestMem8_read_structMem6 (I : ExecutionEnv) {read : Nat}
     (permitDigestMem8 I).readWithPadding read 32 =
         (permitDigestMem7 I).readWithPadding read 32 := by
       simpa [permitDigestMem8] using
-        permitWordMem_read_preserve (mem := permitDigestMem7 I) (off := 64)
+        writeWord_read_preserved_of_disjoint (mem := permitDigestMem7 I) (off := 64)
           (read := read) (word := (⟨352⟩ : UInt256))
           (hgap := by rw [permitDigestMem7_size]; native_decide)
           (hdisj := Or.inr ⟨by omega, by rw [permitDigestMem7_size]; omega⟩)
     _ = (permitStructMem6 I).readWithPadding read 32 := by
       simpa [permitDigestMem7] using
-        permitWordMem_read_preserve (mem := permitStructMem6 I) (off := 128)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem6 I) (off := 128)
           (read := read) (word := (⟨192⟩ : UInt256))
           (hgap := by rw [permitStructMem6_size]; native_decide)
           (hdisj := Or.inr ⟨by omega, by rw [permitStructMem6_size]; omega⟩)
@@ -2799,37 +2662,37 @@ theorem permitDigestMem8_read160 (I : ExecutionEnv) :
       permitDigestMem8_read_structMem6 I (by norm_num) (by norm_num)
     _ = (permitStructMem5 I).readWithPadding 160 32 := by
       simpa [permitStructMem6] using
-        permitWordMem_read_preserve (mem := permitStructMem5 I) (off := 320)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem5 I) (off := 320)
           (read := 160) (word := UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
           (hgap := by rw [permitStructMem5_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem5_size]⟩)
     _ = (permitStructMem4 I).readWithPadding 160 32 := by
       simpa [permitStructMem5] using
-        permitWordMem_read_preserve (mem := permitStructMem4 I) (off := 288)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem4 I) (off := 288)
           (read := 160) (word := permitExpiryWord I)
           (hgap := by rw [permitStructMem4_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem4_size]⟩)
     _ = (permitStructMem3 I).readWithPadding 160 32 := by
       simpa [permitStructMem4] using
-        permitWordMem_read_preserve (mem := permitStructMem3 I) (off := 256)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem3 I) (off := 256)
           (read := 160) (word := permitNonceWord I)
           (hgap := by rw [permitStructMem3_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem3_size]⟩)
     _ = (permitStructMem2 I).readWithPadding 160 32 := by
       simpa [permitStructMem3] using
-        permitWordMem_read_preserve (mem := permitStructMem2 I) (off := 224)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem2 I) (off := 224)
           (read := 160) (word := permitSpenderMaskedWord I)
           (hgap := by rw [permitStructMem2_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem2_size]⟩)
     _ = (permitStructMem1 I).readWithPadding 160 32 := by
       simpa [permitStructMem2] using
-        permitWordMem_read_preserve (mem := permitStructMem1 I) (off := 192)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem1 I) (off := 192)
           (read := 160) (word := permitHolderMaskedWord I)
           (hgap := by rw [permitStructMem1_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem1_size]⟩)
     _ = UInt256.toByteArray permitTypehashWordLit := by
       simpa [permitStructMem1] using
-        permitWordMem_read_back solcFreePtrMem 160 permitTypehashWordLit
+        writeWord_read_back solcFreePtrMem 160 permitTypehashWordLit
           (by rw [solcFreePtrMem_size]; native_decide)
 
 theorem permitDigestMem8_read192 (I : ExecutionEnv) :
@@ -2841,31 +2704,31 @@ theorem permitDigestMem8_read192 (I : ExecutionEnv) :
       permitDigestMem8_read_structMem6 I (by norm_num) (by norm_num)
     _ = (permitStructMem5 I).readWithPadding 192 32 := by
       simpa [permitStructMem6] using
-        permitWordMem_read_preserve (mem := permitStructMem5 I) (off := 320)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem5 I) (off := 320)
           (read := 192) (word := UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
           (hgap := by rw [permitStructMem5_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem5_size]⟩)
     _ = (permitStructMem4 I).readWithPadding 192 32 := by
       simpa [permitStructMem5] using
-        permitWordMem_read_preserve (mem := permitStructMem4 I) (off := 288)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem4 I) (off := 288)
           (read := 192) (word := permitExpiryWord I)
           (hgap := by rw [permitStructMem4_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem4_size]⟩)
     _ = (permitStructMem3 I).readWithPadding 192 32 := by
       simpa [permitStructMem4] using
-        permitWordMem_read_preserve (mem := permitStructMem3 I) (off := 256)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem3 I) (off := 256)
           (read := 192) (word := permitNonceWord I)
           (hgap := by rw [permitStructMem3_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem3_size]⟩)
     _ = (permitStructMem2 I).readWithPadding 192 32 := by
       simpa [permitStructMem3] using
-        permitWordMem_read_preserve (mem := permitStructMem2 I) (off := 224)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem2 I) (off := 224)
           (read := 192) (word := permitSpenderMaskedWord I)
           (hgap := by rw [permitStructMem2_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem2_size]⟩)
     _ = UInt256.toByteArray (permitHolderMaskedWord I) := by
       simpa [permitStructMem2] using
-        permitWordMem_read_back (permitStructMem1 I) 192 (permitHolderMaskedWord I)
+        writeWord_read_back (permitStructMem1 I) 192 (permitHolderMaskedWord I)
           (by rw [permitStructMem1_size]; native_decide)
 
 theorem permitDigestMem8_read224 (I : ExecutionEnv) :
@@ -2877,25 +2740,25 @@ theorem permitDigestMem8_read224 (I : ExecutionEnv) :
       permitDigestMem8_read_structMem6 I (by norm_num) (by norm_num)
     _ = (permitStructMem5 I).readWithPadding 224 32 := by
       simpa [permitStructMem6] using
-        permitWordMem_read_preserve (mem := permitStructMem5 I) (off := 320)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem5 I) (off := 320)
           (read := 224) (word := UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
           (hgap := by rw [permitStructMem5_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem5_size]⟩)
     _ = (permitStructMem4 I).readWithPadding 224 32 := by
       simpa [permitStructMem5] using
-        permitWordMem_read_preserve (mem := permitStructMem4 I) (off := 288)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem4 I) (off := 288)
           (read := 224) (word := permitExpiryWord I)
           (hgap := by rw [permitStructMem4_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem4_size]⟩)
     _ = (permitStructMem3 I).readWithPadding 224 32 := by
       simpa [permitStructMem4] using
-        permitWordMem_read_preserve (mem := permitStructMem3 I) (off := 256)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem3 I) (off := 256)
           (read := 224) (word := permitNonceWord I)
           (hgap := by rw [permitStructMem3_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem3_size]⟩)
     _ = UInt256.toByteArray (permitSpenderMaskedWord I) := by
       simpa [permitStructMem3] using
-        permitWordMem_read_back (permitStructMem2 I) 224 (permitSpenderMaskedWord I)
+        writeWord_read_back (permitStructMem2 I) 224 (permitSpenderMaskedWord I)
           (by rw [permitStructMem2_size]; native_decide)
 
 theorem permitDigestMem8_read256 (I : ExecutionEnv) :
@@ -2907,19 +2770,19 @@ theorem permitDigestMem8_read256 (I : ExecutionEnv) :
       permitDigestMem8_read_structMem6 I (by norm_num) (by norm_num)
     _ = (permitStructMem5 I).readWithPadding 256 32 := by
       simpa [permitStructMem6] using
-        permitWordMem_read_preserve (mem := permitStructMem5 I) (off := 320)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem5 I) (off := 320)
           (read := 256) (word := UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
           (hgap := by rw [permitStructMem5_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem5_size]⟩)
     _ = (permitStructMem4 I).readWithPadding 256 32 := by
       simpa [permitStructMem5] using
-        permitWordMem_read_preserve (mem := permitStructMem4 I) (off := 288)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem4 I) (off := 288)
           (read := 256) (word := permitExpiryWord I)
           (hgap := by rw [permitStructMem4_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem4_size]⟩)
     _ = UInt256.toByteArray (permitNonceWord I) := by
       simpa [permitStructMem4] using
-        permitWordMem_read_back (permitStructMem3 I) 256 (permitNonceWord I)
+        writeWord_read_back (permitStructMem3 I) 256 (permitNonceWord I)
           (by rw [permitStructMem3_size]; native_decide)
 
 theorem permitDigestMem8_read288 (I : ExecutionEnv) :
@@ -2931,13 +2794,13 @@ theorem permitDigestMem8_read288 (I : ExecutionEnv) :
       permitDigestMem8_read_structMem6 I (by norm_num) (by norm_num)
     _ = (permitStructMem5 I).readWithPadding 288 32 := by
       simpa [permitStructMem6] using
-        permitWordMem_read_preserve (mem := permitStructMem5 I) (off := 320)
+        writeWord_read_preserved_of_disjoint (mem := permitStructMem5 I) (off := 320)
           (read := 288) (word := UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
           (hgap := by rw [permitStructMem5_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem5_size]⟩)
     _ = UInt256.toByteArray (permitExpiryWord I) := by
       simpa [permitStructMem5] using
-        permitWordMem_read_back (permitStructMem4 I) 288 (permitExpiryWord I)
+        writeWord_read_back (permitStructMem4 I) 288 (permitExpiryWord I)
           (by rw [permitStructMem4_size]; native_decide)
 
 theorem permitDigestMem8_read320 (I : ExecutionEnv) :
@@ -2949,7 +2812,7 @@ theorem permitDigestMem8_read320 (I : ExecutionEnv) :
       permitDigestMem8_read_structMem6 I (by norm_num) (by norm_num)
     _ = UInt256.toByteArray (UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I))) := by
       simpa [permitStructMem6] using
-        permitWordMem_read_back (permitStructMem5 I) 320
+        writeWord_read_back (permitStructMem5 I) 320
           (UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
           (by rw [permitStructMem5_size]; native_decide)
     _ = UInt256.toByteArray (permitAllowedCleanWord I) := by
@@ -3006,14 +2869,14 @@ theorem permitDigestMem8_read64 (I : ExecutionEnv) :
     (permitDigestMem8 I).readWithPadding 64 32 =
       UInt256.toByteArray (⟨352⟩ : UInt256) := by
   simpa [permitDigestMem8] using
-    permitWordMem_read_back (permitDigestMem7 I) 64 (⟨352⟩ : UInt256)
+    writeWord_read_back (permitDigestMem7 I) 64 (⟨352⟩ : UInt256)
       (by rw [permitDigestMem7_size]; native_decide)
 
 theorem permitDigestMem9_read64 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem9 I domainWord).readWithPadding 64 32 =
       UInt256.toByteArray (⟨352⟩ : UInt256) := by
   simpa [permitDigestMem9] using
-    permitWordMem_read64_preserve (mem := permitDigestMem8 I) (off := 384)
+    writeWord_read64_preserved_of_ge96 (mem := permitDigestMem8 I) (off := 384)
       (word := permitEip191Word)
       (hsize := by rw [permitDigestMem8_size]; norm_num)
       (hoff := by norm_num)
@@ -3024,7 +2887,7 @@ theorem permitDigestMem10_read64 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem10 I domainWord).readWithPadding 64 32 =
       UInt256.toByteArray (⟨352⟩ : UInt256) := by
   simpa [permitDigestMem10] using
-    permitWordMem_read64_preserve (mem := permitDigestMem9 I domainWord) (off := 386)
+    writeWord_read64_preserved_of_ge96 (mem := permitDigestMem9 I domainWord) (off := 386)
       (word := domainWord)
       (hsize := by rw [permitDigestMem9_size]; norm_num)
       (hoff := by norm_num)
@@ -3035,7 +2898,7 @@ theorem permitDigestMem11_read64 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem11 I domainWord).readWithPadding 64 32 =
       UInt256.toByteArray (⟨352⟩ : UInt256) := by
   simpa [permitDigestMem11] using
-    permitWordMem_read64_preserve (mem := permitDigestMem10 I domainWord) (off := 418)
+    writeWord_read64_preserved_of_ge96 (mem := permitDigestMem10 I domainWord) (off := 418)
       (word := permitStructHashMemWord I)
       (hsize := by rw [permitDigestMem10_size]; norm_num)
       (hoff := by norm_num)
@@ -3057,14 +2920,14 @@ theorem permitDigestMem12_read352 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem12 I domainWord).readWithPadding 352 32 =
       UInt256.toByteArray (⟨66⟩ : UInt256) := by
   simpa [permitDigestMem12] using
-    permitWordMem_read_back (permitDigestMem11 I domainWord) 352 (⟨66⟩ : UInt256)
+    writeWord_read_back (permitDigestMem11 I domainWord) 352 (⟨66⟩ : UInt256)
       (by rw [permitDigestMem11_size]; native_decide)
 
 theorem permitDigestMem13_read352 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem13 I domainWord).readWithPadding 352 32 =
       UInt256.toByteArray (⟨66⟩ : UInt256) := by
   simpa [permitDigestMem13] using
-    permitWordMem_read_preserve (mem := permitDigestMem12 I domainWord) (off := 64)
+    writeWord_read_preserved_of_disjoint (mem := permitDigestMem12 I domainWord) (off := 64)
       (read := 352) (word := (⟨450⟩ : UInt256))
       (hgap := by rw [permitDigestMem12_size]; native_decide)
       (hdisj := Or.inr ⟨by norm_num, by rw [permitDigestMem12_size]; norm_num⟩) |>.trans
@@ -3085,7 +2948,7 @@ theorem permitDigestMem13_read64 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem13 I domainWord).readWithPadding 64 32 =
       UInt256.toByteArray (⟨450⟩ : UInt256) := by
   simpa [permitDigestMem13] using
-    permitWordMem_read_back (permitDigestMem12 I domainWord) 64 (⟨450⟩ : UInt256)
+    writeWord_read_back (permitDigestMem12 I domainWord) 64 (⟨450⟩ : UInt256)
       (by rw [permitDigestMem12_size]; native_decide)
 
 theorem permitDigestMem13_mload64 (I : ExecutionEnv) (domainWord : UInt256) :
@@ -3103,7 +2966,7 @@ theorem permitDigestMem12_read384_66 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem12 I domainWord).readWithPadding 384 66 =
       (permitDigestMem11 I domainWord).readWithPadding 384 66 := by
   simpa [permitDigestMem12] using
-    permitWordMem_read_preserve_len (mem := permitDigestMem11 I domainWord) (off := 352)
+    writeWord_read_preserved_len_of_disjoint (mem := permitDigestMem11 I domainWord) (off := 352)
       (read := 384) (len := 66) (word := (⟨66⟩ : UInt256))
       (hgap := by rw [permitDigestMem11_size]; native_decide)
       (hdisj := Or.inr ⟨by norm_num, by rw [permitDigestMem11_size]⟩)
@@ -3113,7 +2976,7 @@ theorem permitDigestMem13_read384_66 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem13 I domainWord).readWithPadding 384 66 =
       (permitDigestMem11 I domainWord).readWithPadding 384 66 := by
   simpa [permitDigestMem13] using
-    permitWordMem_read_preserve_len (mem := permitDigestMem12 I domainWord) (off := 64)
+    writeWord_read_preserved_len_of_disjoint (mem := permitDigestMem12 I domainWord) (off := 64)
       (read := 384) (len := 66) (word := (⟨450⟩ : UInt256))
       (hgap := by rw [permitDigestMem12_size]; native_decide)
       (hdisj := Or.inr ⟨by norm_num, by rw [permitDigestMem12_size]⟩)
@@ -3126,20 +2989,21 @@ theorem permitDigestMem11_read384_2 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem11 I domainWord).readWithPadding 384 2 =
         (permitDigestMem10 I domainWord).readWithPadding 384 2 := by
       simpa [permitDigestMem11] using
-        permitWordMem_read_preserve_len (mem := permitDigestMem10 I domainWord) (off := 418)
+        writeWord_read_preserved_len_of_disjoint (mem := permitDigestMem10 I domainWord)
+          (off := 418)
           (read := 384) (len := 2) (word := permitStructHashMemWord I)
           (hgap := by rw [permitDigestMem10_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitDigestMem10_size]⟩)
           (hpos := by norm_num) (hlen64 := by norm_num)
     _ = (permitDigestMem9 I domainWord).readWithPadding 384 2 := by
       simpa [permitDigestMem10] using
-        permitWordMem_read_preserve_len (mem := permitDigestMem9 I domainWord) (off := 386)
+        writeWord_read_preserved_len_of_disjoint (mem := permitDigestMem9 I domainWord) (off := 386)
           (read := 384) (len := 2) (word := domainWord)
           (hgap := by rw [permitDigestMem9_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitDigestMem9_size]⟩)
           (hpos := by norm_num) (hlen64 := by norm_num)
     _ = (UInt256.toByteArray permitEip191Word).extract 0 2 := by
-      simpa [permitDigestMem9, permitWordMem] using
+      simpa [permitDigestMem9, Reasoning.Theory.writeWord] using
         Reasoning.Theory.writeWord_read_window (permitDigestMem8 I) 384 0 2
           permitEip191Word (by norm_num) (by norm_num) (by norm_num)
           (by rw [permitDigestMem8_size]; native_decide)
@@ -3152,20 +3016,20 @@ theorem permitDigestMem11_read386 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem11 I domainWord).readWithPadding 386 32 =
         (permitDigestMem10 I domainWord).readWithPadding 386 32 := by
       simpa [permitDigestMem11] using
-        permitWordMem_read_preserve (mem := permitDigestMem10 I domainWord) (off := 418)
+        writeWord_read_preserved_of_disjoint (mem := permitDigestMem10 I domainWord) (off := 418)
           (read := 386) (word := permitStructHashMemWord I)
           (hgap := by rw [permitDigestMem10_size]; native_decide)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitDigestMem10_size]⟩)
     _ = UInt256.toByteArray domainWord := by
       simpa [permitDigestMem10] using
-        permitWordMem_read_back (permitDigestMem9 I domainWord) 386 domainWord
+        writeWord_read_back (permitDigestMem9 I domainWord) 386 domainWord
           (by rw [permitDigestMem9_size]; native_decide)
 
 theorem permitDigestMem11_read418 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem11 I domainWord).readWithPadding 418 32 =
       UInt256.toByteArray (permitStructHashMemWord I) := by
   simpa [permitDigestMem11] using
-    permitWordMem_read_back (permitDigestMem10 I domainWord) 418 (permitStructHashMemWord I)
+    writeWord_read_back (permitDigestMem10 I domainWord) 418 (permitStructHashMemWord I)
       (by rw [permitDigestMem10_size]; native_decide)
 
 theorem permitDigestMem11_read384_66_eq (σ σ₀ A I) (g : Sat256) :
@@ -3299,39 +3163,39 @@ theorem permitVMaskedWord_mask (I : ExecutionEnv) :
 
 abbrev permitEcrecoverMem0 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
-  permitWordMem (permitDigestMem13 I domainWord) 450 (⟨0⟩ : UInt256)
+  Reasoning.Theory.writeWord (permitDigestMem13 I domainWord) 450 (⟨0⟩ : UInt256)
 
 abbrev permitEcrecoverMem1 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
-  permitWordMem (permitEcrecoverMem0 I domainWord) 64 (⟨482⟩ : UInt256)
+  Reasoning.Theory.writeWord (permitEcrecoverMem0 I domainWord) 64 (⟨482⟩ : UInt256)
 
 abbrev permitEcrecoverMem2
     (I : ExecutionEnv) (domainWord digestWord : UInt256) : ByteArray :=
-  permitWordMem (permitEcrecoverMem1 I domainWord) 482 digestWord
+  Reasoning.Theory.writeWord (permitEcrecoverMem1 I domainWord) 482 digestWord
 
 abbrev permitEcrecoverMem3
     (I : ExecutionEnv) (domainWord digestWord : UInt256) : ByteArray :=
-  permitWordMem (permitEcrecoverMem2 I domainWord digestWord) 514 (permitVMaskedWord I)
+  Reasoning.Theory.writeWord (permitEcrecoverMem2 I domainWord digestWord) 514 (permitVMaskedWord I)
 
 abbrev permitEcrecoverMem4
     (I : ExecutionEnv) (domainWord digestWord : UInt256) : ByteArray :=
-  permitWordMem (permitEcrecoverMem3 I domainWord digestWord) 546 (permitRWord I)
+  Reasoning.Theory.writeWord (permitEcrecoverMem3 I domainWord digestWord) 546 (permitRWord I)
 
 abbrev permitEcrecoverMem5
     (I : ExecutionEnv) (domainWord digestWord : UInt256) : ByteArray :=
-  permitWordMem (permitEcrecoverMem4 I domainWord digestWord) 578 (permitSWord I)
+  Reasoning.Theory.writeWord (permitEcrecoverMem4 I domainWord digestWord) 578 (permitSWord I)
 
 theorem permitEcrecoverMem0_size (I : ExecutionEnv) (domainWord : UInt256) :
     (permitEcrecoverMem0 I domainWord).size = 482 := by
   unfold permitEcrecoverMem0
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitDigestMem13_size]; norm_num
   · rw [permitDigestMem13_size]; norm_num
 
 theorem permitEcrecoverMem1_size (I : ExecutionEnv) (domainWord : UInt256) :
     (permitEcrecoverMem1 I domainWord).size = 482 := by
   unfold permitEcrecoverMem1
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitEcrecoverMem0_size]; norm_num
   · rw [permitEcrecoverMem0_size]; norm_num
 
@@ -3339,7 +3203,7 @@ theorem permitEcrecoverMem1_read64 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitEcrecoverMem1 I domainWord).readWithPadding 64 32 =
       UInt256.toByteArray (⟨482⟩ : UInt256) := by
   simpa [permitEcrecoverMem1] using
-    permitWordMem_read_back (permitEcrecoverMem0 I domainWord) 64 (⟨482⟩ : UInt256)
+    writeWord_read_back (permitEcrecoverMem0 I domainWord) 64 (⟨482⟩ : UInt256)
       (by rw [permitEcrecoverMem0_size]; norm_num)
 
 theorem permitEcrecoverMem1_mload64 (I : ExecutionEnv) (domainWord : UInt256) :
@@ -3357,7 +3221,7 @@ theorem permitEcrecoverMem2_size
     (I : ExecutionEnv) (domainWord digestWord : UInt256) :
     (permitEcrecoverMem2 I domainWord digestWord).size = 514 := by
   unfold permitEcrecoverMem2
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitEcrecoverMem1_size]; norm_num
   · rw [permitEcrecoverMem1_size]; norm_num
 
@@ -3365,7 +3229,7 @@ theorem permitEcrecoverMem3_size
     (I : ExecutionEnv) (domainWord digestWord : UInt256) :
     (permitEcrecoverMem3 I domainWord digestWord).size = 546 := by
   unfold permitEcrecoverMem3
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitEcrecoverMem2_size]; norm_num
   · rw [permitEcrecoverMem2_size]; norm_num
 
@@ -3373,7 +3237,7 @@ theorem permitEcrecoverMem4_size
     (I : ExecutionEnv) (domainWord digestWord : UInt256) :
     (permitEcrecoverMem4 I domainWord digestWord).size = 578 := by
   unfold permitEcrecoverMem4
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitEcrecoverMem3_size]; norm_num
   · rw [permitEcrecoverMem3_size]; norm_num
 
@@ -3381,7 +3245,7 @@ theorem permitEcrecoverMem5_size
     (I : ExecutionEnv) (domainWord digestWord : UInt256) :
     (permitEcrecoverMem5 I domainWord digestWord).size = 610 := by
   unfold permitEcrecoverMem5
-  rw [permitWordMem_size]
+  rw [writeWord_size]
   · rw [permitEcrecoverMem4_size]; norm_num
   · rw [permitEcrecoverMem4_size]; norm_num
 
@@ -3393,7 +3257,7 @@ theorem permitEcrecoverMem5_read64
     (permitEcrecoverMem5 I domainWord digestWord).readWithPadding 64 32 =
         (permitEcrecoverMem4 I domainWord digestWord).readWithPadding 64 32 := by
       simpa [permitEcrecoverMem5] using
-        permitWordMem_read64_preserve
+        writeWord_read64_preserved_of_ge96
           (mem := permitEcrecoverMem4 I domainWord digestWord) (off := 578)
           (word := permitSWord I)
           (hsize := by rw [permitEcrecoverMem4_size]; norm_num)
@@ -3401,7 +3265,7 @@ theorem permitEcrecoverMem5_read64
           (hgap := by rw [permitEcrecoverMem4_size]; norm_num)
     _ = (permitEcrecoverMem3 I domainWord digestWord).readWithPadding 64 32 := by
       simpa [permitEcrecoverMem4] using
-        permitWordMem_read64_preserve
+        writeWord_read64_preserved_of_ge96
           (mem := permitEcrecoverMem3 I domainWord digestWord) (off := 546)
           (word := permitRWord I)
           (hsize := by rw [permitEcrecoverMem3_size]; norm_num)
@@ -3409,7 +3273,7 @@ theorem permitEcrecoverMem5_read64
           (hgap := by rw [permitEcrecoverMem3_size]; norm_num)
     _ = (permitEcrecoverMem2 I domainWord digestWord).readWithPadding 64 32 := by
       simpa [permitEcrecoverMem3] using
-        permitWordMem_read64_preserve
+        writeWord_read64_preserved_of_ge96
           (mem := permitEcrecoverMem2 I domainWord digestWord) (off := 514)
           (word := permitVMaskedWord I)
           (hsize := by rw [permitEcrecoverMem2_size]; norm_num)
@@ -3417,7 +3281,7 @@ theorem permitEcrecoverMem5_read64
           (hgap := by rw [permitEcrecoverMem2_size]; norm_num)
     _ = (permitEcrecoverMem1 I domainWord).readWithPadding 64 32 := by
       simpa [permitEcrecoverMem2] using
-        permitWordMem_read64_preserve
+        writeWord_read64_preserved_of_ge96
           (mem := permitEcrecoverMem1 I domainWord) (off := 482)
           (word := digestWord)
           (hsize := by rw [permitEcrecoverMem1_size]; norm_num)
@@ -3425,7 +3289,7 @@ theorem permitEcrecoverMem5_read64
           (hgap := by rw [permitEcrecoverMem1_size]; norm_num)
     _ = UInt256.toByteArray (⟨482⟩ : UInt256) := by
       simpa [permitEcrecoverMem1] using
-        permitWordMem_read_back (permitEcrecoverMem0 I domainWord) 64 (⟨482⟩ : UInt256)
+        writeWord_read_back (permitEcrecoverMem0 I domainWord) 64 (⟨482⟩ : UInt256)
           (by rw [permitEcrecoverMem0_size]; norm_num)
 
 theorem permitEcrecoverMem5_mload64
@@ -3449,28 +3313,28 @@ theorem permitEcrecoverMem5_read482
     (permitEcrecoverMem5 I domainWord digestWord).readWithPadding 482 32 =
         (permitEcrecoverMem4 I domainWord digestWord).readWithPadding 482 32 := by
       simpa [permitEcrecoverMem5] using
-        permitWordMem_read_preserve
+        writeWord_read_preserved_of_disjoint
           (mem := permitEcrecoverMem4 I domainWord digestWord) (off := 578)
           (read := 482) (word := permitSWord I)
           (hgap := by rw [permitEcrecoverMem4_size]; norm_num)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitEcrecoverMem4_size]⟩)
     _ = (permitEcrecoverMem3 I domainWord digestWord).readWithPadding 482 32 := by
       simpa [permitEcrecoverMem4] using
-        permitWordMem_read_preserve
+        writeWord_read_preserved_of_disjoint
           (mem := permitEcrecoverMem3 I domainWord digestWord) (off := 546)
           (read := 482) (word := permitRWord I)
           (hgap := by rw [permitEcrecoverMem3_size]; norm_num)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitEcrecoverMem3_size]⟩)
     _ = (permitEcrecoverMem2 I domainWord digestWord).readWithPadding 482 32 := by
       simpa [permitEcrecoverMem3] using
-        permitWordMem_read_preserve
+        writeWord_read_preserved_of_disjoint
           (mem := permitEcrecoverMem2 I domainWord digestWord) (off := 514)
           (read := 482) (word := permitVMaskedWord I)
           (hgap := by rw [permitEcrecoverMem2_size]; norm_num)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitEcrecoverMem2_size]⟩)
     _ = UInt256.toByteArray digestWord := by
       simpa [permitEcrecoverMem2] using
-        permitWordMem_read_back (permitEcrecoverMem1 I domainWord) 482 digestWord
+        writeWord_read_back (permitEcrecoverMem1 I domainWord) 482 digestWord
           (by rw [permitEcrecoverMem1_size]; norm_num)
 
 theorem permitEcrecoverMem5_read514
@@ -3481,21 +3345,21 @@ theorem permitEcrecoverMem5_read514
     (permitEcrecoverMem5 I domainWord digestWord).readWithPadding 514 32 =
         (permitEcrecoverMem4 I domainWord digestWord).readWithPadding 514 32 := by
       simpa [permitEcrecoverMem5] using
-        permitWordMem_read_preserve
+        writeWord_read_preserved_of_disjoint
           (mem := permitEcrecoverMem4 I domainWord digestWord) (off := 578)
           (read := 514) (word := permitSWord I)
           (hgap := by rw [permitEcrecoverMem4_size]; norm_num)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitEcrecoverMem4_size]⟩)
     _ = (permitEcrecoverMem3 I domainWord digestWord).readWithPadding 514 32 := by
       simpa [permitEcrecoverMem4] using
-        permitWordMem_read_preserve
+        writeWord_read_preserved_of_disjoint
           (mem := permitEcrecoverMem3 I domainWord digestWord) (off := 546)
           (read := 514) (word := permitRWord I)
           (hgap := by rw [permitEcrecoverMem3_size]; norm_num)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitEcrecoverMem3_size]⟩)
     _ = UInt256.toByteArray (permitVMaskedWord I) := by
       simpa [permitEcrecoverMem3] using
-        permitWordMem_read_back (permitEcrecoverMem2 I domainWord digestWord) 514
+        writeWord_read_back (permitEcrecoverMem2 I domainWord digestWord) 514
           (permitVMaskedWord I) (by rw [permitEcrecoverMem2_size]; norm_num)
 
 theorem permitEcrecoverMem5_read546
@@ -3506,14 +3370,14 @@ theorem permitEcrecoverMem5_read546
     (permitEcrecoverMem5 I domainWord digestWord).readWithPadding 546 32 =
         (permitEcrecoverMem4 I domainWord digestWord).readWithPadding 546 32 := by
       simpa [permitEcrecoverMem5] using
-        permitWordMem_read_preserve
+        writeWord_read_preserved_of_disjoint
           (mem := permitEcrecoverMem4 I domainWord digestWord) (off := 578)
           (read := 546) (word := permitSWord I)
           (hgap := by rw [permitEcrecoverMem4_size]; norm_num)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitEcrecoverMem4_size]⟩)
     _ = UInt256.toByteArray (permitRWord I) := by
       simpa [permitEcrecoverMem4] using
-        permitWordMem_read_back (permitEcrecoverMem3 I domainWord digestWord) 546
+        writeWord_read_back (permitEcrecoverMem3 I domainWord digestWord) 546
           (permitRWord I) (by rw [permitEcrecoverMem3_size]; norm_num)
 
 theorem permitEcrecoverMem5_read578
@@ -3521,7 +3385,7 @@ theorem permitEcrecoverMem5_read578
     (permitEcrecoverMem5 I domainWord digestWord).readWithPadding 578 32 =
       UInt256.toByteArray (permitSWord I) := by
   simpa [permitEcrecoverMem5] using
-    permitWordMem_read_back (permitEcrecoverMem4 I domainWord digestWord) 578
+    writeWord_read_back (permitEcrecoverMem4 I domainWord digestWord) 578
       (permitSWord I) (by rw [permitEcrecoverMem4_size]; norm_num)
 
 theorem permitEcrecoverMem5_read482_128 {σ σ₀ A I} {g : Sat256}
@@ -3575,9 +3439,11 @@ end Benchmarks.Dss.Dai
 
 namespace Reasoning.Theory
 
+
 end Reasoning.Theory
 
 namespace Reasoning.Reach
+
 
 end Reasoning.Reach
 
@@ -3843,10 +3709,10 @@ theorem daiPermitX_holderZeroRevert {σ σ₀ A I} {g : Sat256}
     raw push2 ⟨2684⟩ (by native_decide) (by evm_ov)]
   have rd2616 := rd2615.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  let err0 := permitWordMem mem13 450 solcErrorStringSelector
-  let err1 := permitWordMem err0 454 (⟨32⟩ : UInt256)
-  let err2 := permitWordMem err1 486 (⟨21⟩ : UInt256)
-  let err3 := permitWordMem err2 518 permitInvalidAddress0Word
+  let err0 := Reasoning.Theory.writeWord mem13 450 solcErrorStringSelector
+  let err1 := Reasoning.Theory.writeWord err0 454 (⟨32⟩ : UInt256)
+  let err2 := Reasoning.Theory.writeWord err1 486 (⟨21⟩ : UInt256)
+  let err3 := Reasoning.Theory.writeWord err2 518 permitInvalidAddress0Word
   have hmem13_size : mem13.size = 450 := by
     simpa [mem13] using permitDigestMem13_size I domainWord
   have hmem13_read64 :
@@ -3854,28 +3720,28 @@ theorem daiPermitX_holderZeroRevert {σ σ₀ A I} {g : Sat256}
     simpa [mem13] using permitDigestMem13_read64 I domainWord
   have herr0_size : err0.size = 482 := by
     unfold err0
-    rw [permitWordMem_size]
+    rw [writeWord_size]
     · rw [hmem13_size]; native_decide
     · rw [hmem13_size]; native_decide
   have herr1_size : err1.size = 486 := by
     unfold err1
-    rw [permitWordMem_size]
+    rw [writeWord_size]
     · rw [herr0_size]; native_decide
     · rw [herr0_size]; native_decide
   have herr2_size : err2.size = 518 := by
     unfold err2
-    rw [permitWordMem_size]
+    rw [writeWord_size]
     · rw [herr1_size]; native_decide
     · rw [herr1_size]; native_decide
   have herr3_size : err3.size = 550 := by
     unfold err3
-    rw [permitWordMem_size]
+    rw [writeWord_size]
     · rw [herr2_size]; native_decide
     · rw [herr2_size]; native_decide
   have herr0_read64 :
       err0.readWithPadding 64 32 = UInt256.toByteArray (⟨450⟩ : UInt256) := by
     simpa [err0] using
-      permitWordMem_read64_preserve (mem := mem13) (off := 450)
+      writeWord_read64_preserved_of_ge96 (mem := mem13) (off := 450)
         (word := solcErrorStringSelector)
         (hsize := by rw [hmem13_size]; norm_num)
         (hoff := by norm_num)
@@ -3883,7 +3749,7 @@ theorem daiPermitX_holderZeroRevert {σ σ₀ A I} {g : Sat256}
   have herr1_read64 :
       err1.readWithPadding 64 32 = UInt256.toByteArray (⟨450⟩ : UInt256) := by
     simpa [err1] using
-      permitWordMem_read64_preserve (mem := err0) (off := 454)
+      writeWord_read64_preserved_of_ge96 (mem := err0) (off := 454)
         (word := (⟨32⟩ : UInt256))
         (hsize := by rw [herr0_size]; norm_num)
         (hoff := by norm_num)
@@ -3891,7 +3757,7 @@ theorem daiPermitX_holderZeroRevert {σ σ₀ A I} {g : Sat256}
   have herr2_read64 :
       err2.readWithPadding 64 32 = UInt256.toByteArray (⟨450⟩ : UInt256) := by
     simpa [err2] using
-      permitWordMem_read64_preserve (mem := err1) (off := 486)
+      writeWord_read64_preserved_of_ge96 (mem := err1) (off := 486)
         (word := (⟨21⟩ : UInt256))
         (hsize := by rw [herr1_size]; norm_num)
         (hoff := by norm_num)
@@ -3899,7 +3765,7 @@ theorem daiPermitX_holderZeroRevert {σ σ₀ A I} {g : Sat256}
   have herr3_read64 :
       err3.readWithPadding 64 32 = UInt256.toByteArray (⟨450⟩ : UInt256) := by
     simpa [err3] using
-      permitWordMem_read64_preserve (mem := err2) (off := 518)
+      writeWord_read64_preserved_of_ge96 (mem := err2) (off := 518)
         (word := permitInvalidAddress0Word)
         (hsize := by rw [herr2_size]; norm_num)
         (hoff := by norm_num)
@@ -3931,7 +3797,7 @@ theorem daiPermitX_holderZeroRevert {σ σ₀ A I} {g : Sat256}
     raw mstore 3 err0 (UInt256.ofNat 16) (by native_decide)
       mem_cost (by
         rw [show (⟨450⟩ : UInt256).toNat = 450 from by native_decide]
-        simp [err0, permitWordMem, Reasoning.Theory.writeWord])
+        simp [err0, Reasoning.Theory.writeWord, Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov),
     raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
@@ -3941,7 +3807,7 @@ theorem daiPermitX_holderZeroRevert {σ σ₀ A I} {g : Sat256}
       mem_cost (by
         rw [show ((⟨450⟩ : UInt256) + (⟨4⟩ : UInt256)).toNat = 454 from by
           native_decide]
-        simp [err1, permitWordMem, Reasoning.Theory.writeWord])
+        simp [err1, Reasoning.Theory.writeWord, Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov),
     raw push1 ⟨21⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
@@ -3951,7 +3817,7 @@ theorem daiPermitX_holderZeroRevert {σ σ₀ A I} {g : Sat256}
       mem_cost (by
         rw [show ((⟨450⟩ : UInt256) + (⟨36⟩ : UInt256)).toNat = 486 from by
           native_decide]
-        simp [err2, permitWordMem, Reasoning.Theory.writeWord])
+        simp [err2, Reasoning.Theory.writeWord, Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov)]
   have rdErrRaw := rdErrPrefix.pushConst permitInvalidAddress0RawWord
     (width := 21) (op := .PUSH21) (by decide) (by native_decide) (by evm_ov)
@@ -3967,7 +3833,7 @@ theorem daiPermitX_holderZeroRevert {σ σ₀ A I} {g : Sat256}
       mem_cost (by
         rw [show ((⟨450⟩ : UInt256) + (⟨68⟩ : UInt256)).toNat = 518 from by
           native_decide]
-        simp [err3, permitWordMem, Reasoning.Theory.writeWord])
+        simp [err3, Reasoning.Theory.writeWord, Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨450⟩ (UInt256.ofNat 18) (by native_decide)
@@ -4293,7 +4159,7 @@ theorem daiPermitX_nonzeroHolderToStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
     raw mstore 3 mem0 (UInt256.ofNat 16) (by native_decide)
       mem_cost (by
         rw [show (⟨450⟩ : UInt256).toNat = 450 by native_decide]
-        simp [mem0, evm, domainWord, permitEcrecoverMem0, permitWordMem,
+        simp [mem0, evm, domainWord, permitEcrecoverMem0, Reasoning.Theory.writeWord,
           Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov),
     raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
@@ -4303,7 +4169,8 @@ theorem daiPermitX_nonzeroHolderToStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
       mem_cost (by
         rw [show ((⟨32⟩ : UInt256) + ⟨450⟩) = ⟨482⟩ by native_decide]
         rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
-        simp [mem0, mem1, permitEcrecoverMem1, permitWordMem, Reasoning.Theory.writeWord])
+        simp [mem0, mem1, permitEcrecoverMem1, Reasoning.Theory.writeWord,
+          Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw mload 0 ⟨482⟩ (UInt256.ofNat 16) (by native_decide)
@@ -4315,7 +4182,7 @@ theorem daiPermitX_nonzeroHolderToStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
     raw mstore 3 mem2 (UInt256.ofNat 17) (by native_decide)
       mem_cost (by
         rw [show (⟨482⟩ : UInt256).toNat = 482 by native_decide]
-        simp [evm, digestWord, mem1, mem2, permitEcrecoverMem2, permitWordMem,
+        simp [evm, digestWord, mem1, mem2, permitEcrecoverMem2, Reasoning.Theory.writeWord,
           Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov),
     raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
@@ -4329,7 +4196,7 @@ theorem daiPermitX_nonzeroHolderToStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
         rw [permitVMaskedWord_mask I]
         rw [show ((⟨32⟩ : UInt256) + ⟨482⟩) = ⟨514⟩ by native_decide]
         rw [show (⟨514⟩ : UInt256).toNat = 514 by native_decide]
-        simp [mem2, mem3, permitEcrecoverMem2, permitEcrecoverMem3, permitWordMem,
+        simp [mem2, mem3, permitEcrecoverMem2, permitEcrecoverMem3, Reasoning.Theory.writeWord,
           Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov),
     raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
@@ -4340,7 +4207,7 @@ theorem daiPermitX_nonzeroHolderToStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
       mem_cost (by
         rw [show ((⟨32⟩ : UInt256) + (⟨32⟩ + ⟨482⟩)) = ⟨546⟩ by native_decide]
         rw [show (⟨546⟩ : UInt256).toNat = 546 by native_decide]
-        simp [mem3, mem4, permitEcrecoverMem3, permitEcrecoverMem4, permitWordMem,
+        simp [mem3, mem4, permitEcrecoverMem3, permitEcrecoverMem4, Reasoning.Theory.writeWord,
           Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov),
     raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
@@ -4352,7 +4219,7 @@ theorem daiPermitX_nonzeroHolderToStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
         rw [show ((⟨32⟩ : UInt256) + (⟨32⟩ + (⟨32⟩ + ⟨482⟩))) = ⟨578⟩ by
           native_decide]
         rw [show (⟨578⟩ : UInt256).toNat = 578 by native_decide]
-        simp [mem4, mem5, permitEcrecoverMem4, permitEcrecoverMem5, permitWordMem,
+        simp [mem4, mem5, permitEcrecoverMem4, permitEcrecoverMem5, Reasoning.Theory.writeWord,
           Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov)]
   have rd2756 := evm_run rd2731 with [
@@ -4453,7 +4320,7 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
     raw mstore 3 mem0 (UInt256.ofNat 16) (by native_decide)
       mem_cost (by
         rw [show (⟨450⟩ : UInt256).toNat = 450 by native_decide]
-        simp [mem0, evm, domainWord, permitEcrecoverMem0, permitWordMem,
+        simp [mem0, evm, domainWord, permitEcrecoverMem0, Reasoning.Theory.writeWord,
           Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov),
     raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
@@ -4463,7 +4330,8 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
       mem_cost (by
         rw [show ((⟨32⟩ : UInt256) + ⟨450⟩) = ⟨482⟩ by native_decide]
         rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
-        simp [mem0, mem1, permitEcrecoverMem1, permitWordMem, Reasoning.Theory.writeWord])
+        simp [mem0, mem1, permitEcrecoverMem1, Reasoning.Theory.writeWord,
+          Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw mload 0 ⟨482⟩ (UInt256.ofNat 16) (by native_decide)
@@ -4475,7 +4343,7 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
     raw mstore 3 mem2 (UInt256.ofNat 17) (by native_decide)
       mem_cost (by
         rw [show (⟨482⟩ : UInt256).toNat = 482 by native_decide]
-        simp [evm, digestWord, mem1, mem2, permitEcrecoverMem2, permitWordMem,
+        simp [evm, digestWord, mem1, mem2, permitEcrecoverMem2, Reasoning.Theory.writeWord,
           Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov),
     raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
@@ -4489,7 +4357,7 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
         rw [permitVMaskedWord_mask I]
         rw [show ((⟨32⟩ : UInt256) + ⟨482⟩) = ⟨514⟩ by native_decide]
         rw [show (⟨514⟩ : UInt256).toNat = 514 by native_decide]
-        simp [mem2, mem3, permitEcrecoverMem2, permitEcrecoverMem3, permitWordMem,
+        simp [mem2, mem3, permitEcrecoverMem2, permitEcrecoverMem3, Reasoning.Theory.writeWord,
           Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov),
     raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
@@ -4500,7 +4368,7 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
       mem_cost (by
         rw [show ((⟨32⟩ : UInt256) + (⟨32⟩ + ⟨482⟩)) = ⟨546⟩ by native_decide]
         rw [show (⟨546⟩ : UInt256).toNat = 546 by native_decide]
-        simp [mem3, mem4, permitEcrecoverMem3, permitEcrecoverMem4, permitWordMem,
+        simp [mem3, mem4, permitEcrecoverMem3, permitEcrecoverMem4, Reasoning.Theory.writeWord,
           Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov),
     raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
@@ -4512,7 +4380,7 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
         rw [show ((⟨32⟩ : UInt256) + (⟨32⟩ + (⟨32⟩ + ⟨482⟩))) = ⟨578⟩ by
           native_decide]
         rw [show (⟨578⟩ : UInt256).toNat = 578 by native_decide]
-        simp [mem4, mem5, permitEcrecoverMem4, permitEcrecoverMem5, permitWordMem,
+        simp [mem4, mem5, permitEcrecoverMem4, permitEcrecoverMem5, Reasoning.Theory.writeWord,
           Reasoning.Theory.writeWord])
       (by native_decide) (by evm_ov)]
   have rd2756 := evm_run rd2731 with [
@@ -4567,63 +4435,6 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
       native_decide] at rd2758
     simpa [evm, domainWord, digestWord] using rd2758
 
-theorem ecrecover_output_size (σ : AccountMap) (g : UInt256) (A : Substate)
-    (I : ExecutionEnv) :
-    let r := Ξ_ECREC σ g A I
-    r.2.2.2.size = 0 ∨ r.2.2.2.size = 32 := by
-  unfold Ξ_ECREC
-  dsimp
-  split
-  · left
-    rfl
-  · split
-    · left
-      rfl
-    · split
-      · right
-        rw [ByteArray.size_append]
-        rw [ByteArray_zeroes_size]
-        rw [ByteArray.size_extract]
-        rw [keccak_size]
-        native_decide
-      · left
-        rfl
-
-theorem toExecute_ecrecover_precompile (σ : AccountMap) :
-    toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) =
-      ToExecute.Precompiled (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) := by
-  unfold toExecute
-  have hmem : AccountAddress.ofUInt256 (⟨1⟩ : UInt256) ∈ π := by
-    unfold π
-    native_decide
-  rw [if_pos hmem]
-
-theorem permitStaticcallTheta_ecrecover_output_size
-    {blobVersionedHashes blocks σ σ₀ A_in r s g p v v' d e H w σ' g' A' z o}
-    (hΘ : (σ', g', A', z, o) =
-      Θ σ σ₀ A_in r s
-        (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
-          g p v v' d e H blobVersionedHashes blocks w) :
-    o.size = 0 ∨ o.size = 32 := by
-  have hpre : toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) =
-      ToExecute.Precompiled (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) := by
-    exact toExecute_ecrecover_precompile σ
-  have hone : (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) = 1 := by
-    native_decide
-  have hout := congrArg (fun x => x.2.2.2.2.size) hΘ
-  have hout' :
-      o.size =
-        (Θ σ σ₀ A_in r s
-          (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
-          g p v v' d e H blobVersionedHashes blocks w).2.2.2.2.size := by
-    simpa using hout
-  rw [hout']
-  unfold Θ
-  rw [hpre, hone]
-  dsimp
-  exact ecrecover_output_size _ g A_in _
 
 theorem daiPermitX_nonzeroHolderEcrecoverFailureAfter2758
     {σ σ₀ A I} {g : Sat256}
@@ -4677,42 +4488,42 @@ theorem permitEcrecoverMem5_read450_zero
     (permitEcrecoverMem5 I domainWord digestWord).readWithPadding 450 32 =
         (permitEcrecoverMem4 I domainWord digestWord).readWithPadding 450 32 := by
       simpa [permitEcrecoverMem5] using
-        permitWordMem_read_preserve
+        writeWord_read_preserved_of_disjoint
           (mem := permitEcrecoverMem4 I domainWord digestWord) (off := 578) (read := 450)
           (word := permitSWord I)
           (hgap := by rw [permitEcrecoverMem4_size]; norm_num)
           (hdisj := Or.inl ⟨by norm_num, by rw [permitEcrecoverMem4_size]; norm_num⟩)
     _ = (permitEcrecoverMem3 I domainWord digestWord).readWithPadding 450 32 := by
       simpa [permitEcrecoverMem4] using
-        permitWordMem_read_preserve
+        writeWord_read_preserved_of_disjoint
           (mem := permitEcrecoverMem3 I domainWord digestWord) (off := 546) (read := 450)
           (word := permitRWord I)
           (hgap := by rw [permitEcrecoverMem3_size]; norm_num)
           (hdisj := Or.inl ⟨by norm_num, by rw [permitEcrecoverMem3_size]; norm_num⟩)
     _ = (permitEcrecoverMem2 I domainWord digestWord).readWithPadding 450 32 := by
       simpa [permitEcrecoverMem3] using
-        permitWordMem_read_preserve
+        writeWord_read_preserved_of_disjoint
           (mem := permitEcrecoverMem2 I domainWord digestWord) (off := 514) (read := 450)
           (word := permitVMaskedWord I)
           (hgap := by rw [permitEcrecoverMem2_size]; norm_num)
           (hdisj := Or.inl ⟨by norm_num, by rw [permitEcrecoverMem2_size]; norm_num⟩)
     _ = (permitEcrecoverMem1 I domainWord).readWithPadding 450 32 := by
       simpa [permitEcrecoverMem2] using
-        permitWordMem_read_preserve
+        writeWord_read_preserved_of_disjoint
           (mem := permitEcrecoverMem1 I domainWord) (off := 482) (read := 450)
           (word := digestWord)
           (hgap := by rw [permitEcrecoverMem1_size]; norm_num)
           (hdisj := Or.inl ⟨by norm_num, by rw [permitEcrecoverMem1_size]⟩)
     _ = (permitEcrecoverMem0 I domainWord).readWithPadding 450 32 := by
       simpa [permitEcrecoverMem1] using
-        permitWordMem_read_preserve
+        writeWord_read_preserved_of_disjoint
           (mem := permitEcrecoverMem0 I domainWord) (off := 64) (read := 450)
           (word := (⟨482⟩ : UInt256))
           (hgap := by rw [permitEcrecoverMem0_size]; norm_num)
           (hdisj := Or.inr ⟨by norm_num, by rw [permitEcrecoverMem0_size]⟩)
     _ = UInt256.toByteArray (⟨0⟩ : UInt256) := by
       simpa [permitEcrecoverMem0] using
-        permitWordMem_read_back (permitDigestMem13 I domainWord) 450 (⟨0⟩ : UInt256)
+        writeWord_read_back (permitDigestMem13 I domainWord) 450 (⟨0⟩ : UInt256)
           (by rw [permitDigestMem13_size]; norm_num)
 
 theorem permitEcrecoverMem5_mload450_zero
@@ -4868,18 +4679,18 @@ theorem permitEcrecoverReturnMem_mload450 {mem o : ByteArray}
 theorem permitTwoWordHashMem_mload64 {mem : ByteArray} (key slot : UInt256)
     (hmem : mem.size = 610)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256)) :
-    permitMloadWord (permitTwoWordHashMem mem key slot) permitEcrecoverStaticcallAw ⟨64⟩ =
+    permitMloadWord (twoWordHashMemAt mem key slot) permitEcrecoverStaticcallAw ⟨64⟩ =
       (⟨482⟩ : UInt256) := by
   unfold permitMloadWord
-  have hsize : (permitTwoWordHashMem mem key slot).size = 610 := by
-    rw [permitTwoWordHashMem_size key slot (by rw [hmem]; norm_num), hmem]
+  have hsize : (twoWordHashMemAt mem key slot).size = 610 := by
+    rw [twoWordHashMemAt_size key slot (by rw [hmem]; norm_num), hmem]
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256))
     (v := (⟨482⟩ : UInt256))
     (by rw [hsize]; native_decide)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
-      rw [permitTwoWordHashMem_read64 key slot (by rw [hmem]; norm_num)]
+      rw [twoWordHashMemAt_read64 key slot (by rw [hmem]; norm_num)]
       exact hread64)
 
 theorem permitApprovalLogMem_mload64 {mem : ByteArray} (I : ExecutionEnv)
@@ -4897,7 +4708,7 @@ theorem permitApprovalLogMem_mload64 {mem : ByteArray} (I : ExecutionEnv)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
       unfold permitApprovalLogMem
-      rw [permitWordMem_read_preserve
+      rw [writeWord_read_preserved_of_disjoint
         (mem := mem) (off := 482) (read := 64) (word := permitWadWord I)
         (hgap := by rw [hmem]; norm_num)
         (hdisj := Or.inl ⟨by norm_num, by rw [hmem]; norm_num⟩)]
@@ -5441,11 +5252,10 @@ theorem daiPermitX_nonzeroHolderBadRecoveredAfter2808
     (by rfl)
     (by simp only [List.length_cons, List.length_nil]; norm_num)
 
-theorem daiPermitX_nonceBranchAfter2957
+theorem daiPermitX_nonceBranchAfter2957Split
     {σ σ₀ A I} {g : Sat256}
     {σ' : AccountMap}
     {o memRet : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
     (rd2957 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
@@ -5454,14 +5264,16 @@ theorem daiPermitX_nonceBranchAfter2957
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       memRet permitEcrecoverStaticcallAw o σ' k C) :
-    ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2996⟩
-      [⟨3061⟩, UInt256.eq (permitNonceWord I) (permitEvmNonceWord σ' I),
-        permitDigestWord (initState σ σ₀ g A I) I,
-        permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
-        permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
-        permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
-      (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
-      (permitEvmAfterNonceAccountMap σ' I) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2996⟩
+        [⟨3061⟩, UInt256.eq (permitNonceWord I) (permitEvmNonceWord σ' I),
+          permitDigestWord (initState σ σ₀ g A I) I,
+          permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
+          permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
+          permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
+        (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
+        (permitEvmAfterNonceAccountMap σ' I) k' C') ∨
+      (I.perm = false ∧ RDstatic daiBytecode g (initState σ σ₀ g A I)) := by
   have hmask :
       UInt256.land (permitHolderMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -5474,7 +5286,7 @@ theorem daiPermitX_nonceBranchAfter2957
           (KEC ((permitNonceHashMem memRet I).readWithPadding 0 64))) =
         permitNonceStorageSlot I := by
     simpa [permitNonceHashMem, permitNonceStorageSlot_eq_mapSlot_masked I] using
-      permitTwoWordHashMem_slot (mem := memRet) (permitHolderMaskedWord I)
+      twoWordHashMemAt_slot (mem := memRet) (permitHolderMaskedWord I)
         (⟨4⟩ : UInt256) (by rw [hmem]; norm_num)
   have rd2968 := evm_run rd2957 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -5491,7 +5303,7 @@ theorem daiPermitX_nonceBranchAfter2957
     raw swap1 (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov)]
   have rd2972 := rd2971.mstore 0
-    (permitWordMem memRet 0 (permitHolderMaskedWord I)) permitEcrecoverStaticcallAw
+    (Reasoning.Theory.writeWord memRet 0 (permitHolderMaskedWord I)) permitEcrecoverStaticcallAw
     (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rd2977 := evm_run rd2972 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
@@ -5517,7 +5329,14 @@ theorem daiPermitX_nonceBranchAfter2957
     raw add (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2991raw⟩ := rd2990.sstore hperm (by native_decide)
+  have hstoreDec : decode daiBytecode ⟨2990⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2990.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd2991raw⟩ := rd2990.sstore hperm hstoreDec
     (by simp only [List.length_cons, List.length_nil]; norm_num)
   have rd2991 := by
     simpa [permitEvmAfterNonceAccountMap] using rd2991raw
@@ -5526,6 +5345,29 @@ theorem daiPermitX_nonceBranchAfter2957
     raw eq (by native_decide) (by evm_ov),
     raw push2 ⟨3061⟩ (by native_decide) (by evm_ov)]
   exact ⟨_, _, rd2996⟩
+
+theorem daiPermitX_nonceBranchAfter2957
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap}
+    {o memRet : ByteArray} {k C : ℕ}
+    (hperm : I.perm = true)
+    (hmem : memRet.size = 610)
+    (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
+    (rd2957 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
+        permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
+        permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
+        permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
+      memRet permitEcrecoverStaticcallAw o σ' k C) :
+    ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2996⟩
+      [⟨3061⟩, UInt256.eq (permitNonceWord I) (permitEvmNonceWord σ' I),
+        permitDigestWord (initState σ σ₀ g A I) I,
+        permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
+        permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
+        permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
+      (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
+      (permitEvmAfterNonceAccountMap σ' I) k' C' :=
+  permSplit_true hperm (daiPermitX_nonceBranchAfter2957Split hmem hread64 rd2957)
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_nonceMismatchAfter2957
@@ -5748,30 +5590,30 @@ theorem daiPermitX_successStorageAfter3079
   let memAllowance := permitAllowanceHashMem memNonce I
   have hnonceSize : memNonce.size = 610 := by
     simpa [memNonce, permitNonceHashMem] using
-      (permitTwoWordHashMem_size (mem := memRet) (permitHolderMaskedWord I)
+      (twoWordHashMemAt_size (mem := memRet) (permitHolderMaskedWord I)
         (⟨4⟩ : UInt256) (by rw [hmem]; norm_num)).trans hmem
   have hnonceRead64 :
       memNonce.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256) := by
     simpa [memNonce, permitNonceHashMem] using
-      (permitTwoWordHashMem_read64 (mem := memRet) (permitHolderMaskedWord I)
+      (twoWordHashMemAt_read64 (mem := memRet) (permitHolderMaskedWord I)
         (⟨4⟩ : UInt256) (by rw [hmem]; norm_num)).trans hread64
   have hownerSize : memOwner.size = 610 := by
     simpa [memOwner, permitAllowanceOwnerHashMem] using
-      (permitTwoWordHashMem_size (mem := memNonce) (permitHolderMaskedWord I)
+      (twoWordHashMemAt_size (mem := memNonce) (permitHolderMaskedWord I)
         (⟨3⟩ : UInt256) (by rw [hnonceSize]; norm_num)).trans hnonceSize
   have hownerRead64 :
       memOwner.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256) := by
     simpa [memOwner, permitAllowanceOwnerHashMem] using
-      (permitTwoWordHashMem_read64 (mem := memNonce) (permitHolderMaskedWord I)
+      (twoWordHashMemAt_read64 (mem := memNonce) (permitHolderMaskedWord I)
         (⟨3⟩ : UInt256) (by rw [hnonceSize]; norm_num)).trans hnonceRead64
   have hallowSize : memAllowance.size = 610 := by
     simpa [memAllowance, permitAllowanceHashMem, memOwner] using
-      (permitTwoWordHashMem_size (mem := memOwner) (permitSpenderMaskedWord I)
+      (twoWordHashMemAt_size (mem := memOwner) (permitSpenderMaskedWord I)
         (mapSlot (permitHolderMaskedWord I) ⟨3⟩) (by rw [hownerSize]; norm_num)).trans hownerSize
   have hallowRead64 :
       memAllowance.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256) := by
     simpa [memAllowance, permitAllowanceHashMem, memOwner] using
-      (permitTwoWordHashMem_read64 (mem := memOwner) (permitSpenderMaskedWord I)
+      (twoWordHashMemAt_read64 (mem := memOwner) (permitSpenderMaskedWord I)
         (mapSlot (permitHolderMaskedWord I) ⟨3⟩)
         (by rw [hownerSize]; norm_num)).trans hownerRead64
   have hinnerSlot :
@@ -5779,7 +5621,7 @@ theorem daiPermitX_successStorageAfter3079
           (KEC ((memOwner).readWithPadding 0 64))) =
         mapSlot (permitHolderMaskedWord I) ⟨3⟩ := by
     simpa [memOwner, permitAllowanceOwnerHashMem] using
-      permitTwoWordHashMem_slot (mem := memNonce) (permitHolderMaskedWord I)
+      twoWordHashMemAt_slot (mem := memNonce) (permitHolderMaskedWord I)
         (⟨3⟩ : UInt256) (by rw [hnonceSize]; norm_num)
   have houterSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -5787,7 +5629,7 @@ theorem daiPermitX_successStorageAfter3079
         permitAllowanceStorageSlot I := by
     simpa [memAllowance, permitAllowanceHashMem, memOwner,
       permitAllowanceStorageSlot_eq_mapSlot_masked I] using
-      permitTwoWordHashMem_slot (mem := memOwner) (permitSpenderMaskedWord I)
+      twoWordHashMemAt_slot (mem := memOwner) (permitSpenderMaskedWord I)
         (mapSlot (permitHolderMaskedWord I) ⟨3⟩) (by rw [hownerSize]; norm_num)
   have hmloadAllow64 :
       permitMloadWord memAllowance permitEcrecoverStaticcallAw ⟨64⟩ =
@@ -5824,7 +5666,7 @@ theorem daiPermitX_successStorageAfter3079
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov)]
-  have rd3096 := rd3095.mstore 0 (permitWordMem memNonce 0 (permitHolderMaskedWord I))
+  have rd3096 := rd3095.mstore 0 (Reasoning.Theory.writeWord memNonce 0 (permitHolderMaskedWord I))
     permitEcrecoverStaticcallAw (by native_decide) mem_cost
     (by rfl) (by native_decide) (by evm_ov)
   have rd3102 := evm_run rd3096 with [
@@ -5849,7 +5691,7 @@ theorem daiPermitX_successStorageAfter3079
   have rd3113 := evm_run rd3111 with [
     raw dup1 (by native_decide) (by evm_ov),
     raw dup5 (by native_decide) (by evm_ov)]
-  have rd3114 := rd3113.mstore 0 (permitWordMem memOwner 0 (permitSpenderMaskedWord I))
+  have rd3114 := rd3113.mstore 0 (Reasoning.Theory.writeWord memOwner 0 (permitSpenderMaskedWord I))
     permitEcrecoverStaticcallAw (by native_decide) mem_cost
     (by rfl) (by native_decide) (by evm_ov)
   have rd3116 := evm_run rd3114 with [
@@ -5895,30 +5737,30 @@ theorem daiPermitX_successTailAfter3079
   let memAllowance := permitAllowanceHashMem memNonce I
   have hnonceSize : memNonce.size = 610 := by
     simpa [memNonce, permitNonceHashMem] using
-      (permitTwoWordHashMem_size (mem := memRet) (permitHolderMaskedWord I)
+      (twoWordHashMemAt_size (mem := memRet) (permitHolderMaskedWord I)
         (⟨4⟩ : UInt256) (by rw [hmem]; norm_num)).trans hmem
   have hnonceRead64 :
       memNonce.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256) := by
     simpa [memNonce, permitNonceHashMem] using
-      (permitTwoWordHashMem_read64 (mem := memRet) (permitHolderMaskedWord I)
+      (twoWordHashMemAt_read64 (mem := memRet) (permitHolderMaskedWord I)
         (⟨4⟩ : UInt256) (by rw [hmem]; norm_num)).trans hread64
   have hownerSize : memOwner.size = 610 := by
     simpa [memOwner, permitAllowanceOwnerHashMem] using
-      (permitTwoWordHashMem_size (mem := memNonce) (permitHolderMaskedWord I)
+      (twoWordHashMemAt_size (mem := memNonce) (permitHolderMaskedWord I)
         (⟨3⟩ : UInt256) (by rw [hnonceSize]; norm_num)).trans hnonceSize
   have hownerRead64 :
       memOwner.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256) := by
     simpa [memOwner, permitAllowanceOwnerHashMem] using
-      (permitTwoWordHashMem_read64 (mem := memNonce) (permitHolderMaskedWord I)
+      (twoWordHashMemAt_read64 (mem := memNonce) (permitHolderMaskedWord I)
         (⟨3⟩ : UInt256) (by rw [hnonceSize]; norm_num)).trans hnonceRead64
   have hallowSize : memAllowance.size = 610 := by
     simpa [memAllowance, permitAllowanceHashMem, memOwner] using
-      (permitTwoWordHashMem_size (mem := memOwner) (permitSpenderMaskedWord I)
+      (twoWordHashMemAt_size (mem := memOwner) (permitSpenderMaskedWord I)
         (mapSlot (permitHolderMaskedWord I) ⟨3⟩) (by rw [hownerSize]; norm_num)).trans hownerSize
   have hallowRead64 :
       memAllowance.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256) := by
     simpa [memAllowance, permitAllowanceHashMem, memOwner] using
-      (permitTwoWordHashMem_read64 (mem := memOwner) (permitSpenderMaskedWord I)
+      (twoWordHashMemAt_read64 (mem := memOwner) (permitSpenderMaskedWord I)
         (mapSlot (permitHolderMaskedWord I) ⟨3⟩)
         (by rw [hownerSize]; norm_num)).trans hownerRead64
   obtain ⟨k', C', rd3124⟩ :=
@@ -6125,7 +5967,7 @@ theorem permitStaticcallTheta_callViaEVM {σ σ₀ A I} {g : Sat256}
 /-- `permit(address,address,uint256,uint256,bool,uint8,bytes32,bytes32)` body refines its Solm transition. -/
 theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 11)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -6232,7 +6074,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
             daiPermitX_nonzeroHolderEcrecoverSuccessToRecoveredBranchAfter2758
               (g := Sat256.ofUInt256 g) hrd2758 hoSize
           have hoSzAlt : o.size = 0 ∨ o.size = 32 :=
-            permitStaticcallTheta_ecrecover_output_size hΘ
+            staticcallTheta_ecrecover_output_size hΘ
           by_cases ho32 : 32 ≤ o.size
           · let recoveredWord := UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))
             let recovered := AccountAddress.ofNat (fromByteArrayBigEndian (o.extract 0 32))
@@ -6240,7 +6082,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
                 ABI.decodeReturnValueWithMode? config.abiDecodeMode addr o =
                   some (.address recovered) := by
               simpa [config, recovered] using
-                decodeReturnValueWithMode_legacy_addr_ok (returndata := o) ho32
+                decodeReturnValue_legacyAddress_ok (returndata := o) ho32
             have hmload450 :
                 permitMloadWord memRet permitEcrecoverStaticcallAw ⟨450⟩ =
                   recoveredWord := by
@@ -6294,6 +6136,18 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
                 obtain ⟨k2957, C2957, rd2957⟩ :=
                   daiPermitX_nonzeroHolderExpiryOkAfter2874
                     (g := Sat256.ofUInt256 g) rd2874 hexpiryOkEvm
+                by_cases hperm : I.perm = true
+                swap
+                · have hstatic : I.perm = false := by simpa using hperm
+                  have hbody : ExecTransitionBody config contract evmSolm (permitStore I)
+                      permitTransition.body .staticViolation :=
+                    daiPermitBodyStatic evmSolm evmPostSolm I o recovered hsz260
+                      (by simpa [evmSolm, initState] using hwv) hz hcallSucceeded hdecRet
+                      heqRecovered hexpiryOk
+                      (by simpa [evmPostSolm, evmSolm, initState] using hstatic)
+                  exact (permSplit_false hstatic (daiPermitX_nonceBranchAfter2957Split
+                    (g := Sat256.ofUInt256 g) hmemRet hread64 rd2957))
+                    |>.reEquivStaticHalt hcode hdispatch hdecode hbody
                 by_cases hnonce : permitNonceWord I = permitEvmNonceWord σ' I
                 · have hnonceSolm :
                     permitNonceWord I =
@@ -6426,7 +6280,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
             have hdecNone :
                 ABI.decodeReturnValueWithMode? config.abiDecodeMode addr o = none := by
               simpa [config] using
-                decodeReturnValueWithMode_legacy_addr_none_short (returndata := o) hoShort
+                decodeReturnValue_legacyAddress_none_short (returndata := o) hoShort
             have ho0 : o.size = 0 := by
               rcases hoSzAlt with hzero | hthirtyTwo
               · exact hzero

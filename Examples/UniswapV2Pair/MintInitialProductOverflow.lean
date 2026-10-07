@@ -179,7 +179,7 @@ theorem uniswapMintInitialProductOverflowFromAfterFeeCase
     (hamount0Get : nextLocals.get? "amount0" = some (uniswapUint256Value amount0))
     (hamount1Get : nextLocals.get? "amount1" = some (uniswapUint256Value amount1))
     (htotalSource : mintFunctionTotalSupplyWord evmAfter = ⟨0⟩)
-    (htotalRuntimeZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
+    (htotalRuntimeZero : solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩)
     (hover : UInt256.size ≤ amount0.toNat * amount1.toNat)
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
@@ -341,7 +341,7 @@ theorem uniswapMintInitialFeeOffKLastZeroProductOverflowFromFactoryCase
     (hzFeeTrue : zFee = true)
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hamount0Eq :
       mintAmount0Word
           (uniswapLockEnteredState
@@ -357,7 +357,7 @@ theorem uniswapMintInitialFeeOffKLastZeroProductOverflowFromFactoryCase
           solcAddrMask =
         ⟨0⟩)
     (hkLastZero : mintFeeKLastSlotWord σFee I = ⟨0⟩)
-    (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
+    (htotalZero : solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩)
     (hover : UInt256.size ≤ amount0.toNat * amount1.toNat) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -519,7 +519,7 @@ theorem uniswapMintInitialFeeOnKLastZeroProductOverflowFromFactoryCase
     (hzFeeTrue : zFee = true)
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hamount0Eq :
       mintAmount0Word
           (uniswapLockEnteredState
@@ -535,7 +535,7 @@ theorem uniswapMintInitialFeeOnKLastZeroProductOverflowFromFactoryCase
           solcAddrMask ≠
         ⟨0⟩)
     (hkLastZero : mintFeeKLastSlotWord σFee I = ⟨0⟩)
-    (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
+    (htotalZero : solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩)
     (hover : UInt256.size ≤ amount0.toNat * amount1.toNat) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -716,7 +716,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroProductOverflowFromFactoryCase
         ⟨0⟩)
     (hkLastNonzero : mintFeeKLastSlotWord σFee I ≠ ⟨0⟩)
     (htotalZero :
-      uniswapSlotWord ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I = ⟨0⟩)
+      solcSlotWordAt ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I = ⟨0⟩)
     (hover : UInt256.size ≤ amount0.toNat * amount1.toNat) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -759,7 +759,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroProductOverflowFromFactoryCase
   have henvCleared : evmAfterFee.executionEnv = I := by
     simp [evmAfterFee, mintFeeKLastClearedState, henvFeeI, storageStore_executionEnv]
   have htotalEqCleared :
-      mintFunctionTotalSupplyWord evmAfterFee = uniswapSlotWord ⟨0⟩ σCleared I := by
+      mintFunctionTotalSupplyWord evmAfterFee = solcSlotWordAt ⟨0⟩ σCleared I := by
     simpa [σCleared] using
       mintFunctionTotalSupplyWord_eq_slot hPostCleared henvCleared
   have htotalSource : mintFunctionTotalSupplyWord evmAfterFee = ⟨0⟩ := by
@@ -899,7 +899,7 @@ theorem uniswapMintInitialProductOverflowFromFactoryCases
     (hzFeeTrue : zFee = true)
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hamount0Eq :
       mintAmount0Word
           (uniswapLockEnteredState
@@ -915,19 +915,19 @@ theorem uniswapMintInitialProductOverflowFromFactoryCases
             solcAddrMask =
           ⟨0⟩ ∧
         mintFeeKLastSlotWord σFee I = ⟨0⟩ ∧
-        uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩ ∧
+        solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩ ∧
         UInt256.size ≤ amount0.toNat * amount1.toNat) ∨
       (UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)))
             solcAddrMask ≠
           ⟨0⟩ ∧
         mintFeeKLastSlotWord σFee I = ⟨0⟩ ∧
-        uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩ ∧
+        solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩ ∧
         UInt256.size ≤ amount0.toNat * amount1.toNat) ∨
       (UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)))
             solcAddrMask =
           ⟨0⟩ ∧
         mintFeeKLastSlotWord σFee I ≠ ⟨0⟩ ∧
-        uniswapSlotWord ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I =
+        solcSlotWordAt ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I =
           ⟨0⟩ ∧
         UInt256.size ≤ amount0.toNat * amount1.toNat)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

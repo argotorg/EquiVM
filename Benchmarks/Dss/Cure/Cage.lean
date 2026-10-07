@@ -1,3 +1,5 @@
+import Reasoning.SolmArithmetic
+import Reasoning.SolcRoutines
 import Benchmarks.Dss.Cure.Rely
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -139,28 +141,6 @@ theorem evalExpr_le_uint256_true {evm : EVM.State} {locals : Store}
   simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?]
   exact_mod_cast hle
 
-abbrev uintBinaryLocals (x y : UInt256) : Store :=
-  (((∅ : Store).insert "y" (.int (Int.ofNat y.toNat))).insert "x"
-    (.int (Int.ofNat x.toNat)))
-
-abbrev uintBinaryLocalsZ (x y z : UInt256) : Store :=
-  (uintBinaryLocals x y).insert "z" (.int (Int.ofNat z.toNat))
-
-theorem uintBinaryLocals_get_x (x y : UInt256) :
-    (uintBinaryLocals x y).get? "x" = some (.int (Int.ofNat x.toNat)) := by
-  rw [uintBinaryLocals, store_get_self]
-
-theorem uintBinaryLocals_get_y (x y : UInt256) :
-    (uintBinaryLocals x y).get? "y" = some (.int (Int.ofNat y.toNat)) := by
-  rw [uintBinaryLocals, store_get_ne _ _ (by decide), store_get_self]
-
-theorem uintBinaryLocalsZ_get_x (x y z : UInt256) :
-    (uintBinaryLocalsZ x y z).get? "x" = some (.int (Int.ofNat x.toNat)) := by
-  rw [uintBinaryLocalsZ, store_get_ne _ _ (by decide), uintBinaryLocals_get_x]
-
-theorem uintBinaryLocalsZ_get_z (x y z : UInt256) :
-    (uintBinaryLocalsZ x y z).get? "z" = some (.int (Int.ofNat z.toNat)) := by
-  rw [uintBinaryLocalsZ, store_get_self]
 
 theorem execAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
     (hsum : sum = x + y) (hfit : x.toNat + y.toNat < UInt256.size) :
@@ -334,29 +314,6 @@ theorem cureReachCageBody {σ σ₀ A I} {g : Sat256}
     (fun j hj => by omega)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-@[reducible] def solcNoArgsExternalEntryWf
-    (code : ByteArray) (pc ret routine : UInt256) : Prop :=
-  let p1 := pc + ⟨1⟩
-  let p4 := p1 + UInt256.ofNat 3
-  let p7 := p4 + UInt256.ofNat 3
-  decode code pc = some (.JUMPDEST, .none)
-  ∧ decode code p1 = some (.Push .PUSH2, some (ret, 2))
-  ∧ decode code p4 = some (.Push .PUSH2, some (routine, 2))
-  ∧ decode code p7 = some (.JUMP, .none)
-
-theorem RD.solcNoArgsExternalEntry {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc ret routine sel : UInt256}
-    {mem rdata : ByteArray} {aw : UInt256}
-    {acc : AccountMap}
-    (h : RD code ee g s0 pc [sel] mem aw rdata acc k C)
-    (hwf : solcNoArgsExternalEntryWf code pc ret routine)
-    (hroutine : (D_J code 0).contains routine = true) :
-    ∃ k' C', RD code ee g s0 routine [ret, sel] mem aw rdata acc k' C' := by
-  rcases hwf with ⟨hd0, hd1, hd4, hd7⟩
-  have rd1 := h.jumpdest hd0 (by evm_ov)
-  have rd4 := rd1.push2 ret hd1 (by evm_ov)
-  have rd7 := rd4.push2 routine hd4 (by evm_ov)
-  exact ⟨_, _, rd7.jump hd7 hroutine (by evm_ov)⟩
 
 theorem assign_cageLiveStorage (evm : EVM.State) {locals : Store} (value : UInt256)
     (hbase : locals.get? "live" = none) :
@@ -373,29 +330,30 @@ theorem assign_cageLiveStorage (evm : EVM.State) {locals : Store} (value : UInt2
   have hstore :
       storageLocStore evm (wordLoc ⟨1⟩) (.int (Int.ofNat value.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨1⟩ value
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨1⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨1⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, cureLiveEvaledRef])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, cureLiveEvaledRef])
     (hstore := hstore)
 
-theorem cureCageSourceLiveStorePrefix {σ σ₀ A I} {g : UInt256}
+theorem cureCageSourceLiveStorePrefixSplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩) :
+    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩) :
     let locals : Store := ∅
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨1⟩ ⟨0⟩
-    ExecBlock config { contract := contract, locals := locals } evm0
+    (ExecBlock config { contract := contract, locals := locals } evm0
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
         .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ::
         .require (.binary .eq (.storage liveRef) (.intLit 1)) ::
         [ .assign .storage liveRef (.intLit 0) ])
-      (.ok { contract := contract, locals := locals } evmLive) := by
+      (.ok { contract := contract, locals := locals } evmLive)) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 locals cageTransition.body .staticViolation) := by
   intro locals evm0 evmLive
   have hguardAuth := cureAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -411,18 +369,46 @@ theorem cureCageSourceLiveStorePrefix {σ σ₀ A I} {g : UInt256}
           .ok ({ contract := contract, locals := locals }, evmLive) := by
     simpa [evmLive] using
       assign_cageLiveStorage evm0 (locals := locals) (⟨0⟩ : UInt256) (by simp [locals])
-  refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-  · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassignLive)
-    ExecBlock.nil
+  have hprefix {rest : List Stmt} {result : ExecResult}
+      (hrest : ExecBlock config { contract := contract, locals := locals } evm0 rest result) :
+      ExecBlock config { contract := contract, locals := locals } evm0
+        (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
+          .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ::
+          .require (.binary .eq (.storage liveRef) (.intLit 1)) :: rest) result := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
+    exact hrest
+  have hzero : evalExpr? config { contract := contract, locals := locals } evm0
+      (.intLit 0) = .ok (.int 0) := by simp [evalExpr?, pure]
+  constructor
+  · exact hprefix (ExecBlock.consNormal (ExecStmt.assign hzero hassignLive) ExecBlock.nil)
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic (hprefix
+      (ExecBlock.consStatic (ExecStmt.assignStatic hzero hassignLive
+        (by simpa [evm0, initState] using hperm))))
+
+theorem cureCageSourceLiveStorePrefix {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩) :
+    let locals : Store := ∅
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨1⟩ ⟨0⟩
+    ExecBlock config { contract := contract, locals := locals } evm0
+      (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
+        .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ::
+        .require (.binary .eq (.storage liveRef) (.intLit 1)) ::
+        [ .assign .storage liveRef (.intLit 0) ])
+      (.ok { contract := contract, locals := locals } evmLive) :=
+  (cureCageSourceLiveStorePrefixSplit hwv hauth hlive).1
 
 abbrev cageTimestampWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.header.timestamp
 
 abbrev cageWaitWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord ⟨3⟩ σ I
+  solcSlotWordAt ⟨3⟩ σ I
 
 abbrev cageWhenWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   cageTimestampWord I + cageWaitWord σ I
@@ -440,10 +426,10 @@ theorem evalExpr_cageWaitAfterLiveStore {σ σ₀ A I} {g : Sat256}
     evalExpr? config { contract := contract, locals := locals } evmLive (.storage waitRef) =
       .ok (.int (Int.ofNat (cageWaitWord σ I).toNat)) := by
   intro evm0 evmLive
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (er := ({ base := "wait", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨3⟩)]
-  · rw [cureStorageLocLoad_uint256]
+  · erw [storageLocLoad_uint256]
     have hload :
         Solm.EVM.storageLoad evmLive evmLive.executionEnv.codeOwner ⟨3⟩ =
           Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨3⟩ := by
@@ -451,13 +437,13 @@ theorem evalExpr_cageWaitAfterLiveStore {σ σ₀ A I} {g : Sat256}
         storageLoad_storageStore_ne evm0 I.codeOwner (readSlot := ⟨3⟩)
           (writeSlot := ⟨1⟩) (val := ⟨0⟩) (by native_decide)
     rw [hload]
-    simp [cageWaitWord, cureSlotWord, solcSlotWord, evm0, initState, Solm.EVM.storageLoad,
+    simp [cageWaitWord, solcSlotWordAt, solcSlotWord, evm0, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage]
   · exact hbase
   · simp [waitRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw]
 
 theorem assign_cageWhenStorage (evm : EVM.State) {locals : Store} (value : UInt256)
     (hbase : locals.get? "when" = none) :
@@ -473,20 +459,19 @@ theorem assign_cageWhenStorage (evm : EVM.State) {locals : Store} (value : UInt2
   have hstore :
       storageLocStore evm (wordLoc ⟨4⟩) (.int (Int.ofNat value.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨4⟩ value
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨4⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨4⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem cureCageSourceBodyOk {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
     (hfit : (cageTimestampWord I).toNat + (cageWaitWord σ I).toNat < UInt256.size) :
     let locals : Store := ∅
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -577,8 +562,8 @@ theorem cureCageSourceBodyOk {σ σ₀ A I} {g : UInt256}
 
 theorem cureCageSourceBodyReverts_add {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
     (hover : UInt256.size ≤ (cageTimestampWord I).toNat + (cageWaitWord σ I).toNat) :
     let locals : Store := ∅
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -652,37 +637,46 @@ theorem cureCageSourceBodyReverts_add {σ σ₀ A I} {g : UInt256}
   let p5 := p3 + UInt256.ofNat 2
   p5 + ⟨1⟩
 
-theorem RD.cureCageLiveStore {code : ByteArray} {g : Sat256} {s0 : State}
+theorem RD.cureCageLiveStoreSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray}
     {σ : AccountMap}
     (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : cureCageLiveStoreWf code pc)
-    (hperm : ee.perm = true)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (cureCageLiveStoreOutPc pc) (ret :: R) mem
-      (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨1⟩ ⟨0⟩) k' C' := by
+    (ee.perm = true ∧
+      ∃ k' C', RD code ee g s0 (cureCageLiveStoreOutPc pc) (ret :: R) mem
+        (UInt256.ofNat 3) rdata
+        (sstoreAccountMap ee.codeOwner σ ⟨1⟩ ⟨0⟩) k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with ⟨hd0, hd1, hd3, hd5⟩
   have rdPrefix := evm_run h with [
     raw jumpdest hd0 (by evm_ov),
     raw push1 ⟨0⟩ hd1 (by evm_ov),
     raw push1 ⟨1⟩ hd3 (by evm_ov)]
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdPrefix.sstoreStatic (by simpa using hperm) hd5 (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdStore⟩ := rdPrefix.sstore hperm hd5 (by evm_ov)
   exact ⟨_, _, by simpa [cureCageLiveStoreOutPc] using rdStore⟩
 
-theorem cureCageReachAfterLiveStore {σ σ₀ A I} {g : UInt256}
+theorem cureCageReachAfterLiveStoreSplit {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 1))
-    (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩) :
-    ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2742⟩
-      [⟨484⟩, cureSelWord I]
-      (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ ⟨1⟩ ⟨0⟩) k C := by
+    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩) :
+    (I.perm = true ∧
+      ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2742⟩
+        [⟨484⟩, cureSelWord I]
+        (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
+        (UInt256.ofNat 3) ByteArray.empty
+        (sstoreAccountMap I.codeOwner σ ⟨1⟩ ⟨0⟩) k C) ∨
+      (I.perm = false ∧ RDstatic cureBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 1) rfl hsel
   obtain ⟨_, _, hbodyEntry⟩ := cureReachCageBody
@@ -697,7 +691,7 @@ theorem cureCageReachAfterLiveStore {σ σ₀ A I} {g : UInt256}
     (by jump_dest)
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-    simpa [cureCallerWardsSlot, cureSlotWord] using hauth
+    simpa [cureCallerWardsSlot, solcSlotWordAt] using hauth
   obtain ⟨_, _, hafterAuth⟩ := RD.cureAuthCheckOk
     (code := cureBytecode) (pc := ⟨2575⟩) (okPc := ⟨2665⟩)
     (key := ⟨484⟩) (ret := cureSelWord I) (R := [])
@@ -707,7 +701,7 @@ theorem cureCageReachAfterLiveStore {σ σ₀ A I} {g : UInt256}
       repeat' first | apply And.intro | native_decide)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ I ⟨1⟩ = ⟨1⟩ := by
-    simpa [cureSlotWord] using hlive
+    simpa [solcSlotWordAt] using hlive
   obtain ⟨_, _, hafterLive⟩ := RD.cureLiveGuardOk
     (code := cureBytecode) (pc := ⟨2665⟩) (okPc := ⟨2736⟩)
     (key := ⟨484⟩) (ret := cureSelWord I) (R := [])
@@ -716,14 +710,16 @@ theorem cureCageReachAfterLiveStore {σ σ₀ A I} {g : UInt256}
       unfold cureLiveGuardWf
       repeat' first | apply And.intro | native_decide)
     hliveSolc (by jump_dest) (by simp)
-  obtain ⟨_, _, hafterStore⟩ := RD.cureCageLiveStore
+  have hfirstWrite := RD.cureCageLiveStoreSplit
     (code := cureBytecode) (pc := ⟨2736⟩) (ret := ⟨484⟩) (R := [cureSelWord I])
     hafterLive
     (by
       unfold cureCageLiveStoreWf
       repeat' first | apply And.intro | native_decide)
-    hperm (by simp)
-  exact ⟨_, _, by simpa [cureCageLiveStoreOutPc] using hafterStore⟩
+    (by simp)
+  rcases hfirstWrite with ⟨hperm, _, _, hafterStore⟩ | hstatic
+  · exact Or.inl ⟨hperm, _, _, by simpa [cureCageLiveStoreOutPc] using hafterStore⟩
+  · exact Or.inr hstatic
 
 abbrev cureCageEventTopic : UInt256 :=
   ⟨15846720854843032105251646702598932867924719938341352344186736728916659600346⟩
@@ -746,7 +742,7 @@ theorem RD.cureCageSuccessTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (((sstoreAccountMap I.codeOwner σ ⟨1⟩ ⟨0⟩).get? I.codeOwner).option
           (⟨0⟩ : UInt256) (fun acc => acc.storage.getD ⟨3⟩ (⟨0⟩ : UInt256))) =
         cageWaitWord σ I := by
-    simpa [cageWaitWord, cureSlotWord, solcSlotWord] using
+    simpa [cageWaitWord, solcSlotWordAt, solcSlotWord] using
       sstoreAccountMap_storage_getD_ne σ I.codeOwner ⟨3⟩ ⟨1⟩ ⟨0⟩
         (by native_decide)
   have rd2744 := evm_run h with [
@@ -820,7 +816,7 @@ theorem RD.cureCageAddRevertTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (((sstoreAccountMap I.codeOwner σ ⟨1⟩ ⟨0⟩).get? I.codeOwner).option
           (⟨0⟩ : UInt256) (fun acc => acc.storage.getD ⟨3⟩ (⟨0⟩ : UInt256))) =
         cageWaitWord σ I := by
-    simpa [cageWaitWord, cureSlotWord, solcSlotWord] using
+    simpa [cageWaitWord, solcSlotWordAt, solcSlotWord] using
       sstoreAccountMap_storage_getD_ne σ I.codeOwner ⟨3⟩ ⟨1⟩ ⟨0⟩
         (by native_decide)
   have rd2744 := evm_run h with [
@@ -867,7 +863,6 @@ theorem RD.cureCageAddRevertTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 theorem cureCageBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 1)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -892,10 +887,10 @@ theorem cureCageBodyCore {σ σ₀ A I} {g : UInt256}
       unfold solcNoArgsExternalEntryWf
       repeat' first | apply And.intro | native_decide)
     (by jump_dest)
-  by_cases hauthEvm : cureSlotWord callerSlot σ I = ⟨1⟩
+  by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
   · have hauthSolc :
         solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-      simpa [callerSlot, cureCallerWardsSlot, cureSlotWord] using hauthEvm
+      simpa [callerSlot, cureCallerWardsSlot, solcSlotWordAt] using hauthEvm
     obtain ⟨_, _, hafterAuth⟩ := RD.cureAuthCheckOk
       (code := cureBytecode) (pc := ⟨2575⟩) (okPc := ⟨2665⟩)
       (key := ⟨484⟩) (ret := sel) (R := [])
@@ -904,8 +899,15 @@ theorem cureCageBodyCore {σ σ₀ A I} {g : UInt256}
         unfold cureAuthCheckWf
         repeat' first | apply And.intro | native_decide)
       hauthSolc (by jump_dest) (by simp)
-    by_cases hliveEvm : cureSlotWord ⟨1⟩ σ I = ⟨1⟩
-    · by_cases hfitEvm :
+    by_cases hliveEvm : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩
+    · rcases cureCageReachAfterLiveStoreSplit
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        hcode hsize hwv hsel hauthEvm hliveEvm with
+          ⟨hperm, _, _, hafterLiveStore⟩ | ⟨hperm, hstatic⟩
+      swap
+      · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+          ((cureCageSourceLiveStorePrefixSplit hwv hauthEvm hliveEvm).2 hperm)
+      by_cases hfitEvm :
           (cageTimestampWord I).toNat + (cageWaitWord σ I).toNat < UInt256.size
       · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨1⟩ ⟨0⟩
@@ -918,9 +920,6 @@ theorem cureCageBodyCore {σ σ₀ A I} {g : UInt256}
           simpa [locals, evm0, evmLive, sumSolm, localsWhen, evmWhen] using
             cureCageSourceBodyOk (σ := σ)
               (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthEvm hliveEvm hfitEvm
-        obtain ⟨_, _, hafterLiveStore⟩ := cureCageReachAfterLiveStore
-          (σ := σ) (σ₀ := σ₀)
-          (A := A) (I := I) (g := g) hcode hsize hperm hwv hsel hauthEvm hliveEvm
         have hret := RD.cureCageSuccessTail
           (σ := σ) (I := I) (g := Sat256.ofUInt256 g)
           (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -945,9 +944,6 @@ theorem cureCageBodyCore {σ σ₀ A I} {g : UInt256}
             cureCageSourceBodyReverts_add
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               hwv hauthEvm hliveEvm hoverEvm
-        obtain ⟨_, _, hafterLiveStore⟩ := cureCageReachAfterLiveStore
-          (σ := σ) (σ₀ := σ₀)
-          (A := A) (I := I) (g := g) hcode hsize hperm hwv hsel hauthEvm hliveEvm
         have hrev := RD.cureCageAddRevertTail
           (σ := σ) (I := I) (g := Sat256.ofUInt256 g)
           (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -979,7 +975,7 @@ theorem cureCageBodyCore {σ σ₀ A I} {g : UInt256}
         simpa [ExecTransitionBody, cageTransition, nonpayable, auth, evm0, locals] using
           ExecFuncBody.execBlockRevert hblock
       have hliveSolc : solcSlotWord σ I ⟨1⟩ ≠ ⟨1⟩ := by
-        simpa [cureSlotWord] using hliveEvm
+        simpa [solcSlotWordAt] using hliveEvm
       have hmemAuth :
           (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
         twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
@@ -1020,7 +1016,7 @@ theorem cureCageBodyCore {σ σ₀ A I} {g : UInt256}
         ExecFuncBody.execBlockRevert hblock
     have hauthSolc :
         solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-      simpa [callerSlot, cureCallerWardsSlot, cureSlotWord] using hauthEvm
+      simpa [callerSlot, cureCallerWardsSlot, solcSlotWordAt] using hauthEvm
     have hrev := RD.cureAuthCheckRevert
       (code := cureBytecode) (pc := ⟨2575⟩) (okPc := ⟨2665⟩)
       (key := ⟨484⟩) (ret := sel) (R := [])

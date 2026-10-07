@@ -1,3 +1,5 @@
+import Reasoning.ExternalCall
+import Reasoning.EVMWord
 import Benchmarks.Dss.Spot.PokeArithmetic
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -8,7 +10,7 @@ theorem evalExpr_pokeStorageVatOfLocals {evm : EVM.State} {locals : Store}
     (hvat : locals.get? "vat" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage vatRef) =
       .ok (.address (pokeVatAddress evm.accountMap evm.executionEnv)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := vatRef) (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨2⟩)
@@ -18,8 +20,8 @@ theorem evalExpr_pokeStorageVatOfLocals {evm : EVM.State} {locals : Store}
     (by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, vatRef, addrSt])
     (by rfl)
     (by
-      simpa [pokeVatAddress, pokeVatTargetWord, spotAddressReturnWord, spotSlotWord] using
-        spotStorageLocLoad_address_offset0 evm ⟨2⟩)
+      simpa [pokeVatAddress, pokeVatTargetWord, solcAddressSlotWord, solcSlotWordAt] using
+        storageLocLoad_address_offset0 evm ⟨2⟩)
 
 theorem evalExpr_pokeVatCodeGuard_false_ofLocals {evm : EVM.State} {locals : Store}
     (hvat :
@@ -118,32 +120,11 @@ theorem pokePipAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
     pokePipAddress σ I = AccountAddress.ofUInt256 (pokePipTargetWord σ I) := by
   rw [accountAddress_ofUInt256_eq_ofNat_toNat]
 
-theorem spotEvmAddress_accountAddress (a : AccountAddress) :
-    EVM.address a.val = a := by
-  apply Fin.ext
-  show a.val % EVM.addressModulus = a.val
-  rw [show EVM.addressModulus = AccountAddress.size from by decide]
-  exact Nat.mod_eq_of_lt a.isLt
 
 theorem pokeVatAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
     pokeVatAddress σ I = AccountAddress.ofUInt256 (pokeVatTargetWord σ I) := by
   rw [accountAddress_ofUInt256_eq_ofNat_toNat]
 
-theorem poke_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
-    {addr : AccountAddress}
-    (haddr : addr = AccountAddress.ofUInt256 target)
-    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
-    (UInt256.ofNat
-      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
-  subst addr
-  unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
-  | none =>
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
-  | some acc =>
-      have hword := congrArg UInt256.toNat hzero
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem pokePipCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
     (hzero :
@@ -152,7 +133,7 @@ theorem pokePipCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
       (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (pokePipAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
-    poke_extCodeSizeWord_zero_lookup_code_zero
+    extCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := pokePipTargetWord σ I) (addr := pokePipAddress σ I)
       (pokePipAddress_eq_target σ I) hzero
 
@@ -194,7 +175,7 @@ theorem pokeVatCode_zero_of_codeSize_zero {evm : EVM.State}
       ((evm.lookupAccount (pokeVatAddress evm.accountMap evm.executionEnv)).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
   simpa [State.lookupAccount] using
-    poke_extCodeSizeWord_zero_lookup_code_zero
+    extCodeSizeWord_zero_lookup_code_zero
       (σ := evm.accountMap) (target := pokeVatTargetWord evm.accountMap evm.executionEnv)
       (addr := pokeVatAddress evm.accountMap evm.executionEnv)
       (pokeVatAddress_eq_target evm.accountMap evm.executionEnv) hzero
@@ -234,38 +215,13 @@ theorem pokeVatCode_pos_of_codeSize_ne_zero {evm : EVM.State}
       native_decide
   exact hne (by rw [← hword, hwordZero])
 
-theorem typedCallViaEVM_zero_substate_irrel {cfg : Config} {evm evm' : EVM.State}
-    {A0 : Substate} {tgt : EVM.Address} {name : Ident} {args : List Value}
-    {z : Bool} {out : ByteArray} {callPerm : Bool}
-    (hcall : typedCallViaEVM cfg { evm with substate := A0 } tgt name 0 args
-      (z, evm', out) callPerm)
-    (hdepth : evm.executionEnv.depth ≠ 1024) :
-    typedCallViaEVM cfg evm tgt name 0 args (z, evm', out) callPerm := by
-  rcases hcall with ⟨calldata, henc, hraw⟩
-  refine ⟨calldata, henc, ?_⟩
-  cases hraw with
-  | callMade hvalue hTheta hevm' hvalue' hdepth' =>
-      obtain ⟨callGas, A_in, hTheta⟩ := hTheta
-      exact callViaEVM.callMade (perm := callPerm) hvalue
-        ⟨callGas, A_in, by simpa using hTheta⟩
-        (by simpa using hevm')
-        (by simpa using hvalue')
-        (by simpa using hdepth')
-  | callNotMade _hsubstate _hevm' hvalue =>
-      exfalso
-      apply hvalue
-      constructor
-      · rw [wordOfInt_zero]
-        show (⟨0⟩ : UInt256) ≤ _
-        exact Fin.zero_le _
-      · exact hdepth
 
 theorem evalExpr_pokeStoragePip {evm : EVM.State} {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) (henv : evm.executionEnv = I) :
     evalExpr? config { contract := contract, locals := pokeLocals I } evm
       (.storage (ilksF (.var "ilk") "pip")) =
         .ok (.address (pokePipAddress evm.accountMap I)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := pokeLocals I }) (evm := evm)
     (slot := ilksF (.var "ilk") "pip") (er := pokePipEvaledRef I)
     (t := .address) (loc := addrLoc (pokePipSlotFor I))
@@ -283,8 +239,8 @@ theorem evalExpr_pokeStoragePip {evm : EVM.State} {I : ExecutionEnv}
     (by rfl)
     (by
       cases henv
-      simpa [pokePipAddress, pokePipTargetWord, pokePipRawWord, spotSlotWord] using
-        spotStorageLocLoad_address_offset0 evm (pokePipSlotFor evm.executionEnv))
+      simpa [pokePipAddress, pokePipTargetWord, pokePipRawWord, solcSlotWordAt] using
+        storageLocLoad_address_offset0 evm (pokePipSlotFor evm.executionEnv))
 
 theorem evalExpr_pokePipCodeGuard_false {evm : EVM.State} {I : ExecutionEnv}
     (_hsz36 : 36 ≤ I.calldata.size)

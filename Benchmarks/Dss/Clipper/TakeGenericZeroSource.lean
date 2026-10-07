@@ -51,7 +51,7 @@ theorem clipperEvalTakeGenericIlkDigsAmtArgs
   have hilk : evalExpr? config
       (Frame.mk contract (clipperTakeGenericDigsAmt locals tab owe) (immStore v)) evm
       ilkExpr = .ok v.ilk := by
-    simp [evalExpr_ilkExpr, hbs, evalExpr?, pure]
+    exact evalExpr_ilkExpr
   have hdigs : evalExpr? config
       (Frame.mk contract (clipperTakeGenericDigsAmt locals tab owe) (immStore v)) evm
       (.var "digsAmt") =
@@ -211,8 +211,7 @@ theorem clipperTakeGenericDogZeroSuccess
               [ilkExpr, .var "digsAmt"] "_digsRet")
           (checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
             [ilkExpr, .var "owe"] "_digsRet") ]
-      (.ok (Frame.mk contract
-        (clipperTakeGenericDigsAmtRet locals tab owe) (immStore v)) evm') := by
+      (.ok (Frame.mk contract (clipperTakeGenericDigsAmtRet locals tab owe) (immStore v)) evm') := by
   subst lot
   have hdog' : (clipperTakeGenericMoveRet locals).get? "dog_" =
       some (.address dog) := by
@@ -357,7 +356,7 @@ theorem clipperEvalTakeGenericVatFluxUsrArgs
           .int (Int.ofNat lot.toNat)] := by
   rcases v.ilk_wf with ⟨bs, hbs, _⟩
   have hilk : evalExpr? config (Frame.mk contract locals (immStore v)) evm
-      ilkExpr = .ok v.ilk := by simp [evalExpr_ilkExpr, hbs, evalExpr?, pure]
+      ilkExpr = .ok v.ilk := by exact evalExpr_ilkExpr
   have hthis : evalExpr? config (Frame.mk contract locals (immStore v)) evm
       thisAddr = .ok (.address evm.executionEnv.codeOwner) := by
     simp [thisAddr, evalExpr?, envValue, pure]

@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.RawCallSource
 import Examples.UniswapV2Pair.SkimCommon
 import Examples.UniswapV2Pair.SkimSafeTransferDynamicRuntime
@@ -17,20 +18,6 @@ set_option maxRecDepth 2000000
 namespace UniswapV2Pair
 
 /-! ## `skim(address)` refinement slices -/
-
-theorem uniswapStorageStore_sigma0 (evm : EVM.State) (a : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).σ₀ = evm.σ₀ := by
-  unfold Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.get? a <;>
-    simp [Option.option, State.setAccount, Account.updateStorage]
-
-theorem uniswapStorageStore_substate (evm : EVM.State) (a : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).substate = evm.substate := by
-  unfold Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.get? a <;>
-    simp [Option.option, State.setAccount, Account.updateStorage]
 
 
 theorem uniswapSkimBalanceOfDecode_ok {returndata : ByteArray} (hlo : 32 ≤ returndata.size) :
@@ -120,10 +107,10 @@ theorem uniswapSkimFirstBalanceTypedCall_source
         (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
         (AccountAddress.ofUInt256 (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
         (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
           (AccountAddress.ofUInt256 (UInt256.land solcAddrMask
-            (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+            (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
         callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
         ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
         (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
@@ -142,7 +129,7 @@ theorem uniswapSkimFirstBalanceTypedCall_source
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSL := uniswapLockEnteredState evmS
   let σLock := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0Word := uniswapSlotWord ⟨6⟩ σLock I
+  let token0Word := solcSlotWordAt ⟨6⟩ σLock I
   let token0Clean := UInt256.land solcAddrMask token0Word
   let target : EVM.Address := AccountAddress.ofUInt256 token0Clean
   have hLockState : σLock = evmSL.accountMap := by
@@ -153,12 +140,12 @@ theorem uniswapSkimFirstBalanceTypedCall_source
       simpa [target, token0Clean, token0Word, σLock, evmSL, evmS,
         uniswapLockEnteredState, uniswapUnlockedState, initState, storageStore_accountMap,
         storageStore_executionEnv, State.lookupAccount, Account.lookupStorage,
-        Solm.EVM.storageLoad, uniswapAddressAtSlot, uniswapSlotWord,
+        Solm.EVM.storageLoad, uniswapAddressAtSlot, solcSlotWordAt, solcSlotWord,
         accountAddress_ofUInt256_eq_ofNat_toNat, u256_land_comm]
     change AccountAddress.ofUInt256 token0Clean =
       EVM.address (uniswapAddressAtSlot evmSL ⟨6⟩)
     rw [haddr]
-    exact (uniswapAddress_self (uniswapAddressAtSlot evmSL ⟨6⟩)).symm
+    exact (address_of_val (uniswapAddressAtSlot evmSL ⟨6⟩)).symm
   have hcd : config.externalABI.encode? "balanceOf" [.address I.codeOwner] =
       some ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36) :=
     balanceOfThisCalldataMem_encode I.codeOwner
@@ -171,7 +158,7 @@ theorem uniswapSkimFirstBalanceTypedCall_source
       (inOff := ⟨128⟩) (hPost := hLockState)
       (hσ0 := by simpa [evmSL, evmS, uniswapLockEnteredState,
         uniswapUnlockedState, initState] using
-        (uniswapStorageStore_sigma0 evmS I.codeOwner ⟨12⟩ ⟨0⟩))
+        (storageStore_σ0 evmS I.codeOwner ⟨12⟩ ⟨0⟩))
       (henv := by simp [evmSL, evmS, uniswapLockEnteredState,
         uniswapUnlockedState, initState, storageStore_executionEnv])
       (hdepth := hdepth) (hcd := hcd) (hΘ := hΘ)
@@ -190,10 +177,10 @@ theorem uniswapSkimFirstBalanceReturn_source
         (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
         (AccountAddress.ofUInt256 (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
         (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
           (AccountAddress.ofUInt256 (UInt256.land solcAddrMask
-            (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+            (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
         callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
         ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
         (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -210,7 +197,7 @@ theorem uniswapSkimFirstBalanceReturn_source
       σ' = evm0S.accountMap ∧ evm0S.σ₀ = σ₀ ∧
       evm0S.executionEnv =
         (uniswapLockEnteredState (initState σ σ₀ (Sat256.ofUInt256 g) A I)).executionEnv ∧
-      uniswapReserve0Word evm0S = UInt256.land (uniswapSlotWord ⟨8⟩ σ' I) reserve112Mask ∧
+      uniswapReserve0Word evm0S = UInt256.land (solcSlotWordAt ⟨8⟩ σ' I) reserve112Mask ∧
       balance0 = UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) := by
   obtain ⟨evm0S, hcallAll, hMap, hσ0, henv⟩ :=
     uniswapSkimFirstBalanceTypedCall_source hdepth hΘ
@@ -230,10 +217,10 @@ theorem uniswapSkimFirstBalanceReturn_source
         storageStore_executionEnv]
     exact congrArg ExecutionEnv.codeOwner (henvCall.trans henvInit)
   have hreserve : uniswapReserve0Word evm0S =
-      UInt256.land (uniswapSlotWord ⟨8⟩ σ' I) reserve112Mask := by
+      UInt256.land (solcSlotWordAt ⟨8⟩ σ' I) reserve112Mask := by
     rw [hMap]
     simp [uniswapReserve0Word, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, uniswapSlotWord, howner, uniswapLockEnteredState,
+      Account.lookupStorage, solcSlotWordAt, solcSlotWord, howner, uniswapLockEnteredState,
       uniswapUnlockedState, initState, storageStore_executionEnv]
   exact ⟨evm0S, balance0, hcall0, hdecode, hMap, hσ0, by simpa [evmS] using henv,
     hreserve, rfl⟩
@@ -248,7 +235,7 @@ theorem uniswapSkimFirstBalanceStaticReserve0
       target name 0 args (z, evm0S, out0) false) :
     uniswapReserve0Word evm0S =
       UInt256.land
-        (uniswapSlotWord ⟨8⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)
+        (solcSlotWordAt ⟨8⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)
         reserve112Mask := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
@@ -261,7 +248,7 @@ theorem uniswapSkimFirstBalanceStaticReserve0
       (cfg := config) (σ := σLockE) (evm := evmL) (evm' := evm0S)
       (slot := ⟨8⟩) (default := ⟨0⟩) hLockStateAccounts hcall0
   simpa [uniswapReserve0Word, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, uniswapSlotWord, σLockE, evmL, evmS,
+      Account.lookupStorage, solcSlotWordAt, solcSlotWord, σLockE, evmL, evmS,
     uniswapLockEnteredState, uniswapUnlockedState, initState, storageStore_executionEnv] using
     congrArg (fun w => UInt256.land w reserve112Mask) hslot
 
@@ -339,37 +326,16 @@ theorem uniswapSkimSecondBalanceStaticReserve1 {σ1 : AccountMap}
       (z2, evm2S, out2) false) :
     uniswapReserve1Word evm2S =
       UInt256.land
-        (UInt256.div (uniswapSlotWord ⟨8⟩ σ1 I) reserve112Shift)
+        (UInt256.div (solcSlotWordAt ⟨8⟩ σ1 I) reserve112Shift)
         reserve112Mask := by
   have hslot :=
     typedCallViaEVM_static_storage_getD_of_accounts_eq
       (cfg := config) (σ := σ1) (evm := evm1S) (evm' := evm2S)
       (slot := ⟨8⟩) (default := ⟨0⟩) hPost hcall1
   simpa [uniswapReserve1Word, Solm.EVM.storageLoad, State.lookupAccount,
-    Account.lookupStorage, uniswapSlotWord, henv] using
+    Account.lookupStorage, solcSlotWordAt, solcSlotWord, henv] using
     congrArg (fun w => UInt256.land (UInt256.div w reserve112Shift) reserve112Mask) hslot
 
-theorem accountAddressOfNat_word_eq_mask (w : UInt256) :
-    UInt256.ofNat (AccountAddress.ofNat w.toNat).val = UInt256.land solcAddrMask w := by
-  apply u256_inj
-  rw [u256_land_toNat]
-  rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by native_decide]
-  rw [nat_land_comm, nat_land_mask_eq_mod]
-  have hleft :
-      (UInt256.ofNat (AccountAddress.ofNat w.toNat).val).toNat = w.toNat % 2 ^ 160 := by
-    simp only [AccountAddress.ofNat, UInt256.ofNat, UInt256.toNat, Fin.ofNat]
-    change (w.toNat % AccountAddress.size) % UInt256.size = w.toNat % 2 ^ 160
-    have hlt : w.toNat % AccountAddress.size < UInt256.size := by
-      exact lt_of_lt_of_le (Nat.mod_lt w.toNat (show 0 < AccountAddress.size by decide))
-        (show AccountAddress.size ≤ UInt256.size by decide)
-    rw [Nat.mod_eq_of_lt hlt]
-    simp [AccountAddress.size]
-  have hright : w.toNat % 2 ^ 160 % UInt256.size = w.toNat % 2 ^ 160 := by
-    rw [Nat.mod_eq_of_lt]
-    exact lt_trans (Nat.mod_lt w.toNat (show 0 < 2 ^ 160 by norm_num))
-      (by norm_num [UInt256.size])
-  rw [hright]
-  exact hleft
 
 theorem skimToAddress_word_eq_mask (I : ExecutionEnv) :
     UInt256.ofNat (skimToAddress I).val = UInt256.land solcAddrMask (skimToWord I) := by
@@ -541,11 +507,11 @@ theorem skimToken0GuardFalse_initState_of_noCode
     (htoken0NoCode :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩) :
     skimToken0GuardFalse (initState σ σ₀ g A I) I := by
   let σLockS := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0WordS := uniswapSlotWord ⟨6⟩ σLockS I
+  let token0WordS := solcSlotWordAt ⟨6⟩ σLockS I
   have hnoSolm :
       extCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) = ⟨0⟩ := by
     simpa [σLockS, token0WordS] using htoken0NoCode
@@ -569,7 +535,8 @@ theorem skimToken0GuardFalse_initState_of_noCode
       simpa [u256_land_comm] using hnoSolm
     simpa [evmL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
       storageStore_accountMap, storageStore_executionEnv, State.lookupAccount, Solm.EVM.storageLoad,
-      Account.lookupStorage, uniswapAddressAtSlot, extCodeSizeWord, uniswapSlotWord, σLockS,
+      Account.lookupStorage, uniswapAddressAtSlot, extCodeSizeWord, solcSlotWordAt, solcSlotWord,
+        σLockS,
       token0WordS, accountAddress_ofUInt256_eq_ofNat_toNat] using hnoSolmRight
   have hnoSourceWord :
       EVM.Word.ofNat
@@ -592,11 +559,11 @@ theorem skimToken0GuardTrue_initState_of_code
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     skimToken0GuardTrue (initState σ σ₀ g A I) I := by
   let σLockS := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0WordS := uniswapSlotWord ⟨6⟩ σLockS I
+  let token0WordS := solcSlotWordAt ⟨6⟩ σLockS I
   have hcodeSolm :
       extCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) ≠ ⟨0⟩ := by
     simpa [σLockS, token0WordS] using htoken0Code
@@ -620,7 +587,8 @@ theorem skimToken0GuardTrue_initState_of_code
       simpa [u256_land_comm] using hcodeSolm
     simpa [evmL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
       storageStore_accountMap, storageStore_executionEnv, State.lookupAccount, Solm.EVM.storageLoad,
-      Account.lookupStorage, uniswapAddressAtSlot, extCodeSizeWord, uniswapSlotWord, σLockS,
+      Account.lookupStorage, uniswapAddressAtSlot, extCodeSizeWord, solcSlotWordAt, solcSlotWord,
+        σLockS,
       token0WordS, accountAddress_ofUInt256_eq_ofNat_toNat] using hcodeSolmRight
   have hcodeSourceWord :
       EVM.Word.ofNat
@@ -713,7 +681,7 @@ theorem uniswapSkimBodyCoreRevert_firstNoCode
     (htoken0NoCode :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some skimTransition)
     (hdecode :
@@ -749,7 +717,7 @@ theorem uniswapSkimBodyCoreRevert_firstCallDepth
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some skimTransition)
     (hdecode :
@@ -834,7 +802,7 @@ theorem uniswapSkimBodyRevert_firstNoCode
     (htoken0NoCode :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
+          (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some skimTransition)
     (hdecode :

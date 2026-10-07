@@ -10,7 +10,7 @@ namespace UniswapV2Pair
 /-! ## `DOMAIN_SEPARATOR()` getter -/
 
 def domainSeparatorWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  uniswapSlotWord ⟨3⟩ σ I
+  solcSlotWordAt ⟨3⟩ σ I
 
 /-- The Solm `DOMAIN_SEPARATOR()` body returns the bytes32 stored in slot 3. -/
 theorem uniswapDomainSeparatorBodyReturns (evm : EVM.State) (locals : Store)
@@ -65,7 +65,7 @@ theorem uniswapDomainSeparatorBodyCore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.fixedBytes ⟨31, by decide⟩
             (EVM.Word.toBytesBE (domainSeparatorWord σ I)))])) := by
-    simpa [domainSeparatorWord, uniswapSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [domainSeparatorWord, solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       uniswapDomainSeparatorBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

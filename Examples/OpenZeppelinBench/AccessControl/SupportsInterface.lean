@@ -1,3 +1,6 @@
+import Reasoning.ABIViews
+import Reasoning.WordArithmetic
+import Reasoning.EVMWord
 import Examples.OpenZeppelinBench.AccessControl.Storage
 import Reasoning.SolmBody
 
@@ -41,72 +44,11 @@ abbrev supportsInterfaceResult (I : ExecutionEnv) : Bool :=
 abbrev supportsInterfaceResultWord (I : ExecutionEnv) : UInt256 :=
   if supportsInterfaceResult I then ⟨1⟩ else ⟨0⟩
 
-theorem accessControlListUInt8_decide_eq_beq (xs ys : List UInt8) :
-    decide (xs = ys) = (xs == ys) := by
-  by_cases h : xs = ys
-  · subst ys
-    simp
-  · have hbeq : (xs == ys) = false := by
-      apply Bool.eq_false_iff.mpr
-      intro hb
-      exact h (eq_of_beq hb)
-    simp [h, hbeq]
 
 theorem accessControlFixedBytes4_beq (xs ys : List UInt8) :
     (Value.fixedBytes bytes4Width xs == Value.fixedBytes bytes4Width ys) = (xs == ys) := by
-  simp [BEq.beq, accessControlListUInt8_decide_eq_beq]
+  simp [BEq.beq, listUInt8_decide_eq_beq]
 
-theorem accessControlFromBytesBigEndian_append (a b : List UInt8) :
-    fromBytesBigEndian (a ++ b) =
-      fromBytesBigEndian a * 2 ^ (8 * b.length) + fromBytesBigEndian b := by
-  unfold fromBytesBigEndian Function.comp
-  rw [List.reverse_append, fromBytes'_append, List.length_reverse]
-  ring
-
-theorem accessControlFromBytesBigEndian_bound (xs : List UInt8) :
-    fromBytesBigEndian xs < 2 ^ (8 * xs.length) := by
-  unfold fromBytesBigEndian Function.comp
-  simpa [List.length_reverse] using (fromBytes'_le (bs := xs.reverse))
-
-theorem accessControlFromBytes'_zero_iff_all_zero (xs : List UInt8) :
-    fromBytes' xs = 0 ↔ xs.all (· == 0) = true := by
-  induction xs with
-  | nil => simp [fromBytes']
-  | cons x xs ih =>
-      constructor
-      · intro h
-        simp only [List.all_cons, Bool.and_eq_true]
-        unfold fromBytes' at h
-        have hxnat : x.toNat = 0 := (Nat.add_eq_zero_iff.mp h).1
-        have htail : fromBytes' xs = 0 := by
-          have hprod : UInt8.size * fromBytes' xs = 0 := (Nat.add_eq_zero_iff.mp h).2
-          have hsize : 0 < UInt8.size := by decide
-          omega
-        have hx : x = 0 := UInt8.toNat_inj.mp hxnat
-        exact ⟨by simpa [hx], ih.mp htail⟩
-      · intro h
-        simp only [List.all_cons, Bool.and_eq_true] at h
-        rcases h with ⟨hx, hxs⟩
-        have hx0 : x = 0 := eq_of_beq hx
-        unfold fromBytes'
-        simp [hx0, ih.mpr hxs]
-
-theorem accessControlFromBytesBigEndian_zero_iff_all_zero (xs : List UInt8) :
-    fromBytesBigEndian xs = 0 ↔ xs.all (· == 0) = true := by
-  unfold fromBytesBigEndian Function.comp
-  rw [accessControlFromBytes'_zero_iff_all_zero]
-  simp
-
-theorem accessControlBytesToWord_toNat_of_len (xs : List UInt8) (hlen : xs.length = 32) :
-    (ABI.bytesToWord xs).toNat = fromBytesBigEndian xs := by
-  unfold ABI.bytesToWord fromByteArrayBigEndian
-  rw [ulit_toNat']
-  · simp [byteArray_toList_eq]
-  · change fromByteArrayBigEndian { data := xs.toArray } < UInt256.size
-    unfold fromByteArrayBigEndian
-    simp [byteArray_toList_eq]
-    rw [show UInt256.size = 2 ^ (8 * xs.length) by rw [hlen]; rfl]
-    exact accessControlFromBytesBigEndian_bound xs
 
 theorem supportsInterfaceWord_toNat {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     (supportsInterfaceWord I).toNat =
@@ -122,70 +64,8 @@ theorem supportsInterfaceWord_toNat {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldat
     simpa [supportsInterfaceWord, calldataWord] using
       decode_word_at_eq I.calldata 4 (by omega) (by norm_num)
   rw [← hword]
-  exact accessControlBytesToWord_toNat_of_len _ hlen
+  exact bytesToWord_toNat_of_len _ hlen
 
-theorem accessControlTestBit_shiftLeft (m k i : Nat) :
-    (m <<< k).testBit i = if i < k then false else m.testBit (i - k) := by
-  induction k generalizing i with
-  | zero => simp
-  | succ k ih =>
-      rw [← Nat.shiftLeft'_false (m := m) (n := k + 1)]
-      change (Nat.bit false (Nat.shiftLeft' false m k)).testBit i = _
-      cases i with
-      | zero => simp
-      | succ i =>
-          rw [Nat.testBit_bit_succ, Nat.shiftLeft'_false, ih]
-          by_cases hi : i < k
-          · have his : i.succ < k.succ := Nat.succ_lt_succ hi
-            simp [his, hi]
-          · have hns : ¬ i.succ < k.succ := by omega
-            simp [hns, hi]
-
-theorem accessControlDivPow224_testBit (n i : Nat) (h224 : 224 ≤ i) :
-    (n / 2 ^ 224).testBit (i - 224) = n.testBit i := by
-  simp [Nat.testBit, Nat.shiftRight_eq_div_pow]
-  rw [Nat.div_div_eq_div_mul]
-  change n / (2 ^ 224 * 2 ^ (i - 224)) % 2 = 1 ↔ n / 2 ^ i % 2 = 1
-  rw [← Nat.pow_add, show 224 + (i - 224) = i by omega]
-
-theorem accessControlNatLandClearLow224 (n : Nat) (hn : n < 2 ^ 256) :
-    Nat.land n ((2 : Nat) ^ 256 - 2 ^ 224) = (n / 2 ^ 224) * 2 ^ 224 := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  change (n &&& ((2 : Nat) ^ 256 - 2 ^ 224)).testBit i =
-    ((n / 2 ^ 224) * 2 ^ 224).testBit i
-  rw [Nat.testBit_and]
-  rw [show (2 : Nat) ^ 256 - 2 ^ 224 = (2 ^ 32 - 1) <<< 224 by
-    rw [Nat.shiftLeft_eq]
-    norm_num [Nat.pow_add]]
-  rw [accessControlTestBit_shiftLeft]
-  rw [show (n / 2 ^ 224) * 2 ^ 224 = (n / 2 ^ 224) <<< 224 by
-    rw [Nat.shiftLeft_eq]]
-  rw [accessControlTestBit_shiftLeft]
-  by_cases hi224 : i < 224
-  · simp [hi224]
-  · simp [hi224]
-    have h224 : 224 ≤ i := Nat.le_of_not_gt hi224
-    by_cases hi256 : i < 256
-    · have hlt : i - 224 < 32 := by omega
-      change (n.testBit i && (((2 : Nat) ^ 32 - 1).testBit (i - 224))) =
-        (n / 2 ^ 224).testBit (i - 224)
-      rw [Nat.testBit_two_pow_sub_one]
-      simp [hlt]
-      exact (accessControlDivPow224_testBit n i h224).symm
-    · have hnlt : ¬ i - 224 < 32 := by omega
-      change (n.testBit i && (((2 : Nat) ^ 32 - 1).testBit (i - 224))) =
-        (n / 2 ^ 224).testBit (i - 224)
-      rw [Nat.testBit_two_pow_sub_one]
-      simp [hnlt]
-      change (n / 2 ^ 224).testBit (i - 224) = false
-      have hq : n / 2 ^ 224 < 2 ^ 32 := by
-        apply Nat.div_lt_of_lt_mul
-        rw [show 2 ^ 224 * 2 ^ 32 = (2 : Nat) ^ 256 by rw [← Nat.pow_add]]
-        exact hn
-      have hpow : n / 2 ^ 224 < 2 ^ (i - 224) := by
-        exact lt_of_lt_of_le hq (Nat.pow_le_pow_right (by norm_num) (by omega))
-      exact Nat.testBit_lt_two_pow hpow
 
 theorem supportsInterfaceMask_toNat :
     supportsInterfaceMask.toNat = 2 ^ 256 - 2 ^ 224 := by
@@ -197,7 +77,7 @@ theorem supportsInterfaceClean_of_mod_zero (w : UInt256)
   apply u256_inj
   show Nat.land w.toNat supportsInterfaceMask.toNat % UInt256.size = w.toNat
   rw [supportsInterfaceMask_toNat]
-  rw [accessControlNatLandClearLow224 w.toNat (by exact w.val.isLt)]
+  rw [natLandClearLow224 w.toNat (by exact w.val.isLt)]
   have hdiv := Nat.div_add_mod w.toNat (2 ^ 224)
   rw [show w.toNat / 2 ^ 224 * 2 ^ 224 = w.toNat by omega]
   exact Nat.mod_eq_of_lt w.val.isLt
@@ -228,12 +108,12 @@ theorem supportsInterfaceModZero_of_padding {I : ExecutionEnv}
     · simp [hall] at hpad
       simpa using hpad
   have htailZero : fromBytesBigEndian (xs.drop 4) = 0 :=
-    (accessControlFromBytesBigEndian_zero_iff_all_zero (xs.drop 4)).mpr htailAll
+    (fromBytesBigEndian_zero_iff_all_zero (xs.drop 4)).mpr htailAll
   have hword := supportsInterfaceWord_toNat (I := I) hsz36
   rw [hword]
   change fromBytesBigEndian xs % 2 ^ 224 = 0
   rw [show xs = xs.take 4 ++ xs.drop 4 from (List.take_append_drop 4 xs).symm]
-  rw [accessControlFromBytesBigEndian_append, htailLen, htailZero]
+  rw [fromBytesBigEndian_append, htailLen, htailZero]
   rw [show 8 * 28 = 224 by norm_num, Nat.add_zero]
   exact Nat.mul_mod_left _ _
 
@@ -279,18 +159,18 @@ theorem supportsInterfaceModNeZero_of_padding_none {I : ExecutionEnv}
     · exact Bool.eq_false_iff.mpr hall
   have htailNZ : fromBytesBigEndian (xs.drop 4) ≠ 0 := by
     intro hz
-    have hall := (accessControlFromBytesBigEndian_zero_iff_all_zero (xs.drop 4)).mp hz
+    have hall := (fromBytesBigEndian_zero_iff_all_zero (xs.drop 4)).mp hz
     rw [hall] at htailAllFalse
     contradiction
   have htailBound : fromBytesBigEndian (xs.drop 4) < 2 ^ 224 := by
-    have hb := accessControlFromBytesBigEndian_bound (xs.drop 4)
+    have hb := fromBytesBigEndian_bound (xs.drop 4)
     rw [htailLen] at hb
     simpa using hb
   have hword := supportsInterfaceWord_toNat (I := I) hsz36
   rw [hword]
   change fromBytesBigEndian xs % 2 ^ 224 ≠ 0
   rw [show xs = xs.take 4 ++ xs.drop 4 from (List.take_append_drop 4 xs).symm]
-  rw [accessControlFromBytesBigEndian_append, htailLen]
+  rw [fromBytesBigEndian_append, htailLen]
   intro hmod
   have htailMod : fromBytesBigEndian (xs.drop 4) % 2 ^ 224 = 0 := by
     simpa [Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hmod
@@ -304,7 +184,7 @@ theorem supportsInterfaceModZero_of_land_eq (w : UInt256)
   have ht := congrArg UInt256.toNat hclean
   change Nat.land w.toNat supportsInterfaceMask.toNat % UInt256.size = w.toNat at ht
   rw [supportsInterfaceMask_toNat] at ht
-  have hclear := accessControlNatLandClearLow224 w.toNat (by exact w.val.isLt)
+  have hclear := natLandClearLow224 w.toNat (by exact w.val.isLt)
   rw [hclear] at ht
   have hsmall : w.toNat / 2 ^ 224 * 2 ^ 224 < UInt256.size :=
     lt_of_le_of_lt (by
@@ -313,9 +193,6 @@ theorem supportsInterfaceModZero_of_land_eq (w : UInt256)
   have hdiv := Nat.div_add_mod w.toNat (2 ^ 224)
   omega
 
-theorem accessControlUInt256_eq_one_eq {a b : UInt256}
-    (h : UInt256.eq a b = ⟨1⟩) : a = b :=
-  Reasoning.Theory.uInt256_eq_one_eq h
 
 theorem supportsInterfaceEqZero_of_padding_none {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size)
@@ -327,7 +204,7 @@ theorem supportsInterfaceEqZero_of_padding_none {I : ExecutionEnv}
   have hword :
       supportsInterfaceWord I =
         UInt256.land (supportsInterfaceWord I) supportsInterfaceMask :=
-    accessControlUInt256_eq_one_eq heq
+    uInt256_eq_one_eq heq
   exact (supportsInterfaceModNeZero_of_padding_none hsz36 hpad)
     (supportsInterfaceModZero_of_land_eq _ hword.symm)
 
@@ -344,11 +221,11 @@ theorem supportsInterfaceMaskedWord_toNat {I : ExecutionEnv} (hsz36 : 36 ≤ I.c
     omega
   have htailLen : (xs.drop 4).length = 28 := by rw [List.length_drop, hxsLen]
   have htailBound : fromBytesBigEndian (xs.drop 4) < 2 ^ 224 := by
-    have hb := accessControlFromBytesBigEndian_bound (xs.drop 4)
+    have hb := fromBytesBigEndian_bound (xs.drop 4)
     rw [htailLen] at hb
     simpa using hb
   have hxsBound : fromBytesBigEndian xs < 2 ^ 256 := by
-    have hb := accessControlFromBytesBigEndian_bound xs
+    have hb := fromBytesBigEndian_bound xs
     rw [hxsLen] at hb
     simpa using hb
   have hword := supportsInterfaceWord_toNat (I := I) hsz36
@@ -357,7 +234,7 @@ theorem supportsInterfaceMaskedWord_toNat {I : ExecutionEnv} (hsz36 : 36 ≤ I.c
   change Nat.land (fromBytesBigEndian xs) supportsInterfaceMask.toNat % UInt256.size =
     fromBytesBigEndian (xs.take 4) * 2 ^ 224
   rw [supportsInterfaceMask_toNat]
-  rw [accessControlNatLandClearLow224 (fromBytesBigEndian xs) hxsBound]
+  rw [natLandClearLow224 (fromBytesBigEndian xs) hxsBound]
   have hsplit :
       fromBytesBigEndian xs =
         fromBytesBigEndian (xs.take 4) * 2 ^ 224 + fromBytesBigEndian (xs.drop 4) := by
@@ -366,7 +243,7 @@ theorem supportsInterfaceMaskedWord_toNat {I : ExecutionEnv} (hsz36 : 36 ≤ I.c
           fromBytesBigEndian (xs.take 4 ++ xs.drop 4) := by
         exact congrArg fromBytesBigEndian (List.take_append_drop 4 xs).symm
       _ = fromBytesBigEndian (xs.take 4) * 2 ^ 224 + fromBytesBigEndian (xs.drop 4) := by
-        rw [accessControlFromBytesBigEndian_append, htailLen]
+        rw [fromBytesBigEndian_append, htailLen]
   rw [hsplit]
   have hdiv :
       (fromBytesBigEndian (xs.take 4) * 2 ^ 224 + fromBytesBigEndian (xs.drop 4)) /
@@ -374,7 +251,7 @@ theorem supportsInterfaceMaskedWord_toNat {I : ExecutionEnv} (hsz36 : 36 ≤ I.c
     omega
   rw [hdiv]
   have hheadBound : fromBytesBigEndian (xs.take 4) < 2 ^ 32 := by
-    have hb := accessControlFromBytesBigEndian_bound (xs.take 4)
+    have hb := fromBytesBigEndian_bound (xs.take 4)
     have hheadLen : (xs.take 4).length = 4 := by rw [List.length_take, hxsLen]; rfl
     rw [hheadLen] at hb
     simpa using hb
@@ -796,7 +673,7 @@ theorem accessControlSupportsInterfaceX_badpad {σ σ₀ A I} {g : Sat256}
 theorem accessControlSupportsInterfaceBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x01, 0xff, 0xc9, 0xa7]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨126⟩
@@ -804,7 +681,6 @@ theorem accessControlSupportsInterfaceBody {σ σ₀ A I}
       σ k C) :
     runtimeRefinementFor config contract
       σ σ₀ g A I := by
-  have _hperm : I.perm = true := hperm
   have hsz4 := supportsInterfaceSelector_size (by simpa [selIs] using hsel)
   have hd := accessControlDispatch_supportsInterface (cd := I.calldata) (by
     simpa [selIs] using hsel)

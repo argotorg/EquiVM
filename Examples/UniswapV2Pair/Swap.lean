@@ -105,9 +105,9 @@ theorem uniswapSwapBody
                     (by simp only [List.length_cons, List.length_nil]; omega)
                   have htokenSource := uniswapSwapTokenPrefix evmS I hreserveGuardSource
                   have ht1clean : UInt256.land
-                      (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩
+                      (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩
                         (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) solcAddrMask =
-                      UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩
+                      UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩
                         (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I) :=
                     solcAddrMask_clean (by rw [u256_land_comm]; exact solcAddrMask_result_canonical _)
                   have hvalidIff := swapRecipientValid_iff_runtime hpost heL
@@ -124,28 +124,28 @@ theorem uniswapSwapBody
                     obtain ⟨ht0, ht1, hto, ha0, ha1⟩ := swapTokenStore_transferGets evmL I
                     have htarget0 : EVM.address (uniswapAddressAtSlot evmL ⟨6⟩) =
                         AccountAddress.ofUInt256 (UInt256.land
-                          (UInt256.land solcAddrMask (uniswapSlotWord ⟨6⟩
+                          (UInt256.land solcAddrMask (solcSlotWordAt ⟨6⟩
                             (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) solcAddrMask) := by
-                      rw [uniswapAddress_self, uniswapAddressAtSlot_eq_runtime ⟨6⟩ hpost heL]
+                      rw [address_of_val, uniswapAddressAtSlot_eq_runtime ⟨6⟩ hpost heL]
                       exact congrArg AccountAddress.ofUInt256
-                        ((u256_land_comm _ solcAddrMask).trans (u256_land_solcAddrMask_idem_left _)).symm
+                        ((u256_land_comm _ solcAddrMask).trans (solcAddrMask_idem_left_left _)).symm
                     have htarget1 : EVM.address (uniswapAddressAtSlot evmL ⟨7⟩) =
                         AccountAddress.ofUInt256 (UInt256.land
-                          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩
+                          (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩
                             (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) solcAddrMask) := by
-                      rw [uniswapAddress_self, uniswapAddressAtSlot_eq_runtime ⟨7⟩ hpost heL]
+                      rw [address_of_val, uniswapAddressAtSlot_eq_runtime ⟨7⟩ hpost heL]
                       exact congrArg AccountAddress.ofUInt256
-                        ((u256_land_comm _ solcAddrMask).trans (u256_land_solcAddrMask_idem_left _)).symm
+                        ((u256_land_comm _ solcAddrMask).trans (solcAddrMask_idem_left_left _)).symm
                     have hrecipient : UInt256.ofNat (AccountAddress.ofNat (swapToWord I).toNat).val =
                         UInt256.land solcAddrMask (swapToMaskedWord I) := by
-                      rw [swapToMaskedWord, u256_land_solcAddrMask_idem_left]
+                      rw [swapToMaskedWord, solcAddrMask_idem_left_left]
                       exact (keyValueToWord_address _).symm.trans
                         (keyValueToWord_address_ofNat_mask (swapToWord I))
                     rcases uniswapSwapTransfersAnyDepthCases evmL (uniswapAddressAtSlot evmL ⟨6⟩)
                         (uniswapAddressAtSlot evmL ⟨7⟩) (AccountAddress.ofNat (swapToWord I).toNat)
                         rd1870 hpost heL
                         (by simp only [evmL, uniswapLockEnteredState, uniswapUnlockedState,
-                          balanceCallStorageStore_sigma0, evmS, initState])
+                          storageStore_σ0, evmS, initState])
                         (caller := { contract := contract, locals := swapTokenStore evmL I })
                         rfl ht0 ht1 hto ha0 ha1 htarget0 htarget1 hrecipient hperm
                         safeTransferMemoryReady_initial (by native_decide)
@@ -160,7 +160,7 @@ theorem uniswapSwapBody
                       rw [swapDataValue, swapDataBytes_eq_runtimeExtract hoff] at hbytesT
                       have htargetCb : EVM.address (AccountAddress.ofNat (swapToWord I).toNat) =
                           AccountAddress.ofUInt256 (UInt256.land solcAddrMask (swapToMaskedWord I)) := by
-                        rw [← hrecipient, accountAddress_roundtrip, uniswapAddress_self]
+                        rw [← hrecipient, accountAddress_roundtrip, address_of_val]
                       have hlenB : swapDataSize I ≤ 4294967296 := by
                         simpa only [solcLegacyMaxU32] using Nat.le_of_not_gt hlenHuge
                       have hcallbackData : (swapRuntimePayloadPtr I).toNat + (swapDataSizeWord I).toNat ≤ I.calldata.size := by
@@ -322,6 +322,58 @@ theorem uniswapSwapBody
                                     (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload) hbody
                                     haFinal
                                     (returnEquiv.fallthrough rfl rfl (by native_decide))
+          · exact uniswapSwapBodyDecodeFailed_payloadShort hcode hsize hwv hsel hsz132
+              hoff hlenWord hlenHuge hpayload hdispatch
+      · exact uniswapSwapBodyDecodeFailed_lengthShort hcode hsize hwv hsel hsz132
+          hoff (by omega) hdispatch
+  · exact uniswapSwapBodyDecodeFailed_headShort hcode hsize hwv hsel (by omega) hdispatch
+
+/-- `swap` with any call permission; a static call halts at the lock-entry `SSTORE`. -/
+theorem uniswapSwapBodyAnyPerm
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact uniswapSwapBody hcode hsize hperm hwv hsel hdispatch
+  replace hperm : I.perm = false := by simpa using hperm
+  by_cases hsz132 : 132 ≤ I.calldata.size
+  · by_cases hoff : solcLegacyMaxU32 < swapDataOffset I
+    · exact uniswapSwapBodyDecodeFailed_offsetHuge hcode hsize hwv hsel hsz132 hoff
+        hdispatch
+    · by_cases hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size
+      · by_cases hlenHuge : solcLegacyMaxU32 < swapDataSize I
+        · exact uniswapSwapBodyDecodeFailed_lengthHuge hcode hsize hwv hsel hsz132
+            hoff hlenWord hlenHuge hdispatch
+        · by_cases hpayload : (((I.calldata.toList.drop 4).drop
+              (swapDataOffset I + 32)).take (swapDataSize I)).length = swapDataSize I
+          · have hpayloadLe := swapPayloadPresent_le (I := I) hlenWord hpayload
+            have hsz4 : 4 ≤ I.calldata.size := by omega
+            obtain ⟨_, _, rd1475⟩ := uniswapSwapDecodeRuntimeOk hsize hsz132 hoff hlenWord
+              hlenHuge hpayloadLe
+              (uniswapReachSwapBody (σ := σ) (σ₀ := σ₀) (A := A)
+                (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
+            let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
+            have hstorage : Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ =
+                (σ.get? I.codeOwner |>.option ⟨0⟩
+                  (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) := by
+              rfl
+            have hdecode := uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload
+            by_cases hlocked : (σ.get? I.codeOwner |>.option ⟨0⟩
+                (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩
+            · exact (RD.uniswapSwapLockedReverts rd1475 hlocked
+                  (by simp only [List.length_cons, List.length_nil]; omega))
+                |>.reEquivExecutionRevert hcode hdispatch hdecode
+                  (uniswapSwapBodyReverts_locked evmS I (by simpa only [evmS, initState] using hwv)
+                    (by rw [hstorage]; exact hlocked))
+            · have hunlocked := not_not.mp hlocked
+              exact (RD.uniswapSwapLockEnteredStatic rd1475 hunlocked hperm
+                  (by simp only [List.length_cons, List.length_nil]; omega))
+                |>.reEquivStaticHalt hcode hdispatch hdecode
+                  (uniswapSwapBodyStatic evmS I (by simpa only [evmS, initState] using hwv)
+                    (hstorage.trans hunlocked) (by simpa only [evmS, initState] using hperm))
           · exact uniswapSwapBodyDecodeFailed_payloadShort hcode hsize hwv hsel hsz132
               hoff hlenWord hlenHuge hpayload hdispatch
       · exact uniswapSwapBodyDecodeFailed_lengthShort hcode hsize hwv hsel hsz132

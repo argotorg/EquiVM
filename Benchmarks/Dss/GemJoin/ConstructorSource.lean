@@ -1,3 +1,5 @@
+import Reasoning.ABIViews
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.GemJoin.ConstructorBase
 
 /-!
@@ -10,16 +12,6 @@ namespace Benchmarks.Dss.GemJoin
 
 set_option maxRecDepth 2000000
 
-private theorem accountAddress_of_word_val (a : AccountAddress) :
-    AccountAddress.ofNat (EVM.word a.val).toNat = a := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
-  exact accountAddress_roundtrip a
-
-private theorem evm_address_account (a : AccountAddress) :
-    EVM.address a = a := by
-  apply Fin.ext
-  change a.val % EVM.addressModulus = a.val
-  exact Nat.mod_eq_of_lt a.isLt
 
 abbrev gemJoinCtorAfterInitStores (evm : EVM.State) (vat : AccountAddress)
     (ilk : UInt256) (gem : AccountAddress) : EVM.State :=
@@ -93,14 +85,13 @@ theorem assign_gemJoinCtorWardsCaller (evm : EVM.State) {locals : Store}
         some evm' := by
     simpa [evm', gemJoinCtorAfterWardsState] using
       storageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 private theorem assign_gemJoinCtorAddressStorage (evm : EVM.State) (locals : Store)
@@ -108,7 +99,7 @@ private theorem assign_gemJoinCtorAddressStorage (evm : EVM.State) (locals : Sto
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
       (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
         (EVM.word addrValue.val))
@@ -128,13 +119,13 @@ private theorem assign_gemJoinCtorAddressStorage (evm : EVM.State) (locals : Sto
     simpa [addrLoc, evm'] using
       storageLocStore_address_offset0 evm slot (EVM.word addrValue.val)
         (word_val_addr_canonical addrValue)
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem .address) (loc := addrLoc slot)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem .address) (loc := addrLoc slot) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := hty)
     (hloc := hloc)
-    (hscalar := by trivial)
+
     (hstore := hstore)
 
 private theorem assign_gemJoinCtorUint256Storage (evm : EVM.State) (locals : Store)
@@ -142,58 +133,45 @@ private theorem assign_gemJoinCtorUint256Storage (evm : EVM.State) (locals : Sto
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some uint256St)
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot value
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage ref (.int (Int.ofNat value.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := er)
-      (loc := wordLoc slot)
+      (loc := wordLoc slot) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbase)
       (her := her)
       (hty := hty)
       (hloc := hloc)
   simpa [evm'] using storageLocStore_uint256 evm slot value
 
-private theorem valueToWord_ctorIlk (ilk : UInt256) :
-    valueToWord (.fixedBytes bytes32Width (EVM.Word.toBytesBE ilk)) = some ilk := by
-  have hlen : (EVM.Word.toBytesBE ilk).length = 32 := by
-    simpa using word_toBytesBE_toByteArray_size ilk
-  have hword : EVM.Word.ofNat (fromBytesBigEndian (EVM.Word.toBytesBE ilk)) = ilk := by
-    apply u256_inj
-    have hfrom : fromBytesBigEndian (EVM.Word.toBytesBE ilk) = ilk.toNat := by
-      have h := congrArg fromByteArrayBigEndian (word_toBytesBE_toByteArray_eq_toByteArray ilk)
-      simpa [fromByteArrayBigEndian, byteArray_toList_eq] using
-        h.trans (fromByteArrayBigEndian_toByteArray ilk)
-    rw [EVM.Word.ofNat, hfrom]
-    exact Nat.mod_eq_of_lt ilk.val.isLt
-  simp [valueToWord, bytes32Width, hlen, hword]
 
 private theorem assign_gemJoinCtorBytes32Storage (evm : EVM.State) (locals : Store)
     (ref : StorageRef) (er : EvaledStorageRef) (slot word : UInt256)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some bytes32St)
-    (hloc : config.storage.layout er = fun _ => some (bytes32Loc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (bytes32Loc slot))) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot word
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage ref (.fixedBytes bytes32Width (EVM.Word.toBytesBE word)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := bytes32St)
-      (loc := bytes32Loc slot)
+      (loc := bytes32Loc slot) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := hbase)
       (her := her)
       (hty := hty)
       (hloc := hloc)
-      (hscalar := by trivial)
+
   simpa [bytes32Loc, Reasoning.Theory.bytes32Loc, bytes32Width, evm'] using
     Reasoning.Theory.storageLocStore_bytes32 evm slot word
-      (.fixedBytes bytes32Width (EVM.Word.toBytesBE word)) (valueToWord_ctorIlk word)
+      (.fixedBytes bytes32Width (EVM.Word.toBytesBE word)) (valueToWord_bytes32_toBytesBE word)
 
 theorem assign_gemJoinCtorLiveStorage (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "live" = none) :
@@ -208,8 +186,7 @@ theorem assign_gemJoinCtorLiveStorage (evm : EVM.State) (locals : Store)
       (by simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (by
-        funext evm
-        simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+        simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_gemJoinCtorVatStorage (evm : EVM.State) (locals : Store)
     (vat : AccountAddress) (hbase : locals.get? "vat" = none) :
@@ -222,8 +199,7 @@ theorem assign_gemJoinCtorVatStorage (evm : EVM.State) (locals : Store)
     (by simp [vatRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_gemJoinCtorIlkStorage (evm : EVM.State) (locals : Store)
     (ilk : UInt256) (hbase : locals.get? "ilk" = none) :
@@ -236,8 +212,7 @@ theorem assign_gemJoinCtorIlkStorage (evm : EVM.State) (locals : Store)
     (by simp [ilkRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, bytes32St])
     (by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_gemJoinCtorGemStorage (evm : EVM.State) (locals : Store)
     (gem : AccountAddress) (hbase : locals.get? "gem" = none) :
@@ -250,8 +225,7 @@ theorem assign_gemJoinCtorGemStorage (evm : EVM.State) (locals : Store)
     (by simp [gemRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_gemJoinCtorDecStorage (evm : EVM.State) (locals : Store)
     (dec : UInt256) (hbase : locals.get? "dec" = none) :
@@ -266,8 +240,7 @@ theorem assign_gemJoinCtorDecStorage (evm : EVM.State) (locals : Store)
       (by simp [decRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (by
-        funext evm
-        simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+        simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem evalExpr_gemJoinCtorGemCodeGuard_true (evm : EVM.State)
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
@@ -291,7 +264,7 @@ theorem evalExpr_gemJoinCtorGemCodeGuard_true (evm : EVM.State)
   have hcode' :
       0 < (EVM.Word.ofNat
         (Option.option 0 (fun acc => acc.code.size) (State.lookupAccount evm gem))).toNat := by
-    simpa [evm_address_account gem] using hcode
+    simpa [eVM_address_id gem] using hcode
   have hgt : Int.ofNat
       (EVM.Word.ofNat
         (Option.option 0 (fun acc => acc.code.size) (State.lookupAccount evm gem))).toNat >
@@ -324,7 +297,7 @@ theorem evalExpr_gemJoinCtorGemCodeGuard_false (evm : EVM.State)
   have hcode' :
       ¬ 0 < (EVM.Word.ofNat
         (Option.option 0 (fun acc => acc.code.size) (State.lookupAccount evm gem))).toNat := by
-    simpa [evm_address_account gem] using hcode
+    simpa [eVM_address_id gem] using hcode
   have hnot : ¬ Int.ofNat
       (EVM.Word.ofNat
         (Option.option 0 (fun acc => acc.code.size) (State.lookupAccount evm gem))).toNat >

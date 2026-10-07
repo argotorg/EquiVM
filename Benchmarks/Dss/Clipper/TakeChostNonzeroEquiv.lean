@@ -326,8 +326,7 @@ theorem clipperTakeChostNoAdjustNonzeroEquiv
           .address (AccountAddress.ofNat who.toNat), .int (Int.ofNat slice.toNat)]
         (true, evmVat, outVat) true →
       ExecBlock config
-        (Frame.mk contract
-          (clipperTakeLocalsSlice evmLock evmPrice I false price slice) (immStore v)) evmPrice
+        (Frame.mk contract (clipperTakeLocalsSlice evmLock evmPrice I false price slice) (immStore v)) evmPrice
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [ .letDecl "owe" (some uint256) (.var "owe0"),
             clipperTakeOweAdjustmentStmt ] ++ clipperTakePostOweFluxStmts)
@@ -340,8 +339,7 @@ theorem clipperTakeChostNoAdjustNonzeroEquiv
         (by simpa [hwhoMasked] using hcallVat))
   have hsourceCloseReverted :
       ExecBlock config
-        (Frame.mk contract
-          (clipperTakeLocalsSlice evmLock evmPrice I false price slice) (immStore v)) evmPrice
+        (Frame.mk contract (clipperTakeLocalsSlice evmLock evmPrice I false price slice) (immStore v)) evmPrice
         (clipperTakeAfterSliceStmts) .reverted →
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -354,8 +352,7 @@ theorem clipperTakeChostNoAdjustNonzeroEquiv
     simpa [evm0, evmLock, sourceSlice, hslice] using htail
   have hsourceCloseReturned : ∀ {finalFrame : Frame} {finalEvm : EVM.State},
       ExecBlock config
-        (Frame.mk contract
-          (clipperTakeLocalsSlice evmLock evmPrice I false price slice) (immStore v)) evmPrice
+        (Frame.mk contract (clipperTakeLocalsSlice evmLock evmPrice I false price slice) (immStore v)) evmPrice
         (clipperTakeAfterSliceStmts) (.ok finalFrame finalEvm) →
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)

@@ -11,7 +11,7 @@ theorem createAdditionPrefix {I g s0 noun ret R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3172⟩ (noun :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨5704⟩
-      (UInt256.ofNat I.header.timestamp :: storedWord σ I ⟨206⟩ :: ⟨3189⟩ ::
+      (UInt256.ofNat I.header.timestamp :: solcSlotWord σ I ⟨206⟩ :: ⟨3189⟩ ::
         ⟨0⟩ :: UInt256.ofNat I.header.timestamp :: noun :: ret :: R)
       mem aw rdata σ k' C' := by
   have rd3175 := evm_run h with [jumpdest, push1 ⟨206⟩]
@@ -35,19 +35,19 @@ theorem createSuccessRoutine {I g s0 noun ret R mem aw ptr rdata σ k C evm loca
       createSuccessStmts .reverted ∧ RDrev auctionBytecode g s0) := by
   obtain ⟨_, _, rd5704⟩ := createAdditionPrefix h (by omega)
   by_cases hno : (UInt256.ofNat I.header.timestamp).toNat +
-      (storedWord σ I ⟨206⟩).toNat < UInt256.size
+      (solcSlotWord σ I ⟨206⟩).toNat < UInt256.size
   · have hb192 : ptr.toNat + 192 ≤ 2 ^ 200 := by omega
     obtain ⟨_, _, rd3189⟩ := checkedAddOk rd5704 hno (by jump_dest) (by evm_ov)
-    rw [u256_add_comm (storedWord σ I ⟨206⟩)] at rd3189
+    rw [u256_add_comm (solcSlotWord σ I ⟨206⟩)] at rd3189
     obtain ⟨_, _, rd3240⟩ := createSnapshotPrefix rd3189 hm hb192 hov
     obtain ⟨_, _, rd3274⟩ := createStorePrefix rd3240 hperm (by omega)
     have hh := (createdSnapshot noun (UInt256.ofNat I.header.timestamp)
-      (UInt256.ofNat I.header.timestamp + storedWord σ I ⟨206⟩)).mem_cursorHeap hm hb192
+      (UInt256.ofNat I.header.timestamp + solcSlotWord σ I ⟨206⟩)).mem_cursorHeap hm hb192
     have hp : (ptr + ⟨192⟩).toNat = ptr.toNat + 192 :=
       addWord_toNat ptr ⟨192⟩ (by change ptr.toNat + 192 < 2 ^ 256; omega)
     obtain ⟨_, _, rdret⟩ := createEvent rd3274 hh.cursor (by omega) hperm hret (by omega)
     exact Or.inl ⟨_, _, _, _, _, _, _, createSuccessSource hs ha hd hn hno,
-      hs.createdAuction _ _ _, rdret⟩
+      (SourceState.createdAuction hs) _ _ _, rdret⟩
   · exact Or.inr ⟨createSuccessSourceOverflow hs hd (by omega),
       checkedAddOverflow rd5704 (by omega) (by evm_ov)⟩
 

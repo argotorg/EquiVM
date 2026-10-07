@@ -1,3 +1,5 @@
+import Reasoning.WordArithmetic
+import Reasoning.Memory
 import Benchmarks.Dss.Jug.Common
 import Reasoning.ExternalCall
 import Reasoning.Initcode
@@ -11,6 +13,80 @@ semantics proofs.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Jug
+
+theorem wordAt0Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
+    (wordAt0Mem word mem).size = 160 := by
+  unfold wordAt0Mem
+  exact toByteArray_write32_size_of_le mem word 0 160 160 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem wordAt32Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
+    (wordAt32Mem word mem).size = 160 := by
+  unfold wordAt32Mem
+  exact toByteArray_write32_size_of_le mem word 32 160 160 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem twoWordHashMem_read0_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 =
+      UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)]
+  exact wordAt0Mem_read0 key mem
+
+theorem twoWordHashMem_read32_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 =
+      UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_160 key hmem]; omega)]
+  exact toByteArray_extract_all slot
+
+theorem twoWordHashMem_read0_64_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem)]
+  have hleft :
+      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract _ 0 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem),
+      twoWordHashMem_read0_160 key slot hmem]
+  have hright :
+      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract _ 32 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem),
+      twoWordHashMem_read32_160 key slot hmem]
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+        (twoWordHashMem key slot mem).extract 32 64 by
+    rw [ByteArray.extract_append_extract]
+    norm_num]
+  rw [hleft, hright]
+
+end Benchmarks.Dss.Jug
+
+end
 
 namespace Benchmarks.Dss.Jug
 
@@ -101,83 +177,6 @@ theorem jugCreationBytecode_runtime_window :
     jugCreationBytecode.extract 120 (120 + 2440) = jugBytecode := by
   native_decide
 
--- LIBRARY CANDIDATE: a generic `ByteArray.write` normalization when a copy extends a base.
-private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : ℕ)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
-    (hbase : base.size ≤ destAddr) (hgap : destAddr - base.size < USize.size) :
-    src.write srcAddr base destAddr len =
-      base ++ ByteArray.zeroes (destAddr - base.size) ++
-        src.extract srcAddr (srcAddr + len) := by
-  have hsrcNonempty : ¬ srcAddr ≥ src.size := by omega
-  have hcopy : min len (src.size - srcAddr) = len := by
-    rw [Nat.min_eq_left]
-    omega
-  have hcopyData : min len (src.data.size - srcAddr) = len := by
-    rw [show src.data.size = src.size from rfl]
-    exact hcopy
-  have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by
-    have hle : min base.size (destAddr + len) ≤ destAddr + len := Nat.min_le_right _ _
-    omega
-  have hDsz :
-      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size =
-        destAddr := by
-    rw [Array.size_append]
-    have hz :
-        (ByteArray.zeroes (destAddr - base.size)).data.size =
-          destAddr - base.size := by
-      rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
-        ByteArray_zeroes_size]
-    rw [hz]
-    change base.size + (destAddr - base.size) = destAddr
-    omega
-  apply ByteArray.ext
-  unfold ByteArray.write
-  rw [if_neg hlen, if_neg hsrcNonempty]
-  simp only [ByteArray.data_copySlice, ByteArray.data_append]
-  change (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract 0
-          destAddr ++
-        (src.data ++
-            (ByteArray.zeroes
-              (min base.size (destAddr + len) -
-                (destAddr + min len (src.size - srcAddr)))).data).extract
-          srcAddr
-          (srcAddr +
-            (min len (src.size - srcAddr) +
-              (min base.size (destAddr + len) -
-                (destAddr + min len (src.size - srcAddr))))) ++
-        (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract
-          (destAddr +
-            min
-              (min len (src.size - srcAddr) +
-                (min base.size (destAddr + len) -
-                  (destAddr + min len (src.size - srcAddr))))
-              ((src.data ++
-                    (ByteArray.zeroes
-                      (min base.size (destAddr + len) -
-                        (destAddr + min len (src.size - srcAddr)))).data).size -
-                srcAddr)) =
-      base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
-        (src.extract srcAddr (srcAddr + len)).data
-  rw [hcopy, htail]
-  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
-    rw [zeroes_zero (n := 0) (by rfl)]
-    rfl]
-  simp only [Array.append_empty, Nat.add_zero]
-  rw [Array.extract_eq_self_of_le (by rw [hDsz])]
-  rw [show src.data.extract srcAddr (srcAddr + len) =
-      (src.extract srcAddr (srcAddr + len)).data from by rw [ByteArray.data_extract]]
-  rw [hcopyData]
-  rw [show
-      (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract
-        (destAddr + len) = #[] from by
-    apply Array.extract_eq_empty_of_le
-    rw [hDsz]
-    omega]
-  simp only [Array.append_empty]
 
 def jugCtorArgMem (vat : AccountAddress) : ByteArray :=
   (jugCtorCode vat).write 2560 solcFreePtrMem 128 32
@@ -254,17 +253,6 @@ abbrev jugCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
 def jugCtorWardsHashMem (I : ExecutionEnv) (vat : AccountAddress) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ (jugCtorArgFreeMem vat)
 
-private theorem wordAt0Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
-    (wordAt0Mem word mem).size = 160 := by
-  unfold wordAt0Mem
-  exact toByteArray_write32_size_of_le mem word 0 160 160 hmem
-    (by rw [hmem]; omega) (by omega)
-
-private theorem wordAt32Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
-    (wordAt32Mem word mem).size = 160 := by
-  unfold wordAt32Mem
-  exact toByteArray_write32_size_of_le mem word 32 160 160 hmem
-    (by rw [hmem]; omega) (by omega)
 
 theorem jugCtorWardsHashMem_size (I : ExecutionEnv) (vat : AccountAddress) :
     (jugCtorWardsHashMem I vat).size = 160 := by
@@ -272,56 +260,6 @@ theorem jugCtorWardsHashMem_size (I : ExecutionEnv) (vat : AccountAddress) :
   exact wordAt32Mem_size_160 ⟨0⟩
     (wordAt0Mem_size_160 (solcSourceWord I) (jugCtorArgFreeMem_size vat))
 
-private theorem twoWordHashMem_read0_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 =
-      UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)]
-  exact wordAt0Mem_read0 key mem
-
-private theorem twoWordHashMem_read32_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 =
-      UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_160 key hmem]; omega)]
-  exact toByteArray_extract_all slot
-
-private theorem twoWordHashMem_read0_64_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by
-        unfold twoWordHashMem
-        rw [wordAt32Mem_size_160]
-        · omega
-        · exact wordAt0Mem_size_160 key hmem)]
-  have hleft :
-      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0 (by
-        unfold twoWordHashMem
-        rw [wordAt32Mem_size_160]
-        · omega
-        · exact wordAt0Mem_size_160 key hmem),
-      twoWordHashMem_read0_160 key slot hmem]
-  have hright :
-      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32 (by
-        unfold twoWordHashMem
-        rw [wordAt32Mem_size_160]
-        · omega
-        · exact wordAt0Mem_size_160 key hmem),
-      twoWordHashMem_read32_160 key slot hmem]
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-        (twoWordHashMem key slot mem).extract 32 64 by
-    rw [ByteArray.extract_append_extract]
-    norm_num]
-  rw [hleft, hright]
 
 theorem jugCtorWardsHashSlot (I : ExecutionEnv) (vat : AccountAddress) :
     UInt256.ofNat (fromByteArrayBigEndian
@@ -351,14 +289,6 @@ theorem jugCtorReturnMem_read (I : ExecutionEnv) (vat : AccountAddress) :
       (by rw [jugCreationBytecode_size])
   rw [hleft, jugCreationBytecode_runtime_window]
 
-theorem word_val_addr_canonical (a : AccountAddress) :
-    (EVM.word a.val).toNat < EVM.addressModulus := by
-  have hsize : AccountAddress.size < UInt256.size := by decide
-  have hval : (EVM.word a.val).toNat = a.val := by
-    change (UInt256.ofNat a.val).toNat = a.val
-    rw [UInt256.toNat_ofNat_of_lt (lt_trans a.isLt hsize)]
-  rw [hval]
-  exact a.isLt
 
 abbrev jugCtorVatStored (σ : AccountMap) (I : ExecutionEnv) (vat : AccountAddress) : UInt256 :=
   setAddressOffset0Word (solcSlotWord σ I ⟨2⟩) (EVM.word vat.val)

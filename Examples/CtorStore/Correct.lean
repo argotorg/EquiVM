@@ -1,3 +1,4 @@
+import Reasoning.Storage
 import Examples.CtorStore.Bytecode
 import Reasoning.Memory
 import Reasoning.Solc
@@ -46,7 +47,7 @@ theorem ctorStoreRuntimeRevert {σ σ₀ A I} {g : Sat256}
 
 theorem ctorStoreRuntimeCorrect :
     runtimeRefinement ctorStoreConfig ctorStoreRuntimeBytecode CtorStore.contract := by
-  refine ⟨fun σ σ₀ g A I hcode _hsize _hperm => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode _hsize => ?_⟩
   exact (ctorStoreRuntimeRevert (σ := σ)
     (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode).reEquivNoDispatch hcode
@@ -299,17 +300,8 @@ theorem ctorStoreLocStore (evm : EVM.State) (i : Int) (h0 : 0 ≤ i) :
         { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
           type := .int (.uint ⟨256, by decide⟩) } (.int i)
       = some (EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ (EVM.word i.toNat)) := by
-  unfold storageLocStore storageLocWriteWord
-  simp only [valueToWord, wordOfInt_nonneg i h0, bind, Option.bind, pure]
-  have hslen := (EVM.Word.toBytesLEWithSizeProof (EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)).2
-  have hvlen := (EVM.Word.toBytesLEWithSizeProof (EVM.word i.toNat)).2
-  congr 2
-  apply u256_inj
-  show fromBytes' (List.take (0:Fin 32).val _ ++ List.take (32:Fin 33).val _
-        ++ List.drop ((0:Fin 32).val + (32:Fin 33).val) _) = (EVM.word i.toNat).toNat
-  rw [show (0:Fin 32).val = 0 from rfl, show (32:Fin 33).val = 32 from rfl,
-      List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by omega), List.append_nil,
-      List.take_of_length_le (by omega), fromBytes'_toBytesLEWithSizeProof]
+  simpa only [wordOfInt_nonneg i h0] using
+    (storageLocStore_uint256_int evm (⟨0⟩ : UInt256) i)
 
 theorem ctorStoreAssign (evm : EVM.State) (L : Store) (i : Int)
     (h0 : 0 ≤ i) (hbase : L.get? "stored" = none) :
@@ -323,10 +315,14 @@ theorem ctorStoreAssign (evm : EVM.State) (L : Store) (i : Int)
   have hty : storageTypeAt? CtorStore.contract.storage { base := "stored", steps := [] } =
       some (.elem (.int (.uint ⟨256, by decide⟩))) := by
     simp [storageTypeAt?, CtorStore.contract]
-  have hloc : ctorStoreConfig.storage.layout { base := "stored", steps := [] } =
-      fun _ => some { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
-                      type := .int (.uint ⟨256, (by decide)⟩) } := rfl
-  exact assignStorageRef_storage_scalar hbase her hty hloc (ctorStoreLocStore _ _ h0)
+  have hbackend : ctorStoreConfig.storageBackend =
+      solidityStorageBackend CtorStore.generatedStorageBackend.locate? := rfl
+  have hloc : CtorStore.generatedStorageBackend.locate?
+      { base := "stored", steps := [] } =
+      some (.leaf { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
+                    type := .int (.uint ⟨256, (by decide)⟩) }) := rfl
+  exact assignStorageRef_storage_scalar hbase her hty hbackend hloc
+    (Or.inl ⟨_, rfl⟩) (ctorStoreLocStore _ _ h0)
 
 theorem ctorStoreCtorBodyReturns (evm : EVM.State) (locals : Store) (i : Int)
     (h0 : 0 ≤ i)

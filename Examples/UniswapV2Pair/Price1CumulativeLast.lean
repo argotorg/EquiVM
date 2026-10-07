@@ -10,7 +10,7 @@ namespace UniswapV2Pair
 /-! ## `price1CumulativeLast()` getter -/
 
 def price1CumulativeLastWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  uniswapSlotWord ⟨10⟩ σ I
+  solcSlotWordAt ⟨10⟩ σ I
 
 /-- The Solm `price1CumulativeLast()` body returns the uint256 stored in slot 10. -/
 theorem uniswapPrice1CumulativeLastBodyReturns (evm : EVM.State) (locals : Store)
@@ -65,7 +65,7 @@ theorem uniswapPrice1CumulativeLastBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (price1CumulativeLastWord σ I).toNat))])) := by
-    simpa [price1CumulativeLastWord, uniswapSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [price1CumulativeLastWord, solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       uniswapPrice1CumulativeLastBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

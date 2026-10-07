@@ -13,7 +13,7 @@ structure ExternalCallABI where
   decode? : Ident -> EVM.Bytes-> Option (List Value)
 
 structure Config where
-  storage : StorageLayout
+  storageBackend : StorageBackend
   externalABI : ExternalCallABI
   abiDecodeMode : ABI.DecodeMode := ABI.DecodeMode.modern
   /-- Initialisation code (creation bytecode ++ ABI-encoded constructor args) for a

@@ -5,21 +5,12 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
 namespace Benchmarks.Dss.Vow
-
-/-! ## `cage()` runtime assembly helpers -/
-
-def cageFirstVatDaiStmts : List Stmt :=
-  checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [.storage flapperRef]
-    "flapperDai" (perm := false)
-
-def cageFlapperCageStmts : List Stmt :=
-  checkedExternalCallStmts (.storage flapperRef) "cage" (.intLit 0)
-    [.var "flapperDai"] "_flapCageRet"
-
-def cageAfterFlapperStmts : List Stmt :=
-  cageFlopperCageStmts ++ cageVatDaiStmts ++ cageVatSinStmts ++ cageMinStmts ++
-  cageVatHealStmts
 
 theorem returnWrite_size_164 {base : ByteArray} (o : ByteArray) (L : ℕ)
     (hbase : base.size = 164) (hL : L ≤ 32) (hLo : L ≤ o.size) :
@@ -49,6 +40,27 @@ theorem returnWrite_read128_32 {base : ByteArray} (o : ByteArray)
     (hbase : base.size = 164) (ho32 : 32 ≤ o.size) :
     (o.write 0 base 128 32).readWithPadding 128 32 = o.extract 0 32 :=
   write32_read_back o base 128 ho32 (by rw [hbase]; omega)
+
+end Benchmarks.Dss.Vow
+
+end
+
+namespace Benchmarks.Dss.Vow
+
+/-! ## `cage()` runtime assembly helpers -/
+
+def cageFirstVatDaiStmts : List Stmt :=
+  checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [.storage flapperRef]
+    "flapperDai" (perm := false)
+
+def cageFlapperCageStmts : List Stmt :=
+  checkedExternalCallStmts (.storage flapperRef) "cage" (.intLit 0)
+    [.var "flapperDai"] "_flapCageRet"
+
+def cageAfterFlapperStmts : List Stmt :=
+  cageFlopperCageStmts ++ cageVatDaiStmts ++ cageVatSinStmts ++ cageMinStmts ++
+  cageVatHealStmts
+
 
 theorem cageFirstVatDaiNoCode
     {evm : EVM.State}
@@ -455,8 +467,8 @@ theorem cageFirstDaiFlapperCageSuccess
 
 theorem cageSourceFirstDaiNoCode {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hvatNoCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
@@ -513,8 +525,8 @@ theorem cageSourceFirstDaiNoCode {σ σ₀ A I} {g : UInt256}
 theorem cageSourceFirstDaiCallFailure
     {σ σ₀ A I} {g : UInt256} {evmDai : EVM.State} {outDai : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
@@ -581,8 +593,8 @@ theorem cageSourceFirstDaiCallFailure
 theorem cageSourceFirstDaiReturnDecodeFailure
     {σ σ₀ A I} {g : UInt256} {evmDai : EVM.State} {outDai : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
@@ -652,8 +664,8 @@ theorem cageSourceFlapperCageNoCode
     {σ σ₀ A I} {g flapperDai : UInt256}
     {evmDai : EVM.State} {outDai : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
@@ -729,8 +741,8 @@ theorem cageSourceFlapperCageCallFailure
     {σ σ₀ A I} {g flapperDai : UInt256}
     {evmDai evmFlap : EVM.State} {outDai outFlap : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
@@ -811,8 +823,8 @@ theorem cageSourceFlopperCageNoCode
     {σ σ₀ A I} {g flapperDai : UInt256}
     {evmDai evmFlap : EVM.State} {outDai outFlap : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
@@ -909,8 +921,8 @@ theorem cageSourceFlopperCageCallFailure
     {σ σ₀ A I} {g flapperDai : UInt256}
     {evmDai evmFlap evmFlop : EVM.State} {outDai outFlap outFlop : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
@@ -1034,7 +1046,7 @@ theorem RD.vowCageFirstDaiPostCallDecodeOk
   have hbaseRead64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     simpa [base] using vatDaiCalldataMemFor_read64_of_size96 target hmem hread64
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai.size)).toNat = 32 :=
-    kissDaiMin32_toNat_of_ge ho32 hosz
+    ctorMin32_toNat_of_ge ho32 hosz
   have rd2754Write := rd2754
   rw [hmin] at rd2754Write
   obtain ⟨_, _, rd2772⟩ :=
@@ -1076,8 +1088,8 @@ theorem vowCageFirstDaiNoCodeBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩)
-    (hauthEvm : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hliveEvm : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauthEvm : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hliveEvm : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord
         (vowCageClearedAccountMap I.codeOwner σ)
@@ -1111,7 +1123,7 @@ theorem vowCageFirstDaiNoCodeBodyCore {σ σ₀ A I} {g : UInt256}
   have hcodeSizeRaw :
       Reasoning.Theory.extCodeSizeWord σClearedEvm
         (UInt256.land solcAddrMask (solcSlotWord σClearedEvm I ⟨1⟩)) = ⟨0⟩ := by
-    simpa [σClearedEvm, kissDaiTargetWord, vowSlotWord, solcSlotWord,
+    simpa [σClearedEvm, kissDaiTargetWord, solcSlotWordAt, solcSlotWord,
       u256_land_comm] using hcodeSize
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
@@ -1131,9 +1143,9 @@ theorem vowCageFirstDaiNoCodeBodyCore {σ σ₀ A I} {g : UInt256}
       simp [evmAsh, evmSin, evmLive, evm0, initState, storageStore_executionEnv]
     have hload :
         Solm.EVM.storageLoad evmAsh I.codeOwner ⟨1⟩ =
-          vowSlotWord ⟨1⟩ evmAsh.accountMap I := by
-      simpa [howner] using flapStorageLoad_codeOwner_eq_vowSlotWord evmAsh I ⟨1⟩ howner
-    simp only [cageVatAddressOf, kissVatAddress, vowAddressReturnWord]
+          solcSlotWordAt ⟨1⟩ evmAsh.accountMap I := by
+      simpa [howner] using storageLoad_codeOwner_eq_solcSlotWordAt evmAsh I ⟨1⟩ howner
+    simp only [cageVatAddressOf, kissVatAddress, solcAddressSlotWord]
     rw [howner, hload]
     simp [
       σClearedSolm, evmAsh, evmSin, evmLive, evm0, initState, storageStore_accountMap,
@@ -1163,8 +1175,8 @@ theorem vowCageFirstDaiCallFailureBodyCore
     {evmDai : EVM.State} {mem outDai rdata : ByteArray} {aw : UInt256}
     {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
@@ -1206,8 +1218,8 @@ theorem vowCageFirstDaiDecodeShortBodyCore
     {acc : AccountMap}
     {evmDai : EVM.State} {base outDai : ByteArray} {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
@@ -1243,7 +1255,7 @@ theorem vowCageFirstDaiDecodeShortBodyCore
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hmin :
       (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai.size)).toNat = outDai.size :=
-    kissDaiMin32_toNat_of_lt hshort
+    ctorMin32_toNat_of_lt hshort
   have rd2754Short := rd2754
   rw [hmin] at rd2754Short
   obtain ⟨_, _, rd2772⟩ :=
@@ -1281,8 +1293,8 @@ theorem vowCageFlapperCageNoCodeBodyCore
     {evmDai : EVM.State} {mem outDai rdata : ByteArray} {k C : ℕ}
     {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
@@ -1334,8 +1346,8 @@ theorem vowCageFlapperCageCallFailureBodyCore
     {evmDai evmFlap : EVM.State} {mem outDai outFlap rdata : ByteArray}
     {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
@@ -1390,8 +1402,8 @@ theorem vowCageFlopperCageNoCodeBodyCore
     {evmDai evmFlap : EVM.State} {mem outDai outFlap rdata : ByteArray}
     {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
@@ -1403,7 +1415,7 @@ theorem vowCageFlopperCageNoCodeBodyCore
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc
-        (vowAddressReturnWord ⟨3⟩ acc I) = ⟨0⟩)
+        (solcAddressSlotWord ⟨3⟩ acc I) = ⟨0⟩)
     (hov : R.length + 15 ≤ 1024)
     (hvatCode :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1454,8 +1466,8 @@ theorem vowCageFlopperCageCallFailureBodyCore
     {mem outDai outFlap outFlop rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)

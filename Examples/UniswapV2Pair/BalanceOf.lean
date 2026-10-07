@@ -70,7 +70,7 @@ theorem uniswapBalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             (balanceOfStorageSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar (t := .int uint256Int)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
         (er := ({ base := "balanceOf", steps := [.mindex (balanceOfOwnerKey I)] } :
           EvaledStorageRef))
         (loc := wordLoc (balanceOfStorageSlot I))
@@ -81,7 +81,7 @@ theorem uniswapBalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             EvalResult.ofOption, bind, pure, evalExpr?])
         (hty := by rfl)
         (hloc := by rfl)]
-      exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm (balanceOfStorageSlot I)))
+      exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (balanceOfStorageSlot I)))
 
 /-! ## EVM trace -/
 

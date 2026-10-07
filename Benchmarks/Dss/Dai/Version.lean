@@ -37,7 +37,7 @@ private def daiVersionLiteralWord : UInt256 :=
   UInt256.shiftLeft daiVersionRawWord ⟨248⟩
 
 private theorem daiVersionReturnRead :
-    (daiStringAbiMem3 daiVersionLen daiVersionLiteralWord).readWithPadding 192 96 =
+    (solcStringAbiMem3 daiVersionLen daiVersionLiteralWord).readWithPadding 192 96 =
       daiVersionReturnBytes := by
   native_decide
 
@@ -57,18 +57,18 @@ theorem daiX_version_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     dup1, push1 ⟨64⟩, add, push1 ⟨64⟩]
   have h2256 := evm_run h2255 with [
-    raw mstore 0 daiStringObjectMem0 (UInt256.ofNat 3) (by native_decide)
+    raw mstore 0 solcStringObjectMem0 (UInt256.ofNat 3) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h2260 := evm_run h2256 with [dup1, push1 daiVersionLen, dup2]
   have h2261 := evm_run h2260 with [
-    raw mstore 6 (daiStringObjectMem1 daiVersionLen) (UInt256.ofNat 5)
+    raw mstore 6 (solcStringObjectMem1 daiVersionLen) (UInt256.ofNat 5)
       (by native_decide) mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h2264 := evm_run h2261 with [push1 ⟨32⟩, add]
   have h2266 := h2264.pushConst daiVersionRawWord
     (width := 1) (op := .PUSH1) (by decide) (by native_decide) (by evm_ov)
   have h2270 := evm_run h2266 with [push1 ⟨248⟩, shl, dup2]
   have h2271 := evm_run h2270 with [
-    raw mstore 3 (daiStringObjectMem daiVersionLen daiVersionLiteralWord)
+    raw mstore 3 (solcStringObjectMem daiVersionLen daiVersionLiteralWord)
       (UInt256.ofNat 6) (by native_decide) mem_cost
       (by native_decide) (by decide) (by evm_ov)]
   have h335 := evm_run h2271 with [pop, dup2, jump (by jump_dest)]
@@ -77,7 +77,7 @@ theorem daiX_version_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 ⟨192⟩ (UInt256.ofNat 6) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup1, dup3,
-    raw mstore 3 (daiStringAbiMem0 daiVersionLen daiVersionLiteralWord)
+    raw mstore 3 (solcStringAbiMem0 daiVersionLen daiVersionLiteralWord)
       (UInt256.ofNat 7) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h350 := evm_run h344 with [
@@ -85,7 +85,7 @@ theorem daiX_version_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 daiVersionLen (UInt256.ofNat 7) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     dup2, dup4, add,
-    raw mstore 3 (daiStringAbiMem1 daiVersionLen daiVersionLiteralWord)
+    raw mstore 3 (solcStringAbiMem1 daiVersionLen daiVersionLiteralWord)
       (UInt256.ofNat 8) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h367 := evm_run h350 with [
@@ -101,7 +101,7 @@ theorem daiX_version_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 daiVersionLiteralWord (UInt256.ofNat 8) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     dup4, dup3, add,
-    raw mstore 3 (daiStringAbiMem2 daiVersionLen daiVersionLiteralWord)
+    raw mstore 3 (solcStringAbiMem2 daiVersionLen daiVersionLiteralWord)
       (UInt256.ofNat 9) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨369⟩, jump (by jump_dest)]
@@ -115,7 +115,7 @@ theorem daiX_version_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 daiVersionLiteralWord (UInt256.ofNat 9) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨1⟩, dup4, push1 ⟨32⟩, sub, push2 ⟨256⟩, exp, sub, not, and, dup2,
-    raw mstore 0 (daiStringAbiMem3 daiVersionLen daiVersionLiteralWord)
+    raw mstore 0 (solcStringAbiMem3 daiVersionLen daiVersionLiteralWord)
       (UInt256.ofNat 9) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, swap2, pop]
@@ -169,7 +169,7 @@ theorem daiDecode_version_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
 /-- `version()` body refines its Solm transition. -/
 theorem daiVersionBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 20)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=

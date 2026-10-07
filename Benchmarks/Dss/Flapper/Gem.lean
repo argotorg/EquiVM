@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flapper
 /-! ## `gem()` getter -/
 
 def gemWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flapperAddressReturnWord ⟨3⟩ σ I
+  solcAddressSlotWord ⟨3⟩ σ I
 
 theorem flapperDecode_gem {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (gemTransition.params.map Param.name)
@@ -56,7 +56,6 @@ theorem flapperReachGemBody {σ σ₀ A I} {g : Sat256}
 theorem flapperGemBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 7)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -68,7 +67,7 @@ theorem flapperGemBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (gemWord σ I).toNat))])) := by
-    simpa [gemTransition, gemWord, flapperAddressReturnWord, initState, Solm.EVM.storageLoad,
+    simpa [gemTransition, gemWord, solcAddressSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flapperAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

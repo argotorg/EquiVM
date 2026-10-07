@@ -36,49 +36,49 @@ namespace Benchmarks.Dss.Flopper
 theorem flopperCorrect :
     runtimeRefinement config flopperBytecode contract := by
   refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize hperm
+  intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbeg : selIs I (flopperSelBytes 0)
-    · exact flopperBegBody hcode hsize hperm hwv hbeg
+    · exact flopperBegBody hcode hsize hwv hbeg
     · by_cases hbids : selIs I (flopperSelBytes 1)
-      · exact flopperBidsBody hcode hsize hperm hwv hbids
+      · exact flopperBidsBody hcode hsize hwv hbids
       · by_cases hcage : selIs I (flopperSelBytes 2)
-        · exact flopperCageBodyCore hcode hsize hperm hwv hcage
+        · exact flopperCageBodyCore hcode hsize hwv hcage
         · by_cases hdeal : selIs I (flopperSelBytes 3)
-          · exact flopperDealBody hcode hsize hperm hwv hdeal
+          · exact flopperDealBody hcode hsize hwv hdeal
           · by_cases hdent : selIs I (flopperSelBytes 4)
-            · exact flopperDentBody hcode hsize hperm hwv hdent
+            · exact flopperDentBody hcode hsize hwv hdent
             · by_cases hdeny : selIs I (flopperSelBytes 5)
-              · exact flopperDenyBody hcode hsize hperm hwv hdeny
+              · exact flopperDenyBody hcode hsize hwv hdeny
               · by_cases hfile : selIs I (flopperSelBytes 6)
-                · exact flopperFileBodyCore hcode hsize hperm hwv hfile
+                · exact flopperFileBodyCore hcode hsize hwv hfile
                 · by_cases hgem : selIs I (flopperSelBytes 7)
-                  · exact flopperGemBody hcode hsize hperm hwv hgem
+                  · exact flopperGemBody hcode hsize hwv hgem
                   · by_cases hkick : selIs I (flopperSelBytes 8)
-                    · exact flopperKickBody hcode hsize hperm hwv hkick
+                    · exact flopperKickBody hcode hsize hwv hkick
                     · by_cases hkicks : selIs I (flopperSelBytes 9)
-                      · exact flopperKicksBody hcode hsize hperm hwv hkicks
+                      · exact flopperKicksBody hcode hsize hwv hkicks
                       · by_cases hlive : selIs I (flopperSelBytes 10)
-                        · exact flopperLiveBody hcode hsize hperm hwv hlive
+                        · exact flopperLiveBody hcode hsize hwv hlive
                         · by_cases hpad : selIs I (flopperSelBytes 11)
-                          · exact flopperPadBody hcode hsize hperm hwv hpad
+                          · exact flopperPadBody hcode hsize hwv hpad
                           · by_cases hrely : selIs I (flopperSelBytes 12)
-                            · exact flopperRelyBody hcode hsize hperm hwv hrely
+                            · exact flopperRelyBody hcode hsize hwv hrely
                             · by_cases htau : selIs I (flopperSelBytes 13)
-                              · exact flopperTauBody hcode hsize hperm hwv htau
+                              · exact flopperTauBody hcode hsize hwv htau
                               · by_cases htick : selIs I (flopperSelBytes 14)
-                                · exact flopperTickBody hcode hsize hperm hwv htick
+                                · exact flopperTickBody hcode hsize hwv htick
                                 · by_cases httl : selIs I (flopperSelBytes 15)
-                                  · exact flopperTtlBody hcode hsize hperm hwv httl
+                                  · exact flopperTtlBody hcode hsize hwv httl
                                   · by_cases hvat : selIs I (flopperSelBytes 16)
-                                    · exact flopperVatBody hcode hsize hperm hwv hvat
+                                    · exact flopperVatBody hcode hsize hwv hvat
                                     · by_cases hvow : selIs I (flopperSelBytes 17)
-                                      · exact flopperVowBody hcode hsize hperm hwv hvow
+                                      · exact flopperVowBody hcode hsize hwv hvow
                                       · by_cases hwards : selIs I (flopperSelBytes 18)
-                                        · exact flopperWardsBody hcode hsize hperm hwv hwards
+                                        · exact flopperWardsBody hcode hsize hwv hwards
                                         · by_cases hyank : selIs I (flopperSelBytes 19)
-                                          · exact flopperYankBody hcode hsize hperm hwv hyank
-                                          · exact flopperNoDispatch hcode hsize hperm hwv
+                                          · exact flopperYankBody hcode hsize hwv hyank
+                                          · exact flopperNoDispatch hcode hsize hwv
                                               (flopperNoSelectorMatches hbeg hbids hcage hdeal
                                                 hdent hdeny hfile hgem hkick hkicks hlive hpad hrely
                                                 htau htick httl hvat hvow hwards hyank)

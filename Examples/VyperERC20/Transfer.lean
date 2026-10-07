@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.VyperERC20.Approve
 import Reasoning.Initcode
 
@@ -185,6 +186,10 @@ theorem transferStoreNewToBalance_to_getElem? (evm : EVM.State) (I : ExecutionEn
     (transferStoreNewToBalance evm I)["to"]? = some (transferToValue I) := by
   rw [← Std.HashMap.get?_eq_getElem?, transferStoreNewToBalance_to]
 
+theorem transferStoreNewToBalance_value (evm : EVM.State) (I : ExecutionEnv) :
+    (transferStoreNewToBalance evm I).get? "value" = some (transferValueValue I) := by
+  rw [transferStoreNewToBalance, store_get_ne _ _ (by decide), transferStoreToBalance_value]
+
 theorem transferStoreNewToBalance_balanceOf (evm : EVM.State) (I : ExecutionEnv) :
     (transferStoreNewToBalance evm I).get? "balanceOf" = none := by
   rw [transferStoreNewToBalance, store_get_ne _ _ (by decide), transferStoreToBalance,
@@ -221,6 +226,22 @@ theorem evalExpr_transfer_value (evm : EVM.State) (I : ExecutionEnv) :
   simp only [evalExpr?, EvalResult.ofOption]
   rw [transferStore_value]
 
+theorem evalExpr_transfer_value_newToBalance (evm evm' : EVM.State) (I : ExecutionEnv) :
+    evalExpr? vyperERC20Config
+      { contract := erc20Contract, locals := transferStoreNewToBalance evm I } evm'
+      (.var "value") = .ok (transferValueValue I) := by
+  simp only [evalExpr?, EvalResult.ofOption]
+  rw [transferStoreNewToBalance_value]
+
+/-- The `Transfer(msg.sender, to, value)` event arguments of the shared ERC20 spec. -/
+theorem evalExprs_transfer_event (evm evm' : EVM.State) (I : ExecutionEnv) :
+    evalExprs? vyperERC20Config
+      { contract := erc20Contract, locals := transferStoreNewToBalance evm I } evm'
+      [ERC20.sender, .var "to", .var "value"]
+      = .ok [.address evm'.executionEnv.source, transferToValue I, transferValueValue I] := by
+  simp [evalExprs?, evalExpr_transfer_to_newToBalance, evalExpr_transfer_value_newToBalance,
+    ERC20.sender, evalExpr?, envValue, EvalResult.bind, bind, pure]
+
 def transferSenderEvaledRef (evm : EVM.State) : EvaledStorageRef :=
   { base := "balanceOf", steps := [.mindex (.address evm.executionEnv.source)] }
 
@@ -234,13 +255,13 @@ theorem evalStorageRef_transfer_sender_balance (evm : EVM.State) (I : ExecutionE
 theorem evalExpr_transfer_sender_balance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? vyperERC20Config { contract := erc20Contract, locals := transferStore I } evm
       (.storage (balanceOfRef sender)) = .ok (transferFromBalanceValue evm) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
     (hbase := transferStore_balanceOf I)
     (her := evalStorageRef_transfer_sender_balance evm I)
     (hty := by simp [storageTypeAt?, transferSenderEvaledRef, erc20Contract, ERC20.erc20Contract,
        ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage, storageTypeStep?])
     (hloc := vyperERC20Config_storage_balanceOf (.address evm.executionEnv.source))]
-  rw [vyperERC20StorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp [transferSenderEvaledRef, transferSenderSlot, transferFromBalanceWord]
 
 theorem evalStorageRef_transfer_sender_balance_fromBalance
@@ -321,13 +342,14 @@ theorem transferAssignSender (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := erc20Contract, locals := transferStoreFromBalance evm I },
           transferAfterDebitState evm I) := by
   simp only [balanceOfRef]
-  apply assignStorageRef_storage_scalar (ty := uint256Storage)
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
+      (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256Storage)
       (hbase := transferStoreFromBalance_balanceOf evm I)
       (her := evalStorageRef_transfer_sender_balance_fromBalance evm I)
       (hty := by simp [storageTypeAt?, transferSenderEvaledRef, erc20Contract, ERC20.erc20Contract,
          ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage, storageTypeStep?])
       (hloc := vyperERC20Config_storage_balanceOf (.address evm.executionEnv.source))
-  rw [vyperERC20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [transferAfterDebitState, transferSenderSlot]
 
 theorem evalExpr_transfer_to_balance (evm : EVM.State) (I : ExecutionEnv) :
@@ -335,14 +357,14 @@ theorem evalExpr_transfer_to_balance (evm : EVM.State) (I : ExecutionEnv) :
       { contract := erc20Contract, locals := transferStoreFromBalance evm I }
       (transferAfterDebitState evm I) (.storage (balanceOfRef (.var "to"))) =
         .ok (transferToBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
     (hbase := transferStoreFromBalance_balanceOf evm I)
     (her := evalStorageRef_transfer_to_balance_fromBalance evm (transferAfterDebitState evm I) I)
     (hty := by simp [storageTypeAt?, transferToEvaledRef, erc20Contract, ERC20.erc20Contract,
        ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage, storageTypeStep?])
     (hloc := vyperERC20Config_storage_balanceOf
       (.address (AccountAddress.ofNat (transferToWord I).toNat)))]
-  rw [vyperERC20StorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp [transferToEvaledRef, transferToSlot, transferToBalanceWord, transferAfterDebit_codeOwner]
 
 theorem evalExpr_transfer_newToBalance (evm : EVM.State) (I : ExecutionEnv)
@@ -408,8 +430,8 @@ theorem transferAssignTo (evm : EVM.State) (I : ExecutionEnv)
     simp [storageTypeAt?, transferToEvaledRef, erc20Contract, ERC20.erc20Contract,
       ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage, storageTypeStep?]
   have hloc :
-      vyperERC20Config.storage.layout (transferToEvaledRef I) =
-        fun _ => some (vyperUint256Loc (transferToSlot I)) := by
+      vyperERC20Config.storageBackend.locate? (transferToEvaledRef I)
+        = some (.leaf (vyperUint256Loc (transferToSlot I))) := by
     simpa [transferToEvaledRef, transferToSlot] using
       vyperERC20Config_storage_balanceOf
         (.address (AccountAddress.ofNat (transferToWord I).toNat))
@@ -423,10 +445,11 @@ theorem transferAssignTo (evm : EVM.State) (I : ExecutionEnv)
     (er := transferToEvaledRef I)
     (ty := uint256Storage)
     (loc := vyperUint256Loc (transferToSlot I))
+    (hbackend := rfl)
     (n := Int.ofNat (transferNewToNat evm I))
-    hbase her hty hloc ?_
+    hbase her hty hloc (Or.inl ⟨_, rfl⟩) ?_
   rw [← transferNewToWord_toNat evm I hfit]
-  rw [vyperERC20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [transferPostState, transferToSlot, transferAfterDebit_codeOwner]
 
 theorem erc20TransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
@@ -449,7 +472,25 @@ theorem erc20TransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transfer_newToBalance_var evm I)
       (transferAssignTo evm I hfit)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.emit (evalExprs_transfer_event evm (transferPostState evm I) I)) ?_
   exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
+
+/-- Static mode: the body halts at its first storage write (the sender debit). -/
+theorem erc20TransferBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (henough : (transferValueWord I).toNat ≤ (transferFromBalanceWord evm).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody vyperERC20Config erc20Contract evm (transferStore I)
+      ERC20.transferTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transfer_sender_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transfer_require_from_true evm I henough)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_transfer_debit evm I henough) (transferAssignSender evm I)
+      hperm)
 
 theorem erc20TransferBodyReverts_insufficient (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -884,17 +925,6 @@ theorem transferRevertStub {σ σ₀ A I} {g : Sat256}
   exact rd804.rev 0 (by vyper_erc20_transfer_decode)
     (by simp [M, MachineState.M, u256_ofNat_toNat]) (by omega)
 
-theorem calldataSizeGuard68_short {n : Nat}
-    (hsize : n < UInt256.size) (hshort : n < 68) :
-    UInt256.lt (UInt256.ofNat n) ⟨68⟩ = ⟨1⟩ := by
-  exact ult_one (by
-    have hn : (UInt256.ofNat n).toNat = n := by
-      unfold UInt256.toNat UInt256.ofNat
-      simp only [Id.run]
-      exact Nat.mod_eq_of_lt hsize
-    rw [hn]
-    change n < 68
-    exact hshort)
 
 theorem erc20X_transferAfterBalanceGuard {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -1064,23 +1094,26 @@ theorem erc20X_transferBeforeSenderStore {σ σ₀ A I} {g : Sat256}
   exact ⟨_, _, by simpa [evm0, hdebitWordRaw', hpc111] using rdBeforeSenderStore⟩
 
 theorem erc20X_transferAfterSenderStore {σ σ₀ A I} {g : Sat256}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨111⟩
       [transferSenderSlotI I,
         transferDebitWord (initState σ σ₀ g A I) I,
         transferSenderSlotI I, transferSelectorWord]
       (transferSenderHashMemAgain (transferToWord I) (approveOwnerWord I))
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨113⟩
+    (I.perm = true ∧ ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨113⟩
       [transferSelectorWord]
       (transferSenderHashMemAgain (transferToWord I) (approveOwnerWord I))
       (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (transferSenderSlotI I)
-        (transferDebitWord (initState σ σ₀ g A I) I)) k C := by
+        (transferDebitWord (initState σ σ₀ g A I) I)) k C)
+    ∨ (I.perm = false ∧ RDstatic vyperERC20Bytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨k, C, rd111⟩ := hreach
-  obtain ⟨k1, C1, rdAfterStore⟩ :=
-    rd111.sstore hperm (by vyper_erc20_transfer_decode) (by evm_ov)
-  exact ⟨_, _, evm_run rdAfterStore with [pop]⟩
+  by_cases hp : I.perm = true
+  · obtain ⟨k1, C1, rdAfterStore⟩ :=
+      rd111.sstore hp (by vyper_erc20_transfer_decode) (by evm_ov)
+    exact Or.inl ⟨hp, _, _, evm_run rdAfterStore with [pop]⟩
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd111.sstoreStatic hpf (by vyper_erc20_transfer_decode) (by evm_ov)⟩
 
 theorem erc20X_transferBeforeToLoad {σ σ₀ A I} {g : Sat256}
     (hcanonTo : (transferToWord I).toNat < EVM.addressModulus)
@@ -1357,9 +1390,8 @@ theorem erc20X_transferFromEntry {σ σ₀ A I} {g : Sat256}
   have h111 := erc20X_transferBeforeSenderStore
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     henough h93
-  have h113 := erc20X_transferAfterSenderStore
-    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
-    hperm h111
+  have h113 := permSplit_true hperm (erc20X_transferAfterSenderStore
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) h111)
   have h127 := erc20X_transferBeforeToLoad
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hcanonTo h113
@@ -1378,6 +1410,32 @@ theorem erc20X_transferFromEntry {σ σ₀ A I} {g : Sat256}
     hperm h195
   exact erc20X_transferReturnFromAfterLog
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) h196
+
+/-- Static mode: the run halts at the sender-debit `SSTORE`. -/
+theorem erc20X_transferStatic {σ σ₀ A I} {g : Sat256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hpf : I.perm = false)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hsize : I.calldata.size < UInt256.size)
+    (hcanonTo : (transferToWord I).toNat < EVM.addressModulus)
+    (henough : (transferValueWord I).toNat ≤
+      (transferFromBalanceWord (initState σ σ₀ g A I)).toNat)
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨24⟩
+      [transferSelectorWord] transferDispatchMem (UInt256.ofNat 1) ByteArray.empty
+      σ k C) :
+    RDstatic vyperERC20Bytecode g (initState σ σ₀ g A I) := by
+  have h80 := erc20X_transferAfterBalanceGuard
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    hwv hsz68 hsize hcanonTo henough hreach
+  have h92 := erc20X_transferBeforeSecondSenderLoad
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) h80
+  have h93 := erc20X_transferAfterSecondSenderLoad
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) h92
+  have h111 := erc20X_transferBeforeSenderStore
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    henough h93
+  exact permSplit_false hpf (erc20X_transferAfterSenderStore
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) h111)
 
 theorem erc20TransferX_shortarg {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -1518,9 +1576,8 @@ theorem erc20TransferX_overflow {σ σ₀ A I} {g : Sat256}
   have h111 := erc20X_transferBeforeSenderStore
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     henough h93
-  have h113 := erc20X_transferAfterSenderStore
-    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
-    hperm h111
+  have h113 := permSplit_true hperm (erc20X_transferAfterSenderStore
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) h111)
   have h127 := erc20X_transferBeforeToLoad
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hcanonTo h113
@@ -1630,7 +1687,6 @@ theorem erc20Dispatch_transfer {cd : ByteArray}
 theorem erc20TransferBodyCore
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD vyperERC20Bytecode I (Sat256.ofUInt256 g)
@@ -1659,7 +1715,18 @@ theorem erc20TransferBodyCore
         simpa [vyperERC20Config] using hdec0
       by_cases henough : (transferValueWord I).toNat ≤
           (transferFromBalanceWord evmE).toNat
-      · by_cases hfit : transferNewToNat evmE I < UInt256.size
+      · by_cases hperm : I.perm = true
+        swap
+        · -- static mode: both sides halt at the sender debit
+          have hpf : I.perm = false := by simpa using hperm
+          have hbody := erc20TransferBodyStatic evmS I
+            (by simp only [evmS, evmE, initState]; exact hwv)
+            (by simpa [hFromBalance] using henough)
+            (by simp only [evmS, evmE, initState]; exact hpf)
+          exact (erc20X_transferStatic (g := Sat256.ofUInt256 g)
+              hwv hpf hsz68 hsize hcanonTo (by simpa [evmE] using henough) hreach)
+            |>.reEquivStaticHalt hcode hd hdec hbody
+        by_cases hfit : transferNewToNat evmE I < UInt256.size
         · have henoughS : (transferValueWord I).toNat ≤ (transferFromBalanceWord evmS).toNat := by
             simpa [hFromBalance] using henough
           have hbody := erc20TransferBodyReturns evmS I
@@ -1716,12 +1783,11 @@ theorem erc20TransferBodyCore
 theorem erc20TransferRuntimeSuccess
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
-  exact erc20TransferBodyCore hcode hwv hperm hsize hsel
+  exact erc20TransferBodyCore hcode hwv hsize hsel
     (erc20X_transferReach (σ := σ)
       (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsel)
 

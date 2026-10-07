@@ -536,7 +536,7 @@ theorem mintInitialLiquiditySqrtPrefixRuntimeBounded
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
       mem aw rdata σFee k C)
-    (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
+    (htotalZero : solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩)
     (hfit : mintAmountProductNat amount0 amount1 < UInt256.size)
     (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ∃ root k' C',

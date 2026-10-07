@@ -43,7 +43,7 @@ theorem catBiteSuccessBranch {σ σ₀ A I} {g : UInt256}
       typedCallViaEVM config evmIlk (EVM.address (biteVatAddr evmIlk))
         "urns" 0 [biteIlkVal I, biteUrnVal I] (true, evmUrn, urnsOut) false)
     (hUrnsDec : config.externalABI.decode? "urns" urnsOut = some [bw ink, bw art])
-    (hlive : catSlotWord ⟨2⟩ evmUrn.accountMap evmUrn.executionEnv = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨2⟩ evmUrn.accountMap evmUrn.executionEnv = ⟨1⟩)
     (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size)
     (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)
     (hfitDunkRoomWad : (biteDunkRoomV I evmUrn).toNat * wadU.toNat < UInt256.size)

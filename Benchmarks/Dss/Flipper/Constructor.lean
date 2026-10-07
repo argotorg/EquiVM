@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Flipper.Common
 import Reasoning.ExternalCall
 import Reasoning.Initcode
@@ -27,15 +28,6 @@ set_option maxRecDepth 2000000
 def flipperCtorArgsTail (vat cat : Ethereum.AccountAddress) (ilk : List UInt8) : ByteArray :=
   (EVM.Word.toBytesBE (EVM.word vat.val) ++ EVM.Word.toBytesBE (EVM.word cat.val) ++ ilk).toByteArray
 
-private theorem byteArray_append_toList (a b : ByteArray) :
-    (a ++ b).toList = a.toList ++ b.toList := by
-  rw [Reasoning.Theory.byteArray_toList_eq, Reasoning.Theory.byteArray_toList_eq,
-    Reasoning.Theory.byteArray_toList_eq]
-  simp [ByteArray.data_append]
-
-private theorem list_toByteArray_toList (xs : List UInt8) : xs.toByteArray.toList = xs := by
-  rw [Reasoning.Theory.byteArray_toList_eq]
-  simp
 
 theorem flipperCtorArgsTail_encode (vat cat : Ethereum.AccountAddress) (ilk : List UInt8)
     (hilk : ilk.length = 32) :
@@ -45,7 +37,7 @@ theorem flipperCtorArgsTail_encode (vat cat : Ethereum.AccountAddress) (ilk : Li
   simp [flipperCtorArgsTail, addr, bytes32, bytes32Width, hilk, ABI.encodeABIValues?,
     ABI.encodeABIValuesFrom?, ABI.encodeABIValue?, ABI.encodeABIWord?,
     ABI.abiTupleHeadSize?, ABI.staticABIEncodedSize?, ABI.isDynamicABIType,
-    ABI.zeroBytes, list_toByteArray_toList, byteArray_append_toList, List.append_assoc]
+    ABI.zeroBytes, list_toByteArray_toList, byteArray_toList_append, List.append_assoc]
 
 theorem flipperCtorDeployment_eq (vat cat : Ethereum.AccountAddress) (ilk : List UInt8)
     (hilk : ilk.length = 32) :
@@ -166,83 +158,6 @@ theorem flipperCtorCode_runtime_window (vat cat : Ethereum.AccountAddress) (ilk 
 abbrev flipperIlkWord (ilk : List UInt8) : UInt256 :=
   UInt256.ofNat (fromBytesBigEndian ilk)
 
-private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : Nat)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
-    (hbase : base.size ≤ destAddr) (_hgap : destAddr - base.size < USize.size) :
-    src.write srcAddr base destAddr len =
-      base ++ ByteArray.zeroes (destAddr - base.size) ++
-        src.extract srcAddr (srcAddr + len) := by
-  have hsrcNonempty : ¬ srcAddr ≥ src.size := by omega
-  have hcopy : min len (src.size - srcAddr) = len := by
-    rw [Nat.min_eq_left]
-    omega
-  have hcopyData : min len (src.data.size - srcAddr) = len := by
-    rw [show src.data.size = src.size from rfl]
-    exact hcopy
-  have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by
-    have hle : min base.size (destAddr + len) ≤ destAddr + len := Nat.min_le_right _ _
-    omega
-  have hDsz :
-      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size =
-        destAddr := by
-    rw [Array.size_append]
-    have hz :
-        (ByteArray.zeroes (destAddr - base.size)).data.size =
-          destAddr - base.size := by
-      rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
-        ByteArray_zeroes_size]
-    rw [hz]
-    change base.size + (destAddr - base.size) = destAddr
-    omega
-  apply ByteArray.ext
-  unfold ByteArray.write
-  rw [if_neg hlen, if_neg hsrcNonempty]
-  simp only [ByteArray.data_copySlice, ByteArray.data_append]
-  change (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract 0
-          destAddr ++
-        (src.data ++
-            (ByteArray.zeroes
-              (min base.size (destAddr + len) -
-                (destAddr + min len (src.size - srcAddr)))).data).extract
-          srcAddr
-          (srcAddr +
-            (min len (src.size - srcAddr) +
-              (min base.size (destAddr + len) -
-                (destAddr + min len (src.size - srcAddr))))) ++
-        (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract
-          (destAddr +
-            min
-              (min len (src.size - srcAddr) +
-                (min base.size (destAddr + len) -
-                  (destAddr + min len (src.size - srcAddr))))
-              ((src.data ++
-                    (ByteArray.zeroes
-                      (min base.size (destAddr + len) -
-                        (destAddr + min len (src.size - srcAddr)))).data).size -
-                srcAddr)) =
-      base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
-        (src.extract srcAddr (srcAddr + len)).data
-  rw [hcopy, htail]
-  rw [show (ByteArray.zeroes 0).data =
-      (#[] : Array UInt8) from by
-    rw [zeroes_zero (n := 0) (by rfl)]
-    rfl]
-  simp only [Array.append_empty, Nat.add_zero]
-  rw [Array.extract_eq_self_of_le (by rw [hDsz])]
-  rw [show src.data.extract srcAddr (srcAddr + len) =
-      (src.extract srcAddr (srcAddr + len)).data from by rw [ByteArray.data_extract]]
-  rw [hcopyData]
-  rw [show
-      (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract
-        (destAddr + len) = #[] from by
-    apply Array.extract_eq_empty_of_le
-    rw [hDsz]
-    omega]
-  simp only [Array.append_empty]
 
 def flipperCtorCopiedMem (vat cat : AccountAddress) (ilk : List UInt8) : ByteArray :=
   (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk).write 6596 solcFreePtrMem 128 96
@@ -541,20 +456,6 @@ private theorem evalExpr_flipperCtorLocalIlk {evm : EVM.State}
   simp only [evalExpr?, EvalResult.ofOption]
   rw [flipperCtorLocals, store_get_self]
 
-private theorem accountAddress_of_word_val (a : AccountAddress) :
-    AccountAddress.ofNat (EVM.word a.val).toNat = a := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
-  exact accountAddress_roundtrip a
-
-private theorem word_val_addr_canonical (a : AccountAddress) :
-    (EVM.word a.val).toNat < EVM.addressModulus := by
-  unfold EVM.word EVM.uintN UInt256.toNat EVM.twoPow
-  change (a.val % UInt256.size) < EVM.addressModulus
-  have hlt : a.val < EVM.addressModulus := by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using a.isLt
-  rw [Nat.mod_eq_of_lt (lt_trans hlt (by norm_num [EVM.addressModulus, EVM.twoPow,
-    UInt256.size]))]
-  exact hlt
 
 theorem assign_flipperCtorBegStorage (evm : EVM.State) {locals : Store}
     (hbase : locals.get? "beg" = none) :
@@ -572,14 +473,13 @@ theorem assign_flipperCtorBegStorage (evm : EVM.State) {locals : Store}
       storageLocStore evm (wordLoc ⟨4⟩) (.int defaultBeg) = some evm' := by
     simpa [evm', wordLoc, defaultBeg, uint256Int] using
       storageLocStore_uint256 evm ⟨4⟩ (⟨1050000000000000000⟩ : UInt256)
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨4⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨4⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [begRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_flipperCtorTtlStorage (evm : EVM.State) {locals : Store}
@@ -601,14 +501,13 @@ theorem assign_flipperCtorTtlStorage (evm : EVM.State) {locals : Store}
     simpa [evm', defaultTtl] using
       flipperStorageLocStore_uint48_offset0 evm ⟨5⟩ (⟨10800⟩ : UInt256)
         (by native_decide)
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint48Int)) (loc := uint48Loc ⟨5⟩ ⟨0, by decide⟩ (by decide))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint48Int)) (loc := uint48Loc ⟨5⟩ ⟨0, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [ttlRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint48St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_flipperCtorTauStorage (evm : EVM.State) {locals : Store}
@@ -630,14 +529,13 @@ theorem assign_flipperCtorTauStorage (evm : EVM.State) {locals : Store}
     simpa [evm', defaultTau] using
       flipperStorageLocStore_uint48_offset6 evm ⟨5⟩ (⟨172800⟩ : UInt256)
         (by native_decide)
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint48Int)) (loc := uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint48Int)) (loc := uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [tauRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint48St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_flipperCtorKicksStorage (evm : EVM.State) {locals : Store}
@@ -654,14 +552,13 @@ theorem assign_flipperCtorKicksStorage (evm : EVM.State) {locals : Store}
   have hstore : storageLocStore evm (wordLoc ⟨6⟩) (.int 0) = some evm' := by
     simpa [evm', wordLoc, uint256Int] using
       storageLocStore_uint256 evm ⟨6⟩ (⟨0⟩ : UInt256)
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨6⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [kicksRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 private theorem assign_flipperCtorAddressStorage (evm : EVM.State) (locals : Store)
@@ -669,7 +566,7 @@ private theorem assign_flipperCtorAddressStorage (evm : EVM.State) (locals : Sto
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
       (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
         (EVM.word addrValue.val))
@@ -689,13 +586,13 @@ private theorem assign_flipperCtorAddressStorage (evm : EVM.State) (locals : Sto
     simpa [addrLoc, evm'] using
       storageLocStore_address_offset0 evm slot (EVM.word addrValue.val)
         (word_val_addr_canonical addrValue)
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem .address) (loc := addrLoc slot)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem .address) (loc := addrLoc slot) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := hty)
     (hloc := hloc)
-    (hscalar := by trivial)
+
     (hstore := hstore)
 
 theorem assign_flipperCtorVatStorage (evm : EVM.State) (locals : Store)
@@ -711,8 +608,7 @@ theorem assign_flipperCtorVatStorage (evm : EVM.State) (locals : Store)
     (by simp [vatRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_flipperCtorCatStorage (evm : EVM.State) (locals : Store)
     (cat : AccountAddress) (hbase : locals.get? "cat" = none) :
@@ -727,8 +623,7 @@ theorem assign_flipperCtorCatStorage (evm : EVM.State) (locals : Store)
     (by simp [catRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem valueToWord_flipperIlk (ilk : List UInt8) (hilk : ilk.length = 32) :
     valueToWord (.fixedBytes bytes32Width ilk) = some (flipperIlkWord ilk) := by
@@ -752,15 +647,14 @@ theorem assign_flipperCtorIlkStorage (evm : EVM.State) {locals : Store}
     simpa [evm', bytes32Loc, Reasoning.Theory.bytes32Loc, bytes32Width] using
       storageLocStore_bytes32 evm ⟨3⟩ (flipperIlkWord ilk)
         (.fixedBytes bytes32Width ilk) (valueToWord_flipperIlk ilk hilk)
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem (.bytes bytes32Width)) (loc := bytes32Loc ⟨3⟩)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem (.bytes bytes32Width)) (loc := bytes32Loc ⟨3⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := by simpa [ilkRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, bytes32St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
-    (hscalar := by trivial)
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
+
     (hstore := hstore)
 
 theorem assign_flipperCtorWardsCaller (evm : EVM.State) {locals : Store}
@@ -782,14 +676,13 @@ theorem assign_flipperCtorWardsCaller (evm : EVM.State) {locals : Store}
         some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm
       (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 abbrev flipperCtorAfterBegState (evm : EVM.State) : EVM.State :=
@@ -1702,23 +1595,6 @@ theorem flipperCtorReturnRuntime
     (flipperCtorRuntimeMem_read vat cat ilk hilk (flipperCtorWardsHashMem I vat cat ilk))
     (by evm_ov)
 
-theorem RDret.xiResultAcc {σ σ₀ A I} {g : Sat256} {code o : ByteArray}
-    {acc : AccountMap}
-    (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) acc o) :
-    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
-    ∨ ∃ (g' : UInt256) (A' : Substate),
-        Ξ σ σ₀ g.toUInt256 A I = .ok (.success (acc, g', A') o) := by
-  rcases h with hoog | ⟨s, hX, hacc⟩
-  · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
-      rw [← hcode] at hoog
-      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hoog))
-  · have hσ : s.accountMap = acc := hacc
-    have hxi := Xi_success_of_X (g := g.toUInt256) (by
-      rw [← hcode] at hX
-      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
-    rw [hσ] at hxi
-    exact Or.inr ⟨_, _, hxi⟩
 
 set_option maxHeartbeats 1000000 in
 theorem flipperCtorSuccessRDret
@@ -1815,7 +1691,7 @@ theorem flipperConstructorCorrect :
           σWards flipperBytecode := by
       simpa [σBeg, slot5Old, slot5New, σPacked, σKicks, vatStored, σVat, catStored,
         σCat, σIlk, σWards] using hrd0
-    rcases RDret.xiResultAcc hcodeTail hrd with hOOG | ⟨g', A', hsuccess⟩
+    rcases RDretXiResultAccountMap hcodeTail hrd with hOOG | ⟨g', A', hsuccess⟩
     · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
     · let evm0s :=
         initState σ σ₀

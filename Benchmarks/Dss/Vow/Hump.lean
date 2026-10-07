@@ -9,7 +9,7 @@ namespace Benchmarks.Dss.Vow
 /-! ## `hump()` getter -/
 
 def humpWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vowSlotWord ⟨11⟩ σ I
+  solcSlotWordAt ⟨11⟩ σ I
 
 theorem vowDispatch_hump {I : ExecutionEnv} (hsel : selIs I ⟨#[0x1b, 0x8e, 0x8c, 0xfa]⟩) :
     dispatchMsg contract I.calldata = some humpTransition := by
@@ -88,7 +88,7 @@ theorem vowHumpBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (humpWord σ I).toNat))])) := by
-    simpa [humpTransition, humpWord, vowSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [humpTransition, humpWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vowUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -110,7 +110,7 @@ theorem vowHumpBodyCore
 
 theorem vowHumpBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x1b, 0x8e, 0x8c, 0xfa]⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=

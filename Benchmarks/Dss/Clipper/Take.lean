@@ -1,3 +1,5 @@
+import Reasoning.ABIComposite
+import Reasoning.EVMWord
 import Benchmarks.Dss.Clipper.Fallback
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -36,25 +38,6 @@ abbrev clipperTakeDataBytes (I : ExecutionEnv) : List UInt8 :=
   ((I.calldata.toList.drop 4).drop ((clipperTakeDataOffsetWord I).toNat + 32)).take
     (clipperTakeDataLenWord I).toNat
 
--- LIBRARY CANDIDATE: bitwise OR with low bit `1` is nonzero.
-theorem nat_lor_one_mod_two (n : Nat) : Nat.lor 1 n % 2 = 1 := by
-  nth_rewrite 1 [show 1 = Nat.bit true 0 by rfl]
-  nth_rewrite 1 [← Nat.bit_bodd_div2 n]
-  change (Nat.bit true 0 ||| Nat.bit n.bodd n.div2) % 2 = 1
-  rw [Nat.lor_bit]
-  simp
-
--- LIBRARY CANDIDATE: bitwise OR with word `1` is nonzero.
-theorem u256_lor_one_ne_zero (x : UInt256) :
-    UInt256.lor (⟨1⟩ : UInt256) x ≠ ⟨0⟩ := by
-  intro h
-  have hodd : (UInt256.lor (⟨1⟩ : UInt256) x).toNat % 2 = 1 := by
-    rw [u256_lor_toNat]
-    change (Nat.lor 1 x.toNat % UInt256.size) % 2 = 1
-    rw [Nat.mod_mod_of_dvd _ (by norm_num [UInt256.size])]
-    exact nat_lor_one_mod_two x.toNat
-  rw [h] at hodd
-  norm_num at hodd
 
 abbrev clipperTakeIdValue (I : ExecutionEnv) : Value :=
   .int (Int.ofNat (clipperTakeIdWord I).toNat)
@@ -76,256 +59,6 @@ abbrev clipperTakeStore (I : ExecutionEnv) : Store :=
     (clipperTakeAmtValue I)).insert "max" (clipperTakeMaxValue I)).insert "who"
     (clipperTakeWhoValue I)).insert "data" (clipperTakeDataValue I)
 
-abbrev clipperTakeDecodedBytes (cd : ByteArray) : ByteArray :=
-  ByteArray.mk
-    ((((cd.toList.drop 4).drop ((calldataWord cd 132).toNat + 32)).take
-      (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat).toArray)
-
-abbrev clipperTakeDecodedStore (cd : ByteArray) (a b c d e : Solm.Ident) : Store :=
-  (((((∅ : Store).insert a (.int (Int.ofNat (calldataWord cd 4).toNat))).insert b
-    (.int (Int.ofNat (calldataWord cd 36).toNat))).insert c
-    (.int (Int.ofNat (calldataWord cd 68).toNat))).insert d
-    (.address (AccountAddress.ofNat (calldataWord cd 100).toNat))).insert e
-    (.bytes (clipperTakeDecodedBytes cd))
-
--- LIBRARY CANDIDATE: read a word from calldata's ABI argument region at a generic offset.
-theorem readNat_drop4_at_eq_calldataWord {cd : ByteArray} (off : Nat)
-    (hlenWord : 4 + off + 32 ≤ cd.size) :
-    readNat? (cd.toList.drop 4) off = some (calldataWord cd (4 + off)).toNat := by
-  unfold readNat? readWord?
-  have hread : readBytes? (cd.toList.drop 4) off 32 =
-      some (((cd.toList.drop 4).drop off).take 32) := by
-    unfold readBytes?
-    have htlen : cd.toList.length = cd.size := by
-      rw [byteArray_toList_eq, Array.length_toList]
-      rfl
-    have hlen : (((cd.toList.drop 4).drop off).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop, List.length_drop, htlen]
-      omega
-    rw [if_pos hlen]
-  rw [hread]
-  have hword :
-      bytesToWord (((cd.toList.drop 4).drop off).take 32) =
-        calldataWord cd (4 + off) := by
-    have h := decode_word_at_eq_any cd (4 + off) hlenWord
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using h
-  simp only [Option.bind, bind, hword]
-  rfl
-
--- LIBRARY CANDIDATE: read a dynamic payload from calldata's ABI argument region.
-theorem readBytes_drop4_payload {cd : ByteArray} {off len : Nat}
-    (hpayload : (((cd.toList.drop 4).drop off).take len).length = len) :
-    readBytes? (cd.toList.drop 4) off len =
-      some (((cd.toList.drop 4).drop off).take len) := by
-  unfold readBytes?
-  rw [if_pos hpayload]
-
--- LIBRARY CANDIDATE: legacy-solc05 dynamic `bytes` ABI value decoding at a known tail.
-theorem decodeABIValue_legacyBytes_ok {bytes : List UInt8} {start len : Nat}
-    (hreadLen : readNat? bytes start = some len)
-    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 < len)
-    (hpayload : ((bytes.drop (start + 32)).take len).length = len) :
-    decodeABIValue? ABIType.bytes bytes start DecodeMode.legacySolc05 =
-      some (.bytes (ByteArray.mk (((bytes.drop (start + 32)).take len).toArray)),
-        start + 32 + paddedSize len) := by
-  unfold decodeABIValue?
-  rw [hreadLen]
-  simp only [Option.bind, bind]
-  rw [if_neg hlenMax]
-  have hreadPayload :
-      readBytes? bytes (start + 32) len = some ((bytes.drop (start + 32)).take len) := by
-    unfold readBytes?
-    rw [if_pos hpayload]
-  rw [hreadPayload]
-
--- LIBRARY CANDIDATE: legacy-solc05 full-width uint256 ABI value decoding.
-theorem decodeABIValue_legacyUint256_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? uint256 bytes start DecodeMode.legacySolc05 =
-      some (.int (Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat),
-        start + 32) := by
-  rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
-    (ty := uint256) (bytes := bytes) (start := start) (by native_decide)]
-  simpa [uint256, uint256Int] using
-    decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-      (bytes := bytes) (start := start) hlen
-
--- LIBRARY CANDIDATE: legacy-solc05 address ABI value decoding.
-theorem decodeABIValue_legacyAddress_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? addr bytes start DecodeMode.legacySolc05 =
-      some (.address (AccountAddress.ofNat
-        (ABI.bytesToWord ((bytes.drop start).take 32)).toNat), start + 32) := by
-  rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
-    (ty := addr) (bytes := bytes) (start := start) (by native_decide)]
-  simpa [addr] using
-    decodeScalarWord_legacyAddress_ok (bytes := bytes) (start := start) hlen
-
--- LIBRARY CANDIDATE: legacy-solc05 calldata decoding for
--- `(uint256,uint256,uint256,address,bytes)`.
-set_option maxHeartbeats 1000000 in
-theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_ok {cd : ByteArray}
-    {a b c d e : Solm.Ident}
-    (hsmall : cd.size < 2 ^ 255)
-    (hsz164 : 164 ≤ cd.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (calldataWord cd 132).toNat)
-    (hlenWord : 4 + (calldataWord cd 132).toNat + 32 ≤ cd.size)
-    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 <
-      (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat)
-    (hpayload :
-      (((cd.toList.drop 4).drop ((calldataWord cd 132).toNat + 32)).take
-        (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat).length =
-        (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [a, b, c, d, e]
-        [uint256, uint256, uint256, addr, bytesDyn] cd =
-      some (clipperTakeDecodedStore cd a b c d e) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have htake68 : ((cd.toList.drop 4).drop 64 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have htake100 : ((cd.toList.drop 4).drop 96 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  have hword36 : ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
-      calldataWord cd 36 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using
-      decode_word_at_eq cd 36 (by omega) (by norm_num)
-  have hword68 : ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32) =
-      calldataWord cd 68 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using
-      decode_word_at_eq cd 68 (by omega) (by norm_num)
-  have hword100 : ABI.bytesToWord (((cd.toList.drop 4).drop 96).take 32) =
-      calldataWord cd 100 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using
-      decode_word_at_eq cd 100 (by omega) (by norm_num)
-  have hdecode0 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 0) (by simpa using htake4)
-  have hdecode32 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 32) htake36
-  have hdecode64 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 64) htake68
-  have hdecode96 := decodeABIValue_legacyAddress_ok (bytes := cd.toList.drop 4)
-    (start := 96) htake100
-  have hreadOff :
-      readNat? (cd.toList.drop 4) 128 = some (calldataWord cd 132).toNat := by
-    simpa using readNat_drop4_at_eq_calldataWord (cd := cd) 128 (by omega)
-  have hreadLen :
-      readNat? (cd.toList.drop 4) (calldataWord cd 132).toNat =
-        some (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat :=
-    readNat_drop4_at_eq_calldataWord (cd := cd) (calldataWord cd 132).toNat hlenWord
-  have hdecodeBytes :
-      decodeABIValue? bytesDyn (cd.toList.drop 4) (calldataWord cd 132).toNat
-          DecodeMode.legacySolc05 =
-        some (.bytes (ByteArray.mk
-            ((((cd.toList.drop 4).drop ((calldataWord cd 132).toNat + 32)).take
-              (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat).toArray)),
-          (calldataWord cd 132).toNat + 32 +
-            paddedSize (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat) := by
-    simpa [bytesDyn] using
-      decodeABIValue_legacyBytes_ok (bytes := cd.toList.drop 4)
-        (start := (calldataWord cd 132).toNat)
-        (len := (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat)
-        hreadLen hlenMax hpayload
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by
-    rintro ⟨_, hhuge⟩
-    rw [htlen] at hhuge
-    omega)]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [uint256, uint256, uint256, addr, bytesDyn] = some 160 by
-    native_decide]
-  simp only [Option.bind, bind]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (cd.toList.drop 4).length < 160)]
-  have hdynUInt : isDynamicABIType uint256 = false := by
-    native_decide
-  have hsizeUInt : staticABIEncodedSize? uint256 = some 32 := by
-    native_decide
-  have hdynAddr : isDynamicABIType addr = false := by
-    native_decide
-  have hsizeAddr : staticABIEncodedSize? addr = some 32 := by
-    native_decide
-  have hdynBytes : isDynamicABIType bytesDyn = true := by
-    native_decide
-  have hvalues :
-      decodeABIValues? [uint256, uint256, uint256, addr, bytesDyn] (cd.toList.drop 4)
-          0 0 160 160 DecodeMode.legacySolc05 =
-        some ([Value.int (Int.ofNat (calldataWord cd 4).toNat),
-          Value.int (Int.ofNat (calldataWord cd 36).toNat),
-          Value.int (Int.ofNat (calldataWord cd 68).toNat),
-          Value.address (AccountAddress.ofNat (calldataWord cd 100).toNat),
-          Value.bytes (ByteArray.mk
-            ((((cd.toList.drop 4).drop ((calldataWord cd 132).toNat + 32)).take
-              (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat).toArray))],
-          max 160 ((calldataWord cd 132).toNat + 32 +
-            paddedSize (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat)) := by
-    rw [decodeABIValues?]
-    rw [hdynUInt]
-    simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind, Nat.zero_add]
-    rw [hdecode0]
-    simp only [Nat.zero_add, if_true]
-    rw [decodeABIValues?]
-    rw [hdynUInt]
-    simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind]
-    rw [hdecode32]
-    simp only [if_true]
-    rw [decodeABIValues?]
-    rw [hdynUInt]
-    simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind]
-    rw [hdecode64]
-    simp only [if_true]
-    rw [decodeABIValues?]
-    rw [hdynAddr]
-    simp only [Bool.false_eq_true, if_false, hsizeAddr, Option.bind, bind]
-    rw [hdecode96]
-    simp only [if_true]
-    rw [decodeABIValues?]
-    rw [hdynBytes]
-    simp only [if_true, Option.bind, bind]
-    rw [hreadOff]
-    dsimp only
-    rw [if_neg hoffMax]
-    simp only [Nat.zero_add]
-    rw [hdecodeBytes]
-    simp only [ABI.decodeABIValues?.eq_def, hword4, hword36, hword68, hword100,
-      List.drop_zero]
-    norm_num
-  rw [hvalues]
-  simp [decodeCalldata.insertValues, clipperTakeDecodedStore, clipperTakeDecodedBytes]
-
--- LIBRARY CANDIDATE: legacy-solc05 short calldata failure for
--- `(uint256,uint256,uint256,address,bytes)`.
-theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_short
-    {cd : ByteArray} {a b c d e : Solm.Ident} (hsz4 : 4 ≤ cd.size)
-    (hshort : cd.size < 164) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [a, b, c, d, e]
-      [uint256, uint256, uint256, addr, bytesDyn] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by
-    rintro ⟨_, hhuge⟩
-    rw [htlen] at hhuge
-    omega)]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [uint256, uint256, uint256, addr, bytesDyn] = some 160 by
-    native_decide]
-  simp only [Option.bind, bind]
-  rw [if_pos (by rw [List.length_drop, htlen]; omega :
-    (cd.toList.drop 4).length < 160)]
 
 theorem clipperDecode_take_ok {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
@@ -341,7 +74,7 @@ theorem clipperDecode_take_ok {I : ExecutionEnv}
         some (clipperTakeStore I) := by
   change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "amt", "max", "who", "data"]
     [uint256, uint256, uint256, addr, bytesDyn] I.calldata =
-      some (clipperTakeDecodedStore I.calldata "id" "amt" "max" "who" "data")
+      some (legacyThreeUintAddressBytesDecodedStore I.calldata "id" "amt" "max" "who" "data")
   exact decodeCalldata_legacyUint256_uint256_uint256_address_bytes_ok
     (cd := I.calldata) (a := "id") (b := "amt") (c := "max") (d := "who") (e := "data")
     hsmall hsz164 hoffMax hlenWord hlenMax hpayload
@@ -356,90 +89,6 @@ theorem clipperDecode_take_none_short {I : ExecutionEnv}
     (cd := I.calldata) (a := "id") (b := "amt") (c := "max") (d := "who") (e := "data")
     hsz4 hshort
 
--- LIBRARY CANDIDATE: legacy-solc05 dynamic `bytes` ABI calldata decoding rejects
--- offsets above the solc-v1 dynamic data bound.
-set_option maxHeartbeats 1000000 in
-theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_offset_huge
-    {cd : ByteArray} {a b c d e : Solm.Ident}
-    (hsmall : cd.size < 2 ^ 255)
-    (hsz164 : 164 ≤ cd.size)
-    (hoff : solcMaxLen DecodeMode.legacySolc05 < (calldataWord cd 132).toNat) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [a, b, c, d, e]
-      [uint256, uint256, uint256, addr, bytesDyn] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have htake68 : ((cd.toList.drop 4).drop 64 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have htake100 : ((cd.toList.drop 4).drop 96 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have hdecode0 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 0) (by simpa using htake4)
-  have hdecode32 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 32) htake36
-  have hdecode64 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 64) htake68
-  have hdecode96 := decodeABIValue_legacyAddress_ok (bytes := cd.toList.drop 4)
-    (start := 96) htake100
-  have hreadOff :
-      readNat? (cd.toList.drop 4) 128 = some (calldataWord cd 132).toNat := by
-    simpa using readNat_drop4_at_eq_calldataWord (cd := cd) 128 (by omega)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by
-    rintro ⟨_, hhuge⟩
-    rw [htlen] at hhuge
-    omega)]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [uint256, uint256, uint256, addr, bytesDyn] = some 160 by
-    native_decide]
-  simp only [Option.bind, bind]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (cd.toList.drop 4).length < 160)]
-  have hdynUInt : isDynamicABIType uint256 = false := by
-    native_decide
-  have hsizeUInt : staticABIEncodedSize? uint256 = some 32 := by
-    native_decide
-  have hdynAddr : isDynamicABIType addr = false := by
-    native_decide
-  have hsizeAddr : staticABIEncodedSize? addr = some 32 := by
-    native_decide
-  have hdynBytes : isDynamicABIType bytesDyn = true := by
-    native_decide
-  rw [decodeABIValues?]
-  rw [hdynUInt]
-  simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind, Nat.zero_add]
-  rw [hdecode0]
-  simp only [Nat.zero_add, if_true]
-  rw [decodeABIValues?]
-  rw [hdynUInt]
-  simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind]
-  rw [hdecode32]
-  simp only [if_true]
-  rw [decodeABIValues?]
-  rw [hdynUInt]
-  simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind]
-  rw [hdecode64]
-  simp only [if_true]
-  rw [decodeABIValues?]
-  rw [hdynAddr]
-  simp only [Bool.false_eq_true, if_false, hsizeAddr, Option.bind, bind]
-  rw [hdecode96]
-  simp only [if_true]
-  rw [decodeABIValues?]
-  rw [hdynBytes]
-  simp only [if_true, Option.bind, bind]
-  rw [hreadOff]
-  dsimp only
-  rw [if_pos hoff]
 
 theorem clipperDecode_take_none_offset_huge {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
@@ -453,136 +102,6 @@ theorem clipperDecode_take_none_offset_huge {I : ExecutionEnv}
     (cd := I.calldata) (a := "id") (b := "amt") (c := "max") (d := "who") (e := "data")
     hsmall hsz164 hoff
 
--- LIBRARY CANDIDATE: legacy-solc05 dynamic `bytes` ABI value decoding fails when
--- the dynamic length word cannot be read.
-theorem decodeABIValue_legacyBytes_none_length_short {bytes : List UInt8} {start : Nat}
-    (hreadLen : readNat? bytes start = none) :
-    decodeABIValue? bytesDyn bytes start DecodeMode.legacySolc05 = none := by
-  unfold decodeABIValue?
-  simp [bytesDyn, hreadLen, Option.bind, bind]
-
--- LIBRARY CANDIDATE: legacy-solc05 dynamic `bytes` ABI value decoding fails when
--- the decoded dynamic byte length is above solc's legacy bound.
-theorem decodeABIValue_legacyBytes_none_length_huge {bytes : List UInt8} {start len : Nat}
-    (hreadLen : readNat? bytes start = some len)
-    (hlenHuge : solcMaxLen DecodeMode.legacySolc05 < len) :
-    decodeABIValue? bytesDyn bytes start DecodeMode.legacySolc05 = none := by
-  unfold decodeABIValue?
-  simp [bytesDyn, hreadLen, Option.bind, bind, hlenHuge]
-
--- LIBRARY CANDIDATE: legacy-solc05 dynamic `bytes` ABI value decoding fails when
--- the declared payload length cannot be read from the calldata tail.
-theorem decodeABIValue_legacyBytes_none_payload_short {bytes : List UInt8} {start len : Nat}
-    (hreadLen : readNat? bytes start = some len)
-    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 < len)
-    (hpayloadShort : ((bytes.drop (start + 32)).take len).length ≠ len) :
-    decodeABIValue? bytesDyn bytes start DecodeMode.legacySolc05 = none := by
-  unfold decodeABIValue?
-  simp only [bytesDyn, hreadLen, Option.bind, bind]
-  rw [if_neg hlenMax]
-  unfold readBytes?
-  rw [if_neg hpayloadShort]
-
--- LIBRARY CANDIDATE: legacy-solc05 dynamic `bytes` ABI calldata decoding rejects
--- accepted offsets whose following length word lies outside calldata.
-set_option maxHeartbeats 1000000 in
-theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_length_short
-    {cd : ByteArray} {a b c d e : Solm.Ident}
-    (hsmall : cd.size < 2 ^ 255)
-    (hsz164 : 164 ≤ cd.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (calldataWord cd 132).toNat)
-    (hshort : cd.size < 4 + (calldataWord cd 132).toNat + 32) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [a, b, c, d, e]
-      [uint256, uint256, uint256, addr, bytesDyn] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have htake68 : ((cd.toList.drop 4).drop 64 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have htake100 : ((cd.toList.drop 4).drop 96 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have hdecode0 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 0) (by simpa using htake4)
-  have hdecode32 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 32) htake36
-  have hdecode64 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 64) htake68
-  have hdecode96 := decodeABIValue_legacyAddress_ok (bytes := cd.toList.drop 4)
-    (start := 96) htake100
-  have hreadOff :
-      readNat? (cd.toList.drop 4) 128 = some (calldataWord cd 132).toNat := by
-    simpa using readNat_drop4_at_eq_calldataWord (cd := cd) 128 (by omega)
-  have hreadLen :
-      readNat? (cd.toList.drop 4) (calldataWord cd 132).toNat = none := by
-    unfold readNat? readWord? readBytes?
-    have hlen :
-        ¬ (((cd.toList.drop 4).drop (calldataWord cd 132).toNat).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop, List.length_drop, htlen]
-      omega
-    rw [if_neg hlen]
-    rfl
-  have hdecodeBytes :
-      decodeABIValue? bytesDyn (cd.toList.drop 4) (calldataWord cd 132).toNat
-          DecodeMode.legacySolc05 = none :=
-    decodeABIValue_legacyBytes_none_length_short hreadLen
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by
-    rintro ⟨_, hhuge⟩
-    rw [htlen] at hhuge
-    omega)]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [uint256, uint256, uint256, addr, bytesDyn] = some 160 by
-    native_decide]
-  simp only [Option.bind, bind]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (cd.toList.drop 4).length < 160)]
-  have hdynUInt : isDynamicABIType uint256 = false := by
-    native_decide
-  have hsizeUInt : staticABIEncodedSize? uint256 = some 32 := by
-    native_decide
-  have hdynAddr : isDynamicABIType addr = false := by
-    native_decide
-  have hsizeAddr : staticABIEncodedSize? addr = some 32 := by
-    native_decide
-  have hdynBytes : isDynamicABIType bytesDyn = true := by
-    native_decide
-  rw [decodeABIValues?]
-  rw [hdynUInt]
-  simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind, Nat.zero_add]
-  rw [hdecode0]
-  simp only [Nat.zero_add, if_true]
-  rw [decodeABIValues?]
-  rw [hdynUInt]
-  simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind]
-  rw [hdecode32]
-  simp only [if_true]
-  rw [decodeABIValues?]
-  rw [hdynUInt]
-  simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind]
-  rw [hdecode64]
-  simp only [if_true]
-  rw [decodeABIValues?]
-  rw [hdynAddr]
-  simp only [Bool.false_eq_true, if_false, hsizeAddr, Option.bind, bind]
-  rw [hdecode96]
-  simp only [if_true]
-  rw [decodeABIValues?]
-  rw [hdynBytes]
-  simp only [if_true, Option.bind, bind]
-  rw [hreadOff]
-  dsimp only
-  rw [if_neg hoffMax]
-  simp only [Nat.zero_add]
-  rw [hdecodeBytes]
 
 theorem clipperDecode_take_none_length_short {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
@@ -597,104 +116,6 @@ theorem clipperDecode_take_none_length_short {I : ExecutionEnv}
     (cd := I.calldata) (a := "id") (b := "amt") (c := "max") (d := "who") (e := "data")
     hsmall hsz164 hoffMax hshort
 
--- LIBRARY CANDIDATE: legacy-solc05 dynamic `bytes` ABI calldata decoding rejects
--- accepted offsets whose decoded byte length is above the solc-v1 dynamic data bound.
-set_option maxHeartbeats 1000000 in
-theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_length_huge
-    {cd : ByteArray} {a b c d e : Solm.Ident}
-    (hsmall : cd.size < 2 ^ 255)
-    (hsz164 : 164 ≤ cd.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (calldataWord cd 132).toNat)
-    (hlenWord : 4 + (calldataWord cd 132).toNat + 32 ≤ cd.size)
-    (hlenHuge :
-      solcMaxLen DecodeMode.legacySolc05 <
-        (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [a, b, c, d, e]
-      [uint256, uint256, uint256, addr, bytesDyn] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have htake68 : ((cd.toList.drop 4).drop 64 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have htake100 : ((cd.toList.drop 4).drop 96 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have hdecode0 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 0) (by simpa using htake4)
-  have hdecode32 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 32) htake36
-  have hdecode64 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 64) htake68
-  have hdecode96 := decodeABIValue_legacyAddress_ok (bytes := cd.toList.drop 4)
-    (start := 96) htake100
-  have hreadOff :
-      readNat? (cd.toList.drop 4) 128 = some (calldataWord cd 132).toNat := by
-    simpa using readNat_drop4_at_eq_calldataWord (cd := cd) 128 (by omega)
-  have hreadLen :
-      readNat? (cd.toList.drop 4) (calldataWord cd 132).toNat =
-        some (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat :=
-    readNat_drop4_at_eq_calldataWord (cd := cd) (calldataWord cd 132).toNat hlenWord
-  have hdecodeBytes :
-      decodeABIValue? bytesDyn (cd.toList.drop 4) (calldataWord cd 132).toNat
-          DecodeMode.legacySolc05 = none :=
-    decodeABIValue_legacyBytes_none_length_huge hreadLen hlenHuge
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by
-    rintro ⟨_, hhuge⟩
-    rw [htlen] at hhuge
-    omega)]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [uint256, uint256, uint256, addr, bytesDyn] = some 160 by
-    native_decide]
-  simp only [Option.bind, bind]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (cd.toList.drop 4).length < 160)]
-  have hdynUInt : isDynamicABIType uint256 = false := by
-    native_decide
-  have hsizeUInt : staticABIEncodedSize? uint256 = some 32 := by
-    native_decide
-  have hdynAddr : isDynamicABIType addr = false := by
-    native_decide
-  have hsizeAddr : staticABIEncodedSize? addr = some 32 := by
-    native_decide
-  have hdynBytes : isDynamicABIType bytesDyn = true := by
-    native_decide
-  rw [decodeABIValues?]
-  rw [hdynUInt]
-  simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind, Nat.zero_add]
-  rw [hdecode0]
-  simp only [Nat.zero_add, if_true]
-  rw [decodeABIValues?]
-  rw [hdynUInt]
-  simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind]
-  rw [hdecode32]
-  simp only [if_true]
-  rw [decodeABIValues?]
-  rw [hdynUInt]
-  simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind]
-  rw [hdecode64]
-  simp only [if_true]
-  rw [decodeABIValues?]
-  rw [hdynAddr]
-  simp only [Bool.false_eq_true, if_false, hsizeAddr, Option.bind, bind]
-  rw [hdecode96]
-  simp only [if_true]
-  rw [decodeABIValues?]
-  rw [hdynBytes]
-  simp only [if_true, Option.bind, bind]
-  rw [hreadOff]
-  dsimp only
-  rw [if_neg hoffMax]
-  simp only [Nat.zero_add]
-  rw [hdecodeBytes]
 
 theorem clipperDecode_take_none_length_huge {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
@@ -710,107 +131,6 @@ theorem clipperDecode_take_none_length_huge {I : ExecutionEnv}
     (cd := I.calldata) (a := "id") (b := "amt") (c := "max") (d := "who") (e := "data")
     hsmall hsz164 hoffMax hlenWord hlenHuge
 
--- LIBRARY CANDIDATE: legacy-solc05 dynamic `bytes` ABI calldata decoding rejects
--- accepted offsets and lengths whose declared payload extends past calldata.
-set_option maxHeartbeats 1000000 in
-theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_payload_short
-    {cd : ByteArray} {a b c d e : Solm.Ident}
-    (hsmall : cd.size < 2 ^ 255)
-    (hsz164 : 164 ≤ cd.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (calldataWord cd 132).toNat)
-    (hlenWord : 4 + (calldataWord cd 132).toNat + 32 ≤ cd.size)
-    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 <
-      (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat)
-    (hpayloadShort :
-      (((cd.toList.drop 4).drop ((calldataWord cd 132).toNat + 32)).take
-        (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat).length ≠
-        (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [a, b, c, d, e]
-      [uint256, uint256, uint256, addr, bytesDyn] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have htake68 : ((cd.toList.drop 4).drop 64 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have htake100 : ((cd.toList.drop 4).drop 96 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have hdecode0 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 0) (by simpa using htake4)
-  have hdecode32 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 32) htake36
-  have hdecode64 := decodeABIValue_legacyUint256_ok (bytes := cd.toList.drop 4)
-    (start := 64) htake68
-  have hdecode96 := decodeABIValue_legacyAddress_ok (bytes := cd.toList.drop 4)
-    (start := 96) htake100
-  have hreadOff :
-      readNat? (cd.toList.drop 4) 128 = some (calldataWord cd 132).toNat := by
-    simpa using readNat_drop4_at_eq_calldataWord (cd := cd) 128 (by omega)
-  have hreadLen :
-      readNat? (cd.toList.drop 4) (calldataWord cd 132).toNat =
-        some (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat :=
-    readNat_drop4_at_eq_calldataWord (cd := cd) (calldataWord cd 132).toNat hlenWord
-  have hdecodeBytes :
-      decodeABIValue? bytesDyn (cd.toList.drop 4) (calldataWord cd 132).toNat
-          DecodeMode.legacySolc05 = none :=
-    decodeABIValue_legacyBytes_none_payload_short hreadLen hlenMax hpayloadShort
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by
-    rintro ⟨_, hhuge⟩
-    rw [htlen] at hhuge
-    omega)]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [uint256, uint256, uint256, addr, bytesDyn] = some 160 by
-    native_decide]
-  simp only [Option.bind, bind]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (cd.toList.drop 4).length < 160)]
-  have hdynUInt : isDynamicABIType uint256 = false := by
-    native_decide
-  have hsizeUInt : staticABIEncodedSize? uint256 = some 32 := by
-    native_decide
-  have hdynAddr : isDynamicABIType addr = false := by
-    native_decide
-  have hsizeAddr : staticABIEncodedSize? addr = some 32 := by
-    native_decide
-  have hdynBytes : isDynamicABIType bytesDyn = true := by
-    native_decide
-  rw [decodeABIValues?]
-  rw [hdynUInt]
-  simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind, Nat.zero_add]
-  rw [hdecode0]
-  simp only [Nat.zero_add, if_true]
-  rw [decodeABIValues?]
-  rw [hdynUInt]
-  simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind]
-  rw [hdecode32]
-  simp only [if_true]
-  rw [decodeABIValues?]
-  rw [hdynUInt]
-  simp only [Bool.false_eq_true, if_false, hsizeUInt, Option.bind, bind]
-  rw [hdecode64]
-  simp only [if_true]
-  rw [decodeABIValues?]
-  rw [hdynAddr]
-  simp only [Bool.false_eq_true, if_false, hsizeAddr, Option.bind, bind]
-  rw [hdecode96]
-  simp only [if_true]
-  rw [decodeABIValues?]
-  rw [hdynBytes]
-  simp only [if_true, Option.bind, bind]
-  rw [hreadOff]
-  dsimp only
-  rw [if_neg hoffMax]
-  simp only [Nat.zero_add]
-  rw [hdecodeBytes]
 
 theorem clipperDecode_take_none_payload_short {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
@@ -909,7 +229,7 @@ theorem clipperReachTakeBody {σ σ₀ A I} {g : Sat256}
       [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h32⟩ := clipperReachRoot (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperTakeSelectorWord hsz hsel
-  have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
+  have h43 := RD.selectorSplitNotTakenPush2 (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by clipper_decode) (by clipper_decode) (by clipper_decode) (by decide)
@@ -917,14 +237,14 @@ theorem clipperReachTakeBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h162 := clipperSplitTaken (pc := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 3)
+  have h162 := RD.selectorSplitTakenPush2 (pc := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 3)
     (tgt := (⟨162⟩ : UInt256)) h43
     (by clipper_decode) (by clipper_decode) (by clipper_decode) (by decide)
     (by clipper_decode) (by clipper_decode)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨162⟩ : UInt256) (by native_decide))
     (by simp)
-  have h222 := clipperSplitTaken (pc := (⟨163⟩ : UInt256)) (pivot := clipperSelNat 13)
+  have h222 := RD.selectorSplitTakenPush2 (pc := (⟨163⟩ : UInt256)) (pivot := clipperSelNat 13)
     (tgt := (⟨222⟩ : UInt256))
     (h162.jumpdest (by clipper_decode) (by simp))
     (by clipper_decode) (by clipper_decode) (by clipper_decode) (by decide)
@@ -932,7 +252,7 @@ theorem clipperReachTakeBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨222⟩ : UInt256) (by native_decide))
     (by simp)
-  have h234 := clipperArmNotTaken (pc := (⟨223⟩ : UInt256))
+  have h234 := RD.selectorArmNotTakenPush2 (pc := (⟨223⟩ : UInt256))
     (next := (⟨234⟩ : UInt256)) (sel := clipperSelNat 20)
     (tgt := (⟨875⟩ : UInt256))
     (h222.jumpdest (by clipper_decode) (by simp))
@@ -941,7 +261,7 @@ theorem clipperReachTakeBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h245 := clipperArmNotTaken (pc := (⟨234⟩ : UInt256))
+  have h245 := RD.selectorArmNotTakenPush2 (pc := (⟨234⟩ : UInt256))
     (next := (⟨245⟩ : UInt256)) (sel := clipperSelNat 0)
     (tgt := (⟨883⟩ : UInt256)) h234
     (by clipper_decode) (by clipper_decode) (by clipper_decode) (by decide)
@@ -949,7 +269,7 @@ theorem clipperReachTakeBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h912 := clipperArmTaken (pc := (⟨245⟩ : UInt256)) (sel := clipperSelNat 22)
+  have h912 := RD.selectorArmTakenPush2 (pc := (⟨245⟩ : UInt256)) (sel := clipperSelNat 22)
     (tgt := (⟨912⟩ : UInt256)) h245
     (by clipper_decode) (by clipper_decode) (by clipper_decode) (by decide)
     (by clipper_decode) (by clipper_decode)

@@ -60,7 +60,6 @@ theorem catReachVatBody {σ σ₀ A I} {g : Sat256}
 theorem catVatBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x36, 0x56, 0x9e, 0x77]⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -72,8 +71,8 @@ theorem catVatBody {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (catAddressReturnWord ⟨3⟩ σ I).toNat))])) := by
-    simpa [vatTransition, catAddressReturnWord, catSlotWord, initState, Solm.EVM.storageLoad,
+            (solcAddressSlotWord ⟨3⟩ σ I).toNat))])) := by
+    simpa [vatTransition, solcAddressSlotWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount, solcSlotWord] using
       catAddressGetterBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := vatRef) (er := ({ base := "vat", steps := [] } : EvaledStorageRef)) (slot := ⟨3⟩)
@@ -85,6 +84,6 @@ theorem catVatBody {σ σ₀ A I} {g : UInt256}
     (catReachVatBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
     (by unfold solcGetterEntryWf; repeat' first | apply And.intro | native_decide)
     (by unfold solcAddressSlotGetterWf; repeat' first | apply And.intro | native_decide)
-    (by jump_dest) (by rfl) (by simpa [catAddressReturnWord, catSlotWord] using hbody)
+    (by jump_dest) (by rfl) (by simpa [solcAddressSlotWord, solcSlotWordAt] using hbody)
 
 end Benchmarks.Dss.Cat

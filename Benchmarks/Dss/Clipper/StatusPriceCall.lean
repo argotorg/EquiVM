@@ -1,71 +1,12 @@
+import Benchmarks.Dss.Clipper.GetFeedPrice
 import Benchmarks.Dss.Clipper.GetStatusEVMReverts
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
+
 namespace Benchmarks.Dss.Clipper
 
-theorem solcErrorStringMem0_size_of_size196 {mem : ByteArray} (hmem : mem.size = 196) :
-    (solcErrorStringMem0 mem).size = 196 := by
-  unfold solcErrorStringMem0
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract, hmem]
-
-theorem solcErrorStringMem1_size_of_size196 {mem : ByteArray} (hmem : mem.size = 196) :
-    (solcErrorStringMem1 mem).size = 196 := by
-  unfold solcErrorStringMem1
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [solcErrorStringMem0_size_of_size196 hmem]; omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract, solcErrorStringMem0_size_of_size196 hmem]
-
-theorem solcErrorStringMem2_size_of_size196 (len : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 196) :
-    (solcErrorStringMem2 len mem).size = 196 := by
-  unfold solcErrorStringMem2
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [solcErrorStringMem1_size_of_size196 hmem]; omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract, solcErrorStringMem1_size_of_size196 hmem]
-
-theorem solcErrorStringMem3_size_of_size196 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 196) :
-    (solcErrorStringMem3 len word mem).size = 228 := by
-  unfold solcErrorStringMem3
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [solcErrorStringMem2_size_of_size196 len hmem])]
-  simp [ByteArray.size_append, ByteArray.size_extract, solcErrorStringMem2_size_of_size196 len hmem]
-
-theorem solcErrorStringMem3_read64_of_size196 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 196)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold solcErrorStringMem3
-  rw [toByteArray_write_read_below_of_gap word _ 196 64
-      (by rw [solcErrorStringMem2_size_of_size196 len hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem2_size_of_size196 len hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem2
-  rw [toByteArray_write_read_below_of_gap len _ 164 64
-      (by rw [solcErrorStringMem1_size_of_size196 hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem1_size_of_size196 hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem1
-  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
-      (by rw [solcErrorStringMem0_size_of_size196 hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem0_size_of_size196 hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem0
-  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
-      (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
-  exact hread64
-
-theorem solcErrorStringMem3_mload64_of_size196 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 196)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
-     else UInt256.ofNat
-       (fromByteArrayBigEndian
-        ((solcErrorStringMem3 len word mem).readWithPadding
-          (⟨64⟩ : UInt256).toNat 32)))
-      = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size196 len word hmem]; decide) (solcErrorStringMem3_read64_of_size196 len word hmem hread64)
 
 -- GENERALIZES `RD.clipperStatusPricePostStaticcall`: callers enter the shared `status`
 -- routine after a lock-store, so the immutable RD start state still mentions the

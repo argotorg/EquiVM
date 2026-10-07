@@ -1,3 +1,5 @@
+import Reasoning.SolmBody
+import Reasoning.BytecodePatching
 import Solm
 
 /-!

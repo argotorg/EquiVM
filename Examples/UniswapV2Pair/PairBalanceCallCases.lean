@@ -50,7 +50,7 @@ theorem uniswapPairBalanceCallRuntimeCases
         ha hs he hdepth (balanceOfThisCalldataMem_encode I.codeOwner) hTheta
     have hcall : typedCallViaEVM config evm (EVM.address token) "balanceOf" 0
         [.address evm.executionEnv.codeOwner] (z, evm', out) false := by
-      rw [balanceCallAddress_self, htoken]
+      rw [address_of_val, htoken]
       exact hcallRaw
     rcases RD.uniswapPairBalanceCallResultCases rdResult hin hgap hlo haw hfit hread hout (by omega) with
       ⟨hbad, rdRev⟩ | ⟨hz, ho32, kr, Cr, rdRet⟩

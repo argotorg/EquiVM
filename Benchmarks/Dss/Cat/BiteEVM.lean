@@ -1,3 +1,4 @@
+import Reasoning.ABIViews
 import Benchmarks.Dss.Cat.Common
 import Solm.Refine
 
@@ -62,20 +63,6 @@ theorem catReachBiteEntry {σ σ₀ A I} {g : Sat256}
   exact catReachLowLowBody 3 (by omega) ⟨375⟩ hcode hwv hsz hsize hroot hlow heq0 htake
     (by jump_dest) (by native_decide)
 
-/-- `decodeABIValues?` for the `(bytes32, address)` head tuple under `legacySolc05`.
-The legacy solc-0.5 decoder does not enforce the address canonical-form check, so `_hcanon` is
-retained only for interface parity with the `modern` lemma. -/
-theorem decodeABIValues_bytes32_address_legacy {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (_hcanon : (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus) :
-    decodeABIValues? [abiBytes32, .elem .address] bytes 0 0 64 64 DecodeMode.legacySolc05 =
-      some ([.fixedBytes abiBytes32Width (bytes.take 32),
-        .address (Ethereum.AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)], 64) := by
-  simp [decodeABIValues?, abiBytes32, abiBytes32Width, isDynamicABIType,
-    staticABIEncodedSize?, decodeABIValue?, readBytes?, hlen0]
-  simp [readWord?, readBytes?, decodeABIWord?, hlen32, UInt256.toNat]
 
 theorem catDecode_bite {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)

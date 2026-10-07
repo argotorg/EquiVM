@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Vat
 /-! ## `vice()` getter -/
 
 def viceWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vatSlotWord ⟨8⟩ σ I
+  solcSlotWordAt ⟨8⟩ σ I
 
 theorem vatDecode_vice {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (viceTransition.params.map Param.name)
@@ -48,8 +48,8 @@ theorem vatReachViceBody {σ σ₀ A I} {g : Sat256}
   exact vatReachArms370Body 2 (by omega) ⟨674⟩ hcode hwv hsz hsize
     hroot hlow hlowlow heq0 htake (by jump_dest) (by native_decide)
 
-theorem vatViceBodyCore : VatBodyTheorem 26 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatViceBodyCore : VatBodyTheoremAnyPerm 26 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 26) rfl hsel
   have hbody :
@@ -58,7 +58,7 @@ theorem vatViceBodyCore : VatBodyTheorem 26 := by
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (viceWord σ I).toNat))])) := by
-    simpa [viceTransition, viceWord, vatSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [viceTransition, viceWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vatUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

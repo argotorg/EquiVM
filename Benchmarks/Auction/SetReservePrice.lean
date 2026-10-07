@@ -7,6 +7,22 @@ set_option maxRecDepth 100000
 
 namespace Auction
 
+theorem setReservePriceBodySplit (evm : EVM.State) (value : UInt256)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv) :
+    (ExecTransitionBody auctionConfig auctionContract evm
+      ((∅ : Store).insert "_reservePrice" (.int (Int.ofNat value.toNat)))
+      setReservePriceTransition.body
+      (.returned
+        { contract := auctionContract
+          locals := (∅ : Store).insert "_reservePrice" (.int (Int.ofNat value.toNat)) }
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨204⟩ value) none)) ∧
+      (evm.executionEnv.perm = false → ExecTransitionBody auctionConfig auctionContract evm
+      ((∅ : Store).insert "_reservePrice" (.int (Int.ofNat value.toNat)))
+      setReservePriceTransition.body .staticViolation) := by
+  exact ownerSetUint256Split evm _ "reservePrice" "_reservePrice" ⟨204⟩ value hwv ho
+    (by simp) (by simp) (by simp) (by native_decide) rfl
+
 theorem setReservePriceBody (evm : EVM.State) (value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv) :
@@ -16,13 +32,12 @@ theorem setReservePriceBody (evm : EVM.State) (value : UInt256)
       (.returned
         { contract := auctionContract
           locals := (∅ : Store).insert "_reservePrice" (.int (Int.ofNat value.toNat)) }
-        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨204⟩ value) none) := by
-  exact ownerSetUint256 evm _ "reservePrice" "_reservePrice" ⟨204⟩ value hwv ho
-    (by simp) (by simp) (by simp) (by native_decide) rfl
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨204⟩ value) none) :=
+  (setReservePriceBodySplit evm value hwv ho).1
 
 theorem setReservePriceBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (entryBytes 15))
+    (hsel : selIs I (entryBytes 15))
     (hreach : EntryReached 15 σ σ₀ A I g) :
     runtimeRefinementFor auctionConfig auctionContract
       σ σ₀ g A I := by
@@ -45,8 +60,14 @@ theorem setReservePriceBodyCore {σ σ₀ A I} {g : UInt256}
         obtain ⟨_, _, rd2478⟩ := setterFromDecoder 1 rd854 (by evm_ov)
         by_cases ho : solcSourceWord I = ownerWord σ I
         · obtain ⟨_, _, rd2520⟩ := ownerAllowed 5 rd2478 ho (by evm_ov)
-          obtain ⟨_, _, rd413⟩ := setterStoreEvent 1 rd2520 hperm
-            (by jump_dest) (by evm_ov)
+          rcases setterStoreEventSplit 1 rd2520
+            (by jump_dest) (by evm_ov) with
+            ⟨_hperm, _, _, rd413⟩ | ⟨hperm, hstatic⟩
+          swap
+          · exact hstatic.reEquivStaticHalt hcode hd hdec
+              ((setReservePriceBodySplit
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                (calldataWord I.calldata 4) hwv ho).2 hperm)
           have hbody := setReservePriceBody
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (calldataWord I.calldata 4) hwv ho

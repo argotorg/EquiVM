@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -6,8 +7,9 @@ import Solm.SolidityLayout
 
 Solm benchmark scaffold for upstream `dss/src/spot.sol`.
 
-The storage layout and public ABI surface follow solc `0.6.12`. Events are omitted. `poke` keeps
-the source-level oracle call and conditional arithmetic evaluation shape.
+The storage layout and public ABI surface follow solc `0.6.12`. The one event, `Poke`, is
+modelled: `poke` writes no storage, so under a static call its log is the first forbidden
+operation. `poke` keeps the source-level oracle call and conditional arithmetic evaluation shape.
 -/
 
 open Solm ABI Ethereum
@@ -124,19 +126,19 @@ def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "ilks", steps := [.mindex ilk, .field "pip"] }, _ =>
-      some (addrLoc (ilksBase ilk))
-  | { base := "ilks", steps := [.mindex ilk, .field "mat"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨1⟩))
-  | { base := "vat", steps := [] }, _ => some (addrLoc ⟨2⟩)
-  | { base := "par", steps := [] }, _ => some (wordLoc ⟨3⟩)
-  | { base := "live", steps := [] }, _ => some (wordLoc ⟨4⟩)
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } => some (.leaf (wordLoc (wardsSlot usr)))
+  | { base := "ilks", steps := [.mindex ilk, .field "pip"] } =>
+      some (.leaf (addrLoc (ilksBase ilk)))
+  | { base := "ilks", steps := [.mindex ilk, .field "mat"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨1⟩)))
+  | { base := "vat", steps := [] } => some (.leaf (addrLoc ⟨2⟩))
+  | { base := "par", steps := [] } => some (.leaf (wordLoc ⟨3⟩))
+  | { base := "live", steps := [] } => some (.leaf (wordLoc ⟨4⟩))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -291,7 +293,8 @@ def pokeTransition : TransitionDecl :=
               .assign .localVar { base := "spot" } (.var "spot2") ])
           [] ] ++
       checkedExternalCallStmts (.storage vatRef) "file" (.intLit 0)
-        [.var "ilk", spotParamLit, .var "spot"] "_fileRet" }
+        [.var "ilk", spotParamLit, .var "spot"] "_fileRet" ++
+      [ .emit "Poke" [.var "ilk", .var "val", .var "spot"] ] }
 
 def cageTransition : TransitionDecl :=
   { name := "cage"
@@ -322,7 +325,7 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := spotExternalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }

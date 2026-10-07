@@ -1,3 +1,4 @@
+import Reasoning.ABIComposite
 import Benchmarks.Dss.Vat.HealBase
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -15,13 +16,13 @@ theorem RD.vatHealSinSubUnderflow
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6423⟩
       [rad, ⟨524⟩, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C)
-    (hlt : (vatSlotWord (healSinSlot I) σ I).toNat < rad.toNat) :
+    (hlt : (solcSlotWordAt (healSinSlot I) σ I).toNat < rad.toNat) :
     RDrev vatBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hslotEq :
       solcSlotWord σ I (solcMappingSlot ⟨6⟩ (healSourceWord I)) =
-        vatSlotWord (healSinSlot I) σ I := by
-    simp [vatSlotWord, healSinSlot_eq_mapSlot I]
+        solcSlotWordAt (healSinSlot I) σ I := by
+    simp [solcSlotWordAt, healSinSlot_eq_mapSlot I]
   have rd6429pre := evm_run rd with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
@@ -48,7 +49,7 @@ theorem RD.vatHealSinSubUnderflow
   obtain ⟨k6440, C6440, rd6440raw⟩ := rd6439.sload (by native_decide) (by evm_ov)
   have rd6440 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6440⟩
-      (vatSlotWord (healSinSlot I) σ I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
+      (solcSlotWordAt (healSinSlot I) σ I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
       ByteArray.empty σ k6440 C6440 := by
     simpa [-Std.ExtTreeMap.get?_eq_getElem?, hslotEq, solcSlotWord, healSourceWord] using rd6440raw
@@ -60,7 +61,7 @@ theorem RD.vatHealSinSubUnderflow
   have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubEmptyRevertAnyWords
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
-    (a := vatSlotWord (healSinSlot I) σ I) (b := rad) (ret := ⟨6449⟩)
+    (a := solcSlotWordAt (healSinSlot I) σ I) (b := rad) (ret := ⟨6449⟩)
     (R := [healSourceWord I, rad, ⟨524⟩, sel])
     (by simpa using rd6621)
     (by
@@ -75,17 +76,17 @@ theorem RD.vatHealSinSubSuccess
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6423⟩
       [rad, ⟨524⟩, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C)
-    (hle : rad.toNat ≤ (vatSlotWord (healSinSlot I) σ I).toNat) :
+    (hle : rad.toNat ≤ (solcSlotWordAt (healSinSlot I) σ I).toNat) :
     ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6449⟩
-      (UInt256.sub (vatSlotWord (healSinSlot I) σ I) rad ::
+      (UInt256.sub (solcSlotWordAt (healSinSlot I) σ I) rad ::
         healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
       ByteArray.empty σ k' C' := by
   have hslotEq :
       solcSlotWord σ I (solcMappingSlot ⟨6⟩ (healSourceWord I)) =
-        vatSlotWord (healSinSlot I) σ I := by
-    simp [vatSlotWord, healSinSlot_eq_mapSlot I]
+        solcSlotWordAt (healSinSlot I) σ I := by
+    simp [solcSlotWordAt, healSinSlot_eq_mapSlot I]
   have rd6429pre := evm_run rd with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
@@ -112,7 +113,7 @@ theorem RD.vatHealSinSubSuccess
   obtain ⟨k6440, C6440, rd6440raw⟩ := rd6439.sload (by native_decide) (by evm_ov)
   have rd6440 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6440⟩
-      (vatSlotWord (healSinSlot I) σ I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
+      (solcSlotWordAt (healSinSlot I) σ I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
       ByteArray.empty σ k6440 C6440 := by
     simpa [-Std.ExtTreeMap.get?_eq_getElem?, hslotEq, solcSlotWord, healSourceWord] using rd6440raw
@@ -124,7 +125,7 @@ theorem RD.vatHealSinSubSuccess
   have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubSuccess
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
-    (a := vatSlotWord (healSinSlot I) σ I) (b := rad) (ret := ⟨6449⟩)
+    (a := solcSlotWordAt (healSinSlot I) σ I) (b := rad) (ret := ⟨6449⟩)
     (R := [healSourceWord I, rad, ⟨524⟩, sel])
     (by simpa using rd6621)
     (by
@@ -132,24 +133,26 @@ theorem RD.vatHealSinSubSuccess
       repeat' first | apply And.intro | native_decide)
     hle (by jump_dest) (by jump_dest) (by simp)
 
-theorem RD.vatHealDaiLoaded
+theorem RD.vatHealDaiLoadedSplit
     {σ σ₀ A I} {g sel rad sinNew : UInt256} {k C : ℕ}
-    (hperm : I.perm = true)
     (rd : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6449⟩
       (sinNew :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
       ByteArray.empty σ k C) :
+    (I.perm = true ∧
     ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6487⟩
-      (vatSlotWord (healDaiSlot I)
+      (solcSlotWordAt (healDaiSlot I)
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I ::
         healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (wordAt32Mem ⟨5⟩
         (twoWordHashMem (healSourceWord I) ⟨6⟩
           (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem)))
       (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) k' C' := by
+      (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) k' C') ∨
+      (I.perm = false ∧ RDstatic vatBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   have hcanonSource : (healSourceWord I).toNat < EVM.addressModulus := by
     rw [healSourceWord_toNat]
     simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using I.source.isLt
@@ -166,8 +169,8 @@ theorem RD.vatHealDaiLoaded
   let σSin := sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew
   have hdaiSlotEq :
       solcSlotWord σSin I (solcMappingSlot ⟨5⟩ (healSourceWord I)) =
-        vatSlotWord (healDaiSlot I) σSin I := by
-    simp [vatSlotWord, healDaiSlot_eq_mapSlot I]
+        solcSlotWordAt (healDaiSlot I) σSin I := by
+    simp [solcSlotWordAt, healDaiSlot_eq_mapSlot I]
   have rd6459pre := evm_run rd with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -213,6 +216,11 @@ theorem RD.vatHealDaiLoaded
     raw swap4 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov)]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd6480pre.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k6481, C6481, rd6481raw⟩ := rd6480pre.sstore hperm (by native_decide) (by evm_ov)
   have rd6481 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6481⟩
@@ -250,10 +258,30 @@ theorem RD.vatHealDaiLoaded
   obtain ⟨k6487, C6487, rd6487raw⟩ := rd6486.sload (by native_decide) (by evm_ov)
   have rd6487 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6487⟩
-      (vatSlotWord (healDaiSlot I) σSin I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
+      (solcSlotWordAt (healDaiSlot I) σSin I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       daiMem (UInt256.ofNat 3) ByteArray.empty σSin k6487 C6487 := by
     simpa [-Std.ExtTreeMap.get?_eq_getElem?, hdaiSlotEq, solcSlotWord, daiMem] using rd6487raw
   exact ⟨_, _, by simpa [σSin, daiMem] using rd6487⟩
+
+theorem RD.vatHealDaiLoaded
+    {σ σ₀ A I} {g sel rad sinNew : UInt256} {k C : ℕ}
+    (hperm : I.perm = true)
+    (rd : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6449⟩
+      (sinNew :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
+      (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
+      ByteArray.empty σ k C) :
+    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6487⟩
+      (solcSlotWordAt (healDaiSlot I)
+          (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I ::
+        healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
+      (wordAt32Mem ⟨5⟩
+        (twoWordHashMem (healSourceWord I) ⟨6⟩
+          (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem)))
+      (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) k' C' :=
+  permSplit_true hperm (RD.vatHealDaiLoadedSplit rd)
 
 theorem RD.vatHealDaiSubUnderflow
     {σ σ₀ A I} {g sel rad sinNew : UInt256} {k C : ℕ}
@@ -263,7 +291,7 @@ theorem RD.vatHealDaiSubUnderflow
       (sinNew :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
       ByteArray.empty σ k C)
-    (hlt : (vatSlotWord (healDaiSlot I)
+    (hlt : (solcSlotWordAt (healDaiSlot I)
         (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I).toNat < rad.toNat) :
     RDrev vatBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
@@ -276,7 +304,7 @@ theorem RD.vatHealDaiSubUnderflow
   have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubEmptyRevertAnyWords
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
-    (a := vatSlotWord (healDaiSlot I)
+    (a := solcSlotWordAt (healDaiSlot I)
         (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I)
     (b := rad) (ret := ⟨6496⟩)
     (R := [healSourceWord I, rad, ⟨524⟩, sel])
@@ -296,12 +324,12 @@ theorem RD.vatHealDaiSubSuccess
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
       ByteArray.empty σ k C)
     (hle : rad.toNat ≤
-      (vatSlotWord (healDaiSlot I)
+      (solcSlotWordAt (healDaiSlot I)
         (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I).toNat) :
     ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6496⟩
       (UInt256.sub
-          (vatSlotWord (healDaiSlot I)
+          (solcSlotWordAt (healDaiSlot I)
             (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I) rad ::
         healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (wordAt32Mem ⟨5⟩
@@ -318,7 +346,7 @@ theorem RD.vatHealDaiSubSuccess
   have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubSuccess
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
-    (a := vatSlotWord (healDaiSlot I)
+    (a := solcSlotWordAt (healDaiSlot I)
         (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I)
     (b := rad) (ret := ⟨6496⟩)
     (R := [healSourceWord I, rad, ⟨524⟩, sel])
@@ -341,7 +369,7 @@ theorem RD.vatHealViceLoaded
       (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) k C) :
     ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6525⟩
-      (vatSlotWord healViceSlot
+      (solcSlotWordAt healViceSlot
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
             (healDaiSlot I) daiNew) I ::
@@ -421,9 +449,9 @@ theorem RD.vatHealViceLoaded
   obtain ⟨k6525, C6525, rd6525raw⟩ := rd6524.sload (by native_decide) (by evm_ov)
   have rd6525 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6525⟩
-      (vatSlotWord healViceSlot σDai I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
+      (solcSlotWordAt healViceSlot σDai I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       daiHashMem (UInt256.ofNat 3) ByteArray.empty σDai k6525 C6525 := by
-    simpa [-Std.ExtTreeMap.get?_eq_getElem?, vatSlotWord, solcSlotWord, healViceSlot] using rd6525raw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWordAt, solcSlotWord, healViceSlot] using rd6525raw
   exact ⟨_, _, by simpa [σSin, σDai, daiMem, daiHashMem] using rd6525⟩
 
 theorem RD.vatHealViceSubUnderflow
@@ -437,7 +465,7 @@ theorem RD.vatHealViceSubUnderflow
           (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem)))
       (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) k C)
-    (hlt : (vatSlotWord healViceSlot
+    (hlt : (solcSlotWordAt healViceSlot
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
           (healDaiSlot I) daiNew) I).toNat < rad.toNat) :
@@ -452,7 +480,7 @@ theorem RD.vatHealViceSubUnderflow
   have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubEmptyRevertAnyWords
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
-    (a := vatSlotWord healViceSlot
+    (a := solcSlotWordAt healViceSlot
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
           (healDaiSlot I) daiNew) I)
@@ -476,14 +504,14 @@ theorem RD.vatHealViceSubSuccess
           (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem)))
       (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) k C)
-    (hle : rad.toNat ≤ (vatSlotWord healViceSlot
+    (hle : rad.toNat ≤ (solcSlotWordAt healViceSlot
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
           (healDaiSlot I) daiNew) I).toNat) :
     ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6534⟩
       (UInt256.sub
-          (vatSlotWord healViceSlot
+          (solcSlotWordAt healViceSlot
             (sstoreAccountMap I.codeOwner
               (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
               (healDaiSlot I) daiNew) I) rad ::
@@ -505,7 +533,7 @@ theorem RD.vatHealViceSubSuccess
   have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubSuccess
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
-    (a := vatSlotWord healViceSlot
+    (a := solcSlotWordAt healViceSlot
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
           (healDaiSlot I) daiNew) I)
@@ -533,7 +561,7 @@ theorem RD.vatHealDebtLoaded
         (healDaiSlot I) daiNew) k C) :
     ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6541⟩
-      (vatSlotWord healDebtSlot
+      (solcSlotWordAt healDebtSlot
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner
               (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
@@ -569,9 +597,9 @@ theorem RD.vatHealDebtLoaded
   obtain ⟨k6541, C6541, rd6541raw⟩ := rd6540.sload (by native_decide) (by evm_ov)
   have rd6541 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6541⟩
-      (vatSlotWord healDebtSlot σVice I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
+      (solcSlotWordAt healDebtSlot σVice I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       mem (UInt256.ofNat 3) ByteArray.empty σVice k6541 C6541 := by
-    simpa [-Std.ExtTreeMap.get?_eq_getElem?, vatSlotWord, solcSlotWord, healDebtSlot] using rd6541raw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWordAt, solcSlotWord, healDebtSlot] using rd6541raw
   exact ⟨_, _, by simpa [σDai, σVice, mem] using rd6541⟩
 
 theorem RD.vatHealDebtSubUnderflow
@@ -588,7 +616,7 @@ theorem RD.vatHealDebtSubUnderflow
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
         (healDaiSlot I) daiNew) k C)
-    (hlt : (vatSlotWord healDebtSlot
+    (hlt : (solcSlotWordAt healDebtSlot
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
@@ -605,7 +633,7 @@ theorem RD.vatHealDebtSubUnderflow
   have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubEmptyRevertAnyWords
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
-    (a := vatSlotWord healDebtSlot
+    (a := solcSlotWordAt healDebtSlot
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
@@ -634,7 +662,7 @@ theorem RD.vatHealDebtSubSuccess
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
         (healDaiSlot I) daiNew) k C)
-    (hle : rad.toNat ≤ (vatSlotWord healDebtSlot
+    (hle : rad.toNat ≤ (solcSlotWordAt healDebtSlot
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
@@ -643,7 +671,7 @@ theorem RD.vatHealDebtSubSuccess
     ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6550⟩
       (UInt256.sub
-          (vatSlotWord healDebtSlot
+          (solcSlotWordAt healDebtSlot
             (sstoreAccountMap I.codeOwner
               (sstoreAccountMap I.codeOwner
                 (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
@@ -669,7 +697,7 @@ theorem RD.vatHealDebtSubSuccess
   have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubSuccess
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
-    (a := vatSlotWord healDebtSlot
+    (a := solcSlotWordAt healDebtSlot
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
@@ -795,34 +823,34 @@ theorem vatHealAllSuccess
       decodeCalldataWithMode config.abiDecodeMode (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
     (hsinNewEvm :
-      UInt256.sub (vatSlotWord (healSinSlot I) σ I) (healRad I) = sinNew)
+      UInt256.sub (solcSlotWordAt (healSinSlot I) σ I) (healRad I) = sinNew)
     (hsinEnoughEvm :
-      (healRad I).toNat ≤ (vatSlotWord (healSinSlot I) σ I).toNat)
+      (healRad I).toNat ≤ (solcSlotWordAt (healSinSlot I) σ I).toNat)
     (hdaiNewEvm :
       UInt256.sub
-        (vatSlotWord (healDaiSlot I)
+        (solcSlotWordAt (healDaiSlot I)
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I)
         (healRad I) = daiNew)
     (hdaiEnoughEvm :
       (healRad I).toNat ≤
-        (vatSlotWord (healDaiSlot I)
+        (solcSlotWordAt (healDaiSlot I)
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I).toNat)
     (hviceNewEvm :
       UInt256.sub
-        (vatSlotWord healViceSlot
+        (solcSlotWordAt healViceSlot
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
             (healDaiSlot I) daiNew) I)
         (healRad I) = viceNew)
     (hviceEnoughEvm :
       (healRad I).toNat ≤
-        (vatSlotWord healViceSlot
+        (solcSlotWordAt healViceSlot
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
             (healDaiSlot I) daiNew) I).toNat)
     (hdebtNewEvm :
       UInt256.sub
-        (vatSlotWord healDebtSlot
+        (solcSlotWordAt healDebtSlot
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner
               (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
@@ -831,7 +859,7 @@ theorem vatHealAllSuccess
         (healRad I) = debtNew)
     (hdebtEnoughEvm :
       (healRad I).toNat ≤
-        (vatSlotWord healDebtSlot
+        (solcSlotWordAt healDebtSlot
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner
               (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
@@ -870,7 +898,7 @@ theorem vatHealAllSuccess
         (Solm.EVM.storageLoad evmSinSolm evmSinSolm.executionEnv.codeOwner
           (healDaiSlot I)).toNat := by
     have htmp := hdaiEnoughEvm
-    simp [vatSlotWord, solcSlotWord] at htmp
+    simp [solcSlotWordAt, solcSlotWord] at htmp
     rw [← hmapSinSolm] at htmp
     simpa [evmSinSolm, Solm.EVM.storageLoad, storageStore_executionEnv] using htmp
   have hdaiNewSolmLoad :
@@ -878,7 +906,7 @@ theorem vatHealAllSuccess
           (Solm.EVM.storageLoad evmSinSolm evmSinSolm.executionEnv.codeOwner
             (healDaiSlot I)) (healRad I) = daiNew := by
     have htmp := hdaiNewEvm
-    simp [vatSlotWord, solcSlotWord] at htmp
+    simp [solcSlotWordAt, solcSlotWord] at htmp
     rw [← hmapSinSolm] at htmp
     simpa [evmSinSolm, Solm.EVM.storageLoad, storageStore_executionEnv] using htmp
   have hmapDaiSolm :
@@ -898,7 +926,7 @@ theorem vatHealAllSuccess
     have howner : evmSinSolm.executionEnv.codeOwner = I.codeOwner := by
       simp [evmSinSolm, evm0Solm, storageStore_executionEnv, initState]
     have htmp := hviceEnoughEvm
-    simp [vatSlotWord, solcSlotWord] at htmp
+    simp [solcSlotWordAt, solcSlotWord] at htmp
     rw [← hmapDaiSolm] at htmp
     simpa [howner, evmDaiSolm, Solm.EVM.storageLoad, storageStore_executionEnv,
       State.lookupAccount, Account.lookupStorage] using htmp
@@ -909,7 +937,7 @@ theorem vatHealAllSuccess
     have howner : evmSinSolm.executionEnv.codeOwner = I.codeOwner := by
       simp [evmSinSolm, evm0Solm, storageStore_executionEnv, initState]
     have htmp := hviceNewEvm
-    simp [vatSlotWord, solcSlotWord] at htmp
+    simp [solcSlotWordAt, solcSlotWord] at htmp
     rw [← hmapDaiSolm] at htmp
     simpa [howner, evmDaiSolm, Solm.EVM.storageLoad, storageStore_executionEnv,
       State.lookupAccount, Account.lookupStorage] using htmp
@@ -932,7 +960,7 @@ theorem vatHealAllSuccess
     have howner : evmDaiSolm.executionEnv.codeOwner = I.codeOwner := by
       simp [evmDaiSolm, evmSinSolm, evm0Solm, storageStore_executionEnv, initState]
     have htmp := hdebtEnoughEvm
-    simp [vatSlotWord, solcSlotWord] at htmp
+    simp [solcSlotWordAt, solcSlotWord] at htmp
     rw [← hmapViceSolm] at htmp
     simpa [howner, evmViceSolm, Solm.EVM.storageLoad, storageStore_executionEnv,
       State.lookupAccount, Account.lookupStorage] using htmp
@@ -943,7 +971,7 @@ theorem vatHealAllSuccess
     have howner : evmDaiSolm.executionEnv.codeOwner = I.codeOwner := by
       simp [evmDaiSolm, evmSinSolm, evm0Solm, storageStore_executionEnv, initState]
     have htmp := hdebtNewEvm
-    simp [vatSlotWord, solcSlotWord] at htmp
+    simp [solcSlotWordAt, solcSlotWord] at htmp
     rw [← hmapViceSolm] at htmp
     simpa [howner, evmViceSolm, Solm.EVM.storageLoad, storageStore_executionEnv,
       State.lookupAccount, Account.lookupStorage] using htmp
@@ -951,12 +979,12 @@ theorem vatHealAllSuccess
       UInt256.sub
           (Solm.EVM.storageLoad evm0Solm evm0Solm.executionEnv.codeOwner
             (healSinSlot I)) (healRad I) = sinNew := by
-    simpa [evm0Solm, initState, Solm.EVM.storageLoad, vatSlotWord] using hsinNewEvm
+    simpa [evm0Solm, initState, Solm.EVM.storageLoad, solcSlotWordAt] using hsinNewEvm
   have hsinEnoughSolmLoad :
       (healRad I).toNat ≤
         (Solm.EVM.storageLoad evm0Solm evm0Solm.executionEnv.codeOwner
           (healSinSlot I)).toNat := by
-    simpa [evm0Solm, initState, Solm.EVM.storageLoad, vatSlotWord] using hsinEnoughEvm
+    simpa [evm0Solm, initState, Solm.EVM.storageLoad, solcSlotWordAt] using hsinEnoughEvm
   have hbody :
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -979,59 +1007,19 @@ theorem vatHealAllSuccess
         hdebtEnoughSolmLoad
   exact vatHealFinishSuccess hcode hperm hdispatch hdecode hbody hdebtOk
 
-theorem vatHeal_decodeCalldata_legacyUInt256_ok {cd : ByteArray} {x : Solm.Ident}
-    (hsz36 : 36 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd =
-      some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256])
-    (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-    (bytes := cd.toList.drop 4) (start := 0) htake4]
-  change decodeCalldata.insertValues [x]
-      [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat)] ∅ =
-    some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat)))
-  rw [hword4]
-  simp [decodeCalldata.insertValues]
-
-theorem vatHeal_decodeCalldata_legacyUInt256_none_short {cd : ByteArray} {x : Solm.Ident}
-    (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 36) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256])
-    (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-    (start := 0) (by simpa using htake0n)]
-  simp only [Option.bind, bind]
 
 theorem vatDecode_heal_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (healTransition.params.map Param.name)
       (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I) := by
   simpa [config, healTransition, healLocals, healRad, uint256] using
-    (vatHeal_decodeCalldata_legacyUInt256_ok (cd := I.calldata) (x := "rad") hsz36)
+    (decodeCalldata_legacyUInt256_ok (cd := I.calldata) (x := "rad") hsz36)
 
 theorem vatDecode_heal_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
     decodeCalldataWithMode config.abiDecodeMode (healTransition.params.map Param.name)
       (transitionSignature healTransition).paramTypes I.calldata = none := by
   simpa [config, healTransition, uint256] using
-    (vatHeal_decodeCalldata_legacyUInt256_none_short (cd := I.calldata) (x := "rad")
+    (decodeCalldata_legacyUInt256_none_short (cd := I.calldata) (x := "rad")
       hsz4 hshort)
 
 theorem vatDispatchHeal {I : ExecutionEnv}
@@ -1110,7 +1098,7 @@ theorem RD.vatHealDecodeToRoutine
 
 theorem vatHealShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I (vatSelBytes 14)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -1136,7 +1124,7 @@ theorem vatHealShort {σ σ₀ A I} {g : UInt256}
 
 theorem vatHealBodyCoreOk
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hcode : I.code = vatBytecode) (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some healTransition)
     (hdecode :
@@ -1147,13 +1135,13 @@ theorem vatHealBodyCoreOk
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hroutine⟩ := RD.vatHealDecodeToRoutine hreach hsz36 hsize
-  by_cases hsinEvm : (vatSlotWord (healSinSlot I) σ I).toNat < (healRad I).toNat
+  by_cases hsinEvm : (solcSlotWordAt (healSinSlot I) σ I).toNat < (healRad I).toNat
   · have hsinSolm :
         (Solm.EVM.storageLoad
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
             (healSinSlot I)).toNat < (healRad I).toNat := by
-      simpa [initState, vatSlotWord, Solm.EVM.storageLoad] using hsinEvm
+      simpa [initState, solcSlotWordAt, Solm.EVM.storageLoad] using hsinEvm
     have hbody :
         ExecTransitionBody config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -1168,18 +1156,26 @@ theorem vatHealBodyCoreOk
       (I := I) (g := g) (sel := sel) (rad := healRad I) hroutine hsinEvm
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hsinEnoughEvm :
-        (healRad I).toNat ≤ (vatSlotWord (healSinSlot I) σ I).toNat :=
+        (healRad I).toNat ≤ (solcSlotWordAt (healSinSlot I) σ I).toNat :=
       le_of_not_gt hsinEvm
-    let sinNew := UInt256.sub (vatSlotWord (healSinSlot I) σ I) (healRad I)
+    let sinNew := UInt256.sub (solcSlotWordAt (healSinSlot I) σ I) (healRad I)
     obtain ⟨_, _, hsinOk⟩ := RD.vatHealSinSubSuccess
       (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g) (sel := sel) (rad := healRad I) hroutine hsinEnoughEvm
+    rcases RD.vatHealDaiLoadedSplit hsinOk with ⟨hperm, -⟩ | ⟨hpf, hstatic⟩
+    swap
+    · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+        (vatHealSourceStatic (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) (I := I)
+          (by simpa [initState] using hwv)
+          (by simp [initState])
+          (by simpa [initState, Solm.EVM.storageLoad, solcSlotWordAt] using hsinEnoughEvm)
+          (by simpa [initState] using hpf))
     by_cases hdaiEvm :
-        (vatSlotWord (healDaiSlot I)
+        (solcSlotWordAt (healDaiSlot I)
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I).toNat <
           (healRad I).toNat
     · have hsinNewSolm :
-          UInt256.sub (vatSlotWord (healSinSlot I) σ I) (healRad I) = sinNew := rfl
+          UInt256.sub (solcSlotWordAt (healSinSlot I) σ I) (healRad I) = sinNew := rfl
       let evm0Solm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmSinSolm := Solm.EVM.storageStore evm0Solm evm0Solm.executionEnv.codeOwner
         (healSinSlot I)
@@ -1193,7 +1189,7 @@ theorem vatHealBodyCoreOk
                 (Option.option ⟨0⟩ (fun acc : Account => acc.storage.getD (healSinSlot I) ⟨0⟩)
                   (σ.get? I.codeOwner))
                 (healRad I) = sinNew := by
-          simpa [-Std.ExtTreeMap.get?_eq_getElem?, vatSlotWord, solcSlotWord, Account.lookupStorage] using hsinNewSolm
+          simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWordAt, solcSlotWord, Account.lookupStorage] using hsinNewSolm
         dsimp [evmSinSolm, evm0Solm]
         rw [storageStore_accountMap]
         simp [-Std.ExtTreeMap.get?_eq_getElem?, initState, Solm.EVM.storageLoad,
@@ -1203,7 +1199,7 @@ theorem vatHealBodyCoreOk
           (Solm.EVM.storageLoad evmSinSolm evmSinSolm.executionEnv.codeOwner
               (healDaiSlot I)).toNat < (healRad I).toNat := by
         have htmp := hdaiEvm
-        simp [vatSlotWord, solcSlotWord] at htmp
+        simp [solcSlotWordAt, solcSlotWord] at htmp
         rw [← hmapSinSolm] at htmp
         simpa [evmSinSolm, Solm.EVM.storageLoad, storageStore_executionEnv] using htmp
       have hbody :
@@ -1214,7 +1210,7 @@ theorem vatHealBodyCoreOk
           (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) (I := I)
           (by simpa [initState] using hwv)
           (by simp [initState])
-          (by simpa [initState, Solm.EVM.storageLoad, vatSlotWord] using hsinEnoughEvm)
+          (by simpa [initState, Solm.EVM.storageLoad, solcSlotWordAt] using hsinEnoughEvm)
           hdaiSolm
       have hrev := RD.vatHealDaiSubUnderflow
         (σ := σ) (σ₀ := σ₀) (A := A)
@@ -1223,7 +1219,7 @@ theorem vatHealBodyCoreOk
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hdaiEnoughEvm :
           (healRad I).toNat ≤
-            (vatSlotWord (healDaiSlot I)
+            (solcSlotWordAt (healDaiSlot I)
               (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I).toNat :=
         le_of_not_gt hdaiEvm
       obtain ⟨_, _, hdaiOk⟩ := RD.vatHealDaiSubSuccess
@@ -1231,18 +1227,18 @@ theorem vatHealBodyCoreOk
         (I := I) (g := g) (sel := sel) (rad := healRad I) (sinNew := sinNew)
         hperm hsinOk hdaiEnoughEvm
       let daiNew := UInt256.sub
-        (vatSlotWord (healDaiSlot I)
+        (solcSlotWordAt (healDaiSlot I)
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I) (healRad I)
       by_cases hviceEvm :
-          (vatSlotWord healViceSlot
+          (solcSlotWordAt healViceSlot
             (sstoreAccountMap I.codeOwner
               (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
               (healDaiSlot I) daiNew) I).toNat < (healRad I).toNat
       · have hsinNewSolm :
-            UInt256.sub (vatSlotWord (healSinSlot I) σ I) (healRad I) = sinNew := rfl
+            UInt256.sub (solcSlotWordAt (healSinSlot I) σ I) (healRad I) = sinNew := rfl
         have hdaiNewSolm :
             UInt256.sub
-                (vatSlotWord (healDaiSlot I)
+                (solcSlotWordAt (healDaiSlot I)
                   (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I)
                 (healRad I) = daiNew := rfl
         let evm0Solm := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1262,7 +1258,7 @@ theorem vatHealBodyCoreOk
                   (Option.option ⟨0⟩ (fun acc : Account => acc.storage.getD (healSinSlot I) ⟨0⟩)
                     (σ.get? I.codeOwner))
                   (healRad I) = sinNew := by
-            simpa [-Std.ExtTreeMap.get?_eq_getElem?, vatSlotWord, solcSlotWord, Account.lookupStorage] using hsinNewSolm
+            simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWordAt, solcSlotWord, Account.lookupStorage] using hsinNewSolm
           dsimp [evmSinSolm, evm0Solm]
           rw [storageStore_accountMap]
           simp [-Std.ExtTreeMap.get?_eq_getElem?, initState, Solm.EVM.storageLoad,
@@ -1273,7 +1269,7 @@ theorem vatHealBodyCoreOk
               (Solm.EVM.storageLoad evmSinSolm evmSinSolm.executionEnv.codeOwner
                 (healDaiSlot I)).toNat := by
           have htmp := hdaiEnoughEvm
-          simp [vatSlotWord, solcSlotWord] at htmp
+          simp [solcSlotWordAt, solcSlotWord] at htmp
           rw [← hmapSinSolm] at htmp
           simpa [evmSinSolm, Solm.EVM.storageLoad, storageStore_executionEnv] using htmp
         have hdaiNewSolmLoad :
@@ -1281,7 +1277,7 @@ theorem vatHealBodyCoreOk
                 (Solm.EVM.storageLoad evmSinSolm evmSinSolm.executionEnv.codeOwner
                   (healDaiSlot I)) (healRad I) = daiNew := by
           have htmp := hdaiNewSolm
-          simp [vatSlotWord, solcSlotWord] at htmp
+          simp [solcSlotWordAt, solcSlotWord] at htmp
           rw [← hmapSinSolm] at htmp
           simpa [evmSinSolm, Solm.EVM.storageLoad, storageStore_executionEnv] using htmp
         have hmapDaiSolm :
@@ -1301,7 +1297,7 @@ theorem vatHealBodyCoreOk
           have howner : evmSinSolm.executionEnv.codeOwner = I.codeOwner := by
             simp [evmSinSolm, evm0Solm, storageStore_executionEnv, initState]
           have htmp := hviceEvm
-          simp [vatSlotWord, solcSlotWord] at htmp
+          simp [solcSlotWordAt, solcSlotWord] at htmp
           rw [← hmapDaiSolm] at htmp
           simpa [howner, evmDaiSolm, Solm.EVM.storageLoad, storageStore_executionEnv,
             State.lookupAccount, Account.lookupStorage] using htmp
@@ -1313,7 +1309,7 @@ theorem vatHealBodyCoreOk
             (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) (I := I)
             (by simpa [initState] using hwv)
             (by simp [initState])
-            (by simpa [initState, Solm.EVM.storageLoad, vatSlotWord] using hsinEnoughEvm)
+            (by simpa [initState, Solm.EVM.storageLoad, solcSlotWordAt] using hsinEnoughEvm)
             hdaiEnoughSolmLoad
             hviceSolm
         have hrev := RD.vatHealViceSubUnderflow
@@ -1323,7 +1319,7 @@ theorem vatHealBodyCoreOk
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hviceEnoughEvm :
             (healRad I).toNat ≤
-              (vatSlotWord healViceSlot
+              (solcSlotWordAt healViceSlot
                 (sstoreAccountMap I.codeOwner
                   (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
                   (healDaiSlot I) daiNew) I).toNat :=
@@ -1333,27 +1329,27 @@ theorem vatHealBodyCoreOk
           (I := I) (g := g) (sel := sel) (rad := healRad I) (sinNew := sinNew)
           (daiNew := daiNew) hperm hdaiOk hviceEnoughEvm
         let viceNew := UInt256.sub
-          (vatSlotWord healViceSlot
+          (solcSlotWordAt healViceSlot
             (sstoreAccountMap I.codeOwner
               (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
               (healDaiSlot I) daiNew) I) (healRad I)
         by_cases hdebtEvm :
-            (vatSlotWord healDebtSlot
+            (solcSlotWordAt healDebtSlot
               (sstoreAccountMap I.codeOwner
                 (sstoreAccountMap I.codeOwner
                   (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
                   (healDaiSlot I) daiNew)
                 healViceSlot viceNew) I).toNat < (healRad I).toNat
         · have hsinNewSolm :
-              UInt256.sub (vatSlotWord (healSinSlot I) σ I) (healRad I) = sinNew := rfl
+              UInt256.sub (solcSlotWordAt (healSinSlot I) σ I) (healRad I) = sinNew := rfl
           have hdaiNewSolm :
               UInt256.sub
-                  (vatSlotWord (healDaiSlot I)
+                  (solcSlotWordAt (healDaiSlot I)
                     (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) I)
                   (healRad I) = daiNew := rfl
           have hviceNewSolm :
               UInt256.sub
-                  (vatSlotWord healViceSlot
+                  (solcSlotWordAt healViceSlot
                     (sstoreAccountMap I.codeOwner
                       (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
                       (healDaiSlot I) daiNew) I)
@@ -1379,7 +1375,7 @@ theorem vatHealBodyCoreOk
                     (Option.option ⟨0⟩ (fun acc : Account => acc.storage.getD (healSinSlot I) ⟨0⟩)
                       (σ.get? I.codeOwner))
                     (healRad I) = sinNew := by
-              simpa [-Std.ExtTreeMap.get?_eq_getElem?, vatSlotWord, solcSlotWord, Account.lookupStorage] using hsinNewSolm
+              simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWordAt, solcSlotWord, Account.lookupStorage] using hsinNewSolm
             dsimp [evmSinSolm, evm0Solm]
             rw [storageStore_accountMap]
             simp [-Std.ExtTreeMap.get?_eq_getElem?, initState, Solm.EVM.storageLoad,
@@ -1390,7 +1386,7 @@ theorem vatHealBodyCoreOk
                 (Solm.EVM.storageLoad evmSinSolm evmSinSolm.executionEnv.codeOwner
                   (healDaiSlot I)).toNat := by
             have htmp := hdaiEnoughEvm
-            simp [vatSlotWord, solcSlotWord] at htmp
+            simp [solcSlotWordAt, solcSlotWord] at htmp
             rw [← hmapSinSolm] at htmp
             simpa [evmSinSolm, Solm.EVM.storageLoad, storageStore_executionEnv] using htmp
           have hdaiNewSolmLoad :
@@ -1398,7 +1394,7 @@ theorem vatHealBodyCoreOk
                   (Solm.EVM.storageLoad evmSinSolm evmSinSolm.executionEnv.codeOwner
                     (healDaiSlot I)) (healRad I) = daiNew := by
             have htmp := hdaiNewSolm
-            simp [vatSlotWord, solcSlotWord] at htmp
+            simp [solcSlotWordAt, solcSlotWord] at htmp
             rw [← hmapSinSolm] at htmp
             simpa [evmSinSolm, Solm.EVM.storageLoad, storageStore_executionEnv] using htmp
           have hmapDaiSolm :
@@ -1419,7 +1415,7 @@ theorem vatHealBodyCoreOk
             have howner : evmSinSolm.executionEnv.codeOwner = I.codeOwner := by
               simp [evmSinSolm, evm0Solm, storageStore_executionEnv, initState]
             have htmp := hviceEnoughEvm
-            simp [vatSlotWord, solcSlotWord] at htmp
+            simp [solcSlotWordAt, solcSlotWord] at htmp
             rw [← hmapDaiSolm] at htmp
             simpa [howner, evmDaiSolm, Solm.EVM.storageLoad, storageStore_executionEnv,
               State.lookupAccount, Account.lookupStorage] using htmp
@@ -1430,7 +1426,7 @@ theorem vatHealBodyCoreOk
             have howner : evmSinSolm.executionEnv.codeOwner = I.codeOwner := by
               simp [evmSinSolm, evm0Solm, storageStore_executionEnv, initState]
             have htmp := hviceNewSolm
-            simp [vatSlotWord, solcSlotWord] at htmp
+            simp [solcSlotWordAt, solcSlotWord] at htmp
             rw [← hmapDaiSolm] at htmp
             simpa [howner, evmDaiSolm, Solm.EVM.storageLoad, storageStore_executionEnv,
               State.lookupAccount, Account.lookupStorage] using htmp
@@ -1453,7 +1449,7 @@ theorem vatHealBodyCoreOk
             have howner : evmDaiSolm.executionEnv.codeOwner = I.codeOwner := by
               simp [evmDaiSolm, evmSinSolm, evm0Solm, storageStore_executionEnv, initState]
             have htmp := hdebtEvm
-            simp [vatSlotWord, solcSlotWord] at htmp
+            simp [solcSlotWordAt, solcSlotWord] at htmp
             rw [← hmapViceSolm] at htmp
             simpa [howner, evmViceSolm, Solm.EVM.storageLoad, storageStore_executionEnv,
               State.lookupAccount, Account.lookupStorage] using htmp
@@ -1465,7 +1461,7 @@ theorem vatHealBodyCoreOk
               (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) (I := I)
               (by simpa [initState] using hwv)
               (by simp [initState])
-              (by simpa [initState, Solm.EVM.storageLoad, vatSlotWord] using hsinEnoughEvm)
+              (by simpa [initState, Solm.EVM.storageLoad, solcSlotWordAt] using hsinEnoughEvm)
               hdaiEnoughSolmLoad
               hviceEnoughSolmLoad
               hdebtSolm
@@ -1476,7 +1472,7 @@ theorem vatHealBodyCoreOk
           exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
         · have hdebtEnoughEvm :
               (healRad I).toNat ≤
-                (vatSlotWord healDebtSlot
+                (solcSlotWordAt healDebtSlot
                   (sstoreAccountMap I.codeOwner
                     (sstoreAccountMap I.codeOwner
                       (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
@@ -1488,7 +1484,7 @@ theorem vatHealBodyCoreOk
             (I := I) (g := g) (sel := sel) (rad := healRad I) (sinNew := sinNew)
             (daiNew := daiNew) (viceNew := viceNew) hperm hviceOk hdebtEnoughEvm
           let debtNew := UInt256.sub
-            (vatSlotWord healDebtSlot
+            (solcSlotWordAt healDebtSlot
               (sstoreAccountMap I.codeOwner
                 (sstoreAccountMap I.codeOwner
                   (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
@@ -1510,8 +1506,8 @@ theorem vatHealBodyCoreOk
             hdebtEnoughEvm
             hdebtOk
 
-theorem vatHealBodyCore : VatBodyTheorem 14 := by
-  intro σ σ₀ A I g hcode hsize hperm hwv hsel
+theorem vatHealBodyCore : VatBodyTheoremAnyPerm 14 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 14) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some healTransition :=
@@ -1520,8 +1516,8 @@ theorem vatHealBodyCore : VatBodyTheorem 14 := by
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
-  · exact vatHealBodyCoreOk hcode hperm hwv hsz36 hsize hdispatch
+  · exact vatHealBodyCoreOk hcode hwv hsz36 hsize hdispatch
       (vatDecode_heal_ok hsz36) hreach
-  · exact vatHealShort hcode hsize hperm hwv hsz4 (by omega) hsel
+  · exact vatHealShort hcode hsize hwv hsz4 (by omega) hsel
 
 end Benchmarks.Dss.Vat

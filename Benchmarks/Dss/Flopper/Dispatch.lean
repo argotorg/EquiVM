@@ -912,7 +912,6 @@ theorem flopperShortRevert {σ σ₀ A I} {g : UInt256}
 theorem flopperNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 20 → (flopperSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

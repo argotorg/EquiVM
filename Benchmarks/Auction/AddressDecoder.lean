@@ -27,7 +27,7 @@ theorem addressCleanFail {I g s0 value ret R mem aw rdata acc k C}
   exact evm_run h with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and, dup2, eq,
     push2 ⟨2850⟩, jumpiNT (u256_eq_of_ne hne),
-    raw auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
+    raw solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 set_option synthInstance.maxSize 1024 in
 theorem addressHeadWf : calldataHeadWf auctionBytecode ⟨5495⟩ ⟨5511⟩ ⟨32⟩ := by

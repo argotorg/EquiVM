@@ -80,7 +80,7 @@ theorem RD.vowFlapToSin0ExtcodesizeGuard
         kissDaiTargetWord σ I :: ⟨985⟩ :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (healSinCalldataMem I solcFreePtrMem) (UInt256.ofNat 6) ByteArray.empty σ k C := by
   let target := kissDaiTargetWord σ I
-  let rawTarget := vowSlotWord ⟨1⟩ σ I
+  let rawTarget := solcSlotWordAt ⟨1⟩ σ I
   obtain ⟨_, _, rd349⟩ := hreach
   have rd350 := rd349.jumpdest (by native_decide) (by evm_ov)
   have rd353 := rd350.push2 ⟨357⟩ (by native_decide) (by evm_ov)
@@ -94,7 +94,7 @@ theorem RD.vowFlapToSin0ExtcodesizeGuard
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨851⟩
       (rawTarget :: ⟨357⟩ :: sel :: []) solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ k851 C851 := by
-    simpa [rawTarget, vowSlotWord, solcSlotWord] using rd852₀
+    simpa [rawTarget, solcSlotWordAt, solcSlotWord] using rd852₀
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
        else UInt256.ofNat
@@ -173,7 +173,7 @@ theorem RD.vowFlapToSin0ExtcodesizeGuard
   exact ⟨_, _, by
     simpa [target, rawTarget, kissDaiTargetWord, healSinSelectorShifted, healSinSelector,
       healSinSelectorMem, healSinCalldataMem, healSinOutPtr, healSinInSize, healSinEndPtr,
-      vowSlotWord, solcSlotWord, solcAddrMask] using rd921⟩
+      solcSlotWordAt, solcSlotWord, solcAddrMask] using rd921⟩
 
 theorem RD.vowFlapVatSin0NoCode
     {σ σ₀ A I} {g sel : UInt256}
@@ -411,7 +411,7 @@ theorem vowFlapSourceVatSin0NoCode
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [evm0, initState, kissVatAddress, vowAddressReturnWord, vowSlotWord] using
+    simpa [evm0, initState, kissVatAddress, solcAddressSlotWord, solcSlotWordAt] using
       evalExpr_kissVatStorage (evm := evm0) (locals := locals) (by simp [locals])
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -444,7 +444,7 @@ theorem vowFlapSourceVatSin0CallFailure
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [evm0, initState, kissVatAddress, vowAddressReturnWord, vowSlotWord] using
+    simpa [evm0, initState, kissVatAddress, solcAddressSlotWord, solcSlotWordAt] using
       evalExpr_kissVatStorage (evm := evm0) (locals := locals) (by simp [locals])
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -489,7 +489,7 @@ theorem vowFlapSourceVatSin0DecodeRevert
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [evm0, initState, kissVatAddress, vowAddressReturnWord, vowSlotWord] using
+    simpa [evm0, initState, kissVatAddress, solcAddressSlotWord, solcSlotWordAt] using
       evalExpr_kissVatStorage (evm := evm0) (locals := locals) (by simp [locals])
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -609,7 +609,7 @@ theorem vowFlapSin0DecodeShortBodyCore
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat outSin.size)).toNat = outSin.size :=
-    kissDaiMin32_toNat_of_lt hshort
+    ctorMin32_toNat_of_lt hshort
   have rd937' := rd937
   rw [hmin] at rd937'
   obtain ⟨_, _, rd955⟩ :=

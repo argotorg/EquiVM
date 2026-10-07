@@ -30,12 +30,12 @@ theorem uniswapBurnRuntimeFirstBalanceOfExtcodesize
       [⟨0⟩, ⟨0⟩, ⟨0⟩, toWord, ret, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4267⟩
-      [UInt256.land solcAddrMask (uniswapSlotWord ⟨6⟩ σ I),
-        UInt256.land solcAddrMask (uniswapSlotWord ⟨6⟩ σ I),
+      [UInt256.land solcAddrMask (solcSlotWordAt ⟨6⟩ σ I),
+        UInt256.land solcAddrMask (solcSlotWordAt ⟨6⟩ σ I),
         ⟨128⟩, ⟨36⟩, ⟨128⟩, ⟨32⟩, ⟨164⟩, balanceOfSelectorWord,
-        UInt256.land solcAddrMask (uniswapSlotWord ⟨6⟩ σ I), ⟨0⟩,
-        UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I),
-        UInt256.land solcAddrMask (uniswapSlotWord ⟨6⟩ σ I),
+        UInt256.land solcAddrMask (solcSlotWordAt ⟨6⟩ σ I), ⟨0⟩,
+        UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ I),
+        UInt256.land solcAddrMask (solcSlotWordAt ⟨6⟩ σ I),
         reserve1Word σ I, reserve0Word σ I, ⟨0⟩, ⟨0⟩, toWord, ret, sel]
       (balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)) (UInt256.ofNat 6)
       ByteArray.empty σ k' C' := by
@@ -68,7 +68,7 @@ theorem uniswapBurnRuntimeFirstBalanceOfExtcodesize
   rw [show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by decide,
     show UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ = ⟨0⟩ from by decide,
     show (⟨0⟩ : UInt256) + ⟨36⟩ = ⟨36⟩ from by decide] at rd4267
-  exact ⟨_, _, by simpa [uniswapSlotWord] using rd4267⟩
+  exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd4267⟩
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapBurnRuntimeFirstBalanceOfMissingCodeReverts

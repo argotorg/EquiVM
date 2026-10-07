@@ -6,7 +6,7 @@ namespace Benchmarks.Dss.Pot
 
 /-! ## `chi()` public getter (rate accumulator, slot 4). Group @54 arm 3. -/
 
-def chiWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := potSlotWord ⟨4⟩ σ I
+def chiWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := solcSlotWordAt ⟨4⟩ σ I
 
 theorem potDecode_chi {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (chiTransition.params.map Param.name)
@@ -54,7 +54,7 @@ theorem potChiBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (chiWord σ I).toNat))])) := by
-    simpa [chiTransition, chiWord, potSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [chiTransition, chiWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -75,7 +75,6 @@ theorem potChiBodyCore
 theorem potChiBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 2)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

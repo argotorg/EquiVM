@@ -43,7 +43,7 @@ theorem uniswapMintBody
       by_cases htoken0NoCode :
         extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
           (UInt256.land solcAddrMask
-            (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
+            (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
           ⟨0⟩
       · have hguard0 :=
           mintToken0GuardFalse_initState_of_noCode
@@ -130,7 +130,7 @@ theorem uniswapMintBody
                 uniswapMintRuntimeSecondBalanceOfExtcodesizeFromFirst rd3505 ho32 hoSize
               by_cases htoken1NoCode :
                 extCodeSizeWord σ'
-                  (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) = ⟨0⟩
+                  (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)) = ⟨0⟩
               · have hbody :
                     ExecTransitionBody config contract evmS (mintStore I) mintTransition.body
                       .reverted := by
@@ -404,7 +404,7 @@ theorem uniswapMintBody
                                   hPostAccountsFee henvFeeI
                               have htotalEq :
                                   mintFunctionTotalSupplyWord evmFeeS =
-                                    uniswapSlotWord ⟨0⟩ σFee I :=
+                                    solcSlotWordAt ⟨0⟩ σFee I :=
                                 mintFunctionTotalSupplyWord_eq_slot
                                   hPostAccountsFee henvFeeI
                               have hamount0Eq := congrArg (balance0.sub ·) hreserve0Eq
@@ -493,4 +493,44 @@ theorem uniswapMintBody
           exact hRuntime.reEquivExecutionRevert hcode hdispatch
             (uniswapDecode_mint_ok hsz36) hbody
   · exact uniswapMintBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
+/-- `mint` with any call permission; a static call halts at the lock-entry `SSTORE`. -/
+theorem uniswapMintBodyAnyPerm
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x6a, 0x62, 0x78, 0x42]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some mintTransition) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact uniswapMintBody hcode hsize hperm hwv hsel hdispatch
+  replace hperm : I.perm = false := by simpa using hperm
+  by_cases hsz36 : 36 ≤ I.calldata.size
+  · by_cases hlocked :
+      ((σ.get? I.codeOwner |>.option (⟨0⟩ : UInt256)
+        (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) : UInt256) ≠ (UInt256.ofNat 1)
+    · exact uniswapMintBodyRevert_locked hcode hsize hwv hsel hsz36 hlocked hdispatch
+    · have hunlocked :
+        (σ.get? I.codeOwner |>.option (⟨0⟩ : UInt256)
+          (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
+          (⟨1⟩ : UInt256) := by
+        exact not_not.mp hlocked
+      have hsz4 : 4 ≤ I.calldata.size :=
+        calldata_size_ge_of_selIs I ⟨#[0x6a, 0x62, 0x78, 0x42]⟩ rfl hsel
+      have hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1041⟩
+          [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+          σ k C :=
+        uniswapReachMintBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
+      let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
+      have hunlockedSolm :
+          Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
+        simpa [evmS, initState, Solm.EVM.storageLoad, Ethereum.State.lookupAccount,
+          Ethereum.Account.lookupStorage] using hunlocked
+      exact (uniswapMintX_lockEnteredStatic (g := Sat256.ofUInt256 g) hperm hunlocked
+          (uniswapMintX_decoded_masked (g := Sat256.ofUInt256 g) hsz36 hsize hreach))
+        |>.reEquivStaticHalt hcode hdispatch (uniswapDecode_mint_ok hsz36)
+          (uniswapMintBodyStatic evmS I (by simp only [evmS, initState]; exact hwv)
+            hunlockedSolm (by simp only [evmS, initState]; exact hperm))
+  · exact uniswapMintBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
+
 end UniswapV2Pair

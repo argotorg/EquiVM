@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.ConstructorBase
 import Reasoning.ExternalCall
 
@@ -42,10 +43,6 @@ abbrev clipperCtorAfterWardsState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner
     (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
 
-private theorem accountAddress_of_word_val (a : AccountAddress) :
-    AccountAddress.ofNat (EVM.word a.val).toNat = a := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
-  exact accountAddress_roundtrip a
 
 theorem evalExpr_clipperCtorLocalVat {imms : Store} {evm : EVM.State}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) :
@@ -86,13 +83,13 @@ private theorem assign_clipperCtorUint256Storage {imms : Store}
     (slot value : UInt256) (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals, immutables := imms } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some uint256St)
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot value
     assignStorageRef? config { contract := contract, locals := locals, immutables := imms } evm
       .storage ref (.int (Int.ofNat value.toNat)) =
         .ok ({ contract := contract, locals := locals, immutables := imms }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar (ty := uint256St) (er := er) (loc := wordLoc slot)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (ty := uint256St) (er := er) (loc := wordLoc slot) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)
   simpa [evm'] using storageLocStore_uint256 evm slot value
 
@@ -101,7 +98,7 @@ private theorem assign_clipperCtorAddressStorage {imms : Store}
     (slot : UInt256) (addrValue : AccountAddress) (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals, immutables := imms } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some addrSt)
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
       (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
         (EVM.word addrValue.val))
@@ -117,10 +114,10 @@ private theorem assign_clipperCtorAddressStorage {imms : Store}
       storageLocStore evm (addrLoc slot)
           (.address (AccountAddress.ofNat (EVM.word addrValue.val).toNat)) = some evm' := by
     simpa [addrLoc, evm'] using storageLocStore_address_offset0 evm slot
-      (EVM.word addrValue.val) (clipperCtorAddressWord_canonical addrValue)
-  exact assignStorageRef_storage_scalar_value
+      (EVM.word addrValue.val) (word_val_addr_canonical addrValue)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
     (ty := addrSt) (loc := addrLoc slot) (hbase := hbase) (her := her) (hty := hty)
-    (hloc := hloc) (hscalar := by trivial) (hstore := hstore)
+    (hloc := hloc) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩) (hstore := hstore)
 
 theorem assign_clipperCtorStoppedStorage {imms : Store}
     (evm : EVM.State) (locals : Store) (hbase : locals.get? "stopped" = none) :
@@ -132,7 +129,7 @@ theorem assign_clipperCtorStoppedStorage {imms : Store}
       ⟨14⟩ ⟨0⟩ (by simpa [stoppedRef] using hbase)
       (by simp [stoppedRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (by simp [storageTypeAt?, contract, storageDecls, uint256St])
-      (by funext evm; simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      (by simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_clipperCtorSpotterStorage {imms : Store}
     (evm : EVM.State) (locals : Store) (spotter : AccountAddress)
@@ -146,7 +143,7 @@ theorem assign_clipperCtorSpotterStorage {imms : Store}
     (by simpa [spotterRef] using hbase)
     (by simp [spotterRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
-    (by funext evm; simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+    (by simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_clipperCtorDogStorage {imms : Store}
     (evm : EVM.State) (locals : Store) (dog : AccountAddress)
@@ -158,7 +155,7 @@ theorem assign_clipperCtorDogStorage {imms : Store}
     ⟨1⟩ dog (by simpa [dogRef] using hbase)
     (by simp [dogRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
-    (by funext evm; simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+    (by simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_clipperCtorBufStorage {imms : Store}
     (evm : EVM.State) (locals : Store) (hbase : locals.get? "buf" = none) :
@@ -172,7 +169,7 @@ theorem assign_clipperCtorBufStorage {imms : Store}
       ⟨5⟩ clipperCtorRayWord (by simpa [bufRef] using hbase)
       (by simp [bufRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (by simp [storageTypeAt?, contract, storageDecls, uint256St])
-      (by funext evm; simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      (by simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_clipperCtorWardsCaller {imms : Store}
     (evm : EVM.State) {locals : Store} (hbase : locals.get? "wards" = none) :
@@ -189,13 +186,12 @@ theorem assign_clipperCtorWardsCaller {imms : Store}
         some (clipperCtorAfterWardsState evm) := by
     simpa [clipperCtorAfterWardsState] using storageLocStore_uint256 evm
       (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
-  exact assignStorageRef_storage_scalar
-    (ty := uint256St) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := uint256St) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [wardsRef] using hbase) (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem clipperCtorCallerWardsSlot_eq (I : ExecutionEnv) :
@@ -203,11 +199,6 @@ theorem clipperCtorCallerWardsSlot_eq (I : ExecutionEnv) :
   unfold wardsSlot mapSlot clipperCtorCallerWardsSlot solcMappingSlot solcSourceWord
   rw [keyValueToWord_address]
 
-private theorem clipperCtor_storageStore_executionEnv (evm : EVM.State)
-    (addr : AccountAddress) (slot value : UInt256) :
-    (Solm.EVM.storageStore evm addr slot value).executionEnv = evm.executionEnv := by
-  unfold Solm.EVM.storageStore
-  cases State.lookupAccount evm addr <;> rfl
 
 theorem clipperCtorBodySuccess
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
@@ -246,7 +237,7 @@ theorem clipperCtorBodySuccess
   refine ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hstopped) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by
-      rw [clipperCtorAfterStoppedState, clipperCtor_storageStore_executionEnv]
+      rw [clipperCtorAfterStoppedState, storageStore_executionEnv']
       simpa [evm0, initState] using hwv)
   refine ExecBlock.consNormal
     (ExecStmt.setImmutable (value := .address vat) (ty := .address) ?_ rfl rfl) ?_
@@ -310,7 +301,7 @@ theorem clipperSolmCtorExecReverts_nonpayable
     refine ExecBlock.consNormal
       (ExecStmt.assign (by simp [evalExpr?, pure]) hstopped) ?_
     exact blockReverts_nonPayable (by
-      rw [clipperCtorAfterStoppedState, clipperCtor_storageStore_executionEnv]
+      rw [clipperCtorAfterStoppedState, storageStore_executionEnv']
       simpa [evm0, initState] using hwv)
   refine solmCtorExec.intro (evmState := evm0)
     (argsStore := clipperCtorLocals vat spotter dog ilk) ?_ rfl ?_ ?_

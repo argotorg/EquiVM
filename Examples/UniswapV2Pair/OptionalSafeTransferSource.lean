@@ -1,15 +1,8 @@
+import Reasoning.SolmBody
 import Examples.UniswapV2Pair.OptionalSafeTransferCases
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 
--- LIBRARY CANDIDATE: evaluating a positive unsigned-word local.
-theorem evalExpr_uint256_var_positive {cfg : Config} {frame : Frame} (evm : EVM.State)
-    (name : Ident) (word : UInt256)
-    (hget : frame.locals.get? name = some (.int (Int.ofNat word.toNat))) :
-    evalExpr? cfg frame evm (.binary .gt (.var name) (.intLit 0)) =
-      .ok (.bool (decide (0 < word.toNat))) := by
-  simp only [evalExpr?, EvalResult.ofOption, hget, EvalResult.bind, bind, pure]
-  simp [evalBinaryOp?]
 
 theorem evalExprs_safeTransfer_args_of_get {caller : Frame} (evm : EVM.State)
     (tokenName toName valueName : Ident) (token recipient : AccountAddress) (value : UInt256)

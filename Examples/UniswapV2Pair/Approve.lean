@@ -94,13 +94,14 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := approveStore I } evm
       .storage (allowanceRef sender (.var "spender")) (approveValueValue I) =
         .ok ({ contract := contract, locals := approveStore I }, approvePostState evm I) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
+      (ty := uint256St) (loc := wordLoc (approveStorageSlot evm I))
       (hbase := approveStore_allowance I)
       (her := evalStorageRef_approve_allowance evm I)
       (hty := by
         simp [storageTypeAt?, contract, storageDecls, uint256St, storageTypeStep?])
       (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [approvePostState, approveStorageSlot]
 
 theorem uniswapDecode_approve_ok {I : ExecutionEnv}
@@ -145,6 +146,17 @@ theorem uniswapApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal (ExecStmt.assign (evalExpr_approve_value evm I)
     (approveAssign evm I)) ?_
   exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
+
+/-- In a static call, the Solm `approve(address,uint256)` body halts at the allowance
+    assignment. -/
+theorem uniswapApproveBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (approveStore I) approveTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_approve_value evm I) (approveAssign evm I) hperm)
 
 /-! ## EVM trace prefix -/
 
@@ -465,6 +477,33 @@ theorem uniswapApproveBody
     : runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz68 : 68 ≤ I.calldata.size
   · exact uniswapApproveBodyOk hcode hsize hperm hwv hsel hsz68 hdispatch
+  · exact uniswapApproveBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
+
+/-- `approve` with any call permission; a static call halts at the allowance `SSTORE`. -/
+theorem uniswapApproveBodyAnyPerm
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some approveTransition) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact uniswapApproveBody hcode hsize hperm hwv hsel hdispatch
+  replace hperm : I.perm = false := by simpa using hperm
+  by_cases hsz68 : 68 ≤ I.calldata.size
+  · have hsz4 : 4 ≤ I.calldata.size :=
+      calldata_size_ge_of_selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ rfl hsel
+    obtain ⟨_, _, rd7441⟩ := uniswapApproveX_innerHash (σ := σ) (σ₀ := σ₀) (A := A)
+      (g := Sat256.ofUInt256 g) hsz68 hsize
+      (uniswapReachApproveBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
+    have hcanonMasked : (approveSpenderMaskedWord I).toNat < EVM.addressModulus := by
+      simpa [approveSpenderMaskedWord, u256_land_comm] using
+        solcAddrMask_result_canonical (approveSpenderWord I)
+    exact (RD.uniswapApproveInternalStoreStatic rd7441 hperm hcanonMasked
+        (by simp only [List.length_cons, List.length_nil]; omega))
+      |>.reEquivStaticHalt hcode hdispatch (uniswapDecode_approve_ok hsz68)
+        (uniswapApproveBodyStatic (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+          (by simp only [initState]; exact hwv) (by simp only [initState]; exact hperm))
   · exact uniswapApproveBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
 
 end UniswapV2Pair

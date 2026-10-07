@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Spot
 /-! ## `par()` getter -/
 
 def spotParWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  spotSlotWord ⟨3⟩ σ I
+  solcSlotWordAt ⟨3⟩ σ I
 
 theorem spotDecode_par {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (parTransition.params.map Param.name)
@@ -44,7 +44,6 @@ theorem spotReachParBody {σ σ₀ A I} {g : Sat256}
 theorem spotParBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = spotBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (spotSelBytes 7)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -56,7 +55,7 @@ theorem spotParBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (spotParWord σ I).toNat))])) := by
-    simpa [parTransition, spotParWord, spotSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [parTransition, spotParWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       spotUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

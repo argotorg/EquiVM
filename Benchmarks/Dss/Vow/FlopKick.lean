@@ -51,7 +51,7 @@ theorem flopPrefixToDaiSuccess
     (henough : SumpVal.toNat ≤ flopDebt.toNat)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -74,7 +74,7 @@ theorem flopPrefixToDaiSuccess
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [evm0, initState, kissVatAddress, vowAddressReturnWord, vowSlotWord] using
+    simpa [evm0, initState, kissVatAddress, solcAddressSlotWord, solcSlotWordAt] using
       evalExpr_kissVatStorage (evm := evm0) (locals := locals) (by simp [locals])
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -189,7 +189,7 @@ theorem flopPrefixToDaiSuccess
   have hvatDai :
       evalExpr? config { contract := contract, locals := locals3 } evmSin (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [locals3, kissVatAddress, vowAddressReturnWord, hvatLoadSin] using
+    simpa [locals3, kissVatAddress, solcAddressSlotWord, hvatLoadSin] using
       evalExpr_kissVatStorage (evm := evmSin) (locals := locals3)
         (by simp [locals3, flopLocalsVatSinFreeSinDebt, flopLocalsVatSinFreeSin,
           flopLocalsVatSin])
@@ -810,7 +810,7 @@ theorem flopSourceBlockFromPostDai
     (henough : SumpVal.toNat ≤ flopDebt.toNat)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -879,7 +879,7 @@ theorem vowFlopSourceKickNoCode
     (henough : SumpVal.toNat ≤ flopDebt.toNat)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -960,7 +960,7 @@ theorem vowFlopSourceKickCallFailure
     (henough : SumpValSin.toNat ≤ flopDebt.toNat)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -1064,7 +1064,7 @@ theorem vowFlopSourceKickDecodeRevert
     (henough : SumpValSin.toNat ≤ flopDebt.toNat)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -1169,7 +1169,7 @@ theorem vowFlopSourceSuccess
     (henough : SumpValSin.toNat ≤ flopDebt.toNat)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -1252,6 +1252,75 @@ theorem vowFlopSourceSuccess
         hdecDai (by simpa [locals4] using htail)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRet hblock
 
+theorem vowFlopSourceStatic
+    {σ σ₀ A I} {g : UInt256} {evmSin evmDai : EVM.State}
+    {outSin outDai : ByteArray}
+    {vatSin SinVal freeSin AshVal flopDebt SumpVal vatDai AshValDai SumpValDai AshNew :
+      UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hvatCode :
+      0 < (UInt256.ofNat
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
+    (hcallSin :
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
+        (true, evmSin, outSin) false)
+    (hdecSin :
+      config.externalABI.decode? "sin" outSin =
+        some [.int (Int.ofNat vatSin.toNat)])
+    (hSinLoad :
+      Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨5⟩ = SinVal)
+    (hfree : freeSin = UInt256.sub vatSin SinVal)
+    (hfreeOk : SinVal.toNat ≤ vatSin.toNat)
+    (hAshLoad :
+      Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨6⟩ = AshVal)
+    (hdebt : flopDebt = UInt256.sub freeSin AshVal)
+    (hdebtOk : AshVal.toNat ≤ freeSin.toNat)
+    (hSumpLoad :
+      Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨9⟩ = SumpVal)
+    (henough : SumpVal.toNat ≤ flopDebt.toNat)
+    (hvatLoadSin :
+      Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
+        solcSlotWordAt ⟨1⟩ σ I)
+    (hvatCodeDai :
+      0 < (UInt256.ofNat
+        ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
+          (fun acc => acc.code.size))).toNat)
+    (hcallDai :
+      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
+        [.address I.codeOwner] (true, evmDai, outDai) false)
+    (hdecDai :
+      config.externalABI.decode? "dai" outDai =
+        some [.int (Int.ofNat vatDai.toNat)])
+    (hvatDaiZero : vatDai = ⟨0⟩)
+    (hAshLoadDai :
+      Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨6⟩ = AshValDai)
+    (hSumpLoadDai :
+      Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨9⟩ = SumpValDai)
+    (hAshNew : AshNew = AshValDai + SumpValDai)
+    (hfit : AshValDai.toNat + SumpValDai.toNat < UInt256.size)
+    (hpf : I.perm = false) :
+    let locals := (∅ : Store)
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 locals flopTransition.body .staticViolation := by
+  intro locals evm0
+  have hpermDai : evmDai.executionEnv.perm = false := by
+    rw [typedCallViaEVM_executionEnv_eq hcallDai, typedCallViaEVM_executionEnv_eq hcallSin]
+    simpa [initState] using hpf
+  have htail :
+      ExecBlock config
+        { contract := contract,
+          locals := flopLocalsVatSinFreeSinDebtDai vatSin freeSin flopDebt vatDai } evmDai
+        flopPostDaiTailStmts .staticViolation := by
+    simp only [flopPostDaiTailStmts, flopAshAssignStmts, List.cons_append, List.nil_append]
+    exact ExecBlock.consNormal (ExecStmt.requireTrue (evalExpr_flopVatDaiZero hvatDaiZero))
+      ((flopAshAddAssignSplit (vatSin := vatSin) (freeSin := freeSin) (flopDebt := flopDebt)
+        (vatDai := vatDai) hAshLoadDai hSumpLoadDai hAshNew hfit).2 hpermDai _)
+  simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockStatic
+    (flopSourceBlockFromPostDai (g := g) hwv hvatCode hcallSin hdecSin hSinLoad hfree hfreeOk
+      hAshLoad hdebt hdebtOk hSumpLoad henough hvatLoadSin hvatCodeDai hcallDai hdecDai htail)
+
 theorem RD.vowFlopToKickStart
     {σ σ₀ A I} {g sel target vatDai : UInt256}
     {acc : AccountMap}
@@ -1270,16 +1339,16 @@ theorem RD.vowFlopToKickStart
       vatDai = UInt256.ofNat (fromByteArrayBigEndian (outDai.extract 0 32)))
     (hvatDaiZero : vatDai = ⟨0⟩)
     (hfit :
-      (vowSlotWord ⟨6⟩ acc I).toNat + (vowSlotWord ⟨9⟩ acc I).toNat <
+      (solcSlotWordAt ⟨6⟩ acc I).toNat + (solcSlotWordAt ⟨9⟩ acc I).toNat <
         UInt256.size) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3959⟩
-      ((vowSlotWord ⟨6⟩ acc I + vowSlotWord ⟨9⟩ acc I) ::
+      ((solcSlotWordAt ⟨6⟩ acc I + solcSlotWordAt ⟨9⟩ acc I) ::
         ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (outDai.write 0 (vatDaiCalldataMem I mem) 128 32)
       (UInt256.ofNat 6) outDai acc k' C' := by
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai.size)).toNat = 32 :=
-    kissDaiMin32_toNat_of_ge ho32 hosz
+    ctorMin32_toNat_of_ge ho32 hosz
   have rd3832' := rd3832
   rw [hmin] at rd3832'
   obtain ⟨_, _, rd3850⟩ :=
@@ -1396,7 +1465,7 @@ theorem vowFlopKickNoCodeBodyCore
     (henough : SumpValSin.toNat ≤ flopDebt.toNat)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -1408,8 +1477,8 @@ theorem vowFlopKickNoCodeBodyCore
       Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨6⟩ = AshValDai)
     (hSumpLoadDai :
       Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨9⟩ = SumpValDai)
-    (hAshEvm : AshValDai = vowSlotWord ⟨6⟩ acc I)
-    (hSumpEvm : SumpValDai = vowSlotWord ⟨9⟩ acc I)
+    (hAshEvm : AshValDai = solcSlotWordAt ⟨6⟩ acc I)
+    (hSumpEvm : SumpValDai = solcSlotWordAt ⟨9⟩ acc I)
     (hAshNew : AshNew = AshValDai + SumpValDai)
     (hfit : AshValDai.toNat + SumpValDai.toNat < UInt256.size)
     (hflopperNoCode :
@@ -1421,7 +1490,7 @@ theorem vowFlopKickNoCodeBodyCore
     (hflopperNoCodeEvm :
       let σAsh := sstoreAccountMap I.codeOwner acc ⟨6⟩ AshNew
       Reasoning.Theory.extCodeSizeWord σAsh
-        (vowAddressReturnWord ⟨3⟩ σAsh I) = ⟨0⟩) :
+        (solcAddressSlotWord ⟨3⟩ σAsh I) = ⟨0⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   let memDai := outDai.write 0 (vatDaiCalldataMem I mem) 128 32
   have hmemDai : memDai.size = 164 := by
@@ -1429,7 +1498,7 @@ theorem vowFlopKickNoCodeBodyCore
   have hread64Dai : memDai.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     simpa [memDai] using vatDaiWrite_read64 I outDai 32 hmem hread64 (by omega) ho32
   have hfitEvm :
-      (vowSlotWord ⟨6⟩ acc I).toNat + (vowSlotWord ⟨9⟩ acc I).toNat <
+      (solcSlotWordAt ⟨6⟩ acc I).toNat + (solcSlotWordAt ⟨9⟩ acc I).toNat <
         UInt256.size := by
     simpa [← hAshEvm, ← hSumpEvm] using hfit
   obtain ⟨k3959, C3959, rd3959Raw⟩ :=
@@ -1497,7 +1566,7 @@ theorem vowFlopKickCallFailureBodyCore
     (henough : SumpValSin.toNat ≤ flopDebt.toNat)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -1605,7 +1674,7 @@ theorem vowFlopKickDecodeShortBodyCore
     (henough : SumpValSin.toNat ≤ flopDebt.toNat)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
@@ -1716,7 +1785,7 @@ theorem vowFlopKickSuccessBodyCore
     (henough : SumpValSin.toNat ≤ flopDebt.toNat)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0

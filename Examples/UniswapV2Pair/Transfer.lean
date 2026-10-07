@@ -216,13 +216,15 @@ theorem evalStorageRef_transfer_sender_balance_fromBalance
 theorem evalExpr_transfer_sender_balance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferStore I } evm
       (.storage (balanceOfRef sender)) = .ok (transferFromBalanceValue evm) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc (transferSenderSlot evm))
     (hbase := by simp [transferStore, balanceOfRef])
     (her := evalStorageRef_transfer_sender_balance evm I)
     (hty := by simp [storageTypeAt?, transferSenderEvaledRef, contract, storageDecls,
       uint256St, storageTypeStep?])
     (hloc := by rfl)]
-  simp [transferSenderSlot, transferFromBalanceWord, uniswapStorageLocLoad_uint256]
+  simp [show wordLoc = uint256Loc from rfl, transferSenderSlot, transferFromBalanceWord,
+    storageLocLoad_uint256]
 
 def transferToEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "balanceOf", steps := [.mindex (transferToKey I)] }
@@ -287,26 +289,29 @@ theorem transferAssignSender (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := transferStoreFromBalance evm I },
           transferAfterDebitState evm I) := by
   simp only [balanceOfRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
+      (ty := uint256St) (loc := wordLoc (transferSenderSlot evm))
       (hbase := by simp [transferStoreFromBalance, balanceOfRef])
       (her := evalStorageRef_transfer_sender_balance_fromBalance evm I)
       (hty := by simp [storageTypeAt?, transferSenderEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
       (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [transferAfterDebitState, transferSenderSlot]
 
 theorem evalExpr_transfer_to_balance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferStoreFromBalance evm I }
       (transferAfterDebitState evm I) (.storage (balanceOfRef (.var "to"))) =
         .ok (transferToBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc (transferToSlot I))
     (hbase := by simp [transferStoreFromBalance, balanceOfRef])
     (her := evalStorageRef_transfer_to_balance_fromBalance evm (transferAfterDebitState evm I) I)
     (hty := by simp [storageTypeAt?, transferToEvaledRef, contract, storageDecls,
       uint256St, storageTypeStep?])
     (hloc := by rfl)]
-  simp [transferToSlot, transferToBalanceWord, uniswapStorageLocLoad_uint256,
+  simp [show wordLoc = uint256Loc from rfl, transferToSlot, transferToBalanceWord,
+    storageLocLoad_uint256,
     transferAfterDebit_codeOwner]
 
 theorem evalExpr_transfer_newToBalance (evm : EVM.State) (I : ExecutionEnv)
@@ -348,14 +353,15 @@ theorem transferAssignTo (evm : EVM.State) (I : ExecutionEnv)
         .ok ({ contract := contract, locals := transferStoreToBalance evm I },
           transferPostState evm I) := by
   simp only [balanceOfRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
+      (ty := uint256St) (loc := wordLoc (transferToSlot I))
       (hbase := by simp [transferStoreToBalance, transferStoreFromBalance, balanceOfRef])
       (her := evalStorageRef_transfer_to_balance_toBalance evm (transferAfterDebitState evm I) I)
       (hty := by simp [storageTypeAt?, transferToEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
       (hloc := by rfl)
   rw [← transferNewToWord_toNat evm I hfit]
-  rw [uniswapStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [transferPostState, transferToSlot, transferAfterDebit_codeOwner]
 
 theorem uniswapTransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
@@ -403,6 +409,21 @@ theorem uniswapTransferBodyReverts_overflow (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transfer_to_balance evm I)) ?_
   exact ExecBlock.consRevert
     (ExecStmt.assignExprRevert (evalExpr_transfer_newToBalance_revert evm I hover))
+
+theorem uniswapTransferBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (henough : (transferValueWord I).toNat ≤ (transferFromBalanceWord evm).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (transferStore I) transferTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transfer_sender_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transfer_require_from_true evm I henough)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_transfer_debit evm I henough)
+      (transferAssignSender evm I) hperm)
 
 /-- The optimized external wrapper for `transfer(address,uint256)` masks address calldata and
     jumps to the external transfer routine at pc 5061. -/
@@ -1042,6 +1063,37 @@ theorem uniswapTransferBody
           henough hfit hdispatch
       · exact uniswapTransferBodyRevert_overflow hcode hsize hperm hwv hsel hsz68
           henough (by omega) hdispatch
+    · exact uniswapTransferBodyRevert_insufficient hcode hsize hwv hsel hsz68
+        (by omega) hdispatch
+  · exact uniswapTransferBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
+
+/-- `transfer` with any call permission; a static call halts at the sender-balance `SSTORE`. -/
+theorem uniswapTransferBodyAnyPerm
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some transferTransition) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact uniswapTransferBody hcode hsize hperm hwv hsel hdispatch
+  replace hperm : I.perm = false := by simpa using hperm
+  by_cases hsz68 : 68 ≤ I.calldata.size
+  · by_cases henough : (transferValueWord I).toNat ≤
+      (transferFromBalanceWord
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)).toNat
+    · have hsz4 : 4 ≤ I.calldata.size :=
+        calldata_size_ge_of_selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ rfl hsel
+      obtain ⟨_, _, rd7551⟩ := uniswapTransferX_afterDebit (g := Sat256.ofUInt256 g)
+        hsz68 hsize henough
+        (uniswapReachTransferBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
+      exact (RD.uniswapTransferInternalStoreDebitStatic rd7551 solcFreePtrMem_size hperm
+          (uniswapSourceWord_canonical I)
+          (by simp only [List.length_cons, List.length_nil]; omega))
+        |>.reEquivStaticHalt hcode hdispatch (uniswapDecode_transfer_ok hsz68)
+          (uniswapTransferBodyStatic (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+            (by simp only [initState]; exact hwv) henough
+            (by simp only [initState]; exact hperm))
     · exact uniswapTransferBodyRevert_insufficient hcode hsize hwv hsel hsz68
         (by omega) hdispatch
   · exact uniswapTransferBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch

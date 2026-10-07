@@ -38,7 +38,6 @@ set_option maxHeartbeats 10000000 in
 theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 9)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -72,17 +71,17 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
-    by_cases hliveEvm : cureSlotWord ⟨1⟩ σ I = ⟨0⟩
+    by_cases hliveEvm : solcSlotWordAt ⟨1⟩ σ I = ⟨0⟩
     ·
       have hliveSolc : solcSlotWord σ I ⟨1⟩ = ⟨0⟩ := by
-        simpa [cureSlotWord] using hliveEvm
+        simpa [solcSlotWordAt] using hliveEvm
       obtain ⟨_, _, hafterLive⟩ := RD.cureLoadLiveZeroOk
         (g := Sat256.ofUInt256 g)
         (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (ee := I) (key := key) (ret := ⟨484⟩) (R := [sel])
         (by simpa [key, loadKey] using hroutine)
         hliveSolc (by simp)
-      by_cases hposEvm : cureSlotWord (loadPosSlotFor I) σ I = ⟨0⟩
+      by_cases hposEvm : solcSlotWordAt (loadPosSlotFor I) σ I = ⟨0⟩
       ·
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody : ExecTransitionBody config contract evm0 locals loadTransition.body .reverted := by
@@ -92,7 +91,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
               hwv hliveEvm hposEvm)
         have hposSolc : solcSlotWord σ I (solcMappingSlot ⟨5⟩ key) = ⟨0⟩ := by
           rw [← hposSlotEq]
-          simpa [cureSlotWord] using hposEvm
+          simpa [solcSlotWordAt] using hposEvm
         have hcanonKey : key.toNat < EVM.addressModulus := by
           dsimp [key, loadKey]
           rw [u256_land_comm solcAddrMask (calldataWord I.calldata 4)]
@@ -106,7 +105,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
       ·
         have hposSolc : solcSlotWord σ I (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩ := by
           rw [← hposSlotEq]
-          simpa [cureSlotWord] using hposEvm
+          simpa [solcSlotWordAt] using hposEvm
         have hcanonKey : key.toNat < EVM.addressModulus := by
           dsimp [key, loadKey]
           rw [u256_land_comm solcAddrMask (calldataWord I.calldata 4)]
@@ -189,7 +188,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
             · by_cases hshort : out.size < 32
               · have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat =
                     out.size :=
-                  loadCureMin32_toNat_of_lt hshort
+                  ctorMin32_toNat_of_lt hshort
                 have rd1602' := rd1602
                 rw [hmin] at rd1602'
                 obtain ⟨_, _, rd1623⟩ :=
@@ -282,7 +281,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                 exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
               · have ho32 : 32 ≤ out.size := Nat.le_of_not_lt hshort
                 have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 32 :=
-                  loadCureMin32_toNat_of_ge ho32 houtsz
+                  ctorMin32_toNat_of_ge ho32 houtsz
                 have rd1602' := rd1602
                 rw [hmin] at rd1602'
                 obtain ⟨_, _, rd1623⟩ :=
@@ -372,12 +371,42 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                 obtain ⟨_, _, rd1643⟩ :=
                   RD.cureLoadReturnDecodeOk (retWord := newAmt) rd1623 ho32 houtsz
                     hmload64 hmload128 (by simp)
-                obtain ⟨_, _, rd1670⟩ :=
-                  RD.cureLoadStoreAmt
+                have hcallEvmInit :
+                    typedCallViaEVM config
+                      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                      (EVM.address (AccountAddress.ofUInt256 key)) "cure" 0 []
+                      (true,
+                        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+                          accountMap := σCallEvm
+                          substate := A' },
+                        out) false := by
+                  simpa [initState] using hcallEvm
+                let evmCallSolm :=
+                  { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+                    accountMap := σCallEvm
+                    substate := A' }
+                have hcallSolmSrc :
+                    typedCallViaEVM config
+                      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                      (EVM.address (loadSrc I)) "cure" 0 []
+                      (true, evmCallSolm, out) false := by
+                  simpa [evmCallSolm, key, loadKey_address_eq I] using hcallEvmInit
+                have hdecOut :
+                    config.externalABI.decode? "cure" out =
+                      some [.int (Int.ofNat newAmt.toNat)] := by
+                  simpa [newAmt] using loadCureDecode_ok ho32
+                have hfirstWrite :=
+                  RD.cureLoadStoreAmtSplit
                     (key := key) (ret := ⟨484⟩) (newAmt := newAmt)
                     (oldAmt := solcSlotWord σ I (solcMappingSlot ⟨6⟩ key))
                     (R := [sel]) rd1643 hcanonKey hmemWrite
-                    (by simpa using _hperm) (by simp)
+                    (by simp)
+                rcases hfirstWrite with ⟨_hperm, _, _, rd1670⟩ | ⟨hperm, hstatic⟩
+                swap
+                · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+                    ((cureLoadSourceBodySubRevertSplit
+                      hwv hliveEvm hposEvm hcodeSizeEvm hcallSolmSrc hdecOut).2
+                      (by simpa [evmCallSolm, initState] using hperm))
                 obtain ⟨k3666, C3666, rd3666⟩ :=
                   RD.cureLoadToSubRoutine
                     (key := key) (ret := ⟨484⟩) (newAmt := newAmt)
@@ -413,31 +442,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                       I ⟨9⟩
                   let withoutOld := UInt256.sub sayAfterEvm oldAmtEvm
                   by_cases haddOk : withoutOld.toNat + newAmt.toNat < UInt256.size
-                  · have hcallEvmInit :
-                        typedCallViaEVM config
-                          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-                          (EVM.address (AccountAddress.ofUInt256 key)) "cure" 0 []
-                          (true,
-                            { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                              accountMap := σCallEvm
-                              substate := A' },
-                            out) false := by
-                      simpa [initState] using hcallEvm
-                    let evmCallSolm :=
-                      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                        accountMap := σCallEvm
-                        substate := A' }
-                    have hcallSolmSrc :
-                        typedCallViaEVM config
-                          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-                          (EVM.address (loadSrc I)) "cure" 0 []
-                          (true, evmCallSolm, out) false := by
-                      simpa [evmCallSolm, key, loadKey_address_eq I] using hcallEvmInit
-                    have hdecOut :
-                        config.externalABI.decode? "cure" out =
-                          some [.int (Int.ofNat newAmt.toNat)] := by
-                      simpa [newAmt] using loadCureDecode_ok ho32
-                    let σAmtEvm :=
+                  · let σAmtEvm :=
                       sstoreAccountMap I.codeOwner σCallEvm (solcMappingSlot ⟨6⟩ key) newAmt
                     let σSayEvm := sstoreAccountMap I.codeOwner σAmtEvm ⟨9⟩
                       (withoutOld + newAmt)
@@ -702,30 +707,6 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                         haccounts henc
                   · have hoverEvm : UInt256.size ≤ withoutOld.toNat + newAmt.toNat :=
                         Nat.le_of_not_lt haddOk
-                    have hcallEvmInit :
-                        typedCallViaEVM config
-                          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-                          (EVM.address (AccountAddress.ofUInt256 key)) "cure" 0 []
-                          (true,
-                            { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                              accountMap := σCallEvm
-                              substate := A' },
-                            out) false := by
-                      simpa [initState] using hcallEvm
-                    let evmCallSolm :=
-                      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                        accountMap := σCallEvm
-                        substate := A' }
-                    have hcallSolmSrc :
-                        typedCallViaEVM config
-                          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-                          (EVM.address (loadSrc I)) "cure" 0 []
-                          (true, evmCallSolm, out) false := by
-                      simpa [evmCallSolm, key, loadKey_address_eq I] using hcallEvmInit
-                    have hdecOut :
-                        config.externalABI.decode? "cure" out =
-                          some [.int (Int.ofNat newAmt.toNat)] := by
-                      simpa [newAmt] using loadCureDecode_ok ho32
                     have hsayeq :
                         Solm.EVM.storageLoad
                           (Solm.EVM.storageStore evmCallSolm evmCallSolm.executionEnv.codeOwner
@@ -814,31 +795,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                       · exact hstoreRead64
                       · simp
                     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-                · have hcallEvmInit :
-                      typedCallViaEVM config
-                        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-                        (EVM.address (AccountAddress.ofUInt256 key)) "cure" 0 []
-                        (true,
-                          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                            accountMap := σCallEvm
-                            substate := A' },
-                          out) false := by
-                    simpa [initState] using hcallEvm
-                  let evmCallSolm :=
-                    { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                      accountMap := σCallEvm
-                      substate := A' }
-                  have hcallSolmSrc :
-                      typedCallViaEVM config
-                        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-                        (EVM.address (loadSrc I)) "cure" 0 []
-                        (true, evmCallSolm, out) false := by
-                    simpa [evmCallSolm, key, loadKey_address_eq I] using hcallEvmInit
-                  have hdecOut :
-                      config.externalABI.decode? "cure" out =
-                        some [.int (Int.ofNat newAmt.toNat)] := by
-                    simpa [newAmt] using loadCureDecode_ok ho32
-                  have hsayeq :
+                · have hsayeq :
                       Solm.EVM.storageLoad
                         (Solm.EVM.storageStore evmCallSolm evmCallSolm.executionEnv.codeOwner
                           (loadAmtSlotFor I) newAmt)
@@ -969,7 +926,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             hwv hliveEvm)
       have hliveSolc : solcSlotWord σ I ⟨1⟩ ≠ ⟨0⟩ := by
-        simpa [cureSlotWord] using hliveEvm
+        simpa [solcSlotWordAt] using hliveEvm
       have hrev := RD.cureLoadStillLiveRevert
         (g := Sat256.ofUInt256 g)
         (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)

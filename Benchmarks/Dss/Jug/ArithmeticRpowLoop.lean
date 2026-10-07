@@ -1,22 +1,14 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Jug.ArithmeticLocals
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
+open Reasoning.Theory.RpowB
+
 namespace Benchmarks.Dss.Jug
 
-theorem rpow_div_two_toNat_le_pred {n : UInt256} {v : ℕ}
-    (hnz : n ≠ ⟨0⟩) (hle : n.toNat ≤ v + 1) :
-    (UInt256.div n ⟨2⟩).toNat ≤ v := by
-  have hnNatNe : n.toNat ≠ 0 := by
-    intro hzero
-    exact hnz (uint256_toNat_eq_zero hzero)
-  have hnPos : 0 < n.toNat := Nat.pos_of_ne_zero hnNatNe
-  have hlt : (UInt256.div n ⟨2⟩).toNat < n.toNat := by
-    rw [udiv_toNat, jugUInt256Two_toNat]
-    exact Nat.div_lt_self hnPos (by decide : 1 < 2)
-  omega
 
 theorem execRpowLoopBodyRevertXX {evm : EVM.State} {locals : Store}
     {x n b z half : UInt256}
@@ -269,14 +261,14 @@ theorem execRpowLoopBodyOkEven {evm : EVM.State} {locals : Store}
   have htwoLitX :
       evalExpr? config { contract := contract, locals := localsX } evm (.intLit 2) =
         .ok (.int (Int.ofNat (⟨2⟩ : UInt256).toNat)) := by
-    simp [evalExpr?, pure, jugUInt256Two_toNat]
+    simp [evalExpr?, pure, uInt256Two_toNat]
   have hmod :
       evalExpr? config { contract := contract, locals := localsX } evm
         (.binary .mod (.var "n") (.intLit 2)) = .ok (.int 0) := by
     exact evalExpr_mod_int_ok hstoreX.eval_n htwoLitX
-      (by simp [jugUInt256Two_toNat])
+      (by simp [uInt256Two_toNat])
       (by
-        rw [jugUInt256Two_toNat]
+        rw [uInt256Two_toNat]
         norm_num
         exact_mod_cast heven.symm)
   have hzeroLitX :
@@ -291,7 +283,7 @@ theorem execRpowLoopBodyOkEven {evm : EVM.State} {locals : Store}
   have hdivN :
       evalExpr? config { contract := contract, locals := localsX } evm
         (.binary .div (.var "n") (.intLit 2)) = .ok (.int (Int.ofNat n'.toNat)) := by
-    exact evalExpr_div_uint256_ok hstoreX.eval_n htwoLitX jugUInt256Two_ne_zero rfl
+    exact evalExpr_div_uint256_ok hstoreX.eval_n htwoLitX uInt256Two_ne_zero rfl
   have hassignN :
       assignStorageRef? config { contract := contract, locals := localsX } evm .localVar
           { base := "n" } (.int (Int.ofNat n'.toNat)) =

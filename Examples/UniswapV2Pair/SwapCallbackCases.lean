@@ -54,7 +54,7 @@ theorem uniswapSwapCallbackCases
       simpa only [decide_eq_true hpos] using hcond
     have hargs := evalExprs_swap_callbackArgs evm amount0Out amount1Out _ ha0 ha1 hbytes
     rw [henv] at hargs
-    have hguard := evalExpr_uniswap_codeGuard hAccounts (by simpa only [uniswapAddress_self] using htarget)
+    have hguard := evalExpr_uniswap_codeGuard hAccounts (by simpa only [address_of_val] using htarget)
       (show evalExpr? config caller evm (.var "to") = .ok (.address recipient) from by
         simp only [evalExpr?, EvalResult.ofOption, hto])
     obtain ⟨_, _, rd2054⟩ := uniswapSwapCallbackPrepared rd1911 hready hdata hlen hfit hov

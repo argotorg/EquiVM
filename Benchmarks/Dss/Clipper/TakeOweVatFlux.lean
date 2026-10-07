@@ -1,3 +1,4 @@
+import Reasoning.Memory
 import Benchmarks.Dss.Clipper.TakeCallback
 import Benchmarks.Dss.Clipper.TakeChost
 import Benchmarks.Dss.Clipper.TakeChostVatFluxSource
@@ -10,68 +11,26 @@ import Benchmarks.Dss.Clipper.TakeNoAdjustPostDogSource
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
 namespace Benchmarks.Dss.Clipper
 
--- LIBRARY CANDIDATE: generalizes `Reasoning.Theory.wordAt0Mem_size_96` beyond 96 bytes.
-theorem wordAt0Mem_size_of_ge_32 {mem : ByteArray} (word : UInt256)
-    (hmem : 32 ≤ mem.size) :
-    (wordAt0Mem word mem).size = mem.size := by
-  unfold wordAt0Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, toByteArray_size]
-  omega
+theorem clipperTakeVatFluxPostCallAw_eq :
+    UInt256.ofNat
+      (MachineState.M (MachineState.M (UInt256.ofNat 9).toNat
+        (⟨128⟩ : UInt256).toNat (⟨132⟩ : UInt256).toNat)
+        (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
+      UInt256.ofNat 9 := by
+  decide
 
--- LIBRARY CANDIDATE: generalizes `Reasoning.Theory.wordAt32Mem_size_96` beyond 96 bytes.
-theorem wordAt32Mem_size_of_ge_64 {mem : ByteArray} (word : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (wordAt32Mem word mem).size = mem.size := by
-  unfold wordAt32Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, toByteArray_size]
-  omega
+end Benchmarks.Dss.Clipper
 
--- LIBRARY CANDIDATE: generalizes `Reasoning.Theory.twoWordHashMem_size_96`.
-theorem twoWordHashMem_size_of_ge_64' {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).size = mem.size := by
-  unfold twoWordHashMem
-  rw [wordAt32Mem_size_of_ge_64 slot]
-  exact wordAt0Mem_size_of_ge_32 key (by omega)
-  rw [wordAt0Mem_size_of_ge_32 key (by omega)]
-  exact hmem
+end
 
--- LIBRARY CANDIDATE: preserves the solc free-pointer word across a write at scratch offset 0.
-theorem wordAt0Mem_read64_of_ge_96 {mem : ByteArray} (word : UInt256)
-    (hmem : 96 ≤ mem.size)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (wordAt0Mem word mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by omega)
-    (by omega) (by omega)]
-  exact hread64
-
--- LIBRARY CANDIDATE: preserves the solc free-pointer word across a write at scratch offset 32.
-theorem wordAt32Mem_read64_of_ge_96 {mem : ByteArray} (word : UInt256)
-    (hmem : 96 ≤ mem.size)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (wordAt32Mem word mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  unfold wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size]) (by omega)
-    (by omega) (by omega)]
-  exact hread64
-
--- LIBRARY CANDIDATE: generalizes `Reasoning.Theory.twoWordHashMem_read64`.
-theorem twoWordHashMem_read64_of_ge_96 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 96 ≤ mem.size)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (twoWordHashMem key slot mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold twoWordHashMem
-  exact wordAt32Mem_read64_of_ge_96 slot
-    (by rw [wordAt0Mem_size_of_ge_32 key (by omega)]; omega)
-    (wordAt0Mem_read64_of_ge_96 key hmem hread64)
+namespace Benchmarks.Dss.Clipper
 
 theorem RD.clipperTakeOweGtTabToVatFluxExtcodesizeGuard {code : ByteArray}
     (v : ClipperImmutables)
@@ -105,6 +64,7 @@ theorem RD.clipperTakeOweGtTabToVatFluxExtcodesizeGuard {code : ByteArray}
     RD.clipperTakeOweGtTabToJoin (v := v) (hpatch := hpatch) rd4057 hgt (by omega)
   exact RD.clipperTakeVatFluxExtcodesizeGuard (v := v) (hpatch := hpatch) rd4223
     hmem hread64 (by omega)
+
 
 set_option maxHeartbeats 1000000 in
 theorem RD.clipperTakeOweGtTabVatFluxPostCall {σ₀ σStart σ I}
@@ -252,8 +212,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeTailBlock
       (UInt256.ofNat ((evmVat.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0) :
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
+      (Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
       evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
         [ .letDecl "owe" (some uint256) (.var "owe0"),
@@ -280,8 +239,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeTailBlock
   let sliceFrame : Frame :=
     Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v)
   let fluxFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 slice'
+    Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 slice'
         tabNew lotNew) (immStore v)
   have hflux :
       ExecBlock config sliceFrame evmRead
@@ -346,8 +304,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureTailBlock
           .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
         (false, evmMove, outMove) true) :
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
+      (Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
       evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
         [ .letDecl "owe" (some uint256) (.var "owe0"),
@@ -374,8 +331,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureTailBlock
   let sliceFrame : Frame :=
     Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v)
   let fluxFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 slice'
+    Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 slice'
         tabNew lotNew) (immStore v)
   have hflux :
       ExecBlock config sliceFrame evmRead
@@ -565,7 +521,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeRevertEquivFromPostAccounts
         Reasoning.Theory.extCodeSizeWord σPostSolm (clipperTakeVatTarget v) = ⟨0⟩ := by
       simpa only [← hAccountsPost] using hnoVatCodeEvm
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_zero_lookup_code_zero
+      extCodeSizeWord_zero_lookup_code_zero
         (σ := σPostSolm) (target := clipperTakeVatTarget v)
         (addr := v.vat) (clipperTakeVatTargetAddress v).symm hnoCode
   exact
@@ -768,7 +724,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivFromPostCallAccounts
         Reasoning.Theory.extCodeSizeWord σPostSolm (clipperTakeVatTarget v) ≠ ⟨0⟩ := by
       simpa only [← hAccountsPost] using hvatCodeEvm
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := σPostSolm) (target := clipperTakeVatTarget v)
         (addr := v.vat) (clipperTakeVatTargetAddress v).symm hcode
   let evmPostEvm : EVM.State :=
@@ -912,13 +868,6 @@ theorem RD.clipperTakeOweGtTabVatFluxSuccessSkipWhoDog {code : ByteArray}
   exact RD.clipperTakeSkipClipperCallWhoDog (v := v) (hpatch := hpatch) rd4414
     hdataLen hwhoVat hwhoDog (by omega)
 
-theorem clipperTakeVatFluxPostCallAw_eq :
-    UInt256.ofNat
-      (MachineState.M (MachineState.M (UInt256.ofNat 9).toNat
-        (⟨128⟩ : UInt256).toNat (⟨132⟩ : UInt256).toNat)
-        (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
-      UInt256.ofNat 9 := by
-  native_decide
 
 theorem clipperTakeVatFluxPostCallMem_size (v : ClipperImmutables)
     (I : ExecutionEnv) (who slice : UInt256) {baseMem out : ByteArray}
@@ -1865,7 +1814,7 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToEventTail {code : ByteArray}
     apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 6000) hpatch
     unfold patches patchesFrom offsets immValues
     simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-    cases hIlk : wordBytes? v.ilk with
+    cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
     | none =>
         simp [hIlk]
         native_decide
@@ -1894,7 +1843,7 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToEventTail {code : ByteArray}
           (fromByteArrayBigEndian
             (KEC ((twoWordHashMem id ⟨12⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨12⟩ id := by
-    rw [clipperYankTwoWordHashMem_read0_64_of_ge id ⟨12⟩ (by omega)]
+    rw [twoWordHashMem_read0_64_of_ge id ⟨12⟩ (by omega)]
     unfold solcMappingSlot
     exact mappingSlot_single id ⟨12⟩
   have rd5236pre := evm_run rd5232 with [

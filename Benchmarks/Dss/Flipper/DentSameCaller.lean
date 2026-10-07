@@ -17,7 +17,6 @@ theorem flipperDentBodyFrom4733SameCaller
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I))
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hguySolm : bidGuyWord (dentId I) σ I ≠ ⟨0⟩)
     (hticGuard :
@@ -107,9 +106,9 @@ theorem flipperDentBodyFrom4733SameCaller
       have hfluxEncode :
           config.externalABI.encode? "flux" (dentFluxArgValsOf evm0Solm I) =
             some ((dentVatFluxCallMem memFlux σ I).readWithPadding 128 132) := by
-        simpa [evm0Solm, dentFluxArgValsOf, initState, flipperSlotWord,
+        simpa [evm0Solm, dentFluxArgValsOf, initState, solcSlotWordAt,
           solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-          bidUsrWord, bidLotWord, bidSlotOfWord, bidBaseOfWord, flipperAddressReturnWord]
+          bidUsrWord, bidLotWord, bidSlotOfWord, bidBaseOfWord, solcAddressSlotWord]
           using dentVatFluxCallMem_encode (mem := memFlux) (σ := σ) (I := I)
             hmemFluxSize
       have hcallFluxSolm :
@@ -145,7 +144,7 @@ theorem flipperDentBodyFrom4733SameCaller
       obtain ⟨σ_flux, zFlux, outFlux, A_flux, k5053, C5053, rd5053,
           hcallFluxEvmRaw, houtFlux⟩ :=
         flipperDentX_fluxPostCall (Acur := A) hmemFluxSize hmemFluxRead64 hfluxZero
-          hperm hdepthLt rd4927
+          hdepthLt rd4927
       let evm0Evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm0Solm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmFluxEvm : EVM.State :=
@@ -217,13 +216,23 @@ theorem flipperDentBodyFrom4733SameCaller
         have hfluxMemGe : 64 ≤ (dentVatFluxCallMem memFlux σ I).size := by
           rw [dentVatFluxCallMem_size hmemFluxSize]
           norm_num
-        obtain ⟨_, _, rd6272⟩ := flipperDentX_storeLotToAdd48 hperm hfluxMemGe rd5073
+        have hstoreSplit := flipperDentX_storeLotToAdd48Split hfluxMemGe rd5073
         have hcallFluxSolmTrue :
             typedCallViaEVM config evm0Solm
               (EVM.address (flipperVatAddress evm0Solm.accountMap evm0Solm.executionEnv))
               "flux" 0 (dentFluxArgValsOf evm0Solm I)
               (true, evmFluxSolm, outFlux) true := by
           simpa using hcallFluxSolm
+        rcases hstoreSplit with ⟨hperm, _, _, rd6272⟩ | ⟨hperm, hstatic⟩
+        swap
+        · have hsource := (flipperDentSourceBodySuccessSameCallerSplit
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            (evmFlux := evmFluxSolm) (outFlux := outFlux)
+            hwv hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot
+            hfitBeg hdec hcallerSolm hvatCodeSolm hcallFluxSolmTrue
+            (by simp [evmFluxSolm, evm0Solm, initState])
+            (by simp [evmFluxSolm, evm0Solm, initState])).2 hperm
+          exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
         let evmLotEvm := Solm.EVM.storageStore evmFluxEvm evmFluxEvm.executionEnv.codeOwner
           (bidSlotOfWord (dentId I) ⟨1⟩) (dentLot I)
         let evmLotSolm := Solm.EVM.storageStore evmFluxSolm evmFluxSolm.executionEnv.codeOwner
@@ -253,7 +262,7 @@ theorem flipperDentBodyFrom4733SameCaller
               64 ≤
                 (twoWordHashMem (dentId I) ⟨1⟩
                   (dentVatFluxCallMem memFlux σ I)).size := by
-            rw [tendTwoWordHashMem_size_of_size_ge]
+            rw [twoWordHashMem_size_of_size_ge]
             · exact hfluxMemGe
             · exact hfluxMemGe
           have hret := flipperDentX_storeTicReturn hperm hticMemGe rd3859
@@ -322,7 +331,7 @@ theorem flipperDentBodyFrom4733SameCaller
             have hownerLot : evmLotEvm.executionEnv.codeOwner = I.codeOwner := by
               simp [evmLotEvm, evmFluxEvm, evm0Evm, storageStore_executionEnv, initState]
             simpa [evmTicEvm, hmapLotEvm, hownerLot, tendStoreTicMap, tendStoredTicWord,
-              flipperSlotWord, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
+              solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
               Account.lookupStorage, storageStore_accountMap, dentId, tendId] using rfl
           have henc : returnEquiv ByteArray.empty none dentTransition.returnType := by
             rw [show dentTransition.returnType = [] by rfl]

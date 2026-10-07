@@ -1,3 +1,8 @@
+import Reasoning.ABIViews
+import Reasoning.WordArithmetic
+import Reasoning.ABIComposite
+import Reasoning.SolcRoutines
+import Reasoning.Reach
 import Benchmarks.Dss.Vat.Bytecode
 import Reasoning.ABI
 import Reasoning.Dispatch
@@ -67,313 +72,15 @@ abbrev VatBodyTheorem (i : ℕ) : Prop :=
     selIs I (vatSelBytes i) →
     runtimeRefinementFor config contract σ σ₀ g A I
 
-def vatSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  solcSlotWord σ I slot
+/-- `VatBodyTheorem` for any call permission. -/
+abbrev VatBodyTheoremAnyPerm (i : ℕ) : Prop :=
+  ∀ {σ σ₀ A I} {g : UInt256},
+    I.code = vatBytecode →
+    I.calldata.size < UInt256.size →
+    I.weiValue = ⟨0⟩ →
+    selIs I (vatSelBytes i) →
+    runtimeRefinementFor config contract σ σ₀ g A I
 
-theorem vatStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (wordLoc slot) =
-      .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
-
-theorem vatStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
-    storageLocStore evm (wordLoc slot) (.int (Int.ofNat val.toNat)) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
-  simpa [wordLoc, uint256Loc] using storageLocStore_uint256 evm slot val
-
-theorem vatDecodeScalarWordWithMode_legacyInt256_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeScalarWordWithMode? DecodeMode.legacySolc05 int256 bytes start =
-      some
-        (.int
-          (if (ABI.bytesToWord ((bytes.drop start).take 32)).toNat < EVM.twoPow 255 then
-            Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat
-          else
-            Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat -
-              Int.ofNat EVM.wordModulus),
-          start + 32) := by
-  simp [decodeScalarWordWithMode?, readWord?, readBytes?, decodeABIWord?, int256,
-    int256Int, hlen]
-  exact normalizeInt_sint256_word (ABI.bytesToWord ((bytes.drop start).take 32))
-
-theorem vatDecodeScalarWords_address_address_address_int256_int256_legacy_ok
-    {bytes : List UInt8}
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hlen64 : ((bytes.drop 64).take 32).length = 32)
-    (hlen96 : ((bytes.drop 96).take 32).length = 32)
-    (hlen128 : ((bytes.drop 128).take 32).length = 32)
-    (hlen160 : ((bytes.drop 160).take 32).length = 32) :
-    decodeScalarWordsWithMode? DecodeMode.legacySolc05
-      [addr, addr, addr, int256, int256] bytes 32 =
-      some
-        [ .address (AccountAddress.ofNat
-            (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
-          .address (AccountAddress.ofNat
-            (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat),
-          .address (AccountAddress.ofNat
-            (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat),
-          .int
-            (if (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat < EVM.twoPow 255 then
-              Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat
-            else
-              Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat -
-                Int.ofNat EVM.wordModulus),
-          .int
-            (if (ABI.bytesToWord ((bytes.drop 160).take 32)).toNat < EVM.twoPow 255 then
-              Int.ofNat (ABI.bytesToWord ((bytes.drop 160).take 32)).toNat
-            else
-              Int.ofNat (ABI.bytesToWord ((bytes.drop 160).take 32)).toNat -
-                Int.ofNat EVM.wordModulus) ] := by
-  have haddr32 :
-      decodeScalarWordWithMode? DecodeMode.legacySolc05 addr bytes 32 =
-        some (.address (AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat), 32 + 32) := by
-    simpa [addr] using
-      decodeScalarWord_legacyAddress_ok (bytes := bytes) (start := 32) hlen32
-  have haddr64 :
-      decodeScalarWordWithMode? DecodeMode.legacySolc05 addr bytes 64 =
-        some (.address (AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat), 64 + 32) := by
-    simpa [addr] using
-      decodeScalarWord_legacyAddress_ok (bytes := bytes) (start := 64) hlen64
-  have haddr96 :
-      decodeScalarWordWithMode? DecodeMode.legacySolc05 addr bytes 96 =
-        some (.address (AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat), 96 + 32) := by
-    simpa [addr] using
-      decodeScalarWord_legacyAddress_ok (bytes := bytes) (start := 96) hlen96
-  have hint128 :
-      decodeScalarWordWithMode? DecodeMode.legacySolc05 int256 bytes 128 =
-        some
-          (.int
-            (if (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat < EVM.twoPow 255 then
-              Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat
-            else
-              Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat -
-                Int.ofNat EVM.wordModulus),
-            128 + 32) :=
-    vatDecodeScalarWordWithMode_legacyInt256_ok (bytes := bytes) (start := 128) hlen128
-  have hint160 :
-      decodeScalarWordWithMode? DecodeMode.legacySolc05 int256 bytes 160 =
-        some
-          (.int
-            (if (ABI.bytesToWord ((bytes.drop 160).take 32)).toNat < EVM.twoPow 255 then
-              Int.ofNat (ABI.bytesToWord ((bytes.drop 160).take 32)).toNat
-            else
-              Int.ofNat (ABI.bytesToWord ((bytes.drop 160).take 32)).toNat -
-                Int.ofNat EVM.wordModulus),
-            160 + 32) :=
-    vatDecodeScalarWordWithMode_legacyInt256_ok (bytes := bytes) (start := 160) hlen160
-  simp only [decodeScalarWordsWithMode?]
-  norm_num
-  rw [haddr32]
-  simp only [Option.bind, bind]
-  rw [haddr64]
-  simp only [Option.bind, bind]
-  rw [haddr96]
-  simp only [Option.bind, bind]
-  rw [hint128]
-  simp only [Option.bind, bind]
-  rw [hint160]
-  rfl
-
-set_option maxHeartbeats 0 in
-theorem vatDecodeABIValues_bytes32_address_address_address_int256_int256_legacy_ok
-    {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hlen64 : ((bytes.drop 64).take 32).length = 32)
-    (hlen96 : ((bytes.drop 96).take 32).length = 32)
-    (hlen128 : ((bytes.drop 128).take 32).length = 32)
-    (hlen160 : ((bytes.drop 160).take 32).length = 32) :
-    decodeABIValues? [bytes32, addr, addr, addr, int256, int256] bytes
-      0 0 192 192 DecodeMode.legacySolc05 =
-        some
-          ([ .fixedBytes bytes32Width (bytes.take 32),
-             .address (AccountAddress.ofNat
-               (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
-           .address (AccountAddress.ofNat
-             (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat),
-           .address (AccountAddress.ofNat
-             (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat),
-           .int
-             (if (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat < EVM.twoPow 255 then
-               Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat
-             else
-               Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat -
-                 Int.ofNat EVM.wordModulus),
-           .int
-             (if (ABI.bytesToWord ((bytes.drop 160).take 32)).toNat < EVM.twoPow 255 then
-               Int.ofNat (ABI.bytesToWord ((bytes.drop 160).take 32)).toNat
-             else
-                 Int.ofNat (ABI.bytesToWord ((bytes.drop 160).take 32)).toNat -
-                   Int.ofNat EVM.wordModulus) ],
-           192) := by
-    have hbytes32 :
-        decodeABIValue? (.elem (.bytes bytes32Width)) bytes 0 DecodeMode.legacySolc05 =
-          some (.fixedBytes bytes32Width (bytes.take 32), 32) := by
-      simp only [bytes32Width, decodeABIValue?, readBytes?, bind, Option.bind]
-      rw [if_pos (by simpa using hlen0)]
-      simp [zeroPadding?, readBytes?]
-    have htail :
-        decodeABIValues? [addr, addr, addr, int256, int256] bytes 0 32 192 192
-          DecodeMode.legacySolc05 =
-          some
-            ([ .address (AccountAddress.ofNat
-                (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
-               .address (AccountAddress.ofNat
-                (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat),
-               .address (AccountAddress.ofNat
-                (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat),
-               .int
-                (if (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat < EVM.twoPow 255 then
-                  Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat
-                else
-                  Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat -
-                    Int.ofNat EVM.wordModulus),
-               .int
-                (if (ABI.bytesToWord ((bytes.drop 160).take 32)).toNat < EVM.twoPow 255 then
-                  Int.ofNat (ABI.bytesToWord ((bytes.drop 160).take 32)).toNat
-                else
-                  Int.ofNat (ABI.bytesToWord ((bytes.drop 160).take 32)).toNat -
-                    Int.ofNat EVM.wordModulus) ],
-             192) := by
-      rw [decodeABIValues_scalarWordsWithMode_eq
-        (mode := DecodeMode.legacySolc05)
-        (types := [addr, addr, addr, int256, int256])
-        (bytes := bytes) (cursor := 32) (total := 192)
-        (by native_decide) (by norm_num)]
-      rw [vatDecodeScalarWords_address_address_address_int256_int256_legacy_ok
-        (bytes := bytes) hlen32 hlen64 hlen96 hlen128 hlen160]
-    rw [decodeABIValues?]
-    simp only [bytes32, isDynamicABIType, staticABIEncodedSize?, Bool.false_eq_true, if_false,
-      Nat.zero_add, Option.bind, bind]
-    rw [hbytes32]
-    simp only [Option.bind, bind]
-    rw [if_pos (by norm_num)]
-    rw [show max 192 32 = 192 by norm_num]
-    rw [htail]
-
-set_option maxHeartbeats 0 in
-theorem vatDecodeCalldata_legacyBytes32_address_address_address_int256_int256_ok
-    {cd : ByteArray} {a b c d e f : Solm.Ident} (hsz196 : 196 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [a, b, c, d, e, f]
-      [bytes32, addr, addr, addr, int256, int256] cd =
-      some (((((((∅ : Store).insert a
-        (.fixedBytes bytes32Width ((cd.toList.drop 4).take 32))).insert b
-        (.address (AccountAddress.ofNat (calldataWord cd 36).toNat))).insert c
-        (.address (AccountAddress.ofNat (calldataWord cd 68).toNat))).insert d
-        (.address (AccountAddress.ofNat (calldataWord cd 100).toNat))).insert e
-        (.int
-          (if (calldataWord cd 132).toNat < EVM.twoPow 255 then
-            Int.ofNat (calldataWord cd 132).toNat
-          else
-            Int.ofNat (calldataWord cd 132).toNat - Int.ofNat EVM.wordModulus))).insert f
-        (.int
-          (if (calldataWord cd 164).toNat < EVM.twoPow 255 then
-            Int.ofNat (calldataWord cd 164).toNat
-          else
-            Int.ofNat (calldataWord cd 164).toNat - Int.ofNat EVM.wordModulus))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake68 : ((cd.toList.drop 68).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake100 : ((cd.toList.drop 100).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake132 : ((cd.toList.drop 132).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake164 : ((cd.toList.drop 164).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  have hword68 : ABI.bytesToWord ((cd.toList.drop 68).take 32) = calldataWord cd 68 :=
-    decode_word_at_eq cd 68 (by omega) (by norm_num)
-  have hword100 : ABI.bytesToWord ((cd.toList.drop 100).take 32) = calldataWord cd 100 :=
-    decode_word_at_eq cd 100 (by omega) (by norm_num)
-  have hword132 : ABI.bytesToWord ((cd.toList.drop 132).take 32) = calldataWord cd 132 :=
-    decode_word_at_eq cd 132 (by omega) (by norm_num)
-  have hword164 : ABI.bytesToWord ((cd.toList.drop 164).take 32) = calldataWord cd 164 :=
-    decode_word_at_eq cd 164 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [bytes32, addr, int256, isDynamicABIType])]
-  simp only
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr, addr, addr, int256, int256] =
-      some 192 by native_decide]
-  simp only [bind, Option.bind]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (cd.toList.drop 4).length < 192)]
-  rw [vatDecodeABIValues_bytes32_address_address_address_int256_int256_legacy_ok
-    (bytes := cd.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-      using htake36)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-      using htake68)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-      using htake100)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-      using htake132)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-      using htake164)]
-  rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
-      calldataWord cd 36 from by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36]
-  rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32) =
-      calldataWord cd 68 from by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword68]
-  rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 96).take 32) =
-      calldataWord cd 100 from by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword100]
-  rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 128).take 32) =
-      calldataWord cd 132 from by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword132]
-  rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 160).take 32) =
-      calldataWord cd 164 from by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword164]
-  simp only [Option.bind, bind]
-  change decodeCalldata.insertValues [a, b, c, d, e, f]
-      [ .fixedBytes bytes32Width ((cd.toList.drop 4).take 32),
-        .address (AccountAddress.ofNat (calldataWord cd 36).toNat),
-        .address (AccountAddress.ofNat (calldataWord cd 68).toNat),
-        .address (AccountAddress.ofNat (calldataWord cd 100).toNat),
-        .int
-          (if (calldataWord cd 132).toNat < EVM.twoPow 255 then
-            Int.ofNat (calldataWord cd 132).toNat
-          else
-            Int.ofNat (calldataWord cd 132).toNat - Int.ofNat EVM.wordModulus),
-        .int
-          (if (calldataWord cd 164).toNat < EVM.twoPow 255 then
-            Int.ofNat (calldataWord cd 164).toNat
-          else
-            Int.ofNat (calldataWord cd 164).toNat - Int.ofNat EVM.wordModulus) ] ∅ =
-      some (((((((∅ : Store).insert a
-        (.fixedBytes bytes32Width ((cd.toList.drop 4).take 32))).insert b
-        (.address (AccountAddress.ofNat (calldataWord cd 36).toNat))).insert c
-        (.address (AccountAddress.ofNat (calldataWord cd 68).toNat))).insert d
-        (.address (AccountAddress.ofNat (calldataWord cd 100).toNat))).insert e
-        (.int
-          (if (calldataWord cd 132).toNat < EVM.twoPow 255 then
-            Int.ofNat (calldataWord cd 132).toNat
-          else
-            Int.ofNat (calldataWord cd 132).toNat - Int.ofNat EVM.wordModulus))).insert f
-        (.int
-          (if (calldataWord cd 164).toNat < EVM.twoPow 255 then
-            Int.ofNat (calldataWord cd 164).toNat
-          else
-            Int.ofNat (calldataWord cd 164).toNat - Int.ofNat EVM.wordModulus)))
-  rfl
 
 @[reducible] def solcSixWordThreeAddressExternalLoadAndJumpWf
     (code : ByteArray) (pc routine : UInt256) : Prop :=
@@ -535,15 +242,15 @@ theorem vatUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (vatStorageLocLoad_uint256 evm slot))
+      rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      exact congrArg EvalResult.ok (storageLocLoad_uint256 evm slot))
 
 theorem vatUint256GetterBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -567,111 +274,25 @@ theorem vatUint256GetterBodyCore
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (vatSlotWord slot σ I).toNat))]))) :
+          (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (vatSlotWord slot σ I))
-        (some [(.int (Int.ofNat (vatSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (vatSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   have hret := RD.solcWordGetterExternal (code := vatBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret vatBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (vatSlotWord slot σ I)) := by
-    simpa [vatSlotWord] using hret
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
+    simpa [solcSlotWordAt] using hret
   exact hret'.reEquivExecution hcode hdispatch hdecode hbody henc
 
-@[reducible] def solcZeroSlotMappingGetterWf (code : ByteArray) (pc : UInt256) : Prop :=
-  let p1 := pc + ⟨1⟩
-  let p3 := p1 + UInt256.ofNat 2
-  let p5 := p3 + UInt256.ofNat 2
-  let p6 := p5 + ⟨1⟩
-  let p7 := p6 + ⟨1⟩
-  let p8 := p7 + ⟨1⟩
-  let p9 := p8 + ⟨1⟩
-  let p10 := p9 + ⟨1⟩
-  let p11 := p10 + ⟨1⟩
-  let p13 := p11 + UInt256.ofNat 2
-  let p14 := p13 + ⟨1⟩
-  let p15 := p14 + ⟨1⟩
-  let p16 := p15 + ⟨1⟩
-  let p17 := p16 + ⟨1⟩
-  decode code pc = some (.JUMPDEST, .none)
-  ∧ decode code p1 = some (.Push .PUSH1, some (⟨0⟩, 1))
-  ∧ decode code p3 = some (.Push .PUSH1, some (⟨32⟩, 1))
-  ∧ decode code p5 = some (.DUP2, .none)
-  ∧ decode code p6 = some (.SWAP1, .none)
-  ∧ decode code p7 = some (.MSTORE, .none)
-  ∧ decode code p8 = some (.SWAP1, .none)
-  ∧ decode code p9 = some (.DUP2, .none)
-  ∧ decode code p10 = some (.MSTORE, .none)
-  ∧ decode code p11 = some (.Push .PUSH1, some (⟨64⟩, 1))
-  ∧ decode code p13 = some (.SWAP1, .none)
-  ∧ decode code p14 = some (.KECCAK256, .none)
-  ∧ decode code p15 = some (.SLOAD, .none)
-  ∧ decode code p16 = some (.DUP2, .none)
-  ∧ decode code p17 = some (.JUMP, .none)
-
-theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
-    (hwf : solcZeroSlotMappingGetterWf code pc)
-    (hret : (D_J code 0).contains ret = true)
-    (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
-      (solcSlotWord σ ee (solcMappingSlot ⟨0⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
-  rcases hwf with
-    ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
-      hd16, hd17⟩
-  have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
-  have rd3 := rd1.push1 ⟨0⟩ hd1 (by evm_ov)
-  have rd5 := rd3.push1 ⟨32⟩ hd3 (by evm_ov)
-  have rd6 := rd5.dup2 hd5 (by evm_ov)
-  have rd7 := rd6.swap1 hd6 (by evm_ov)
-  have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨0⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd9 := rd8.swap1 hd8 (by evm_ov)
-  have rd10 := rd9.dup2 hd9 (by evm_ov)
-  have rd11 := rd10.mstore 0 (solcMappingHashMem ⟨0⟩ key)
-    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd13 := rd11.push1 ⟨64⟩ hd11 (by evm_ov)
-  have rd14 := rd13.swap1 hd13 (by evm_ov)
-  have hslot := solcMappingKeccakSlot ⟨0⟩ key
-  have rd15 := rd14.keccak256 0 (solcMappingSlot ⟨0⟩ key)
-    (UInt256.ofNat 3) hd14 mem_cost
-    (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
-      show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd16⟩ := rd15.sload hd15 (by evm_ov)
-  have rd17 := rd16.dup2 hd16 (by evm_ov)
-  exact ⟨_, _, rd17.jump hd17 hret (by evm_ov)⟩
-
-theorem RD.solcNestedMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ}
-    {pc baseSlot owner spender ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {σ : AccountMap}
-    (h : RD code ee g s0 pc (spender :: owner :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
-    (hwf : solcNestedMappingGetterWf code pc baseSlot)
-    (hret : (D_J code 0).contains ret = true)
-    (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
-      (solcSlotWord σ ee (solcMappingSlot (solcMappingSlot baseSlot owner) spender) ::
-        ret :: R)
-      (solcNestedMappingHashMem baseSlot owner spender)
-      (UInt256.ofNat 3) rdata σ k' C' := by
-  obtain ⟨_, _, hinner⟩ := RD.solcNestedMappingInnerHash h hwf hov
-  obtain ⟨_, _, houter⟩ := RD.solcNestedMappingOuterHash hinner hwf hov
-  obtain ⟨_, _, hload⟩ := RD.solcNestedMappingLoadAndJump houter hwf hret (by omega)
-  exact ⟨_, _, hload⟩
 
 def solcScratchReturn2Mem
     (scratch : ByteArray) (first second : UInt256) : ByteArray :=
@@ -836,110 +457,6 @@ theorem RD.solcTwoWordReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
         exact solcScratchReturn2Mem_read128_64 first second hscratch)
       (by evm_ov)]
 
-theorem uint256PairReturnEncoding (first second : UInt256) :
-    encodeReturnValues? [uint256, uint256]
-      [.int (Int.ofNat first.toNat), .int (Int.ofNat second.toNat)] =
-        some (UInt256.toByteArray first ++ UInt256.toByteArray second) := by
-  have hencFirst :
-      encodeABIValue? uint256 (.int (Int.ofNat first.toNat)) =
-        some (EVM.Word.toBytesBE first) := by
-    have hword : EVM.word first.toNat = first := by
-      show UInt256.ofNat first.toNat = first
-      exact u256_ofNat_toNat first
-    have hlt : first.toNat < EVM.twoPow 256 := by
-      change first.val.val < EVM.twoPow 256
-      exact first.val.isLt
-    simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hlt]
-  have hencSecond :
-      encodeABIValue? uint256 (.int (Int.ofNat second.toNat)) =
-        some (EVM.Word.toBytesBE second) := by
-    have hword : EVM.word second.toNat = second := by
-      show UInt256.ofNat second.toNat = second
-      exact u256_ofNat_toNat second
-    have hlt : second.toNat < EVM.twoPow 256 := by
-      change second.val.val < EVM.twoPow 256
-      exact second.val.isLt
-    simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hlt]
-  rw [show UInt256.toByteArray first = (EVM.Word.toBytesBE first).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray first).symm]
-  rw [show UInt256.toByteArray second = (EVM.Word.toBytesBE second).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray second).symm]
-  unfold encodeReturnValues? encodeABIValues?
-  rw [show abiTupleHeadSize? [uint256, uint256] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  unfold encodeABIValuesFrom?
-  rw [hencFirst]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
-  unfold encodeABIValuesFrom?
-  rw [hencSecond]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
-  unfold encodeABIValuesFrom?
-  simp only [Bool.false_eq_true, if_false, List.nil_append, List.append_nil]
-  apply congrArg some
-  apply ByteArray.ext
-  simp [ByteArray.data_append]
-
--- LIBRARY CANDIDATE: signed-division stepping wrapper analogous to Reasoning.Reach.RD.div.
-theorem sdiv_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.SDIV, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
-         else .ok (stBinop5 s (UInt256.sdiv a b) t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.SDIV, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_sdiv s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Glow, stBinop5]
-
--- LIBRARY CANDIDATE: signed-division RD step analogous to Reasoning.Reach.RD.div.
-theorem RD.sdiv {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.SDIV, .none)) (hov : t.length + 1 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (UInt256.sdiv a b :: t) mem aw rdata acc (k + 1)
-      (C + 5) := by
-  unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
-  · exact Or.inl hoog
-  · have st := sdiv_xstep hcode hpc hdec hstk hov
-    by_cases gg : g.toNat < C + 5
-    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨stBinop5 s (UInt256.sdiv a b) t,
-        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
-        by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [stBinop5]
-        exact hcode
-      · simp only [stBinop5]
-        rw [hpc]
-      · rfl
-      · simp only [stBinop5]
-        rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [stBinop5]
-        exact hmem
-      · simp only [stBinop5]
-        exact haw
-      · simp only [stBinop5]
-        exact hrdata
-      · simp only [stBinop5]
-        exact hacc
-      · exact hee
-      · exact hworld
-
-theorem u256_eq_ne_zero_to_eq {a b : UInt256}
-    (h : UInt256.eq a b ≠ ⟨0⟩) : a = b := by
-  by_cases hab : a = b
-  · exact hab
-  · have hzero : UInt256.eq a b = ⟨0⟩ := u256_eq_of_ne hab
-    exact False.elim (h hzero)
 
 -- LIBRARY CANDIDATE: solc signed checked-multiply helper for optimized Vat bytecode.
 theorem RD.vatSignedMulOk {g : Sat256} {s0 : State}
@@ -1006,7 +523,7 @@ theorem RD.vatSignedMulOk {g : Sat256} {s0 : State}
       simpa [prod] using rd6739.jumpiT (by native_decide) hyzero (by jump_dest)
         (by evm_ov)
     have rd6742 := rd6741.jumpdest (by native_decide) (by evm_ov)
-    have rd6743pre := Benchmarks.Dss.Vat.RD.sdiv rd6742 (by native_decide) (by evm_ov)
+    have rd6743pre := Reasoning.Reach.RD.sdiv rd6742 (by native_decide) (by evm_ov)
     have rd6744 := rd6743pre.eq (by native_decide) (by evm_ov)
     have rd6747 := rd6744.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
     have heq : UInt256.eq (UInt256.sdiv prod y) x ≠ ⟨0⟩ := by
@@ -1083,7 +600,7 @@ theorem RD.vatSignedMulRevert {g : Sat256} {s0 : State}
       simpa [prod] using rd6739.jumpiT (by native_decide) hyNe (by jump_dest)
         (by evm_ov)
     have rd6742 := rd6741.jumpdest (by native_decide) (by evm_ov)
-    have rd6743pre := Benchmarks.Dss.Vat.RD.sdiv rd6742 (by native_decide) (by evm_ov)
+    have rd6743pre := Reasoning.Reach.RD.sdiv rd6742 (by native_decide) (by evm_ov)
     have rd6744 := rd6743pre.eq (by native_decide) (by evm_ov)
     have rd6747 := rd6744.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
     have heq0 : UInt256.eq (UInt256.sdiv prod y) x = ⟨0⟩ := by

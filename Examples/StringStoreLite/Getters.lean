@@ -1,3 +1,7 @@
+import Reasoning.StorageLoops
+import Reasoning.ABIViews
+import Reasoning.Stepping
+import Reasoning.WordArithmetic
 import Examples.StringStoreLite.Bytecode
 import Reasoning.ABI
 import Reasoning.Dispatch
@@ -59,10 +63,6 @@ theorem stringStoreLiteTransitions :
       [setTransition, clearCurrentTransition, currentLengthGetter] :=
   rfl
 
-/-- `ByteArray` `==` reflects equality. -/
-theorem byteArray_eq_of_beq {a b : ByteArray} (h : (a == b) = true) : a = b := by
-  apply ByteArray.ext
-  exact eq_of_beq (by simpa [BEq.beq, ByteArray.instBEq] using h)
 
 theorem stringStoreLiteArmsWellFormed :
     ∀ j, j ≤ 2 → armWellFormed stringStoreLiteBytecode
@@ -386,46 +386,6 @@ theorem decodeCalldata_set_none_payloadShort {I : ExecutionEnv}
   exact decodeCalldata_string_none_payload_short (x := "value") hsz36 hhi hoffMax hlenWord
     hlenMax hpayload
 
-theorem decodeCalldata_string_some {cd : ByteArray} {x : Solm.Ident}
-    (hsz36 : 36 ≤ cd.size) (hsizeSign : cd.size < 2 ^ 255)
-    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord cd 4).toNat)
-    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
-    (hlenMax :
-      ¬ ABI.solcMaxU64 <
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat)
-    (hpayload :
-      (((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).length =
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat) :
-    decodeCalldata [x] [ABIType.string] cd =
-      some ((∅ : Store).insert x (.bytes (ByteArray.mk
-        (((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
-          (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).toArray))) := by
-  unfold decodeCalldata
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by
-    rintro ⟨_, hhuge⟩
-    rw [htlen] at hhuge
-    omega)]
-  rw [if_neg (by
-    rintro ⟨_, hhuge⟩
-    rw [List.length_drop, htlen] at hhuge
-    omega)]
-  rw [if_neg (by
-    rintro ⟨_, hhuge⟩
-    rw [htlen] at hhuge
-    omega)]
-  have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
-  have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hlenWord
-  have hpayloadRead := readBytes_drop4_string_payload (cd := cd) hpayload
-  have hnotHeadShort : ¬ cd.toList.length - 4 < 32 := by
-    rw [htlen]
-    omega
-  simp [decodeCalldata.decodeArgs, decodeCalldata.insertValues, decodeABIValues?,
-    decodeABIValue?, isDynamicABIType, abiTupleHeadSize?, ABI.solcMaxLen, hreadOff, hoffMax,
-    hreadLen, hlenMax, hpayloadRead, hnotHeadShort]
 
 theorem decodeCalldata_set_empty {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) (_hhi : I.calldata.size < 2 ^ 255 + 4)
@@ -563,44 +523,48 @@ theorem currentLengthBodyReturns {evm : EVM.State} {n : Nat}
     (hresolve : resolveStorageRef? stringStoreLiteConfig
       { contract := stringStoreLiteContract, locals := ∅ } evm currentRef =
         .ok ({ base := "current", steps := [] }, .string))
-    (hlen : readStorageBytesLength? stringStoreLiteConfig evm { base := "current" } = .ok n) :
+    (hlen : stringLength? stringStoreLiteConfig evm { base := "current" } = .ok n) :
     ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm ∅ currentLengthGetter.body
       (.returned { contract := stringStoreLiteContract, locals := ∅ } evm (some [(.int n)])) := by
+  change stringStoreLiteConfig.storageBackend.length { base := "current" } .string evm =
+    .ok n at hlen
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true hwv)).returns (by
-      simp only [evalExpr?, hresolve, readStorageArrayLength?, EvalResult.bind, bind, hlen, pure])
+      simp only [evalExpr?, hresolve, EvalResult.bind, bind, hlen, pure])
 
 theorem currentLengthBodyReverts {evm : EVM.State}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hresolve : resolveStorageRef? stringStoreLiteConfig
       { contract := stringStoreLiteContract, locals := ∅ } evm currentRef =
         .ok ({ base := "current", steps := [] }, .string))
-    (hlen : readStorageBytesLength? stringStoreLiteConfig evm { base := "current" } = .revert) :
+    (hlen : stringLength? stringStoreLiteConfig evm { base := "current" } = .revert) :
     ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm ∅ currentLengthGetter.body
       .reverted := by
+  change stringStoreLiteConfig.storageBackend.length { base := "current" } .string evm =
+    .revert at hlen
   exact ExecFuncBody.execBlockRevert <|
     (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
       (ExecBlock.consRevert (ExecStmt.returnRevert (by
-        simp only [Solm.evalExprs?.eq_def, evalExpr?, hresolve, readStorageArrayLength?,
+        simp only [Solm.evalExprs?.eq_def, evalExpr?, hresolve,
           EvalResult.bind, bind, hlen, pure])))
 
 theorem currentLengthBodyReturnsOfLength {evm : EVM.State} {n : Nat}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hlen : readStorageBytesLength? stringStoreLiteConfig evm { base := "current" } = .ok n) :
+    (hlen : stringLength? stringStoreLiteConfig evm { base := "current" } = .ok n) :
     ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm ∅ currentLengthGetter.body
       (.returned { contract := stringStoreLiteContract, locals := ∅ } evm (some [(.int n)])) :=
   currentLengthBodyReturns hwv (currentLengthResolve evm) hlen
 
 theorem currentLengthBodyRevertsOfLength {evm : EVM.State}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hlen : readStorageBytesLength? stringStoreLiteConfig evm { base := "current" } = .revert) :
+    (hlen : stringLength? stringStoreLiteConfig evm { base := "current" } = .revert) :
     ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm ∅ currentLengthGetter.body
       .reverted :=
   currentLengthBodyReverts hwv (currentLengthResolve evm) hlen
 
 theorem clearCurrentBodyRevertsOfRead {evm : EVM.State}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hlen : readStorageBytesLength? stringStoreLiteConfig evm { base := "current" } = .revert) :
+    (hlen : stringLength? stringStoreLiteConfig evm { base := "current" } = .revert) :
     ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm ∅ clearCurrentTransition.body
       .reverted := by
   have hresolve := currentLengthResolve evm
@@ -608,20 +572,21 @@ theorem clearCurrentBodyRevertsOfRead {evm : EVM.State}
     (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
       (ExecBlock.consRevert (ExecStmt.letDeclRevert (by
         rw [evalExpr?, hresolve]
-        simp [stringStoreLiteConfig, stringStoreLiteStorageLayout,
-          solidityStorageLayout, readStorageBytesLength?, solidityReadBytesLength?,
-          stringStoreLiteLayout, bind] at hlen
+        simp [stringLength?, stringStoreLiteConfig, solidityStorageBackend,
+          solidityStorageLength?, solidityReadBytesLength?,
+          stringStoreLiteLayout, stringStoreLiteGeneratedLayout,
+          solidityNatResultToEval, bind] at hlen
         have hdecode :
             solidityDecodeBytesLengthHeader
               (EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) = .revert := by
           cases h :
               solidityDecodeBytesLengthHeader
                 (EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) <;>
-            simp [h, storageNatResultToEval] at hlen
+            simp [h, solidityNatResultToEval] at hlen
           rfl
-        simp [readStorage?, stringStoreLiteConfig, stringStoreLiteStorageLayout,
-          solidityStorageLayout, solidityReadValue?, solidityReadBytesValue?,
-          solidityBytesBaseSlotAndLength?, storageValueResultToEval,
+        simp [solidityReadStorage?, stringStoreLiteConfig, solidityStorageBackend,
+          solidityStorageLength?, stringStoreLiteGeneratedLayout, solidityReadBytesValue?,
+          solidityBytesBaseSlotAndLength?, solidityValueResultToEval,
           stringStoreLiteLayout, hdecode, EvalResult.bind, bind])))
 
 theorem clearCurrentBodyReturnsZero {evm evm' : EVM.State}
@@ -715,7 +680,7 @@ theorem setBodyReturns {evm evmCurrent : EVM.State} {value : ByteArray}
           ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hret))
 
 theorem assignCurrentOfWrite {evm evmCurrent : EVM.State} {value : ByteArray}
-    (hwrite : writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
+    (hwrite : stringWrite? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) = .ok evmCurrent) :
     assignStorageRef? stringStoreLiteConfig
       { contract := stringStoreLiteContract
@@ -735,11 +700,13 @@ theorem assignCurrentOfWrite {evm evmCurrent : EVM.State} {value : ByteArray}
     simp [resolveStorageRef?, evalStorageRef, evalStorageRefSteps, currentRef,
       storageTypeAt?, stringStoreLiteConfig, stringStoreLiteContract, storageDecls, stringSt,
       EvalResult.ofOption, EvalResult.bind, bind, pure]
+  change stringStoreLiteConfig.storageBackend.write { base := "current" } .string
+    (.bytes value) evm = .ok evmCurrent at hwrite
   simp [assignStorageRef?, hresolve, hwrite, EvalResult.bind, bind, pure]
 
 theorem setBodyReturnsOfWrite {evm evmCurrent : EVM.State} {value : ByteArray}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hwrite : writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
+    (hwrite : stringWrite? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) = .ok evmCurrent) :
     ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm
       ((∅ : Store).insert "value" (.bytes value)) setTransition.body
@@ -763,7 +730,7 @@ theorem setRuntimeOfWriteAccountMapEq
     (hdec : decodeCalldata (setTransition.params.map Param.name)
       (transitionSignature setTransition).paramTypes I.calldata =
         some ((∅ : Store).insert "value" (.bytes value)))
-    (hwrite : writeStorage? stringStoreLiteConfig
+    (hwrite : stringWrite? stringStoreLiteConfig
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       { base := "current", steps := [] } .string (.bytes value) = .ok evmCurrent)
     (hAccounts : acc = evmCurrent.accountMap)
@@ -791,7 +758,7 @@ theorem setRuntimeOfWriteEVMStateEq
     (hdec : decodeCalldata (setTransition.params.map Param.name)
       (transitionSignature setTransition).paramTypes I.calldata =
         some ((∅ : Store).insert "value" (.bytes value)))
-    (hwrite : writeStorage? stringStoreLiteConfig
+    (hwrite : stringWrite? stringStoreLiteConfig
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       { base := "current", steps := [] } .string (.bytes value) = .ok evmCurrent)
     (hAccounts : acc = evmEvm.accountMap)
@@ -807,9 +774,68 @@ theorem setRuntimeOfWriteEVMStateEq
   exact hret.reEquivExecutionGen hcode hd hdec hbody
     (hAccounts.trans hPostAccounts) henc
 
+theorem setBodyStaticOfWrite {evm evmCurrent : EVM.State} {value : ByteArray}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hwrite : stringWrite? stringStoreLiteConfig evm { base := "current", steps := [] }
+      .string (.bytes value) = .ok evmCurrent)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm
+      ((∅ : Store).insert "value" (.bytes value)) setTransition.body .staticViolation := by
+  let locals0 : Store := (∅ : Store).insert "value" (.bytes value)
+  let locals1 : Store := locals0.insert "copy" (.bytes value)
+  let solm0 : Frame := { contract := stringStoreLiteContract, locals := locals0 }
+  let solm1 : Frame := { contract := stringStoreLiteContract, locals := locals1 }
+  have hvalue : evalExpr? stringStoreLiteConfig solm0 evm (.var "value") = .ok (.bytes value) := by
+    simp [solm0, locals0, evalExpr?, EvalResult.ofOption]
+  have hcopy : evalExpr? stringStoreLiteConfig solm1 evm (.var "copy") = .ok (.bytes value) := by
+    simp [solm1, locals1, locals0, evalExpr?, EvalResult.ofOption]
+  exact ExecFuncBody.execBlockStatic <|
+    ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
+      ExecBlock.consNormal (ExecStmt.letDecl hvalue) <|
+        ExecBlock.consStatic (ExecStmt.assignStatic hcopy
+          (by simpa [solm1, locals1, locals0] using assignCurrentOfWrite hwrite) hperm)
+
+theorem setRuntimeStaticOfWrite
+    {σ σ₀ A I} {g : UInt256} {value : ByteArray} {evmCurrent : EVM.State}
+    (hcode : I.code = stringStoreLiteBytecode)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hpf : I.perm = false)
+    (hstatic : RDstatic stringStoreLiteBytecode (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I))
+    (hd : dispatchMsg stringStoreLiteContract I.calldata = some setTransition)
+    (hdec : decodeCalldata (setTransition.params.map Param.name)
+      (transitionSignature setTransition).paramTypes I.calldata =
+        some ((∅ : Store).insert "value" (.bytes value)))
+    (hwrite : stringWrite? stringStoreLiteConfig
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      { base := "current", steps := [] } .string (.bytes value) = .ok evmCurrent) :
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
+      σ σ₀ g A I :=
+  hstatic.reEquivStaticHalt hcode hd hdec
+    (setBodyStaticOfWrite (by simp [initState]; exact hwv) hwrite
+      (by simp [initState]; exact hpf))
+
+theorem clearCurrentBodyStatic {evm evm' : EVM.State} {copy : ByteArray}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hread :
+      evalExpr? stringStoreLiteConfig { contract := stringStoreLiteContract, locals := ∅ }
+        evm (.storage currentRef) = .ok (.bytes copy))
+    (hdel :
+      deleteStorage? stringStoreLiteConfig
+        { contract := stringStoreLiteContract,
+          locals := (∅ : Store).insert "copy" (.bytes copy) }
+        evm currentRef = .ok evm')
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm ∅
+      clearCurrentTransition.body .staticViolation :=
+  ExecFuncBody.execBlockStatic <|
+    ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
+      ExecBlock.consNormal (ExecStmt.letDecl hread) <|
+        ExecBlock.consStatic (ExecStmt.deleteStatic (by simpa using hdel) hperm)
+
 theorem setBodyRevertsOfWrite {evm : EVM.State} {value : ByteArray}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hwrite : writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
+    (hwrite : stringWrite? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) = .revert) :
     ExecTransitionBody stringStoreLiteConfig stringStoreLiteContract evm
       ((∅ : Store).insert "value" (.bytes value)) setTransition.body .reverted := by
@@ -827,6 +853,8 @@ theorem setBodyRevertsOfWrite {evm : EVM.State} {value : ByteArray}
     simp [resolveStorageRef?, evalStorageRef, evalStorageRefSteps, currentRef,
       storageTypeAt?, stringStoreLiteConfig, stringStoreLiteContract, storageDecls, stringSt,
       EvalResult.ofOption, EvalResult.bind, bind, pure, solm1, locals1, locals0]
+  change stringStoreLiteConfig.storageBackend.write { base := "current" } .string
+    (.bytes value) evm = .revert at hwrite
   have hassign :
       assignStorageRef? stringStoreLiteConfig solm1 evm .storage currentRef (.bytes value) =
         .revert := by
@@ -841,16 +869,10 @@ theorem setBodyRevertsOfWrite {evm : EVM.State} {value : ByteArray}
 def currentLengthHeaderWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
-theorem slt_zero_of_left_low_right_high {a b : UInt256}
-    (ha : a.toNat < 2 ^ 255) (hb : 2 ^ 255 ≤ b.toNat) :
-    UInt256.slt a b = ⟨0⟩ :=
-  slt_zero_low_high ha hb
 
-theorem currentLengthBaseSlot {evm : EVM.State} :
-    ∃ loc, stringStoreLiteLayout { base := "current", steps := [.length] } evm =
-      some loc ∧ loc.slot = ⟨0⟩ := by
-  refine ⟨bytesLikeLengthLoc ⟨0⟩ evm, ?_, by simp⟩
-  simp [stringStoreLiteLayout]
+theorem currentLengthBaseSlot :
+    stringStoreLiteLayout { base := "current" } = some (.anchor ⟨0⟩) :=
+  stringStoreLiteLayout_current
 
 theorem deleteCurrentShortZero {evm : EVM.State}
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = ⟨0⟩) :
@@ -934,7 +956,7 @@ theorem writeCurrentShortPacked {evm : EVM.State} {header len : UInt256}
     (hflag : UInt256.land header ⟨1⟩ = ⟨0⟩)
     (hlen : len = UInt256.land (UInt256.div header ⟨2⟩) ⟨127⟩)
     (hvalid : UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
-    writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
+    stringWrite? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) =
         .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
           (solidityShortBytesWord value)) := by
@@ -951,7 +973,7 @@ theorem writeCurrentShortFromLongPrepared {evm : EVM.State} {header len : UInt25
     (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
     (hlen : len = UInt256.div header ⟨2⟩)
     (hvalid : UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
-    writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
+    stringWrite? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) =
         .ok (Solm.EVM.storageStore
           (clearSolidityBytesDataWordsFrom evm ⟨0⟩ 0 ((len.toNat + 31) / 32))
@@ -972,7 +994,7 @@ theorem writeCurrentLongPacked {evm : EVM.State} {header len : UInt256}
     (hflag : UInt256.land header ⟨1⟩ = ⟨0⟩)
     (hlen : len = UInt256.land (UInt256.div header ⟨2⟩) ⟨127⟩)
     (hvalid : UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
-    writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
+    stringWrite? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) =
         .ok (Solm.EVM.storageStore
           (writeSolidityBytesDataWordsFrom evm ⟨0⟩ value 0
@@ -995,7 +1017,7 @@ theorem writeCurrentLongPackedAbsent {evm : EVM.State} {header len : UInt256}
     (hlen : len = UInt256.land (UInt256.div header ⟨2⟩) ⟨127⟩)
     (hvalid : UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩)
     (hmissing : evm.accountMap.get? evm.executionEnv.codeOwner = none) :
-    writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
+    stringWrite? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) = .ok evm := by
   exact writeSolidityStringLongPackedAbsent
     (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
@@ -1010,7 +1032,7 @@ theorem writeCurrentLongFromLongPrepared {evm : EVM.State} {header len : UInt256
     (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
     (hlen : len = UInt256.div header ⟨2⟩)
     (hvalid : UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
-    writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
+    stringWrite? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) =
         .ok (Solm.EVM.storageStore
           (writeSolidityBytesDataWordsFrom
@@ -1035,13 +1057,11 @@ theorem writeCurrentMalformedLong {evm : EVM.State} {header : UInt256} {value : 
     (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
     (hbad : UInt256.sub (UInt256.land header ⟨1⟩)
         (UInt256.lt (UInt256.div header ⟨2⟩) ⟨32⟩) = ⟨0⟩) :
-    writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
+    stringWrite? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) = .revert := by
   have hbase :
-      ∃ loc, stringStoreLiteLayout { base := "current", steps := [.length] } evm =
-        some loc ∧ loc.slot = ⟨0⟩ := by
-    refine ⟨bytesLikeLengthLoc ⟨0⟩ evm, ?_, by simp⟩
-    simp [stringStoreLiteLayout]
+      stringStoreLiteLayout { base := "current" } = some (.anchor ⟨0⟩) :=
+    currentLengthBaseSlot
   exact writeSolidityStringMalformedLong
     (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
     (evm := evm) (er := { base := "current", steps := [] })
@@ -1053,13 +1073,11 @@ theorem writeCurrentMalformedShort {evm : EVM.State} {header : UInt256} {value :
     (hflag : UInt256.land header ⟨1⟩ = ⟨0⟩)
     (hbad : UInt256.sub (UInt256.land header ⟨1⟩)
         (UInt256.lt (UInt256.land (UInt256.div header ⟨2⟩) ⟨127⟩) ⟨32⟩) = ⟨0⟩) :
-    writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
+    stringWrite? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) = .revert := by
   have hbase :
-      ∃ loc, stringStoreLiteLayout { base := "current", steps := [.length] } evm =
-        some loc ∧ loc.slot = ⟨0⟩ := by
-    refine ⟨bytesLikeLengthLoc ⟨0⟩ evm, ?_, by simp⟩
-    simp [stringStoreLiteLayout]
+      stringStoreLiteLayout { base := "current" } = some (.anchor ⟨0⟩) :=
+    currentLengthBaseSlot
   exact writeSolidityStringMalformedShort
     (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
     (evm := evm) (er := { base := "current", steps := [] })
@@ -1068,7 +1086,7 @@ theorem writeCurrentMalformedShort {evm : EVM.State} {header : UInt256} {value :
 
 theorem writeCurrentEmptyFromZero {evm : EVM.State}
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = ⟨0⟩) :
-    writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
+    stringWrite? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes ByteArray.empty) =
         .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ ⟨0⟩) := by
   exact writeSolidityStringEmptyFromZero
@@ -1104,27 +1122,6 @@ theorem assignCurrentEmptyFromZero {evm : EVM.State}
     (evm := evm) (ref := currentRef) (er := { base := "current", steps := [] })
     (baseSlot := ⟨0⟩) rfl hresolve currentLengthBaseSlot hload
 
-theorem setLengthWord_eq_abi
-    (cd : ByteArray)
-    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord cd 4).toNat) :
-    uInt256OfByteArray
-        (cd.readBytes ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32) =
-      calldataWord cd (4 + (calldataWord cd 4).toNat) := by
-  have hoffLeMax : (calldataWord cd 4).toNat ≤ 18446744073709551615 := by
-    simpa [ABI.solcMaxU64] using Nat.le_of_not_gt hoffMax
-  have haddr :
-      (((⟨4⟩ : UInt256) + calldataWord cd 4).toNat) =
-        4 + (calldataWord cd 4).toNat := by
-    rw [uadd_toNat]
-    rw [show (⟨4⟩ : UInt256).toNat = 4 from by decide]
-    rw [Nat.add_comm]
-    exact Nat.mod_eq_of_lt (by
-      have hsize : 4 + (calldataWord cd 4).toNat < UInt256.size := by
-        have hsmall : 4 + (calldataWord cd 4).toNat ≤ 18446744073709551619 := by
-          omega
-        exact lt_of_le_of_lt hsmall (by norm_num [UInt256.size])
-      simpa [Nat.add_comm] using hsize)
-  simp [calldataWord, haddr]
 
 theorem setDecodedValueBytes_size_ne_zero {I : ExecutionEnv}
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
@@ -1140,350 +1137,9 @@ theorem setDecodedValueBytes_size_ne_zero {I : ExecutionEnv}
   rw [setDecodedValueBytes_size hpayload]
   intro hzero
   apply hnonzero
-  rw [setLengthWord_eq_abi I.calldata hoffMax]
+  rw [calldataLengthWord_eq_abi I.calldata hoffMax]
   exact uint256_toNat_eq_zero hzero
 
-theorem setStartPlus31_toNat
-    (cd : ByteArray)
-    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord cd 4).toNat) :
-    (((⟨4⟩ : UInt256) + calldataWord cd 4) + ⟨31⟩).toNat =
-      4 + (calldataWord cd 4).toNat + 31 := by
-  have hoffLeMax : (calldataWord cd 4).toNat ≤ 18446744073709551615 := by
-    simpa [ABI.solcMaxU64] using Nat.le_of_not_gt hoffMax
-  have hoffSmall : (calldataWord cd 4).toNat < 2 ^ 255 := by
-    omega
-  have hoffSize : (calldataWord cd 4).toNat < UInt256.size :=
-    (calldataWord cd 4).val.isLt
-  have hoffOfNat :
-      (UInt256.ofNat (calldataWord cd 4).toNat).toNat =
-        (calldataWord cd 4).toNat :=
-    ulit_toNat' _ hoffSize
-  rw [← u256_ofNat_toNat (calldataWord cd 4)]
-  simpa [hoffOfNat] using (uadd3_ofNat_toNat (a := 4)
-    (b := (calldataWord cd 4).toNat)
-    (c := 31)
-    (by norm_num [UInt256.size])
-    (lt_size_of_lt_sign hoffSmall)
-    (by norm_num [UInt256.size])
-    (lt_size_of_lt_sign (by omega : 4 + (calldataWord cd 4).toNat < 2 ^ 255))
-    (lt_size_of_lt_sign (by omega :
-      4 + (calldataWord cd 4).toNat + 31 < 2 ^ 255)))
-
-theorem setStart_slt_one
-    (cd : ByteArray)
-    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord cd 4).toNat)
-    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
-    (hsizeSign : cd.size < 2 ^ 255) :
-    UInt256.slt ((((⟨4⟩ : UInt256) + calldataWord cd 4) + ⟨31⟩))
-        (UInt256.ofNat cd.size) = ⟨1⟩ := by
-  apply slt_lit_one_low hsizeSign
-  rw [setStartPlus31_toNat cd hoffMax]
-  omega
-
-theorem setStart_slt_zero_of_size_high
-    (cd : ByteArray)
-    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord cd 4).toNat)
-    (hsize : cd.size < UInt256.size)
-    (hsizeSign : ¬ cd.size < 2 ^ 255) :
-    UInt256.slt ((((⟨4⟩ : UInt256) + calldataWord cd 4) + ⟨31⟩))
-        (UInt256.ofNat cd.size) = ⟨0⟩ := by
-  have hoffLeMax : (calldataWord cd 4).toNat ≤ ABI.solcMaxU64 :=
-    Nat.le_of_not_gt hoffMax
-  apply slt_zero_of_left_low_right_high
-  · rw [setStartPlus31_toNat cd hoffMax]
-    norm_num [ABI.solcMaxU64] at hoffLeMax ⊢
-    omega
-  · rw [ulit_toNat' cd.size hsize]
-    omega
-
-theorem setPayloadStart_toNat
-    (cd : ByteArray)
-    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord cd 4).toNat) :
-    (((⟨4⟩ : UInt256) + calldataWord cd 4) + ⟨32⟩).toNat =
-      4 + (calldataWord cd 4).toNat + 32 := by
-  have hoffLeMax : (calldataWord cd 4).toNat ≤ 18446744073709551615 := by
-    simpa [ABI.solcMaxU64] using Nat.le_of_not_gt hoffMax
-  have hoffSmall : (calldataWord cd 4).toNat < 2 ^ 255 := by
-    omega
-  have hoffSize : (calldataWord cd 4).toNat < UInt256.size :=
-    (calldataWord cd 4).val.isLt
-  have hoffOfNat :
-      (UInt256.ofNat (calldataWord cd 4).toNat).toNat =
-        (calldataWord cd 4).toNat :=
-    ulit_toNat' _ hoffSize
-  rw [← u256_ofNat_toNat (calldataWord cd 4)]
-  simpa [hoffOfNat] using (uadd3_ofNat_toNat (a := 4)
-    (b := (calldataWord cd 4).toNat)
-    (c := 32)
-    (by norm_num [UInt256.size])
-    (lt_size_of_lt_sign hoffSmall)
-    (by norm_num [UInt256.size])
-    (lt_size_of_lt_sign (by omega : 4 + (calldataWord cd 4).toNat < 2 ^ 255))
-    (lt_size_of_lt_sign (by omega :
-      4 + (calldataWord cd 4).toNat + 32 < 2 ^ 255)))
-
-theorem setAddZero_toNat (w : UInt256) :
-    ((w + ⟨0⟩ : UInt256).toNat) = w.toNat := by
-  rw [uadd_toNat]
-  simp only [UInt256.toNat]
-  exact Nat.mod_eq_of_lt w.val.isLt
-
-theorem setUInt256Mul_toNat (a b : UInt256) :
-    (UInt256.mul a b).toNat = a.toNat * b.toNat % UInt256.size :=
-  rfl
-
-theorem setLengthMaxWord_zero
-    (cd : ByteArray)
-    (hlenZero :
-      uInt256OfByteArray
-        (cd.readBytes ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32) = ⟨0⟩) :
-    UInt256.gt
-        (uInt256OfByteArray
-          (cd.readBytes
-            ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32))
-        ⟨18446744073709551615⟩ = ⟨0⟩ := by
-  rw [hlenZero]
-  native_decide
-
-theorem setPayloadWord_zero
-    (cd : ByteArray)
-    (hsize : cd.size < UInt256.size)
-    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord cd 4).toNat)
-    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
-    (hlenZero :
-      uInt256OfByteArray
-        (cd.readBytes ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32) = ⟨0⟩) :
-    UInt256.gt
-      (((((⟨4⟩ : UInt256) + calldataWord cd 4) + ⟨32⟩) +
-        UInt256.mul
-          (uInt256OfByteArray
-            (cd.readBytes
-              ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32)) ⟨1⟩))
-      (UInt256.ofNat cd.size) = ⟨0⟩ := by
-  have hmul :
-      UInt256.mul
-          (uInt256OfByteArray
-            (cd.readBytes
-              ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32)) ⟨1⟩ =
-        ⟨0⟩ := by
-    rw [hlenZero]
-    native_decide
-  apply ugt_zero
-  rw [hmul]
-  rw [setAddZero_toNat]
-  rw [setPayloadStart_toNat cd hoffMax]
-  rw [ulit_toNat' cd.size hsize]
-  exact hlenWord
-
-theorem setPayloadShort_size_lt
-    (cd : ByteArray)
-    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
-    (hpayloadList :
-      ((((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).length ≠
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat)) :
-    cd.size < 4 + (calldataWord cd 4).toNat + 32 +
-      (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat := by
-  let off := (calldataWord cd 4).toNat
-  let n := (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  have hdropLen :
-      ((cd.toList.drop 4).drop (off + 32)).length =
-        cd.size - (4 + (off + 32)) := by
-    rw [List.drop_drop, List.length_drop, htlen]
-  have htakeLen :
-      (((cd.toList.drop 4).drop (off + 32)).take n).length =
-        min n (cd.size - (4 + (off + 32))) := by
-    rw [List.length_take, hdropLen]
-  have hltRemain : cd.size - (4 + (off + 32)) < n := by
-    by_contra hnot
-    have hge : n ≤ cd.size - (4 + (off + 32)) := Nat.le_of_not_gt hnot
-    apply hpayloadList
-    have : (((cd.toList.drop 4).drop (off + 32)).take n).length = n := by
-      rw [htakeLen, min_eq_left hge]
-    simpa [off, n] using this
-  omega
-
-theorem setPayloadStartLen_le_of_payload
-    (cd : ByteArray)
-    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
-    (hpayload :
-      ((((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).length =
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat)) :
-    4 + (calldataWord cd 4).toNat + 32 +
-      (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat ≤ cd.size := by
-  let off := (calldataWord cd 4).toNat
-  let n := (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  have hdropLen :
-      ((cd.toList.drop 4).drop (off + 32)).length =
-        cd.size - (4 + (off + 32)) := by
-    rw [List.drop_drop, List.length_drop, htlen]
-  have htakeLen :
-      (((cd.toList.drop 4).drop (off + 32)).take n).length =
-        min n (cd.size - (4 + (off + 32))) := by
-    rw [List.length_take, hdropLen]
-  have hnle : n ≤ cd.size - (4 + (off + 32)) := by
-    by_contra hnot
-    have hlt : cd.size - (4 + (off + 32)) < n := Nat.lt_of_not_ge hnot
-    have hmin : min n (cd.size - (4 + (off + 32))) = cd.size - (4 + (off + 32)) :=
-      min_eq_right (le_of_lt hlt)
-    have hpayload' :
-        (((cd.toList.drop 4).drop (off + 32)).take n).length = n := by
-      simpa [off, n] using hpayload
-    rw [htakeLen, hmin] at hpayload'
-    omega
-  omega
-
-theorem setPayloadWord_zero_of_payload
-    (cd : ByteArray)
-    (hsize : cd.size < UInt256.size)
-    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord cd 4).toNat)
-    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
-    (hlenMax :
-      ¬ ABI.solcMaxU64 <
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat)
-    (hpayload :
-      ((((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).length =
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat)) :
-    UInt256.gt
-      (((((⟨4⟩ : UInt256) + calldataWord cd 4) + ⟨32⟩) +
-        UInt256.mul
-          (uInt256OfByteArray
-            (cd.readBytes
-              ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32)) ⟨1⟩))
-      (UInt256.ofNat cd.size) = ⟨0⟩ := by
-  let off := (calldataWord cd 4).toNat
-  let n := (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat
-  have hpayloadLe :
-      4 + off + 32 + n ≤ cd.size := by
-    simpa [off, n, Nat.add_assoc] using
-      setPayloadStartLen_le_of_payload cd hlenWord hpayload
-  have hnLeMax : n ≤ ABI.solcMaxU64 := by
-    simpa [n] using Nat.le_of_not_gt hlenMax
-  have hmulToNat :
-      (UInt256.mul
-          (uInt256OfByteArray
-            (cd.readBytes
-              ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32)) ⟨1⟩).toNat = n := by
-    rw [setLengthWord_eq_abi cd hoffMax]
-    rw [setUInt256Mul_toNat]
-    rw [show (⟨1⟩ : UInt256).toNat = 1 from by decide]
-    rw [Nat.mul_one]
-    exact Nat.mod_eq_of_lt (by
-      have hmax : ABI.solcMaxU64 < UInt256.size := by
-        norm_num [ABI.solcMaxU64, UInt256.size]
-      exact lt_of_le_of_lt hnLeMax hmax)
-  have hpayloadEndToNat :
-      (((((⟨4⟩ : UInt256) + calldataWord cd 4) + ⟨32⟩) +
-        UInt256.mul
-          (uInt256OfByteArray
-            (cd.readBytes
-              ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32)) ⟨1⟩)).toNat =
-        4 + off + 32 + n := by
-    rw [uadd_toNat]
-    rw [setPayloadStart_toNat cd hoffMax]
-    rw [hmulToNat]
-    exact Nat.mod_eq_of_lt (lt_of_le_of_lt hpayloadLe hsize)
-  apply ugt_zero
-  rw [hpayloadEndToNat, ulit_toNat' cd.size hsize]
-  exact hpayloadLe
-
-theorem setPayloadWord_one_of_payload_short
-    (cd : ByteArray)
-    (hsize : cd.size < UInt256.size)
-    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord cd 4).toNat)
-    (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size)
-    (hlenMax :
-      ¬ ABI.solcMaxU64 <
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat)
-    (hpayloadList :
-      ((((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).length ≠
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat)) :
-    UInt256.gt
-      (((((⟨4⟩ : UInt256) + calldataWord cd 4) + ⟨32⟩) +
-        UInt256.mul
-          (uInt256OfByteArray
-            (cd.readBytes
-              ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32)) ⟨1⟩))
-      (UInt256.ofNat cd.size) = ⟨1⟩ := by
-  let off := (calldataWord cd 4).toNat
-  let n := (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat
-  have hpayloadShortNat :
-      cd.size < 4 + off + 32 + n := by
-    simpa [off, n, Nat.add_assoc] using
-      setPayloadShort_size_lt cd hlenWord hpayloadList
-  have hoffLeMax : off ≤ ABI.solcMaxU64 := by
-    simpa [off] using Nat.le_of_not_gt hoffMax
-  have hnLeMax : n ≤ ABI.solcMaxU64 := by
-    simpa [n] using Nat.le_of_not_gt hlenMax
-  have hmulToNat :
-      (UInt256.mul
-          (uInt256OfByteArray
-            (cd.readBytes
-              ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32)) ⟨1⟩).toNat = n := by
-    rw [setLengthWord_eq_abi cd hoffMax]
-    rw [setUInt256Mul_toNat]
-    rw [show (⟨1⟩ : UInt256).toNat = 1 from by decide]
-    rw [Nat.mul_one]
-    exact Nat.mod_eq_of_lt (by
-      have hmax : ABI.solcMaxU64 < UInt256.size := by
-        norm_num [ABI.solcMaxU64, UInt256.size]
-      exact lt_of_le_of_lt hnLeMax hmax)
-  have hpayloadEndToNat :
-      (((((⟨4⟩ : UInt256) + calldataWord cd 4) + ⟨32⟩) +
-        UInt256.mul
-          (uInt256OfByteArray
-            (cd.readBytes
-              ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32)) ⟨1⟩)).toNat =
-        4 + off + 32 + n := by
-    rw [uadd_toNat]
-    rw [setPayloadStart_toNat cd hoffMax]
-    rw [hmulToNat]
-    exact Nat.mod_eq_of_lt (by
-      apply lt_size_of_lt_sign
-      norm_num [ABI.solcMaxU64] at hoffLeMax hnLeMax ⊢
-      omega)
-  apply ugt_one
-  rw [hpayloadEndToNat, ulit_toNat' cd.size hsize]
-  exact hpayloadShortNat
-
-theorem setLengthMaxWord_of_abi
-    (cd : ByteArray)
-    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord cd 4).toNat)
-    (hlenMax :
-      ¬ ABI.solcMaxU64 <
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat) :
-    UInt256.gt
-        (uInt256OfByteArray
-          (cd.readBytes
-            ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32))
-        ⟨18446744073709551615⟩ = ⟨0⟩ := by
-  rw [setLengthWord_eq_abi cd hoffMax]
-  apply ugt_zero
-  rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by native_decide]
-  exact Nat.le_of_not_gt hlenMax
-
-theorem setLengthMaxWord_one_of_abi
-    (cd : ByteArray)
-    (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord cd 4).toNat)
-    (hlenHuge :
-      ABI.solcMaxU64 <
-        (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat) :
-    UInt256.gt
-        (uInt256OfByteArray
-          (cd.readBytes
-            ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32))
-        ⟨18446744073709551615⟩ = ⟨1⟩ := by
-  rw [setLengthWord_eq_abi cd hoffMax]
-  apply ugt_one
-  rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by native_decide]
-  exact hlenHuge
 
 def solcPanicSelectorWord : UInt256 :=
   ⟨35408467139433450592217433187231851964531694900788300625387963629091585785856⟩
@@ -1614,26 +1270,6 @@ theorem currentLengthPayloadReturnMem_read192 (len header : UInt256) :
       UInt256.toByteArray len := by
   exact solcBytesReturnPayloadReturnMem_read192 len (currentLengthPayloadWord header)
 
-theorem ult_ne_zero_toNat_lt {a b : UInt256} (h : UInt256.lt a b ≠ ⟨0⟩) :
-    a.toNat < b.toNat := by
-  by_contra hlt
-  have hz : UInt256.lt a b = ⟨0⟩ := ult_zero (by omega)
-  exact h hz
-
-theorem currentLength_short_valid_lt32 {len : UInt256}
-    (hvalid0 : UInt256.sub ⟨0⟩ (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
-    len.toNat < 32 := by
-  have hltNe : UInt256.lt len ⟨32⟩ ≠ ⟨0⟩ := by
-    intro hltZero
-    exact hvalid0 (by simp [hltZero, UInt256.sub])
-  have hlt := ult_ne_zero_toNat_lt hltNe
-  simpa [show (⟨32⟩ : UInt256).toNat = 32 from by decide] using hlt
-
-theorem currentLength_notGt31_of_lt32 {len : UInt256} (hlt32 : len.toNat < 32) :
-    UInt256.lt ⟨31⟩ len = ⟨0⟩ := by
-  exact ult_zero (by
-    rw [show (⟨31⟩ : UInt256).toNat = 31 from by decide]
-    omega)
 
 theorem currentLengthFreePtr_eq_192_of_short_nonzero {len : UInt256}
     (hnonzero : len ≠ ⟨0⟩) (hlt32 : len.toNat < 32) :
@@ -1953,8 +1589,7 @@ theorem stringStoreLiteX_noMatch {σ σ₀ A I} {g : Sat256}
 theorem stringStoreLiteNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode)
     (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
-    (hwv : I.weiValue ≠ ⟨0⟩) :
+        (hwv : I.weiValue ≠ ⟨0⟩) :
     runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   exact (stringStoreLiteX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
@@ -1977,7 +1612,7 @@ theorem stringStoreLiteNonPayable {σ σ₀ A I} {g : UInt256}
 
 theorem stringStoreLiteShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
+    (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   exact (stringStoreLiteX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch
@@ -1985,7 +1620,7 @@ theorem stringStoreLiteShortRevert {σ σ₀ A I} {g : UInt256}
 
 theorem stringStoreLiteNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 3 → (stringStoreLiteSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
@@ -2733,7 +2368,7 @@ theorem stringStoreLiteX_setDecoderLengthShort {σ σ₀ A I} {g : Sat256}
         omega
       · rw [hstart31ToNat]
         omega
-    · apply slt_zero_of_left_low_right_high
+    · apply slt_zero_low_high
       · rw [hstart31ToNat]
         omega
       · rw [ulit_toNat' I.calldata.size hsize]
@@ -2780,7 +2415,7 @@ theorem stringStoreLiteX_setDecoderSignedStartHigh {σ σ₀ A I} {g : Sat256}
   have hstart :
       UInt256.slt ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨31⟩))
           (UInt256.ofNat I.calldata.size) = ⟨0⟩ :=
-    setStart_slt_zero_of_size_high I.calldata hoffMax hsize hsizeSign
+    calldataStart_slt_zero_of_size_high I.calldata hoffMax hsize hsizeSign
   have rd671 := evm_run hdec with [
     jumpdest, push0, push0, push1 ⟨32⟩, dup4, dup6, sub, slt, iszero, push2 ⟨667⟩,
     jumpiT (by rw [hslt]; decide) (by jump_dest),
@@ -2975,9 +2610,6 @@ theorem stringStoreLiteX_setDecoderOkCore {σ σ₀ A I} {g : Sat256}
     simpa [calldataWord] using
       (evm_run rd88 with [jumpdest, push2 ⟨175⟩, jump (by jump_dest)])⟩
 
-theorem stringStoreLite_write_len_zero (src base : ByteArray) (sa da : Nat) :
-    src.write sa base da 0 = base := by
-  simp [ByteArray.write]
 
 def setCalldataMem
     (cd : ByteArray) (len payloadStart : UInt256) : ByteArray :=
@@ -3126,15 +2758,6 @@ theorem setCalldataMem_extract_payload
       cd.extract payloadStart.toNat (payloadStart.toNat + len.toNat) := by
   exact solcBytesSetCalldataMem_extract_payload cd len payloadStart hlen hsrc
 
-theorem setDataEnd_toNat_of_short {len : UInt256}
-    (hshort : len.toNat < 32) :
-    (((⟨160⟩ : UInt256) + len).toNat) = 160 + len.toNat := by
-  exact solcBytesSetDataEnd_toNat_of_short hshort
-
-theorem setDataEnd_toNat_of_u64 {len : UInt256}
-    (hlenMax : len.toNat ≤ ABI.solcMaxU64) :
-    (((⟨160⟩ : UInt256) + len).toNat) = 160 + len.toNat := by
-  exact solcBytesSetDataEnd_toNat_of_u64 hlenMax
 
 theorem setPaddedMem_read128
     (cd : ByteArray) (len payloadStart : UInt256)
@@ -3170,11 +2793,6 @@ theorem setPaddedMem_size
     (setPaddedMem cd len payloadStart).size = 192 + len.toNat := by
   exact solcBytesSetPaddedMem_size cd len payloadStart hlen hsrc hadd
 
-theorem byteArray_eq_of_toList_eq {a b : ByteArray} (h : a.toList = b.toList) : a = b := by
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  rw [← byteArray_toList_eq a, ← byteArray_toList_eq b]
-  exact h
 
 theorem setDecodedValueBytes_eq_extract {I : ExecutionEnv} {len payloadStart : UInt256}
     (hlenAbi :
@@ -3192,7 +2810,7 @@ theorem setDecodedValueBytes_eq_extract {I : ExecutionEnv} {len payloadStart : U
   rw [← byteArray_toList_eq I.calldata]
   have hstart :
       payloadStart.toNat = 4 + (calldataWord I.calldata 4).toNat + 32 := by
-    rw [hpayloadStart, setPayloadStart_toNat I.calldata hoffMax]
+    rw [hpayloadStart, calldataPayloadStart_toNat I.calldata hoffMax]
   have hlen :
       len.toNat =
         (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat := by
@@ -3223,7 +2841,7 @@ theorem setHelperEntryAw_eq_7_of_short_nonzero {len : UInt256}
   apply u256_inj
   dsimp [setHelperEntryAw]
   simp only [MachineState.M]
-  rw [setDataEnd_toNat_of_short hshort]
+  rw [solcBytesSetDataEnd_toNat_of_short hshort]
   have hcopy : (160 + len.toNat + 31) / 32 = 6 := by omega
   have hpad : (160 + len.toNat + 32 + 31) / 32 = 7 := by omega
   rw [hcopy, hpad]
@@ -3235,69 +2853,6 @@ theorem setHelperEntryAw_mload128_of_short_nonzero {len : UInt256}
   rw [setHelperEntryAw_eq_7_of_short_nonzero hnz hshort]
   decide
 
-theorem set_machineState_M_mul32_lt_of_bounds {s f l : ℕ}
-    (hs : s * 32 < UInt256.size)
-    (hfl : f + l + 31 < UInt256.size) :
-    MachineState.M s f l * 32 < UInt256.size := by
-  by_cases hl : l = 0
-  · simp [MachineState.M, hl, hs]
-  · simp only [MachineState.M]
-    let c := (f + l + 31) / 32
-    have hceil : ((f + l + 31) / 32) * 32 ≤ f + l + 31 :=
-      Nat.div_mul_le_self (f + l + 31) 32
-    have hc : c * 32 < UInt256.size := by
-      exact lt_of_le_of_lt hceil hfl
-    by_cases hsc : s ≤ c
-    · rw [max_eq_right hsc]
-      exact hc
-    · have hcs : c ≤ s := Nat.le_of_not_ge hsc
-      rw [max_eq_left hcs]
-      exact hs
-
-theorem set_machineState_M_ge_left {s f l : Nat} : s ≤ MachineState.M s f l := by
-  by_cases hl : l = 0
-  · simp [MachineState.M, hl]
-  · simp [MachineState.M]
-
-theorem set_activeWordsMstore0_eq_self {aw : UInt256} (hge : 1 ≤ aw.toNat) :
-    UInt256.ofNat (MachineState.M aw.toNat 0 32) = aw := by
-  apply u256_inj
-  have hM : MachineState.M aw.toNat 0 32 = aw.toNat := by
-    simp only [MachineState.M]
-    change max aw.toNat 1 = aw.toNat
-    exact max_eq_left hge
-  rw [hM]
-  exact congrArg UInt256.toNat (u256_ofNat_toNat aw)
-
-theorem set_activeWordsMstore4_eq_self {aw : UInt256} (hge : 2 ≤ aw.toNat) :
-    UInt256.ofNat (MachineState.M aw.toNat 4 32) = aw := by
-  apply u256_inj
-  have hM : MachineState.M aw.toNat 4 32 = aw.toNat := by
-    simp only [MachineState.M]
-    change max aw.toNat 2 = aw.toNat
-    exact max_eq_left hge
-  rw [hM]
-  exact congrArg UInt256.toNat (u256_ofNat_toNat aw)
-
-theorem set_activeWordsMload128_eq_self {aw : UInt256} (hge : 5 ≤ aw.toNat) :
-    UInt256.ofNat (MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat 32) = aw := by
-  apply u256_inj
-  have hM : MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat 32 = aw.toNat := by
-    simp only [MachineState.M]
-    change max aw.toNat 5 = aw.toNat
-    exact max_eq_left hge
-  rw [hM]
-  exact congrArg UInt256.toNat (u256_ofNat_toNat aw)
-
-theorem set_activeWordsRevert0_36_eq_self {aw : UInt256} (hge : 2 ≤ aw.toNat) :
-    UInt256.ofNat (MachineState.M aw.toNat 0 36) = aw := by
-  apply u256_inj
-  have hM : MachineState.M aw.toNat 0 36 = aw.toNat := by
-    simp only [MachineState.M]
-    change max aw.toNat 2 = aw.toNat
-    exact max_eq_left hge
-  rw [hM]
-  exact congrArg UInt256.toNat (u256_ofNat_toNat aw)
 
 theorem setHelperEntryAw_ge5_of_u64 {len : UInt256}
     (hlenMax : len.toNat ≤ ABI.solcMaxU64) :
@@ -3305,7 +2860,7 @@ theorem setHelperEntryAw_ge5_of_u64 {len : UInt256}
   let copyWords := MachineState.M (UInt256.ofNat 5).toNat 160 len.toNat
   have hcopyNoWrap : copyWords * 32 < UInt256.size := by
     dsimp [copyWords]
-    apply set_machineState_M_mul32_lt_of_bounds
+    apply machineState_M_mul32_lt_of_bounds
     · change 5 * 32 < UInt256.size
       norm_num [UInt256.size]
     · have hmax : 160 + ABI.solcMaxU64 + 31 < UInt256.size := by
@@ -3320,9 +2875,9 @@ theorem setHelperEntryAw_ge5_of_u64 {len : UInt256}
   have hentryNoWrap :
       MachineState.M copyWords (((⟨160⟩ : UInt256) + len).toNat) 32 * 32 <
         UInt256.size := by
-    apply set_machineState_M_mul32_lt_of_bounds
+    apply machineState_M_mul32_lt_of_bounds
     · exact hcopyNoWrap
-    · rw [setDataEnd_toNat_of_u64 hlenMax]
+    · rw [solcBytesSetDataEnd_toNat_of_u64 hlenMax]
       have hmax : 160 + ABI.solcMaxU64 + 32 + 31 < UInt256.size := by
         norm_num [ABI.solcMaxU64, UInt256.size]
       omega
@@ -3344,8 +2899,8 @@ theorem setHelperEntryAw_ge5_of_u64 {len : UInt256}
   exact le_trans (by
       dsimp [copyWords]
       change 5 ≤ MachineState.M 5 160 len.toNat
-      exact set_machineState_M_ge_left)
-    (set_machineState_M_ge_left (s := copyWords)
+      exact machineState_M_ge_left)
+    (machineState_M_ge_left (s := copyWords)
       (f := (((⟨160⟩ : UInt256) + len).toNat)) (l := 32))
 
 theorem setHelperEntryAw_mul32_lt_of_u64 {len : UInt256}
@@ -3354,7 +2909,7 @@ theorem setHelperEntryAw_mul32_lt_of_u64 {len : UInt256}
   let copyWords := MachineState.M (UInt256.ofNat 5).toNat 160 len.toNat
   have hcopyNoWrap : copyWords * 32 < UInt256.size := by
     dsimp [copyWords]
-    apply set_machineState_M_mul32_lt_of_bounds
+    apply machineState_M_mul32_lt_of_bounds
     · change 5 * 32 < UInt256.size
       norm_num [UInt256.size]
     · have hmax : 160 + ABI.solcMaxU64 + 31 < UInt256.size := by
@@ -3369,9 +2924,9 @@ theorem setHelperEntryAw_mul32_lt_of_u64 {len : UInt256}
   have hentryNoWrap :
       MachineState.M copyWords (((⟨160⟩ : UInt256) + len).toNat) 32 * 32 <
         UInt256.size := by
-    apply set_machineState_M_mul32_lt_of_bounds
+    apply machineState_M_mul32_lt_of_bounds
     · exact hcopyNoWrap
-    · rw [setDataEnd_toNat_of_u64 hlenMax]
+    · rw [solcBytesSetDataEnd_toNat_of_u64 hlenMax]
       have hmax : 160 + ABI.solcMaxU64 + 32 + 31 < UInt256.size := by
         norm_num [ABI.solcMaxU64, UInt256.size]
       omega
@@ -3392,31 +2947,6 @@ theorem setHelperEntryAw_mul32_lt_of_u64 {len : UInt256}
   rw [hcopyToNat, ulit_toNat' _ hentrySize]
   exact hentryNoWrap
 
-theorem set_Mul32_not_le128_of_ge5 {aw : UInt256}
-    (hge : 5 ≤ aw.toNat) (hNoWrap : aw.toNat * 32 < UInt256.size) :
-    ¬ (⟨128⟩ : UInt256) ≥ aw * ⟨32⟩ := by
-  have hmul :
-      (aw * (⟨32⟩ : UInt256)).toNat = aw.toNat * 32 := by
-    simpa [show (⟨32⟩ : UInt256).toNat = 32 from by decide] using
-      umul_toNat (a := aw) (b := (⟨32⟩ : UInt256)) hNoWrap
-  intro hgeWord
-  have h128 : (⟨128⟩ : UInt256).toNat ≥ (aw * (⟨32⟩ : UInt256)).toNat := hgeWord
-  rw [hmul] at h128
-  change 128 ≥ aw.toNat * 32 at h128
-  nlinarith
-
-theorem set_Mul32_not_le64_of_ge5 {aw : UInt256}
-    (hge : 5 ≤ aw.toNat) (hNoWrap : aw.toNat * 32 < UInt256.size) :
-    ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ := by
-  have hmul :
-      (aw * (⟨32⟩ : UInt256)).toNat = aw.toNat * 32 := by
-    simpa [show (⟨32⟩ : UInt256).toNat = 32 from by decide] using
-      umul_toNat (a := aw) (b := (⟨32⟩ : UInt256)) hNoWrap
-  intro hgeWord
-  have h64 : (⟨64⟩ : UInt256).toNat ≥ (aw * (⟨32⟩ : UInt256)).toNat := hgeWord
-  rw [hmul] at h64
-  change 64 ≥ aw.toNat * 32 at h64
-  nlinarith
 
 theorem setHelperEntryAw_mload128_of_u64 {len : UInt256}
     (hlenMax : len.toNat ≤ ABI.solcMaxU64) :
@@ -3450,7 +2980,7 @@ theorem setHelperPayloadWord_eq_mload160_short_nonzero
   rw [if_neg]
   · rfl
   · have hsize := setPaddedMem_size cd len payloadStart hnz hsrc
-      (setDataEnd_toNat_of_short hshort)
+      (solcBytesSetDataEnd_toNat_of_short hshort)
     rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide]
     omega
 
@@ -3485,22 +3015,6 @@ theorem setHelperPayloadWord_eq_decodedPayloadWord {I : ExecutionEnv}
   rw [show (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat =
       len.toNat by rw [hlenAbi]]
 
-theorem setShortPackedHeader_mask_of_short {len : UInt256}
-    (hshort : len.toNat < 32) :
-    UInt256.lnot (UInt256.shiftRight (UInt256.lnot ⟨0⟩) (UInt256.mul ⟨8⟩ len)) =
-      UInt256.ofNat (2 ^ 256 - 2 ^ (256 - 8 * len.toNat)) := by
-  let n := len.toNat
-  have hlen : len = UInt256.ofNat n := (u256_ofNat_toNat len).symm
-  rw [hlen]
-  rw [ulit_toNat' n (by
-    have : n < 32 := hshort
-    norm_num [UInt256.size] at this ⊢
-    omega)]
-  change UInt256.lnot
-      (UInt256.shiftRight (UInt256.lnot ⟨0⟩) (UInt256.mul ⟨8⟩ (UInt256.ofNat n))) =
-    UInt256.ofNat (2 ^ 256 - 2 ^ (256 - 8 * n))
-  change n < 32 at hshort
-  interval_cases n <;> native_decide
 
 theorem setShortPackedHeader_eq_solidityShortBytesWord {I : ExecutionEnv}
     {len payloadStart : UInt256}
@@ -3548,7 +3062,7 @@ theorem setShortPackedHeader_eq_solidityShortBytesWord {I : ExecutionEnv}
       ((setDecodedValueBytes I).size * 2) % UInt256.size
     rw [hsize, Nat.mul_comm]
   rw [setShortPackedHeader, solidityShortBytesWord, hpayloadWord,
-    setShortPackedHeader_mask_of_short hshort]
+    shortPackedHeader_mask_of_short hshort]
   rw [u256_land_high_mask_eq_self (w :=
     uInt256OfByteArray ((setDecodedValueBytes I).readWithPadding 0 32))
     (k := 256 - 8 * len.toNat) (by omega) hlow]
@@ -3576,13 +3090,13 @@ theorem setPaddedMem_mload128_short_nonzero
     (off := (⟨128⟩ : UInt256)) (v := len)
     (by
       have hge := setPaddedMem_size_ge160 cd len payloadStart hnz hsrc
-        (setDataEnd_toNat_of_short hshort)
+        (solcBytesSetDataEnd_toNat_of_short hshort)
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
       omega)
     (by
       simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
         setPaddedMem_read128 cd len payloadStart hnz hsrc
-          (setDataEnd_toNat_of_short hshort))
+          (solcBytesSetDataEnd_toNat_of_short hshort))
 
 theorem setPaddedMem_mload128_nonzero_u64
     (cd : ByteArray) (len payloadStart : UInt256)
@@ -3598,13 +3112,13 @@ theorem setPaddedMem_mload128_nonzero_u64
     (off := (⟨128⟩ : UInt256)) (v := len)
     (by
       have hge := setPaddedMem_size_ge160 cd len payloadStart hnz hsrc
-        (setDataEnd_toNat_of_u64 hlenMax)
+        (solcBytesSetDataEnd_toNat_of_u64 hlenMax)
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
       omega)
     (by
       simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
         setPaddedMem_read128 cd len payloadStart hnz hsrc
-          (setDataEnd_toNat_of_u64 hlenMax))
+          (solcBytesSetDataEnd_toNat_of_u64 hlenMax))
 
 theorem setPaddedMem_mload64_short_nonzero
     (cd : ByteArray) (len payloadStart : UInt256)
@@ -3621,13 +3135,13 @@ theorem setPaddedMem_mload64_short_nonzero
     (v := currentLengthFreePtr len)
     (by
       have hge := setPaddedMem_size_ge160 cd len payloadStart hnz hsrc
-        (setDataEnd_toNat_of_short hshort)
+        (solcBytesSetDataEnd_toNat_of_short hshort)
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
       omega)
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
         setPaddedMem_read64 cd len payloadStart hnz hsrc
-          (setDataEnd_toNat_of_short hshort))
+          (solcBytesSetDataEnd_toNat_of_short hshort))
 
 theorem setPaddedMem_mload64_nonzero_u64
     (cd : ByteArray) (len payloadStart : UInt256)
@@ -3644,13 +3158,13 @@ theorem setPaddedMem_mload64_nonzero_u64
     (v := currentLengthFreePtr len)
     (by
       have hge := setPaddedMem_size_ge160 cd len payloadStart hnz hsrc
-        (setDataEnd_toNat_of_u64 hlenMax)
+        (solcBytesSetDataEnd_toNat_of_u64 hlenMax)
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
       omega)
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
         setPaddedMem_read64 cd len payloadStart hnz hsrc
-          (setDataEnd_toNat_of_u64 hlenMax))
+          (solcBytesSetDataEnd_toNat_of_u64 hlenMax))
 
 theorem setPaddedMem_mload128_short_nonzero_payloadAw
     (cd : ByteArray) (len payloadStart : UInt256)
@@ -3666,13 +3180,13 @@ theorem setPaddedMem_mload128_short_nonzero_payloadAw
     (off := (⟨128⟩ : UInt256)) (v := len)
     (by
       have hge := setPaddedMem_size_ge160 cd len payloadStart hnz hsrc
-        (setDataEnd_toNat_of_short hshort)
+        (solcBytesSetDataEnd_toNat_of_short hshort)
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
       omega)
     (by
       simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
         setPaddedMem_read128 cd len payloadStart hnz hsrc
-          (setDataEnd_toNat_of_short hshort))
+          (solcBytesSetDataEnd_toNat_of_short hshort))
 
 def setShortReturnMem
     (cd : ByteArray) (len payloadStart : UInt256) : ByteArray :=
@@ -3691,11 +3205,11 @@ theorem setShortReturnMem_read64
     (by rw [toByteArray_size])
     (by
       rw [setPaddedMem_size cd len payloadStart hnz hsrc
-        (setDataEnd_toNat_of_short hshort)]
+        (solcBytesSetDataEnd_toNat_of_short hshort)]
       omega)
     (by decide)]
   exact setPaddedMem_read64 cd len payloadStart hnz hsrc
-    (setDataEnd_toNat_of_short hshort)
+    (solcBytesSetDataEnd_toNat_of_short hshort)
 
 theorem setShortReturnMem_mload64
     (cd : ByteArray) (len payloadStart : UInt256)
@@ -3713,7 +3227,7 @@ theorem setShortReturnMem_mload64
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, setShortReturnMem]
       have hsize := setPaddedMem_size cd len payloadStart hnz hsrc
-        (setDataEnd_toNat_of_short hshort)
+        (solcBytesSetDataEnd_toNat_of_short hshort)
       rw [write32_eq (UInt256.toByteArray len) (setPaddedMem cd len payloadStart) 192
         (by rw [toByteArray_size])
         (by rw [hsize]; omega)]
@@ -3737,7 +3251,7 @@ theorem setShortReturnMem_read192
     (by rw [toByteArray_size])
     (by
       rw [setPaddedMem_size cd len payloadStart hnz hsrc
-        (setDataEnd_toNat_of_short hshort)]
+        (solcBytesSetDataEnd_toNat_of_short hshort)]
       omega)]
   rw [toByteArray_extract_all]
 
@@ -3790,7 +3304,7 @@ theorem stringStoreLiteX_setEmptyReachStorageWrite {σ σ₀ A I} {g : Sat256}
           (⟨160⟩ : UInt256).toNat by native_decide])
     (by
       simpa using
-        stringStoreLite_write_len_zero I.calldata currentLengthZeroMem payloadStart.toNat 160)
+        byteArray_write_zero_length I.calldata currentLengthZeroMem payloadStart.toNat 160)
     hawCopy
     (by evm_ov)
   have rd224 := evm_run rd220 with [push0, dup2, dup5, add]
@@ -3822,19 +3336,20 @@ theorem stringStoreLiteX_setEmptyReachStorageWrite {σ σ₀ A I} {g : Sat256}
 
 theorem stringStoreLiteX_setEmptyWriteShortZero {σ σ₀ A I} {g : Sat256}
     {payloadStart : UInt256} {k C : Nat}
-    (hperm : I.perm = true)
     (hreach : RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨1350⟩
       [⟨0⟩, ⟨128⟩, ⟨261⟩, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨0⟩, payloadStart,
         ⟨93⟩, stringStoreLiteSelWord I]
       currentLengthZeroReturnMem (UInt256.ofNat 6) ByteArray.empty σ k C)
     (hheader : currentLengthHeaderWord σ I = ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σ σ₀ g A I) ⟨261⟩
         [⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨0⟩, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
         currentLengthZeroReturnMem (UInt256.ofNat 6) ByteArray.empty
-        (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k' C' := by
+        (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   have rd769 := evm_run hreach with [
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
@@ -3902,6 +3417,11 @@ theorem stringStoreLiteX_setEmptyWriteShortZero {σ σ₀ A I} {g : Sat256}
     jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1448pre.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
   have hpacked0 :
       ((⟨0⟩ : UInt256).land ((⟨0⟩ : UInt256).lnot.shiftLeft ((⟨8⟩ : UInt256).mul ⟨0⟩)).lnot).lor
@@ -3922,7 +3442,6 @@ theorem stringStoreLiteX_setEmptyWriteShortZero {σ σ₀ A I} {g : Sat256}
 
 theorem stringStoreLiteX_setEmptyWriteShortValid {σ σ₀ A I} {g : Sat256}
     {payloadStart len : UInt256} {k C : Nat}
-    (hperm : I.perm = true)
     (hreach : RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨1350⟩
       [⟨0⟩, ⟨128⟩, ⟨261⟩, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨0⟩, payloadStart,
@@ -3933,12 +3452,14 @@ theorem stringStoreLiteX_setEmptyWriteShortValid {σ σ₀ A I} {g : Sat256}
       len = UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩)
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σ σ₀ g A I) ⟨261⟩
         [⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨0⟩, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
         currentLengthZeroReturnMem (UInt256.ofNat 6) ByteArray.empty
-        (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k' C' := by
+        (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   have rd769 := evm_run hreach with [
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
@@ -3988,9 +3509,9 @@ theorem stringStoreLiteX_setEmptyWriteShortValid {σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [← hlen] using rd1394₀⟩
   have hvalid0 : UInt256.sub ⟨0⟩ (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
     simpa [hflag] using hvalid
-  have hlt32 : len.toNat < 32 := currentLength_short_valid_lt32 hvalid0
+  have hlt32 : len.toNat < 32 := solidityShortBytesValid_lt32 hvalid0
   have hnotGt31 : UInt256.lt ⟨31⟩ len = ⟨0⟩ :=
-    currentLength_notGt31_of_lt32 hlt32
+    u256_gt31_eq_zero_of_lt32 hlt32
   have rd1200 := evm_run rd1394 with [
     jumpdest, push2 ⟨1405⟩, dup3, dup3, dup6, push2 ⟨1200⟩, jump (by jump_dest)]
   have rd1405 := evm_run rd1200 with [
@@ -4020,6 +3541,11 @@ theorem stringStoreLiteX_setEmptyWriteShortValid {σ σ₀ A I} {g : Sat256}
     jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1448pre.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
   have hpacked0 :
       ((⟨0⟩ : UInt256).land ((⟨0⟩ : UInt256).lnot.shiftRight ((⟨8⟩ : UInt256).mul ⟨0⟩)).lnot).lor
@@ -4041,19 +3567,20 @@ theorem stringStoreLiteX_setEmptyWriteShortValid {σ σ₀ A I} {g : Sat256}
 theorem stringStoreLiteX_setWriteShortPackedFrom1436 {σinit σ₀ A I}
     {g : Sat256} {τ : AccountMap} {payloadStart len oldLen payloadWord aw : UInt256}
     {mem rdata : ByteArray} {k C : Nat}
-    (hperm : I.perm = true)
     (hreach : RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1436⟩
       [payloadWord, UInt256.gt len ⟨31⟩, ⟨32⟩, oldLen, len, ⟨0⟩, ⟨128⟩, ⟨261⟩, ⟨0⟩,
         ⟨128⟩, ⟨0⟩, len, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
       mem aw rdata τ k C) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ⟨261⟩
         [⟨0⟩, ⟨128⟩, ⟨0⟩, len, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
         mem aw rdata
         (sstoreAccountMap I.codeOwner τ ⟨0⟩
-          (setShortPackedHeader payloadWord len)) k' C' := by
+          (setShortPackedHeader payloadWord len)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   have rd1323 := evm_run hreach with [
     jumpdest, push2 ⟨1446⟩, dup6, dup3, push2 ⟨1323⟩, jump (by jump_dest)]
   have rd1446 := evm_run rd1323 with [
@@ -4068,6 +3595,11 @@ theorem stringStoreLiteX_setWriteShortPackedFrom1436 {σinit σ₀ A I}
     jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1448pre.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
   exact ⟨_, _, by
     simpa only [sstoreAccountMap, initState, setShortPackedHeader] using
@@ -4094,7 +3626,7 @@ theorem stringStoreLiteX_setWriteShortPayloadLoadedFrom1405 {σinit σ₀ A I}
         (setPaddedMem I.calldata len payloadStart) (setHelperPayloadAw len)
         ByteArray.empty τ k' C' := by
   have hnotGt31 : UInt256.lt ⟨31⟩ len = ⟨0⟩ :=
-    currentLength_notGt31_of_lt32 hshort
+    u256_gt31_eq_zero_of_lt32 hshort
   have hnonzero : len ≠ ⟨0⟩ := by
     intro hzero
     exact hnz (by rw [hzero]; rfl)
@@ -4127,7 +3659,6 @@ theorem stringStoreLiteX_setWriteShortPayloadLoadedFrom1405 {σinit σ₀ A I}
 
 theorem stringStoreLiteX_setWriteShortNonemptyFrom1405 {σinit σ₀ A I}
     {g : Sat256} {τ : AccountMap} {payloadStart len oldLen : UInt256} {k C : Nat}
-    (hperm : I.perm = true)
     (hnz : len.toNat ≠ 0)
     (hshort : len.toNat < 32)
     (hreach : RD stringStoreLiteBytecode I g
@@ -4136,6 +3667,7 @@ theorem stringStoreLiteX_setWriteShortNonemptyFrom1405 {σinit σ₀ A I}
         payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
       (setPaddedMem I.calldata len payloadStart) (setHelperEntryAw len)
       ByteArray.empty τ k C) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ⟨261⟩
@@ -4143,17 +3675,17 @@ theorem stringStoreLiteX_setWriteShortNonemptyFrom1405 {σinit σ₀ A I}
         (setPaddedMem I.calldata len payloadStart) (setHelperPayloadAw len)
         ByteArray.empty
         (sstoreAccountMap I.codeOwner τ ⟨0⟩
-          (setShortPackedHeader (setHelperPayloadWord I.calldata len payloadStart) len)) k' C' := by
+          (setShortPackedHeader (setHelperPayloadWord I.calldata len payloadStart) len)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   obtain ⟨_, _, rd1436⟩ :=
     stringStoreLiteX_setWriteShortPayloadLoadedFrom1405 (σinit := σinit) (τ := τ)
       hnz hshort hreach
   exact stringStoreLiteX_setWriteShortPackedFrom1436 (σinit := σinit) (τ := τ)
     (payloadWord := setHelperPayloadWord I.calldata len payloadStart)
-    hperm rd1436
+    rd1436
 
 theorem stringStoreLiteX_setWriteShortNonemptyValid {σ σ₀ A I} {g : Sat256}
     {payloadStart len oldLen : UInt256} {k C : Nat}
-    (hperm : I.perm = true)
     (hnz : len.toNat ≠ 0)
     (hshort : len.toNat < 32)
     (hsrc : payloadStart.toNat + len.toNat ≤ I.calldata.size)
@@ -4168,6 +3700,7 @@ theorem stringStoreLiteX_setWriteShortNonemptyValid {σ σ₀ A I} {g : Sat256}
       oldLen = UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩)
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt oldLen ⟨32⟩) ≠ ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σ σ₀ g A I) ⟨261⟩
@@ -4175,7 +3708,8 @@ theorem stringStoreLiteX_setWriteShortNonemptyValid {σ σ₀ A I} {g : Sat256}
         (setPaddedMem I.calldata len payloadStart) (setHelperPayloadAw len)
         ByteArray.empty
         (sstoreAccountMap I.codeOwner σ ⟨0⟩
-          (setShortPackedHeader (setHelperPayloadWord I.calldata len payloadStart) len)) k' C' := by
+          (setShortPackedHeader (setHelperPayloadWord I.calldata len payloadStart) len)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   have rd769 := evm_run hreach with [
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
@@ -4239,9 +3773,9 @@ theorem stringStoreLiteX_setWriteShortNonemptyValid {σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [← holdLen] using rd1394₀⟩
   have hvalid0 : UInt256.sub ⟨0⟩ (UInt256.lt oldLen ⟨32⟩) ≠ ⟨0⟩ := by
     simpa [hflag] using hvalid
-  have holdLt32 : oldLen.toNat < 32 := currentLength_short_valid_lt32 hvalid0
+  have holdLt32 : oldLen.toNat < 32 := solidityShortBytesValid_lt32 hvalid0
   have holdNotGt31 : UInt256.lt ⟨31⟩ oldLen = ⟨0⟩ :=
-    currentLength_notGt31_of_lt32 holdLt32
+    u256_gt31_eq_zero_of_lt32 holdLt32
   have rd1200 := evm_run rd1394 with [
     jumpdest, push2 ⟨1405⟩, dup3, dup3, dup6, push2 ⟨1200⟩, jump (by jump_dest)]
   have rd1405 := evm_run rd1200 with [
@@ -4254,7 +3788,7 @@ theorem stringStoreLiteX_setWriteShortNonemptyValid {σ σ₀ A I} {g : Sat256}
       (by jump_dest),
     jumpdest, pop, pop, pop, jump (by jump_dest)]
   exact stringStoreLiteX_setWriteShortNonemptyFrom1405 (σinit := σ) (τ := σ)
-    hperm hnz hshort rd1405
+    hnz hshort rd1405
 
 theorem stringStoreLiteX_setEmptyWriteLongMalformed {σ σ₀ A I} {g : Sat256}
     {payloadStart : UInt256} {k C : Nat}
@@ -4369,10 +3903,10 @@ theorem stringStoreLiteX_setShortNonemptyMalformedPanic {σ σ₀ A I}
       (by
         change Cₘ (UInt256.ofNat (MachineState.M (setHelperEntryAw len).toNat 0 32)) -
             Cₘ (setHelperEntryAw len) = 0
-        rw [set_activeWordsMstore0_eq_self (aw := setHelperEntryAw len) (by omega)]
+        rw [activeWordsMstore0_eq_self (aw := setHelperEntryAw len) (by omega)]
         simp)
       (by rfl)
-      (set_activeWordsMstore0_eq_self (aw := setHelperEntryAw len) (by omega))
+      (activeWordsMstore0_eq_self (aw := setHelperEntryAw len) (by omega))
       (by simp only [List.length_cons]; omega),
     push1 ⟨34⟩, push1 ⟨4⟩,
     raw mstore 0 (setMalformedPanicMemOf (setPaddedMem I.calldata len payloadStart))
@@ -4380,17 +3914,17 @@ theorem stringStoreLiteX_setShortNonemptyMalformedPanic {σ σ₀ A I}
       (by
         change Cₘ (UInt256.ofNat (MachineState.M (setHelperEntryAw len).toNat 4 32)) -
             Cₘ (setHelperEntryAw len) = 0
-        rw [set_activeWordsMstore4_eq_self (aw := setHelperEntryAw len) (by omega)]
+        rw [activeWordsMstore4_eq_self (aw := setHelperEntryAw len) (by omega)]
         simp)
       (by rfl)
-      (set_activeWordsMstore4_eq_self (aw := setHelperEntryAw len) (by omega))
+      (activeWordsMstore4_eq_self (aw := setHelperEntryAw len) (by omega))
       (by simp only [List.length_cons]; omega),
     push1 ⟨36⟩, push0,
     raw rev 0 (by native_decide)
       (by
         change Cₘ (UInt256.ofNat (MachineState.M (setHelperEntryAw len).toNat 0 36)) -
             Cₘ (setHelperEntryAw len) = 0
-        rw [set_activeWordsRevert0_36_eq_self (aw := setHelperEntryAw len) (by omega)]
+        rw [activeWordsRevert0_36_eq_self (aw := setHelperEntryAw len) (by omega)]
         simp)
       (by simp only [List.length_cons]; omega)]
 
@@ -4478,13 +4012,13 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongMalformed
         have hM : UInt256.ofNat (MachineState.M (setHelperEntryAw len).toNat 128 32) =
             setHelperEntryAw len := by
           simpa only [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
-            set_activeWordsMload128_eq_self
+            activeWordsMload128_eq_self
               (aw := setHelperEntryAw len) (setHelperEntryAw_ge5_of_u64 (len := len) hlenMax)
         rw [hM]
         exact Nat.sub_self _)
       (setPaddedMem_mload128_nonzero_u64 I.calldata len payloadStart hnz hlenMax hsrc)
       (by
-        exact set_activeWordsMload128_eq_self
+        exact activeWordsMload128_eq_self
           (aw := setHelperEntryAw len) (setHelperEntryAw_ge5_of_u64 (len := len) hlenMax))
       (by evm_ov),
     swap1, pop, swap2, swap1, pop, jump (by jump_dest)]
@@ -4549,13 +4083,13 @@ theorem stringStoreLiteX_setShortNonemptyWriteShortMalformed
         have hM : UInt256.ofNat (MachineState.M (setHelperEntryAw len).toNat 128 32) =
             setHelperEntryAw len := by
           simpa only [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
-            set_activeWordsMload128_eq_self
+            activeWordsMload128_eq_self
               (aw := setHelperEntryAw len) (setHelperEntryAw_ge5_of_u64 (len := len) hlenMax)
         rw [hM]
         exact Nat.sub_self _)
       (setPaddedMem_mload128_nonzero_u64 I.calldata len payloadStart hnz hlenMax hsrc)
       (by
-        exact set_activeWordsMload128_eq_self
+        exact activeWordsMload128_eq_self
           (aw := setHelperEntryAw len) (setHelperEntryAw_ge5_of_u64 (len := len) hlenMax))
       (by evm_ov),
     swap1, pop, swap2, swap1, pop, jump (by jump_dest)]
@@ -4725,7 +4259,7 @@ theorem stringStoreLiteX_setShortNonemptyReturnFromWrite {σ σ₀ A I}
 set_option maxHeartbeats 1200000 in
 theorem stringStoreLiteX_setShortEmptyValid {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
@@ -4736,22 +4270,24 @@ theorem stringStoreLiteX_setShortEmptyValid {σ σ₀ A I} {g : Sat256}
         (I.calldata.readBytes
           ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) = ⟨0⟩)
     (hheader : currentLengthHeaderWord σ I = ⟨0⟩) :
+    (I.perm = true ∧
     RDret stringStoreLiteBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩)
-      (UInt256.toByteArray ⟨0⟩) := by
+      (UInt256.toByteArray ⟨0⟩)) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   let payloadStart : UInt256 :=
     (((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩)
   have hstart :
       UInt256.slt ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨31⟩))
           (UInt256.ofNat I.calldata.size) = ⟨1⟩ :=
-    setStart_slt_one I.calldata hoffMax hlenWord hsizeSign
+    calldataStart_slt_one I.calldata hoffMax hlenWord hsizeSign
   have hlenMaxWord :
       UInt256.gt
           (uInt256OfByteArray
             (I.calldata.readBytes
               ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32))
           ⟨18446744073709551615⟩ = ⟨0⟩ :=
-    setLengthMaxWord_zero I.calldata hlenZero
+    calldataLengthMaxWord_zero I.calldata hlenZero
   have hpayloadWord :
       UInt256.gt
         (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩) +
@@ -4760,7 +4296,7 @@ theorem stringStoreLiteX_setShortEmptyValid {σ σ₀ A I} {g : Sat256}
               (I.calldata.readBytes
                 ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) ⟨1⟩))
         (UInt256.ofNat I.calldata.size) = ⟨0⟩ :=
-    setPayloadWord_zero I.calldata hsize hoffMax hlenWord hlenZero
+    calldataPayloadWord_zero I.calldata hsize hoffMax hlenWord hlenZero
   obtain ⟨k175, C175, rd175₀⟩ := stringStoreLiteX_setDecoderOkCore
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) hcode hwv hsz36 hhi hsize hsel hoffMax hstart hlenMaxWord hpayloadWord
@@ -4771,8 +4307,8 @@ theorem stringStoreLiteX_setShortEmptyValid {σ σ₀ A I} {g : Sat256}
     simpa [payloadStart, hlenZero] using rd175₀
   obtain ⟨_, _, rd1350⟩ := stringStoreLiteX_setEmptyReachStorageWrite
     (payloadStart := payloadStart) rd175
-  exact stringStoreLiteX_setEmptyReturnFromWrite
-    (stringStoreLiteX_setEmptyWriteShortZero hperm rd1350 hheader)
+  exact permSplit_bind (stringStoreLiteX_setEmptyWriteShortZero rd1350 hheader)
+    fun _ h => stringStoreLiteX_setEmptyReturnFromWrite h
 
 theorem stringStoreLiteX_clearCurrentZeroReachCopyDecoder {σ σ₀ A I}
     {g : Sat256}
@@ -4859,7 +4395,6 @@ theorem stringStoreLiteX_clearCurrentZeroReachDelete {σ σ₀ A I}
 
 theorem stringStoreLiteX_clearCurrentDeleteShortZero {σ σ₀ A I}
     {g : Sat256}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨453⟩
       [⟨0⟩, ⟨0⟩, ⟨449⟩, ⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I]
@@ -4869,11 +4404,13 @@ theorem stringStoreLiteX_clearCurrentDeleteShortZero {σ σ₀ A I}
         (UInt256.lt
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠ ⟨0⟩)
     (hzero : UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩ = ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k C, RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨153⟩
       [⟨0⟩, stringStoreLiteSelWord I]
       currentLengthZeroMem (UInt256.ofNat 5) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k C := by
+      (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k C) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd453⟩ := hreach
   have rd457pre := evm_run rd453 with [jumpdest, pop, dup1]
   obtain ⟨_, _, rd457₀⟩ := rd457pre.sload (by native_decide) (by evm_ov)
@@ -4903,6 +4440,12 @@ theorem stringStoreLiteX_clearCurrentDeleteShortZero {σ σ₀ A I}
         currentLengthZeroMem (UInt256.ofNat 5) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [hzero] using rd465₀⟩
   have rd468pre := evm_run rd465 with [jumpdest, push0, dup3]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd468pre.sstoreStatic (by simpa using hperm) (by native_decide)
+        (by simp only [List.length_cons, List.length_nil]; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd469₀⟩ := rd468pre.sstore hperm (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd469⟩ :
@@ -4969,7 +4512,6 @@ theorem stringStoreLiteX_clearCurrentZeroReturnFromWrapper {σ σ₀ A I}
       (by evm_ov)]
 
 theorem stringStoreLiteX_clearCurrentShortZeroValid {σ σ₀ A I} {g : Sat256}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨145⟩ [stringStoreLiteSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
@@ -4978,9 +4520,11 @@ theorem stringStoreLiteX_clearCurrentShortZeroValid {σ σ₀ A I} {g : Sat256}
         (UInt256.lt
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠ ⟨0⟩)
     (hzero : UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩ = ⟨0⟩) :
+    (I.perm = true ∧
     RDret stringStoreLiteBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩)
-      (UInt256.toByteArray ⟨0⟩) := by
+      (UInt256.toByteArray ⟨0⟩)) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   have hdecoded₀ := stringStoreLiteX_bytesLengthDecoderShortValid
     (hreach := stringStoreLiteX_clearCurrentReachDecoder hreach)
     (header := currentLengthHeaderWord σ I) (ret := ⟨307⟩)
@@ -4998,8 +4542,9 @@ theorem stringStoreLiteX_clearCurrentShortZeroValid {σ σ₀ A I} {g : Sat256}
   have hcopy := stringStoreLiteX_clearCurrentZeroReachCopyDecoder hdecoded
   have hdelStart := stringStoreLiteX_clearCurrentZeroReachDelete hcopy
     hflag hvalid hzero
-  exact stringStoreLiteX_clearCurrentZeroReturnFromWrapper
-    (stringStoreLiteX_clearCurrentDeleteShortZero hperm hdelStart hflag hvalid hzero)
+  exact permSplit_bind
+    (stringStoreLiteX_clearCurrentDeleteShortZero hdelStart hflag hvalid hzero)
+    fun _ h => stringStoreLiteX_clearCurrentZeroReturnFromWrapper h
 
 theorem stringStoreLiteX_clearCurrentShortReachDelete {σ σ₀ A I}
     {g : Sat256} {len : UInt256}
@@ -5087,10 +4632,10 @@ theorem stringStoreLiteX_clearCurrentShortReachDelete {σ σ₀ A I}
     exact ⟨_, _, by simpa [← hlen] using rd351₀⟩
   have hvalid0 : UInt256.sub ⟨0⟩ (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
     simpa [hflag] using hvalid
-  have hlt32 : len.toNat < 32 := currentLength_short_valid_lt32 hvalid0
+  have hlt32 : len.toNat < 32 := solidityShortBytesValid_lt32 hvalid0
   have hnotZero : UInt256.isZero len = ⟨0⟩ := isZero_eq_zero_of_ne hnonzero
   have hnotGt31 : UInt256.lt ⟨31⟩ len = ⟨0⟩ :=
-    currentLength_notGt31_of_lt32 hlt32
+    u256_gt31_eq_zero_of_lt32 hlt32
   have rd357 := evm_run rd351 with [jumpdest, dup1, iszero, push2 ⟨426⟩]
   have rd358 := rd357.jumpiNT (by decide) hnotZero (by evm_ov)
   have rd385 := evm_run rd358 with [dup1, push1 ⟨31⟩, lt, push2 ⟨385⟩]
@@ -5128,7 +4673,6 @@ theorem stringStoreLiteX_clearCurrentShortReachDelete {σ σ₀ A I}
 
 theorem stringStoreLiteX_clearCurrentDeleteShortValid {σ σ₀ A I}
     {g : Sat256} {len : UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨453⟩
       [⟨0⟩, ⟨0⟩, ⟨449⟩, ⟨128⟩, len, ⟨153⟩, stringStoreLiteSelWord I]
@@ -5138,11 +4682,13 @@ theorem stringStoreLiteX_clearCurrentDeleteShortValid {σ σ₀ A I}
       len = UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩)
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k C, RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨153⟩
       [len, stringStoreLiteSelWord I]
       mem aw rdata
-      (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k C := by
+      (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k C) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd453⟩ := hreach
   have rd457pre := evm_run rd453 with [jumpdest, pop, dup1]
   obtain ⟨_, _, rd457₀⟩ := rd457pre.sload (by native_decide) (by evm_ov)
@@ -5176,6 +4722,12 @@ theorem stringStoreLiteX_clearCurrentDeleteShortValid {σ σ₀ A I}
         mem aw rdata σ k C := by
     exact ⟨_, _, by simpa [← hlen] using rd465₀⟩
   have rd468pre := evm_run rd465 with [jumpdest, push0, dup3]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd468pre.sstoreStatic (by simpa using hperm) (by native_decide)
+        (by simp only [List.length_cons, List.length_nil]; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd469₀⟩ := rd468pre.sstore hperm (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd469⟩ :
@@ -5187,9 +4739,9 @@ theorem stringStoreLiteX_clearCurrentDeleteShortValid {σ σ₀ A I}
     exact ⟨_, _, by simpa [initState] using rd469₀⟩
   have hvalid0 : UInt256.sub ⟨0⟩ (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
     simpa [hflag] using hvalid
-  have hlt32 : len.toNat < 32 := currentLength_short_valid_lt32 hvalid0
+  have hlt32 : len.toNat < 32 := solidityShortBytesValid_lt32 hvalid0
   have hnotGt31 : UInt256.lt ⟨31⟩ len = ⟨0⟩ :=
-    currentLength_notGt31_of_lt32 hlt32
+    u256_gt31_eq_zero_of_lt32 hlt32
   have rd476 := evm_run rd469 with [dup1, push1 ⟨31⟩, lt, push2 ⟨483⟩]
   have rd477 := rd476.jumpiNT (by native_decide) hnotGt31
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -5251,7 +4803,6 @@ theorem stringStoreLiteX_clearCurrentShortReturnFromWrapper {σ σ₀ A I}
 
 theorem stringStoreLiteX_clearCurrentShortValid {σ σ₀ A I}
     {g : Sat256} {len : UInt256}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨145⟩ [stringStoreLiteSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
@@ -5261,77 +4812,22 @@ theorem stringStoreLiteX_clearCurrentShortValid {σ σ₀ A I}
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩)
     (hnonzero : len ≠ ⟨0⟩) :
+    (I.perm = true ∧
     RDret stringStoreLiteBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩)
-      (UInt256.toByteArray len) := by
+      (UInt256.toByteArray len)) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   have hvalid0 : UInt256.sub ⟨0⟩ (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩ := by
     simpa [hflag] using hvalid
-  have hlt32 : len.toNat < 32 := currentLength_short_valid_lt32 hvalid0
+  have hlt32 : len.toNat < 32 := solidityShortBytesValid_lt32 hvalid0
   have hfree : currentLengthFreePtr len = ⟨192⟩ :=
     currentLengthFreePtr_eq_192_of_short_nonzero hnonzero hlt32
   have hdelStart := stringStoreLiteX_clearCurrentShortReachDelete
     (g := g) hreach hflag hlen hvalid hnonzero
-  have hdel := stringStoreLiteX_clearCurrentDeleteShortValid
-    (g := g) hperm hdelStart hflag hlen hvalid
-  exact stringStoreLiteX_clearCurrentShortReturnFromWrapper hdel hfree
+  exact permSplit_bind (stringStoreLiteX_clearCurrentDeleteShortValid
+    (g := g) hdelStart hflag hlen hvalid)
+    fun _ hdel => stringStoreLiteX_clearCurrentShortReturnFromWrapper hdel hfree
 
-theorem clearCurrent_len_toNat_lt_sign_of_div2 {header len : UInt256}
-    (hlen : len = UInt256.div header ⟨2⟩) :
-    len.toNat < 2 ^ 255 := by
-  have hlenNat : len.toNat = header.toNat / 2 := by
-    rw [hlen, udiv_toNat]
-    rw [show (⟨2⟩ : UInt256).toNat = 2 from by decide]
-  rw [hlenNat]
-  apply Nat.div_lt_of_lt_mul
-  have hheader : header.toNat < UInt256.size := header.val.isLt
-  norm_num [UInt256.size] at hheader ⊢
-  exact hheader
-
-theorem clearCurrent_land_one_eq_one_of_ne_zero {w : UInt256}
-    (h : UInt256.land w ⟨1⟩ ≠ ⟨0⟩) :
-    UInt256.land w ⟨1⟩ = ⟨1⟩ := by
-  apply u256_inj
-  change (UInt256.land w ⟨1⟩).toNat = 1
-  have hbit := uInt256_land_one_toNat w
-  have hlt : (UInt256.land w ⟨1⟩).toNat < 2 := by
-    rw [hbit]
-    exact Nat.mod_lt _ (by decide)
-  have hne : (UInt256.land w ⟨1⟩).toNat ≠ 0 := by
-    intro hz
-    exact h (uint256_toNat_eq_zero hz)
-  omega
-
-theorem clearCurrent_ult_eq_one_of_ne_zero {a b : UInt256}
-    (h : UInt256.lt a b ≠ ⟨0⟩) :
-    UInt256.lt a b = ⟨1⟩ := by
-  have hlt := ult_ne_zero_toNat_lt h
-  exact ult_one hlt
-
-theorem clearCurrentLongValid_gt31 {header len : UInt256}
-    (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
-    (hvalid : UInt256.sub (UInt256.land header ⟨1⟩)
-        (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
-    UInt256.lt ⟨31⟩ len ≠ ⟨0⟩ := by
-  have hland : UInt256.land header ⟨1⟩ = ⟨1⟩ :=
-    clearCurrent_land_one_eq_one_of_ne_zero hflag
-  have hnotLt32 : UInt256.lt len ⟨32⟩ = ⟨0⟩ := by
-    by_contra hltNotZero
-    have hltOne : UInt256.lt len ⟨32⟩ = ⟨1⟩ :=
-      clearCurrent_ult_eq_one_of_ne_zero hltNotZero
-    exact hvalid (by simp [hland, hltOne, UInt256.sub])
-  have hge32 : 32 ≤ len.toNat := by
-    by_contra hlt
-    have hltOne : UInt256.lt len ⟨32⟩ = ⟨1⟩ :=
-      ult_one (by
-        simpa [show (⟨32⟩ : UInt256).toNat = 32 from by decide] using
-          Nat.lt_of_not_ge hlt)
-    rw [hltOne] at hnotLt32
-    contradiction
-  rw [show UInt256.lt ⟨31⟩ len = ⟨1⟩ from
-    ult_one (by
-      rw [show (⟨31⟩ : UInt256).toNat = 31 from by decide]
-      omega)]
-  decide
 
 def clearCurrentBaseMem : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0 solcFreePtrMem 0 32
@@ -5367,23 +4863,6 @@ theorem storageLocStore_currentPackedByte_absent_same
   simp [uint8Loc, storageLocWriteWord, valueToWord]
   exact storageStore_absent evm evm.executionEnv.codeOwner hmissing _ _
 
-theorem solidityBytesHeaderWord_long_flag {len : Nat}
-    (hlong : ¬ len < 32) (hlenMax : len ≤ ABI.solcMaxU64) :
-    UInt256.land (solidityBytesHeaderWord len) ⟨1⟩ ≠ ⟨0⟩ := by
-  have hwordLt : len * 2 + 1 < UInt256.size := by
-    have hmax : ABI.solcMaxU64 * 2 + 1 < UInt256.size := by
-      norm_num [ABI.solcMaxU64, UInt256.size]
-    omega
-  have hmod : (solidityBytesHeaderWord len).toNat % 2 = 1 := by
-    have htoNat : (UInt256.ofNat (len * 2 + 1)).toNat = len * 2 + 1 := by
-      exact ulit_toNat' (len * 2 + 1) hwordLt
-    rw [solidityBytesHeaderWord, if_neg hlong, htoNat]
-    omega
-  intro hzero
-  have hbit := uInt256_land_one_toNat (solidityBytesHeaderWord len)
-  rw [hmod] at hbit
-  have hzeroNat := congrArg UInt256.toNat hzero
-  simp [hbit] at hzeroNat
 
 theorem clearCurrentBaseMemFrom_read0 (mem : ByteArray) :
     (clearCurrentBaseMemFrom mem).readWithPadding 0 32 = UInt256.toByteArray ⟨0⟩ := by
@@ -5395,23 +4874,6 @@ theorem clearCurrentBaseMemFrom_keccak (mem : ByteArray) :
         clearCurrentBaseWord := by
   rw [clearCurrentBaseWord, clearCurrentBaseMemFrom_read0, clearCurrentBaseMem_read0]
 
-def clearDataWordsLoopIndex (idx : UInt256) : Nat → UInt256
-  | 0 => idx
-  | n + 1 => (⟨1⟩ : UInt256) + clearDataWordsLoopIndex idx n
-
-theorem clearDataWordsLoopIndex_zero_ofNat :
-    ∀ i, clearDataWordsLoopIndex ⟨0⟩ i = UInt256.ofNat i
-  | 0 => rfl
-  | i + 1 => by
-      simp [clearDataWordsLoopIndex, clearDataWordsLoopIndex_zero_ofNat i,
-        u256_one_add_ofNat]
-
-theorem clearDataWordsLoopIndex_succ_base (idx : UInt256) :
-    ∀ i, clearDataWordsLoopIndex ((⟨1⟩ : UInt256) + idx) i =
-      (⟨1⟩ : UInt256) + clearDataWordsLoopIndex idx i
-  | 0 => rfl
-  | i + 1 => by
-      simp [clearDataWordsLoopIndex, clearDataWordsLoopIndex_succ_base idx i]
 
 theorem stringStoreLiteX_clearDataWordsLoopDone {σinit σ₀ A I} {g : Sat256}
     {τ : AccountMap} {idx count base ret : UInt256} {rest : List UInt256}
@@ -5579,7 +5041,6 @@ theorem stringStoreLiteX_clearDataWordsLoopGenerated {σinit σ₀ A I} {g : Sat
 
 theorem stringStoreLiteX_clearCurrentDeleteLongValidToLoop {σ σ₀ A I}
     {g : Sat256} {len : UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨453⟩
       [⟨0⟩, ⟨0⟩, ⟨449⟩, ⟨128⟩, len, ⟨153⟩, stringStoreLiteSelWord I]
@@ -5589,12 +5050,14 @@ theorem stringStoreLiteX_clearCurrentDeleteLongValidToLoop {σ σ₀ A I}
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩)
     (hlen : len = UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩)
     (hgt31 : UInt256.lt ⟨31⟩ len ≠ ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k C, RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨513⟩
       [⟨0⟩, UInt256.div ((⟨31⟩ : UInt256) + len) ⟨32⟩, clearCurrentBaseWord,
         ⟨508⟩, ⟨449⟩, ⟨128⟩, len, ⟨153⟩, stringStoreLiteSelWord I]
       (clearCurrentBaseMemFrom mem) (clearCurrentHashAw aw) rdata
-      (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k C := by
+      (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k C) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd453⟩ := hreach
   have rd457pre := evm_run rd453 with [jumpdest, pop, dup1]
   obtain ⟨_, _, rd457₀⟩ := rd457pre.sload (by native_decide) (by evm_ov)
@@ -5622,6 +5085,12 @@ theorem stringStoreLiteX_clearCurrentDeleteLongValidToLoop {σ σ₀ A I}
         mem aw rdata σ k C := by
     exact ⟨_, _, by simpa [← hlen] using rd465₀⟩
   have rd468pre := evm_run rd465 with [jumpdest, push0, dup3]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd468pre.sstoreStatic (by simpa using hperm) (by native_decide)
+        (by simp only [List.length_cons, List.length_nil]; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd469₀⟩ := rd468pre.sstore hperm (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd469⟩ :
@@ -5670,7 +5139,6 @@ theorem stringStoreLiteX_clearCurrentLoopReturnToWrapper {σinit σ₀ A I}
 theorem stringStoreLiteX_clearCurrentDeleteLongValidWithLoopSchedule
     {σ σ₀ A I} {g : Sat256}
     {len : UInt256} {mem rdata : ByteArray} {aw : UInt256} {fuel : Nat}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨453⟩
       [⟨0⟩, ⟨0⟩, ⟨449⟩, ⟨128⟩, len, ⟨153⟩, stringStoreLiteSelWord I]
@@ -5687,15 +5155,17 @@ theorem stringStoreLiteX_clearCurrentDeleteLongValidWithLoopSchedule
     (hdone :
       UInt256.gt (UInt256.div ((⟨31⟩ : UInt256) + len) ⟨32⟩)
         (clearDataWordsLoopIndex ⟨0⟩ fuel) = ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k C, RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨153⟩
       [len, stringStoreLiteSelWord I]
       (clearCurrentBaseMemFrom mem) (clearCurrentHashAw aw) rdata
       (clearDataWordsForwardFrom I.codeOwner
         (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩)
-        clearCurrentBaseWord ⟨0⟩ fuel) k C := by
-  have hloopStart := stringStoreLiteX_clearCurrentDeleteLongValidToLoop
-    (g := g) hperm hreach hflag hvalid hlen hgt31
+        clearCurrentBaseWord ⟨0⟩ fuel) k C) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
+  refine permSplit_bind (stringStoreLiteX_clearCurrentDeleteLongValidToLoop
+    (g := g) hreach hflag hvalid hlen hgt31) fun hperm hloopStart => ?_
   have hloop := stringStoreLiteX_clearDataWordsLoopGenerated
     (σinit := σ) (τ := sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩)
     (idx := (⟨0⟩ : UInt256))
@@ -5712,7 +5182,6 @@ theorem stringStoreLiteX_clearCurrentDeleteLongValidWithLoopSchedule
 
 theorem stringStoreLiteX_clearCurrentDeleteLongValid {σ σ₀ A I}
     {g : Sat256} {len : UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨453⟩
       [⟨0⟩, ⟨0⟩, ⟨449⟩, ⟨128⟩, len, ⟨153⟩, stringStoreLiteSelWord I]
@@ -5722,6 +5191,7 @@ theorem stringStoreLiteX_clearCurrentDeleteLongValid {σ σ₀ A I}
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩)
     (hlen : len = UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩)
     (hgt31 : UInt256.lt ⟨31⟩ len ≠ ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k C, RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨153⟩
       [len, stringStoreLiteSelWord I]
@@ -5729,7 +5199,8 @@ theorem stringStoreLiteX_clearCurrentDeleteLongValid {σ σ₀ A I}
       (clearDataWordsForwardFrom I.codeOwner
         (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩)
         clearCurrentBaseWord ⟨0⟩
-        (UInt256.div ((⟨31⟩ : UInt256) + len) ⟨32⟩).toNat) k C := by
+        (UInt256.div ((⟨31⟩ : UInt256) + len) ⟨32⟩).toNat) k C) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   let count := UInt256.div ((⟨31⟩ : UInt256) + len) ⟨32⟩
   have hcontinue : ∀ i, i < count.toNat →
       UInt256.isZero (UInt256.gt count (clearDataWordsLoopIndex ⟨0⟩ i)) = ⟨0⟩ := by
@@ -5748,14 +5219,14 @@ theorem stringStoreLiteX_clearCurrentDeleteLongValid {σ σ₀ A I}
   simpa [count] using
     stringStoreLiteX_clearCurrentDeleteLongValidWithLoopSchedule
       (g := g) (len := len) (fuel := count.toNat)
-      hperm hreach hflag hvalid hlen hgt31 hcontinue hdone
+      hreach hflag hvalid hlen hgt31 hcontinue hdone
 
 /-! ## `currentLength()` runtime equivalence -/
 
 theorem stringStoreLiteCurrentLengthLongMalformedBodyCore {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa3, 0xd3, 0x5f, 0x36]⟩)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨115⟩
@@ -5790,10 +5261,10 @@ theorem stringStoreLiteCurrentLengthLongMalformedBodyCore {σ σ₀ A I}
         I.codeOwner ⟨0⟩ = currentLengthHeaderWord σ I := by
     simpa [initState] using hload
   have hlen :
-      readStorageBytesLength? stringStoreLiteConfig
+      stringLength? stringStoreLiteConfig
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) { base := "current" } =
           .revert := by
-    simp [readStorageBytesLength?, storageNatResultToEval, stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityStorageLayout,
+    simp [stringLength?, solidityNatResultToEval, stringStoreLiteConfig, solidityStorageBackend, solidityStorageLength?, stringStoreLiteGeneratedLayout,
       solidityReadBytesLength?, solidityDecodeBytesLengthHeader, stringStoreLiteLayout,
       initState, hload', hflag, hbad]
   have hbody :
@@ -5809,7 +5280,7 @@ theorem stringStoreLiteCurrentLengthLongMalformedBodyCore {σ σ₀ A I}
 theorem stringStoreLiteCurrentLengthShortMalformedBodyCore {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa3, 0xd3, 0x5f, 0x36]⟩)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨115⟩
@@ -5850,10 +5321,10 @@ theorem stringStoreLiteCurrentLengthShortMalformedBodyCore {σ σ₀ A I}
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩) ⟨32⟩) = ⟨0⟩ := by
     simpa [hflag] using hbad
   have hlen :
-      readStorageBytesLength? stringStoreLiteConfig
+      stringLength? stringStoreLiteConfig
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) { base := "current" } =
           .revert := by
-    simp [readStorageBytesLength?, storageNatResultToEval, stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityStorageLayout,
+    simp [stringLength?, solidityNatResultToEval, stringStoreLiteConfig, solidityStorageBackend, solidityStorageLength?, stringStoreLiteGeneratedLayout,
       solidityReadBytesLength?, solidityDecodeBytesLengthHeader, stringStoreLiteLayout,
       initState, hload', hflag, hbad0]
   have hbody :
@@ -5869,7 +5340,7 @@ theorem stringStoreLiteCurrentLengthShortMalformedBodyCore {σ σ₀ A I}
 theorem stringStoreLiteCurrentLengthLongValidBodyCore {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa3, 0xd3, 0x5f, 0x36]⟩)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨115⟩
@@ -5904,10 +5375,10 @@ theorem stringStoreLiteCurrentLengthLongValidBodyCore {σ σ₀ A I}
         I.codeOwner ⟨0⟩ = currentLengthHeaderWord σ I := by
     simpa [initState] using hload
   have hlen :
-      readStorageBytesLength? stringStoreLiteConfig
+      stringLength? stringStoreLiteConfig
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) { base := "current" } =
           .ok (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩).toNat := by
-    simp [readStorageBytesLength?, storageNatResultToEval, stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityStorageLayout,
+    simp [stringLength?, solidityNatResultToEval, stringStoreLiteConfig, solidityStorageBackend, solidityStorageLength?, stringStoreLiteGeneratedLayout,
       solidityReadBytesLength?, solidityDecodeBytesLengthHeader, stringStoreLiteLayout,
       initState, hload', hflag, hvalid]
   have hbody :
@@ -5928,7 +5399,7 @@ theorem stringStoreLiteCurrentLengthLongValidBodyCore {σ σ₀ A I}
 theorem stringStoreLiteCurrentLengthShortValidBodyCore {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa3, 0xd3, 0x5f, 0x36]⟩)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨115⟩
@@ -5969,10 +5440,10 @@ theorem stringStoreLiteCurrentLengthShortValidBodyCore {σ σ₀ A I}
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠ ⟨0⟩ := by
     simpa [hflag] using hvalid
   have hlen :
-      readStorageBytesLength? stringStoreLiteConfig
+      stringLength? stringStoreLiteConfig
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) { base := "current" } =
           .ok (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩).toNat := by
-    simp [readStorageBytesLength?, storageNatResultToEval, stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityStorageLayout,
+    simp [stringLength?, solidityNatResultToEval, stringStoreLiteConfig, solidityStorageBackend, solidityStorageLength?, stringStoreLiteGeneratedLayout,
       solidityReadBytesLength?, solidityDecodeBytesLengthHeader, stringStoreLiteLayout,
       initState, hload', hflag, hvalid0]
   have hbody :
@@ -5996,7 +5467,7 @@ theorem stringStoreLiteCurrentLengthShortValidBodyCore {σ σ₀ A I}
 theorem stringStoreLiteCurrentLengthBodyCore {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa3, 0xd3, 0x5f, 0x36]⟩)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨115⟩
@@ -6008,39 +5479,39 @@ theorem stringStoreLiteCurrentLengthBodyCore {σ σ₀ A I}
   · by_cases hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩) ⟨32⟩) ≠ ⟨0⟩
-    · exact stringStoreLiteCurrentLengthShortValidBodyCore hcode hsize hperm hwv hsel hreach
+    · exact stringStoreLiteCurrentLengthShortValidBodyCore hcode hsize hwv hsel hreach
         hflag hvalid
     · have hbad : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
           (UInt256.lt
             (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩) ⟨32⟩) = ⟨0⟩ :=
         not_ne_iff.mp hvalid
-      exact stringStoreLiteCurrentLengthShortMalformedBodyCore hcode hsize hperm hwv hsel hreach
+      exact stringStoreLiteCurrentLengthShortMalformedBodyCore hcode hsize hwv hsel hreach
         hflag hbad
   · by_cases hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩
-    · exact stringStoreLiteCurrentLengthLongValidBodyCore hcode hsize hperm hwv hsel hreach
+    · exact stringStoreLiteCurrentLengthLongValidBodyCore hcode hsize hwv hsel hreach
         hflag hvalid
     · have hbad : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
           (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) = ⟨0⟩ :=
         not_ne_iff.mp hvalid
-      exact stringStoreLiteCurrentLengthLongMalformedBodyCore hcode hsize hperm hwv hsel hreach
+      exact stringStoreLiteCurrentLengthLongMalformedBodyCore hcode hsize hwv hsel hreach
         hflag hbad
 
 theorem stringStoreLiteCurrentLengthRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa3, 0xd3, 0x5f, 0x36]⟩) :
     runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
-  exact stringStoreLiteCurrentLengthBodyCore hcode hsize hperm hwv hsel
+  exact stringStoreLiteCurrentLengthBodyCore hcode hsize hwv hsel
     (stringStoreLiteReachCurrentLength (g := Sat256.ofUInt256 g) hcode hwv
       (currentLengthSelector_size hsel) hsize hsel)
 
 theorem stringStoreLiteClearCurrentLongMalformedRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa6, 0xdf, 0xa2, 0x62]⟩)
     (hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
     (hbad : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
@@ -6075,10 +5546,10 @@ theorem stringStoreLiteClearCurrentLongMalformedRuntime {σ σ₀ A I}
         I.codeOwner ⟨0⟩ = currentLengthHeaderWord σ I := by
     simpa [initState] using hload
   have hlen :
-      readStorageBytesLength? stringStoreLiteConfig
+      stringLength? stringStoreLiteConfig
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) { base := "current" } =
           .revert := by
-    simp [readStorageBytesLength?, storageNatResultToEval, stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityStorageLayout,
+    simp [stringLength?, solidityNatResultToEval, stringStoreLiteConfig, solidityStorageBackend, solidityStorageLength?, stringStoreLiteGeneratedLayout,
       solidityReadBytesLength?, solidityDecodeBytesLengthHeader, stringStoreLiteLayout,
       initState, hload', hflag, hbad]
   have hbody :
@@ -6092,7 +5563,7 @@ theorem stringStoreLiteClearCurrentLongMalformedRuntime {σ σ₀ A I}
 theorem stringStoreLiteClearCurrentShortMalformedRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa6, 0xdf, 0xa2, 0x62]⟩)
     (hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ = ⟨0⟩)
     (hbad : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
@@ -6133,10 +5604,10 @@ theorem stringStoreLiteClearCurrentShortMalformedRuntime {σ σ₀ A I}
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩) ⟨32⟩) = ⟨0⟩ := by
     simpa [hflag] using hbad
   have hlen :
-      readStorageBytesLength? stringStoreLiteConfig
+      stringLength? stringStoreLiteConfig
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) { base := "current" } =
           .revert := by
-    simp [readStorageBytesLength?, storageNatResultToEval, stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityStorageLayout,
+    simp [stringLength?, solidityNatResultToEval, stringStoreLiteConfig, solidityStorageBackend, solidityStorageLength?, stringStoreLiteGeneratedLayout,
       solidityReadBytesLength?, solidityDecodeBytesLengthHeader, stringStoreLiteLayout,
       initState, hload', hflag, hbad0]
   have hbody :
@@ -6150,7 +5621,7 @@ theorem stringStoreLiteClearCurrentShortMalformedRuntime {σ σ₀ A I}
 theorem stringStoreLiteClearCurrentShortZeroRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa6, 0xdf, 0xa2, 0x62]⟩)
     (hheader : currentLengthHeaderWord σ I = ⟨0⟩) :
     runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
@@ -6178,8 +5649,8 @@ theorem stringStoreLiteClearCurrentShortZeroRuntime {σ σ₀ A I}
       ⟨0⟩ := by
     rw [hheader]
     decide
-  have hret := stringStoreLiteX_clearCurrentShortZeroValid
-    (g := Sat256.ofUInt256 g) hperm hreach hflag hvalid hzero
+  have hsplit := stringStoreLiteX_clearCurrentShortZeroValid
+    (g := Sat256.ofUInt256 g) hreach hflag hvalid hzero
   have hload :
       Solm.EVM.storageLoad evmSolm0 I.codeOwner ⟨0⟩ = ⟨0⟩ := by
     have hload' :
@@ -6192,8 +5663,8 @@ theorem stringStoreLiteClearCurrentShortZeroRuntime {σ σ₀ A I}
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ = ⟨0⟩ := by
     simpa [evmSolm0, initState] using hload
   have hlen :
-      readStorageBytesLength? stringStoreLiteConfig evmSolm0 { base := "current" } = .ok 0 := by
-    simp [readStorageBytesLength?, storageNatResultToEval, stringStoreLiteConfig, stringStoreLiteStorageLayout, solidityStorageLayout,
+      stringLength? stringStoreLiteConfig evmSolm0 { base := "current" } = .ok 0 := by
+    simp [stringLength?, solidityNatResultToEval, stringStoreLiteConfig, solidityStorageBackend, solidityStorageLength?, stringStoreLiteGeneratedLayout,
       solidityReadBytesLength?, solidityDecodeBytesLengthHeader_zero, stringStoreLiteLayout,
       hloadBytes]
   have hread :
@@ -6201,9 +5672,9 @@ theorem stringStoreLiteClearCurrentShortZeroRuntime {σ σ₀ A I}
         evmSolm0 (.storage currentRef) = .ok (.bytes ByteArray.empty) := by
     rw [evalExpr?, currentLengthResolve]
     set_option linter.unusedSimpArgs false in
-    simp [readStorage?, stringStoreLiteConfig,
-      stringStoreLiteStorageLayout, solidityStorageLayout, solidityReadValue?,
-      solidityReadBytesValue?, solidityBytesBaseSlotAndLength?, storageValueResultToEval,
+    simp [solidityReadStorage?, stringStoreLiteConfig,
+      solidityStorageBackend, solidityStorageLength?, stringStoreLiteGeneratedLayout,
+      solidityReadBytesValue?, solidityBytesBaseSlotAndLength?, solidityValueResultToEval,
       stringStoreLiteLayout, hloadBytes, solidityDecodeBytesLengthHeader_zero,
       EvalResult.bind, bind, pure]
   have hdel :
@@ -6221,7 +5692,13 @@ theorem stringStoreLiteClearCurrentShortZeroRuntime {σ σ₀ A I}
           evmSolm1 (some [(.int 0)])) := by
     exact clearCurrentBodyReturnsZero (evm := evmSolm0) (evm' := evmSolm1)
       (by simp [evmSolm0, initState]; exact hwv) hread hdel
-  exact hret.reEquivExecutionGen
+  by_cases hperm : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hperm
+    exact (permSplit_false hpf hsplit).reEquivStaticHalt hcode hd hdec
+      (clearCurrentBodyStatic (evm := evmSolm0) (by simp [evmSolm0, initState]; exact hwv)
+        hread hdel (by simp [evmSolm0, initState]; exact hpf))
+  exact (permSplit_true hperm hsplit).reEquivExecutionGen
     (cfg := stringStoreLiteConfig) hcode hd hdec hbody
     (by
       simp [evmSolm1, evmSolm0, initState, storageStore_accountMap])
@@ -6230,7 +5707,7 @@ theorem stringStoreLiteClearCurrentShortZeroRuntime {σ σ₀ A I}
 theorem stringStoreLiteClearCurrentShortDecodedZeroRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa6, 0xdf, 0xa2, 0x62]⟩)
     (hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ = ⟨0⟩)
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
@@ -6251,8 +5728,8 @@ theorem stringStoreLiteClearCurrentShortDecodedZeroRuntime {σ σ₀ A I}
   have hreach := stringStoreLiteReachClearCurrent
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
-  have hret := stringStoreLiteX_clearCurrentShortZeroValid
-    (g := Sat256.ofUInt256 g) hperm hreach hflag hvalid hzero
+  have hsplit := stringStoreLiteX_clearCurrentShortZeroValid
+    (g := Sat256.ofUInt256 g) hreach hflag hvalid hzero
   have hload :
       Solm.EVM.storageLoad evmSolm0 I.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ I := by
@@ -6291,7 +5768,13 @@ theorem stringStoreLiteClearCurrentShortDecodedZeroRuntime {σ σ₀ A I}
             locals := (∅ : Store).insert "copy" (.bytes copy) }
           evmSolm1 (some [(.int 0)])) := by
     simpa [hcopySize] using hbodyBytes
-  exact hret.reEquivExecutionGen
+  by_cases hperm : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hperm
+    exact (permSplit_false hpf hsplit).reEquivStaticHalt hcode hd hdec
+      (clearCurrentBodyStatic (evm := evmSolm0) (by simp [evmSolm0, initState]; exact hwv)
+        hread hdel (by simp [evmSolm0, initState]; exact hpf))
+  exact (permSplit_true hperm hsplit).reEquivExecutionGen
     (cfg := stringStoreLiteConfig) hcode hd hdec hbody
     (by
       simp [evmSolm1, evmSolm0, initState, storageStore_accountMap])
@@ -6300,7 +5783,7 @@ theorem stringStoreLiteClearCurrentShortDecodedZeroRuntime {σ σ₀ A I}
 theorem stringStoreLiteClearCurrentShortNonzeroRuntime {σ σ₀ A I}
     {g : UInt256} {len : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa6, 0xdf, 0xa2, 0x62]⟩)
     (hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ = ⟨0⟩)
     (hlen : len =
@@ -6321,8 +5804,8 @@ theorem stringStoreLiteClearCurrentShortNonzeroRuntime {σ σ₀ A I}
   have hreach := stringStoreLiteReachClearCurrent
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
-  have hret := stringStoreLiteX_clearCurrentShortValid
-    (g := Sat256.ofUInt256 g) hperm hreach hflag hlen hvalid hnonzero
+  have hsplit := stringStoreLiteX_clearCurrentShortValid
+    (g := Sat256.ofUInt256 g) hreach hflag hlen hvalid hnonzero
   have hload :
       Solm.EVM.storageLoad evmSolm0 I.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ I := by
@@ -6357,7 +5840,13 @@ theorem stringStoreLiteClearCurrentShortNonzeroRuntime {σ σ₀ A I}
             locals := (∅ : Store).insert "copy" (.bytes copy) }
           evmSolm1 (some [(.int len.toNat)])) := by
     simpa [hcopySize] using hbodyBytes
-  exact hret.reEquivExecutionGen
+  by_cases hperm : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hperm
+    exact (permSplit_false hpf hsplit).reEquivStaticHalt hcode hd hdec
+      (clearCurrentBodyStatic (evm := evmSolm0) (by simp [evmSolm0, initState]; exact hwv)
+        hread hdel (by simp [evmSolm0, initState]; exact hpf))
+  exact (permSplit_true hperm hsplit).reEquivExecutionGen
     (cfg := stringStoreLiteConfig) hcode hd hdec hbody
     (by
       simp [evmSolm1, evmSolm0, initState, storageStore_accountMap])
@@ -6366,7 +5855,7 @@ theorem stringStoreLiteClearCurrentShortNonzeroRuntime {σ σ₀ A I}
 theorem stringStoreLiteSetShortEmptyRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
@@ -6387,12 +5876,12 @@ theorem stringStoreLiteSetShortEmptyRuntime {σ σ₀ A I}
   have hd := stringStoreLiteDispatch_set (cd := I.calldata) hsel'
   have hlenZeroAbi :
       calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) = ⟨0⟩ := by
-    rw [← setLengthWord_eq_abi I.calldata hoffMax]
+    rw [← calldataLengthWord_eq_abi I.calldata hoffMax]
     exact hlenZero
   have hdec := decodeCalldata_set_empty (I := I) hsz36 hhi hsizeSign hoffMax hlenWord hlenZeroAbi
-  have hret := stringStoreLiteX_setShortEmptyValid
+  have hsplit := stringStoreLiteX_setShortEmptyValid
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-    (g := Sat256.ofUInt256 g) hcode hsize hperm hwv hsel hsz36 hhi hoffMax hlenWord
+    (g := Sat256.ofUInt256 g) hcode hsize hwv hsel hsz36 hhi hoffMax hlenWord
     hsizeSign hlenZero hheader
   have hload :
       Solm.EVM.storageLoad evmSolm0 I.codeOwner ⟨0⟩ = ⟨0⟩ := by
@@ -6406,11 +5895,15 @@ theorem stringStoreLiteSetShortEmptyRuntime {σ σ₀ A I}
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ = ⟨0⟩ := by
     simpa [evmSolm0, initState] using hload
   have hwrite :
-      writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
+      stringWrite? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
         .string (.bytes ByteArray.empty) = .ok evmSolm1 := by
     simpa [evmSolm0, evmSolm1, initState] using
       writeCurrentEmptyFromZero (evm := evmSolm0) hloadBytes
-  exact setRuntimeOfWriteAccountMapEq hcode hwv hret hd hdec hwrite
+  by_cases hperm : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hperm
+    exact setRuntimeStaticOfWrite hcode hwv hpf (permSplit_false hpf hsplit) hd hdec hwrite
+  exact setRuntimeOfWriteAccountMapEq hcode hwv (permSplit_true hperm hsplit) hd hdec hwrite
     (by
       simp [evmSolm1, evmSolm0, initState, storageStore_accountMap])
     (returnEquiv_of_encode (uint256ReturnEncoding (⟨0⟩ : UInt256)))
@@ -6418,7 +5911,7 @@ theorem stringStoreLiteSetShortEmptyRuntime {σ σ₀ A I}
 theorem stringStoreLiteSetEmptyShortValidRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
@@ -6447,20 +5940,20 @@ theorem stringStoreLiteSetEmptyShortValidRuntime {σ σ₀ A I}
   have hd := stringStoreLiteDispatch_set (cd := I.calldata) hsel'
   have hlenZeroAbi :
       calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) = ⟨0⟩ := by
-    rw [← setLengthWord_eq_abi I.calldata hoffMax]
+    rw [← calldataLengthWord_eq_abi I.calldata hoffMax]
     exact hlenZero
   have hdec := decodeCalldata_set_empty (I := I) hsz36 hhi hsizeSign hoffMax hlenWord hlenZeroAbi
   have hstart :
       UInt256.slt ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨31⟩))
           (UInt256.ofNat I.calldata.size) = ⟨1⟩ :=
-    setStart_slt_one I.calldata hoffMax hlenWord hsizeSign
+    calldataStart_slt_one I.calldata hoffMax hlenWord hsizeSign
   have hlenMaxWord :
       UInt256.gt
           (uInt256OfByteArray
             (I.calldata.readBytes
               ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32))
           ⟨18446744073709551615⟩ = ⟨0⟩ :=
-    setLengthMaxWord_zero I.calldata hlenZero
+    calldataLengthMaxWord_zero I.calldata hlenZero
   have hpayloadWord :
       UInt256.gt
         (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩) +
@@ -6469,7 +5962,7 @@ theorem stringStoreLiteSetEmptyShortValidRuntime {σ σ₀ A I}
               (I.calldata.readBytes
                 ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) ⟨1⟩))
         (UInt256.ofNat I.calldata.size) = ⟨0⟩ :=
-    setPayloadWord_zero I.calldata hsize hoffMax hlenWord hlenZero
+    calldataPayloadWord_zero I.calldata hsize hoffMax hlenWord hlenZero
   obtain ⟨k175, C175, rd175₀⟩ := stringStoreLiteX_setDecoderOkCore
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) hcode hwv hsz36 hhi hsize hsel hoffMax
@@ -6481,11 +5974,10 @@ theorem stringStoreLiteSetEmptyShortValidRuntime {σ σ₀ A I}
     simpa [payloadStart, hlenZero] using rd175₀
   obtain ⟨_, _, rd1350⟩ := stringStoreLiteX_setEmptyReachStorageWrite
     (payloadStart := payloadStart) rd175
-  have hret := stringStoreLiteX_setEmptyReturnFromWrite
-    (payloadStart := payloadStart)
-    (stringStoreLiteX_setEmptyWriteShortValid
-      (payloadStart := payloadStart) (len := len) hperm rd1350 hflag rfl
+  have hsplit := permSplit_bind (stringStoreLiteX_setEmptyWriteShortValid
+      (payloadStart := payloadStart) (len := len) rd1350 hflag rfl
       (by simpa [len] using hvalid))
+    fun _ h => stringStoreLiteX_setEmptyReturnFromWrite (payloadStart := payloadStart) h
   have hload :
       Solm.EVM.storageLoad evmSolm0 I.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ I := by
@@ -6501,13 +5993,17 @@ theorem stringStoreLiteSetEmptyShortValidRuntime {σ σ₀ A I}
     rw [solidityShortBytesWord, empty_readWithPadding_word_zero]
     rfl
   have hwrite :
-      writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
+      stringWrite? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
         .string (.bytes ByteArray.empty) = .ok evmSolm1 := by
     have hwrite₀ := writeCurrentShortPacked (evm := evmSolm0)
       (header := currentLengthHeaderWord σ I) (len := len) (value := ByteArray.empty)
       (by decide) hloadBytes hpacked hflag rfl (by simpa [len] using hvalid)
     simpa [evmSolm1, hshortEmpty] using hwrite₀
-  exact setRuntimeOfWriteAccountMapEq hcode hwv hret hd hdec hwrite
+  by_cases hperm : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hperm
+    exact setRuntimeStaticOfWrite hcode hwv hpf (permSplit_false hpf hsplit) hd hdec hwrite
+  exact setRuntimeOfWriteAccountMapEq hcode hwv (permSplit_true hperm hsplit) hd hdec hwrite
     (by
       simp [evmSolm1, evmSolm0, initState, storageStore_accountMap])
     (returnEquiv_of_encode (uint256ReturnEncoding (⟨0⟩ : UInt256)))
@@ -6515,7 +6011,7 @@ theorem stringStoreLiteSetEmptyShortValidRuntime {σ σ₀ A I}
 theorem stringStoreLiteSetEmptyLongMalformedRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
@@ -6539,20 +6035,20 @@ theorem stringStoreLiteSetEmptyLongMalformedRuntime {σ σ₀ A I}
   have hd := stringStoreLiteDispatch_set (cd := I.calldata) hsel'
   have hlenZeroAbi :
       calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) = ⟨0⟩ := by
-    rw [← setLengthWord_eq_abi I.calldata hoffMax]
+    rw [← calldataLengthWord_eq_abi I.calldata hoffMax]
     exact hlenZero
   have hdec := decodeCalldata_set_empty (I := I) hsz36 hhi hsizeSign hoffMax hlenWord hlenZeroAbi
   have hstart :
       UInt256.slt ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨31⟩))
           (UInt256.ofNat I.calldata.size) = ⟨1⟩ :=
-    setStart_slt_one I.calldata hoffMax hlenWord hsizeSign
+    calldataStart_slt_one I.calldata hoffMax hlenWord hsizeSign
   have hlenMaxWord :
       UInt256.gt
           (uInt256OfByteArray
             (I.calldata.readBytes
               ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32))
           ⟨18446744073709551615⟩ = ⟨0⟩ :=
-    setLengthMaxWord_zero I.calldata hlenZero
+    calldataLengthMaxWord_zero I.calldata hlenZero
   have hpayloadWord :
       UInt256.gt
         (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩) +
@@ -6561,7 +6057,7 @@ theorem stringStoreLiteSetEmptyLongMalformedRuntime {σ σ₀ A I}
               (I.calldata.readBytes
                 ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) ⟨1⟩))
         (UInt256.ofNat I.calldata.size) = ⟨0⟩ :=
-    setPayloadWord_zero I.calldata hsize hoffMax hlenWord hlenZero
+    calldataPayloadWord_zero I.calldata hsize hoffMax hlenWord hlenZero
   obtain ⟨k175, C175, rd175₀⟩ := stringStoreLiteX_setDecoderOkCore
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) hcode hwv hsz36 hhi hsize hsel hoffMax
@@ -6581,7 +6077,7 @@ theorem stringStoreLiteSetEmptyLongMalformedRuntime {σ σ₀ A I}
     simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
       Account.lookupStorage, currentLengthHeaderWord]
   have hwrite :
-      writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
+      stringWrite? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
         .string (.bytes ByteArray.empty) = .revert :=
     writeCurrentMalformedLong (evm := evmSolm0) (header := currentLengthHeaderWord σ I)
       (value := ByteArray.empty) hload hflag hbad
@@ -6595,7 +6091,7 @@ theorem stringStoreLiteSetEmptyLongMalformedRuntime {σ σ₀ A I}
 theorem stringStoreLiteSetEmptyShortMalformedRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
@@ -6621,20 +6117,20 @@ theorem stringStoreLiteSetEmptyShortMalformedRuntime {σ σ₀ A I}
   have hd := stringStoreLiteDispatch_set (cd := I.calldata) hsel'
   have hlenZeroAbi :
       calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) = ⟨0⟩ := by
-    rw [← setLengthWord_eq_abi I.calldata hoffMax]
+    rw [← calldataLengthWord_eq_abi I.calldata hoffMax]
     exact hlenZero
   have hdec := decodeCalldata_set_empty (I := I) hsz36 hhi hsizeSign hoffMax hlenWord hlenZeroAbi
   have hstart :
       UInt256.slt ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨31⟩))
           (UInt256.ofNat I.calldata.size) = ⟨1⟩ :=
-    setStart_slt_one I.calldata hoffMax hlenWord hsizeSign
+    calldataStart_slt_one I.calldata hoffMax hlenWord hsizeSign
   have hlenMaxWord :
       UInt256.gt
           (uInt256OfByteArray
             (I.calldata.readBytes
               ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32))
           ⟨18446744073709551615⟩ = ⟨0⟩ :=
-    setLengthMaxWord_zero I.calldata hlenZero
+    calldataLengthMaxWord_zero I.calldata hlenZero
   have hpayloadWord :
       UInt256.gt
         (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩) +
@@ -6643,7 +6139,7 @@ theorem stringStoreLiteSetEmptyShortMalformedRuntime {σ σ₀ A I}
               (I.calldata.readBytes
                 ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) ⟨1⟩))
         (UInt256.ofNat I.calldata.size) = ⟨0⟩ :=
-    setPayloadWord_zero I.calldata hsize hoffMax hlenWord hlenZero
+    calldataPayloadWord_zero I.calldata hsize hoffMax hlenWord hlenZero
   obtain ⟨k175, C175, rd175₀⟩ := stringStoreLiteX_setDecoderOkCore
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) hcode hwv hsz36 hhi hsize hsel hoffMax
@@ -6663,7 +6159,7 @@ theorem stringStoreLiteSetEmptyShortMalformedRuntime {σ σ₀ A I}
     simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
       Account.lookupStorage, currentLengthHeaderWord]
   have hwrite :
-      writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
+      stringWrite? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
         .string (.bytes ByteArray.empty) = .revert :=
     writeCurrentMalformedShort (evm := evmSolm0) (header := currentLengthHeaderWord σ I)
       (value := ByteArray.empty) hload hflag hbad
@@ -6677,7 +6173,7 @@ theorem stringStoreLiteSetEmptyShortMalformedRuntime {σ σ₀ A I}
 theorem stringStoreLiteSetShortNonemptyLongMalformedRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
@@ -6716,7 +6212,7 @@ theorem stringStoreLiteSetShortNonemptyLongMalformedRuntime
     hsz36 hhi hsizeSign hoffMax hlenWord hlenMax hpayload
   have hlenAbi :
       len = calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) := by
-    simpa [len] using setLengthWord_eq_abi I.calldata hoffMax
+    simpa [len] using calldataLengthWord_eq_abi I.calldata hoffMax
   have hshort : len.toNat < 32 := by
     rw [hlenAbi]
     exact hnewShort
@@ -6730,20 +6226,20 @@ theorem stringStoreLiteSetShortNonemptyLongMalformedRuntime
     simpa [len] using hz
   have hsrc : payloadStart.toNat + len.toNat ≤ I.calldata.size := by
     dsimp [payloadStart]
-    rw [hlenAbi, setPayloadStart_toNat I.calldata hoffMax]
-    have hle := setPayloadStartLen_le_of_payload I.calldata hlenWord hpayload
+    rw [hlenAbi, calldataPayloadStart_toNat I.calldata hoffMax]
+    have hle := calldataPayloadStartLen_le_of_payload I.calldata hlenWord hpayload
     omega
   have hstart :
       UInt256.slt ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨31⟩))
           (UInt256.ofNat I.calldata.size) = ⟨1⟩ :=
-    setStart_slt_one I.calldata hoffMax hlenWord hsizeSign
+    calldataStart_slt_one I.calldata hoffMax hlenWord hsizeSign
   have hlenMaxWord :
       UInt256.gt
           (uInt256OfByteArray
             (I.calldata.readBytes
               ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32))
           ⟨18446744073709551615⟩ = ⟨0⟩ :=
-    setLengthMaxWord_of_abi I.calldata hoffMax hlenMax
+    calldataLengthMaxWord_of_abi I.calldata hoffMax hlenMax
   have hpayloadWord :
       UInt256.gt
         (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩) +
@@ -6752,7 +6248,7 @@ theorem stringStoreLiteSetShortNonemptyLongMalformedRuntime
               (I.calldata.readBytes
                 ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) ⟨1⟩))
         (UInt256.ofNat I.calldata.size) = ⟨0⟩ :=
-    setPayloadWord_zero_of_payload I.calldata hsize hoffMax hlenWord hlenMax hpayload
+    calldataPayloadWord_zero_of_payload I.calldata hsize hoffMax hlenWord hlenMax hpayload
   obtain ⟨k175, C175, rd175₀⟩ := stringStoreLiteX_setDecoderOkCore
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) hcode hwv hsz36 hhi hsize hsel hoffMax
@@ -6772,7 +6268,7 @@ theorem stringStoreLiteSetShortNonemptyLongMalformedRuntime
     simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
       Account.lookupStorage, currentLengthHeaderWord]
   have hwrite :
-      writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
+      stringWrite? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
         .string (.bytes (setDecodedValueBytes I)) = .revert :=
     writeCurrentMalformedLong (evm := evmSolm0) (header := currentLengthHeaderWord σ I)
       (value := setDecodedValueBytes I) hload hflag hbad
@@ -6787,7 +6283,7 @@ theorem stringStoreLiteSetShortNonemptyLongMalformedRuntime
 theorem stringStoreLiteSetShortNonemptyShortMalformedRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
@@ -6828,7 +6324,7 @@ theorem stringStoreLiteSetShortNonemptyShortMalformedRuntime
     hsz36 hhi hsizeSign hoffMax hlenWord hlenMax hpayload
   have hlenAbi :
       len = calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) := by
-    simpa [len] using setLengthWord_eq_abi I.calldata hoffMax
+    simpa [len] using calldataLengthWord_eq_abi I.calldata hoffMax
   have hshort : len.toNat < 32 := by
     rw [hlenAbi]
     exact hnewShort
@@ -6842,20 +6338,20 @@ theorem stringStoreLiteSetShortNonemptyShortMalformedRuntime
     simpa [len] using hz
   have hsrc : payloadStart.toNat + len.toNat ≤ I.calldata.size := by
     dsimp [payloadStart]
-    rw [hlenAbi, setPayloadStart_toNat I.calldata hoffMax]
-    have hle := setPayloadStartLen_le_of_payload I.calldata hlenWord hpayload
+    rw [hlenAbi, calldataPayloadStart_toNat I.calldata hoffMax]
+    have hle := calldataPayloadStartLen_le_of_payload I.calldata hlenWord hpayload
     omega
   have hstart :
       UInt256.slt ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨31⟩))
           (UInt256.ofNat I.calldata.size) = ⟨1⟩ :=
-    setStart_slt_one I.calldata hoffMax hlenWord hsizeSign
+    calldataStart_slt_one I.calldata hoffMax hlenWord hsizeSign
   have hlenMaxWord :
       UInt256.gt
           (uInt256OfByteArray
             (I.calldata.readBytes
               ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32))
           ⟨18446744073709551615⟩ = ⟨0⟩ :=
-    setLengthMaxWord_of_abi I.calldata hoffMax hlenMax
+    calldataLengthMaxWord_of_abi I.calldata hoffMax hlenMax
   have hpayloadWord :
       UInt256.gt
         (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩) +
@@ -6864,7 +6360,7 @@ theorem stringStoreLiteSetShortNonemptyShortMalformedRuntime
               (I.calldata.readBytes
                 ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) ⟨1⟩))
         (UInt256.ofNat I.calldata.size) = ⟨0⟩ :=
-    setPayloadWord_zero_of_payload I.calldata hsize hoffMax hlenWord hlenMax hpayload
+    calldataPayloadWord_zero_of_payload I.calldata hsize hoffMax hlenWord hlenMax hpayload
   obtain ⟨k175, C175, rd175₀⟩ := stringStoreLiteX_setDecoderOkCore
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) hcode hwv hsz36 hhi hsize hsel hoffMax
@@ -6884,7 +6380,7 @@ theorem stringStoreLiteSetShortNonemptyShortMalformedRuntime
     simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
       Account.lookupStorage, currentLengthHeaderWord]
   have hwrite :
-      writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
+      stringWrite? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
         .string (.bytes (setDecodedValueBytes I)) = .revert :=
     writeCurrentMalformedShort (evm := evmSolm0) (header := currentLengthHeaderWord σ I)
       (value := setDecodedValueBytes I) hload hflag hbad
@@ -6899,7 +6395,7 @@ theorem stringStoreLiteSetShortNonemptyShortMalformedRuntime
 theorem stringStoreLiteSetHeadShortRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
     runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
@@ -6918,7 +6414,7 @@ theorem stringStoreLiteSetHeadShortRuntime {σ σ₀ A I}
 theorem stringStoreLiteSetHeadHugeRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz : 4 ≤ I.calldata.size) (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
     runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
@@ -6937,7 +6433,7 @@ theorem stringStoreLiteSetHeadHugeRuntime {σ σ₀ A I}
 theorem stringStoreLiteSetOffsetHugeRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoff : ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat) :
@@ -6957,7 +6453,7 @@ theorem stringStoreLiteSetOffsetHugeRuntime {σ σ₀ A I}
 theorem stringStoreLiteSetLengthShortRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
@@ -6978,7 +6474,7 @@ theorem stringStoreLiteSetLengthShortRuntime {σ σ₀ A I}
 theorem stringStoreLiteSetLengthHugeRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
@@ -6998,15 +6494,15 @@ theorem stringStoreLiteSetLengthHugeRuntime {σ σ₀ A I}
   have hrev := stringStoreLiteX_setDecoderLengthHuge
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) hcode hwv hsz36 hhi hsize hsel hoffMax
-    (setStart_slt_one I.calldata hoffMax hlenWord hsizeSign)
-    (setLengthMaxWord_one_of_abi I.calldata hoffMax hlenHuge)
+    (calldataStart_slt_one I.calldata hoffMax hlenWord hsizeSign)
+    (calldataLengthMaxWord_one_of_abi I.calldata hoffMax hlenHuge)
   exact hrev.reEquivElim hcode fun _ _ hrun => by
     exact reEquiv_decodingFailed hd hdec hrun
 
 theorem stringStoreLiteSetPayloadShortRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
@@ -7038,8 +6534,8 @@ theorem stringStoreLiteSetPayloadShortRuntime {σ σ₀ A I}
   have hrev := stringStoreLiteX_setDecoderPayloadShort
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) hcode hwv hsz36 hhi hsize hsel hoffMax
-    (setStart_slt_one I.calldata hoffMax hlenWord hsizeSign)
-    (setLengthMaxWord_of_abi I.calldata hoffMax hlenMax)
+    (calldataStart_slt_one I.calldata hoffMax hlenWord hsizeSign)
+    (calldataLengthMaxWord_of_abi I.calldata hoffMax hlenMax)
     hpayloadWord
   exact hrev.reEquivElim hcode fun _ _ hrun => by
     exact reEquiv_decodingFailed hd hdec hrun

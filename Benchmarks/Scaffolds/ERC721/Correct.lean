@@ -8,7 +8,6 @@ import Reasoning.Solc
 import Reasoning.Dispatch
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
-import Solm.Refine
 
 /-!
 # ERC721 — top-level correctness **scaffold**
@@ -71,7 +70,7 @@ def erc721SelBytes : ℕ → ByteArray
 
 /-- `approve(address,uint256)` body (pc 195) refines its transition. -/
 theorem erc721ApproveBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩) :
     runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
@@ -79,7 +78,7 @@ theorem erc721ApproveBody {σ σ₀ A I} {g : UInt256}
 
 /-- `balanceOf(address)` body (pc 254) refines its transition. -/
 theorem erc721BalanceOfBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩) :
     runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
@@ -87,7 +86,7 @@ theorem erc721BalanceOfBody {σ σ₀ A I} {g : UInt256}
 
 /-- `getApproved(uint256)` getter body (pc 126) refines its transition. -/
 theorem erc721GetApprovedBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x08, 0x18, 0x12, 0xfc]⟩) :
     runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
@@ -95,7 +94,7 @@ theorem erc721GetApprovedBody {σ σ₀ A I} {g : UInt256}
 
 /-- `isApprovedForAll(address,address)` getter body (pc 356) refines its transition. -/
 theorem erc721IsApprovedForAllBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xe9, 0x85, 0xe9, 0xc5]⟩) :
     runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
@@ -103,7 +102,7 @@ theorem erc721IsApprovedForAllBody {σ σ₀ A I} {g : UInt256}
 
 /-- `ownerOf(uint256)` body (pc 235) refines its transition. -/
 theorem erc721OwnerOfBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x63, 0x52, 0x21, 0x1e]⟩) :
     runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
@@ -111,7 +110,7 @@ theorem erc721OwnerOfBody {σ σ₀ A I} {g : UInt256}
 
 /-- `setApprovalForAll(address,bool)` body (pc 287) refines its transition. -/
 theorem erc721SetApprovalForAllBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xa2, 0x2c, 0xb4, 0x65]⟩) :
     runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
@@ -119,7 +118,7 @@ theorem erc721SetApprovalForAllBody {σ σ₀ A I} {g : UInt256}
 
 /-- `transferFrom(address,address,uint256)` body (pc 216) refines its transition. -/
 theorem erc721TransferFromBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩) :
     runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
@@ -136,7 +135,7 @@ theorem erc721NonPayable {σ σ₀ A I} {g : UInt256}
 
 /-- Calldata shorter than a selector (`size < 4`) ⇒ the size guard reverts before dispatch. -/
 theorem erc721ShortRevert {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
@@ -144,7 +143,7 @@ theorem erc721ShortRevert {σ σ₀ A I} {g : UInt256}
 
 /-- `size ≥ 4` but no selector matches ⇒ `dispatchMsg = none` and the EVM falls through to revert. -/
 theorem erc721NoDispatch {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 7 → (erc721SelBytes i == I.calldata.extract 0 4) = false) :
     runtimeRefinementFor erc721Config erc721Contract
@@ -155,25 +154,25 @@ theorem erc721NoDispatch {σ σ₀ A I} {g : UInt256}
 
 /-- The deployed ERC721 runtime bytecode refines the Solm specification, for every initial state. -/
 theorem erc721Correct : runtimeRefinement erc721Config erc721Bytecode erc721Contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize ↦ ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases h0 : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩
-      · exact erc721ApproveBody hcode hsize hperm hwv h0
+      · exact erc721ApproveBody hcode hsize hwv h0
       · by_cases h1 : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩
-        · exact erc721BalanceOfBody hcode hsize hperm hwv h1
+        · exact erc721BalanceOfBody hcode hsize hwv h1
         · by_cases h2 : selIs I ⟨#[0x08, 0x18, 0x12, 0xfc]⟩
-          · exact erc721GetApprovedBody hcode hsize hperm hwv h2
+          · exact erc721GetApprovedBody hcode hsize hwv h2
           · by_cases h3 : selIs I ⟨#[0xe9, 0x85, 0xe9, 0xc5]⟩
-            · exact erc721IsApprovedForAllBody hcode hsize hperm hwv h3
+            · exact erc721IsApprovedForAllBody hcode hsize hwv h3
             · by_cases h4 : selIs I ⟨#[0x63, 0x52, 0x21, 0x1e]⟩
-              · exact erc721OwnerOfBody hcode hsize hperm hwv h4
+              · exact erc721OwnerOfBody hcode hsize hwv h4
               · by_cases h5 : selIs I ⟨#[0xa2, 0x2c, 0xb4, 0x65]⟩
-                · exact erc721SetApprovalForAllBody hcode hsize hperm hwv h5
+                · exact erc721SetApprovalForAllBody hcode hsize hwv h5
                 · by_cases h6 : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩
-                  · exact erc721TransferFromBody hcode hsize hperm hwv h6
+                  · exact erc721TransferFromBody hcode hsize hwv h6
                   · -- size ≥ 4 but no selector matches
-                    refine erc721NoDispatch hcode hsize hperm hwv ?_
+                    refine erc721NoDispatch hcode hsize hwv ?_
                     intro i hi
                     interval_cases i
                     · simpa [selIs, erc721SelBytes] using h0
@@ -183,7 +182,7 @@ theorem erc721Correct : runtimeRefinement erc721Config erc721Bytecode erc721Cont
                     · simpa [selIs, erc721SelBytes] using h4
                     · simpa [selIs, erc721SelBytes] using h5
                     · simpa [selIs, erc721SelBytes] using h6
-    · exact erc721ShortRevert hcode hsize hperm hwv (by omega)
+    · exact erc721ShortRevert hcode hsize hwv (by omega)
   · exact erc721NonPayable hcode hwv
 
 theorem erc721ContractCorrect :

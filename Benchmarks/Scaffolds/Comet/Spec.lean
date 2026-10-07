@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Benchmarks.Scaffolds.Comet.Immutables
 import Solm.Semantics
 import Solm.SolidityLayout
@@ -75,7 +76,7 @@ def u8 (e : Expr) : Expr := .inRange uint8Int e
 def u40 (e : Expr) : Expr := .inRange uint40Int e
 def u64 (e : Expr) : Expr := .inRange uint64Int e
 def u104 (e : Expr) : Expr := .inRange uint104Int e
-def u128 (e : Expr) : Expr := .inRange uint128Int e
+def Reasoning.Theory.u256_128_toNat (e : Expr) : Expr := .inRange uint128Int e
 def i104 (e : Expr) : Expr := .inRange int104Int e
 def u256 (e : Expr) : Expr := .inRange uint256Int e
 
@@ -247,57 +248,57 @@ def userCollateralSlot (account asset : KeyValue) : Ethereum.UInt256 :=
 def liquidatorPointsSlot (account : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord account) ⟨7⟩
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "baseSupplyIndex", steps := [] }, _ =>
-      some (fieldLoc ⟨0⟩ 0 8 (by decide) (.int uint64Int))
-  | { base := "baseBorrowIndex", steps := [] }, _ =>
-      some (fieldLoc ⟨0⟩ 8 8 (by decide) (.int uint64Int))
-  | { base := "trackingSupplyIndex", steps := [] }, _ =>
-      some (fieldLoc ⟨0⟩ 16 8 (by decide) (.int uint64Int))
-  | { base := "trackingBorrowIndex", steps := [] }, _ =>
-      some (fieldLoc ⟨0⟩ 24 8 (by decide) (.int uint64Int))
-  | { base := "totalSupplyBase", steps := [] }, _ =>
-      some (fieldLoc ⟨1⟩ 0 13 (by decide) (.int uint104Int))
-  | { base := "totalBorrowBase", steps := [] }, _ =>
-      some (fieldLoc ⟨1⟩ 13 13 (by decide) (.int uint104Int))
-  | { base := "lastAccrualTime", steps := [] }, _ =>
-      some (fieldLoc ⟨1⟩ 26 5 (by decide) (.int uint40Int))
-  | { base := "pauseFlags", steps := [] }, _ =>
-      some (fieldLoc ⟨1⟩ 31 1 (by decide) (.int uint8Int))
-  | { base := "totalsCollateral", steps := [.mindex asset, .field "totalSupplyAsset"] }, _ =>
-      some (fieldLoc (slotAdd (totalsCollateralSlot asset) 0) 0 16 (by decide) (.int uint128Int))
-  | { base := "totalsCollateral", steps := [.mindex asset, .field "_reserved"] }, _ =>
-      some (fieldLoc (slotAdd (totalsCollateralSlot asset) 0) 16 16 (by decide) (.int uint128Int))
-  | { base := "userBasic", steps := [.mindex account, .field "principal"] }, _ =>
-      some (fieldLoc (slotAdd (userBasicSlot account) 0) 0 13 (by decide) (.int int104Int))
-  | { base := "userBasic", steps := [.mindex account, .field "baseTrackingIndex"] }, _ =>
-      some (fieldLoc (slotAdd (userBasicSlot account) 0) 13 8 (by decide) (.int uint64Int))
-  | { base := "userBasic", steps := [.mindex account, .field "baseTrackingAccrued"] }, _ =>
-      some (fieldLoc (slotAdd (userBasicSlot account) 0) 21 8 (by decide) (.int uint64Int))
-  | { base := "userBasic", steps := [.mindex account, .field "assetsIn"] }, _ =>
-      some (fieldLoc (slotAdd (userBasicSlot account) 0) 29 2 (by decide) (.int uint16Int))
-  | { base := "userBasic", steps := [.mindex account, .field "_reserved"] }, _ =>
-      some (fieldLoc (slotAdd (userBasicSlot account) 0) 31 1 (by decide) (.int uint8Int))
-  | { base := "userCollateral", steps := [.mindex account, .mindex asset, .field "balance"] }, _ =>
-      some (fieldLoc (slotAdd (userCollateralSlot account asset) 0) 0 16 (by decide) (.int uint128Int))
-  | { base := "userCollateral", steps := [.mindex account, .mindex asset, .field "_reserved"] }, _ =>
-      some (fieldLoc (slotAdd (userCollateralSlot account asset) 0) 16 16 (by decide) (.int uint128Int))
-  | { base := "liquidatorPoints", steps := [.mindex account, .field "numAbsorbs"] }, _ =>
-      some (fieldLoc (slotAdd (liquidatorPointsSlot account) 0) 0 4 (by decide) (.int uint32Int))
-  | { base := "liquidatorPoints", steps := [.mindex account, .field "numAbsorbed"] }, _ =>
-      some (fieldLoc (slotAdd (liquidatorPointsSlot account) 0) 4 8 (by decide) (.int uint64Int))
-  | { base := "liquidatorPoints", steps := [.mindex account, .field "approxSpend"] }, _ =>
-      some (fieldLoc (slotAdd (liquidatorPointsSlot account) 0) 12 16 (by decide) (.int uint128Int))
-  | { base := "liquidatorPoints", steps := [.mindex account, .field "_reserved"] }, _ =>
-      some (fieldLoc (slotAdd (liquidatorPointsSlot account) 0) 28 4 (by decide) (.int uint32Int))
-  | { base := "isAllowed", steps := [.mindex owner, .mindex manager] }, _ =>
-      some (fieldLoc (isAllowedSlot owner manager) 0 1 (by decide) .bool)
-  | { base := "userNonce", steps := [.mindex account] }, _ =>
-      some (fieldLoc (userNonceSlot account) 0 32 (by decide) (.int uint256Int))
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "baseSupplyIndex", steps := [] } =>
+      some (.leaf (fieldLoc ⟨0⟩ 0 8 (by decide) (.int uint64Int)))
+  | { base := "baseBorrowIndex", steps := [] } =>
+      some (.leaf (fieldLoc ⟨0⟩ 8 8 (by decide) (.int uint64Int)))
+  | { base := "trackingSupplyIndex", steps := [] } =>
+      some (.leaf (fieldLoc ⟨0⟩ 16 8 (by decide) (.int uint64Int)))
+  | { base := "trackingBorrowIndex", steps := [] } =>
+      some (.leaf (fieldLoc ⟨0⟩ 24 8 (by decide) (.int uint64Int)))
+  | { base := "totalSupplyBase", steps := [] } =>
+      some (.leaf (fieldLoc ⟨1⟩ 0 13 (by decide) (.int uint104Int)))
+  | { base := "totalBorrowBase", steps := [] } =>
+      some (.leaf (fieldLoc ⟨1⟩ 13 13 (by decide) (.int uint104Int)))
+  | { base := "lastAccrualTime", steps := [] } =>
+      some (.leaf (fieldLoc ⟨1⟩ 26 5 (by decide) (.int uint40Int)))
+  | { base := "pauseFlags", steps := [] } =>
+      some (.leaf (fieldLoc ⟨1⟩ 31 1 (by decide) (.int uint8Int)))
+  | { base := "totalsCollateral", steps := [.mindex asset, .field "totalSupplyAsset"] } =>
+      some (.leaf (fieldLoc (slotAdd (totalsCollateralSlot asset) 0) 0 16 (by decide) (.int uint128Int)))
+  | { base := "totalsCollateral", steps := [.mindex asset, .field "_reserved"] } =>
+      some (.leaf (fieldLoc (slotAdd (totalsCollateralSlot asset) 0) 16 16 (by decide) (.int uint128Int)))
+  | { base := "userBasic", steps := [.mindex account, .field "principal"] } =>
+      some (.leaf (fieldLoc (slotAdd (userBasicSlot account) 0) 0 13 (by decide) (.int int104Int)))
+  | { base := "userBasic", steps := [.mindex account, .field "baseTrackingIndex"] } =>
+      some (.leaf (fieldLoc (slotAdd (userBasicSlot account) 0) 13 8 (by decide) (.int uint64Int)))
+  | { base := "userBasic", steps := [.mindex account, .field "baseTrackingAccrued"] } =>
+      some (.leaf (fieldLoc (slotAdd (userBasicSlot account) 0) 21 8 (by decide) (.int uint64Int)))
+  | { base := "userBasic", steps := [.mindex account, .field "assetsIn"] } =>
+      some (.leaf (fieldLoc (slotAdd (userBasicSlot account) 0) 29 2 (by decide) (.int uint16Int)))
+  | { base := "userBasic", steps := [.mindex account, .field "_reserved"] } =>
+      some (.leaf (fieldLoc (slotAdd (userBasicSlot account) 0) 31 1 (by decide) (.int uint8Int)))
+  | { base := "userCollateral", steps := [.mindex account, .mindex asset, .field "balance"] } =>
+      some (.leaf (fieldLoc (slotAdd (userCollateralSlot account asset) 0) 0 16 (by decide) (.int uint128Int)))
+  | { base := "userCollateral", steps := [.mindex account, .mindex asset, .field "_reserved"] } =>
+      some (.leaf (fieldLoc (slotAdd (userCollateralSlot account asset) 0) 16 16 (by decide) (.int uint128Int)))
+  | { base := "liquidatorPoints", steps := [.mindex account, .field "numAbsorbs"] } =>
+      some (.leaf (fieldLoc (slotAdd (liquidatorPointsSlot account) 0) 0 4 (by decide) (.int uint32Int)))
+  | { base := "liquidatorPoints", steps := [.mindex account, .field "numAbsorbed"] } =>
+      some (.leaf (fieldLoc (slotAdd (liquidatorPointsSlot account) 0) 4 8 (by decide) (.int uint64Int)))
+  | { base := "liquidatorPoints", steps := [.mindex account, .field "approxSpend"] } =>
+      some (.leaf (fieldLoc (slotAdd (liquidatorPointsSlot account) 0) 12 16 (by decide) (.int uint128Int)))
+  | { base := "liquidatorPoints", steps := [.mindex account, .field "_reserved"] } =>
+      some (.leaf (fieldLoc (slotAdd (liquidatorPointsSlot account) 0) 28 4 (by decide) (.int uint32Int)))
+  | { base := "isAllowed", steps := [.mindex owner, .mindex manager] } =>
+      some (.leaf (fieldLoc (isAllowedSlot owner manager) 0 1 (by decide) .bool))
+  | { base := "userNonce", steps := [.mindex account] } =>
+      some (.leaf (fieldLoc (userNonceSlot account) 0 32 (by decide) (.int uint256Int)))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -897,7 +898,7 @@ def contract : ContractDecl :=
     fallback := some (fallbackTransition) }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment (contract).ctor.params }
 

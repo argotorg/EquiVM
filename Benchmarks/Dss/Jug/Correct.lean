@@ -53,7 +53,6 @@ theorem jugNonPayable {σ σ₀ A I} {g : UInt256}
 theorem jugNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = jugBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 12 → (jugSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -96,33 +95,33 @@ theorem jugNoSelectorMatches {I : ExecutionEnv}
 theorem jugCorrect :
     runtimeRefinement config jugBytecode contract := by
   refine runtimeRefinement.intro ?_
-  intro σ σ₀ g A I hcode hsize hperm
+  intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbase : selIs I (jugSelBytes 0)
-    · exact jugBaseBody hcode hsize hperm hwv hbase
+    · exact jugBaseBody hcode hsize hwv hbase
     · by_cases hdeny : selIs I (jugSelBytes 1)
-      · exact jugDenyBody hcode hsize hperm hwv hdeny
+      · exact jugDenyBodyAnyPerm hcode hsize hwv hdeny
       · by_cases hdrip : selIs I (jugSelBytes 2)
-        · exact jugDripBody hcode hsize hperm hwv hdrip
+        · exact jugDripBody hcode hsize hwv hdrip
         · by_cases hfileBase : selIs I (jugSelBytes 3)
-          · exact jugFileBaseBody hcode hsize hperm hwv hfileBase
+          · exact jugFileBaseBodyAnyPerm hcode hsize hwv hfileBase
           · by_cases hfileDuty : selIs I (jugSelBytes 4)
-            · exact jugFileDutyBody hcode hsize hperm hwv hfileDuty
+            · exact jugFileDutyBodyAnyPerm hcode hsize hwv hfileDuty
             · by_cases hfileVow : selIs I (jugSelBytes 5)
-              · exact jugFileVowBody hcode hsize hperm hwv hfileVow
+              · exact jugFileVowBodyAnyPerm hcode hsize hwv hfileVow
               · by_cases hilks : selIs I (jugSelBytes 6)
-                · exact jugIlksBody hcode hsize hperm hwv hilks
+                · exact jugIlksBody hcode hsize hwv hilks
                 · by_cases hinit : selIs I (jugSelBytes 7)
-                  · exact jugInitBody hcode hsize hperm hwv hinit
+                  · exact jugInitBodyAnyPerm hcode hsize hwv hinit
                   · by_cases hrely : selIs I (jugSelBytes 8)
-                    · exact jugRelyBody hcode hsize hperm hwv hrely
+                    · exact jugRelyBodyAnyPerm hcode hsize hwv hrely
                     · by_cases hvat : selIs I (jugSelBytes 9)
-                      · exact jugVatBody hcode hsize hperm hwv hvat
+                      · exact jugVatBody hcode hsize hwv hvat
                       · by_cases hvow : selIs I (jugSelBytes 10)
-                        · exact jugVowBody hcode hsize hperm hwv hvow
+                        · exact jugVowBody hcode hsize hwv hvow
                         · by_cases hwards : selIs I (jugSelBytes 11)
-                          · exact jugWardsBody hcode hsize hperm hwv hwards
-                          · exact jugNoDispatch hcode hsize hperm hwv
+                          · exact jugWardsBody hcode hsize hwv hwards
+                          · exact jugNoDispatch hcode hsize hwv
                               (jugNoSelectorMatches hbase hdeny hdrip hfileBase hfileDuty
                                 hfileVow hilks hinit hrely hvat hvow hwards)
 

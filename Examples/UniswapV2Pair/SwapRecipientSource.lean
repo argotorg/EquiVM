@@ -121,17 +121,17 @@ theorem swapRecipientValid_iff_runtime {evm : EVM.State} {I : ExecutionEnv} {σ 
     (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I) :
     (AccountAddress.ofNat (swapToWord I).toNat ≠ uniswapAddressAtSlot evm ⟨6⟩ ∧
       AccountAddress.ofNat (swapToWord I).toNat ≠ uniswapAddressAtSlot evm ⟨7⟩) ↔
-    (UInt256.land (swapToMaskedWord I) solcAddrMask ≠ UInt256.land solcAddrMask (uniswapSlotWord ⟨6⟩ σ I) ∧
-      UInt256.land (swapToMaskedWord I) solcAddrMask ≠ UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) := by
+    (UInt256.land (swapToMaskedWord I) solcAddrMask ≠ UInt256.land solcAddrMask (solcSlotWordAt ⟨6⟩ σ I) ∧
+      UInt256.land (swapToMaskedWord I) solcAddrMask ≠ UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ I)) := by
   have hto : AccountAddress.ofNat (swapToWord I).toNat = AccountAddress.ofUInt256 (swapToMaskedWord I) := by
     rw [accountAddress_ofUInt256_eq_ofNat_toNat]
     exact Value.address.inj (solcAddressValue_masked (swapToWord I))
   have hcTo : (swapToMaskedWord I).toNat < EVM.addressModulus := by
     rw [swapToMaskedWord, u256_land_comm]
     exact solcAddrMask_result_canonical _
-  have hc0 : (UInt256.land solcAddrMask (uniswapSlotWord ⟨6⟩ σ I)).toNat < EVM.addressModulus := by
+  have hc0 : (UInt256.land solcAddrMask (solcSlotWordAt ⟨6⟩ σ I)).toNat < EVM.addressModulus := by
     rw [u256_land_comm]; exact solcAddrMask_result_canonical _
-  have hc1 : (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)).toNat < EVM.addressModulus := by
+  have hc1 : (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ I)).toNat < EVM.addressModulus := by
     rw [u256_land_comm]; exact solcAddrMask_result_canonical _
   rw [hto, uniswapAddressAtSlot_eq_runtime ⟨6⟩ hAccounts henv,
     uniswapAddressAtSlot_eq_runtime ⟨7⟩ hAccounts henv, solcAddrMask_clean hcTo]

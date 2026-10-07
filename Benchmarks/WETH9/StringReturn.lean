@@ -1,3 +1,4 @@
+import Reasoning.Solc
 import Benchmarks.WETH9.StringLayout
 import Benchmarks.WETH9.Routines
 import Reasoning.MemCascade
@@ -24,9 +25,6 @@ set_option maxHeartbeats 4000000
 
 namespace Benchmarks.WETH9
 
-/-- Raw storage header word at `slot` for the code owner (the compact-string length header). -/
-def weth9StringSlotWord (σ : AccountMap) (I : ExecutionEnv) (slot : UInt256) : UInt256 :=
-  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)
 
 /-! ## Config-independent decode/shape expressions
 
@@ -142,41 +140,33 @@ theorem weth9ShortObjMem_eq (header : UInt256) :
       writeWord (writeWord (writeWord solcFreePtrMem 64 ⟨192⟩) 128 (weth9StringLen header))
         160 (weth9StringShortDataWord header) := rfl
 
-theorem weth9ShortL1_size (v : UInt256) : (writeWord solcFreePtrMem 64 v).size = 96 := by
-  rw [writeWord_size solcFreePtrMem 64 v (by rw [solcFreePtrMem_size]; exact lt_usize _ (by norm_num)),
-    solcFreePtrMem_size]; omega
-
-theorem weth9ShortL2_size (v w : UInt256) :
-    (writeWord (writeWord solcFreePtrMem 64 v) 128 w).size = 160 := by
-  rw [writeWord_size _ 128 w (by rw [weth9ShortL1_size]; exact lt_usize _ (by norm_num)),
-    weth9ShortL1_size]; omega
 
 theorem weth9ShortObjMem_size (header : UInt256) : (weth9ShortObjMem header).size = 192 := by
   rw [weth9ShortObjMem_eq,
-    writeWord_size _ 160 _ (by rw [weth9ShortL2_size]; exact lt_usize _ (by norm_num)),
-    weth9ShortL2_size]; omega
+    writeWord_size _ 160 _ (by rw [shortL2_size]; exact lt_usize _ (by norm_num)),
+    shortL2_size]; omega
 
 theorem weth9ShortObjMem_read160 (header : UInt256) :
     (weth9ShortObjMem header).readWithPadding 160 32 =
       UInt256.toByteArray (weth9StringShortDataWord header) := by
   rw [weth9ShortObjMem_eq]
-  exact writeWord_read_back _ 160 _ (by rw [weth9ShortL2_size]; exact lt_usize _ (by norm_num))
+  exact writeWord_read_back _ 160 _ (by rw [shortL2_size]; exact lt_usize _ (by norm_num))
 
 theorem weth9ShortObjMem_read128 (header : UInt256) :
     (weth9ShortObjMem header).readWithPadding 128 32 =
       UInt256.toByteArray (weth9StringLen header) := by
   rw [weth9ShortObjMem_eq,
-    writeWord_read_preserved _ 160 128 _ (by rw [weth9ShortL2_size]; exact lt_usize _ (by norm_num))
-      (Or.inl ⟨by decide, by rw [weth9ShortL2_size]⟩)]
-  exact writeWord_read_back _ 128 _ (by rw [weth9ShortL1_size]; exact lt_usize _ (by norm_num))
+    writeWord_read_preserved _ 160 128 _ (by rw [shortL2_size]; exact lt_usize _ (by norm_num))
+      (Or.inl ⟨by decide, by rw [shortL2_size]⟩)]
+  exact writeWord_read_back _ 128 _ (by rw [shortL1_size]; exact lt_usize _ (by norm_num))
 
 theorem weth9ShortObjMem_read64 (header : UInt256) :
     (weth9ShortObjMem header).readWithPadding 64 32 = UInt256.toByteArray ⟨192⟩ := by
   rw [weth9ShortObjMem_eq,
-    writeWord_read_preserved _ 160 64 _ (by rw [weth9ShortL2_size]; exact lt_usize _ (by norm_num))
-      (Or.inl ⟨by decide, by rw [weth9ShortL2_size]; decide⟩),
-    writeWord_read_preserved _ 128 64 _ (by rw [weth9ShortL1_size]; exact lt_usize _ (by norm_num))
-      (Or.inl ⟨by decide, by rw [weth9ShortL1_size]⟩)]
+    writeWord_read_preserved _ 160 64 _ (by rw [shortL2_size]; exact lt_usize _ (by norm_num))
+      (Or.inl ⟨by decide, by rw [shortL2_size]; decide⟩),
+    writeWord_read_preserved _ 128 64 _ (by rw [shortL1_size]; exact lt_usize _ (by norm_num))
+      (Or.inl ⟨by decide, by rw [shortL1_size]⟩)]
   exact writeWord_read_back _ 64 _ (by rw [solcFreePtrMem_size]; exact lt_usize _ (by norm_num))
 
 /-! ## Reach the shared string-load routine
@@ -192,7 +182,7 @@ theorem weth9ReachName839 {σ σ₀ A I} {g : Sat256}
       [⟨187⟩, weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h166⟩ := weth9ReachName (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
-  obtain ⟨_, _, h180⟩ := weth9GuardPeelOk (gt := ⟨178⟩) h166 hwv
+  obtain ⟨_, _, h180⟩ := solcFunctionGuardPeelOk (gt := ⟨178⟩) h166 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
   have h839 := h180.push2 ⟨187⟩ (by native_decide) (by simp)
@@ -212,9 +202,9 @@ theorem weth9NameRoutineReach897 {σ σ₀ A I} {g : Sat256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0)) :
     ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨897⟩
-      [weth9StringLen (weth9StringSlotWord σ I ⟨0⟩), ⟨0⟩, ⟨160⟩,
-       weth9StringLen (weth9StringSlotWord σ I ⟨0⟩), ⟨0⟩, ⟨128⟩, ⟨187⟩, weth9SelWord I]
-      (weth9RoutineMem (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat 5)
+      [weth9StringLen (solcSlotWord σ I ⟨0⟩), ⟨0⟩, ⟨160⟩,
+       weth9StringLen (solcSlotWord σ I ⟨0⟩), ⟨0⟩, ⟨128⟩, ⟨187⟩, weth9SelWord I]
+      (weth9RoutineMem (solcSlotWord σ I ⟨0⟩)) (UInt256.ofNat 5)
       ByteArray.empty σ k C := by
   obtain ⟨_, _, h839⟩ := weth9ReachName839 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
@@ -228,11 +218,11 @@ theorem weth9NameRoutineReach897 {σ σ₀ A I} {g : Sat256}
     push1 ⟨0⟩, not, add, swap1, swap5, and, swap4, swap1, swap4, div,
     push1 ⟨31⟩, dup2, add, dup5, swap1, div, dup5, mul, dup3, add, dup5, add, swap1, swap3]
   have h897 := evm_run h886 with [
-    raw mstore 0 ((UInt256.toByteArray (weth9StringNewFp (weth9StringSlotWord σ I ⟨0⟩))).write 0
+    raw mstore 0 ((UInt256.toByteArray (weth9StringNewFp (solcSlotWord σ I ⟨0⟩))).write 0
         solcFreePtrMem (⟨64⟩ : UInt256).toNat 32) (UInt256.ofNat 3)
       (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
     dup2, dup2,
-    raw mstore 6 (weth9RoutineMem (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat 5)
+    raw mstore 6 (weth9RoutineMem (solcSlotWord σ I ⟨0⟩)) (UInt256.ofNat 5)
       (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
     swap3, swap2, dup4, add, dup3, dup3]
   exact ⟨_, _, h897⟩
@@ -244,7 +234,7 @@ theorem weth9NameStringEmptyReturns {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0))
-    (hlen0 : weth9StringLen (weth9StringSlotWord σ I ⟨0⟩) = ⟨0⟩) :
+    (hlen0 : weth9StringLen (solcSlotWord σ I ⟨0⟩) = ⟨0⟩) :
     RDret weth9Bytecode g (initState σ σ₀ g A I) σ weth9EmptyStringAbi := by
   obtain ⟨_, _, h897⟩ := weth9NameRoutineReach897 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
@@ -289,11 +279,11 @@ theorem weth9NameShortLoadReach187 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0))
-    (hne : weth9StringLen (weth9StringSlotWord σ I ⟨0⟩) ≠ ⟨0⟩)
-    (hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) = ⟨0⟩) :
+    (hne : weth9StringLen (solcSlotWord σ I ⟨0⟩) ≠ ⟨0⟩)
+    (hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) = ⟨0⟩) :
     ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
       [⟨128⟩, ⟨187⟩, weth9SelWord I]
-      (weth9ShortObjMem (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat 6)
+      (weth9ShortObjMem (solcSlotWord σ I ⟨0⟩)) (UInt256.ofNat 6)
       ByteArray.empty σ k C := by
   obtain ⟨_, _, h897⟩ := weth9NameRoutineReach897 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
@@ -305,7 +295,7 @@ theorem weth9NameShortLoadReach187 {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h916⟩ := h915.sload (by native_decide) (by evm_ov)
   have h187 := evm_run h916 with [
     div, mul, dup4,
-    raw mstore 3 (weth9ShortObjMem (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat 6)
+    raw mstore 3 (weth9ShortObjMem (solcSlotWord σ I ⟨0⟩)) (UInt256.ofNat 6)
       (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
     swap2, push1 ⟨32⟩, add, swap2, push2 ⟨973⟩, jump (by jump_dest),
     jumpdest, pop, pop, pop, pop, pop, dup2, jump (by jump_dest)]
@@ -313,13 +303,6 @@ theorem weth9NameShortLoadReach187 {σ σ₀ A I} {g : Sat256}
 
 /-! ## Short-string ABI return encoder (pc 187 → RDret) -/
 
-/-- A low read `[read, read+32)` is unchanged by a later word write at `off ≥ read+32`. -/
-theorem weth9EncLowRead {mem : ByteArray} {off read : Nat} {word w : UInt256}
-    (hbase : mem.readWithPadding read 32 = UInt256.toByteArray w)
-    (hsz : read + 32 ≤ mem.size) (_hoff : mem.size ≤ off) (hgap : off - mem.size < USize.size)
-    (hro : read + 32 ≤ off) :
-    (writeWord mem off word).readWithPadding read 32 = UInt256.toByteArray w := by
-  rw [writeWord_read_preserved mem off read word hgap (Or.inl ⟨hro, hsz⟩)]; exact hbase
 
 theorem weth9ShortLtEnter {H : UInt256} (hne : weth9StringLen H ≠ ⟨0⟩) :
     UInt256.isZero (UInt256.lt ⟨0⟩ (weth9StringLen H)) = ⟨0⟩ := by
@@ -359,24 +342,28 @@ theorem weth9ShortMemB_read160 (H : UInt256) :
     (weth9ShortMemB H).readWithPadding 160 32 =
       UInt256.toByteArray (weth9StringShortDataWord H) := by
   rw [weth9ShortMemB]
-  refine weth9EncLowRead ?_ (by rw [weth9ShortMemA_size]; decide) (by rw [weth9ShortMemA_size])
+  refine writeWord_read_preserved_below_of_read ?_ (by rw [weth9ShortMemA_size]; decide)
+    (by rw [weth9ShortMemA_size])
     (by rw [weth9ShortMemA_size]; exact lt_usize _ (by norm_num)) (by decide)
   rw [weth9ShortMemA]
-  exact weth9EncLowRead (weth9ShortObjMem_read160 H) (by rw [weth9ShortObjMem_size])
+  exact writeWord_read_preserved_below_of_read (weth9ShortObjMem_read160 H)
+    (by rw [weth9ShortObjMem_size])
     (by rw [weth9ShortObjMem_size]) (by rw [weth9ShortObjMem_size]; exact lt_usize _ (by norm_num))
     (by decide)
 
 theorem weth9ShortMemA_read128 (H : UInt256) :
     (weth9ShortMemA H).readWithPadding 128 32 = UInt256.toByteArray (weth9StringLen H) := by
   rw [weth9ShortMemA]
-  exact weth9EncLowRead (weth9ShortObjMem_read128 H) (by rw [weth9ShortObjMem_size]; decide)
+  exact writeWord_read_preserved_below_of_read (weth9ShortObjMem_read128 H)
+    (by rw [weth9ShortObjMem_size]; decide)
     (by rw [weth9ShortObjMem_size]) (by rw [weth9ShortObjMem_size]; exact lt_usize _ (by norm_num))
     (by decide)
 
 theorem weth9ShortMemB_read128 (H : UInt256) :
     (weth9ShortMemB H).readWithPadding 128 32 = UInt256.toByteArray (weth9StringLen H) := by
   rw [weth9ShortMemB]
-  exact weth9EncLowRead (weth9ShortMemA_read128 H) (by rw [weth9ShortMemA_size]; decide)
+  exact writeWord_read_preserved_below_of_read (weth9ShortMemA_read128 H)
+    (by rw [weth9ShortMemA_size]; decide)
     (by rw [weth9ShortMemA_size]) (by rw [weth9ShortMemA_size]; exact lt_usize _ (by norm_num))
     (by decide)
 
@@ -390,21 +377,24 @@ theorem weth9ShortMemC_read256 (H : UInt256) :
 theorem weth9ShortMemA_read64 (H : UInt256) :
     (weth9ShortMemA H).readWithPadding 64 32 = UInt256.toByteArray ⟨192⟩ := by
   rw [weth9ShortMemA]
-  exact weth9EncLowRead (weth9ShortObjMem_read64 H) (by rw [weth9ShortObjMem_size]; decide)
+  exact writeWord_read_preserved_below_of_read (weth9ShortObjMem_read64 H)
+    (by rw [weth9ShortObjMem_size]; decide)
     (by rw [weth9ShortObjMem_size]) (by rw [weth9ShortObjMem_size]; exact lt_usize _ (by norm_num))
     (by decide)
 
 theorem weth9ShortMemB_read64 (H : UInt256) :
     (weth9ShortMemB H).readWithPadding 64 32 = UInt256.toByteArray ⟨192⟩ := by
   rw [weth9ShortMemB]
-  exact weth9EncLowRead (weth9ShortMemA_read64 H) (by rw [weth9ShortMemA_size]; decide)
+  exact writeWord_read_preserved_below_of_read (weth9ShortMemA_read64 H)
+    (by rw [weth9ShortMemA_size]; decide)
     (by rw [weth9ShortMemA_size]) (by rw [weth9ShortMemA_size]; exact lt_usize _ (by norm_num))
     (by decide)
 
 theorem weth9ShortMemC_read64 (H : UInt256) :
     (weth9ShortMemC H).readWithPadding 64 32 = UInt256.toByteArray ⟨192⟩ := by
   rw [weth9ShortMemC]
-  exact weth9EncLowRead (weth9ShortMemB_read64 H) (by rw [weth9ShortMemB_size]; decide)
+  exact writeWord_read_preserved_below_of_read (weth9ShortMemB_read64 H)
+    (by rw [weth9ShortMemB_size]; decide)
     (by rw [weth9ShortMemB_size]) (by rw [weth9ShortMemB_size]; exact lt_usize _ (by norm_num))
     (by decide)
 
@@ -584,12 +574,12 @@ theorem weth9NameStringShortReturns {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0))
-    (hne : weth9StringLen (weth9StringSlotWord σ I ⟨0⟩) ≠ ⟨0⟩)
-    (hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) = ⟨0⟩) :
+    (hne : weth9StringLen (solcSlotWord σ I ⟨0⟩) ≠ ⟨0⟩)
+    (hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) = ⟨0⟩) :
     RDret weth9Bytecode g (initState σ σ₀ g A I) σ
-      (weth9ShortStringAbi (weth9StringSlotWord σ I ⟨0⟩)) := by
+      (weth9ShortStringAbi (solcSlotWord σ I ⟨0⟩)) := by
   obtain ⟨_, _, h187⟩ := weth9NameShortLoadReach187 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel hne hlt31
-  exact weth9NameShortEncoder (weth9StringSlotWord σ I ⟨0⟩) hne hlt31 h187
+  exact weth9NameShortEncoder (solcSlotWord σ I ⟨0⟩) hne hlt31 h187
 
 end Benchmarks.WETH9

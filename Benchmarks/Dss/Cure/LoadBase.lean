@@ -1,8 +1,210 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Cure.Common
 import Benchmarks.Dss.Cure.Cage
 import Reasoning.ExternalCall
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Cure
+
+theorem loadCureReturnWrite_size {base o : ByteArray} {L : ℕ}
+    (hbase : base.size = 160) (hL : L ≤ 32) (hLo : L ≤ o.size) :
+    (o.write 0 base 128 L).size = 160 := by
+  rcases Nat.eq_zero_or_pos L with h | h
+  · subst h
+    rw [byteArray_write_len_zero]
+    exact hbase
+  · rw [write_eq_gen o base 128 L (by omega) hLo (by rw [hbase]; omega),
+      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+      ByteArray.size_extract, ByteArray.size_extract, hbase]
+    omega
+
+theorem loadCureReturnWrite_read64 {base o : ByteArray} {L : ℕ}
+    (hbase : base.size = 160)
+    (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hL : L ≤ 32) (hLo : L ≤ o.size) :
+    (o.write 0 base 128 L).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  rcases Nat.eq_zero_or_pos L with h | h
+  · subst h
+    rw [byteArray_write_len_zero]
+    exact hread64
+  · rw [write_read_below_gen o base 128 L 64 (by omega) hLo
+      (by rw [hbase]; omega) (by omega), hread64]
+
+theorem loadCureReturnWrite_read128_32 {base o : ByteArray}
+    (hbase : base.size = 160) (ho32 : 32 ≤ o.size) :
+    (o.write 0 base 128 32).readWithPadding 128 32 = o.extract 0 32 :=
+  write32_read_back o base 128 ho32 (by rw [hbase]; omega)
+
+theorem wordAt0Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
+    (wordAt0Mem word mem).size = 160 := by
+  unfold wordAt0Mem
+  exact toByteArray_write32_size_of_le mem word 0 160 160 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem wordAt32Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
+    (wordAt32Mem word mem).size = 160 := by
+  unfold wordAt32Mem
+  exact toByteArray_write32_size_of_le mem word 32 160 160 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem solcErrorStringMem0_size_of_size160 {mem : ByteArray} (hmem : mem.size = 160) :
+    (solcErrorStringMem0 mem).size = 160 := by
+  unfold solcErrorStringMem0
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract, hmem, toByteArray_size]
+
+theorem twoWordHashMem_read0_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 =
+      UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)]
+  exact wordAt0Mem_read0 key mem
+
+theorem twoWordHashMem_read32_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 =
+      UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_160 key hmem]; omega)]
+  exact toByteArray_extract_all slot
+
+theorem twoWordHashMem_size_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).size = 160 := by
+  unfold twoWordHashMem
+  exact wordAt32Mem_size_160 slot (wordAt0Mem_size_160 key hmem)
+
+theorem twoWordHashMem_read64_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (twoWordHashMem key slot mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)
+      (by rw [wordAt0Mem_size_160 key hmem]; norm_num)]
+  unfold wordAt0Mem
+  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
+      (by omega) (by rw [hmem]; norm_num)]
+  exact hread64
+
+theorem solcErrorStringMem1_size_of_size160 {mem : ByteArray} (hmem : mem.size = 160) :
+    (solcErrorStringMem1 mem).size = 164 := by
+  unfold solcErrorStringMem1
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [solcErrorStringMem0_size_of_size160 hmem]; omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    solcErrorStringMem0_size_of_size160 hmem,
+    toByteArray_size]
+
+theorem twoWordHashMem_read0_64_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem)]
+  have hleft :
+      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract _ 0 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem),
+      twoWordHashMem_read0_160 key slot hmem]
+  have hright :
+      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract _ 32 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem),
+      twoWordHashMem_read32_160 key slot hmem]
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+        (twoWordHashMem key slot mem).extract 32 64 by
+    rw [ByteArray.extract_append_extract]
+    norm_num]
+  rw [hleft, hright]
+
+theorem solcErrorStringMem2_size_of_size160 (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160) :
+    (solcErrorStringMem2 len mem).size = 196 := by
+  unfold solcErrorStringMem2
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [solcErrorStringMem1_size_of_size160 hmem])]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    solcErrorStringMem1_size_of_size160 hmem,
+    toByteArray_size]
+
+theorem twoWordHashMem_solcMappingSlot_160 (baseSlot key : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+      solcMappingSlot baseSlot key := by
+  rw [twoWordHashMem_read0_64_160 key baseSlot hmem]
+  unfold solcMappingSlot
+  exact mappingSlot_single key baseSlot
+
+theorem solcErrorStringMem3_size_of_size160 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160) :
+    (solcErrorStringMem3 len word mem).size = 228 := by
+  unfold solcErrorStringMem3
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [solcErrorStringMem2_size_of_size160 len hmem])]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    solcErrorStringMem2_size_of_size160 len hmem,
+    toByteArray_size]
+
+theorem solcErrorStringMem3_read64_of_size160 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcErrorStringMem3
+  rw [toByteArray_write_read_below_of_gap word _ 196 64
+      (by rw [solcErrorStringMem2_size_of_size160 len hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem2_size_of_size160 len hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem2
+  rw [toByteArray_write_read_below_of_gap len _ 164 64
+      (by rw [solcErrorStringMem1_size_of_size160 hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem1_size_of_size160 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem1
+  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
+      (by rw [solcErrorStringMem0_size_of_size160 hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem0_size_of_size160 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem0
+  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
+      (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
+  exact hread64
+
+theorem solcErrorStringMem3_mload64_of_size160 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((solcErrorStringMem3 len word mem).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size160 len word hmem]; decide)
+    (solcErrorStringMem3_read64_of_size160 len word hmem hread64)
+
+end Benchmarks.Dss.Cure
+
+end
 
 namespace Benchmarks.Dss.Cure
 
@@ -80,18 +282,18 @@ theorem evalExpr_loadLiveEqZero_true (evm : EVM.State) (I : ExecutionEnv)
       (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) := by
   rw [evalExpr?]
   · simp only [EvalResult.bind, bind]
-    rw [evalExpr_storage_scalar
+    rw [evalExpr_storage_scalar (hbackend := rfl)
       (er := ({ base := "live", steps := [] } : EvaledStorageRef))
       (t := .int uint256Int) (loc := wordLoc ⟨1⟩)]
-    · rw [cureStorageLocLoad_uint256]
+    · erw [storageLocLoad_uint256]
       rw [hlive]
       simp only [evalExpr?, pure]
       native_decide
     · simp [loadLocals, liveRef]
     · simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
     · simp [storageTypeAt?, contract, storageDecls, uint256St]
-    · funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw]
+    ·
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw]
   · native_decide
   · native_decide
 
@@ -101,10 +303,10 @@ theorem evalExpr_loadLiveEqZero_false (evm : EVM.State) (I : ExecutionEnv)
       (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool false) := by
   rw [evalExpr?]
   · simp only [EvalResult.bind, bind]
-    rw [evalExpr_storage_scalar
+    rw [evalExpr_storage_scalar (hbackend := rfl)
       (er := ({ base := "live", steps := [] } : EvaledStorageRef))
       (t := .int uint256Int) (loc := wordLoc ⟨1⟩)]
-    · rw [cureStorageLocLoad_uint256]
+    · erw [storageLocLoad_uint256]
       simp only [evalExpr?, pure]
       change EvalResult.ok (Value.bool
           ((Value.int (Int.ofNat
@@ -120,8 +322,8 @@ theorem evalExpr_loadLiveEqZero_false (evm : EVM.State) (I : ExecutionEnv)
     · simp [loadLocals, liveRef]
     · simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
     · simp [storageTypeAt?, contract, storageDecls, uint256St]
-    · funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw]
+    ·
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw]
   · native_decide
   · native_decide
 
@@ -130,16 +332,16 @@ theorem evalExpr_loadPosStorage (evm : EVM.State) (I : ExecutionEnv) :
       (.storage (posRef (.var "src"))) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (loadPosSlotFor I)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (er := loadPosEvaledRef I) (t := .int uint256Int) (loc := wordLoc (loadPosSlotFor I))]
-  · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm (loadPosSlotFor I))
+  · exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (loadPosSlotFor I))
   · simp [loadLocals, posRef]
   · simp [loadPosEvaledRef, loadSrc, posRef, evalStorageRef, evalStorageRefSteps,
       evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption, EvalResult.bind,
       pure, bind, loadLocals]
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
-  · funext evm'
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
       loadPosEvaledRef, loadPosSlotFor]
 
 theorem evalExpr_loadAmtStorage (evm : EVM.State) (I : ExecutionEnv) :
@@ -147,16 +349,16 @@ theorem evalExpr_loadAmtStorage (evm : EVM.State) (I : ExecutionEnv) :
       (.storage (amtRef (.var "src"))) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (loadAmtSlotFor I)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (er := loadAmtEvaledRef I) (t := .int uint256Int) (loc := wordLoc (loadAmtSlotFor I))]
-  · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm (loadAmtSlotFor I))
+  · exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (loadAmtSlotFor I))
   · simp [loadLocals, amtRef]
   · simp [loadAmtEvaledRef, loadSrc, amtRef, evalStorageRef, evalStorageRefSteps,
       evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption, EvalResult.bind,
       pure, bind, loadLocals]
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
-  · funext evm'
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
       loadAmtEvaledRef, loadAmtSlotFor]
 
 theorem evalExpr_loadSayStorage {evm : EVM.State} {locals : Store}
@@ -164,15 +366,15 @@ theorem evalExpr_loadSayStorage {evm : EVM.State} {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage sayRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨9⟩).toNat)) := by
-  rw [evalExpr_storage_scalar (er := loadSayEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := loadSayEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨9⟩)]
-  · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm ⟨9⟩)
+  · exact congrArg EvalResult.ok (storageLocLoad_uint256 evm ⟨9⟩)
   · exact hbase
   · simp [loadSayEvaledRef, sayRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
       pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm'
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, loadSayEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, loadSayEvaledRef]
 
 theorem evalExpr_loadLoadedStorage {evm : EVM.State} {locals : Store} (I : ExecutionEnv)
     (hbase : locals.get? "loaded" = none)
@@ -182,10 +384,10 @@ theorem evalExpr_loadLoadedStorage {evm : EVM.State} {locals : Store} (I : Execu
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
             (loadLoadedSlotFor I)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (er := loadLoadedEvaledRef I) (t := .int uint256Int)
     (loc := wordLoc (loadLoadedSlotFor I))]
-  · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm (loadLoadedSlotFor I))
+  · exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (loadLoadedSlotFor I))
   · exact hbase
   · have hvar :
         evalExpr? config { contract := contract, locals := locals } evm (.var "src") =
@@ -199,8 +401,8 @@ theorem evalExpr_loadLoadedStorage {evm : EVM.State} {locals : Store} (I : Execu
       evalStorageRefStep, hvar, valueToKey?, EvalResult.ofOption, EvalResult.bind,
       pure, bind, loadSrc]
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
-  · funext evm'
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
       loadLoadedEvaledRef, loadLoadedSlotFor]
 
 theorem evalExpr_loadLoadedEqZero_true {evm : EVM.State} {locals : Store} (I : ExecutionEnv)
@@ -249,15 +451,15 @@ theorem evalExpr_loadLCountStorage {evm : EVM.State} {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage lCountRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
-  rw [evalExpr_storage_scalar (er := loadLCountEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := loadLCountEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨8⟩)]
-  · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm ⟨8⟩)
+  · exact congrArg EvalResult.ok (storageLocLoad_uint256 evm ⟨8⟩)
   · exact hbase
   · simp [loadLCountEvaledRef, lCountRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm'
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, loadLCountEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, loadLCountEvaledRef]
 
 theorem evalExpr_incUncheckedLCount {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "lCount" = none) :
@@ -297,8 +499,8 @@ theorem assign_loadAmtStorage {evm : EVM.State} {locals : Store} (I : ExecutionE
       .storage (amtRef (.var "src")) (.int (Int.ofNat newAmt.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (loadAmtSlotFor I))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (loadAmtSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (er := loadAmtEvaledRef I)
     (hbase := hbase)
     (her := by
@@ -314,8 +516,7 @@ theorem assign_loadAmtStorage {evm : EVM.State} {locals : Store} (I : ExecutionE
       simp [hvar, valueToKey?, EvalResult.ofOption, EvalResult.bind, pure, bind, loadSrc])
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         loadAmtEvaledRef, loadAmtSlotFor])
     (hstore := by simpa [evm'] using storageLocStore_uint256 evm (loadAmtSlotFor I) newAmt)
 
@@ -326,16 +527,15 @@ theorem assign_loadSayStorage {evm : EVM.State} {locals : Store} (sayNew : UInt2
       .storage sayRef (.int (Int.ofNat sayNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨9⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨9⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (er := loadSayEvaledRef)
     (hbase := hbase)
     (her := by simp [loadSayEvaledRef, sayRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, loadSayEvaledRef])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, loadSayEvaledRef])
     (hstore := by simpa [evm'] using storageLocStore_uint256 evm ⟨9⟩ sayNew)
 
 theorem assign_loadLoadedStorage {evm : EVM.State} {locals : Store} (I : ExecutionEnv)
@@ -348,8 +548,8 @@ theorem assign_loadLoadedStorage {evm : EVM.State} {locals : Store} (I : Executi
       .storage (loadedRef (.var "src")) (.int (Int.ofNat value.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (loadLoadedSlotFor I))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (loadLoadedSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (er := loadLoadedEvaledRef I)
     (hbase := hbase)
     (her := by
@@ -366,8 +566,7 @@ theorem assign_loadLoadedStorage {evm : EVM.State} {locals : Store} (I : Executi
         pure, bind, loadSrc])
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         loadLoadedEvaledRef, loadLoadedSlotFor])
     (hstore := by simpa [evm'] using storageLocStore_uint256 evm (loadLoadedSlotFor I) value)
 
@@ -378,16 +577,15 @@ theorem assign_loadLCountStorage {evm : EVM.State} {locals : Store} (value : UIn
       .storage lCountRef (.int (Int.ofNat value.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨8⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨8⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (er := loadLCountEvaledRef)
     (hbase := hbase)
     (her := by simp [loadLCountEvaledRef, lCountRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, loadLCountEvaledRef])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, loadLCountEvaledRef])
     (hstore := by simpa [evm'] using storageLocStore_uint256 evm ⟨8⟩ value)
 
 theorem execLoadLoadedZeroTail {evm : EVM.State} {locals : Store} (I : ExecutionEnv)
@@ -657,220 +855,6 @@ theorem loadCureDecode_none_short {o : ByteArray} (hshort : o.size < 32) :
   unfold decodeReturn?
   rw [hdec']
   rfl
-
-theorem loadCureMin32_toNat_of_lt {n : ℕ} (h : n < 32) :
-    (min (⟨32⟩ : UInt256) (UInt256.ofNat n)).toNat = n := by
-  show (if (⟨32⟩ : UInt256) ≤ UInt256.ofNat n then (⟨32⟩ : UInt256)
-    else UInt256.ofNat n).toNat = n
-  have hnsize : n < UInt256.size := by
-    have h32 : 32 < UInt256.size := by norm_num [UInt256.size]
-    omega
-  rw [if_neg, ulit_toNat' n hnsize]
-  · show ¬ (32 : ℕ) ≤ (UInt256.ofNat n).val.val
-    rw [show (UInt256.ofNat n).val.val = (UInt256.ofNat n).toNat from rfl,
-      ulit_toNat' n hnsize]
-    omega
-
-theorem loadCureMin32_toNat_of_ge {n : ℕ}
-    (h32 : 32 ≤ n) (hsize : n < UInt256.size) :
-    (min (⟨32⟩ : UInt256) (UInt256.ofNat n)).toNat = 32 := by
-  show (if (⟨32⟩ : UInt256) ≤ UInt256.ofNat n then (⟨32⟩ : UInt256)
-    else UInt256.ofNat n).toNat = 32
-  rw [if_pos]
-  · rfl
-  · show (32 : ℕ) ≤ (UInt256.ofNat n).toNat
-    rw [ulit_toNat' n hsize]
-    exact h32
-
-theorem loadCureReturnWrite_size {base o : ByteArray} {L : ℕ}
-    (hbase : base.size = 160) (hL : L ≤ 32) (hLo : L ≤ o.size) :
-    (o.write 0 base 128 L).size = 160 := by
-  rcases Nat.eq_zero_or_pos L with h | h
-  · subst h
-    rw [byteArray_write_len_zero]
-    exact hbase
-  · rw [write_eq_gen o base 128 L (by omega) hLo (by rw [hbase]; omega),
-      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-      ByteArray.size_extract, ByteArray.size_extract, hbase]
-    omega
-
-theorem loadCureReturnWrite_read64 {base o : ByteArray} {L : ℕ}
-    (hbase : base.size = 160)
-    (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hL : L ≤ 32) (hLo : L ≤ o.size) :
-    (o.write 0 base 128 L).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  rcases Nat.eq_zero_or_pos L with h | h
-  · subst h
-    rw [byteArray_write_len_zero]
-    exact hread64
-  · rw [write_read_below_gen o base 128 L 64 (by omega) hLo
-      (by rw [hbase]; omega) (by omega), hread64]
-
-theorem loadCureReturnWrite_read128_32 {base o : ByteArray}
-    (hbase : base.size = 160) (ho32 : 32 ≤ o.size) :
-    (o.write 0 base 128 32).readWithPadding 128 32 = o.extract 0 32 :=
-  write32_read_back o base 128 ho32 (by rw [hbase]; omega)
-
-theorem wordAt0Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
-    (wordAt0Mem word mem).size = 160 := by
-  unfold wordAt0Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
-  omega
-
-theorem wordAt32Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
-    (wordAt32Mem word mem).size = 160 := by
-  unfold wordAt32Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
-  omega
-
-theorem twoWordHashMem_size_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).size = 160 := by
-  unfold twoWordHashMem
-  exact wordAt32Mem_size_160 slot (wordAt0Mem_size_160 key hmem)
-
-theorem twoWordHashMem_read0_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 =
-      UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)]
-  unfold wordAt0Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray key).size ≤ 32
-    rw [toByteArray_size])
-
-theorem twoWordHashMem_read32_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 =
-      UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_160 key hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray slot).size ≤ 32
-    rw [toByteArray_size])
-
-theorem twoWordHashMem_read64_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (twoWordHashMem key slot mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)
-      (by rw [wordAt0Mem_size_160 key hmem]; norm_num)]
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
-      (by omega) (by rw [hmem]; norm_num)]
-  exact hread64
-
-theorem twoWordHashMem_read0_64_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [twoWordHashMem_size_160 key slot hmem]; omega)]
-  have hleft :
-      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [twoWordHashMem_size_160 key slot hmem]; omega),
-      twoWordHashMem_read0_160 key slot hmem]
-  have hright :
-      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by rw [twoWordHashMem_size_160 key slot hmem]; omega),
-      twoWordHashMem_read32_160 key slot hmem]
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-        (twoWordHashMem key slot mem).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      norm_num]
-  rw [hleft, hright]
-
-theorem twoWordHashMem_solcMappingSlot_160 (baseSlot key : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 160) :
-    UInt256.ofNat (fromByteArrayBigEndian
-        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
-      solcMappingSlot baseSlot key := by
-  rw [twoWordHashMem_read0_64_160 key baseSlot hmem]
-  unfold solcMappingSlot
-  exact mappingSlot_single key baseSlot
-
-theorem solcErrorStringMem0_size_of_size160 {mem : ByteArray} (hmem : mem.size = 160) :
-    (solcErrorStringMem0 mem).size = 160 := by
-  unfold solcErrorStringMem0
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract, hmem, toByteArray_size]
-
-theorem solcErrorStringMem1_size_of_size160 {mem : ByteArray} (hmem : mem.size = 160) :
-    (solcErrorStringMem1 mem).size = 164 := by
-  unfold solcErrorStringMem1
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [solcErrorStringMem0_size_of_size160 hmem]; omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract, solcErrorStringMem0_size_of_size160 hmem,
-    toByteArray_size]
-
-theorem solcErrorStringMem2_size_of_size160 (len : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 160) :
-    (solcErrorStringMem2 len mem).size = 196 := by
-  unfold solcErrorStringMem2
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [solcErrorStringMem1_size_of_size160 hmem])]
-  simp [ByteArray.size_append, ByteArray.size_extract, solcErrorStringMem1_size_of_size160 hmem,
-    toByteArray_size]
-
-theorem solcErrorStringMem3_size_of_size160 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 160) :
-    (solcErrorStringMem3 len word mem).size = 228 := by
-  unfold solcErrorStringMem3
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [solcErrorStringMem2_size_of_size160 len hmem])]
-  simp [ByteArray.size_append, ByteArray.size_extract, solcErrorStringMem2_size_of_size160 len hmem,
-    toByteArray_size]
-
-theorem solcErrorStringMem3_read64_of_size160 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 160)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold solcErrorStringMem3
-  rw [toByteArray_write_read_below_of_gap word _ 196 64
-      (by rw [solcErrorStringMem2_size_of_size160 len hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem2_size_of_size160 len hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem2
-  rw [toByteArray_write_read_below_of_gap len _ 164 64
-      (by rw [solcErrorStringMem1_size_of_size160 hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem1_size_of_size160 hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem1
-  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
-      (by rw [solcErrorStringMem0_size_of_size160 hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem0_size_of_size160 hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem0
-  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
-      (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
-  exact hread64
-
-theorem solcErrorStringMem3_mload64_of_size160 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 160)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
-     else UInt256.ofNat
-       (fromByteArrayBigEndian
-        ((solcErrorStringMem3 len word mem).readWithPadding
-          (⟨64⟩ : UInt256).toNat 32)))
-      = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size160 len word hmem]; decide) (solcErrorStringMem3_read64_of_size160 len word hmem hread64)
 
 
 end Benchmarks.Dss.Cure

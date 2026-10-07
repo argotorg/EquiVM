@@ -248,7 +248,7 @@ theorem ownable2StepNonPayable {σ σ₀ A I}
 theorem ownable2StepShortRevert {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
+    (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (ownable2StepX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
@@ -257,7 +257,7 @@ theorem ownable2StepShortRevert {σ σ₀ A I}
 theorem ownable2StepNoDispatch {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 5 → (ownable2StepSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeRefinementFor config contract
       σ σ₀ g A I := by

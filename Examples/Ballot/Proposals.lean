@@ -1,9 +1,26 @@
+import Reasoning.WordArithmetic
 import Examples.Ballot.Common
 import Reasoning.SolmBody
+
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Ballot
+
+theorem proposalsSubRet64_toNat :
+    (UInt256.sub ((⟨64⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 64 := by
+  decide
+
+end Ballot
+
+end
 
 namespace Ballot
 
@@ -67,9 +84,9 @@ theorem proposalsArrayIndexInBounds_ok (evm : EVM.State) (I : ExecutionEnv)
       (proposalsIndexWord I).toNat <
         UInt256.toNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩) := by
     simpa [proposalsLengthCurrent] using hbound
-  simp [arrayIndexInBounds?, storageTypeAt?, ballotConfig,
-    ballotStorageLayout, ballotContract, ballotStorageDecls, proposalStructTy, uint256St,
-    bytes32St, ballotStorageLocLoad_uint256, hboundStorage]
+  simp [arrayIndexInBounds?, storageTypeAt?, ballotContract, ballotStorageDecls]
+  rw [ballotProposalsLength]
+  simp [hboundStorage]
 
 theorem proposalsArrayIndexInBounds_revert (evm : EVM.State) (I : ExecutionEnv)
     (hbound : ¬ (proposalsIndexWord I).toNat < (proposalsLengthCurrent evm).toNat) :
@@ -83,9 +100,9 @@ theorem proposalsArrayIndexInBounds_revert (evm : EVM.State) (I : ExecutionEnv)
       UInt256.toNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩) ≤
         (proposalsIndexWord I).toNat :=
     Nat.le_of_not_gt hboundStorage
-  simp [arrayIndexInBounds?, storageTypeAt?, ballotConfig,
-    ballotStorageLayout, ballotContract, ballotStorageDecls, proposalStructTy, uint256St,
-    bytes32St, ballotStorageLocLoad_uint256, hleStorage]
+  simp [arrayIndexInBounds?, storageTypeAt?, ballotContract, ballotStorageDecls]
+  rw [ballotProposalsLength]
+  simp [hleStorage]
 
 theorem ballotProposalsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
@@ -148,31 +165,29 @@ theorem ballotProposalsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
         simp [proposalCountEvaledRef, storageTypeAt?, storageTypeStep?, ballotContract,
           ballotStorageDecls, proposalStructTy, uint256St]
       have hlocName :
-          ballotConfig.storage.layout (proposalNameEvaledRef I) =
-            fun _ => some (proposalNameLoc I) := by
-        funext evm'
-        simp [proposalNameEvaledRef, proposalNameLoc, ballotConfig, ballotStorageLayout,
+          ballotConfig.storageBackend.locate? (proposalNameEvaledRef I) =
+            some (.leaf (proposalNameLoc I)) := by
+        simp [proposalNameEvaledRef, proposalNameLoc, ballotConfig,
           proposalNameSlot_spec]
       have hlocCount :
-          ballotConfig.storage.layout (proposalCountEvaledRef I) =
-            fun _ => some (wordLoc (proposalCountSlot I)) := by
-        funext evm'
-        simp [proposalCountEvaledRef, proposalCountSlot, ballotConfig, ballotStorageLayout,
+          ballotConfig.storageBackend.locate? (proposalCountEvaledRef I) =
+            some (.leaf (wordLoc (proposalCountSlot I))) := by
+        simp [proposalCountEvaledRef, proposalCountSlot, ballotConfig,
           proposalNameSlot_spec, u256_add_comm]
       have hnameLoad :
           storageLocLoad evm (proposalNameLoc I) =
             .fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (proposalNameCurrent evm I)) := by
         simpa [proposalNameLoc, proposalNameCurrent] using
-          (ballotStorageLocLoad_bytes32 evm (proposalNameSlot I))
+          (storageLocLoad_bytes32 evm (proposalNameSlot I))
       have hcountLoad :
           storageLocLoad evm (wordLoc (proposalCountSlot I)) =
             .int (Int.ofNat (proposalCountCurrent evm I).toNat) := by
         simpa [proposalCountCurrent] using
-          (ballotStorageLocLoad_uint256 evm (proposalCountSlot I))
+          (storageLocLoad_uint256 evm (proposalCountSlot I))
       simp only [Solm.evalExprs?.eq_def,
-        evalExpr_storage_scalar (t := .bytes ⟨31, by decide⟩) (hbase := hbaseName)
+        evalExpr_storage_scalar (hbackend := rfl) (t := .bytes ⟨31, by decide⟩) (hbase := hbaseName)
           (her := herName) (hty := htyName) (hloc := hlocName),
-        evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbaseCount)
+        evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbaseCount)
           (her := herCount) (hty := htyCount) (hloc := hlocCount),
         EvalResult.bind, bind, pure, proposalNameCurrent, proposalCountCurrent,
         hnameLoad, hcountLoad])
@@ -366,9 +381,6 @@ theorem proposalsReturnMem_read128_64 (name count : UInt256) :
       rw [toByteArray_size])
   rw [hnameFull, hcountFull]
 
-theorem proposalsSubRet64_toNat :
-    (UInt256.sub ((⟨64⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 64 := by
-  decide
 
 /-! ## EVM trace -/
 
@@ -624,7 +636,7 @@ theorem ballotProposalsBodyCore
         exact (ballotX_proposals_ok (g := Sat256.ofUInt256 g) hsz36 hsize hbig hbound hreach)
           |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
             (returnEquiv.returned rfl
-              (ballotProposalReturnEncoding (proposalNameWord σ I)
+              (bytes32Uint256ReturnEncoding (proposalNameWord σ I)
                 (proposalCountWord σ I)))
       · have hbody := ballotProposalsBodyReverts_oob
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) I

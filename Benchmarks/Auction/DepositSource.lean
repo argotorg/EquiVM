@@ -1,3 +1,4 @@
+import Reasoning.ExternalCall
 import Benchmarks.Auction.PaymentLocals
 import Benchmarks.Auction.DepositCall
 
@@ -12,22 +13,11 @@ theorem wethSourceRead {s0 I σ evm locals}
       .ok (.address (AccountAddress.ofUInt256 (wethWord σ I))) := by
   rw [wethRef, scalarRead evm locals "weth" .address (auctionAddrLoc ⟨202⟩)
     hb (by native_decide) rfl, loadAddress]
-  have hw : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨202⟩ = storedWord σ I ⟨202⟩ := by
+  have hw : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨202⟩ = solcSlotWord σ I ⟨202⟩ := by
     exact hs.storageRead _
   rw [hw, addressOfWord_eq]
   rfl
 
--- LIBRARY CANDIDATE: the source code-size expression agrees under account-map equality.
-theorem extCodeSource {cfg frame evm σ target receiver}
-    (hs : σ = evm.accountMap)
-    (hr : evalExpr? cfg frame evm receiver =
-      .ok (.address (AccountAddress.ofUInt256 target))) :
-    evalExpr? cfg frame evm (.extCodeSize receiver) =
-      .ok (.int (Int.ofNat (extCodeSizeWord σ target).toNat)) := by
-  simp only [evalExpr?, hr, pure, bind, EvalResult.bind]
-  rw [hs]
-  unfold State.lookupAccount extCodeSizeWord
-  cases evm.accountMap.get? (AccountAddress.ofUInt256 target) <;> rfl
 
 theorem wethCodeGuardSource {s0 I σ evm locals}
     (hs : SourceState s0 I σ evm) (hb : locals.get? "weth" = none) :

@@ -1,3 +1,5 @@
+import Reasoning.WordArithmetic
+import Reasoning.Memory
 import Benchmarks.Dss.Flapper.Common
 import Reasoning.Initcode
 import Solm.Refine
@@ -7,6 +9,80 @@ import Solm.Refine
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Flapper
+
+theorem wordAt0Mem_size_192 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 192) :
+    (wordAt0Mem word mem).size = 192 := by
+  unfold wordAt0Mem
+  exact toByteArray_write32_size_of_le mem word 0 192 192 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem wordAt32Mem_size_192 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 192) :
+    (wordAt32Mem word mem).size = 192 := by
+  unfold wordAt32Mem
+  exact toByteArray_write32_size_of_le mem word 32 192 192 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem twoWordHashMem_read0_192 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 192) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 =
+      UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_192 key hmem]; omega) (by omega)]
+  exact wordAt0Mem_read0 key mem
+
+theorem twoWordHashMem_read32_192 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 192) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 =
+      UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_192 key hmem]; omega)]
+  exact toByteArray_extract_all slot
+
+theorem twoWordHashMem_read0_64_192 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 192) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_192]
+        · omega
+        · exact wordAt0Mem_size_192 key hmem)]
+  have hleft :
+      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract _ 0 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_192]
+        · omega
+        · exact wordAt0Mem_size_192 key hmem),
+      twoWordHashMem_read0_192 key slot hmem]
+  have hright :
+      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract _ 32 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_192]
+        · omega
+        · exact wordAt0Mem_size_192 key hmem),
+      twoWordHashMem_read32_192 key slot hmem]
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+        (twoWordHashMem key slot mem).extract 32 64 by
+    rw [ByteArray.extract_append_extract]
+    norm_num]
+  rw [hleft, hright]
+
+end Benchmarks.Dss.Flapper
+
+end
 
 namespace Benchmarks.Dss.Flapper
 
@@ -23,14 +99,6 @@ def flapperCtorArgsTail (vat gem : AccountAddress) : ByteArray :=
 def flapperCtorCode (vat gem : AccountAddress) : ByteArray :=
   flapperCreationBytecode ++ flapperCtorArgsTail vat gem
 
-private theorem byteArray_append_toList (a b : ByteArray) :
-    (a ++ b).toList = a.toList ++ b.toList := by
-  rw [byteArray_toList_eq, byteArray_toList_eq, byteArray_toList_eq]
-  simp [ByteArray.data_append]
-
-private theorem list_toByteArray_toList (xs : List UInt8) : xs.toByteArray.toList = xs := by
-  rw [byteArray_toList_eq]
-  simp
 
 theorem flapperCtorDeployment_shape {args : List Value} {deployedInitcode : ByteArray}
     (hdeploy : config.selfDeployment flapperCreationBytecode args = some deployedInitcode) :
@@ -127,44 +195,6 @@ theorem flapperCreationBytecode_runtime_window :
     flapperCreationBytecode.extract 208 (208 + 5008) = flapperBytecode := by
   native_decide
 
-private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : ℕ)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
-    (hbase : base.size ≤ destAddr) (hgap : destAddr - base.size < USize.size) :
-    src.write srcAddr base destAddr len =
-      base ++ ByteArray.zeroes (destAddr - base.size) ++
-        src.extract srcAddr (srcAddr + len) := by
-  apply ByteArray.ext
-  unfold ByteArray.write
-  rw [if_neg hlen, if_neg (show ¬ srcAddr ≥ src.size from by omega)]
-  have hcopy : min len (src.size - srcAddr) = len := by omega
-  have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by omega
-  simp only [hcopy, htail, ByteArray.data_copySlice, ByteArray.data_append,
-    ByteArray.data_extract]
-  have hpz : (ByteArray.zeroes (destAddr - base.size)).data.size =
-      destAddr - base.size := by
-    rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
-      ByteArray_zeroes_size]
-  have hDsz :
-      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size =
-        destAddr := by
-    rw [Array.size_append, hpz, show base.data.size = base.size from rfl]
-    omega
-  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
-    rw [zeroes_zero (n := 0) (by rfl)]
-    rfl]
-  simp only [Array.append_empty, Nat.add_zero]
-  rw [show min len (src.data.size - srcAddr) = len by
-    have : src.data.size = src.size := rfl
-    omega]
-  rw [Array.extract_eq_self_of_le (by rw [hDsz])]
-  rw [show
-      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract
-        (destAddr + len) = #[] from by
-    apply Array.extract_eq_empty_of_le
-    rw [hDsz]
-    omega]
-  simp [Array.append_assoc]
 
 def flapperCtorCopiedMem (vat gem : AccountAddress) : ByteArray :=
   (flapperCtorCode vat gem).write 5216 solcFreePtrMem 128 64
@@ -306,68 +336,6 @@ theorem flapperCtorWardsHashMem_size (I : ExecutionEnv) (vat gem : AccountAddres
       (word := (⟨0⟩ : UInt256)) (off := 32) (baseSize := 192) (finalSize := 192)
       hfirstSize (by rw [hfirstSize]; omega) (by omega)
 
-private theorem wordAt0Mem_size_192 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 192) :
-    (wordAt0Mem word mem).size = 192 := by
-  unfold wordAt0Mem
-  exact toByteArray_write32_size_of_le mem word 0 192 192 hmem
-    (by rw [hmem]; omega) (by omega)
-
-private theorem wordAt32Mem_size_192 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 192) :
-    (wordAt32Mem word mem).size = 192 := by
-  unfold wordAt32Mem
-  exact toByteArray_write32_size_of_le mem word 32 192 192 hmem
-    (by rw [hmem]; omega) (by omega)
-
-private theorem twoWordHashMem_read0_192 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 192) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 =
-      UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_192 key hmem]; omega) (by omega)]
-  exact wordAt0Mem_read0 key mem
-
-private theorem twoWordHashMem_read32_192 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 192) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 =
-      UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_192 key hmem]; omega)]
-  exact toByteArray_extract_all slot
-
-private theorem twoWordHashMem_read0_64_192 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 192) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by
-        unfold twoWordHashMem
-        rw [wordAt32Mem_size_192]
-        · omega
-        · exact wordAt0Mem_size_192 key hmem)]
-  have hleft :
-      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0 (by
-        unfold twoWordHashMem
-        rw [wordAt32Mem_size_192]
-        · omega
-        · exact wordAt0Mem_size_192 key hmem),
-      twoWordHashMem_read0_192 key slot hmem]
-  have hright :
-      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32 (by
-        unfold twoWordHashMem
-        rw [wordAt32Mem_size_192]
-        · omega
-        · exact wordAt0Mem_size_192 key hmem),
-      twoWordHashMem_read32_192 key slot hmem]
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-        (twoWordHashMem key slot mem).extract 32 64 by
-    rw [ByteArray.extract_append_extract]
-    norm_num]
-  rw [hleft, hright]
 
 theorem flapperCtorWardsHashSlot (I : ExecutionEnv) (vat gem : AccountAddress) :
     UInt256.ofNat (fromByteArrayBigEndian
@@ -398,14 +366,6 @@ theorem flapperCtorReturnMem_read (I : ExecutionEnv) (vat gem : AccountAddress) 
       (208 + 5008) (by rw [flapperCreationBytecode_size])
   rw [hleft, flapperCreationBytecode_runtime_window]
 
-theorem word_val_addr_canonical (a : AccountAddress) :
-    (EVM.word a.val).toNat < EVM.addressModulus := by
-  have hsize : AccountAddress.size < UInt256.size := by decide
-  have hval : (EVM.word a.val).toNat = a.val := by
-    change (UInt256.ofNat a.val).toNat = a.val
-    rw [UInt256.toNat_ofNat_of_lt (lt_trans a.isLt hsize)]
-  rw [hval]
-  exact a.isLt
 
 abbrev flapperCtorVatStored (σ : AccountMap) (I : ExecutionEnv) (vat : AccountAddress) :
     UInt256 :=
@@ -419,8 +379,8 @@ abbrev flapperCtorDefaultsSlot5Word (old : UInt256) : UInt256 :=
   UInt256.lor
     (UInt256.shiftLeft ⟨172800⟩ ⟨48⟩)
     (UInt256.land
-      (UInt256.lnot (UInt256.shiftLeft flapperUint48Mask ⟨48⟩))
-      (UInt256.lor (UInt256.land old (UInt256.lnot flapperUint48Mask)) ⟨10800⟩))
+      (UInt256.lnot (UInt256.shiftLeft uint48Mask ⟨48⟩))
+      (UInt256.lor (UInt256.land old (UInt256.lnot uint48Mask)) ⟨10800⟩))
 
 abbrev flapperCtorAfterBegMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner σ ⟨4⟩ flapperCtorBegWord

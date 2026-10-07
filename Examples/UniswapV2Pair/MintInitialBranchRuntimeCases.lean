@@ -20,7 +20,7 @@ theorem uniswapMintInitialBranchRuntimeCases
       mem feeToStaticcallActiveWords rdata σFee k C)
     (hAccounts : Eq σFee evm.accountMap)
     (henv : evm.executionEnv = I)
-    (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
+    (htotalZero : solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩)
     (htotal : locals.get? "_totalSupply" = some (uniswapUint256Value (⟨0⟩ : UInt256)))
     (hamount0 : locals.get? "amount0" = some (uniswapUint256Value amount0))
     (hamount1 : locals.get? "amount1" = some (uniswapUint256Value amount1))
@@ -64,7 +64,7 @@ theorem uniswapMintInitialBranchRuntimeCases
       obtain ⟨hgeWord, hliquidity⟩ := mintInitialRootLiquidityRuntimeFacts hrootSize hge
         (show liquidity = UInt256.ofNat (root - minimumLiquidity).toNat from rfl)
       have htotalFit :
-          (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat < UInt256.size := by
+          (solcSlotWordAt ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat < UInt256.size := by
         rw [htotalZero]
         native_decide
       have hfitSupply : mintFunctionTotalSupplyNewNat evm ⟨1000⟩ < UInt256.size := by

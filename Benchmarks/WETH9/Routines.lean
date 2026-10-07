@@ -1,3 +1,4 @@
+import Reasoning.SolcRoutines
 import Benchmarks.WETH9.Dispatch
 
 /-!
@@ -17,81 +18,6 @@ set_option maxHeartbeats 1000000
 
 namespace Benchmarks.WETH9
 
-/-- Non-payable callvalue guard, `callvalue == 0` branch: peel
-    `JUMPDEST; CALLVALUE; DUP1; ISZERO; PUSH2 gt; JUMPI; …; JUMPDEST gt; POP`, reaching `gt + 2`
-    with the selector word still on the stack.
-    LIBRARY CANDIDATE: `Reasoning.Solc` — per-function analogue of `solcGuardCallvalueZero`. -/
-theorem weth9GuardPeelOk {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {entry gt sel : UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 entry [sel] mem aw rdata acc k C)
-    (hcv : ee.weiValue = ⟨0⟩)
-    (hd0 : decode code entry = some (.JUMPDEST, .none))
-    (hd1 : decode code (entry + ⟨1⟩) = some (.CALLVALUE, .none))
-    (hd2 : decode code (entry + ⟨1⟩ + ⟨1⟩) = some (.DUP1, .none))
-    (hd3 : decode code (entry + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.ISZERO, .none))
-    (hd4 : decode code (entry + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.Push .PUSH2, some (gt, 2)))
-    (hd7 : decode code (entry + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3) = some (.JUMPI, .none))
-    (hgtjd : (D_J code 0).contains gt = true)
-    (hdgt : decode code gt = some (.JUMPDEST, .none))
-    (hdpop : decode code (gt + ⟨1⟩) = some (.POP, .none)) :
-    ∃ k' C', RD code ee g s0 (gt + ⟨1⟩ + ⟨1⟩) [sel] mem aw rdata acc k' C' := by
-  have hcond : UInt256.isZero ee.weiValue ≠ ⟨0⟩ := by rw [hcv]; decide
-  exact ⟨_, _, h.jumpdest hd0 (by simp)
-    |>.callvalue hd1 (by simp)
-    |>.dup1 hd2 (by simp)
-    |>.iszero hd3 (by simp)
-    |>.pushConst gt (op := .PUSH2) (width := 2) (by simp) hd4 (by simp)
-    |>.jumpiT hd7 hcond hgtjd (by simp)
-    |>.jumpdest hdgt (by simp)
-    |>.pop hdpop (by simp)⟩
-
-/-- Non-payable callvalue guard, `callvalue != 0` branch: the `JUMPI` is not taken and control falls
-    into the `PUSH1 0; DUP1; REVERT` stub.
-    LIBRARY CANDIDATE: `Reasoning.Solc` — per-function analogue of `solcGuardCallvalueNonzeroRevert`. -/
-theorem weth9GuardPeelRev {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {entry gt sel : UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 entry [sel] mem aw rdata acc k C)
-    (hcv : ee.weiValue ≠ ⟨0⟩)
-    (hd0 : decode code entry = some (.JUMPDEST, .none))
-    (hd1 : decode code (entry + ⟨1⟩) = some (.CALLVALUE, .none))
-    (hd2 : decode code (entry + ⟨1⟩ + ⟨1⟩) = some (.DUP1, .none))
-    (hd3 : decode code (entry + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.ISZERO, .none))
-    (hd4 : decode code (entry + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.Push .PUSH2, some (gt, 2)))
-    (hd7 : decode code (entry + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3) = some (.JUMPI, .none))
-    (hd8 : decode code (entry + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩)
-        = some (.Push .PUSH1, some (⟨0⟩, 1)))
-    (hd10 : decode code (entry + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ + UInt256.ofNat 2)
-        = some (.DUP1, .none))
-    (hd11 : decode code (entry + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩)
-        = some (.REVERT, .none)) :
-    RDrev code g s0 := by
-  have hcond : UInt256.isZero ee.weiValue = ⟨0⟩ := isZero_eq_zero_of_ne hcv
-  exact h.jumpdest hd0 (by simp)
-    |>.callvalue hd1 (by simp)
-    |>.dup1 hd2 (by simp)
-    |>.iszero hd3 (by simp)
-    |>.pushConst gt (op := .PUSH2) (width := 2) (by simp) hd4 (by simp)
-    |>.jumpiNT hd7 hcond (by simp)
-    |>.solcPush1Dup1Revert0 hd8 hd10 hd11 (by simp)
-
-/-- Combined nested-mapping getter (chains the library inner-hash / outer-hash / load-and-jump).
-    LIBRARY CANDIDATE: `Reasoning.Solc` — the nested analogue of `RD.solcSingleMappingGetter`. -/
-theorem weth9NestedMappingGetter {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {k C : ℕ} {pc baseSlot owner spender ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {σ : AccountMap}
-    (h : RD code ee g s0 pc (spender :: owner :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
-    (hwf : solcNestedMappingGetterWf code pc baseSlot)
-    (hret : (D_J code 0).contains ret = true)
-    (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
-      (solcSlotWord σ ee (solcMappingSlot (solcMappingSlot baseSlot owner) spender) :: ret :: R)
-      (solcNestedMappingHashMem baseSlot owner spender) (UInt256.ofNat 3) rdata σ k' C' := by
-  obtain ⟨_, _, hinner⟩ := RD.solcNestedMappingInnerHash h hwf hov
-  obtain ⟨_, _, houter⟩ := RD.solcNestedMappingOuterHash hinner hwf hov
-  exact RD.solcNestedMappingLoadAndJump houter hwf hret (by omega)
 
 /-! ## Connect lemmas taking a direct selector dispatch
 
@@ -134,6 +60,27 @@ theorem weth9ReEquivExecGen {cfg : Config} {contract : ContractDecl} {t : Transi
     rw [hxi]
     have haccounts : s.accountMap = evm''.accountMap := hsacc.trans hAccountMap
     exact execResultsEquiv.success rfl rfl haccounts (.abi henc)
+
+theorem weth9ReEquivExecStatic {cfg : Config} {contract : ContractDecl}
+    {t : TransitionDecl} {σ σ₀ A I} {g : Sat256} {callargs}
+    (hcode : I.code = weth9Bytecode)
+    (h : RDstatic weth9Bytecode g (initState σ σ₀ g A I))
+    (hsel : selectorDispatchMsg contract I.calldata = some t)
+    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
+      (transitionSignature t).paramTypes I.calldata = some callargs)
+    (hbody : ExecTransitionBody cfg contract
+      (initState σ σ₀ g A I) callargs t.body .staticViolation) :
+    runtimeRefinementFor cfg contract σ σ₀ g.toUInt256 A I := by
+  apply h.reEquivElim hcode
+  intro hstatic
+  have hbody' : ExecTransitionBody cfg contract
+      (initState σ σ₀ (Sat256.ofUInt256 g.toUInt256) A I)
+      callargs t.body .staticViolation := by
+    simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hbody
+  refine runtimeRefinementFor.execution rfl
+    (solmExec.intro hsel rfl hdec rfl hbody') ?_
+  rw [hstatic]
+  exact execResultsEquiv.staticHalt rfl rfl
 
 /-- `RDrev ⇒ execution` (revert) for a directly-matched selector. -/
 theorem weth9ReEquivExecRev {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}

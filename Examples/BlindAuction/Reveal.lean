@@ -9,7 +9,7 @@ namespace BlindAuction
 /-- `reveal(uint256[],bool[],bytes32[])` body (pc 387) refines its transition. -/
 theorem blindAuctionRevealBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I ⟨#[0x90, 0x0f, 0x08, 0x0a]⟩)
+    (hsel : selIs I ⟨#[0x90, 0x0f, 0x08, 0x0a]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨387⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
@@ -18,7 +18,6 @@ theorem blindAuctionRevealBodyCore {σ σ₀ A I} {g : UInt256}
     runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
-  have _hperm : I.perm = true := hperm
 
   have hsz := blindAuctionRevealSelector_size hsel
   have hd := blindAuctionDispatch_reveal (cd := I.calldata) hsel
@@ -73,7 +72,7 @@ theorem blindAuctionRevealBodyCore {σ σ₀ A I} {g : UInt256}
               (I := I) (g := g)
               (σ := σ)  (σ₀ := σ₀) (A := A)
               (callargs := callargs)
-              hcode hsize hperm hd hdec hwv hcalldataSign
+              hcode hsize hd hdec hwv hcalldataSign
               ⟨k1806, C1806, rd1806⟩
         · have hcalldataGe : 2 ^ 255 ≤ I.calldata.size := by omega
           have hdecNone := blindAuctionDecode_reveal_none_huge_dynamic (I := I) hcalldataGe

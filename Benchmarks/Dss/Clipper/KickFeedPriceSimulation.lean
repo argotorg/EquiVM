@@ -147,8 +147,7 @@ inductive ClipperKickPeekOutcome (v : ClipperImmutables) (code : ByteArray)
       (mem : ByteArray) (k C : ℕ)
       (hprefix : ExecBlock config { contract := contract, locals := ∅, immutables := immStore v }
         sourceEvm (clipperGetFeedPriceSuccessPrefixStmts)
-        (.ok (Frame.mk contract
-          (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
+        (.ok (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
       (halign : ClipperKickCallAligned s0 σ I evmPeek)
       (hout : outPeek.size < UInt256.size)
       (hlo : 64 ≤ outPeek.size)

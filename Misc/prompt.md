@@ -42,6 +42,11 @@ and the correctness of the runtime code:
 runtimeRefinement <config> <runtimeBytecode> <contract>
 ```
 
+It has no `I.perm = true` precondition, so it also covers calls entered
+with STATICCALL: at a path's first SSTORE / LOG / value-carrying CALL
+both sides halt with a static-mode violation (see
+`Misc/Template/Function.lean`).
+
 For a contract with immutables, the deployed runtime depends on the values the constructor sets,
 and the theorem is assembled with `contractRefinement.of_runtime` instead (Section 7).
 
@@ -167,7 +172,8 @@ The proof of each function follows, roughly, four phases:
 5. Connect. `reEquivExecution` / `reEquivDecodingFailed` /
    `reEquivNoDispatch` / `reEquivElim` glue the source result, the
    decode fact, and the EVM `RDret`/`RDrev` into
-   `runtimeRefinementFor`.
+   `runtimeRefinementFor`; `RDstatic.reEquivStaticHalt` does the same
+   for a static-mode halt.
 
 ---
 

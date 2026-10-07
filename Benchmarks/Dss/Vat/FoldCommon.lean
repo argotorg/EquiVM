@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Vat.Common
 import Benchmarks.Dss.Vat.Signed
 
@@ -22,159 +23,6 @@ theorem foldUsrMaskedWord_clean (I : ExecutionEnv) :
   rw [u256_land_comm solcAddrMask (foldUsrWord I)]
   exact solcAddrMask_clean (solcAddrMask_result_canonical (foldUsrWord I))
 
-theorem u256_mul_zero_right (w : UInt256) : UInt256.mul w ⟨0⟩ = ⟨0⟩ := by
-  apply u256_inj
-  rw [u256_mul_toNat]
-  simp
-
-theorem u256_mul_zero_left (w : UInt256) : UInt256.mul ⟨0⟩ w = ⟨0⟩ := by
-  rw [u256_mul_comm]
-  exact u256_mul_zero_right w
-
-theorem u256_div_zero_left (w : UInt256) : (⟨0⟩ : UInt256) / w = ⟨0⟩ := by
-  apply u256_inj
-  change (UInt256.div (⟨0⟩ : UInt256) w).toNat = (⟨0⟩ : UInt256).toNat
-  rw [udiv_toNat]
-  simp
-
-theorem u256_sdiv_zero_left (w : UInt256) : UInt256.sdiv ⟨0⟩ w = ⟨0⟩ := by
-  unfold UInt256.sdiv
-  by_cases hw : EVM.twoPow 255 ≤ w.toNat
-  · simp [u256_div_zero_left]
-  · simp [u256_div_zero_left]
-
-theorem u256_sdiv_high_low
-    {prod rate : UInt256}
-    (hprodHigh : EVM.twoPow 255 ≤ prod.toNat)
-    (hrateLow : rate.toNat < EVM.twoPow 255) :
-    UInt256.sdiv prod rate =
-      { val := (UInt256.div (UInt256.abs prod) rate).val * (-1 : Fin UInt256.size) } := by
-  unfold UInt256.sdiv
-  rw [if_pos (by simpa [EVM.twoPow] using hprodHigh)]
-  rw [if_neg (by simpa [EVM.twoPow] using not_le.mpr hrateLow)]
-  rfl
-
-theorem u256_div_toNat_eq_of_toNat {a b z : UInt256} {denom : Nat}
-    (ha : a.toNat = denom * z.toNat)
-    (hb : b.toNat = denom)
-    (hdenomPos : 0 < denom) :
-    (UInt256.div a b).toNat = z.toNat := by
-  rw [udiv_toNat, ha, hb]
-  exact Nat.mul_div_right z.toNat hdenomPos
-
-theorem nat_mul_pred_mod {a M : Nat} (ha0 : 0 < a) (haM : a < M) :
-    a * (M - 1) % M = M - a := by
-  have hmod : a * (M - 1) = (a - 1) * M + (M - a) := by
-    apply Nat.cast_injective (R := Int)
-    have h1 : ((a - 1 : Nat) : Int) = (a : Int) - 1 := by omega
-    have h2 : ((M - 1 : Nat) : Int) = (M : Int) - 1 := by omega
-    have h3 : ((M - a : Nat) : Int) = (M : Int) - (a : Int) := by omega
-    rw [Nat.cast_mul, Nat.cast_add, Nat.cast_mul, h1, h2, h3]
-    ring
-  rw [hmod, Nat.add_mod, Nat.mul_mod_left]
-  simp [Nat.mod_eq_of_lt (by omega : M - a < M)]
-
-theorem nat_sub_mul_mod {r a M : Nat} (hr0 : 0 < r) (ha0 : 0 < a)
-    (hprod : r * a < M) :
-    (M - r) * a % M = M - r * a := by
-  have hrleM : r ≤ M := by nlinarith
-  have hmod : (M - r) * a = (a - 1) * M + (M - r * a) := by
-    apply Nat.cast_injective (R := Int)
-    rw [Nat.cast_mul, Nat.cast_add, Nat.cast_mul]
-    rw [Nat.cast_sub hrleM, Nat.cast_sub (by omega : 1 ≤ a),
-      Nat.cast_sub (le_of_lt hprod)]
-    rw [Nat.cast_mul]
-    ring
-  rw [hmod, Nat.add_mod, Nat.mul_mod_left]
-  simp [Nat.mod_eq_of_lt (by
-    have hp : 0 < r * a := Nat.mul_pos hr0 ha0
-    omega : M - r * a < M)]
-
-theorem int_neg_mul_bound_to_nat {a r : Nat}
-    (h : -((2 : Int) ^ 255) ≤ Int.ofNat a * -Int.ofNat r) :
-    r * a ≤ EVM.twoPow 255 := by
-  have h' := h
-  ring_nf at h'
-  have hcastArt : ((a * r : Nat) : Int) ≤ (2 : Int) ^ 255 := by
-    change Int.ofNat a * Int.ofNat r ≤ (2 : Int) ^ 255
-    omega
-  have hcast : ((r * a : Nat) : Int) ≤ (2 : Int) ^ 255 := by
-    rw [Nat.mul_comm]
-    exact hcastArt
-  change r * a ≤ 2 ^ 255
-  apply Int.ofNat_le.mp
-  have hpow : ((2 ^ 255 : Nat) : Int) = (2 : Int) ^ 255 := by norm_num
-  rw [hpow]
-  exact hcast
-
-theorem u256_size_eq_two_sign :
-    UInt256.size = EVM.twoPow 255 + EVM.twoPow 255 := by
-  native_decide
-
-theorem u256_sign_lt_size : EVM.twoPow 255 < UInt256.size := by
-  rw [u256_size_eq_two_sign]
-  exact Nat.lt_add_of_pos_right (by
-    change 0 < 2 ^ 255
-    exact pow_pos (by decide : (0 : Nat) < 2) 255)
-
-theorem fin_uint256_neg_one_val :
-    ((-1 : Fin UInt256.size).val) = UInt256.size - 1 := by
-  rw [Fin.val_neg]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    have hval := congrArg Fin.val hbad
-    have hone : ((1 : Fin UInt256.size).val) = 1 := by
-      show (Fin.ofNat UInt256.size 1).val = 1
-      rw [Fin.ofNat]
-      exact Nat.mod_eq_of_lt (by native_decide)
-    rw [hone] at hval
-    norm_num at hval
-
-theorem fin_uint256_mul_neg_one_val {w : UInt256} (hpos : 0 < w.toNat) :
-    (w.val * (-1 : Fin UInt256.size)).val = UInt256.size - w.toNat := by
-  rw [Fin.val_mul, fin_uint256_neg_one_val]
-  exact nat_mul_pred_mod hpos w.val.isLt
-
-theorem fin_uint256_mul_neg_one_high {w : UInt256}
-    (hpos : 0 < w.toNat) (hle : w.toNat ≤ EVM.twoPow 255) :
-    EVM.twoPow 255 ≤ (w.val * (-1 : Fin UInt256.size)).val := by
-  rw [fin_uint256_mul_neg_one_val (w := w) hpos]
-  rw [u256_size_eq_two_sign]
-  exact Nat.le_sub_of_add_le (Nat.add_le_add_left hle (EVM.twoPow 255))
-
-theorem fin_uint256_mul_neg_one_val_low_contra {q art : UInt256}
-    (hqLe : q.toNat ≤ EVM.twoPow 255)
-    (hartLow : art.toNat < EVM.twoPow 255)
-    (hartNe : art ≠ ⟨0⟩)
-    (hnegVal : (q.val * (-1 : Fin UInt256.size)).val = art.toNat) : False := by
-  by_cases hqZero : q = ⟨0⟩
-  · have hartZero : art.toNat = 0 := by
-      rw [← hnegVal]
-      rw [hqZero]
-      rfl
-    exact hartNe (uint256_toNat_eq_zero hartZero)
-  · have hqPos : 0 < q.toNat := by
-      have hqNatNe : q.toNat ≠ 0 := by
-        intro hz
-        exact hqZero (uint256_toNat_eq_zero hz)
-      exact Nat.pos_of_ne_zero hqNatNe
-    have hartHigh : EVM.twoPow 255 ≤ art.toNat := by
-      rw [← hnegVal]
-      exact fin_uint256_mul_neg_one_high hqPos hqLe
-    omega
-
-theorem u256_abs_high_toNat {w : UInt256}
-    (hhi : 2 ^ 255 ≤ w.toNat) (hpos : 0 < w.toNat) :
-    (UInt256.abs w).toNat = UInt256.size - w.toNat := by
-  cases w with
-  | mk val =>
-      change (UInt256.abs { val := val }).toNat = UInt256.size - val.val
-      unfold UInt256.abs
-      simp only [UInt256.toNat] at hhi hpos ⊢
-      rw [if_pos hhi]
-      change (val * (-1 : Fin UInt256.size)).val = UInt256.size - val.val
-      exact fin_uint256_mul_neg_one_val (w := { val := val }) hpos
 
 theorem fold_mul_word_guard_true_of_art_zero (I : ExecutionEnv) {art : UInt256}
     (hart : art = ⟨0⟩) :
@@ -260,30 +108,6 @@ theorem foldRateInt_neg_of_high (I : ExecutionEnv)
     exact Int.ofNat_lt.mpr hltNat
   exact sub_neg.mpr hlt
 
-theorem u256_toNat_lt_sign_of_slt_zero {w : UInt256}
-    (hslt : UInt256.slt w ⟨0⟩ = ⟨0⟩) :
-    w.toNat < EVM.twoPow 255 := by
-  have hle := uintWordLeMaxInt256_of_slt_zero hslt
-  have hltInt : (w.toNat : Int) < (2 : Int) ^ 255 := by
-    have hmaxLt : maxInt256 < (2 : Int) ^ 255 := by
-      unfold maxInt256
-      omega
-    exact lt_of_le_of_lt hle hmaxLt
-  change w.toNat < 2 ^ 255
-  exact Int.ofNat_lt.mp (by
-    have hpow : ((2 ^ 255 : Nat) : Int) = (2 : Int) ^ 255 := by norm_num
-    rw [hpow]
-    exact hltInt)
-
-theorem u256_slt_zero_ne_zero_of_high {w : UInt256}
-    (hhi : EVM.twoPow 255 ≤ w.toNat) : UInt256.slt w ⟨0⟩ ≠ ⟨0⟩ := by
-  have hcond : w.val.val ≥ 2 ^ 255 := by
-    simpa [EVM.twoPow, UInt256.toNat] using hhi
-  unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
-  simp only [UInt256.toNat]
-  rw [if_pos hcond]
-  rw [if_neg (by native_decide : ¬ ((0 : Fin UInt256.size).val ≥ 2 ^ 255))]
-  native_decide
 
 theorem foldRateInt_mod_word (I : ExecutionEnv) :
     foldRateInt I % (Int.ofNat EVM.wordModulus) =
@@ -593,28 +417,6 @@ theorem fold_mul_word_guard_true_of_range_neg
   rw [hsdiv, u256_eq_refl]
   native_decide
 
-theorem u256_abs_div_eq_bound_to_sign {rate prod art : UInt256} {rabs : Nat}
-    (hrabs : (UInt256.abs rate).toNat = rabs)
-    (hprodHigh : EVM.twoPow 255 ≤ prod.toNat)
-    (hprodPos : 0 < prod.toNat)
-    (hdiv : UInt256.div (UInt256.abs prod) (UInt256.abs rate) = art) :
-    rabs * art.toNat ≤ EVM.twoPow 255 := by
-  have hAbsProdToNat : (UInt256.abs prod).toNat = UInt256.size - prod.toNat :=
-    u256_abs_high_toNat hprodHigh hprodPos
-  have hdivNat : (UInt256.abs prod).toNat / (UInt256.abs rate).toNat = art.toNat := by
-    have h := congrArg UInt256.toNat hdiv
-    simpa [udiv_toNat] using h
-  have hleDiv : art.toNat ≤ (UInt256.abs prod).toNat / (UInt256.abs rate).toNat := by
-    rw [hdivNat]
-  have hpLeAbs : rabs * art.toNat ≤ (UInt256.abs prod).toNat := by
-    have hle := Nat.mul_le_of_le_div (UInt256.abs rate).toNat art.toNat
-      (UInt256.abs prod).toNat hleDiv
-    rw [hrabs] at hle
-    simpa [Nat.mul_comm] using hle
-  have hAbsLe : (UInt256.abs prod).toNat ≤ EVM.twoPow 255 := by
-    rw [hAbsProdToNat, u256_size_eq_two_sign]
-    omega
-  exact le_trans hpLeAbs hAbsLe
 
 set_option maxHeartbeats 0 in
 theorem fold_mul_word_neg_rate_low_product_contra
@@ -754,156 +556,6 @@ theorem fold_mul_word_product_range_of_guard
         have hartNonneg : 0 ≤ Int.ofNat art.toNat := Int.natCast_nonneg _
         nlinarith
 
-theorem int_eq_signed_word_of_range_mod {i : Int} {w : UInt256}
-    (hlo : -((2 : Int) ^ 255) ≤ i)
-    (hhi : i < (2 : Int) ^ 255)
-    (hmod : i % (Int.ofNat EVM.wordModulus) = Int.ofNat w.toNat) :
-    i =
-      (if w.toNat < EVM.twoPow 255 then
-        Int.ofNat w.toNat
-      else
-        Int.ofNat w.toNat - Int.ofNat EVM.wordModulus) := by
-  have hsignLtM : (2 : Int) ^ 255 < Int.ofNat EVM.wordModulus := by
-    norm_num [EVM.wordModulus, EVM.twoPow]
-  by_cases hnonneg : 0 ≤ i
-  · have hiM : i < Int.ofNat EVM.wordModulus := lt_trans hhi hsignLtM
-    have hi : i = Int.ofNat w.toNat := by
-      rw [Int.emod_eq_of_lt hnonneg hiM] at hmod
-      exact hmod
-    rw [hi]
-    have hlow : w.toNat < EVM.twoPow 255 := by
-      apply Int.ofNat_lt.mp
-      have hpow : ((EVM.twoPow 255 : Nat) : Int) = (2 : Int) ^ 255 := by
-        norm_num [EVM.twoPow]
-      rw [hpow]
-      simpa [hi] using hhi
-    rw [if_pos hlow]
-  · have hneg : i < 0 := not_le.mp hnonneg
-    have hshiftNonneg : 0 ≤ i + Int.ofNat EVM.wordModulus := by
-      have hloM : -Int.ofNat EVM.wordModulus < i := by
-        have h : -Int.ofNat EVM.wordModulus < -((2 : Int) ^ 255) := by
-          norm_num [EVM.wordModulus, EVM.twoPow]
-        exact lt_of_lt_of_le h hlo
-      omega
-    have hshiftLt : i + Int.ofNat EVM.wordModulus < Int.ofNat EVM.wordModulus := by
-      omega
-    have hmodShift :
-        i % Int.ofNat EVM.wordModulus = i + Int.ofNat EVM.wordModulus := by
-      rw [Int.emod_eq_add_self_emod]
-      exact Int.emod_eq_of_lt hshiftNonneg hshiftLt
-    have hwi : Int.ofNat w.toNat = i + Int.ofNat EVM.wordModulus := by
-      rw [hmodShift] at hmod
-      exact hmod.symm
-    have hhigh : ¬ w.toNat < EVM.twoPow 255 := by
-      intro hlow
-      have hwlt : Int.ofNat w.toNat < (2 : Int) ^ 255 := by
-        exact_mod_cast (by simpa [EVM.twoPow] using hlow)
-      have hwge : (2 : Int) ^ 255 ≤ Int.ofNat w.toNat := by
-        rw [hwi]
-        have hM :
-            Int.ofNat EVM.wordModulus = (2 : Int) ^ 255 + (2 : Int) ^ 255 := by
-          norm_num [EVM.wordModulus, EVM.twoPow]
-        rw [hM]
-        omega
-      omega
-    rw [if_neg hhigh]
-    omega
-
-theorem int_nonneg_of_word_slt_zero
-    {i : Int} {w : UInt256}
-    (hlo : -((2 : Int) ^ 255) ≤ i)
-    (hhi : i < (2 : Int) ^ 255)
-    (hmod : i % (Int.ofNat EVM.wordModulus) = Int.ofNat w.toNat)
-    (hslt : UInt256.slt w ⟨0⟩ = ⟨0⟩) : 0 ≤ i := by
-  have hsigned := int_eq_signed_word_of_range_mod hlo hhi hmod
-  rw [hsigned]
-  exact slt_zero_eq_zero_to_nonneg w hslt
-
-theorem int_nonpos_of_word_sgt_zero
-    {i : Int} {w : UInt256}
-    (hlo : -((2 : Int) ^ 255) ≤ i)
-    (hhi : i < (2 : Int) ^ 255)
-    (hmod : i % (Int.ofNat EVM.wordModulus) = Int.ofNat w.toNat)
-    (hsgt : UInt256.sgt w ⟨0⟩ = ⟨0⟩) : i ≤ 0 := by
-  have hsigned := int_eq_signed_word_of_range_mod hlo hhi hmod
-  rw [hsigned]
-  exact sgt_zero_eq_zero_to_nonpos w hsgt
-
-theorem int_neg_of_word_slt_ne_zero
-    {i : Int} {w : UInt256}
-    (hlo : -((2 : Int) ^ 255) ≤ i)
-    (hhi : i < (2 : Int) ^ 255)
-    (hmod : i % (Int.ofNat EVM.wordModulus) = Int.ofNat w.toNat)
-    (hslt : UInt256.slt w ⟨0⟩ ≠ ⟨0⟩) : i < 0 := by
-  have hsigned := int_eq_signed_word_of_range_mod hlo hhi hmod
-  rw [hsigned]
-  exact slt_zero_ne_zero_to_neg w hslt
-
-theorem int_pos_of_word_sgt_ne_zero
-    {i : Int} {w : UInt256}
-    (hlo : -((2 : Int) ^ 255) ≤ i)
-    (hhi : i < (2 : Int) ^ 255)
-    (hmod : i % (Int.ofNat EVM.wordModulus) = Int.ofNat w.toNat)
-    (hsgt : UInt256.sgt w ⟨0⟩ ≠ ⟨0⟩) : 0 < i := by
-  have hsigned := int_eq_signed_word_of_range_mod hlo hhi hmod
-  rw [hsigned]
-  exact sgt_zero_ne_zero_to_pos w hsgt
-
-theorem signedAddGuardNegCond_of_word
-    {i : Int} {word old new : UInt256}
-    (hlo : -((2 : Int) ^ 255) ≤ i)
-    (hhi : i < (2 : Int) ^ 255)
-    (hmod : i % (Int.ofNat EVM.wordModulus) = Int.ofNat word.toNat)
-    (hneg :
-      UInt256.slt word ⟨0⟩ = ⟨0⟩ ∨ UInt256.gt new old = ⟨0⟩) :
-    0 ≤ i ∨ new.toNat ≤ old.toNat := by
-  cases hneg with
-  | inl hslt => exact Or.inl (int_nonneg_of_word_slt_zero hlo hhi hmod hslt)
-  | inr hgt => exact Or.inr (ugt_eq_zero_to_le hgt)
-
-theorem signedAddGuardPosCond_of_word
-    {i : Int} {word old new : UInt256}
-    (hlo : -((2 : Int) ^ 255) ≤ i)
-    (hhi : i < (2 : Int) ^ 255)
-    (hmod : i % (Int.ofNat EVM.wordModulus) = Int.ofNat word.toNat)
-    (hpos :
-      UInt256.sgt word ⟨0⟩ = ⟨0⟩ ∨ UInt256.lt new old = ⟨0⟩) :
-    i ≤ 0 ∨ old.toNat ≤ new.toNat := by
-  cases hpos with
-  | inl hsgt => exact Or.inl (int_nonpos_of_word_sgt_zero hlo hhi hmod hsgt)
-  | inr hlt => exact Or.inr (ult_eq_zero_to_le hlt)
-
-theorem signedAddGuardNegFalseCond_of_word
-    {i : Int} {word old new : UInt256}
-    (hlo : -((2 : Int) ^ 255) ≤ i)
-    (hhi : i < (2 : Int) ^ 255)
-    (hmod : i % (Int.ofNat EVM.wordModulus) = Int.ofNat word.toNat)
-    (hnegFail :
-      ¬ (UInt256.slt word ⟨0⟩ = ⟨0⟩ ∨ UInt256.gt new old = ⟨0⟩)) :
-    i < 0 ∧ old.toNat < new.toNat := by
-  constructor
-  · exact int_neg_of_word_slt_ne_zero hlo hhi hmod (by
-      intro hslt
-      exact hnegFail (Or.inl hslt))
-  · exact ugt_ne_zero_to_gt (by
-      intro hgt
-      exact hnegFail (Or.inr hgt))
-
-theorem signedAddGuardPosFalseCond_of_word
-    {i : Int} {word old new : UInt256}
-    (hlo : -((2 : Int) ^ 255) ≤ i)
-    (hhi : i < (2 : Int) ^ 255)
-    (hmod : i % (Int.ofNat EVM.wordModulus) = Int.ofNat word.toNat)
-    (hposFail :
-      ¬ (UInt256.sgt word ⟨0⟩ = ⟨0⟩ ∨ UInt256.lt new old = ⟨0⟩)) :
-    0 < i ∧ new.toNat < old.toNat := by
-  constructor
-  · exact int_pos_of_word_sgt_ne_zero hlo hhi hmod (by
-      intro hsgt
-      exact hposFail (Or.inl hsgt))
-  · exact ult_ne_zero_to_lt (by
-      intro hlt
-      exact hposFail (Or.inr hlt))
 
 abbrev foldIlkBytes (I : ExecutionEnv) : List UInt8 :=
   (I.calldata.toList.drop 4).take 32
@@ -1025,12 +677,12 @@ theorem evalExpr_fold_ilks_rate (evm : EVM.State) (I : ExecutionEnv)
         (.storage (ilksF (.var "i") "rate")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (foldRateSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_fold_ilksField evm I locals "rate" hsz100 hi)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
       IlkStructTy, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (vatStorageLocLoad_uint256 evm (foldRateSlot I))
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (foldRateSlot I))
 
 theorem evalExpr_fold_ilks_art (evm : EVM.State) (I : ExecutionEnv)
     (locals : Store) (hsz100 : 100 ≤ I.calldata.size)
@@ -1040,12 +692,12 @@ theorem evalExpr_fold_ilks_art (evm : EVM.State) (I : ExecutionEnv)
         (.storage (ilksF (.var "i") "Art")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (foldArtSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_fold_ilksField evm I locals "Art" hsz100 hi)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
       IlkStructTy, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (vatStorageLocLoad_uint256 evm (foldArtSlot I))
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (foldArtSlot I))
 
 theorem evalExpr_fold_dai_u (evm : EVM.State) (I : ExecutionEnv)
     (locals : Store) (hu : locals.get? "u" = some (foldUsrValue I))
@@ -1054,27 +706,26 @@ theorem evalExpr_fold_dai_u (evm : EVM.State) (I : ExecutionEnv)
         (.storage (daiRef (.var "u"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (foldDaiSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_fold_dai_u evm I locals hu)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract,
       storageDecls, uint256St])
     (hloc := by
-      funext evm
-      change storageLayoutRaw (foldDaiEvaledRef I) evm =
-        some (wordLoc (foldDaiSlot I))
+      change storageLayoutRaw (foldDaiEvaledRef I) =
+        some (.leaf (wordLoc (foldDaiSlot I)))
       simp [storageLayoutRaw, foldDaiEvaledRef, foldDaiSlot])]
-  exact congrArg EvalResult.ok (vatStorageLocLoad_uint256 evm (foldDaiSlot I))
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (foldDaiSlot I))
 
 theorem evalExpr_fold_debt (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "debt" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage debtRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner foldDebtSlot).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_fold_debt evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (vatStorageLocLoad_uint256 evm foldDebtSlot)
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm foldDebtSlot)
 
 theorem assign_fold_rate (evm : EVM.State) (I : ExecutionEnv)
     (locals : Store) (rateNew : UInt256) (hsz100 : 100 ≤ I.calldata.size)
@@ -1084,14 +735,14 @@ theorem assign_fold_rate (evm : EVM.State) (I : ExecutionEnv)
       .storage (ilksF (.var "i") "rate") (.int (Int.ofNat rateNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := uint256St) (loc := wordLoc (foldRateSlot I))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := uint256St) (loc := wordLoc (foldRateSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_fold_ilksField evm I locals "rate" hsz100 hi)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
       IlkStructTy, uint256St])
     (hloc := by rfl)
-    (hstore := by simpa [evm'] using vatStorageLocStore_uint256 evm (foldRateSlot I) rateNew)
+    (hstore := by simpa [evm'] using storageLocStore_uint256 evm (foldRateSlot I) rateNew)
 
 theorem assign_fold_dai_u (evm : EVM.State) (I : ExecutionEnv)
     (locals : Store) (daiNew : UInt256)
@@ -1101,16 +752,15 @@ theorem assign_fold_dai_u (evm : EVM.State) (I : ExecutionEnv)
       .storage (daiRef (.var "u")) (.int (Int.ofNat daiNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (foldDaiSlot I))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (foldDaiSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_fold_dai_u evm I locals hu)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      change storageLayoutRaw (foldDaiEvaledRef I) evm = some (wordLoc (foldDaiSlot I))
+      change storageLayoutRaw (foldDaiEvaledRef I) = some (.leaf (wordLoc (foldDaiSlot I)))
       simp [storageLayoutRaw, foldDaiEvaledRef, foldDaiSlot])
-    (hstore := by simpa [evm'] using vatStorageLocStore_uint256 evm (foldDaiSlot I) daiNew)
+    (hstore := by simpa [evm'] using storageLocStore_uint256 evm (foldDaiSlot I) daiNew)
 
 theorem assign_fold_debt (evm : EVM.State) (locals : Store) (debtNew : UInt256)
     (hbase : locals.get? "debt" = none) :
@@ -1119,13 +769,13 @@ theorem assign_fold_debt (evm : EVM.State) (locals : Store) (debtNew : UInt256)
       .storage debtRef (.int (Int.ofNat debtNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc foldDebtSlot)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc foldDebtSlot) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_fold_debt evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-    (hstore := by simpa [evm'] using vatStorageLocStore_uint256 evm foldDebtSlot debtNew)
+    (hstore := by simpa [evm'] using storageLocStore_uint256 evm foldDebtSlot debtNew)
 
 theorem foldStore_get_i (I : ExecutionEnv) :
     (foldStore I).get? "i" = some (foldIlkValue I) := by
@@ -1443,7 +1093,7 @@ theorem vatFoldRadMulRevertGuardFalse (evm : EVM.State) (I : ExecutionEnv)
     (hradHi : rad < (2 : Int) ^ 255)
     (hguardMax :
       evalExpr? config { contract := contract, locals := foldStoreRad I rateNew rad } evm
-        (.binary .le (.storage (ilksF (.var "i") "Art")) (.intLit maxInt256)) =
+        (.binary .le (.storage (ilksF (.var "i") "Art")) (.intLit Reasoning.Theory.maxInt256)) =
         .ok (.bool true))
     (hguardMul :
       evalExpr? config { contract := contract, locals := foldStoreRad I rateNew rad } evm
@@ -1478,7 +1128,8 @@ theorem vatFoldRadMulRevertGuardFalse (evm : EVM.State) (I : ExecutionEnv)
   change ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evm
     [ .letDecl "rad" (some int256)
         (s256 (.binary .mul (.storage (ilksF (.var "i") "Art")) (.var "rate"))),
-      .require (.binary .le (.storage (ilksF (.var "i") "Art")) (.intLit maxInt256)),
+      .require (.binary .le (.storage (ilksF (.var "i") "Art"))
+        (.intLit Reasoning.Theory.maxInt256)),
       .require
         (eitherExpr (.binary .eq (.var "rate") (.intLit 0))
           (.binary .eq (.binary .div (.var "rad") (.var "rate"))
@@ -1518,7 +1169,8 @@ theorem vatFoldRadMulRevertRange (evm : EVM.State) (I : ExecutionEnv)
   change ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evm
     [ .letDecl "rad" (some int256)
         (s256 (.binary .mul (.storage (ilksF (.var "i") "Art")) (.var "rate"))),
-      .require (.binary .le (.storage (ilksF (.var "i") "Art")) (.intLit maxInt256)),
+      .require (.binary .le (.storage (ilksF (.var "i") "Art"))
+        (.intLit Reasoning.Theory.maxInt256)),
       .require
         (eitherExpr (.binary .eq (.var "rate") (.intLit 0))
           (.binary .eq (.binary .div (.var "rad") (.var "rate"))

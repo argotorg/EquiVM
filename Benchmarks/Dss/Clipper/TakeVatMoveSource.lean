@@ -47,8 +47,7 @@ theorem clipperEvalTakeDataLengthZero (v : ClipperImmutables)
     (price slice owe0 owe slice' tabNew lotNew : UInt256)
     (hdataLen : clipperTakeDataLenWord I = ⟨0⟩) :
     evalExpr? config
-      (Frame.mk contract
-        (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmVat (bytesLength "data") = .ok (.int 0) := by
   simp only [bytesLength, localRef, evalExpr?, readLocalPath?, EvalResult.bind, bind, pure]
@@ -78,8 +77,7 @@ theorem clipperEvalTakeCallbackGuardDataEmpty (v : ClipperImmutables)
     (price slice owe0 owe slice' tabNew lotNew : UInt256)
     (hdataLen : clipperTakeDataLenWord I = ⟨0⟩) :
     evalExpr? config
-      (Frame.mk contract
-        (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmVat
       (.binary .and
@@ -97,8 +95,7 @@ theorem clipperEvalTakeVatMoveArgs (v : ClipperImmutables)
     (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe slice' tabNew lotNew : UInt256) :
     evalExprs? config
-      (Frame.mk contract
-        (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmVat [sender, .storage vowRef, .var "owe"] =
         .ok
@@ -107,15 +104,13 @@ theorem clipperEvalTakeVatMoveArgs (v : ClipperImmutables)
             .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)] := by
   have hsender :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmVat sender = .ok (.address evmVat.executionEnv.source) := by
     simp [sender, evalExpr?, envValue, pure]
   have hvow :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmVat (.storage vowRef) =
           .ok (.address (AccountAddress.ofNat (clipperTakeVowEVMWord evmVat).toNat)) := by
@@ -134,8 +129,7 @@ theorem clipperEvalTakeVatMoveArgs (v : ClipperImmutables)
             clipperTakeStore])
   have howe :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmVat (.var "owe") =
           .ok (.int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)) := by
@@ -155,8 +149,7 @@ theorem clipperEvalTakeCallbackArgs (v : ClipperImmutables)
     (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe slice' tabNew lotNew : UInt256) :
     evalExprs? config
-      (Frame.mk contract
-        (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmVat [sender, .var "owe", .var "slice", .var "data"] =
         .ok
@@ -165,15 +158,13 @@ theorem clipperEvalTakeCallbackArgs (v : ClipperImmutables)
             .int (Int.ofNat slice'.toNat), clipperTakeDataValue I] := by
   have hsender :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmVat sender = .ok (.address evmVat.executionEnv.source) := by
     simp [sender, evalExpr?, envValue, pure]
   have howe :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmVat (.var "owe") =
           .ok (.int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)) := by
@@ -189,8 +180,7 @@ theorem clipperEvalTakeCallbackArgs (v : ClipperImmutables)
     rfl
   have hslice :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmVat (.var "slice") = .ok (.int (Int.ofNat slice'.toNat)) := by
     simp only [evalExpr?]
@@ -204,8 +194,7 @@ theorem clipperEvalTakeCallbackArgs (v : ClipperImmutables)
     rfl
   have hdata :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmVat (.var "data") = .ok (clipperTakeDataValue I) := by
     simp only [evalExpr?]
@@ -235,8 +224,7 @@ theorem clipperEvalTakeDogDigsTarget (v : ClipperImmutables)
     (evmLoc evmRead evmVat evmMove : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe slice' tabNew lotNew : UInt256) :
     evalExpr? config
-      (Frame.mk contract
-        (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmMove (.var "dog_") =
         .ok (.address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)) := by
@@ -249,24 +237,21 @@ theorem clipperEvalTakeDogDigsOweArgs (v : ClipperImmutables)
     (evmLoc evmRead evmVat evmMove : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe slice' tabNew lotNew : UInt256) :
     evalExprs? config
-      (Frame.mk contract
-        (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmMove [ilkExpr, .var "owe"] =
         .ok
           [v.ilk, .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)] := by
   have hilk :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmMove ilkExpr = .ok v.ilk := by
     rcases v.ilk_wf with ⟨bs, hbs, _hlen⟩
-    simp [evalExpr_ilkExpr, hbs, evalExpr?, pure]
+    exact evalExpr_ilkExpr
   have howe :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmMove (.var "owe") =
           .ok (.int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)) := by
@@ -292,8 +277,7 @@ theorem clipperEvalTakeDogCodeGuard_false (v : ClipperImmutables)
           (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)).option
           0 (fun acc => acc.code.size))).toNat = 0) :
     evalExpr? config
-      (Frame.mk contract
-        (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmMove
       (.binary .gt (.extCodeSize (.var "dog_")) (.intLit 0)) =
@@ -311,8 +295,7 @@ theorem clipperEvalTakeDogCodeGuard_true (v : ClipperImmutables)
             (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)).option
             0 (fun acc => acc.code.size))).toNat) :
     evalExpr? config
-      (Frame.mk contract
-        (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmMove
       (.binary .gt (.extCodeSize (.var "dog_")) (.intLit 0)) =
@@ -325,8 +308,7 @@ theorem clipperEvalTakeLotEqZero_true (v : ClipperImmutables)
     (price slice owe0 owe slice' tabNew lotNew : UInt256)
     (hlot : lotNew = ⟨0⟩) :
     evalExpr? config
-      (Frame.mk contract
-        (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmMove
       (.binary .eq (.var "lot") (.intLit 0)) =
@@ -346,8 +328,7 @@ theorem clipperEvalTakeLotEqZero_false (v : ClipperImmutables)
     (price slice owe0 owe slice' tabNew lotNew : UInt256)
     (hlot : lotNew ≠ ⟨0⟩) :
     evalExpr? config
-      (Frame.mk contract
-        (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmMove
       (.binary .eq (.var "lot") (.intLit 0)) =
@@ -383,8 +364,7 @@ theorem clipperTakeDogDigsOweNoCodeBlock (v : ClipperImmutables)
           (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)).option
           0 (fun acc => acc.code.size))).toNat = 0) :
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmMove
       [ .ite
@@ -396,8 +376,7 @@ theorem clipperTakeDogDigsOweNoCodeBlock (v : ClipperImmutables)
             [ilkExpr, .var "owe"] "_digsRet") ]
       .reverted := by
   let moveFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+    Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
         tabNew lotNew) (immStore v)
   have hlotCond :
       evalExpr? config moveFrame evmMove
@@ -439,8 +418,7 @@ theorem clipperTakeDogDigsOweCallFailureBlock (v : ClipperImmutables)
         [v.ilk, .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
         (false, evmDog, outDog) true) :
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmMove
       [ .ite
@@ -452,8 +430,7 @@ theorem clipperTakeDogDigsOweCallFailureBlock (v : ClipperImmutables)
             [ilkExpr, .var "owe"] "_digsRet") ]
       .reverted := by
   let moveFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+    Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
         tabNew lotNew) (immStore v)
   have hlotCond :
       evalExpr? config moveFrame evmMove
@@ -510,8 +487,7 @@ theorem clipperTakeDogDigsOweCallSuccessBlock (v : ClipperImmutables)
         [v.ilk, .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
         (true, evmDog, outDog) true) :
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmMove
       [ .ite
@@ -522,17 +498,14 @@ theorem clipperTakeDogDigsOweCallSuccessBlock (v : ClipperImmutables)
           (checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
             [ilkExpr, .var "owe"] "_digsRet") ]
       (.ok
-        (Frame.mk contract
-          (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmDog) := by
   let moveFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+    Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
         tabNew lotNew) (immStore v)
   let digsFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+    Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe slice'
         tabNew lotNew) (immStore v)
   have hlotCond :
       evalExpr? config moveFrame evmMove
@@ -580,8 +553,7 @@ theorem clipperEvalTakeLotEqZeroAtDigsRet_false (v : ClipperImmutables)
     (price slice owe0 owe slice' tabNew lotNew : UInt256)
     (hlot : lotNew ≠ ⟨0⟩) :
     evalExpr? config
-      (Frame.mk contract
-        (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+      (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmDog (.binary .eq (.var "lot") (.intLit 0)) =
         .ok (.bool false) := by
@@ -612,8 +584,7 @@ theorem clipperEvalTakeTabEqZeroAtDigsRet_true (v : ClipperImmutables)
     (price slice owe0 owe slice' tabNew lotNew : UInt256)
     (htab : tabNew = ⟨0⟩) :
     evalExpr? config
-      (Frame.mk contract
-        (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+      (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmDog (.binary .eq (.var "tab") (.intLit 0)) =
         .ok (.bool true) := by
@@ -634,8 +605,7 @@ theorem clipperEvalTakeTabEqZeroAtDigsRet_false (v : ClipperImmutables)
     (price slice owe0 owe slice' tabNew lotNew : UInt256)
     (htab : tabNew ≠ ⟨0⟩) :
     evalExpr? config
-      (Frame.mk contract
-        (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+      (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmDog (.binary .eq (.var "tab") (.intLit 0)) =
         .ok (.bool false) := by
@@ -670,8 +640,7 @@ theorem clipperTakeVatMoveNoCodeBlock (v : ClipperImmutables)
       (UInt256.ofNat ((evmVat.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0) :
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmVat
       ([ .letDecl "dog_" (some addr) (.storage dogRef),
@@ -688,12 +657,10 @@ theorem clipperTakeVatMoveNoCodeBlock (v : ClipperImmutables)
           [sender, .storage vowRef, .var "owe"] "_moveRet")
       .reverted := by
   let startFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice' tabNew
+    Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice' tabNew
         lotNew) (immStore v)
   let dogFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+    Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
         tabNew lotNew) (immStore v)
   have hletDog :
       ExecStmt config startFrame evmVat
@@ -766,8 +733,7 @@ theorem clipperTakeVatMoveCallFailureBlock (v : ClipperImmutables)
           .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
         (false, evmMove, outMove) true) :
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmVat
       ([ .letDecl "dog_" (some addr) (.storage dogRef),
@@ -784,12 +750,10 @@ theorem clipperTakeVatMoveCallFailureBlock (v : ClipperImmutables)
           [sender, .storage vowRef, .var "owe"] "_moveRet")
       .reverted := by
   let startFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice' tabNew
+    Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice' tabNew
         lotNew) (immStore v)
   let dogFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+    Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
         tabNew lotNew) (immStore v)
   have hletDog :
       ExecStmt config startFrame evmVat
@@ -868,8 +832,7 @@ theorem clipperTakeVatMoveNoCodeBlockOfCallbackFalse (v : ClipperImmutables)
     (price slice owe0 owe slice' tabNew lotNew : UInt256)
     (hcallback :
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmVat
         (.ite
@@ -882,16 +845,14 @@ theorem clipperTakeVatMoveNoCodeBlockOfCallbackFalse (v : ClipperImmutables)
             [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
           [])
         (.ok
-          (Frame.mk contract
-            (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
+          (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
               slice' tabNew lotNew) (immStore v))
           evmVat))
     (hnoVatCode :
       (UInt256.ofNat ((evmVat.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0) :
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmVat
       ([ .letDecl "dog_" (some addr) (.storage dogRef),
@@ -908,12 +869,10 @@ theorem clipperTakeVatMoveNoCodeBlockOfCallbackFalse (v : ClipperImmutables)
           [sender, .storage vowRef, .var "owe"] "_moveRet")
       .reverted := by
   let startFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice' tabNew
+    Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice' tabNew
         lotNew) (immStore v)
   let dogFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+    Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
         tabNew lotNew) (immStore v)
   have hletDog :
       ExecStmt config startFrame evmVat
@@ -960,8 +919,7 @@ theorem clipperTakeVatMoveCallFailureBlockOfCallbackFalse (v : ClipperImmutables
     (price slice owe0 owe slice' tabNew lotNew : UInt256) {outMove : ByteArray}
     (hcallback :
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmVat
         (.ite
@@ -974,8 +932,7 @@ theorem clipperTakeVatMoveCallFailureBlockOfCallbackFalse (v : ClipperImmutables
             [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
           [])
         (.ok
-          (Frame.mk contract
-            (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
+          (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
               slice' tabNew lotNew) (immStore v))
           evmVat))
     (hvatCode :
@@ -988,8 +945,7 @@ theorem clipperTakeVatMoveCallFailureBlockOfCallbackFalse (v : ClipperImmutables
           .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
         (false, evmMove, outMove) true) :
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmVat
       ([ .letDecl "dog_" (some addr) (.storage dogRef),
@@ -1006,12 +962,10 @@ theorem clipperTakeVatMoveCallFailureBlockOfCallbackFalse (v : ClipperImmutables
           [sender, .storage vowRef, .var "owe"] "_moveRet")
       .reverted := by
   let startFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice' tabNew
+    Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice' tabNew
         lotNew) (immStore v)
   let dogFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+    Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
         tabNew lotNew) (immStore v)
   have hletDog :
       ExecStmt config startFrame evmVat
@@ -1073,8 +1027,7 @@ theorem clipperTakeVatMoveCallSuccessBlockOfCallbackFalse (v : ClipperImmutables
     (price slice owe0 owe slice' tabNew lotNew : UInt256) {outMove : ByteArray}
     (hcallback :
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmVat
         (.ite
@@ -1087,8 +1040,7 @@ theorem clipperTakeVatMoveCallSuccessBlockOfCallbackFalse (v : ClipperImmutables
             [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
           [])
         (.ok
-          (Frame.mk contract
-            (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
+          (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
               slice' tabNew lotNew) (immStore v))
           evmVat))
     (hvatCode :
@@ -1101,8 +1053,7 @@ theorem clipperTakeVatMoveCallSuccessBlockOfCallbackFalse (v : ClipperImmutables
           .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
         (true, evmMove, outMove) true) :
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmVat
       ([ .letDecl "dog_" (some addr) (.storage dogRef),
@@ -1118,21 +1069,17 @@ theorem clipperTakeVatMoveCallSuccessBlockOfCallbackFalse (v : ClipperImmutables
         checkedExternalCallStmts vatExpr "move" (.intLit 0)
           [sender, .storage vowRef, .var "owe"] "_moveRet")
       (.ok
-        (Frame.mk contract
-          (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmMove) := by
   let startFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice' tabNew
+    Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice' tabNew
         lotNew) (immStore v)
   let dogFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+    Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
         tabNew lotNew) (immStore v)
   let moveFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+    Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
         tabNew lotNew) (immStore v)
   have hletDog :
       ExecStmt config startFrame evmVat
@@ -1206,8 +1153,7 @@ theorem clipperTakeVatMoveCallSuccessBlock (v : ClipperImmutables)
           .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
         (true, evmMove, outMove) true) :
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice'
+      (Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe slice'
           tabNew lotNew) (immStore v))
       evmVat
       ([ .letDecl "dog_" (some addr) (.storage dogRef),
@@ -1223,13 +1169,11 @@ theorem clipperTakeVatMoveCallSuccessBlock (v : ClipperImmutables)
         checkedExternalCallStmts vatExpr "move" (.intLit 0)
           [sender, .storage vowRef, .var "owe"] "_moveRet")
       (.ok
-        (Frame.mk contract
-          (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+        (Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
             tabNew lotNew) (immStore v))
         evmMove) := by
   let dogFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+    Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
         tabNew lotNew) (immStore v)
   have hcallback :
       ExecStmt config dogFrame evmVat

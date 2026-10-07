@@ -437,7 +437,7 @@ theorem uniswapMintProportionalProduct0OverflowAfterMintFeeCase
     (htotalBase : nextLocals.get? "totalSupply" = none)
     (hamount0 : nextLocals.get? "amount0" = some (uniswapUint256Value amount0))
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hover : UInt256.size ≤ amount0.toNat * totalSupply.toNat)
@@ -551,7 +551,7 @@ theorem uniswapMintProportionalProduct1OverflowAfterMintFeeCase
     (hamount1 : nextLocals.get? "amount1" = some (uniswapUint256Value amount1))
     (hreserve0 : nextLocals.get? "_reserve0" = some (.int (Int.ofNat reserve0.toNat)))
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
@@ -687,7 +687,7 @@ theorem uniswapMintProportionalFeeOffKLastZeroProductOverflowFromFactoryCase
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState
@@ -906,7 +906,7 @@ theorem uniswapMintProportionalFeeOnKLastZeroProductOverflowFromFactoryCase
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState
@@ -1123,7 +1123,7 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroProductOverflowFromFactoryCase
     (hzFeeTrue : zFee = true)
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σCleared I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σCleared I = totalSupply)
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState
@@ -1359,8 +1359,8 @@ theorem uniswapMintProportionalProductOverflowFromFactoryCases
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
-    (htotalClearedSlot : uniswapSlotWord ⟨0⟩ σCleared I = totalSupplyCleared)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
+    (htotalClearedSlot : solcSlotWordAt ⟨0⟩ σCleared I = totalSupplyCleared)
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState

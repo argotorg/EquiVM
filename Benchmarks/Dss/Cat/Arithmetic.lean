@@ -1,3 +1,4 @@
+import Reasoning.SolmArithmetic
 import Benchmarks.Dss.Cat.Common
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -203,28 +204,6 @@ theorem evalExpr_gt_uint256_false {evm : EVM.State} {locals : Store}
 
 /-! ## Local-store helpers -/
 
-abbrev uintBinaryLocals (x y : UInt256) : Store :=
-  (((∅ : Store).insert "y" (.int (Int.ofNat y.toNat))).insert "x"
-    (.int (Int.ofNat x.toNat)))
-
-abbrev uintBinaryLocalsZ (x y z : UInt256) : Store :=
-  (uintBinaryLocals x y).insert "z" (.int (Int.ofNat z.toNat))
-
-theorem uintBinaryLocals_get_x (x y : UInt256) :
-    (uintBinaryLocals x y).get? "x" = some (.int (Int.ofNat x.toNat)) := by
-  rw [uintBinaryLocals, store_get_self]
-
-theorem uintBinaryLocals_get_y (x y : UInt256) :
-    (uintBinaryLocals x y).get? "y" = some (.int (Int.ofNat y.toNat)) := by
-  rw [uintBinaryLocals, store_get_ne _ _ (by decide), store_get_self]
-
-theorem uintBinaryLocalsZ_get_x (x y z : UInt256) :
-    (uintBinaryLocalsZ x y z).get? "x" = some (.int (Int.ofNat x.toNat)) := by
-  rw [uintBinaryLocalsZ, store_get_ne _ _ (by decide), uintBinaryLocals_get_x]
-
-theorem uintBinaryLocalsZ_get_z (x y z : UInt256) :
-    (uintBinaryLocalsZ x y z).get? "z" = some (.int (Int.ofNat z.toNat)) := by
-  rw [uintBinaryLocalsZ, store_get_self]
 
 /-! ## `sub` internal function (used by `claw`) -/
 

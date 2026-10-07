@@ -97,11 +97,10 @@ theorem clipperEvalStopped (v : ClipperImmutables) (evm : EVM.State) (locals : S
     rfl
   have hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)) := by
     simp [er, storageTypeAt?, contract, storageDecls, uint256St]
-  have hloc : config.storage.layout er = fun _ => some (wordLoc ⟨14⟩) := by
-    funext evm'
+  have hloc : config.storageBackend.locate? er = some (.leaf (wordLoc ⟨14⟩)) := by
     rfl
-  exact evalExpr_storage_scalar_value hbase her hty hloc
-    (clipperStorageLocLoad_uint256 evm ⟨14⟩)
+  exact evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
+    (storageLocLoad_uint256 evm ⟨14⟩)
 
 theorem clipperStoppedBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "stopped" = none) :
@@ -124,7 +123,7 @@ theorem clipperReachStoppedBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutabl
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperStoppedSelectorWord hsz hsel
-  have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
+  have h43 := RD.selectorSplitNotTakenPush2 (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
@@ -148,7 +147,7 @@ theorem clipperReachStoppedBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutabl
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h162 := clipperSplitTaken (pc := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 3)
+  have h162 := RD.selectorSplitTakenPush2 (pc := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 3)
     (tgt := (⟨162⟩ : UInt256)) h43
     (by
         change decode code (⟨43⟩ : UInt256) = some (.DUP1, .none)
@@ -171,7 +170,7 @@ theorem clipperReachStoppedBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutabl
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨162⟩ : UInt256) (by native_decide))
     (by simp)
-  have h222 := clipperSplitTaken (pc := (⟨163⟩ : UInt256)) (pivot := clipperSelNat 13)
+  have h222 := RD.selectorSplitTakenPush2 (pc := (⟨163⟩ : UInt256)) (pivot := clipperSelNat 13)
     (tgt := (⟨222⟩ : UInt256))
     (h162.jumpdest
       (by
@@ -199,7 +198,7 @@ theorem clipperReachStoppedBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutabl
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨222⟩ : UInt256) (by native_decide))
     (by simp)
-  have h875 := clipperArmTaken (pc := (⟨223⟩ : UInt256)) (sel := clipperSelNat 20)
+  have h875 := RD.selectorArmTakenPush2 (pc := (⟨223⟩ : UInt256)) (sel := clipperSelNat 20)
     (tgt := (⟨875⟩ : UInt256))
     (h222.jumpdest
       (by
@@ -244,7 +243,7 @@ theorem clipperStoppedPatchesWindowDisjoint32 (v : ClipperImmutables) (lo hi : N
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk
   · simp [hIlk] at hlo hhi ⊢
   · simp [hIlk] at hlo hhi ⊢
     omega
@@ -270,7 +269,7 @@ theorem clipperJumpDest3491 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 3000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -282,7 +281,7 @@ theorem clipperStoppedBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 20)) :
     runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=

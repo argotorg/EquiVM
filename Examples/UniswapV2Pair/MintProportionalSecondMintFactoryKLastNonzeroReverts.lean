@@ -115,7 +115,7 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroSecondMintTotalSupplyOverflowFr
     (hzFeeTrue : zFee = true)
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σCleared I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σCleared I = totalSupply)
     (hruntimeReserve0 :
       reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
@@ -155,7 +155,7 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroSecondMintTotalSupplyOverflowFr
       liquidity ≠ ⟨0⟩ ∧
       UInt256.size ≤ mintFunctionTotalSupplyNewNat (mintFeeKLastClearedState evmFeeS)
         liquidity ∧
-      UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σCleared I).toNat + liquidity.toNat) :
+      UInt256.size ≤ (solcSlotWordAt ⟨0⟩ σCleared I).toNat + liquidity.toNat) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hcase with
     ⟨hfeeToZero, hkLastNonzero, htotalNonzero, hmulFit0, hmulFit1,
@@ -372,7 +372,7 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroSecondMintBalanceOverflowFromFa
     (hzFeeTrue : zFee = true)
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σCleared I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σCleared I = totalSupply)
     (hruntimeReserve0 :
       reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
@@ -415,11 +415,11 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroSecondMintBalanceOverflowFromFa
       UInt256.size ≤
         mintFunctionToBalanceNewNat (mintFeeKLastClearedState evmFeeS)
           (AccountAddress.ofNat (mintToWord I).toNat) liquidity ∧
-      (uniswapSlotWord ⟨0⟩ σCleared I).toNat + liquidity.toNat < UInt256.size ∧
+      (solcSlotWordAt ⟨0⟩ σCleared I).toNat + liquidity.toNat < UInt256.size ∧
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σCleared ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σCleared I + liquidity))
+            (solcSlotWordAt ⟨0⟩ σCleared I + liquidity))
           (uniswapInternalMintBalanceHashSlot toWord
             (feeToStaticcallMem
               (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -641,7 +641,7 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroUpdateBoundFromFactoryCases
     (hzFeeTrue : zFee = true)
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σCleared I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σCleared I = totalSupply)
     (hruntimeReserve0 :
       reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
@@ -683,10 +683,10 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroUpdateBoundFromFactoryCases
         UInt256.size ∧
       mintFunctionToBalanceNewNat (mintFeeKLastClearedState evmFeeS)
         (AccountAddress.ofNat (mintToWord I).toNat) liquidity < UInt256.size ∧
-      (uniswapSlotWord ⟨0⟩ σCleared I).toNat + liquidity.toNat < UInt256.size ∧
+      (solcSlotWordAt ⟨0⟩ σCleared I).toNat + liquidity.toNat < UInt256.size ∧
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σCleared ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σCleared I + liquidity))
+          (solcSlotWordAt ⟨0⟩ σCleared I + liquidity))
         (uniswapInternalMintBalanceHashSlot toWord
           (feeToStaticcallMem
             (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)

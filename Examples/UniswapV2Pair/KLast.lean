@@ -10,7 +10,7 @@ namespace UniswapV2Pair
 /-! ## `kLast()` getter -/
 
 def kLastWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  uniswapSlotWord ⟨11⟩ σ I
+  solcSlotWordAt ⟨11⟩ σ I
 
 /-- The Solm `kLast()` body returns the uint256 stored in slot 11. -/
 theorem uniswapKLastBodyReturns (evm : EVM.State) (locals : Store)
@@ -62,7 +62,7 @@ theorem uniswapKLastBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (kLastWord σ I).toNat))])) := by
-    simpa [kLastWord, uniswapSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [kLastWord, solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       uniswapKLastBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

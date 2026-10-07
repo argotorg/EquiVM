@@ -1,4 +1,6 @@
 import Solm.Refine
+import Reasoning.SolmBody
+import Reasoning.WordArithmetic
 import Examples.TinyImmutable.Selectors
 import Examples.TinyImmutable.ImmutableCode
 import Reasoning.Dispatch
@@ -15,15 +17,6 @@ namespace TinyImmutable
 
 set_option maxRecDepth 10000
 
-@[simp] theorem wordBytesBEArray_size (w : UInt256) :
-    ({ data := (EVM.Word.toBytesBE w).toArray } : ByteArray).size = 32 := by
-  simpa using word_toBytesBE_toByteArray_size w
-
-@[simp] theorem wordBytesBEArray_eq_toByteArray (w : UInt256) :
-    ({ data := (EVM.Word.toBytesBE w).toArray } : ByteArray) = UInt256.toByteArray w := by
-  apply ByteArray.ext
-  have h := congrArg ByteArray.data (word_toBytesBE_toByteArray_eq_toByteArray w)
-  simpa using h
 
 @[simp] theorem tinyImmutableBytecode_size : tinyImmutableBytecode.size = 432 := by
   native_decide +revert

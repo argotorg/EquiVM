@@ -1,3 +1,4 @@
+import Reasoning.Memory
 import Benchmarks.Dss.Flipper.DealEVM
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -6,29 +7,6 @@ namespace Benchmarks.Dss.Flipper
 
 /-! ## Tic-expired EVM helpers for `deal(uint256)` -/
 
--- LIBRARY CANDIDATE: a 96-byte scratch buffer is determined by its three 32-byte windows.
-theorem scratch96_eq_reads (mem : ByteArray) (hmem : mem.size = 96) :
-    mem = mem.readWithPadding 0 32 ++ mem.readWithPadding 32 32 ++
-      mem.readWithPadding 64 32 := by
-  rw [readWithPadding_eq_extract mem 0 (by omega),
-      readWithPadding_eq_extract mem 32 (by omega),
-      readWithPadding_eq_extract mem 64 (by omega)]
-  conv_lhs => rw [← byteArray_extract_self mem]
-  rw [hmem]
-  norm_num
-
--- LIBRARY CANDIDATE: repeated writes of the same mapping-hash input are stable on
--- 96-byte scratch memory.
-theorem twoWordHashMem_eq_of_size_read64_128 {mem mem' : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96) (hmem' : mem'.size = 96)
-    (h64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h64' : mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    twoWordHashMem key slot mem = twoWordHashMem key slot mem' := by
-  rw [scratch96_eq_reads (twoWordHashMem key slot mem) (twoWordHashMem_size_96 key slot hmem),
-      scratch96_eq_reads (twoWordHashMem key slot mem') (twoWordHashMem_size_96 key slot hmem')]
-  rw [twoWordHashMem_read0 key slot hmem, twoWordHashMem_read0 key slot hmem',
-      twoWordHashMem_read32 key slot hmem, twoWordHashMem_read32 key slot hmem',
-      twoWordHashMem_read64 key slot hmem h64, twoWordHashMem_read64 key slot hmem' h64']
 
 theorem dealHashMem0_size (I : ExecutionEnv) :
     (dealHashMem0 I).size = 96 := by

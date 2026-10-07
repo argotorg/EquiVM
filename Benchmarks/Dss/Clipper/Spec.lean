@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 import Benchmarks.Dss.Clipper.Immutables
@@ -239,33 +240,34 @@ def uint192Loc (slot : Ethereum.UInt256) (offset : Fin 32)
     (hbound : offset.val + 24 - 1 < 32) : StorageLoc :=
   { slot := slot, offset := offset, size := 24, hbound := hbound, type := .int uint192Int }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "dog", steps := [] }, _ => some (addrLoc ⟨1⟩)
-  | { base := "vow", steps := [] }, _ => some (addrLoc ⟨2⟩)
-  | { base := "spotter", steps := [] }, _ => some (addrLoc ⟨3⟩)
-  | { base := "calc", steps := [] }, _ => some (addrLoc ⟨4⟩)
-  | { base := "buf", steps := [] }, _ => some (wordLoc ⟨5⟩)
-  | { base := "tail", steps := [] }, _ => some (wordLoc ⟨6⟩)
-  | { base := "cusp", steps := [] }, _ => some (wordLoc ⟨7⟩)
-  | { base := "chip", steps := [] }, _ => some (uint64Loc ⟨8⟩ ⟨0, by decide⟩ (by decide))
-  | { base := "tip", steps := [] }, _ => some (uint192Loc ⟨8⟩ ⟨8, by decide⟩ (by decide))
-  | { base := "chost", steps := [] }, _ => some (wordLoc ⟨9⟩)
-  | { base := "kicks", steps := [] }, _ => some (wordLoc ⟨10⟩)
-  | { base := "active", steps := [.length] }, _ => some (wordLoc ⟨11⟩)
-  | { base := "active", steps := [.aindex idx] }, _ => some (wordLoc (activeSlot idx))
-  | { base := "sales", steps := [.mindex id, .field "pos"] }, _ => some (wordLoc (salesBase id))
-  | { base := "sales", steps := [.mindex id, .field "tab"] }, _ => some (wordLoc (salesBase id + ⟨1⟩))
-  | { base := "sales", steps := [.mindex id, .field "lot"] }, _ => some (wordLoc (salesBase id + ⟨2⟩))
-  | { base := "sales", steps := [.mindex id, .field "usr"] }, _ => some (addrLoc (salesBase id + ⟨3⟩))
-  | { base := "sales", steps := [.mindex id, .field "tic"] }, _ =>
-      some (uint96Loc (salesBase id + ⟨3⟩) ⟨20, by decide⟩ (by decide))
-  | { base := "sales", steps := [.mindex id, .field "top"] }, _ => some (wordLoc (salesBase id + ⟨4⟩))
-  | { base := "locked", steps := [] }, _ => some (wordLoc ⟨13⟩)
-  | { base := "stopped", steps := [] }, _ => some (wordLoc ⟨14⟩)
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } => some (.leaf (wordLoc (wardsSlot usr)))
+  | { base := "dog", steps := [] } => some (.leaf (addrLoc ⟨1⟩))
+  | { base := "vow", steps := [] } => some (.leaf (addrLoc ⟨2⟩))
+  | { base := "spotter", steps := [] } => some (.leaf (addrLoc ⟨3⟩))
+  | { base := "calc", steps := [] } => some (.leaf (addrLoc ⟨4⟩))
+  | { base := "buf", steps := [] } => some (.leaf (wordLoc ⟨5⟩))
+  | { base := "tail", steps := [] } => some (.leaf (wordLoc ⟨6⟩))
+  | { base := "cusp", steps := [] } => some (.leaf (wordLoc ⟨7⟩))
+  | { base := "chip", steps := [] } => some (.leaf (uint64Loc ⟨8⟩ ⟨0, by decide⟩ (by decide)))
+  | { base := "tip", steps := [] } => some (.leaf (uint192Loc ⟨8⟩ ⟨8, by decide⟩ (by decide)))
+  | { base := "chost", steps := [] } => some (.leaf (wordLoc ⟨9⟩))
+  | { base := "kicks", steps := [] } => some (.leaf (wordLoc ⟨10⟩))
+  | { base := "active", steps := [] } => some (.anchor ⟨11⟩)
+  | { base := "active", steps := [.length] } => some (.anchor ⟨11⟩)
+  | { base := "active", steps := [.aindex idx] } => some (.leaf (wordLoc (activeSlot idx)))
+  | { base := "sales", steps := [.mindex id, .field "pos"] } => some (.leaf (wordLoc (salesBase id)))
+  | { base := "sales", steps := [.mindex id, .field "tab"] } => some (.leaf (wordLoc (salesBase id + ⟨1⟩)))
+  | { base := "sales", steps := [.mindex id, .field "lot"] } => some (.leaf (wordLoc (salesBase id + ⟨2⟩)))
+  | { base := "sales", steps := [.mindex id, .field "usr"] } => some (.leaf (addrLoc (salesBase id + ⟨3⟩)))
+  | { base := "sales", steps := [.mindex id, .field "tic"] } =>
+      some (.leaf (uint96Loc (salesBase id + ⟨3⟩) ⟨20, by decide⟩ (by decide)))
+  | { base := "sales", steps := [.mindex id, .field "top"] } => some (.leaf (wordLoc (salesBase id + ⟨4⟩)))
+  | { base := "locked", steps := [] } => some (.leaf (wordLoc ⟨13⟩))
+  | { base := "stopped", steps := [] } => some (.leaf (wordLoc ⟨14⟩))
+  | _ => none
 
-def storageLayout : StorageLayout := solidityStorageLayout storageLayoutRaw
+def storageLayout : StorageLayout := storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -521,7 +523,7 @@ def kickTransition : TransitionDecl :=
           ([ .internalCall "wmul" [.var "tab", .var "_chip"] "chipCoin" ] ++
             checkedAddUintInto "coinNew" (.var "_tip") (.var "chipCoin") ++
             [ .assign .localVar (varRef "coin") (.var "coinNew") ] ++
-            checkedExternalCallStmts (vatExpr) "suck" (.intLit 0)
+            checkedExternalCallStmts vatExpr "suck" (.intLit 0)
               [.storage vowRef, .var "kpr", .var "coin"] "_suckRet")
           [],
         .assign .storage lockedRef (.intLit 0),
@@ -559,7 +561,7 @@ def redoTransition : TransitionDecl :=
                     (.binary .ge (.var "lotFeed") (.var "_chost"))
                     ([ .internalCall "wmul" [.var "tab", .var "_chip"] "chipCoin" ] ++
                       checkedAddUintInto "coin" (.var "_tip") (.var "chipCoin") ++
-                      checkedExternalCallStmts (vatExpr) "suck" (.intLit 0)
+                      checkedExternalCallStmts vatExpr "suck" (.intLit 0)
                         [.storage vowRef, .var "kpr", .var "coin"] "_suckRet")
                     [] ])
               [] ]
@@ -607,19 +609,19 @@ def takeTransition : TransitionDecl :=
       wrappingSubInto "lotNew" (.var "lot") (.var "slice") ++
       [ .assign .localVar (varRef "tab") (.var "tabNew"),
         .assign .localVar (varRef "lot") (.var "lotNew") ] ++
-      checkedExternalCallStmts (vatExpr) "flux" (.intLit 0)
+      checkedExternalCallStmts vatExpr "flux" (.intLit 0)
         [ilkExpr, thisAddr, .var "who", .var "slice"] "_fluxBuyerRet" ++
       [ .letDecl "dog_" (some addr) (.storage dogRef),
         .ite
           (.binary .and
             (.binary .gt (bytesLength "data") (.intLit 0))
             (.binary .and
-              (.binary .ne (.var "who") (vatExpr))
+              (.binary .ne (.var "who") vatExpr)
               (.binary .ne (.var "who") (.var "dog_"))))
           (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
             [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
           [] ] ++
-      checkedExternalCallStmts (vatExpr) "move" (.intLit 0)
+      checkedExternalCallStmts vatExpr "move" (.intLit 0)
         [sender, .storage vowRef, .var "owe"] "_moveRet" ++
       [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
@@ -633,7 +635,7 @@ def takeTransition : TransitionDecl :=
           [ .internalCall "_remove" [.var "id"] "_removeRet" ]
           [ .ite
               (.binary .eq (.var "tab") (.intLit 0))
-              (checkedExternalCallStmts (vatExpr) "flux" (.intLit 0)
+              (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
                 [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
                 [ .internalCall "_remove" [.var "id"] "_removeRet2" ])
               [ .assign .storage (salesF (.var "id") "tab") (.var "tab"),
@@ -645,7 +647,7 @@ def upchostTransition : TransitionDecl :=
     params := []
     returnType := []
     body := nonpayable ++
-      checkedExternalCallStmts (vatExpr) "vatIlks" (.intLit 0) [ilkExpr] "vatIlk" ++
+      checkedExternalCallStmts vatExpr "vatIlks" (.intLit 0) [ilkExpr] "vatIlk" ++
       [ .letDecl "_dust" (some uint256) (.tupleGet (.var "vatIlk") 4) ] ++
       checkedExternalCallStmts (.storage dogRef) "chop" (.intLit 0) [ilkExpr] "chop" ++
       [ .internalCall "wmul" [.var "_dust", .var "chop"] "chostNew",
@@ -659,7 +661,7 @@ def yankTransition : TransitionDecl :=
       [ .require (.binary .ne (.storage (salesF (.var "id") "usr")) zeroAddr) ] ++
       checkedExternalCallStmts (.storage dogRef) "digs" (.intLit 0)
         [ilkExpr, .storage (salesF (.var "id") "tab")] "_digsRet" ++
-      checkedExternalCallStmts (vatExpr) "flux" (.intLit 0)
+      checkedExternalCallStmts vatExpr "flux" (.intLit 0)
         [ilkExpr, thisAddr, sender, .storage (salesF (.var "id") "lot")] "_fluxRet" ++
       [ .internalCall "_remove" [.var "id"] "_removeRet",
         .assign .storage lockedRef (.intLit 0) ] }
@@ -682,9 +684,9 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := externalABI
     abiDecodeMode := DecodeMode.legacySolc05
-    selfDeployment := genSolidityConstructorDeployment (contract).ctor.params }
+    selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 
 end Benchmarks.Dss.Clipper

@@ -1,3 +1,4 @@
+import Reasoning.EVMWord
 import Benchmarks.Dss.Spot.PokeBase
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -9,7 +10,7 @@ theorem spotDecode_poke_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
       (transitionSignature pokeTransition).paramTypes I.calldata = some (pokeLocals I) := by
   simpa [config, pokeTransition, pokeLocals, pokeIlkValue, pokeIlkBytes, bytes32, bytes32Width]
     using
-      (Benchmarks.Dss.Jug.decodeCalldataWithMode_legacyBytes32_ok
+      (Reasoning.Theory.decodeCalldataWithMode_legacyBytes32_ok
         (cd := I.calldata) (x := "ilk") hsz36)
 
 theorem spotDecode_poke_none_short {I : ExecutionEnv}
@@ -17,7 +18,7 @@ theorem spotDecode_poke_none_short {I : ExecutionEnv}
     decodeCalldataWithMode config.abiDecodeMode (pokeTransition.params.map Param.name)
       (transitionSignature pokeTransition).paramTypes I.calldata = none := by
   simpa [config, pokeTransition, bytes32, bytes32Width] using
-    (Benchmarks.Dss.Jug.decodeCalldataWithMode_legacyBytes32_none_short
+    (Reasoning.Theory.decodeCalldataWithMode_legacyBytes32_none_short
       (cd := I.calldata) (x := "ilk") hsz4 hshort)
 
 theorem pokeIlkBytes_len32 {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
@@ -397,29 +398,6 @@ theorem evalExpr_spot_or_false_right {evm : EVM.State} {locals : Store}
       .ok (.bool b) := by
   simp [evalExpr?, EvalResult.bind, bind, pure, hlhs, hrhs]
 
-theorem spot_u256_mul_div_overflow_ne (x y : UInt256)
-    (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    UInt256.div (y * x) y ≠ x := by
-  intro hEq
-  have hyNatNe : y.toNat ≠ 0 := by
-    intro hy0
-    have hprod0 : x.toNat * y.toNat = 0 := by simp [hy0]
-    have hsizePos : 0 < UInt256.size := by norm_num [UInt256.size]
-    omega
-  have hnat := congrArg UInt256.toNat hEq
-  rw [udiv_toNat, u256_mul_op_toNat] at hnat
-  have hremLt : y.toNat * x.toNat % UInt256.size < y.toNat * x.toNat := by
-    have hmodLt : y.toNat * x.toNat % UInt256.size < UInt256.size :=
-      Nat.mod_lt _ (by norm_num [UInt256.size])
-    have hover' : UInt256.size ≤ y.toNat * x.toNat := by
-      simpa [Nat.mul_comm] using hover
-    omega
-  have hle0 :=
-    Nat.mul_div_le (y.toNat * x.toNat % UInt256.size) y.toNat
-  rw [hnat] at hle0
-  have hle : y.toNat * x.toNat ≤ y.toNat * x.toNat % UInt256.size := by
-    simpa [Nat.mul_comm] using hle0
-  omega
 
 theorem evalExpr_pokeValCastUInt256_ofLocals {evm : EVM.State} {locals : Store}
     {out : ByteArray}
@@ -479,16 +457,16 @@ theorem evalExpr_pokeValCastUInt256 (evm : EVM.State) (I : ExecutionEnv) (out : 
     (pokeSpotLocals_get_val I out ⟨0⟩) hlo
 
 abbrev pokeParWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  spotSlotWord ⟨3⟩ σ I
+  solcSlotWordAt ⟨3⟩ σ I
 
 abbrev pokeMatWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  spotSlotWord (pokeMatSlotFor I) σ I
+  solcSlotWordAt (pokeMatSlotFor I) σ I
 
 theorem evalExpr_pokeStorageParOfLocals {evm : EVM.State} {locals : Store}
     (hpar : locals.get? "par" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage parRef) =
       .ok (.int (Int.ofNat (pokeParWord evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := parRef) (er := ({ base := "par", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨3⟩)
@@ -497,7 +475,7 @@ theorem evalExpr_pokeStorageParOfLocals {evm : EVM.State} {locals : Store}
     (by simp [evalStorageRef, evalStorageRefSteps, parRef, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, parRef, uint256St])
     (by rfl)
-    (by simpa [pokeParWord, spotSlotWord] using spotStorageLocLoad_uint256 evm ⟨3⟩)
+    (by simpa [pokeParWord, solcSlotWordAt] using storageLocLoad_uint256 evm ⟨3⟩)
 
 theorem evalExpr_pokeStorageMatOfLocals {evm : EVM.State} {I : ExecutionEnv}
     {locals : Store}
@@ -507,7 +485,7 @@ theorem evalExpr_pokeStorageMatOfLocals {evm : EVM.State} {I : ExecutionEnv}
     evalExpr? config { contract := contract, locals := locals } evm
       (.storage (ilksF (.var "ilk") "mat")) =
         .ok (.int (Int.ofNat (pokeMatWord evm.accountMap I).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "mat")
     (er := ({ base := "ilks", steps := [.mindex (pokeIlkKey I), .field "mat"] } :
@@ -530,8 +508,8 @@ theorem evalExpr_pokeStorageMatOfLocals {evm : EVM.State} {I : ExecutionEnv}
     (by rfl)
     (by
       cases henv
-      simpa [pokeMatWord, spotSlotWord] using
-        spotStorageLocLoad_uint256 evm (pokeMatSlotFor evm.executionEnv))
+      simpa [pokeMatWord, solcSlotWordAt] using
+        storageLocLoad_uint256 evm (pokeMatSlotFor evm.executionEnv))
 
 theorem evalExprs_pokeVatFileArgs_ofLocals
     (evm : EVM.State) (I : ExecutionEnv) {locals : Store} (spot : UInt256)

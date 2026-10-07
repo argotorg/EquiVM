@@ -88,7 +88,7 @@ theorem pausableX_guardedWhenNotPaused_revert {σ σ₀ A I} {g : Sat256}
 theorem pausableGuardedWhenNotPausedBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x9b, 0xb8, 0xbc, 0xec]⟩)
     (hreach : ∃ k C, RD pausableBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨133⟩

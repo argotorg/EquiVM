@@ -83,8 +83,8 @@ theorem potPieBodyCoreOk
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals pieTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (potSlotWord (pieMappingSlotFor I) σ I).toNat))])) := by
-    simpa [pieTransition, pieMappingSlotFor, potSlotWord, initState, Solm.EVM.storageLoad,
+          (some [(.int (Int.ofNat (solcSlotWordAt (pieMappingSlotFor I) σ I).toNat))])) := by
+    simpa [pieTransition, pieMappingSlotFor, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount, locals, key] using
       potUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -118,34 +118,34 @@ theorem potPieBodyCoreOk
   have hret :
       RDret potBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (potSlotWord slot σ I)) := by
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨341⟩) (val := potSlotWord slot σ I) (ret := ⟨341⟩) (R := [sel])
+      (pc := ⟨341⟩) (val := solcSlotWordAt slot σ I) (ret := ⟨341⟩) (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨1⟩ key)
-        (potSlotWord slot σ I))
-      (by simpa [slot, potSlotWord] using hretPc)
+        (solcSlotWordAt slot σ I))
+      (by simpa [slot, solcSlotWordAt] using hretPc)
       (by unfold solcReturnWordFromMemWf; repeat' first | apply And.intro | native_decide)
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨1⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (potSlotWord slot σ I)
+        exact solcScratchReturnMem_mload64 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨1⟩ key) (solcMappingHashMem_read64 ⟨1⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (potSlotWord slot σ I)
+        exact solcScratchReturnMem_read128 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨1⟩ key))
       (by simp)
-    simpa [slot, potSlotWord] using hret'
+    simpa [slot, solcSlotWordAt] using hret'
   have hval :
-      some [Value.int (Int.ofNat (potSlotWord (pieMappingSlotFor I) σ I).toNat)] =
-        some [Value.int (Int.ofNat (potSlotWord slot σ I).toNat)] := by
+      some [Value.int (Int.ofNat (solcSlotWordAt (pieMappingSlotFor I) σ I).toNat)] =
+        some [Value.int (Int.ofNat (solcSlotWordAt slot σ I).toNat)] := by
     rw [hslot]
   have henc :
-      returnEquiv (UInt256.toByteArray (potSlotWord slot σ I))
-        (some [(.int (Int.ofNat (potSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         pieTransition.returnType := by
     rw [show pieTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (potSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 theorem potPieBodyCoreDecodeFailed_short
@@ -176,7 +176,6 @@ theorem potPieBodyCoreDecodeFailed_short
 theorem potPieBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 11)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

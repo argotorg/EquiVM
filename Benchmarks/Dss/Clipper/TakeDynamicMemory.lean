@@ -1,3 +1,4 @@
+import Reasoning.Memory
 import Benchmarks.Dss.Clipper.TakeCallbackSource
 import Benchmarks.Dss.Clipper.TakeDogDigs
 import Benchmarks.Dss.Clipper.TakePostDogFlux
@@ -15,27 +16,6 @@ The compiler subsequently reuses only the fixed ABI windows below.  These lemmas
 that fixed writes preserve both the larger allocation and the free-memory-pointer word.
 -/
 
-theorem clipperTakeWrite32_size_of_end_le (mem : ByteArray) (word : UInt256)
-    (off : Nat) (hend : off + 32 ≤ mem.size) :
-    ((UInt256.toByteArray word).write 0 mem off 32).size = mem.size := by
-  exact toByteArray_write32_size_of_le mem word off mem.size mem.size rfl
-    (by omega) (max_eq_left hend)
-
-theorem clipperTakeM_same_of_cover (aw off : UInt256) (len : Nat)
-    (hcover : off.toNat + len ≤ aw.toNat * 32) :
-    UInt256.ofNat (MachineState.M aw.toNat off.toNat len) = aw := by
-  have hM : MachineState.M aw.toNat off.toNat len = aw.toNat := by
-    unfold MachineState.M
-    by_cases hlen : len = 0
-    · simp [hlen]
-    · simp only [hlen, ↓reduceIte]
-      rw [max_eq_left]
-      have hdivlt : (off.toNat + len + 31) / 32 < aw.toNat + 1 := by
-        rw [Nat.div_lt_iff_lt_mul (by norm_num : 0 < 32)]
-        omega
-      omega
-  rw [hM]
-  exact u256_ofNat_toNat aw
 
 theorem clipperTakeMemoryWF_aw_ge (mem : ByteArray) (aw : UInt256)
     (hmem : clipperTakeMemoryWF mem aw) : 9 ≤ aw.toNat := by
@@ -55,7 +35,7 @@ theorem clipperTakeMemoryWF_of_size_read_aw_nine {mem : ByteArray} {aw : UInt256
 theorem clipperTakeMemoryWF_mstore_aw (mem : ByteArray) (aw off : UInt256)
     (hmem : clipperTakeMemoryWF mem aw) (hoff : off.toNat + 32 ≤ 260) :
     UInt256.ofNat (MachineState.M aw.toNat off.toNat 32) = aw := by
-  apply clipperTakeM_same_of_cover
+  apply UInt256_M_same_of_cover_len
   rcases hmem with ⟨hsize, _, hcover, _⟩
   omega
 
@@ -80,35 +60,26 @@ theorem clipperTakeMemoryWF_after_zero_output_call
         (MachineState.M (MachineState.M aw.toNat inOff.toNat inLen) outOff 0)) := by
   have hawInner : UInt256.ofNat
       (MachineState.M aw.toNat inOff.toNat inLen) = aw :=
-    clipperTakeM_same_of_cover aw inOff inLen (le_trans hinput hmem.2.2.1)
+    UInt256_M_same_of_cover_len aw inOff inLen (le_trans hinput hmem.2.2.1)
   have hawFinal : UInt256.ofNat
       (MachineState.M (MachineState.M aw.toNat inOff.toNat inLen) outOff 0) = aw := by
     simpa only [MachineState.M, if_pos rfl] using hawInner
   rw [byteArray_write_len_zero, hawFinal]
   exact hmem
 
-theorem clipperTakeMstoreCostZero {aw off : UInt256}
-    (hawOff : UInt256.ofNat (MachineState.M aw.toNat off.toNat 32) = aw) :
-    Cₘ (M aw off ⟨32⟩) - Cₘ aw = 0 :=
-  memoryExpansionCost_zero_of_aw_stable hawOff
-
-theorem clipperTakeMloadCostZero {aw off : UInt256}
-    (hawOff : UInt256.ofNat (MachineState.M aw.toNat off.toNat 32) = aw) :
-    Cₘ (M aw off ⟨32⟩) - Cₘ aw = 0 :=
-  memoryExpansionCost_zero_of_aw_stable hawOff
 
 theorem clipperTakeVatMoveSelectorMem_size_ge {mem : ByteArray}
     (hmem : 260 ≤ mem.size) :
     (clipperTakeVatMoveSelectorMem mem).size = mem.size := by
   unfold clipperTakeVatMoveSelectorMem
-  exact clipperTakeWrite32_size_of_end_le mem clipperTakeVatMoveSelectorShifted 128
+  exact write32_size_of_end_le mem clipperTakeVatMoveSelectorShifted 128
     (by omega)
 
 theorem clipperTakeVatMoveSenderMem_size_ge (I : ExecutionEnv) {mem : ByteArray}
     (hmem : 260 ≤ mem.size) :
     (clipperTakeVatMoveSenderMem I mem).size = mem.size := by
   unfold clipperTakeVatMoveSenderMem
-  rw [clipperTakeWrite32_size_of_end_le]
+  rw [write32_size_of_end_le]
   · exact clipperTakeVatMoveSelectorMem_size_ge hmem
   · rw [clipperTakeVatMoveSelectorMem_size_ge hmem]
     omega
@@ -117,7 +88,7 @@ theorem clipperTakeVatMoveVowMem_size_ge (σ : AccountMap) (I : ExecutionEnv)
     {mem : ByteArray} (hmem : 260 ≤ mem.size) :
     (clipperTakeVatMoveVowMem σ I mem).size = mem.size := by
   unfold clipperTakeVatMoveVowMem
-  rw [clipperTakeWrite32_size_of_end_le]
+  rw [write32_size_of_end_le]
   · exact clipperTakeVatMoveSenderMem_size_ge I hmem
   · rw [clipperTakeVatMoveSenderMem_size_ge I hmem]
     omega
@@ -126,7 +97,7 @@ theorem clipperTakeVatMoveCalldataMem_size_ge (σ : AccountMap) (I : ExecutionEn
     (owe : UInt256) {mem : ByteArray} (hmem : 260 ≤ mem.size) :
     (clipperTakeVatMoveCalldataMem σ I owe mem).size = mem.size := by
   unfold clipperTakeVatMoveCalldataMem
-  rw [clipperTakeWrite32_size_of_end_le]
+  rw [write32_size_of_end_le]
   · exact clipperTakeVatMoveVowMem_size_ge σ I hmem
   · rw [clipperTakeVatMoveVowMem_size_ge σ I hmem]
     omega
@@ -269,14 +240,14 @@ theorem clipperTakeDogDigsSelectorMem_size_ge {mem : ByteArray}
     (hmem : 260 ≤ mem.size) :
     (clipperDogDigsSelectorMem mem).size = mem.size := by
   unfold clipperDogDigsSelectorMem
-  exact clipperTakeWrite32_size_of_end_le mem clipperDogDigsSelectorShifted 128
+  exact write32_size_of_end_le mem clipperDogDigsSelectorShifted 128
     (by omega)
 
 theorem clipperTakeDogDigsIlkMem_size_ge (v : ClipperImmutables) {mem : ByteArray}
     (hmem : 260 ≤ mem.size) :
     (clipperDogDigsIlkMem v mem).size = mem.size := by
   unfold clipperDogDigsIlkMem
-  rw [clipperTakeWrite32_size_of_end_le]
+  rw [write32_size_of_end_le]
   · exact clipperTakeDogDigsSelectorMem_size_ge hmem
   · rw [clipperTakeDogDigsSelectorMem_size_ge hmem]
     omega
@@ -285,7 +256,7 @@ theorem clipperTakeDogDigsCalldataMem_size_ge (v : ClipperImmutables)
     (tab : UInt256) {mem : ByteArray} (hmem : 260 ≤ mem.size) :
     (clipperDogDigsCalldataMem v tab mem).size = mem.size := by
   unfold clipperDogDigsCalldataMem
-  rw [clipperTakeWrite32_size_of_end_le]
+  rw [write32_size_of_end_le]
   · exact clipperTakeDogDigsIlkMem_size_ge v hmem
   · rw [clipperTakeDogDigsIlkMem_size_ge v hmem]
     omega
@@ -395,14 +366,14 @@ theorem clipperTakeVatFluxSelectorMem_size_ge {mem : ByteArray}
     (hmem : 260 ≤ mem.size) :
     (clipperTakeVatFluxSelectorMem mem).size = mem.size := by
   unfold clipperTakeVatFluxSelectorMem
-  exact clipperTakeWrite32_size_of_end_le mem clipperTakeVatFluxSelectorShifted 128
+  exact write32_size_of_end_le mem clipperTakeVatFluxSelectorShifted 128
     (by omega)
 
 theorem clipperTakeVatFluxIlkMem_size_ge (v : ClipperImmutables) {mem : ByteArray}
     (hmem : 260 ≤ mem.size) :
     (clipperTakeVatFluxIlkMem v mem).size = mem.size := by
   unfold clipperTakeVatFluxIlkMem
-  rw [clipperTakeWrite32_size_of_end_le]
+  rw [write32_size_of_end_le]
   · exact clipperTakeVatFluxSelectorMem_size_ge hmem
   · rw [clipperTakeVatFluxSelectorMem_size_ge hmem]
     omega
@@ -411,13 +382,13 @@ theorem clipperTakeVatFluxThisMem_size_ge (I : ExecutionEnv) {mem : ByteArray}
     (hmem : 260 ≤ mem.size) :
     (clipperTakeVatFluxThisMem I mem).size = mem.size := by
   unfold clipperTakeVatFluxThisMem
-  exact clipperTakeWrite32_size_of_end_le mem (clipperTakeThisWord I) 164 (by omega)
+  exact write32_size_of_end_le mem (clipperTakeThisWord I) 164 (by omega)
 
 theorem clipperTakeVatFluxWhoMem_size_ge (who : UInt256) {mem : ByteArray}
     (hmem : 260 ≤ mem.size) :
     (clipperTakeVatFluxWhoMem who mem).size = mem.size := by
   unfold clipperTakeVatFluxWhoMem
-  exact clipperTakeWrite32_size_of_end_le mem (UInt256.land solcAddrMask who) 196
+  exact write32_size_of_end_le mem (UInt256.land solcAddrMask who) 196
     (by omega)
 
 theorem clipperTakeVatFluxCalldataMem_size_ge (v : ClipperImmutables)
@@ -425,7 +396,7 @@ theorem clipperTakeVatFluxCalldataMem_size_ge (v : ClipperImmutables)
     (hmem : 260 ≤ mem.size) :
     (clipperTakeVatFluxCalldataMem v I who slice mem).size = mem.size := by
   unfold clipperTakeVatFluxCalldataMem
-  rw [clipperTakeWrite32_size_of_end_le]
+  rw [write32_size_of_end_le]
   · rw [clipperTakeVatFluxWhoMem_size_ge]
     · rw [clipperTakeVatFluxThisMem_size_ge]
       exact clipperTakeVatFluxIlkMem_size_ge v hmem
@@ -666,7 +637,7 @@ theorem clipperTakeRemoveMemoryWF (id move : UInt256)
   have haw32 : UInt256.ofNat (MachineState.M aw.toNat 32 32) = aw :=
     clipperTakeMemoryWF_mstore_aw mem aw ⟨32⟩ hmem (by decide)
   have haw64 : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw := by
-    simpa using clipperTakeM_same_of_cover aw (⟨0⟩ : UInt256) 64 (by
+    simpa using UInt256_M_same_of_cover_len aw (⟨0⟩ : UInt256) 64 (by
       change 64 ≤ aw.toNat * 32
       have hawGe := clipperTakeMemoryWF_aw_ge mem aw hmem
       omega)

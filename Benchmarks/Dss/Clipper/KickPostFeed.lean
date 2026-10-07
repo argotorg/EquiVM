@@ -1,3 +1,4 @@
+import Reasoning.Storage
 import Benchmarks.Dss.Clipper.KickFeedPriceSimulation
 import Benchmarks.Dss.Clipper.RedoSuccessBridge
 
@@ -10,12 +11,6 @@ set_option maxHeartbeats 4000000
 set_option maxRecDepth 10000
 set_option linter.unusedTactic false
 
-private theorem clipperKickStorageStore_originalAccounts (evm : EVM.State)
-    (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;>
-    simp [Option.option, State.setAccount, Account.updateStorage]
 
 theorem clipperKickVowAddress_eq_of_aligned
     {s0 evm : EVM.State}
@@ -66,8 +61,7 @@ theorem clipperKickAfterFeedTopPrefix
     (hgetFeed : ExecStmt config
       (Frame.mk contract (clipperKickLocalsActivePos evmLock I) (immStore v))
       sourceInit (.internalCall "getFeedPrice" [] "feedPrice")
-      (.ok (Frame.mk contract
-        (clipperKickLocalsFeedPrice evmLock I feedPrice) (immStore v)) sourceAfter))
+      (.ok (Frame.mk contract (clipperKickLocalsFeedPrice evmLock I feedPrice) (immStore v)) sourceAfter))
     (hmul : feedPrice.toNat *
       (Solm.EVM.storageLoad sourceAfter
         sourceAfter.executionEnv.codeOwner ⟨5⟩).toNat < UInt256.size)
@@ -77,8 +71,7 @@ theorem clipperKickAfterFeedTopPrefix
           sourceAfter.executionEnv.codeOwner ⟨5⟩)) clipperRayWord = top)
     (htopPos : 0 < top.toNat) {result : ExecResult}
     (htail : ExecBlock config
-      (Frame.mk contract
-        (clipperKickLocalsCoinZero evmLock evmTop I feedPrice top) (immStore v))
+      (Frame.mk contract (clipperKickLocalsCoinZero evmLock evmTop I feedPrice top) (immStore v))
       evmTop
       [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody) [],
         .assign .storage lockedRef (.intLit 0), .return [.var "id"] ] result)
@@ -103,8 +96,7 @@ theorem clipperKickFinishActive
       clipperKickChipWord σTop I ≠ ⟨0⟩)
     (hprefix : ∀ {result : ExecResult},
       ExecBlock config
-        (Frame.mk contract
-          (clipperKickLocalsCoinZero evmLock evmTop I feedPrice top) (immStore v))
+        (Frame.mk contract (clipperKickLocalsCoinZero evmLock evmTop I feedPrice top) (immStore v))
         evmTop
         [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody) [],
           .assign .storage lockedRef (.intLit 0), .return [.var "id"] ] result →
@@ -302,7 +294,7 @@ theorem clipperKickFinishAfterFeedPrice
       hread64 =>
     obtain ⟨k9233, C9233, rd9233⟩ := RD.clipperKickGetFeedPriceToRmul
       v hpatch hrd (by omega)
-    have hbuf := clipperKickSlotWord_eq_of_accounts_eq sourceAfter I ⟨5⟩
+    have hbuf := slotWord_eq_of_accounts_eq sourceAfter I ⟨5⟩
       halign.executionEnv halign.accounts
     by_cases hoverRmul : UInt256.size ≤
         (solcSlotWord σ I ⟨5⟩).toNat * feedPrice.toNat
@@ -360,7 +352,7 @@ theorem clipperKickFinishAfterFeedPrice
                 s0.σ₀ = sourceAfter.σ₀ := halign.originalAccounts
                 _ = evmTop.σ₀ := by
                   symm
-                  exact clipperKickStorageStore_originalAccounts _ _ _ _
+                  exact storageStore_σ₀ _ _ _ _
             executionEnv := by
               calc
                 evmTop.executionEnv = sourceAfter.executionEnv :=
@@ -381,8 +373,7 @@ theorem clipperKickFinishAfterFeedPrice
           exact twoWordHashMem_read64_of_ge id ⟨12⟩ (by omega) hread64
         have hprefix {result : ExecResult}
             (htail : ExecBlock config
-              (Frame.mk contract
-                (clipperKickLocalsCoinZero evmLock evmTop I feedPrice top) (immStore v))
+              (Frame.mk contract (clipperKickLocalsCoinZero evmLock evmTop I feedPrice top) (immStore v))
               evmTop
               [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody) [],
                 .assign .storage lockedRef (.intLit 0), .return [.var "id"] ]

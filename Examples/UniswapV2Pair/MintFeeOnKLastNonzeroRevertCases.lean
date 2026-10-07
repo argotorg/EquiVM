@@ -474,7 +474,7 @@ theorem uniswapMintFeeRuntimePositiveNumeratorOverflowReverts
         ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1,
         balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
       mem feeToStaticcallActiveWords rdata σFee k C)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hroot : rootK > rootKLast) (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)
     (hover : UInt256.size ≤ mintFeeNumeratorNat evmFeeS rootK rootKLast)
@@ -499,7 +499,7 @@ theorem uniswapMintFeeRuntimePositiveRootTimesFiveOverflowReverts
         ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1,
         balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
       mem feeToStaticcallActiveWords rdata σFee k C)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hroot : rootK > rootKLast) (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)
     (hnumFit : mintFeeNumeratorNat evmFeeS rootK rootKLast < UInt256.size)
@@ -525,7 +525,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorOverflowReverts
         ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1,
         balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
       mem feeToStaticcallActiveWords rdata σFee k C)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hroot : rootK > rootKLast) (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)
     (hrootKLastSize : rootKLast.toNat < UInt256.size)
@@ -653,7 +653,7 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
     (hruntimeReserve1 :
       reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve1)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,

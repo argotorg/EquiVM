@@ -1,3 +1,4 @@
+import Reasoning.Storage
 import Benchmarks.Dss.Clipper.KickDepthLimit
 import Benchmarks.Dss.Clipper.Invalid
 
@@ -68,12 +69,6 @@ private theorem clipperKickConnectOutcome
       exact hevm.reEquivExecutionGen hcode hdispatch hdecode
         hbody haccounts henc
 
-private theorem clipperKickStore_originalAccounts (evm : EVM.State)
-    (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;>
-    simp [Option.option, State.setAccount, Account.updateStorage]
 
 private theorem clipperKickSourceInitializedState_originalAccounts
     (evm : EVM.State) (I : ExecutionEnv) :
@@ -82,7 +77,7 @@ private theorem clipperKickSourceInitializedState_originalAccounts
     clipperKickSourceSalesLotState, clipperKickSourceSalesTabState,
     clipperKickSourceSalesPosState, clipperKickSourceActiveState,
     clipperKickSourceActiveLengthState, clipperKickSourceIdState,
-    clipperKickStore_originalAccounts]
+    storageStore_σ₀]
 
 private theorem clipperKickSourceInitializedState_executionEnv
     (evm : EVM.State) (I : ExecutionEnv) :
@@ -98,7 +93,7 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 13))
     (hStorageWF : clipperStorageWF σ I) :
     runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
@@ -124,7 +119,7 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
         Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
           (clipperRelyAuthStorageSlot I) := by
       simpa [clipperRelyAuthWord] using
-        clipperKickSlotWord_eq_of_accounts_eq evmSolm I
+        slotWord_eq_of_accounts_eq evmSolm I
           (clipperRelyAuthStorageSlot I) (by simp [evmSolm, initState])
           hInitialAccounts
     have connectRevert
@@ -148,7 +143,7 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
       obtain ⟨_, _, rd5443⟩ := clipperKickX_authorized v hpatch hauth rd5361
       have hlockEq : solcSlotWord σ I ⟨13⟩ =
           Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨13⟩ :=
-        clipperKickSlotWord_eq_of_accounts_eq evmSolm I ⟨13⟩
+        slotWord_eq_of_accounts_eq evmSolm I ⟨13⟩
           (by simp [evmSolm, initState]) hInitialAccounts
       by_cases hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩
       · have hlockedSource : Solm.EVM.storageLoad evmSolm
@@ -156,6 +151,15 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
           rw [← hlockEq]
           exact hlocked
         obtain ⟨_, _, rd5520⟩ := clipperKickX_lockOpen v hpatch hlocked rd5443
+        by_cases hperm : I.perm = true
+        swap
+        · have hstaticPerm : I.perm = false := by simpa using hperm
+          have hstatic := permSplit_false hstaticPerm
+            (clipperKickX_lockAndStoppedOpenSplit v hpatch rd5520)
+          exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+            (ExecFuncBody.execBlockStatic
+              ((clipperKickSourceRevertsStoppedSplit v evmSolm I hvalue hsrc
+                hauthSource hlockedSource).2 hstaticPerm))
         let σLock := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
         let evmLock := clipperKickLockedState evmSolm
         have hLockAccounts : σLock = evmLock.accountMap := by
@@ -168,7 +172,7 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
             storageStore_executionEnv]
         have hstoppedEq : solcSlotWord σLock I ⟨14⟩ =
             Solm.EVM.storageLoad evmLock evmLock.executionEnv.codeOwner ⟨14⟩ :=
-          clipperKickSlotWord_eq_of_accounts_eq evmLock I ⟨14⟩
+          slotWord_eq_of_accounts_eq evmLock I ⟨14⟩
             henvLock hLockAccounts
         by_cases hstopped : (solcSlotWord σLock I ⟨14⟩).toNat < 1
         · have hstoppedSource :
@@ -189,7 +193,7 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
                 have hidEq : clipperKickSourceIdWord evmLock =
                     clipperKickIdWord σLock I := by
                   simp only [clipperKickSourceIdWord, clipperKickIdWord]
-                  rw [← clipperKickSlotWord_eq_of_accounts_eq evmLock I ⟨10⟩
+                  rw [← slotWord_eq_of_accounts_eq evmLock I ⟨10⟩
                     henvLock hLockAccounts]
                 by_cases hid : clipperKickIdWord σLock I ≠ ⟨0⟩
                 · obtain ⟨_, _, rd5913⟩ := clipperKickX_idPositive
@@ -208,7 +212,7 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
                         exact storageLoad_storageStore_ne evmLock
                           evmLock.executionEnv.codeOwner (by decide)
                       _ = solcSlotWord σLock I ⟨11⟩ :=
-                        (clipperKickSlotWord_eq_of_accounts_eq evmLock I ⟨11⟩
+                        (slotWord_eq_of_accounts_eq evmLock I ⟨11⟩
                           henvLock hLockAccounts).symm
                       _ = solcSlotWord σ I ⟨11⟩ := by
                         simpa [σLock, solcSlotWord] using
@@ -239,7 +243,7 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
                         exact (by decide : (⟨0⟩ : UInt256) ≠ ⟨1⟩) hauthSource
                     | some acc => exact ⟨acc, rfl⟩
                   obtain ⟨accSolm, haccSolm⟩ := hpresentSolm
-                  obtain ⟨accLock, haccLock⟩ := clipperKickStorageStore_present
+                  obtain ⟨accLock, haccLock⟩ := storageStore_present
                     evmSolm evmSolm.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
                       (by simpa [evmSolm, initState] using haccSolm)
                   have hpresentLock : ∃ acc,
@@ -263,7 +267,7 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
                           _ = evmSolm.σ₀ := rfl
                           _ = evmLock.σ₀ := by
                             simpa [evmLock, clipperKickLockedState] using
-                              (clipperKickStore_originalAccounts evmSolm
+                              (storageStore_σ₀ evmSolm
                                 evmSolm.executionEnv.codeOwner ⟨13⟩ ⟨1⟩).symm
                           _ = sourceInit.σ₀ := by
                             simpa [sourceInit] using
@@ -281,8 +285,7 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
                       (clipperKickSalesBaseSlot_eq evmLock σLock I hidEq)
                   have hprefix : ∀ {result : ExecResult},
                       ExecBlock config
-                          (Frame.mk contract
-                            (clipperKickLocalsActivePos evmLock I) (immStore v))
+                          (Frame.mk contract (clipperKickLocalsActivePos evmLock I) (immStore v))
                           sourceInit (clipperKickAfterInitializationBody) result →
                         ExecBlock config (Frame.mk contract (clipperKickStore I) (immStore v))
                           evmSolm kickTransition.body result := by

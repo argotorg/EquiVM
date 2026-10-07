@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.VyperERC20.BalanceOf
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -123,21 +124,21 @@ theorem erc20AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       some (.elem (.int uint256Int)) := by
     simp [storageTypeAt?, erc20Contract, ERC20.erc20Contract, ERC20.erc20StorageDecls,
       uint256Storage, ERC20.uint256Storage, List.find?, List.foldlM, storageTypeStep?]
-  have hloc : vyperERC20Config.storage.layout
+  have hloc : vyperERC20Config.storageBackend.locate?
       { base := "allowance",
         steps := [.mindex (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat)),
                   .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat))] } =
-      fun _ => some (vyperUint256Loc (allowanceSlot I)) := by
+      some (.leaf (vyperUint256Loc (allowanceSlot I))) := by
     simp [allowanceSlot, vyperERC20Config_storage_allowance, allowanceOwnerValue,
       allowanceSpenderValue, erc20AllowanceSlot]
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar (t := .int uint256Int)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
         (hbase := allowanceStore_allowance I)
         (her := her)
         (hty := hty)
         (hloc := hloc)]
-      rw [vyperERC20StorageLocLoad_uint256])
+      erw [storageLocLoad_uint256])
 
 def allowanceDispatchMem : ByteArray :=
   vyperERC20Bytecode.write 817 ByteArray.empty 30 2
@@ -409,22 +410,6 @@ theorem allowanceReturnMem_read128 (owner spender val : UInt256) :
 macro "vyper_erc20_allowance_decode" : tactic =>
   `(tactic| native_decide)
 
-theorem calldataSizeGuard68 {n : Nat} (hsz68 : 68 ≤ n) (hsize : n < UInt256.size) :
-    UInt256.lt (UInt256.ofNat n) ⟨68⟩ = ⟨0⟩ := by
-  have hnot : ¬ (UInt256.ofNat n < (⟨68⟩ : UInt256)) := by
-    intro hlt
-    have hltNat : (UInt256.ofNat n).toNat < (⟨68⟩ : UInt256).toNat := hlt
-    have hn : (UInt256.ofNat n).toNat = n := by
-      unfold UInt256.toNat UInt256.ofNat
-      simp only [Id.run]
-      exact Nat.mod_eq_of_lt hsize
-    rw [hn] at hltNat
-    change n < 68 at hltNat
-    omega
-  unfold UInt256.lt UInt256.fromBool Bool.toUInt256
-  rw [show decide (UInt256.ofNat n < (⟨68⟩ : UInt256)) = false from by
-    exact decide_eq_false hnot]
-  native_decide
 
 theorem erc20X_allowanceFromEntry {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)

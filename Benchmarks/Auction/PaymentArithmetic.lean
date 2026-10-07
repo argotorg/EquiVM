@@ -1,3 +1,5 @@
+import Reasoning.HeapMemory
+import Reasoning.ExternalCall
 import Benchmarks.Auction.RawEthRoutine
 import Benchmarks.Auction.ReturnReserve
 
@@ -63,29 +65,5 @@ theorem wordRoundedSizeSource {evm : EVM.State} {locals : Store} {e : Expr} {siz
   rw [hmask, hsum, hsize]
   simp only [Int.toNat, hand, hr]
 
-theorem bytesAllocSize_eq_returnReserveSize {size : Nat} (hb : size + 63 < UInt256.size) :
-    bytesAllocSize size = returnReserveSize (size + 32) := by
-  apply u256_inj
-  rw [bytesAllocSize_toNat hb, returnReserveSize_toNat (by omega)]
-
--- LIBRARY CANDIDATE: both low-level-call outcomes update the same two locals.
-theorem lowLevelCallSource {cfg : Config} {frame : Frame} {evm evm' : EVM.State}
-    {receiver eth cdata : Expr} {target : AccountAddress} {value : Int} {calldata out : ByteArray}
-    {success data : Ident} {z : Bool}
-    (hr : evalExpr? cfg frame evm receiver = .ok (.address target))
-    (hv : evalExpr? cfg frame evm eth = .ok (.int value))
-    (hd : evalExpr? cfg frame evm cdata = .ok (.bytes calldata))
-    (hc : callViaEVM evm target value calldata (z, evm', out)) :
-    ExecStmt cfg frame evm (.lowLevelCall receiver eth cdata success data)
-      (.ok { frame with locals := (frame.locals.insert success (.bool z)).insert data (.bytes out) }
-        evm') := by
-  have ht : EVM.address target.val = target := by
-    apply Fin.ext
-    change target.val % AccountAddress.size = target.val
-    exact Nat.mod_eq_of_lt target.isLt
-  rw [← ht] at hc
-  cases z with
-  | false => exact ExecStmt.lowLevelCallFailure hr hv hd hc
-  | true => exact ExecStmt.lowLevelCallSuccess hr hv hd hc
 
 end Auction

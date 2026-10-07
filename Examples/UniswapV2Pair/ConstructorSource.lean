@@ -18,31 +18,32 @@ def constructorFactoryState (evm : EVM.State) : EVM.State :=
 
 theorem constructorAssignDomain (evm : EVM.State) :
     assignStorageRef? config { contract := contract, locals := ∅ } evm .storage
-      domainSeparatorRef (permitWordBytes32Value
+      domainSeparatorRef (wordBytes32Value
         (constructorDomainHashWord (UInt256.ofNat evm.executionEnv.codeOwner.val))) =
       .ok ({ contract := contract, locals := ∅ }, constructorDomainState evm) := by
-  apply assignStorageRef_storage_scalar_value (ty := bytes32St)
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (hleaf := Or.inl ⟨_, rfl⟩) (ty := bytes32St)
     (er := { base := "DOMAIN_SEPARATOR", steps := [] }) (loc := bytes32Loc ⟨3⟩)
   · simp only [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_empty]
   · simp only [evalStorageRef, evalStorageRefSteps, domainSeparatorRef, EvalResult.bind, bind, pure]
   · native_decide
   · rfl
-  · trivial
-  · exact storageLocStore_bytes32 evm _ _ _ (valueToWord_bytes32_word _)
+  · simpa [bytes32Loc, Reasoning.Theory.bytes32Loc] using
+      (storageLocStore_bytes32 evm _ _ _ (valueToWord_bytes32_word _))
 
 theorem constructorAssignFactory (evm : EVM.State) :
     assignStorageRef? config { contract := contract, locals := ∅ } evm .storage
       factoryRef (.address evm.executionEnv.source) =
       .ok ({ contract := contract, locals := ∅ }, constructorFactoryState evm) := by
-  apply assignStorageRef_storage_scalar_value (ty := addrSt)
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (hleaf := Or.inl ⟨_, rfl⟩) (ty := addrSt)
     (er := { base := "factory", steps := [] }) (loc := addrLoc ⟨5⟩)
   · simp only [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_empty]
   · simp only [evalStorageRef, evalStorageRefSteps, factoryRef, EvalResult.bind, bind, pure]
   · native_decide
   · rfl
-  · trivial
   · rw [← uniswapSource_ofNat evm.executionEnv]
-    exact uniswapStorageLocStore_address_offset0 evm _ _ (uniswapSourceWord_canonical _)
+    exact storageLocStore_address_offset0 evm _ _ (uniswapSourceWord_canonical _)
 
 theorem uniswapConstructorSourceReturns (evm : EVM.State) (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm ∅ constructorDecl.body

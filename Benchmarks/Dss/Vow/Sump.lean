@@ -9,7 +9,7 @@ namespace Benchmarks.Dss.Vow
 /-! ## `sump()` getter -/
 
 def sumpWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vowSlotWord ⟨9⟩ σ I
+  solcSlotWordAt ⟨9⟩ σ I
 
 theorem vowDispatch_sump {I : ExecutionEnv} (hsel : selIs I ⟨#[0xc3, 0x49, 0xd3, 0x62]⟩) :
     dispatchMsg contract I.calldata = some sumpTransition := by
@@ -90,7 +90,7 @@ theorem vowSumpBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (sumpWord σ I).toNat))])) := by
-    simpa [sumpTransition, sumpWord, vowSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [sumpTransition, sumpWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vowUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -112,7 +112,7 @@ theorem vowSumpBodyCore
 
 theorem vowSumpBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xc3, 0x49, 0xd3, 0x62]⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=

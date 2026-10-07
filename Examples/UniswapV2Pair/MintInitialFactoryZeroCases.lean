@@ -138,11 +138,11 @@ theorem uniswapMintInitialFeeOffKLastZeroLiquidityZeroFromFactoryWitnessCase
           (⟨1000⟩ : UInt256) <
         UInt256.size)
     (htotalFitMin :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat < UInt256.size)
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat < UInt256.size)
     (hbalanceFitMin :
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+          (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem)).toNat +
           (⟨1000⟩ : UInt256).toNat < UInt256.size)
     (hmem : mem.size = 164)
@@ -311,11 +311,11 @@ theorem uniswapMintInitialFeeOnKLastZeroLiquidityZeroFromFactoryWitnessCase
           (⟨1000⟩ : UInt256) <
         UInt256.size)
     (htotalFitMin :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat < UInt256.size)
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat < UInt256.size)
     (hbalanceFitMin :
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+          (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem)).toNat +
           (⟨1000⟩ : UInt256).toNat < UInt256.size)
     (hmem : mem.size = 164)
@@ -489,7 +489,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroLiquidityZeroFromFactoryWitnessCase
           (AccountAddress.ofNat 0) (⟨1000⟩ : UInt256) <
         UInt256.size)
     (htotalFitMin :
-      (uniswapSlotWord ⟨0⟩
+      (solcSlotWordAt ⟨0⟩
         (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I).toNat +
           (⟨1000⟩ : UInt256).toNat <
         UInt256.size)
@@ -497,7 +497,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroLiquidityZeroFromFactoryWitnessCase
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) ⟨0⟩
-          (uniswapSlotWord ⟨0⟩
+          (solcSlotWordAt ⟨0⟩
             (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem)).toNat +
           (⟨1000⟩ : UInt256).toNat < UInt256.size)

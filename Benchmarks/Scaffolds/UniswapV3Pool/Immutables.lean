@@ -1,3 +1,4 @@
+import Reasoning.BytecodePatching
 import Solm
 import Reasoning.PatchRuntime
 import Reasoning.Immutables
@@ -39,7 +40,7 @@ def wordBytes? (v : Value) : Option ByteArray :=
 def patchesFrom (get : Ident → Option Value) : Option (List (Nat × ByteArray)) :=
   offsets.foldrM (fun p acc => do
     let v ← get p.1
-    let bytes ← wordBytes? v
+    let bytes ← Reasoning.Theory.wordBytes? v
     pure (p.2.map (fun o => (o, bytes)) ++ acc)) []
 
 /-- The runtime code deployed for an immutables store: the template patched with the stored

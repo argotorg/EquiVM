@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Jug
 /-! ## `base()` getter -/
 
 def baseWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  jugSlotWord ⟨4⟩ σ I
+  solcSlotWordAt ⟨4⟩ σ I
 
 theorem jugDecode_base {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (baseTransition.params.map Param.name)
@@ -58,7 +58,7 @@ theorem jugBaseBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (baseWord σ I).toNat))])) := by
-    simpa [baseTransition, baseWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [baseTransition, baseWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       jugUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -86,7 +86,6 @@ theorem jugBaseBodyCore
 theorem jugBaseBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = jugBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (jugSelBytes 0)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

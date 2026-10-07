@@ -489,6 +489,10 @@ mutual
         exact decEqOfIff (nx = ny ∧ ex = ey)
           (by rintro ⟨rfl, rfl⟩; rfl)
           (by intro h; cases h; exact ⟨rfl, rfl⟩)
+    next nx argsx ny argsy =>
+        exact decEqOfIff (nx = ny ∧ argsx = argsy)
+          (by rintro ⟨rfl, rfl⟩; rfl)
+          (by intro h; cases h; exact ⟨rfl, rfl⟩)
 
   private def Stmt.decEqList : (as bs : List Stmt) → Decidable (as = bs)
     | [], [] => isTrue rfl

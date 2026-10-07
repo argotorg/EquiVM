@@ -68,8 +68,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceRevertsOfBody
         { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evmFlux
         removeFunction.body .reverted) :
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+      (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmDog
       [ .ite
@@ -85,8 +84,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceRevertsOfBody
         .assign .storage lockedRef (.intLit 0) ]
       .reverted := by
   let digsRetFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+    Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
         slice' tabNew lotNew) (immStore v)
   let fluxRetFrame : Frame :=
     { contract := contract,
@@ -174,8 +172,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkOfBody
             slice' tabNew lotNew).insert "_fluxUsrRet" .unit |>.insert
               "_removeRet2" .unit, immutables := immStore v }
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+      (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmDog
       [ .ite
@@ -193,8 +190,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOkOfBody
         (Solm.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by
   intro frameRemoveRet
   let digsRetFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+    Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
         slice' tabNew lotNew) (immStore v)
   let fluxRetFrame : Frame :=
     { contract := contract,

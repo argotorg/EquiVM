@@ -273,7 +273,7 @@ theorem evalExpr_dent_beg_storage_begLotLocals (evm : EVM.State) (I : ExecutionE
         (.storage begRef) =
       .ok (.int (Int.ofNat (dentBegWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := dentBegLotLocals evm I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := begRef) (er := dentBegEvaledRef)
     (t := .int uint256Int) (loc := wordLoc ⟨4⟩)
@@ -283,14 +283,14 @@ theorem evalExpr_dent_beg_storage_begLotLocals (evm : EVM.State) (I : ExecutionE
       begRef, EvalResult.bind, bind, pure])
     (by simp [frame, storageTypeAt?, contract, storageDecls, uint256St])
     (by rfl)
-    (by simpa [dentBegWord, flopperSlotWord] using flopperStorageLocLoad_uint256 evm ⟨4⟩)
+    (by simpa [dentBegWord, solcSlotWordAt] using storageLocLoad_uint256 evm ⟨4⟩)
 
 theorem evalExpr_dent_lot_storage_begLotLocals (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentBegLotLocals evm I } evm
         (.storage (bidsF (.var "id") "lot")) =
       .ok (.int (Int.ofNat (dentLotStoredWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := dentBegLotLocals evm I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "lot") (er := dentLotEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionLotSlot (dentIdWord I)))
@@ -303,15 +303,15 @@ theorem evalExpr_dent_lot_storage_begLotLocals (evm : EVM.State) (I : ExecutionE
     (by simp [frame, auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
       BidStructTy, uint256St])
     (by rfl)
-    (by simpa [dentLotStoredWord, flopperSlotWord] using
-      flopperStorageLocLoad_uint256 evm (auctionLotSlot (dentIdWord I)))
+    (by simpa [dentLotStoredWord, solcSlotWordAt] using
+      storageLocLoad_uint256 evm (auctionLotSlot (dentIdWord I)))
 
 theorem evalExpr_dent_lot_storage_lotOneLocals (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentLotOneLocals evm I } evm
         (.storage (bidsF (.var "id") "lot")) =
       .ok (.int (Int.ofNat (dentLotStoredWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := dentLotOneLocals evm I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "lot") (er := dentLotEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionLotSlot (dentIdWord I)))
@@ -324,8 +324,8 @@ theorem evalExpr_dent_lot_storage_lotOneLocals (evm : EVM.State) (I : ExecutionE
     (by simp [frame, auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
       BidStructTy, uint256St])
     (by rfl)
-    (by simpa [dentLotStoredWord, flopperSlotWord] using
-      flopperStorageLocLoad_uint256 evm (auctionLotSlot (dentIdWord I)))
+    (by simpa [dentLotStoredWord, solcSlotWordAt] using
+      storageLocLoad_uint256 evm (auctionLotSlot (dentIdWord I)))
 
 theorem dentBegLotWord_toNat_of_fit (evm : EVM.State) (I : ExecutionEnv)
     (hfit : (dentBegWord evm).toNat * (dentLotWord I).toNat < UInt256.size) :
@@ -609,7 +609,7 @@ theorem evalExpr_dent_sender_ne_guy_false_lotOneLocals (evm : EVM.State) (I : Ex
       evalExpr? config frame evm (.storage (bidsF (.var "id") "guy")) =
         .ok (.address (AccountAddress.ofNat (dentGuyWord evm I).toNat)) := by
     let frame0 : Frame := { contract := contract, locals := dentLotOneLocals evm I }
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame0) (evm := evm)
       (slot := bidsF (.var "id") "guy") (er := dentGuyEvaledRef I)
       (t := .address) (loc := addrLoc (auctionPackedSlot (dentIdWord I)))
@@ -623,8 +623,8 @@ theorem evalExpr_dent_sender_ne_guy_false_lotOneLocals (evm : EVM.State) (I : Ex
         storageDecls, BidStructTy, addrSt])
       (by rfl)
       (by
-        simpa [dentGuyWord, flopperAddressReturnWord, flopperSlotWord] using
-          flopperStorageLocLoad_address_offset0 evm (auctionPackedSlot (dentIdWord I)))
+        simpa [dentGuyWord, solcAddressSlotWord, solcSlotWordAt] using
+          storageLocLoad_address_offset0 evm (auctionPackedSlot (dentIdWord I)))
   have haddr :
       AccountAddress.ofNat (dentGuyWord evm I).toNat = evm.executionEnv.source := by
     rw [← hcaller]
@@ -652,9 +652,9 @@ theorem evalExpr_dent_sender_ne_guy_true_lotOneLocals (evm : EVM.State) (I : Exe
         (locals := dentLotOneLocals evm I) (dentLotOneLocals_get_id evm I)
         (by simp [dentLotOneLocals, dentBegLotLocals, dentLocals])
   have hguyCanon : (dentGuyWord evm I).toNat < EVM.addressModulus := by
-    simpa [dentGuyWord, flopperAddressReturnWord] using
+    simpa [dentGuyWord, solcAddressSlotWord] using
       solcAddrMask_result_canonical
-        (flopperSlotWord (auctionPackedSlot (dentIdWord I)) evm.accountMap
+        (solcSlotWordAt (auctionPackedSlot (dentIdWord I)) evm.accountMap
           evm.executionEnv)
   have haddrNe :
       evm.executionEnv.source ≠ AccountAddress.ofNat (dentGuyWord evm I).toNat := by
@@ -665,7 +665,7 @@ theorem evalExpr_dent_sender_ne_guy_true_lotOneLocals (evm : EVM.State) (I : Exe
           = UInt256.ofNat (AccountAddress.ofNat (dentGuyWord evm I).toNat).val := by
               rw [heq]
       _ = EVM.word (AccountAddress.ofNat (dentGuyWord evm I).toNat).val := rfl
-      _ = dentGuyWord evm I := flopperAddressWord_eq_ofNat_address hguyCanon
+      _ = dentGuyWord evm I := addressWord_eq_ofNat_address hguyCanon
   have hne :
       Value.address evm.executionEnv.source ≠
         Value.address (AccountAddress.ofNat (dentGuyWord evm I).toNat) := by
@@ -688,7 +688,7 @@ theorem assign_dentLotStorage (evm : EVM.State) (I : ExecutionEnv) :
       .storage (bidsF (.var "id") "lot") (.int (Int.ofNat (dentLotWord I).toNat)) =
       .ok ({ contract := contract, locals := dentLotOneLocals evm I },
         dentAfterLotStore evm I) := by
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := dentLotOneLocals evm I })
     (evm := evm)
@@ -696,7 +696,7 @@ theorem assign_dentLotStorage (evm : EVM.State) (I : ExecutionEnv) :
     (slot := bidsF (.var "id") "lot")
     (er := dentLotEvaledRef I)
     (ty := uint256St)
-    (loc := wordLoc (auctionLotSlot (dentIdWord I)))
+    (loc := wordLoc (auctionLotSlot (dentIdWord I))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (n := Int.ofNat (dentLotWord I).toNat)
     (dentLotOneLocals_get_bids evm I)
     (by
@@ -708,8 +708,7 @@ theorem assign_dentLotStorage (evm : EVM.State) (I : ExecutionEnv) :
       simp [auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         BidStructTy, uint256St])
     (by
-      funext evm'
-      exact auctionLotLayout evm' (dentIdWord I))
+      exact auctionLotLayout evm (dentIdWord I))
     (by
       simpa [wordLoc, uint256Loc, dentAfterLotStore] using
         storageLocStore_uint256 evm (auctionLotSlot (dentIdWord I)) (dentLotWord I))
@@ -722,7 +721,7 @@ theorem assign_dentLotStorage_of_locals
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage (bidsF (.var "id") "lot") (.int (Int.ofNat (dentLotWord I).toNat)) =
       .ok ({ contract := contract, locals := locals }, dentAfterLotStore evm I) := by
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (evm := evm)
@@ -730,7 +729,7 @@ theorem assign_dentLotStorage_of_locals
     (slot := bidsF (.var "id") "lot")
     (er := dentLotEvaledRef I)
     (ty := uint256St)
-    (loc := wordLoc (auctionLotSlot (dentIdWord I)))
+    (loc := wordLoc (auctionLotSlot (dentIdWord I))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (n := Int.ofNat (dentLotWord I).toNat)
     hbids
     (by
@@ -741,8 +740,7 @@ theorem assign_dentLotStorage_of_locals
       simp [auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         BidStructTy, uint256St])
     (by
-      funext evm'
-      exact auctionLotLayout evm' (dentIdWord I))
+      exact auctionLotLayout evm (dentIdWord I))
     (by
       simpa [wordLoc, uint256Loc, dentAfterLotStore] using
         storageLocStore_uint256 evm (auctionLotSlot (dentIdWord I)) (dentLotWord I))
@@ -761,10 +759,10 @@ theorem assign_dentGuyStorage_of_locals
     symm
     simpa [src, solcSourceWord] using solcSource_ofNat evm.executionEnv
   rw [haddr]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := dentGuyEvaledRef I)
-      (loc := addrLoc (auctionPackedSlot (dentIdWord I)))
+      (loc := addrLoc (auctionPackedSlot (dentIdWord I))) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := hbids)
       (her := by
         simpa [dentGuyEvaledRef, dentIdValue] using
@@ -773,7 +771,7 @@ theorem assign_dentGuyStorage_of_locals
       (hty := by simp [auctionIdKey, storageTypeAt?, storageTypeStep?, contract,
         storageDecls, BidStructTy, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   have hcanon : src.toNat < EVM.addressModulus := by
     simpa [src, solcSourceWord] using solcSourceWord_canonical evm.executionEnv
   simpa [dentAfterGuyStore, addrLoc, src] using
@@ -829,9 +827,9 @@ theorem evalExpr_dent_ttl_storage_lotOneLocals (evm : EVM.State) (I : ExecutionE
   have hload :
       storageLocLoad (dentAfterLotStore evm I) (uint48Loc ⟨6⟩ ⟨0, by decide⟩ (by decide)) =
         .int (Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat) := by
-    simpa [dentTtlWord, flopperUint48Offset0Word, flopperSlotWord] using
-      flopperStorageLocLoad_uint48_offset0 (dentAfterLotStore evm I) ⟨6⟩
-  exact evalExpr_storage_scalar_value
+    simpa [dentTtlWord, uint48Offset0Word, solcSlotWordAt] using
+      storageLocLoad_uint48_offset0 (dentAfterLotStore evm I) ⟨6⟩
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := dentAfterLotStore evm I)
     (slot := ttlRef) (er := dentTtlEvaledRef)
     (t := .int uint48Int) (loc := uint48Loc ⟨6⟩ ⟨0, by decide⟩ (by decide))
@@ -988,9 +986,9 @@ theorem evalExpr_dent_tic_guard_false_wrapped (evm : EVM.State) (I : ExecutionEn
     rw [h]
     exact Nat.mod_lt _ (by norm_num)
   have httlLt : (dentTtlWord (dentAfterLotStore evm I)).toNat < 2 ^ 48 := by
-    simpa [dentTtlWord, flopperUint48Offset0Word, EVM.twoPow] using
-      flopperUint48Masked_lt
-        (flopperSlotWord ⟨6⟩ (dentAfterLotStore evm I).accountMap
+    simpa [dentTtlWord, uint48Offset0Word, EVM.twoPow] using
+      uint48Masked_lt
+        (solcSlotWordAt ⟨6⟩ (dentAfterLotStore evm I).accountMap
           (dentAfterLotStore evm I).executionEnv)
   have hwrappedLt :
       dentTicWrappedNat evm I < (dentNow48Word evm).toNat := by
@@ -1023,7 +1021,7 @@ theorem assign_dentTicStorage (evm : EVM.State) (I : ExecutionEnv) :
       .storage (bidsF (.var "id") "tic")
         (.int (Int.ofNat (dentTicPostWord evm I).toNat % uint48Modulus)) =
       .ok ({ contract := contract, locals := dentTicLocals evm I }, dentPostState evm I) := by
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := dentTicLocals evm I })
     (evm := dentAfterLotStore evm I)
@@ -1031,7 +1029,7 @@ theorem assign_dentTicStorage (evm : EVM.State) (I : ExecutionEnv) :
     (slot := bidsF (.var "id") "tic")
     (er := dentTicEvaledRef I)
     (ty := uint48St)
-    (loc := uint48Loc (auctionPackedSlot (dentIdWord I)) ⟨20, by decide⟩ (by decide))
+    (loc := uint48Loc (auctionPackedSlot (dentIdWord I)) ⟨20, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (n := Int.ofNat (dentTicPostWord evm I).toNat % uint48Modulus)
     (dentTicLocals_get_bids evm I)
     (by
@@ -1043,8 +1041,7 @@ theorem assign_dentTicStorage (evm : EVM.State) (I : ExecutionEnv) :
       simp [auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         BidStructTy, uint48St])
     (by
-      funext evm'
-      exact auctionTicLayout evm' (dentIdWord I))
+      exact auctionTicLayout evm (dentIdWord I))
     (by
       simpa [dentPostState, dentAfterTicStore, uint48Loc] using
         storageLocStore_uint48_offset20_word (dentAfterLotStore evm I)
@@ -1125,9 +1122,9 @@ theorem evalExpr_dent_ttl_storage_afterLot_of_locals
   have hload :
       storageLocLoad (dentAfterLotStore evm I) (uint48Loc ⟨6⟩ ⟨0, by decide⟩ (by decide)) =
         .int (Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat) := by
-    simpa [dentTtlWord, flopperUint48Offset0Word, flopperSlotWord] using
-      flopperStorageLocLoad_uint48_offset0 (dentAfterLotStore evm I) ⟨6⟩
-  exact evalExpr_storage_scalar_value
+    simpa [dentTtlWord, uint48Offset0Word, solcSlotWordAt] using
+      storageLocLoad_uint48_offset0 (dentAfterLotStore evm I) ⟨6⟩
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := dentAfterLotStore evm I)
     (slot := ttlRef) (er := dentTtlEvaledRef)
     (t := .int uint48Int) (loc := uint48Loc ⟨6⟩ ⟨0, by decide⟩ (by decide))
@@ -1268,9 +1265,9 @@ theorem evalExpr_dent_tic_guard_false_wrapped_moveLocals
     rw [h]
     exact Nat.mod_lt _ (by norm_num)
   have httlLt : (dentTtlWord (dentAfterLotStore evm I)).toNat < 2 ^ 48 := by
-    simpa [dentTtlWord, flopperUint48Offset0Word, EVM.twoPow] using
-      flopperUint48Masked_lt
-        (flopperSlotWord ⟨6⟩ (dentAfterLotStore evm I).accountMap
+    simpa [dentTtlWord, uint48Offset0Word, EVM.twoPow] using
+      uint48Masked_lt
+        (solcSlotWordAt ⟨6⟩ (dentAfterLotStore evm I).accountMap
           (dentAfterLotStore evm I).executionEnv)
   have hwrappedLt :
       ((dentNow48Word evm).toNat + (dentTtlWord (dentAfterLotStore evm I)).toNat) %
@@ -1308,7 +1305,7 @@ theorem assign_dentTicStorage_of_locals
       .storage (bidsF (.var "id") "tic")
         (.int (Int.ofNat (dentTicPostWord evm I).toNat % uint48Modulus)) =
       .ok ({ contract := contract, locals := locals }, dentPostState evm I) := by
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (evm := dentAfterLotStore evm I)
@@ -1316,7 +1313,7 @@ theorem assign_dentTicStorage_of_locals
     (slot := bidsF (.var "id") "tic")
     (er := dentTicEvaledRef I)
     (ty := uint48St)
-    (loc := uint48Loc (auctionPackedSlot (dentIdWord I)) ⟨20, by decide⟩ (by decide))
+    (loc := uint48Loc (auctionPackedSlot (dentIdWord I)) ⟨20, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (n := Int.ofNat (dentTicPostWord evm I).toNat % uint48Modulus)
     hbids
     (by
@@ -1327,8 +1324,7 @@ theorem assign_dentTicStorage_of_locals
       simp [auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         BidStructTy, uint48St])
     (by
-      funext evm'
-      exact auctionTicLayout evm' (dentIdWord I))
+      exact auctionTicLayout evm (dentIdWord I))
     (by
       simpa [dentPostState, dentAfterTicStore, uint48Loc] using
         storageLocStore_uint48_offset20_word (dentAfterLotStore evm I)
@@ -1495,9 +1491,9 @@ theorem evalExpr_dent_tic_guard_false_wrapped_kissRetLocals
     rw [h]
     exact Nat.mod_lt _ (by norm_num)
   have httlLt : (dentTtlWord (dentAfterLotStore evm I)).toNat < 2 ^ 48 := by
-    simpa [dentTtlWord, flopperUint48Offset0Word, EVM.twoPow] using
-      flopperUint48Masked_lt
-        (flopperSlotWord ⟨6⟩ (dentAfterLotStore evm I).accountMap
+    simpa [dentTtlWord, uint48Offset0Word, EVM.twoPow] using
+      uint48Masked_lt
+        (solcSlotWordAt ⟨6⟩ (dentAfterLotStore evm I).accountMap
           (dentAfterLotStore evm I).executionEnv)
   have hwrappedLt :
       (dentTicWrappedNat evm I) < (dentNow48Word evm).toNat := by

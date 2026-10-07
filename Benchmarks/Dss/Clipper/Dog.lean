@@ -74,11 +74,10 @@ theorem clipperEvalDog (v : ClipperImmutables) (evm : EVM.State) (locals : Store
     rfl
   have hty : storageTypeAt? contract.storage er = some (.elem .address) := by
     simp [er, storageTypeAt?, contract, storageDecls, addrSt]
-  have hloc : config.storage.layout er = fun _ => some (addrLoc ⟨1⟩) := by
-    funext evm'
+  have hloc : config.storageBackend.locate? er = some (.leaf (addrLoc ⟨1⟩)) := by
     rfl
-  exact evalExpr_storage_scalar_value hbase her hty hloc
-    (clipperStorageLocLoad_address evm ⟨1⟩)
+  exact evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
+    (storageLocLoad_address_offset0 evm ⟨1⟩)
 
 theorem clipperDogBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "dog" = none) :
@@ -102,7 +101,7 @@ theorem clipperReachDogBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperDogSelectorWord hsz hsel
-  have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
+  have h43 := RD.selectorSplitNotTakenPush2 (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
@@ -126,7 +125,7 @@ theorem clipperReachDogBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h54 := clipperSplitNotTaken (pc := (⟨43⟩ : UInt256))
+  have h54 := RD.selectorSplitNotTakenPush2 (pc := (⟨43⟩ : UInt256))
     (next := (⟨54⟩ : UInt256)) (pivot := clipperSelNat 3)
     (tgt := (⟨162⟩ : UInt256)) h43
     (by
@@ -150,7 +149,7 @@ theorem clipperReachDogBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h113 := clipperSplitTaken (pc := (⟨54⟩ : UInt256)) (pivot := clipperSelNat 12)
+  have h113 := RD.selectorSplitTakenPush2 (pc := (⟨54⟩ : UInt256)) (pivot := clipperSelNat 12)
     (tgt := (⟨113⟩ : UInt256)) h54
     (by
         change decode code (⟨54⟩ : UInt256) = some (.DUP1, .none)
@@ -173,7 +172,7 @@ theorem clipperReachDogBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨113⟩ : UInt256) (by native_decide))
     (by simp)
-  have h125 := clipperArmNotTaken (pc := (⟨114⟩ : UInt256))
+  have h125 := RD.selectorArmNotTakenPush2 (pc := (⟨114⟩ : UInt256))
     (next := (⟨125⟩ : UInt256)) (sel := clipperSelNat 3)
     (tgt := (⟨1258⟩ : UInt256))
     (h113.jumpdest
@@ -202,7 +201,7 @@ theorem clipperReachDogBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h136 := clipperArmNotTaken (pc := (⟨125⟩ : UInt256))
+  have h136 := RD.selectorArmNotTakenPush2 (pc := (⟨125⟩ : UInt256))
     (next := (⟨136⟩ : UInt256)) (sel := clipperSelNat 4)
     (tgt := (⟨1295⟩ : UInt256)) h125
     (by
@@ -226,7 +225,7 @@ theorem clipperReachDogBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h147 := clipperArmNotTaken (pc := (⟨136⟩ : UInt256))
+  have h147 := RD.selectorArmNotTakenPush2 (pc := (⟨136⟩ : UInt256))
     (next := (⟨147⟩ : UInt256)) (sel := clipperSelNat 27)
     (tgt := (⟨1303⟩ : UInt256)) h136
     (by
@@ -250,7 +249,7 @@ theorem clipperReachDogBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h1341 := clipperArmTaken (pc := (⟨147⟩ : UInt256)) (sel := clipperSelNat 8)
+  have h1341 := RD.selectorArmTakenPush2 (pc := (⟨147⟩ : UInt256)) (sel := clipperSelNat 8)
     (tgt := (⟨1341⟩ : UInt256)) h147
     (by
         change decode code (⟨147⟩ : UInt256) = some (.DUP1, .none)
@@ -292,7 +291,7 @@ theorem clipperDogPatchesWindowDisjoint32 (v : ClipperImmutables) (lo hi : Nat)
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk
   · simp [hIlk] at hlo hhi ⊢
   · simp [hIlk] at hlo hhi ⊢
     omega
@@ -318,7 +317,7 @@ theorem clipperJumpDest6783 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 7000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -330,7 +329,7 @@ theorem clipperDogBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 8)) :
     runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=

@@ -6,7 +6,7 @@ namespace Benchmarks.Dss.Pot
 
 /-! ## `dsr()` public getter (dai savings rate, slot 3). Group @174 arm 2. -/
 
-def dsrWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := potSlotWord ⟨3⟩ σ I
+def dsrWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := solcSlotWordAt ⟨3⟩ σ I
 
 theorem potDecode_dsr {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (dsrTransition.params.map Param.name)
@@ -54,7 +54,7 @@ theorem potDsrBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (dsrWord σ I).toNat))])) := by
-    simpa [dsrTransition, dsrWord, potSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [dsrTransition, dsrWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -75,7 +75,6 @@ theorem potDsrBodyCore
 theorem potDsrBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 5)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

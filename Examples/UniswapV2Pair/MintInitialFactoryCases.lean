@@ -112,7 +112,7 @@ theorem uniswapMintInitialSmallRootRevertsFromFactoryCases
     (hzFeeTrue : zFee = true)
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hamount0Eq :
       mintAmount0Word
           (uniswapLockEnteredState
@@ -128,21 +128,21 @@ theorem uniswapMintInitialSmallRootRevertsFromFactoryCases
             solcAddrMask =
           ⟨0⟩ ∧
         mintFeeKLastSlotWord σFee I = ⟨0⟩ ∧
-        uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩ ∧
+        solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩ ∧
         amount0.toNat * amount1.toNat < UInt256.size ∧
         (UInt256.mul amount0 amount1).toNat ≤ 3) ∨
       (UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)))
             solcAddrMask ≠
           ⟨0⟩ ∧
         mintFeeKLastSlotWord σFee I = ⟨0⟩ ∧
-        uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩ ∧
+        solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩ ∧
         amount0.toNat * amount1.toNat < UInt256.size ∧
         (UInt256.mul amount0 amount1).toNat ≤ 3) ∨
       (UInt256.land (UInt256.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)))
             solcAddrMask =
           ⟨0⟩ ∧
         mintFeeKLastSlotWord σFee I ≠ ⟨0⟩ ∧
-        uniswapSlotWord ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I =
+        solcSlotWordAt ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I =
           ⟨0⟩ ∧
         amount0.toNat * amount1.toNat < UInt256.size ∧
         (UInt256.mul amount0 amount1).toNat ≤ 3)) :
@@ -282,7 +282,7 @@ theorem uniswapMintInitialSmallRootRevertsFromFactoryCases
         simp [mintFeeKLastClearedState, henvFeeI, storageStore_executionEnv]
       have htotalEqCleared :
           mintFunctionTotalSupplyWord (mintFeeKLastClearedState evmFeeS) =
-            uniswapSlotWord ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I :=
+            solcSlotWordAt ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I :=
         mintFunctionTotalSupplyWord_eq_slot hPostCleared henvCleared
       have htotalSource : mintFunctionTotalSupplyWord (mintFeeKLastClearedState evmFeeS) =
           ⟨0⟩ := by

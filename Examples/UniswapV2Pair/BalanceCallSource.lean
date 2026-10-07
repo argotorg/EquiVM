@@ -1,3 +1,4 @@
+import Reasoning.EVMWord
 import Examples.UniswapV2Pair.Sync
 import Reasoning.ExternalCall
 
@@ -7,21 +8,6 @@ set_option maxRecDepth 2000000
 
 namespace UniswapV2Pair
 
-theorem balanceCallStorageStore_sigma0
-    (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).σ₀ = evm.σ₀ := by
-  unfold Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.get? a with
-  | none => rfl
-  | some acc =>
-      change (State.setAccount evm a (acc.updateStorage slot val)).σ₀ = evm.σ₀
-      rfl
-
-theorem balanceCallAddress_self (a : AccountAddress) : EVM.address a.val = a := by
-  apply Fin.ext
-  show a.val % EVM.addressModulus = a.val
-  rw [show EVM.addressModulus = AccountAddress.size from by decide]
-  exact Nat.mod_eq_of_lt a.isLt
 
 theorem uniswapBalanceOfDecode_ok {returndata : ByteArray} (hlo : 32 ≤ returndata.size) :
     config.externalABI.decode? "balanceOf" returndata =
@@ -134,10 +120,10 @@ theorem uniswapFirstBalanceTypedCall_source
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (UInt256.land solcAddrMask
-            (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
+            (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
           (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256 (UInt256.land solcAddrMask
-              (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
+              (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
@@ -151,7 +137,7 @@ theorem uniswapFirstBalanceTypedCall_source
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSL := uniswapLockEnteredState evmS
   let σLock := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0Word := uniswapSlotWord ⟨6⟩ σLock I
+  let token0Word := solcSlotWordAt ⟨6⟩ σLock I
   let token0Clean := UInt256.land solcAddrMask token0Word
   have hPost : σLock = evmSL.accountMap := by
     simp [evmSL, evmS, σLock, uniswapLockEnteredState, uniswapUnlockedState,
@@ -162,16 +148,16 @@ theorem uniswapFirstBalanceTypedCall_source
   let target : EVM.Address := AccountAddress.ofUInt256 token0Clean
   have htarget : target = EVM.address (uniswapAddressAtSlot evmSL ⟨6⟩) := by
     have haddr : AccountAddress.ofUInt256 token0Clean = uniswapAddressAtSlot evmSL ⟨6⟩ := by
-      simp [token0Clean, token0Word, uniswapAddressAtSlot, uniswapSlotWord,
+      simp [token0Clean, token0Word, uniswapAddressAtSlot, solcSlotWordAt, solcSlotWord,
         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, hPost, henv,
         accountAddress_ofUInt256_eq_ofNat_toNat, u256_land_comm]
     change AccountAddress.ofUInt256 token0Clean =
       EVM.address (uniswapAddressAtSlot evmSL ⟨6⟩)
     rw [haddr]
-    exact (balanceCallAddress_self (uniswapAddressAtSlot evmSL ⟨6⟩)).symm
+    exact (address_of_val (uniswapAddressAtSlot evmSL ⟨6⟩)).symm
   have hσ0 : evmSL.σ₀ = σ₀ := by
     simp [evmSL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
-      balanceCallStorageStore_sigma0]
+      storageStore_σ0]
   have hcd : config.externalABI.encode? "balanceOf" [.address I.codeOwner] =
       some ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36) :=
     balanceOfThisCalldataMem_encode I.codeOwner
@@ -198,9 +184,9 @@ theorem uniswapSyncSecondBalanceTypedCall_source
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
       (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ σ1 σ₀ A_in2
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
-        (AccountAddress.ofUInt256 (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ1 I)))
+        (AccountAddress.ofUInt256 (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ1 I)))
         (toExecute σ1 (AccountAddress.ofUInt256
-          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ1 I))))
+          (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ1 I))))
         callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
         ((balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
         (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
@@ -209,10 +195,10 @@ theorem uniswapSyncSecondBalanceTypedCall_source
         "balanceOf" 0 [.address evm0S.executionEnv.codeOwner] (z2, evm1S, out2) false ∧
       evm1S.accountMap = σ2 ∧ evm1S.executionEnv = evm0S.executionEnv ∧
       evm1S.σ₀ = evm0S.σ₀ := by
-  let token1WordE := uniswapSlotWord ⟨7⟩ σ1 I
+  let token1WordE := solcSlotWordAt ⟨7⟩ σ1 I
   let token1CleanE := UInt256.land solcAddrMask token1WordE
   have hslot : token1WordE = Solm.EVM.storageLoad evm0S evm0S.executionEnv.codeOwner ⟨7⟩ := by
-    simpa [token1WordE, uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
+    simpa [token1WordE, solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, henv, hPost]
   have htarget : AccountAddress.ofUInt256 token1CleanE =
       EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩) := by
@@ -220,7 +206,7 @@ theorem uniswapSyncSecondBalanceTypedCall_source
       simpa [token1CleanE, token1WordE, uniswapAddressAtSlot, hslot,
         accountAddress_ofUInt256_eq_ofNat_toNat, u256_land_comm]
     rw [haddr]
-    exact (balanceCallAddress_self (uniswapAddressAtSlot evm0S ⟨7⟩)).symm
+    exact (address_of_val (uniswapAddressAtSlot evm0S ⟨7⟩)).symm
   have hcd : config.externalABI.encode? "balanceOf" [.address I.codeOwner] =
       some ((balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36) :=
     balanceOfThisRebuiltCalldataMem_encode I.codeOwner o ho32 hoSize

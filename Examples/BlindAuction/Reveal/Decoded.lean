@@ -12,7 +12,6 @@ theorem scratch_blindAuctionReveal_decoded_ok_from1806
     {callargs : Store}
     (hcode : I.code = blindAuctionBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hd : dispatchMsg blindAuctionContract I.calldata = some revealTransition)
     (hdec : decodeCalldata (revealTransition.params.map Param.name)
       (transitionSignature revealTransition).paramTypes I.calldata = some callargs)
@@ -98,7 +97,7 @@ theorem scratch_blindAuctionReveal_decoded_ok_from1806
               (valuesLenWord := valuesLenWord)
               (fakesLenWord := fakesLenWord)
               (secretsLenWord := secretsLenWord)
-              hcode hsize hperm hd hdec hstore hwv
+              hcode hsize hd hdec hstore hwv
               hvaluesGet hfakesGet hsecretsGet
               hvaluesListLen hfakesListLen hsecretsListLen hvaluesLenMax
               hafter hbefore hvaluesEq hfakesEq hsecretsEq

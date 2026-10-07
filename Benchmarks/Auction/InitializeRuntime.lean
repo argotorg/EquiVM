@@ -13,7 +13,7 @@ def initializeBaseMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
 
 def initializePausedMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner (initializeBaseMap σ I) ⟨51⟩
-    (pauseWord (storedWord (initializeBaseMap σ I) I ⟨51⟩))
+    (pauseWord (solcSlotWord (initializeBaseMap σ I) I ⟨51⟩))
 
 def initializeFinalMap (args : InitializeArgs) (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   initializerExited (args.storeMap (initializePausedMap σ I) I) I
@@ -24,10 +24,10 @@ theorem pausedWord_initializerPauseMap (σ : AccountMap) (I : ExecutionEnv) :
   unfold initializerPauseMap pausedWord
   cases ha : σ.get? I.codeOwner with
   | none =>
-    rw [sstoreAccountMap_absent_same ha, storedWord_absent ha]
+    rw [sstoreAccountMap_absent_same ha, solcSlotWord_absent ha]
     decide
   | some acc =>
-    rw [storedWord_sstore_present σ I ha]
+    rw [solcSlotWord_sstore_present σ I ha]
     apply u256_inj
     simp only [uland_toNat, Nat.and_assoc]
     have hm : (UInt256.lnot (⟨255⟩ : UInt256)).toNat &&& (⟨255⟩ : UInt256).toNat = 0 :=
@@ -38,22 +38,25 @@ theorem pausedWord_initializerPauseMap (σ : AccountMap) (I : ExecutionEnv) :
 theorem initializeBaseMap_unpaused (σ : AccountMap) (I : ExecutionEnv) :
     pausedWord (initializeBaseMap σ I) I = ⟨0⟩ := by
   unfold initializeBaseMap initializerOwnerMap initializerStatusMap pausedWord
-  rw [storedWord_sstore_ne _ _ ⟨51⟩ ⟨151⟩ _ (by decide),
-    storedWord_sstore_ne _ _ ⟨51⟩ ⟨101⟩ _ (by decide)]
+  rw [solcSlotWord_sstore_ne _ _ ⟨51⟩ ⟨151⟩ _ (by decide),
+    solcSlotWord_sstore_ne _ _ ⟨51⟩ ⟨101⟩ _ (by decide)]
   exact pausedWord_initializerPauseMap _ _
 
-theorem initializeNestedSetup {I g s0 R rdata σ k C}
+theorem initializeNestedSetupSplit {I g s0 R rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨2213⟩ R solcFreePtrMem (UInt256.ofNat 3)
       rdata (initializerEntered σ I) k C)
-    (hperm : I.perm = true) (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ⟨2237⟩ R solcFreePtrMem (UInt256.ofNat 3)
-      rdata (initializeBaseMap σ I) k' C' := by
+    (hov : R.length + 16 ≤ 1024) :
+    (I.perm = true ∧
+      ∃ k' C', RD auctionBytecode I g s0 ⟨2237⟩ R solcFreePtrMem (UInt256.ofNat 3)
+        rdata (initializeBaseMap σ I) k' C') ∨
+      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
   have hr := initializerEntered_ready σ I
   have rd3778 := evm_run h with [
     jumpdest, push2 ⟨2221⟩, push2 ⟨3778⟩, jump (by jump_dest) ]
-  obtain ⟨_, _, rd2221⟩ := pausableInitializer rd3778 hr hperm (by jump_dest) (by evm_ov)
+  refine permSplit_bind (pausableInitializerSplit rd3778 hr (by jump_dest) (by evm_ov)) ?_
+  rintro hperm ⟨_, _, rd2221⟩
   have hr1 := initializerReady_sstore hr ⟨51⟩
-    (UInt256.land (storedWord (initializerEntered σ I) I ⟨51⟩) (UInt256.lnot ⟨255⟩)) (by decide)
+    (UInt256.land (solcSlotWord (initializerEntered σ I) I ⟨51⟩) (UInt256.lnot ⟨255⟩)) (by decide)
   have rd3896 := evm_run rd2221 with [
     jumpdest, push2 ⟨2229⟩, push2 ⟨3896⟩, jump (by jump_dest) ]
   obtain ⟨_, _, rd2229⟩ := reentrancyInitializer rd3896 hr1 hperm (by jump_dest) (by evm_ov)
@@ -61,6 +64,41 @@ theorem initializeNestedSetup {I g s0 R rdata σ k C}
   have rd3987 := evm_run rd2229 with [
     jumpdest, push2 ⟨2237⟩, push2 ⟨3987⟩, jump (by jump_dest) ]
   exact ownableInitializer rd3987 hr2 hperm (by jump_dest) hov
+
+theorem initializeNestedSetup {I g s0 R rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨2213⟩ R solcFreePtrMem (UInt256.ofNat 3)
+      rdata (initializerEntered σ I) k C)
+    (hperm : I.perm = true) (hov : R.length + 16 ≤ 1024) :
+    ∃ k' C', RD auctionBytecode I g s0 ⟨2237⟩ R solcFreePtrMem (UInt256.ofNat 3)
+      rdata (initializeBaseMap σ I) k' C' :=
+  permSplit_true hperm (initializeNestedSetupSplit h hov)
+
+theorem initializeRuntimeSplit {I g s0 ret R rdata σ k C} (args : InitializeArgs)
+    (h : RD auctionBytecode I g s0 ⟨2130⟩ (args.words.reverse ++ ret :: R)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
+    (hc : args.canonical) (hg : initializingWord σ I ≠ ⟨0⟩ ∨ initializedWord σ I = ⟨0⟩)
+    (hret : (D_J auctionBytecode 0).contains ret = true)
+    (hov : R.length + 24 ≤ 1024) :
+    (I.perm = true ∧
+      ∃ k' C', RD auctionBytecode I g s0 ret R
+        (addressEventMem solcFreePtrMem (solcSourceWord I))
+        (addressEventWords solcFreePtrMem (UInt256.ofNat 3) (solcSourceWord I))
+        rdata (initializeFinalMap args σ I) k' C') ∨
+      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+  change RD _ _ _ _ _
+    (args.duration :: args.minBidIncrement :: args.reservePrice :: args.timeBuffer ::
+      args.weth :: args.nouns :: ret :: R) _ _ _ _ _ _ at h
+  obtain ⟨_, _, rd2181⟩ := initializerGuardOk 0 h hg (by evm_ov)
+  refine staticOr_bind (initializerBeginSplit 0 rd2181 (by evm_ov)) ?_
+  rintro ⟨_, _, rd2213⟩
+  refine permSplit_bind (initializeNestedSetupSplit rd2213 (by evm_ov)) ?_
+  rintro hperm ⟨_, _, rd2237⟩
+  have rd3655 := evm_run rd2237 with [
+    jumpdest, push2 ⟨2245⟩, push2 ⟨3655⟩, jump (by jump_dest) ]
+  obtain ⟨_, _, rd2245⟩ := pauseRoutineOk rd3655 (initializeBaseMap_unpaused σ I)
+    hperm (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd2326⟩ := initializeStoreArgs args rd2245 hc hperm (by omega)
+  exact initializeExit args rd2326 hperm hret (by omega)
 
 theorem initializeRuntime {I g s0 ret R rdata σ k C} (args : InitializeArgs)
     (h : RD auctionBytecode I g s0 ⟨2130⟩ (args.words.reverse ++ ret :: R)
@@ -71,18 +109,7 @@ theorem initializeRuntime {I g s0 ret R rdata σ k C} (args : InitializeArgs)
     ∃ k' C', RD auctionBytecode I g s0 ret R
       (addressEventMem solcFreePtrMem (solcSourceWord I))
       (addressEventWords solcFreePtrMem (UInt256.ofNat 3) (solcSourceWord I))
-      rdata (initializeFinalMap args σ I) k' C' := by
-  change RD _ _ _ _ _
-    (args.duration :: args.minBidIncrement :: args.reservePrice :: args.timeBuffer ::
-      args.weth :: args.nouns :: ret :: R) _ _ _ _ _ _ at h
-  obtain ⟨_, _, rd2181⟩ := initializerGuardOk 0 h hg (by evm_ov)
-  obtain ⟨_, _, rd2213⟩ := initializerBegin 0 rd2181 hperm (by evm_ov)
-  obtain ⟨_, _, rd2237⟩ := initializeNestedSetup rd2213 hperm (by evm_ov)
-  have rd3655 := evm_run rd2237 with [
-    jumpdest, push2 ⟨2245⟩, push2 ⟨3655⟩, jump (by jump_dest) ]
-  obtain ⟨_, _, rd2245⟩ := pauseRoutineOk rd3655 (initializeBaseMap_unpaused σ I)
-    hperm (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd2326⟩ := initializeStoreArgs args rd2245 hc hperm (by omega)
-  exact initializeExit args rd2326 hperm hret (by omega)
+      rdata (initializeFinalMap args σ I) k' C' :=
+  permSplit_true hperm (initializeRuntimeSplit args h hc hg hret hov)
 
 end Auction

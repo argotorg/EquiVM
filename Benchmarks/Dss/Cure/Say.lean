@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Cure
 /-! ## `say()` -/
 
 def sayWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord ⟨9⟩ σ I
+  solcSlotWordAt ⟨9⟩ σ I
 
 theorem cureDispatchSay {I : ExecutionEnv}
     (hsel : selIs I (cureSelBytes 13)) :
@@ -33,7 +33,6 @@ theorem cureDecode_say {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
 theorem cureSayBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 13)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -45,7 +44,7 @@ theorem cureSayBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (sayWord σ I).toNat))])) := by
-    simpa [sayTransition, sayWord, cureSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [sayTransition, sayWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       cureUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

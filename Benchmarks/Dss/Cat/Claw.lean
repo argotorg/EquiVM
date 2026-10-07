@@ -103,16 +103,17 @@ theorem RD.catClawSubReverts {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 /-! ### Store routine (`3348 → 302`): SLOAD litter, `_sub rad`, SSTORE back -/
 
-theorem RD.catClawStoreLitter {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+theorem RD.catClawStoreLitterSplit {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {rad ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : ℕ}
     (h : RD catBytecode ee g s0 ⟨3348⟩ (rad :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J catBytecode 0).contains ret = true)
-    (hperm : ee.perm = true)
     (hle : rad.toNat ≤ (solcSlotWord σ ee ⟨6⟩).toNat)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD catBytecode ee g s0 ret R mem aw rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨6⟩ (UInt256.sub (solcSlotWord σ ee ⟨6⟩) rad)) k' C' := by
+    (ee.perm = true ∧
+      ∃ k' C', RD catBytecode ee g s0 ret R mem aw rdata
+        (sstoreAccountMap ee.codeOwner σ ⟨6⟩ (UInt256.sub (solcSlotWord σ ee ⟨6⟩) rad)) k' C') ∨
+      (ee.perm = false ∧ RDstatic catBytecode g s0) := by
   have rd3349 := h.jumpdest (by native_decide) (by evm_ov)
   have rd3352 := rd3349.push2 ⟨3360⟩ (by native_decide) (by evm_ov)
   have rd3354 := rd3352.push1 ⟨6⟩ (by native_decide) (by evm_ov)
@@ -124,7 +125,14 @@ theorem RD.catClawStoreLitter {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons]; omega)
   have rd3360jd := rd3360.jumpdest (by native_decide) (by evm_ov)
   have rd3361 := rd3360jd.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3364⟩ := rd3361.sstore hperm (by native_decide)
+  have hstoreDec : decode catBytecode ⟨3363⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd3361.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd3364⟩ := rd3361.sstore hperm hstoreDec
     (by simp only [List.length_cons]; omega)
   have rd3365 := rd3364.pop (by native_decide) (by evm_ov)
   exact ⟨_, _, rd3365.jump (by native_decide) hret (by evm_ov)⟩
@@ -215,7 +223,7 @@ theorem catReachClawBody {σ σ₀ A I} {g : Sat256}
 theorem catClawBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some clawTransition)
     (hdecode :
@@ -226,7 +234,7 @@ theorem catClawBodyCore
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   let callerSlot := catCallerWardsSlot I
-  have hcallerWord : catSlotWord callerSlot σ I = catSlotWord callerSlot σ I :=
+  have hcallerWord : solcSlotWordAt callerSlot σ I = solcSlotWordAt callerSlot σ I :=
     rfl
   have hword : solcSlotWord σ I ⟨6⟩ = solcSlotWord σ I ⟨6⟩ :=
     rfl
@@ -241,18 +249,18 @@ theorem catClawBodyCore
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.catClawDecodeToRoutine
     (code := catBytecode) (ret := ⟨302⟩) (R := [sel]) hdecoded rfl (by jump_dest) (by simp)
-  by_cases hauthEvm : catSlotWord callerSlot σ I = ⟨1⟩
+  by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
   · -- AUTH OK.
-    have hauthSolm : catSlotWord callerSlot σ I = ⟨1⟩ := by
+    have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := by
       exact hauthEvm
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-      simpa [callerSlot, catCallerWardsSlot, catSlotWord] using hauthEvm
-    obtain ⟨_, _, hokPc⟩ := RD.catAuthCheckOk
+      simpa [callerSlot, catCallerWardsSlot, solcSlotWordAt] using hauthEvm
+    obtain ⟨_, _, hokPc⟩ := RD.solcAuthCheckOk
       (code := catBytecode) (pc := ⟨3259⟩) (okPc := ⟨3348⟩) (key := clawRad I)
       (ret := ⟨302⟩) (R := [sel])
       (by simpa [clawRad] using hroutine)
       (by
-        unfold catAuthCheckWf
+        unfold solcAuthCheckWf
         repeat' first | apply And.intro | native_decide)
       hauthSolc (by jump_dest) (by simp)
     -- Shared Solm-side prologue facts.
@@ -269,14 +277,13 @@ theorem catClawBodyCore
     have hlitterExpr :
         evalExpr? config { contract := contract, locals := clawLocals I } evm0 (.storage litterRef) =
           .ok (.int (Int.ofNat (solcSlotWord σ I ⟨6⟩).toNat)) := by
-      rw [evalExpr_storage_scalar (t := .int uint256Int) (loc := wordLoc ⟨6⟩)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (loc := wordLoc ⟨6⟩)
         (hbase := by simp [clawLocals, litterRef])
         (her := hlitterRef)
         (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
         (hloc := by
-          funext evm
-          simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
-      rw [catStorageLocLoad_uint256]
+          simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])]
+      rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
       simp [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         solcSlotWord]
     have hradExpr :
@@ -297,23 +304,19 @@ theorem catClawBodyCore
       simp [subFunction, uint256, bindParams?, uintBinaryLocals]
     by_cases hle : (clawRad I).toNat ≤ (solcSlotWord σ I ⟨6⟩).toNat
     · -- `rad ≤ litter`: success.
-      obtain ⟨_, _, hretPc⟩ := RD.catClawStoreLitter
-        (ret := ⟨302⟩) (R := [sel]) hokPc (by jump_dest) hperm
+      have hstoreSplit := RD.catClawStoreLitterSplit
+        (ret := ⟨302⟩) (R := [sel]) hokPc (by jump_dest)
         (by rw [hword]; exact hle) (by simp)
-      have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
-      have hret :
-          RDret catBytecode (Sat256.ofUInt256 g)
-            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-            (sstoreAccountMap I.codeOwner σ ⟨6⟩
-              (UInt256.sub (solcSlotWord σ I ⟨6⟩) (clawRad I))) ByteArray.empty :=
-        RD.stop hretPc' (by native_decide) (by simp)
       let diff := UInt256.sub (solcSlotWord σ I ⟨6⟩) (clawRad I)
       let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨6⟩ diff
-      have hbody :
+      have hbodySplit :
           ExecTransitionBody config contract evm0 (clawLocals I) clawTransition.body
             (.returned
               (resumeAfterInternalCall { contract := contract, locals := clawLocals I } "litterNew"
-                (some [.int (Int.ofNat diff.toNat)])) evm1 none) := by
+                (some [.int (Int.ofNat diff.toNat)])) evm1 none) ∧
+          (I.perm = false →
+            ExecTransitionBody config contract evm0 (clawLocals I) clawTransition.body
+              .staticViolation) := by
         have hsubBody := execSubFunctionReturn evm0
           (x := solcSlotWord σ I ⟨6⟩) (y := clawRad I) (diff := diff) rfl hle
         have hcall := internalCallFunctionReturn
@@ -352,30 +355,41 @@ theorem catClawBodyCore
                   (some [.int (Int.ofNat diff.toNat)])) evm0 litterRef =
                 .ok ({ base := "litter", steps := [] } : EvaledStorageRef) := by
             simp [litterRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
-          exact assignStorageRef_storage_scalar
-            (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨6⟩)
+          exact assignStorageRef_storage_scalar (hbackend := rfl)
+            (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
             (hbase := by simp [resumeAfterInternalCall, collapseReturns, clawLocals, litterRef])
             (her := hassignRef)
             (hty := by
               simp [storageTypeAt?, resumeAfterInternalCall, contract, storageDecls, uint256St])
             (hloc := by
-              funext evm
-              simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+              simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
             (hstore := hstore)
-        have hblock :
+        have hprefix : ∀ r,
+            ExecStmt config
+              (resumeAfterInternalCall { contract := contract, locals := clawLocals I }
+                "litterNew" (some [.int (Int.ofNat diff.toNat)])) evm0
+              (.assign .storage litterRef (.var "litterNew")) r →
             ExecBlock config { contract := contract, locals := clawLocals I } evm0
-              [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-                .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
-                .internalCall "sub" [.storage litterRef, .var "rad"] "litterNew",
-                .assign .storage litterRef (.var "litterNew") ]
-              (.ok (resumeAfterInternalCall { contract := contract, locals := clawLocals I }
-                "litterNew" (some [.int (Int.ofNat diff.toNat)])) evm1) := by
+              clawTransition.body r := by
+          intro r h
           refine ExecBlock.consNormal (ExecStmt.requireTrue hcv) ?_
           refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
           refine ExecBlock.consNormal hcall ?_
-          exact ExecBlock.consNormal (ExecStmt.assign hlitterNew hassign) ExecBlock.nil
-        simpa [ExecTransitionBody, clawTransition, nonpayable, auth] using
-          ExecFuncBody.execBlockOK hblock
+          exact execBlock_singleton h
+        refine ⟨?_, fun hperm ↦ ?_⟩
+        · exact ExecFuncBody.execBlockOK (hprefix _ (ExecStmt.assign hlitterNew hassign))
+        · exact ExecFuncBody.execBlockStatic (hprefix _ (ExecStmt.assignStatic hlitterNew hassign
+            (by simp [evm0, initState]; exact hperm)))
+      rcases hstoreSplit with ⟨_, _, _, hretPc⟩ | ⟨hperm, hstatic⟩
+      swap
+      · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+      have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+      have hret :
+          RDret catBytecode (Sat256.ofUInt256 g)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+            (sstoreAccountMap I.codeOwner σ ⟨6⟩
+              (UInt256.sub (solcSlotWord σ I ⟨6⟩) (clawRad I))) ByteArray.empty :=
+        RD.stop hretPc' (by native_decide) (by simp)
       have haccounts :
           sstoreAccountMap I.codeOwner σ ⟨6⟩
             (UInt256.sub (solcSlotWord σ I ⟨6⟩) (clawRad I)) = evm1.accountMap := by
@@ -383,7 +397,7 @@ theorem catClawBodyCore
       have henc : returnEquiv ByteArray.empty none clawTransition.returnType := by
         rw [show clawTransition.returnType = [] by rfl]
         exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-      exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+      exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
         haccounts henc
     · -- `rad > litter`: sub underflows, revert.
       replace hle := Nat.not_le.mp hle
@@ -416,11 +430,11 @@ theorem catClawBodyCore
           ExecFuncBody.execBlockRevert hblock
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · -- AUTH FAIL.
-    have hauthSolm : catSlotWord callerSlot σ I ≠ ⟨1⟩ := by
+    have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := by
       intro hsolm
       exact hauthEvm (by rw [hcallerWord, hsolm])
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-      simpa [callerSlot, catCallerWardsSlot, catSlotWord] using hauthEvm
+      simpa [callerSlot, catCallerWardsSlot, solcSlotWordAt] using hauthEvm
     have hbody :
         ExecTransitionBody config contract evm0 (clawLocals I) clawTransition.body .reverted := by
       have hguard := catAuthGuardEval_false
@@ -442,17 +456,17 @@ theorem catClawBodyCore
       (ret := ⟨302⟩) (R := [sel])
       (by simpa [clawRad] using hroutine)
       (by
-        unfold catAuthCheckWf
+        unfold solcAuthCheckWf
         repeat' first | apply And.intro | native_decide)
       (by
-        unfold solcErrorStringRevertTailWf catAuthTailPc catNotAuthorizedRawWord
+        unfold solcErrorStringRevertTailWf solcAuthTailPc catNotAuthorizedRawWord
         repeat' first | apply And.intro | native_decide)
       hauthSolc (by simp)
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem catClawShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xe6, 0x6d, 0x27, 0x9b]⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -479,16 +493,15 @@ theorem catClawShort {σ σ₀ A I} {g : UInt256}
 theorem catClawBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xe6, 0x6d, 0x27, 0x9b]⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xe6, 0x6d, 0x27, 0x9b]⟩ (by native_decide) hsel
   by_cases hshort : I.calldata.size < 36
-  · exact catClawShort hcode hsize hperm hwv hsz hshort hsel
+  · exact catClawShort hcode hsize hwv hsz hshort hsel
   · have hsz36 : 36 ≤ I.calldata.size := by omega
-    exact catClawBodyCore hcode hwv hperm hsz36 hsize (catDispatch_claw hsel)
+    exact catClawBodyCore hcode hwv hsz36 hsize (catDispatch_claw hsel)
       (catDecode_claw_ok hsz36)
       (catReachClawBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
 

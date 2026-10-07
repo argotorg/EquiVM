@@ -13,7 +13,6 @@ theorem scratch_blindAuctionReveal_nonempty_fromLoopStart
     {loopLen secretsLenWord fakesLenWord valuesLenWord : UInt256}
     {initCursor : RevealLoopCursor} {evmSolm : EVM.State} {k1014 C1014 : ℕ}
     (hcode : I.code = blindAuctionBytecode)
-    (hperm : I.perm = true)
     (hd : dispatchMsg blindAuctionContract I.calldata = some revealTransition)
     (hdec : decodeCalldata (revealTransition.params.map Param.name)
       (transitionSignature revealTransition).paramTypes I.calldata = some callargs)
@@ -103,6 +102,14 @@ theorem scratch_blindAuctionReveal_nonempty_fromLoopStart
           (.binary .lt (.var "i") (.var "length")) scratch_revealLoopPostStmts
           scratch_revealLoopBodyStmts .reverted ∧
         RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
+      ∨
+      (ExecForLoop blindAuctionConfig
+          { contract := blindAuctionContract,
+            locals := scratch_revealLoopStore callargs loopLen ⟨0⟩ ⟨0⟩ } evmSolm
+          (.binary .lt (.var "i") (.var "length")) scratch_revealLoopPostStmts
+          scratch_revealLoopBodyStmts .staticViolation ∧
+        RDstatic blindAuctionBytecode (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
     exact
       hloopRun rfl rfl rfl hvaluesEq hfakesEq hsecretsEq
@@ -120,7 +127,7 @@ theorem scratch_blindAuctionReveal_nonempty_fromLoopStart
       (secretsLenWord := secretsLenWord)
       (fakesLenWord := fakesLenWord)
       (valuesLenWord := valuesLenWord)
-      hcode hd hdec hstore hperm evmSolm hevmSolm
+      hcode hd hdec hstore evmSolm hevmSolm
       hwvSolm hafterBody hbeforeBody hbiddingAbsent hrevealAbsent
       hvaluesGet hfakesGet hsecretsGet hlenBody
       hloopLen hvaluesEq hfakesEq hsecretsEq

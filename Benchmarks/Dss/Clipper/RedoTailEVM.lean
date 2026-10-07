@@ -1,3 +1,5 @@
+import Reasoning.Stepping
+import Reasoning.Reach
 import Benchmarks.Dss.Clipper.RedoSuckEVM
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -5,47 +7,11 @@ open Benchmarks.Dss.Clipper.Immutables
 
 namespace Reasoning.Theory
 
-private theorem clipperRedoDup12Xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP12, .none))
-    (hstk : s.machineState.stack =
-      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-    (hov : t.length + 13 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok
-        (stSwap s
-          (ll :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t),
-          .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP12, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_dup12 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t).length -
-          12 + 13 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
 
 end Reasoning.Theory
 
 namespace Reasoning.Reach
 
-theorem RD.clipperRedoDup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
-      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DUP12, .none)) (hov : t.length + 13 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (ll :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepSwap
-    (fun _ hc hp hs => Reasoning.Theory.clipperRedoDup12Xstep hc hp hdec hs hov)
 
 end Reasoning.Reach
 
@@ -199,7 +165,7 @@ theorem RD.clipperRedoEventUnlockSuccess {code : ByteArray} (v : ClipperImmutabl
     mloadFreePtrValue (mem := mem)
       (by rw [hmem]; norm_num) hread64
   have rd8119 := rd.jumpdest (by clipper_runtime_decode) (by evm_ov)
-  have rd8120 := RD.clipperRedoDup12 rd8119 (by clipper_runtime_decode)
+  have rd8120 := RD.dup12 rd8119 (by clipper_runtime_decode)
     (by simp only [List.length_cons]; omega)
   have rd8140pre := evm_run rd8120 with [
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -222,7 +188,7 @@ theorem RD.clipperRedoEventUnlockSuccess {code : ByteArray} (v : ClipperImmutabl
       (show decode code ⟨8140⟩ = some (.PUSH32, some (eventTopic, 32)) by
         clipper_runtime_decode))
     (by evm_ov)
-  have rd8174 := RD.clipperRedoDup12 rd8173 (by clipper_runtime_decode)
+  have rd8174 := RD.dup12 rd8173 (by clipper_runtime_decode)
     (by simp only [List.length_cons]; omega)
   have rdMloadPre := evm_run rd8174 with [
     raw dup11 (by clipper_runtime_decode) (by evm_ov),
@@ -352,7 +318,7 @@ theorem RD.clipperRedoEventUnlockSuccessFrom196 {code : ByteArray}
     mloadFreePtrValue (mem := mem)
       (by rw [hmem]; norm_num) hread64
   have rd8119 := rd.jumpdest (by clipper_runtime_decode) (by evm_ov)
-  have rd8120 := RD.clipperRedoDup12 rd8119 (by clipper_runtime_decode)
+  have rd8120 := RD.dup12 rd8119 (by clipper_runtime_decode)
     (by simp only [List.length_cons]; omega)
   have rd8140pre := evm_run rd8120 with [
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -375,7 +341,7 @@ theorem RD.clipperRedoEventUnlockSuccessFrom196 {code : ByteArray}
       (show decode code ⟨8140⟩ = some (.PUSH32, some (eventTopic, 32)) by
         clipper_runtime_decode))
     (by evm_ov)
-  have rd8174 := RD.clipperRedoDup12 rd8173 (by clipper_runtime_decode)
+  have rd8174 := RD.dup12 rd8173 (by clipper_runtime_decode)
     (by simp only [List.length_cons]; omega)
   have rdMloadPre := evm_run rd8174 with [
     raw dup11 (by clipper_runtime_decode) (by evm_ov),

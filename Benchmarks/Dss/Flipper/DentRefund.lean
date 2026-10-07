@@ -193,8 +193,8 @@ theorem dentVatRefundCallMem_encode {mem : ByteArray} {σ : AccountMap} {I : Exe
       encodeABIValue? addr
           (.address (AccountAddress.ofNat (bidGuyWord (dentId I) σ I).toNat)) =
         some (UInt256.toByteArray (bidGuyWord (dentId I) σ I)).toList := by
-    simpa [bidGuyWord, flipperAddressReturnWord] using
-      yankEncodeABIValue_address_word (flipperSlotWord (bidPackedSlotOfWord (dentId I)) σ I)
+    simpa [bidGuyWord, solcAddressSlotWord] using
+      encodeABIValue_address_word (solcSlotWordAt (bidPackedSlotOfWord (dentId I)) σ I)
   have hpayload :
       encodeABIValues? [addr, addr, uint256]
         [.address I.source,
@@ -206,7 +206,7 @@ theorem dentVatRefundCallMem_encode {mem : ByteArray} {σ : AccountMap} {I : Exe
     unfold encodeABIValues?
     rw [show abiTupleHeadSize? [addr, addr, uint256] = some 96 by native_decide]
     simp only [encodeABIValuesFrom?, Option.bind, bind]
-    rw [yankEncodeABIValue_source_address, hguy, yankEncodeABIValue_uint256_word]
+    erw [encodeABIValue_source_address, hguy, encodeABIValue_uint256_word]
     simp [show isDynamicABIType addr = false by native_decide,
       show isDynamicABIType uint256 = false by native_decide,
       ByteArray.append_assoc, byteArray_toList_eq]
@@ -334,10 +334,10 @@ theorem evalExpr_dentCallerNeGuy_true {σ σ₀ A I} {g : Sat256}
     have hclean :
         UInt256.land solcAddrMask (bidGuyWord (dentId I) σ I) =
           bidGuyWord (dentId I) σ I := by
-      simpa [bidGuyWord, flipperAddressReturnWord, u256_land_comm] using
+      simpa [bidGuyWord, solcAddressSlotWord, u256_land_comm] using
         (solcAddrMask_clean
           (solcAddrMask_result_canonical
-            (flipperSlotWord (bidPackedSlotOfWord (dentId I)) σ I)))
+            (solcSlotWordAt (bidPackedSlotOfWord (dentId I)) σ I)))
     exact hcaller (by simpa [hclean] using hmask)
   simp [evalExpr?, EvalResult.bind, bind, hsender, hguy, evalBinaryOp?, haddr]
 
@@ -431,7 +431,7 @@ theorem evalExpr_dentAfterRefundTicNewGeNow_true_from {evm : EVM.State}
   simp [evalBinaryOp?, hle]
   all_goals decide
 
-theorem flipperDentSourceBlockAfterRefundSuccessTail {σ σ₀ A I}
+theorem flipperDentSourceBlockAfterRefundSuccessTailSplit {σ σ₀ A I}
     {g : UInt256} {evmRefund : EVM.State} {outRefund : ByteArray} {r : ExecResult}
     (hwv : I.weiValue = ⟨0⟩)
     (hguy : bidGuyWord (dentId I) σ I ≠ ⟨0⟩)
@@ -479,16 +479,7 @@ theorem flipperDentSourceBlockAfterRefundSuccessTail {σ σ₀ A I}
         (EVM.address (flipperVatAddress σ I)) "move" 0
         (dentRefundMoveArgValsOf
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
-        (true, evmRefund, outRefund) true)
-    (htail :
-      let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
-        (bidPackedSlotOfWord (dentId I))
-        (setAddressOffset0Word
-          (Solm.EVM.storageLoad evmRefund evmRefund.executionEnv.codeOwner
-            (bidPackedSlotOfWord (dentId I)))
-          (solcSourceWord evmRefund.executionEnv))
-      ExecBlock config { contract := contract, locals := dentLocalsAfterRefund σ I } evmGuy
-        dentAfterDecreaseFluxTailStmts r) :
+        (true, evmRefund, outRefund) true) :
     let locals := dentLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
@@ -497,7 +488,18 @@ theorem flipperDentSourceBlockAfterRefundSuccessTail {σ σ₀ A I}
         (Solm.EVM.storageLoad evmRefund evmRefund.executionEnv.codeOwner
           (bidPackedSlotOfWord (dentId I)))
         (solcSourceWord evmRefund.executionEnv))
-    ExecBlock config { contract := contract, locals := locals } evm0 dentTransition.body r := by
+    ((let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
+        (bidPackedSlotOfWord (dentId I))
+        (setAddressOffset0Word
+          (Solm.EVM.storageLoad evmRefund evmRefund.executionEnv.codeOwner
+            (bidPackedSlotOfWord (dentId I)))
+          (solcSourceWord evmRefund.executionEnv))
+      ExecBlock config { contract := contract, locals := dentLocalsAfterRefund σ I } evmGuy
+        dentAfterDecreaseFluxTailStmts r) →
+      ExecBlock config { contract := contract, locals := locals } evm0 dentTransition.body r) ∧
+      (I.perm = false →
+        ExecBlock config { contract := contract, locals := locals } evm0
+          dentTransition.body .staticViolation) := by
   intro locals evm0 evmGuy
   have hguyGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -597,33 +599,127 @@ theorem flipperDentSourceBlockAfterRefundSuccessTail {σ σ₀ A I}
     simpa [evmGuy] using
       assign_bidGuyStorage evmRefund (dentId I)
         (dentLocalsAfterRefund_get_id σ I) (dentLocalsAfterRefund_get_bids σ I)
-  have hassignBlock :
-      ExecBlock config { contract := contract, locals := dentLocalsAfterRefund σ I }
-        evmRefund [ .assign .storage (bidsF (.var "id") "guy") sender ]
-        (.ok { contract := contract, locals := dentLocalsAfterRefund σ I } evmGuy) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hsender hassignGuy) ExecBlock.nil
-  have hthen :
-      ExecBlock config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
-        (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
-          [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_refundRet" ++
-        [ .assign .storage (bidsF (.var "id") "guy") sender ])
-        (.ok { contract := contract, locals := dentLocalsAfterRefund σ I } evmGuy) := by
-    exact execBlock_append hrefundBlock hassignBlock
-  refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-  · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguyGuard) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hticGuard)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hendGuard)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hbidGuard)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using htabGuard)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hlotGuard)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hmulLot) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hreqLot) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hmulBeg) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hreqBeg) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hdec) ?_
-  refine ExecBlock.consNormal (ExecStmt.iteTrue hcallerTrue hthen) ?_
-  simpa [dentAfterDecreaseTailStmts, dentAfterDecreaseFluxTailStmts] using htail
+  have hprefix {result : ExecResult}
+      (hafter : ExecBlock config { contract := contract, locals := dentLocalsLotOneBegLot σ I }
+        evm0 ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
+          (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
+            [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_refundRet" ++
+            [.assign .storage (bidsF (.var "id") "guy") sender]) []] ++
+          dentAfterDecreaseFluxTailStmts) result) :
+      ExecBlock config { contract := contract, locals := locals } evm0
+        dentTransition.body result := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hguyGuard) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hticGuard)) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hendGuard)) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hbidGuard)) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using htabGuard)) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hlotGuard)) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hmulLot) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hreqLot) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hmulBeg) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hreqBeg) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hdec) ?_
+    exact hafter
+  constructor
+  · intro htail
+    have hassignBlock :
+        ExecBlock config { contract := contract, locals := dentLocalsAfterRefund σ I }
+          evmRefund [ .assign .storage (bidsF (.var "id") "guy") sender ]
+          (.ok { contract := contract, locals := dentLocalsAfterRefund σ I } evmGuy) := by
+      exact ExecBlock.consNormal (ExecStmt.assign hsender hassignGuy) ExecBlock.nil
+    have hthen :
+        ExecBlock config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
+          (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
+            [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_refundRet" ++
+          [ .assign .storage (bidsF (.var "id") "guy") sender ])
+          (.ok { contract := contract, locals := dentLocalsAfterRefund σ I } evmGuy) := by
+      exact execBlock_append hrefundBlock hassignBlock
+    apply hprefix
+    refine ExecBlock.consNormal (ExecStmt.iteTrue hcallerTrue hthen) ?_
+    simpa [dentAfterDecreaseTailStmts, dentAfterDecreaseFluxTailStmts] using htail
+  · intro hperm
+    have hp : evmRefund.executionEnv.perm = false := by
+      rw [typedCallViaEVM_executionEnv_eq hcallRefund]
+      exact hperm
+    have hwrite : ExecBlock config
+        { contract := contract, locals := dentLocalsAfterRefund σ I } evmRefund
+        [.assign .storage (bidsF (.var "id") "guy") sender] .staticViolation :=
+      ExecBlock.consStatic (ExecStmt.assignStatic hsender hassignGuy hp)
+    exact hprefix (ExecBlock.consStatic
+      (ExecStmt.iteTrue hcallerTrue (execBlock_append hrefundBlock hwrite)))
+
+theorem flipperDentSourceBlockAfterRefundSuccessTail {σ σ₀ A I}
+    {g : UInt256} {evmRefund : EVM.State} {outRefund : ByteArray} {r : ExecResult}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hguy : bidGuyWord (dentId I) σ I ≠ ⟨0⟩)
+    (hticGuard :
+      evalExpr? config { contract := contract, locals := dentLocals I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (.binary .or
+          (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
+          (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
+          .ok (.bool true))
+    (hendGuard :
+      evalExpr? config { contract := contract, locals := dentLocals I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
+          .ok (.bool true))
+    (hbidGuard :
+      evalExpr? config { contract := contract, locals := dentLocals I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
+          .ok (.bool true))
+    (htabGuard :
+      evalExpr? config { contract := contract, locals := dentLocals I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
+          .ok (.bool true))
+    (hlotGuard :
+      evalExpr? config { contract := contract, locals := dentLocals I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (.binary .lt (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
+          .ok (.bool true))
+    (hfitLot : (bidLotWord (dentId I) σ I).toNat * flipperONEWord.toNat < UInt256.size)
+    (hfitBeg : (dentBegWord σ I).toNat * (dentLot I).toNat < UInt256.size)
+    (hdec :
+      evalExpr? config { contract := contract, locals := dentLocalsLotOneBegLot σ I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (.binary .le (.var "begLot") (.var "lotOne")) = .ok (.bool true))
+    (hcaller : solcSourceWord I ≠ bidGuyWord (dentId I) σ I)
+    (hvatCode :
+      0 <
+        (UInt256.ofNat
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+            (flipperVatAddress σ I)).option 0 (fun acc ↦ acc.code.size))).toNat)
+    (hcallRefund :
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (flipperVatAddress σ I)) "move" 0
+        (dentRefundMoveArgValsOf
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
+        (true, evmRefund, outRefund) true)
+    (htail :
+      let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
+        (bidPackedSlotOfWord (dentId I))
+        (setAddressOffset0Word
+          (Solm.EVM.storageLoad evmRefund evmRefund.executionEnv.codeOwner
+            (bidPackedSlotOfWord (dentId I)))
+          (solcSourceWord evmRefund.executionEnv))
+      ExecBlock config { contract := contract, locals := dentLocalsAfterRefund σ I } evmGuy
+        dentAfterDecreaseFluxTailStmts r) :
+    let locals := dentLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let _evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
+      (bidPackedSlotOfWord (dentId I))
+      (setAddressOffset0Word
+        (Solm.EVM.storageLoad evmRefund evmRefund.executionEnv.codeOwner
+          (bidPackedSlotOfWord (dentId I)))
+        (solcSourceWord evmRefund.executionEnv))
+    ExecBlock config { contract := contract, locals := locals } evm0 dentTransition.body r :=
+  (flipperDentSourceBlockAfterRefundSuccessTailSplit
+    hwv hguy hticGuard hendGuard hbidGuard htabGuard hlotGuard
+    hfitLot hfitBeg hdec hcaller hvatCode hcallRefund).1 htail
 
 theorem flipperDentSourceBodyRefundBranchRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -817,7 +913,8 @@ theorem flipperDentSourceBodyRefundNoCode {σ σ₀ A I} {g : UInt256}
   simpa [locals, evm0] using
     (flipperDentSourceBodyRefundBranchRevert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hwv hguy hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot hfitBeg hdec
+      hwv hguy hticGuard hendGuard hbidGuard htabGuard hlotGuard
+    hfitLot hfitBeg hdec
       hcaller hbranch)
 
 theorem flipperDentSourceBodyRefundCallFailure {σ σ₀ A I}
@@ -921,7 +1018,8 @@ theorem flipperDentSourceBodyRefundCallFailure {σ σ₀ A I}
   simpa [locals, evm0] using
     (flipperDentSourceBodyRefundBranchRevert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hwv hguy hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot hfitBeg hdec
+      hwv hguy hticGuard hendGuard hbidGuard htabGuard hlotGuard
+    hfitLot hfitBeg hdec
       hcaller hbranch)
 
 theorem flipperDentSourceBodyFluxNoCodeAfterRefund {σ σ₀ A I}
@@ -1033,7 +1131,8 @@ theorem flipperDentSourceBodyFluxNoCodeAfterRefund {σ σ₀ A I}
       (flipperDentSourceBlockAfterRefundSuccessTail
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmRefund := evmRefund) (outRefund := outRefund)
-        hwv hguy hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot hfitBeg
+        hwv hguy hticGuard hendGuard hbidGuard htabGuard hlotGuard
+    hfitLot hfitBeg
         hdec hcaller hrefundCode hcallRefund htail)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
@@ -1175,7 +1274,8 @@ theorem flipperDentSourceBodyFluxCallFailureAfterRefund {σ σ₀ A I}
       (flipperDentSourceBlockAfterRefundSuccessTail
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmRefund := evmRefund) (outRefund := outRefund)
-        hwv hguy hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot hfitBeg
+        hwv hguy hticGuard hendGuard hbidGuard htabGuard hlotGuard
+    hfitLot hfitBeg
         hdec hcaller hrefundCode hcallRefund htail)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
@@ -1422,7 +1522,8 @@ theorem flipperDentSourceBodySuccessAfterRefund {σ σ₀ A I}
       (flipperDentSourceBlockAfterRefundSuccessTail
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmRefund := evmRefund) (outRefund := outRefund)
-        hwv hguy hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot hfitBeg
+        hwv hguy hticGuard hendGuard hbidGuard htabGuard hlotGuard
+    hfitLot hfitBeg
         hdec hcaller hrefundCode hcallRefund htail)
   simpa [ExecTransitionBody, locals, evm0, evmLot, evmTic] using ExecFuncBody.execBlockOK hblock
 
@@ -1629,7 +1730,8 @@ theorem flipperDentSourceBodyAdd48OverflowAfterRefund {σ σ₀ A I}
       (flipperDentSourceBlockAfterRefundSuccessTail
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmRefund := evmRefund) (outRefund := outRefund)
-        hwv hguy hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot hfitBeg
+        hwv hguy hticGuard hendGuard hbidGuard htabGuard hlotGuard
+    hfitLot hfitBeg
         hdec hcaller hrefundCode hcallRefund htail)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 

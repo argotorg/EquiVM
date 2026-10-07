@@ -46,11 +46,11 @@ namespace UniswapV2Pair
 
 theorem uniswapV2PairCorrect :
     runtimeRefinement config uniswapV2PairBytecode contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases hswap : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩
-      · exact uniswapSwapBody hcode hsize hperm hwv hswap (uniswapDispatchSwap hswap)
+      · exact uniswapSwapBodyAnyPerm hcode hsize hwv hswap (uniswapDispatchSwap hswap)
 
       · by_cases hname : selIs I ⟨#[0x06, 0xfd, 0xde, 0x03]⟩
         · exact uniswapNameBody hcode hsize hwv hname (uniswapDispatchName hname)
@@ -59,7 +59,7 @@ theorem uniswapV2PairCorrect :
           · exact uniswapGetReservesBody hcode hsize hwv hgetReserves
               (uniswapDispatchGetReserves hgetReserves)
           · by_cases happrove : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩
-            · exact uniswapApproveBody hcode hsize hperm hwv happrove
+            · exact uniswapApproveBodyAnyPerm hcode hsize hwv happrove
                 (uniswapDispatchApprove happrove)
             · by_cases htoken0 : selIs I ⟨#[0x0d, 0xfe, 0x16, 0x81]⟩
               · exact uniswapToken0Body hcode hsize hwv htoken0
@@ -68,7 +68,7 @@ theorem uniswapV2PairCorrect :
                 · exact uniswapTotalSupplyBody hcode hsize hwv htotalSupply
                     (uniswapDispatchTotalSupply htotalSupply)
                 · by_cases htransferFrom : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩
-                  · exact uniswapTransferFromBody hcode hsize hperm hwv htransferFrom
+                  · exact uniswapTransferFromBodyAnyPerm hcode hsize hwv htransferFrom
                       (uniswapDispatchTransferFrom htransferFrom)
                   · by_cases hpermitTypehash : selIs I ⟨#[0x30, 0xad, 0xf8, 0x1f]⟩
                     · exact uniswapPermitTypehashBody hcode hsize hwv hpermitTypehash
@@ -80,7 +80,7 @@ theorem uniswapV2PairCorrect :
                         · exact uniswapDomainSeparatorBody hcode hsize hwv hdomainSeparator
                             (uniswapDispatchDomainSeparator hdomainSeparator)
                         · by_cases hinitialize : selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩
-                          · exact uniswapInitializeBody hcode hsize hperm hwv hinitialize
+                          · exact uniswapInitializeBodyAnyPerm hcode hsize hwv hinitialize
                               (uniswapDispatchInitialize hinitialize)
                           · by_cases hprice0 : selIs I ⟨#[0x59, 0x09, 0xc0, 0xd5]⟩
                             · exact uniswapPrice0CumulativeLastBody hcode hsize hwv hprice0
@@ -89,7 +89,7 @@ theorem uniswapV2PairCorrect :
                               · exact uniswapPrice1CumulativeLastBody hcode hsize hwv hprice1
                                   (uniswapDispatchPrice1CumulativeLast hprice1)
                               · by_cases hmint : selIs I ⟨#[0x6a, 0x62, 0x78, 0x42]⟩
-                                · exact uniswapMintBody hcode hsize hperm hwv hmint
+                                · exact uniswapMintBodyAnyPerm hcode hsize hwv hmint
                                     (uniswapDispatchMint hmint)
                                 · by_cases hbalanceOf : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩
                                   · exact uniswapBalanceOfBody hcode hsize hwv hbalanceOf
@@ -101,13 +101,13 @@ theorem uniswapV2PairCorrect :
                                       · exact uniswapNoncesBody hcode hsize hwv hnonces
                                           (uniswapDispatchNonces hnonces)
                                       · by_cases hburn : selIs I ⟨#[0x89, 0xaf, 0xcb, 0x44]⟩
-                                        · exact uniswapBurnBody hcode hsize hperm hwv hburn
+                                        · exact uniswapBurnBodyAnyPerm hcode hsize hwv hburn
                                             (uniswapDispatchBurn hburn)
                                         · by_cases hsymbol : selIs I ⟨#[0x95, 0xd8, 0x9b, 0x41]⟩
                                           · exact uniswapSymbolBody hcode hsize hwv hsymbol
                                               (uniswapDispatchSymbol hsymbol)
                                           · by_cases htransfer : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩
-                                            · exact uniswapTransferBody hcode hsize hperm hwv
+                                            · exact uniswapTransferBodyAnyPerm hcode hsize hwv
                                                 htransfer (uniswapDispatchTransfer htransfer)
 
                                             · by_cases hminimum : selIs I ⟨#[0xba, 0x9a, 0x7a, 0x56]⟩
@@ -116,7 +116,7 @@ theorem uniswapV2PairCorrect :
                                                   (uniswapDispatchMinimumLiquidity hminimum)
 
                                               · by_cases hskim : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩
-                                                · exact uniswapSkimBody hcode hsize hperm hwv hskim
+                                                · exact uniswapSkimBodyAnyPerm hcode hsize hwv hskim
                                                     (uniswapDispatchSkim hskim)
                                                 · by_cases hfactory : selIs I ⟨#[0xc4, 0x5a, 0x01, 0x55]⟩
                                                   · exact uniswapFactoryBody hcode hsize hwv hfactory
@@ -125,7 +125,7 @@ theorem uniswapV2PairCorrect :
                                                     · exact uniswapToken1Body hcode hsize hwv htoken1
                                                         (uniswapDispatchToken1 htoken1)
                                                     · by_cases hpermit : selIs I ⟨#[0xd5, 0x05, 0xac, 0xcf]⟩
-                                                      · exact uniswapPermitBody hcode hsize hperm hwv
+                                                      · exact uniswapPermitBodyAnyPerm hcode hsize hwv
                                                           hpermit (uniswapDispatchPermit hpermit)
 
                                                       · by_cases hallowance :
@@ -136,10 +136,10 @@ theorem uniswapV2PairCorrect :
 
                                                         · by_cases hsync :
                                                               selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩
-                                                          · exact uniswapSyncBody hcode hsize hperm hwv
+                                                          · exact uniswapSyncBodyAnyPerm hcode hsize hwv
                                                               hsync (uniswapDispatchSync hsync)
 
-                                                          · refine uniswapNoDispatch hcode hsize hperm hwv ?_
+                                                          · refine uniswapNoDispatch hcode hsize hwv ?_
                                                             intro i hi
                                                             interval_cases i
                                                             · simpa [selIs, uniswapSelBytes] using hswap
@@ -169,7 +169,7 @@ theorem uniswapV2PairCorrect :
                                                             · simpa [selIs, uniswapSelBytes] using hpermit
                                                             · simpa [selIs, uniswapSelBytes] using hallowance
                                                             · simpa [selIs, uniswapSelBytes] using hsync
-    · exact uniswapShortRevert hcode hsize hperm hwv (by omega)
+    · exact uniswapShortRevert hcode hsize hwv (by omega)
   · exact uniswapNonPayable hcode hwv
 
 theorem uniswapV2PairContractCorrect :

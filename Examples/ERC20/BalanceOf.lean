@@ -69,7 +69,7 @@ theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (balanceOfSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar (t := .int uint256Int)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
         (hbase := by simp [balanceOfStore, balanceOfRef])
         (her := by
           simp [evalStorageRef, evalStorageRefStep, balanceOfRef, balanceOfStore,
@@ -79,7 +79,8 @@ theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           storageTypeStep?])
         (hloc := erc20Config_storage_balanceOf
           (.address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat)))]
-      simp [balanceOfSlot, erc20StorageLocLoad_uint256])
+      simp [show erc20Uint256Loc = uint256Loc from rfl,
+        balanceOfSlot, storageLocLoad_uint256])
 
 /-! ## EVM scratch memory for the `balanceOf` mapping access -/
 

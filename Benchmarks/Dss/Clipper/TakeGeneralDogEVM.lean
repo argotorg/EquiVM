@@ -45,7 +45,7 @@ theorem RD.clipperTakeDogDigsTailWithArgWF {code : ByteArray}
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov)]
   have rd4919 := rd4919pre.mload 0 ⟨128⟩ aw
-    (by clipper_runtime_decode) (clipperTakeMloadCostZero haw64)
+    (by clipper_runtime_decode) (mloadCostZero haw64)
     hmload64 haw64 (by evm_ov)
   have rd4930pre := evm_run rd4919 with [
     raw dup4 (by clipper_runtime_decode) (by evm_ov),
@@ -57,7 +57,7 @@ theorem RD.clipperTakeDogDigsTailWithArgWF {code : ByteArray}
   rw [show UInt256.shiftLeft (UInt256.land ⟨4294967295⟩ clipperDogDigsSelectorWord)
       ⟨224⟩ = clipperDogDigsSelectorShifted from by native_decide] at rd4930pre
   have rd4930 := rd4930pre.mstore 0 (clipperDogDigsSelectorMem mem) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw128) (by rfl)
+    (by clipper_runtime_decode) (mloadCostZero haw128) (by rfl)
     haw128 (by evm_ov)
   have rd4937pre := evm_run rd4930 with [
     raw push1 ⟨4⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -67,7 +67,7 @@ theorem RD.clipperTakeDogDigsTailWithArgWF {code : ByteArray}
     raw dup2 (by clipper_runtime_decode) (by evm_ov)]
   rw [show (⟨4⟩ : UInt256) + ⟨128⟩ = ⟨132⟩ from by native_decide] at rd4937pre
   have rd4937 := rd4937pre.mstore 0 (clipperDogDigsIlkMem v mem) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw132) (by rfl)
+    (by clipper_runtime_decode) (mloadCostZero haw132) (by rfl)
     haw132 (by evm_ov)
   have rd4943pre := evm_run rd4937 with [
     raw push1 ⟨32⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -77,7 +77,7 @@ theorem RD.clipperTakeDogDigsTailWithArgWF {code : ByteArray}
   rw [show (⟨32⟩ : UInt256) + ⟨132⟩ = ⟨164⟩ from by native_decide] at rd4943pre
   have rd4943 := rd4943pre.mstore 0
     (clipperDogDigsCalldataMem v digsAmt mem) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw164) (by rfl)
+    (by clipper_runtime_decode) (mloadCostZero haw164) (by rfl)
     haw164 (by evm_ov)
   have rd4955pre := evm_run rd4943 with [
     raw push1 ⟨32⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -90,7 +90,7 @@ theorem RD.clipperTakeDogDigsTailWithArgWF {code : ByteArray}
     raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov)]
   rw [show (⟨32⟩ : UInt256) + ⟨164⟩ = ⟨196⟩ from by native_decide] at rd4955pre
   have rd4955 := rd4955pre.mload 0 ⟨128⟩ aw
-    (by clipper_runtime_decode) (clipperTakeMloadCostZero haw64)
+    (by clipper_runtime_decode) (mloadCostZero haw64)
     hcallMload64 haw64 (by evm_ov)
   have rd4964 := evm_run rd4955 with [
     raw dup1 (by clipper_runtime_decode) (by evm_ov),
@@ -197,7 +197,7 @@ theorem RD.clipperTakeDogDigsPostCallWithArgWF
   have hsize := hbaseMem.1
   have hMIn : UInt256.ofNat
       (MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat (⟨68⟩ : UInt256).toNat) = aw := by
-    apply clipperTakeM_same_of_cover
+    apply UInt256_M_same_of_cover_len
     rcases hbaseMem with ⟨_, _, hcover, _⟩
     change 196 ≤ aw.toNat * 32
     omega
@@ -218,7 +218,7 @@ theorem RD.clipperTakeDogDigsPostCallWithArgWF
         (⟨128⟩ : UInt256).toNat
         (min (⟨0⟩ : UInt256) (UInt256.ofNat outDog.size)).toNat =
         clipperDogDigsCalldataMem v digsAmt baseMem := by
-      simpa using clipperTakeZeroReturndataWrite_eq outDog
+      simpa using zeroReturndataWrite_eq outDog
         (clipperDogDigsCalldataMem v digsAmt baseMem)
     rw [hwrite, hactive] at rd4980raw
     simpa using rd4980raw

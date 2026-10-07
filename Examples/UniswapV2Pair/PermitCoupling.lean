@@ -465,13 +465,13 @@ theorem uniswapPermitX_deadlineOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd5547 := evm_run rd5477 with [iszero, push2 ⟨5547⟩, jumpiT (by decide) (by jump_dest)]
   exact ⟨_, _, rd5547⟩
 
-theorem uniswapPermitX_nonceStored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hperm : I.perm = true)
+theorem uniswapPermitX_nonceStoredSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hdeadlineOk : ∃ k C, RD uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5547⟩
       [permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
     ∃ k C, RD uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5589⟩
       [permitNonceWord σ I, ⟨1⟩, ⟨64⟩, ⟨32⟩, ⟨0⟩, permitOwnerMaskedWord I,
@@ -479,7 +479,8 @@ theorem uniswapPermitX_nonceStored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
         permitVWord I, permitDeadlineWord I, permitValueWord I, permitSpenderMaskedWord I,
         permitOwnerMaskedWord I, ⟨570⟩, sel]
       (permitNonceHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (permitAfterNonceAccountMap σ I) k C := by
+      (permitAfterNonceAccountMap σ I) k C) ∨
+      (I.perm = false ∧ RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd5547⟩ := hdeadlineOk
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
@@ -510,10 +511,42 @@ theorem uniswapPermitX_nonceStored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     dup1]
   obtain ⟨_, _, rd5581⟩ := rd5579.sload (by decide) (by evm_ov)
   have rd5588 := evm_run rd5581 with [push1 ⟨1⟩, dup1, dup3, add, swap1, swap3]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd5588.sstoreStatic (by simpa using hperm) (by decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd5589⟩ := rd5588.sstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, by
     simpa [permitDomainSeparatorWord, permitNonceWord, permitNonceNextWord,
       permitAfterNonceAccountMap, codeOwnerStorageWord] using rd5589⟩
+
+theorem uniswapPermitX_nonceStored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hperm : I.perm = true)
+    (hdeadlineOk : ∃ k C, RD uniswapV2PairBytecode I g
+      (initState σ σ₀ g A I) ⟨5547⟩
+      [permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
+        permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g
+      (initState σ σ₀ g A I) ⟨5589⟩
+      [permitNonceWord σ I, ⟨1⟩, ⟨64⟩, ⟨32⟩, ⟨0⟩, permitOwnerMaskedWord I,
+        solcAddrMask, permitDomainSeparatorWord σ I, permitSWord I, permitRWord I,
+        permitVWord I, permitDeadlineWord I, permitValueWord I, permitSpenderMaskedWord I,
+        permitOwnerMaskedWord I, ⟨570⟩, sel]
+      (permitNonceHashMem I) (UInt256.ofNat 3) ByteArray.empty
+      (permitAfterNonceAccountMap σ I) k C :=
+  permSplit_true hperm (uniswapPermitX_nonceStoredSplit hdeadlineOk)
+
+theorem uniswapPermitX_nonceStoredStatic {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hperm : I.perm = false)
+    (hdeadlineOk : ∃ k C, RD uniswapV2PairBytecode I g
+      (initState σ σ₀ g A I) ⟨5547⟩
+      [permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
+        permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I) :=
+  permSplit_false hperm (uniswapPermitX_nonceStoredSplit hdeadlineOk)
 
 theorem uniswapPermitX_structHashed {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hnonceEvm : ∃ k C, RD uniswapV2PairBytecode I g
@@ -1030,7 +1063,7 @@ theorem uniswapPermitEcrecoverTypedCall_source
     have hMap : permitAfterNonceAccountMap σ I = evmNonceS.accountMap := by
       simpa [evmE] using hStateAccounts
     have hOriginal : evmNonceS.σ₀ = σ₀ := by
-      simp [evmNonceS, evmS, permitAfterNonceState, permitStorageStore_sigma0,
+      simp [evmNonceS, evmS, permitAfterNonceState, storageStore_σ0,
         initState]
     have hEnv : evmNonceS.executionEnv = I := by
       simp [evmNonceS, evmS, permitAfterNonceState, storageStore_executionEnv,
@@ -1055,7 +1088,7 @@ theorem uniswapPermitEcrecoverTypedCall_source
     simpa [evmCallS] using hcallS
   · simp [evmCallS]
   · simp [evmCallS, evmNonceS, evmS, permitAfterNonceState,
-      permitStorageStore_sigma0, initState]
+      storageStore_σ0, initState]
   · simp [evmCallS, evmNonceS, evmS, permitAfterNonceState, storageStore_executionEnv,
       initState]
 

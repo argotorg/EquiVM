@@ -108,7 +108,7 @@ theorem uniswapMintFeeOnKLastZeroCompleteFromFactoryCases
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState
@@ -336,7 +336,7 @@ theorem uniswapMintFeeOffKLastZeroCompleteFromFactoryCases
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState
@@ -566,7 +566,7 @@ theorem uniswapMintFeeOffKLastNonzeroCompleteFromFactoryCases
     (hzFeeTrue : zFee = true)
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σCleared I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σCleared I = totalSupply)
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState

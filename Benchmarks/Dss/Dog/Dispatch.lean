@@ -637,7 +637,7 @@ theorem dogDispatchWards {I : ExecutionEnv}
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatch_none_short (v : DogImmutables) {cd : ByteArray} (_h : cd.size < 4) :
+theorem dogDispatch_none_short {cd : ByteArray} (_h : cd.size < 4) :
     dispatchMsg contract cd = none := by
   rw [dispatchMsg_eq_dispatchList contract cd (by rfl)]
   change dispatchList
@@ -655,7 +655,7 @@ theorem dogDispatch_none_short (v : DogImmutables) {cd : ByteArray} (_h : cd.siz
       simp [selectorOf, dogSelBytes]
       native_decide) _h
 
-theorem dogDispatch_none_nomatch (v : DogImmutables) {cd : ByteArray}
+theorem dogDispatch_none_nomatch {cd : ByteArray}
     (_hnm : ∀ i, i < 17 → (dogSelBytes i == cd.extract 0 4) = false) :
     dispatchMsg contract cd = none := by
   apply dispatchMsg_none_of_all_ne (hfallback := by rfl)
@@ -1835,15 +1835,14 @@ theorem dogNoDispatch {v : DogImmutables} {code : ByteArray}
     (_hpatch : patchRuntime dogBytecode (patches v) = some code)
     (_hcode : I.code = code)
     (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (_hwv : I.weiValue = ⟨0⟩)
     (_hnm : ∀ i, i < 17 → (dogSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   by_cases hshort : I.calldata.size < 4
   · exact (dogX_short (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv hshort)
-      |>.reEquivNoDispatch _hcode (dogDispatch_none_short v hshort)
+      |>.reEquivNoDispatch _hcode (dogDispatch_none_short hshort)
   · have _hsz : 4 ≤ I.calldata.size := by omega
     exact (dogX_noMatch (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv _hsz _hsize _hnm)
-      |>.reEquivNoDispatch _hcode (dogDispatch_none_nomatch v _hnm)
+      |>.reEquivNoDispatch _hcode (dogDispatch_none_nomatch _hnm)
 
 end Benchmarks.Dss.Dog

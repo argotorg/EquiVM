@@ -189,7 +189,6 @@ theorem dogVowBodyCore {v : DogImmutables} {code : ByteArray}
     (_hpatch : patchRuntime dogBytecode (patches v) = some code)
     (_hcode : I.code = code)
     (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (_hwv : I.weiValue = ⟨0⟩)
     (_hsel : selIs I (dogSelBytes 15)) :
     runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
@@ -201,8 +200,8 @@ theorem dogVowBodyCore {v : DogImmutables} {code : ByteArray}
         (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (dogAddressReturnWord ⟨2⟩ σ I).toNat))])) (immStore v) := by
-    simpa [vowTransition, dogAddressReturnWord, dogSlotWord, initState,
+            (solcAddressSlotWord ⟨2⟩ σ I).toNat))])) (immStore v) := by
+    simpa [vowTransition, solcAddressSlotWord, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       dogAddressGetterBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -235,6 +234,6 @@ theorem dogVowBodyCore {v : DogImmutables} {code : ByteArray}
         | apply And.intro
         | rw [dogDecodePatchedEqTemplate1405 _hpatch (by native_decide)]
           native_decide)
-    (by rfl) (by simpa [dogAddressReturnWord] using hbody)
+    (by rfl) (by simpa [solcAddressSlotWord] using hbody)
 
 end Benchmarks.Dss.Dog

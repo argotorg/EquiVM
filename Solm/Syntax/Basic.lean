@@ -22,7 +22,7 @@ inductive EvaledStorageRefStep where
   | tupleElem : Nat -> EvaledStorageRefStep
   | mindex : KeyValue -> EvaledStorageRefStep
   | aindex : KeyValue -> EvaledStorageRefStep
-  /- Accessor for the slot that holds the length of an array. -/
+  /- Legacy locator-only alias for an array or bytes header. New backends use the bare ref. -/
   | length : EvaledStorageRefStep
   deriving Repr, Inhabited
 
@@ -291,6 +291,9 @@ inductive Stmt where
   /- `name = e;` for an `immutable` `name` inside the constructor.  Solidity accepts this only in
      the constructor body; a value is checked against the declared type. -/
   | setImmutable : Ident -> Expr -> Stmt
+  /- `emit E(e₁, …)`: an event.  The arguments are evaluated (and may revert); the log itself is
+     not modelled.  In static mode (`LOG*` is forbidden) the statement halts the execution. -/
+  | emit : Ident -> List Expr -> Stmt
   deriving Repr, Inhabited
 
 

@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # Uniswap V2 Pair benchmark spec
@@ -50,7 +51,7 @@ def zeroAddr : Expr := .cast (.intLit 0) addrSt
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
 def u112 (e : Expr) : Expr := .inRange uint112Int e
-def u32 (e : Expr) : Expr := .inRange uint32Int e
+def Reasoning.Theory.u256_32_toNat (e : Expr) : Expr := .inRange uint32Int e
 
 def maxUint256 : Int := (2 : Int) ^ 256 - 1
 def maxUint112 : Int := (2 : Int) ^ 112 - 1
@@ -167,26 +168,8 @@ def uint112Loc14 (slot : Ethereum.UInt256) : StorageLoc :=
 def uint32Loc28 (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 28, size := 4, hbound := by decide, type := .int uint32Int }
 
-def storageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "totalSupply", [] => some (wordLoc ⟨0⟩)
-    | "balanceOf", [.mindex owner] => some (wordLoc (balanceOfSlot owner))
-    | "allowance", [.mindex owner, .mindex spender] =>
-        some (wordLoc (allowanceSlot owner spender))
-    | "DOMAIN_SEPARATOR", [] => some (bytes32Loc ⟨3⟩)
-    | "nonces", [.mindex owner] => some (wordLoc (nonceSlot owner))
-    | "factory", [] => some (addrLoc ⟨5⟩)
-    | "token0", [] => some (addrLoc ⟨6⟩)
-    | "token1", [] => some (addrLoc ⟨7⟩)
-    | "reserve0", [] => some (uint112Loc0 ⟨8⟩)
-    | "reserve1", [] => some (uint112Loc14 ⟨8⟩)
-    | "blockTimestampLast", [] => some (uint32Loc28 ⟨8⟩)
-    | "price0CumulativeLast", [] => some (wordLoc ⟨9⟩)
-    | "price1CumulativeLast", [] => some (wordLoc ⟨10⟩)
-    | "kLast", [] => some (wordLoc ⟨11⟩)
-    | "unlocked", [] => some (wordLoc ⟨12⟩)
-    | _, _ => none
+def storageLayout : StorageLayout :=
+  solidityLayout! [([] : List StructDecl)] [storageDecls]
 
 /-! ## Shared source-body helpers -/
 
@@ -333,9 +316,10 @@ def updateFunction : FunctionDecl :=
       [ .require (.binary .and
           (.binary .le (.var "balance0") (.intLit maxUint112))
           (.binary .le (.var "balance1") (.intLit maxUint112))),
-        .letDecl "blockTimestamp" (some uint32) (u32 (.binary .mod now (.intLit twoPow32))),
+        .letDecl "blockTimestamp" (some uint32)
+          (Reasoning.Theory.u256_32_toNat (.binary .mod now (.intLit twoPow32))),
         .letDecl "timeElapsed" (some uint32)
-          (u32 (.binary .mod
+          (Reasoning.Theory.u256_32_toNat (.binary .mod
             (.binary .add
               (.binary .sub (.var "blockTimestamp") (.storage blockTimestampLastRef))
               (.intLit twoPow32))
@@ -849,7 +833,7 @@ def contract : ContractDecl :=
         syncTransition ] }               -- fff6cae9
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := uniswapExternalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }

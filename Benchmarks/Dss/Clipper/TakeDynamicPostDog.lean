@@ -48,7 +48,7 @@ theorem RD.clipperTakePostDogFluxExtcodesizeGuardWF {code : ByteArray}
     raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov),
     raw dup1 (by clipper_runtime_decode) (by evm_ov)]
   have rd5035 := rd5034pre.mload 0 ⟨128⟩ aw
-    (by clipper_runtime_decode) (clipperTakeMloadCostZero haw64)
+    (by clipper_runtime_decode) (mloadCostZero haw64)
     hbaseMload64 haw64 (by evm_ov)
   have rd5044pre := evm_run rd5035 with [
     raw push4 clipperTakeVatFluxSelectorSeed (by clipper_runtime_decode) (by evm_ov),
@@ -58,7 +58,7 @@ theorem RD.clipperTakePostDogFluxExtcodesizeGuardWF {code : ByteArray}
   rw [show UInt256.shiftLeft clipperTakeVatFluxSelectorSeed ⟨225⟩ =
     clipperTakeVatFluxSelectorShifted from by native_decide] at rd5044pre
   have rd5045 := rd5044pre.mstore 0 (clipperTakeVatFluxSelectorMem mem) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw128) (by rfl)
+    (by clipper_runtime_decode) (mloadCostZero haw128) (by rfl)
     haw128 (by evm_ov)
   have rd5078 := rd5045.pushConst ilkWord (width := 32) (op := .PUSH32) (by decide)
     (by simpa [ilkWord] using clipperTakeIlkPush32Decode5045 v hpatch hilk hlen)
@@ -69,7 +69,7 @@ theorem RD.clipperTakePostDogFluxExtcodesizeGuardWF {code : ByteArray}
     raw add (by clipper_runtime_decode) (by evm_ov)]
   rw [show (⟨128⟩ : UInt256) + ⟨4⟩ = ⟨132⟩ from by native_decide] at rd5082pre
   have rd5083 := rd5082pre.mstore 0 (clipperTakeVatFluxIlkMem v mem) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw132)
+    (by clipper_runtime_decode) (mloadCostZero haw132)
     (by
       rw [show (⟨132⟩ : UInt256).toNat = 132 from by decide]
       simp [clipperTakeVatFluxIlkMem, clipperTakeIlkWord, hilk, ilkWord])
@@ -82,7 +82,7 @@ theorem RD.clipperTakePostDogFluxExtcodesizeGuardWF {code : ByteArray}
   rw [show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by native_decide] at rd5088pre
   have rd5089 := rd5088pre.mstore 0
     (clipperTakeVatFluxThisMem ee (clipperTakeVatFluxIlkMem v mem)) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw164) (by rfl)
+    (by clipper_runtime_decode) (mloadCostZero haw164) (by rfl)
     haw164 (by evm_ov)
   have rd5104pre := evm_run rd5089 with [
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -102,7 +102,7 @@ theorem RD.clipperTakePostDogFluxExtcodesizeGuardWF {code : ByteArray}
   have rd5105 := rd5104pre.mstore 0
     (clipperTakeVatFluxWhoMem packed
       (clipperTakeVatFluxThisMem ee (clipperTakeVatFluxIlkMem v mem))) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw196) (by rfl)
+    (by clipper_runtime_decode) (mloadCostZero haw196) (by rfl)
     haw196 (by evm_ov)
   have rd5111pre := evm_run rd5105 with [
     raw push1 ⟨100⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -113,12 +113,12 @@ theorem RD.clipperTakePostDogFluxExtcodesizeGuardWF {code : ByteArray}
   rw [show (⟨128⟩ : UInt256) + ⟨100⟩ = ⟨228⟩ from by native_decide] at rd5111pre
   have rd5112 := rd5111pre.mstore 0
     (clipperTakeVatFluxCalldataMem v ee packed lotNew mem) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw228) (by rfl)
+    (by clipper_runtime_decode) (mloadCostZero haw228) (by rfl)
     haw228 (by evm_ov)
   have rd5113pre := evm_run rd5112 with [
     raw swap2 (by clipper_runtime_decode) (by evm_ov)]
   have rd5114 := rd5113pre.mload 0 ⟨128⟩ aw
-    (by clipper_runtime_decode) (clipperTakeMloadCostZero haw64)
+    (by clipper_runtime_decode) (mloadCostZero haw64)
     hcallMload64 haw64 (by evm_ov)
   have rd5147 := rd5114.pushConst vatWord (width := 32) (op := .PUSH32) (by decide)
     (by simpa [vatWord] using clipperTakeVatPush32Decode5114 v hpatch) (by evm_ov)
@@ -231,7 +231,7 @@ theorem RD.clipperTakePostDogFluxPostCallWF {σ₀ σStart σ I}
   have hsize := hbaseMem.1
   have hMIn : UInt256.ofNat
       (MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat (⟨132⟩ : UInt256).toNat) = aw := by
-    apply clipperTakeM_same_of_cover
+    apply UInt256_M_same_of_cover_len
     rcases hbaseMem with ⟨_, _, hcover, _⟩
     change 260 ≤ aw.toNat * 32
     omega
@@ -252,7 +252,7 @@ theorem RD.clipperTakePostDogFluxPostCallWF {σ₀ σStart σ I}
         (⟨128⟩ : UInt256).toNat
         (min (⟨0⟩ : UInt256) (UInt256.ofNat outVat.size)).toNat =
         clipperTakeVatFluxCalldataMem v I packed lotNew baseMem := by
-      simpa using clipperTakeZeroReturndataWrite_eq outVat
+      simpa using zeroReturndataWrite_eq outVat
         (clipperTakeVatFluxCalldataMem v I packed lotNew baseMem)
     rw [hwrite, hactive] at rd5193raw
     simpa using rd5193raw
@@ -273,7 +273,7 @@ theorem RD.clipperTakePostDogFluxPostCallWF {σ₀ σStart σ I}
         rw [hI]
         decide)) ?_ ?_ ?_
     · rw [clipperTakeVatTargetAddress v]
-      exact clipperTakeEVMAddressAccountAddress v.vat
+      exact eVM_address_id v.vat
     · simpa using clipperTakeVatFluxEncode_eq_ge v I packed lotNew hsize
     · simpa [evmVat, initState, hperm] using hΘ
 

@@ -96,7 +96,7 @@ theorem uniswapMintProportionalUpdateFirstBoundFromAfterFeeCase
     (hreserve1 :
       nextLocals.get? "_reserve1" = some (.int (Int.ofNat reserve1.toNat)))
     (htotalEq : mintFunctionTotalSupplyWord evmAfter = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩)
     (hmulFit0 : amount0.toNat * totalSupply.toNat < UInt256.size)
     (hmulFit1 : amount1.toNat * totalSupply.toNat < UInt256.size)
@@ -117,10 +117,10 @@ theorem uniswapMintProportionalUpdateFirstBoundFromAfterFeeCase
       mem feeToStaticcallActiveWords rdata σFee k C)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
-    (htotalFit : (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size)
+    (htotalFit : (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size)
     (hbalanceFit :
       (uniswapCodeOwnerStorageWord I
-        (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+        (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (solcSlotWordAt ⟨0⟩ σFee I + liquidity))
         (uniswapInternalMintBalanceHashSlot toWord mem)).toNat + liquidity.toNat <
           UInt256.size)
     (hfail0 : reserve112Mask.toNat < balance0.toNat)
@@ -332,7 +332,7 @@ theorem uniswapMintProportionalUpdateSecondBoundFromAfterFeeCase
     (hreserve1 :
       nextLocals.get? "_reserve1" = some (.int (Int.ofNat reserve1.toNat)))
     (htotalEq : mintFunctionTotalSupplyWord evmAfter = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩)
     (hmulFit0 : amount0.toNat * totalSupply.toNat < UInt256.size)
     (hmulFit1 : amount1.toNat * totalSupply.toNat < UInt256.size)
@@ -353,10 +353,10 @@ theorem uniswapMintProportionalUpdateSecondBoundFromAfterFeeCase
       mem feeToStaticcallActiveWords rdata σFee k C)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
-    (htotalFit : (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size)
+    (htotalFit : (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size)
     (hbalanceFit :
       (uniswapCodeOwnerStorageWord I
-        (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+        (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (solcSlotWordAt ⟨0⟩ σFee I + liquidity))
         (uniswapInternalMintBalanceHashSlot toWord mem)).toNat + liquidity.toNat <
           UInt256.size)
     (hfit0 : balance0.toNat ≤ reserve112Mask.toNat)
@@ -592,7 +592,7 @@ theorem uniswapMintProportionalSecondMintTotalSupplyOverflowFromAfterFeeCase
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hruntimeOverflow :
-      UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat)
+      UInt256.size ≤ (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -833,12 +833,12 @@ theorem uniswapMintProportionalSecondMintBalanceOverflowFromAfterFeeCase
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hruntimeSupplyFit :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size)
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size)
     (hruntimeOverflow :
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+            (solcSlotWordAt ⟨0⟩ σFee I + liquidity))
           (uniswapInternalMintBalanceHashSlot toWord mem)).toNat + liquidity.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :

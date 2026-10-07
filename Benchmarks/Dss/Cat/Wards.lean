@@ -1,3 +1,4 @@
+import Reasoning.SolcRoutines
 import Benchmarks.Dss.Cat.Common
 import Solm.Refine
 
@@ -26,75 +27,6 @@ theorem wardsMappingSlotFor_eq (I : ExecutionEnv) :
   unfold wardsMappingSlotFor wardsMappingArg wardsMappingKey wardsSlot mapSlot solcMappingSlot
   rw [keyValueToWord_address_ofNat_mask]
 
--- LIBRARY CANDIDATE: ported verbatim from Benchmarks/Dss/Vow/Wards.lean.
-@[reducible] def solcZeroSlotMappingGetterWf (code : ByteArray) (pc : UInt256) : Prop :=
-  let p1 := pc + ⟨1⟩
-  let p3 := p1 + UInt256.ofNat 2
-  let p5 := p3 + UInt256.ofNat 2
-  let p6 := p5 + ⟨1⟩
-  let p7 := p6 + ⟨1⟩
-  let p8 := p7 + ⟨1⟩
-  let p9 := p8 + ⟨1⟩
-  let p10 := p9 + ⟨1⟩
-  let p11 := p10 + ⟨1⟩
-  let p13 := p11 + UInt256.ofNat 2
-  let p14 := p13 + ⟨1⟩
-  let p15 := p14 + ⟨1⟩
-  let p16 := p15 + ⟨1⟩
-  let p17 := p16 + ⟨1⟩
-  decode code pc = some (.JUMPDEST, .none)
-  ∧ decode code p1 = some (.Push .PUSH1, some (⟨0⟩, 1))
-  ∧ decode code p3 = some (.Push .PUSH1, some (⟨32⟩, 1))
-  ∧ decode code p5 = some (.DUP2, .none)
-  ∧ decode code p6 = some (.SWAP1, .none)
-  ∧ decode code p7 = some (.MSTORE, .none)
-  ∧ decode code p8 = some (.SWAP1, .none)
-  ∧ decode code p9 = some (.DUP2, .none)
-  ∧ decode code p10 = some (.MSTORE, .none)
-  ∧ decode code p11 = some (.Push .PUSH1, some (⟨64⟩, 1))
-  ∧ decode code p13 = some (.SWAP1, .none)
-  ∧ decode code p14 = some (.KECCAK256, .none)
-  ∧ decode code p15 = some (.SLOAD, .none)
-  ∧ decode code p16 = some (.DUP2, .none)
-  ∧ decode code p17 = some (.JUMP, .none)
-
--- LIBRARY CANDIDATE: ported verbatim from Benchmarks/Dss/Vow/Wards.lean.
-theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
-    (hwf : solcZeroSlotMappingGetterWf code pc)
-    (hret : (D_J code 0).contains ret = true)
-    (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret
-      (solcSlotWord σ ee (solcMappingSlot ⟨0⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
-  rcases hwf with
-    ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
-      hd16, hd17⟩
-  have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
-  have rd3 := rd1.push1 ⟨0⟩ hd1 (by evm_ov)
-  have rd5 := rd3.push1 ⟨32⟩ hd3 (by evm_ov)
-  have rd6 := rd5.dup2 hd5 (by evm_ov)
-  have rd7 := rd6.swap1 hd6 (by evm_ov)
-  have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨0⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd9 := rd8.swap1 hd8 (by evm_ov)
-  have rd10 := rd9.dup2 hd9 (by evm_ov)
-  have rd11 := rd10.mstore 0 (solcMappingHashMem ⟨0⟩ key)
-    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd13 := rd11.push1 ⟨64⟩ hd11 (by evm_ov)
-  have rd14 := rd13.swap1 hd13 (by evm_ov)
-  have hslot := solcMappingKeccakSlot ⟨0⟩ key
-  have rd15 := rd14.keccak256 0 (solcMappingSlot ⟨0⟩ key)
-    (UInt256.ofNat 3) hd14 mem_cost
-    (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
-      show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd16⟩ := rd15.sload hd15 (by evm_ov)
-  have rd17 := rd16.dup2 hd16 (by evm_ov)
-  exact ⟨_, _, rd17.jump hd17 hret (by evm_ov)⟩
 
 /-! ## Dispatch, decode, reach -/
 
@@ -188,8 +120,8 @@ theorem catWardsBodyCore
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals wardsTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (catSlotWord (wardsMappingSlotFor I) σ I).toNat))])) := by
-    simpa [wardsTransition, wardsMappingSlotFor, catSlotWord, initState, Solm.EVM.storageLoad,
+          (some [(.int (Int.ofNat (solcSlotWordAt (wardsMappingSlotFor I) σ I).toNat))])) := by
+    simpa [wardsTransition, wardsMappingSlotFor, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount, locals, key] using
       catUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -225,38 +157,38 @@ theorem catWardsBodyCore
   have hret :
       RDret catBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (catSlotWord slot σ I)) := by
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨419⟩) (val := catSlotWord slot σ I) (ret := ⟨419⟩) (R := [sel])
+      (pc := ⟨419⟩) (val := solcSlotWordAt slot σ I) (ret := ⟨419⟩) (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨0⟩ key)
-        (catSlotWord slot σ I))
-      (by simpa [slot, catSlotWord] using hretPc)
+        (solcSlotWordAt slot σ I))
+      (by simpa [slot, solcSlotWordAt] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
         repeat' first | apply And.intro | native_decide)
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨0⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (catSlotWord slot σ I)
+        exact solcScratchReturnMem_mload64 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key) (solcMappingHashMem_read64 ⟨0⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (catSlotWord slot σ I)
+        exact solcScratchReturnMem_read128 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key))
       (by simp)
-    simpa [slot, catSlotWord] using hret'
-  have hword : catSlotWord slot σ I = catSlotWord slot σ I :=
+    simpa [slot, solcSlotWordAt] using hret'
+  have hword : solcSlotWordAt slot σ I = solcSlotWordAt slot σ I :=
     rfl
   have hval :
-      some [Value.int (Int.ofNat (catSlotWord (wardsMappingSlotFor I) σ I).toNat)] =
-        some [Value.int (Int.ofNat (catSlotWord slot σ I).toNat)] := by
+      some [Value.int (Int.ofNat (solcSlotWordAt (wardsMappingSlotFor I) σ I).toNat)] =
+        some [Value.int (Int.ofNat (solcSlotWordAt slot σ I).toNat)] := by
     rw [hslot, hword]
   have henc :
-      returnEquiv (UInt256.toByteArray (catSlotWord slot σ I))
-        (some [(.int (Int.ofNat (catSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         wardsTransition.returnType := by
     rw [show wardsTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (catSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 theorem catWardsBodyShort {σ σ₀ A I} {g : UInt256}
@@ -288,7 +220,6 @@ theorem catWardsBodyShort {σ σ₀ A I} {g : UInt256}
 theorem catWardsBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

@@ -1,8 +1,150 @@
+import Reasoning.SolcRoutines
 import Examples.UniswapV2Pair.MintInternalMintRuntime
+
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace UniswapV2Pair.RD
+
+set_option maxHeartbeats 1000000 in
+-- GENERALIZES Reasoning.Reach.RD.solcErrorStringRevertTail — parameterize the initial
+-- memory size/read preservation instead of fixing it to 96 bytes.
+theorem solcErrorStringRevertTail_size164 {code : ByteArray} {g : Sat256}
+    {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {pc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
+    {stk : List UInt256} {mem rdata : ByteArray}
+    {acc : AccountMap}
+    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
+    (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
+    (hpush : op ≠ .PUSH0)
+    (hword : UInt256.shiftLeft rawWord shift = word)
+    (hmem : mem.size = 164)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : stk.length + 5 ≤ 1024) :
+    RDrev code g s0 := by
+  rcases hwf with
+    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
+      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
+      hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
+      hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
+  have rdMload := evm_run h with [
+    raw push1 ⟨64⟩ hd0 (by evm_ov),
+    raw dup1 hd2 (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd3
+      mem_cost
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
+      (by decide) (by evm_ov)]
+  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
+    (width := 3) (op := .PUSH3) (by decide) hd4 (by simp only [List.length_cons]; omega)
+  have rdPrefix := evm_run rdSelectorRaw with [
+    raw push1 ⟨229⟩ hd8 (by evm_ov),
+    raw shl hd10 (by evm_ov),
+    raw dup2 hd11 (by evm_ov),
+    raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
+      hd12 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ hd13 (by evm_ov),
+    raw push1 ⟨4⟩ hd15 (by evm_ov),
+    raw dup3 hd17 (by evm_ov),
+    raw add hd18 (by evm_ov),
+    raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
+      hd19 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 len hd20 (by evm_ov),
+    raw push1 ⟨36⟩ hd22 (by evm_ov),
+    raw dup3 hd24 (by evm_ov),
+    raw add hd25 (by evm_ov),
+    raw mstore 3 (solcErrorStringMem2 len mem)
+      (UInt256.ofNat 7) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
+  have rdRaw := rdPrefix.pushConst rawWord (width := width) (op := op)
+    hpush hd27 (by simp only [List.length_cons]; omega)
+  have rdWord := evm_run rdRaw with [
+    raw push1 shift hdRawOut (by evm_ov),
+    raw shl hdShl (by evm_ov)]
+  rw [hword] at rdWord
+  exact evm_run rdWord with [
+    raw push1 ⟨68⟩ hd68 (by evm_ov),
+    raw dup3 hdDup3 (by evm_ov),
+    raw add hdAdd (by evm_ov),
+    raw mstore 3 (solcErrorStringMem3 len word mem)
+      (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 hdSwap (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
+      mem_cost
+      (solcErrorStringMem3_mload64_of_size164 len word hmem hread64)
+      (by decide) (by evm_ov),
+    raw swap1 hdSwap2 (by evm_ov),
+    raw dup2 hdDup2 (by evm_ov),
+    raw swap1 hdSwap3 (by evm_ov),
+    raw sub hdSub (by evm_ov),
+    raw push1 ⟨100⟩ hd100 (by evm_ov),
+    raw add hdAdd2 (by evm_ov),
+    raw swap1 hdSwap4 (by evm_ov),
+    raw rev 0 hdRev mem_cost (by evm_ov)]
+
+set_option maxHeartbeats 1000000 in
+-- GENERALIZES Reasoning.Reach.RD.solcCheckedAddStringRevert — use the size-164 revert tail.
+theorem solcCheckedAddStringRevert_size164 {code : ByteArray} {g : Sat256}
+    {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {pc okPc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
+    {a b ret : UInt256} {R : List UInt256} {mem rdata : ByteArray}
+    {acc : AccountMap}
+    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
+    (hadd : solcCheckedAddSuccessWf code pc okPc)
+    (htail : solcErrorStringRevertTailWf code (solcCheckedArithmeticRevertPc pc)
+      len rawWord shift op width)
+    (hpush : op ≠ .PUSH0)
+    (hover : UInt256.size ≤ a.toNat + b.toNat)
+    (hword : UInt256.shiftLeft rawWord shift = word)
+    (hmem : mem.size = 164)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : R.length + 9 ≤ 1024) :
+    RDrev code g s0 := by
+  rcases hadd with
+    ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
+  have hsum_lt2 : a.toNat + b.toNat < 2 * UInt256.size := by
+    have ha : a.toNat < UInt256.size := a.val.isLt
+    have hb : b.toNat < UInt256.size := b.val.isLt
+    omega
+  have hmod : (a.toNat + b.toNat) % UInt256.size =
+      a.toNat + b.toNat - UInt256.size := by
+    rw [Nat.mod_eq_sub_mod hover]
+    exact Nat.mod_eq_of_lt (by omega)
+  have haddNat : (a + b).toNat = a.toNat + b.toNat - UInt256.size := by
+    rw [uadd_toNat, hmod]
+  have hlt : UInt256.lt (a + b) a = ⟨1⟩ := by
+    apply ult_one
+    rw [haddNat]
+    have hb : b.toNat < UInt256.size := b.val.isLt
+    omega
+  have rd6 := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw dup1 hd1 (by evm_ov),
+    raw dup3 hd2 (by evm_ov),
+    raw add hd3 (by evm_ov),
+    raw dup3 hd4 (by evm_ov),
+    raw dup2 hd5 (by evm_ov)]
+  have rd7₀ := evm_run rd6 with [raw lt hd6 (by evm_ov)]
+  have rd7 := rd7₀
+  rw [hlt] at rd7
+  have rd8₀ := evm_run rd7 with [raw iszero hd7 (by evm_ov)]
+  have rd8 := rd8₀
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8
+  have rdPush := evm_run rd8 with [raw push2 okPc hd8 (by evm_ov)]
+  have rdTail₀ := rdPush.jumpiNT hd11 (by decide) (by simp only [List.length_cons]; omega)
+  have rdTail := by
+    simpa [solcCheckedArithmeticRevertPc] using rdTail₀
+  exact RD.solcErrorStringRevertTail_size164 rdTail htail hpush hword hmem hread64
+    (by simp only [List.length_cons]; omega)
+
+end UniswapV2Pair.RD
+
+end
 
 namespace UniswapV2Pair
 
@@ -198,134 +340,6 @@ theorem RD.solcErrorStringRevertTail_feeToStaticcall_size164
     raw swap1 hdSwap4 (by evm_ov),
     raw rev 0 hdRev mem_cost (by evm_ov)]
 
-set_option maxHeartbeats 1000000 in
--- GENERALIZES Reasoning.Reach.RD.solcErrorStringRevertTail — parameterize the initial
--- memory size/read preservation instead of fixing it to 96 bytes.
-theorem RD.solcErrorStringRevertTail_size164 {code : ByteArray} {g : Sat256}
-    {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {pc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
-    {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : AccountMap}
-    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
-    (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
-    (hpush : op ≠ .PUSH0)
-    (hword : UInt256.shiftLeft rawWord shift = word)
-    (hmem : mem.size = 164)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : stk.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
-  rcases hwf with
-    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
-      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
-      hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
-      hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
-  have rdMload := evm_run h with [
-    raw push1 ⟨64⟩ hd0 (by evm_ov),
-    raw dup1 hd2 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd3
-      mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
-      (by decide) (by evm_ov)]
-  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) hd4 (by simp only [List.length_cons]; omega)
-  have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ hd8 (by evm_ov),
-    raw shl hd10 (by evm_ov),
-    raw dup2 hd11 (by evm_ov),
-    raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
-      hd12 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ hd13 (by evm_ov),
-    raw push1 ⟨4⟩ hd15 (by evm_ov),
-    raw dup3 hd17 (by evm_ov),
-    raw add hd18 (by evm_ov),
-    raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
-      hd19 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 len hd20 (by evm_ov),
-    raw push1 ⟨36⟩ hd22 (by evm_ov),
-    raw dup3 hd24 (by evm_ov),
-    raw add hd25 (by evm_ov),
-    raw mstore 3 (solcErrorStringMem2 len mem)
-      (UInt256.ofNat 7) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
-  have rdRaw := rdPrefix.pushConst rawWord (width := width) (op := op)
-    hpush hd27 (by simp only [List.length_cons]; omega)
-  have rdWord := evm_run rdRaw with [
-    raw push1 shift hdRawOut (by evm_ov),
-    raw shl hdShl (by evm_ov)]
-  rw [hword] at rdWord
-  exact evm_run rdWord with [
-    raw push1 ⟨68⟩ hd68 (by evm_ov),
-    raw dup3 hdDup3 (by evm_ov),
-    raw add hdAdd (by evm_ov),
-    raw mstore 3 (solcErrorStringMem3 len word mem)
-      (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 hdSwap (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
-      mem_cost
-      (solcErrorStringMem3_mload64_of_size164 len word hmem hread64)
-      (by decide) (by evm_ov),
-    raw swap1 hdSwap2 (by evm_ov),
-    raw dup2 hdDup2 (by evm_ov),
-    raw swap1 hdSwap3 (by evm_ov),
-    raw sub hdSub (by evm_ov),
-    raw push1 ⟨100⟩ hd100 (by evm_ov),
-    raw add hdAdd2 (by evm_ov),
-    raw swap1 hdSwap4 (by evm_ov),
-    raw rev 0 hdRev mem_cost (by evm_ov)]
-
-set_option maxHeartbeats 1000000 in
--- GENERALIZES Reasoning.Reach.RD.solcCheckedAddStringRevert — use the size-164 revert tail.
-theorem RD.solcCheckedAddStringRevert_size164 {code : ByteArray} {g : Sat256}
-    {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {pc okPc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
-    {a b ret : UInt256} {R : List UInt256} {mem rdata : ByteArray}
-    {acc : AccountMap}
-    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
-    (hadd : solcCheckedAddSuccessWf code pc okPc)
-    (htail : solcErrorStringRevertTailWf code (solcCheckedArithmeticRevertPc pc)
-      len rawWord shift op width)
-    (hpush : op ≠ .PUSH0)
-    (hover : UInt256.size ≤ a.toNat + b.toNat)
-    (hword : UInt256.shiftLeft rawWord shift = word)
-    (hmem : mem.size = 164)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : R.length + 9 ≤ 1024) :
-    RDrev code g s0 := by
-  rcases hadd with
-    ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
-  have hsum_lt2 : a.toNat + b.toNat < 2 * UInt256.size := by
-    have ha : a.toNat < UInt256.size := a.val.isLt
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    omega
-  have hmod : (a.toNat + b.toNat) % UInt256.size =
-      a.toNat + b.toNat - UInt256.size := by
-    rw [Nat.mod_eq_sub_mod hover]
-    exact Nat.mod_eq_of_lt (by omega)
-  have haddNat : (a + b).toNat = a.toNat + b.toNat - UInt256.size := by
-    rw [uadd_toNat, hmod]
-  have hlt : UInt256.lt (a + b) a = ⟨1⟩ := by
-    apply ult_one
-    rw [haddNat]
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    omega
-  have rd6 := evm_run h with [
-    raw jumpdest hd0 (by evm_ov),
-    raw dup1 hd1 (by evm_ov),
-    raw dup3 hd2 (by evm_ov),
-    raw add hd3 (by evm_ov),
-    raw dup3 hd4 (by evm_ov),
-    raw dup2 hd5 (by evm_ov)]
-  have rd7₀ := evm_run rd6 with [raw lt hd6 (by evm_ov)]
-  have rd7 := rd7₀
-  rw [hlt] at rd7
-  have rd8₀ := evm_run rd7 with [raw iszero hd7 (by evm_ov)]
-  have rd8 := rd8₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8
-  have rdPush := evm_run rd8 with [raw push2 okPc hd8 (by evm_ov)]
-  have rdTail₀ := rdPush.jumpiNT hd11 (by decide) (by simp only [List.length_cons]; omega)
-  have rdTail := by
-    simpa [solcCheckedArithmeticRevertPc] using rdTail₀
-  exact RD.solcErrorStringRevertTail_size164 rdTail htail hpush hword hmem hread64
-    (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.solcCheckedAddStringRevert_feeToStaticcall_size164
@@ -416,7 +430,7 @@ theorem uniswapInternalMintRuntimeTotalSupplyOverflowReverts
     {value recipient ret : UInt256} {R : List UInt256}
     (rd8128 : RD uniswapV2PairBytecode ee g s0 ⟨8128⟩
       (value :: recipient :: ret :: R) mem feeToStaticcallActiveWords rdata σ k C)
-    (hover : UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σ ee).toNat + value.toNat)
+    (hover : UInt256.size ≤ (solcSlotWordAt ⟨0⟩ σ ee).toNat + value.toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 12 ≤ 1024) :
@@ -424,7 +438,7 @@ theorem uniswapInternalMintRuntimeTotalSupplyOverflowReverts
   obtain ⟨_, _, rd8515⟩ :=
     uniswapInternalMintRuntimeTotalSupplyAddEntry rd8128 (by omega)
   exact RD.uniswapSafeMathAddOverflow_feeToStaticcall_size164
-    (a := uniswapSlotWord ⟨0⟩ σ ee) (b := value) (ret := ⟨8147⟩)
+    (a := solcSlotWordAt ⟨0⟩ σ ee) (b := value) (ret := ⟨8147⟩)
     (R := value :: recipient :: ret :: R) rd8515 hover hmem hread64
     (by simp only [List.length_cons]; omega)
 
@@ -437,11 +451,11 @@ theorem uniswapInternalMintRuntimeBalanceOverflowReverts
     (rd8128 : RD uniswapV2PairBytecode ee g s0 ⟨8128⟩
       (value :: recipient :: ret :: R) mem feeToStaticcallActiveWords rdata σ k C)
     (hperm : ee.perm = true)
-    (htotalFit : (uniswapSlotWord ⟨0⟩ σ ee).toNat + value.toNat < UInt256.size)
+    (htotalFit : (solcSlotWordAt ⟨0⟩ σ ee).toNat + value.toNat < UInt256.size)
     (hover :
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord ee
-          (sstoreAccountMap ee.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ ee + value))
+          (sstoreAccountMap ee.codeOwner σ ⟨0⟩ (solcSlotWordAt ⟨0⟩ σ ee + value))
           (uniswapInternalMintBalanceHashSlot recipient mem)).toNat + value.toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -465,7 +479,7 @@ theorem uniswapInternalMintRuntimeBalanceOverflowReverts
   exact RD.uniswapSafeMathAddOverflow_feeToStaticcall_size164
     (a :=
       uniswapCodeOwnerStorageWord ee
-        (sstoreAccountMap ee.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ ee + value))
+        (sstoreAccountMap ee.codeOwner σ ⟨0⟩ (solcSlotWordAt ⟨0⟩ σ ee + value))
         (uniswapInternalMintBalanceHashSlot recipient mem))
     (b := value) (ret := ⟨8190⟩) (R := value :: recipient :: ret :: R)
     rd8515Balance hover hmemHash hread64Hash

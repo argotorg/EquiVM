@@ -1,3 +1,4 @@
+import Reasoning.Memory
 import Examples.UniswapV2Pair.StackRoutines
 import Examples.UniswapV2Pair.MutatorDispatch
 import Examples.UniswapV2Pair.Routines
@@ -9,96 +10,32 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000
 
 
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace UniswapV2Pair
+
+theorem permitRuntimeEcrecoverStaticcallWriteLen_of_size_ge (o : ByteArray)
+    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
+    (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 32 := by
+  exact umin_ofNat_right_toNat_of_ge (c := 32) (n := o.size) (by decide) ho32 hoSize
+
+theorem permitRuntimeEcrecoverStaticcallWriteLen_of_size_lt (o : ByteArray)
+    (hshort : o.size < 32) (hoSize : o.size < UInt256.size) :
+    (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = o.size := by
+  simpa using
+    umin_ofNat_right_toNat_of_lt (c := 32) (n := o.size) (by decide) hshort hoSize
+
+end UniswapV2Pair
+
+end
 
 namespace UniswapV2Pair
 
 /-! ## Permit runtime hashing helpers -/
 
-theorem wordAt0Mem_size_of_ge32 {mem : ByteArray} (word : UInt256)
-    (hmem : 32 ≤ mem.size) :
-    (wordAt0Mem word mem).size = mem.size := by
-  unfold wordAt0Mem
-  exact toByteArray_write32_size_of_le mem word 0 mem.size mem.size rfl
-    (by omega) (by omega)
-
-theorem wordAt32Mem_size_of_ge64 {mem : ByteArray} (word : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (wordAt32Mem word mem).size = mem.size := by
-  unfold wordAt32Mem
-  exact toByteArray_write32_size_of_le mem word 32 mem.size mem.size rfl
-    (by omega) (by omega)
-
-theorem twoWordHashMem_size_of_ge64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).size = mem.size := by
-  unfold twoWordHashMem
-  rw [wordAt32Mem_size_of_ge64 slot]
-  · exact wordAt0Mem_size_of_ge32 key (by omega)
-  · rw [wordAt0Mem_size_of_ge32 key (by omega)]
-    exact hmem
-
-theorem twoWordHashMem_read0_of_ge64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 = UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_of_ge32 key (by omega)]; omega) (by omega)]
-  exact wordAt0Mem_read0 key mem
-
-theorem twoWordHashMem_read32_of_ge64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 = UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_of_ge32 key (by omega)]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray slot).size ≤ 32
-    rw [toByteArray_size])
-
-theorem twoWordHashMem_read64_of_ge96 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 96 ≤ mem.size) :
-    (twoWordHashMem key slot mem).readWithPadding 64 32 = mem.readWithPadding 64 32 := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_of_ge32 key (by omega)]; omega) (by omega)
-      (by rw [wordAt0Mem_size_of_ge32 key (by omega)]; omega)]
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size])
-      (by omega) (by omega) (by omega)]
-
-set_option maxHeartbeats 800000 in
-theorem twoWordHashMem_read0_64_of_ge64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [twoWordHashMem_size_of_ge64 key slot hmem]; omega)]
-  have hleft :
-      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [twoWordHashMem_size_of_ge64 key slot hmem]; omega),
-      twoWordHashMem_read0_of_ge64 key slot hmem]
-  have hright :
-      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by rw [twoWordHashMem_size_of_ge64 key slot hmem]; omega),
-      twoWordHashMem_read32_of_ge64 key slot hmem]
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-        (twoWordHashMem key slot mem).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      norm_num]
-  rw [hleft, hright]
-
-theorem twoWordHashMem_mapSlot_of_ge64 {mem : ByteArray} (key baseSlot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    UInt256.ofNat (fromByteArrayBigEndian
-        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
-      mapSlot key baseSlot := by
-  rw [twoWordHashMem_read0_64_of_ge64 key baseSlot hmem]
-  simpa [mapSlot, solcMappingSlot] using mappingSlot_single key baseSlot
 
 abbrev permitRuntimeTypehashWord : UInt256 :=
   ⟨49955707469362902507454157297736832118868343942642399513960811609542965143241⟩
@@ -1079,16 +1016,6 @@ def permitRuntimeEcrecoverStaticcallMem (baseMem : ByteArray)
   o.write 0 (permitRuntimeEcrecoverInputMem baseMem digest v r s) 450
     (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat
 
-theorem permitRuntimeEcrecoverStaticcallWriteLen_of_size_ge (o : ByteArray)
-    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
-    (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 32 := by
-  exact umin_ofNat_right_toNat_of_ge (c := 32) (n := o.size) (by decide) ho32 hoSize
-
-theorem permitRuntimeEcrecoverStaticcallWriteLen_of_size_lt (o : ByteArray)
-    (hshort : o.size < 32) (hoSize : o.size < UInt256.size) :
-    (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = o.size := by
-  simpa using
-    umin_ofNat_right_toNat_of_lt (c := 32) (n := o.size) (by decide) hshort hoSize
 
 theorem permitRuntimeEcrecoverStaticcallMem_size_of_size_ge {baseMem : ByteArray}
     (digest v r s : UInt256) (o : ByteArray)
@@ -1188,29 +1115,6 @@ theorem permitRuntimeEcrecoverStaticcallMem_mload64_of_size_lt {baseMem : ByteAr
     (permitRuntimeEcrecoverStaticcallMem_read64_of_size_lt digest v r s o hbaseSize
       hshort hoSize)
 
-theorem empty_readWithPadding32_eq_zeroWord :
-    ByteArray.empty.readWithPadding 0 32 = UInt256.toByteArray (⟨0⟩ : UInt256) := by
-  native_decide
-
-theorem byteArray_readWithPadding0_short_eq_extract_zero_tail (o : ByteArray)
-    (hzero : o.size ≠ 0) (hshort : o.size < 32) :
-    o.readWithPadding 0 32 =
-      o.extract 0 o.size ++ (UInt256.toByteArray (⟨0⟩ : UInt256)).extract o.size 32 := by
-  symm
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  rw [show (o.readWithPadding 0 32).data.toList = (o.readWithPadding 0 32).toList by
-    rw [← byteArray_toList_eq]]
-  rw [readWithPadding_zero_toList_of_size_lt32 o hzero hshort]
-  rw [ByteArray.toList_data_append]
-  rw [show (o.extract 0 o.size).data.toList = o.data.toList by
-    rw [← byteArray_toList_eq, byteArray_extract_self, byteArray_toList_eq]]
-  rw [byteArray_toList_eq]
-  rw [zero_toByteArray_eq_zeroes32]
-  rw [ByteArray.data_extract, Array.toList_extract, byteArray_zeroes_toList]
-  rw [List.extract_eq_take_drop, List.drop_replicate, List.take_replicate]
-  congr 1
-  rw [min_self]
 
 theorem permitRuntimeEcrecoverStaticcallMem_read450_of_size_lt {baseMem : ByteArray}
     (digest v r s : UInt256) (o : ByteArray)

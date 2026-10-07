@@ -10,7 +10,7 @@ namespace Benchmarks.Dss.End
 /-! ## `dog()` getter -/
 
 def dogWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endAddressReturnWord ⟨3⟩ σ I
+  solcAddressSlotWord ⟨3⟩ σ I
 
 theorem endDecode_dog {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (dogTransition.params.map Param.name)
@@ -79,7 +79,7 @@ theorem endDogBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (dogWord σ I).toNat))])) := by
-    simpa [dogTransition, dogWord, endAddressReturnWord, endSlotWord, initState,
+    simpa [dogTransition, dogWord, solcAddressSlotWord, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       endAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -106,7 +106,7 @@ theorem endDogBodyCore
 
 theorem endDogBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf dogTransition)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endDogConcreteSelector := by

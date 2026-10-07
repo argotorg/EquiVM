@@ -287,22 +287,18 @@ theorem clipperTakeAssignOweFromAdjusted (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe chost remainingTab oweAdjusted : UInt256) :
     ExecStmt config
-      (Frame.mk contract
-        (clipperTakeLocalsOweAdjusted evmLoc evmRead I price slice owe0 owe chost
+      (Frame.mk contract (clipperTakeLocalsOweAdjusted evmLoc evmRead I price slice owe0 owe chost
           remainingTab oweAdjusted) (immStore v))
       evmRead (.assign .localVar (varRef "owe") (.var "oweAdjusted"))
       (.ok
-        (Frame.mk contract
-          (clipperTakeLocalsChostOwe evmLoc evmRead I price slice owe0 owe chost
+        (Frame.mk contract (clipperTakeLocalsChostOwe evmLoc evmRead I price slice owe0 owe chost
             remainingTab oweAdjusted) (immStore v))
         evmRead) := by
   let adjustedFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsOweAdjusted evmLoc evmRead I price slice owe0 owe chost remainingTab
+    Frame.mk contract (clipperTakeLocalsOweAdjusted evmLoc evmRead I price slice owe0 owe chost remainingTab
         oweAdjusted) (immStore v)
   let oweFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsChostOwe evmLoc evmRead I price slice owe0 owe chost remainingTab
+    Frame.mk contract (clipperTakeLocalsChostOwe evmLoc evmRead I price slice owe0 owe chost remainingTab
         oweAdjusted) (immStore v)
   have hrhs :
       evalExpr? config adjustedFrame evmRead (.var "oweAdjusted") =
@@ -381,23 +377,19 @@ theorem clipperTakeAssignSliceFromChostOwe (v : ClipperImmutables)
     (hprice : price ≠ ⟨0⟩) :
     let sliceAdjusted := UInt256.div oweAdjusted price
     ExecStmt config
-      (Frame.mk contract
-        (clipperTakeLocalsChostOwe evmLoc evmRead I price slice owe0 owe chost remainingTab
+      (Frame.mk contract (clipperTakeLocalsChostOwe evmLoc evmRead I price slice owe0 owe chost remainingTab
           oweAdjusted) (immStore v))
       evmRead (.assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")))
       (.ok
-        (Frame.mk contract
-          (clipperTakeLocalsChostOweSlice evmLoc evmRead I price slice owe0 owe chost
+        (Frame.mk contract (clipperTakeLocalsChostOweSlice evmLoc evmRead I price slice owe0 owe chost
             remainingTab oweAdjusted sliceAdjusted) (immStore v))
         evmRead) := by
   intro sliceAdjusted
   let oweFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsChostOwe evmLoc evmRead I price slice owe0 owe chost remainingTab
+    Frame.mk contract (clipperTakeLocalsChostOwe evmLoc evmRead I price slice owe0 owe chost remainingTab
         oweAdjusted) (immStore v)
   let sliceFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsChostOweSlice evmLoc evmRead I price slice owe0 owe chost
+    Frame.mk contract (clipperTakeLocalsChostOweSlice evmLoc evmRead I price slice owe0 owe chost
         remainingTab oweAdjusted sliceAdjusted) (immStore v)
   have hrhs :
       evalExpr? config oweFrame evmRead
@@ -427,24 +419,19 @@ theorem clipperTakeOweLtTabSliceLtLotChostNoAdjustIte (v : ClipperImmutables)
     let chost := Solm.EVM.storageLoad evmRead evmRead.executionEnv.codeOwner ⟨9⟩
     let remainingTab := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I) owe0
     ExecStmt config
-      (Frame.mk contract
-        (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
+      (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
       evmRead clipperTakeOweAdjustmentStmt
       (.ok
-        (Frame.mk contract
-          (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe0 chost
+        (Frame.mk contract (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe0 chost
             remainingTab) (immStore v))
         evmRead) := by
   intro owe0 chost remainingTab
   let oweFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v)
+    Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v)
   let chostFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsChost evmLoc evmRead I price slice owe0 owe0 chost) (immStore v)
+    Frame.mk contract (clipperTakeLocalsChost evmLoc evmRead I price slice owe0 owe0 chost) (immStore v)
   let remainingFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe0 chost remainingTab) (immStore v)
+    Frame.mk contract (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe0 chost remainingTab) (immStore v)
   have houter :
       evalExpr? config oweFrame evmRead
         (.binary .gt (.var "owe") (.var "tab")) = .ok (.bool false) := by
@@ -579,35 +566,27 @@ theorem clipperTakeOweLtTabSliceLtLotChostAdjustIte (v : ClipperImmutables)
     let oweAdjusted := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I) chost
     let sliceAdjusted := UInt256.div oweAdjusted price
     ExecStmt config
-      (Frame.mk contract
-        (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
+      (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
       evmRead clipperTakeOweAdjustmentStmt
       (.ok
-        (Frame.mk contract
-          (clipperTakeLocalsChostOweSlice evmLoc evmRead I price slice owe0 owe0 chost
+        (Frame.mk contract (clipperTakeLocalsChostOweSlice evmLoc evmRead I price slice owe0 owe0 chost
             remainingTab oweAdjusted sliceAdjusted) (immStore v))
         evmRead) := by
   intro owe0 chost remainingTab oweAdjusted sliceAdjusted
   let oweFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v)
+    Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v)
   let chostFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsChost evmLoc evmRead I price slice owe0 owe0 chost) (immStore v)
+    Frame.mk contract (clipperTakeLocalsChost evmLoc evmRead I price slice owe0 owe0 chost) (immStore v)
   let remainingFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe0 chost remainingTab) (immStore v)
+    Frame.mk contract (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe0 chost remainingTab) (immStore v)
   let adjustedFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsOweAdjusted evmLoc evmRead I price slice owe0 owe0 chost remainingTab
+    Frame.mk contract (clipperTakeLocalsOweAdjusted evmLoc evmRead I price slice owe0 owe0 chost remainingTab
         oweAdjusted) (immStore v)
   let chostOweFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsChostOwe evmLoc evmRead I price slice owe0 owe0 chost remainingTab
+    Frame.mk contract (clipperTakeLocalsChostOwe evmLoc evmRead I price slice owe0 owe0 chost remainingTab
         oweAdjusted) (immStore v)
   let sliceFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsChostOweSlice evmLoc evmRead I price slice owe0 owe0 chost
+    Frame.mk contract (clipperTakeLocalsChostOweSlice evmLoc evmRead I price slice owe0 owe0 chost
         remainingTab oweAdjusted sliceAdjusted) (immStore v)
   have houter :
       evalExpr? config oweFrame evmRead
@@ -780,21 +759,17 @@ theorem clipperTakeOweLtTabSliceLtLotChostRequireReverts (v : ClipperImmutables)
         (Solm.EVM.storageLoad evmRead evmRead.executionEnv.codeOwner ⟨9⟩).toNat) :
     let owe0 := UInt256.mul slice price
     ExecStmt config
-      (Frame.mk contract
-        (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
+      (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
       evmRead clipperTakeOweAdjustmentStmt .reverted := by
   intro owe0
   let chost := Solm.EVM.storageLoad evmRead evmRead.executionEnv.codeOwner ⟨9⟩
   let remainingTab := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I) owe0
   let oweFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v)
+    Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v)
   let chostFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsChost evmLoc evmRead I price slice owe0 owe0 chost) (immStore v)
+    Frame.mk contract (clipperTakeLocalsChost evmLoc evmRead I price slice owe0 owe0 chost) (immStore v)
   let remainingFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe0 chost
+    Frame.mk contract (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe0 chost
         remainingTab) (immStore v)
   have houter :
       evalExpr? config oweFrame evmRead

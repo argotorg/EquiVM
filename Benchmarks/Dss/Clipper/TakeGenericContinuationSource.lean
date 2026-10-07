@@ -172,8 +172,7 @@ theorem clipperTakeCheckedCallSuccessOfEvals
       (receiver := receiver) (retVar := retVar) (name := name)
       hcode htarget hargs hcall hdecode)
 
-theorem clipperTakeAfterSliceOfPrefixAndContinuation
-    {sliceFrame fluxFrame dogFrame callbackFrame : Frame}
+theorem clipperTakeAfterSliceOfPrefixAndContinuation {sliceFrame fluxFrame dogFrame callbackFrame : Frame}
     {evmRead evmVat evmCb : EVM.State} {result : ExecResult}
     (hflux : ExecBlock config sliceFrame evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
@@ -205,8 +204,7 @@ theorem clipperTakeAfterSliceOfPrefixAndContinuation
   simpa [clipperTakeAfterSliceStmts, List.append_assoc] using
     execBlockAppendOk hflux hrest
 
-theorem clipperTakeAfterSliceOfPrefixAndCallbackRevert
-    {sliceFrame fluxFrame dogFrame : Frame}
+theorem clipperTakeAfterSliceOfPrefixAndCallbackRevert {sliceFrame fluxFrame dogFrame : Frame}
     {evmRead evmVat : EVM.State}
     (hflux : ExecBlock config sliceFrame evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
@@ -335,7 +333,7 @@ theorem clipperEvalTakeGenericIlkOweArgs
   rcases v.ilk_wf with ⟨bs, hbs, _⟩
   have hilk : evalExpr? config (Frame.mk contract locals (immStore v)) evm
       ilkExpr = .ok v.ilk := by
-    simp [evalExpr_ilkExpr, hbs, evalExpr?, pure]
+    exact evalExpr_ilkExpr
   have howe := clipperEvalTakeGenericVar (v := v) (evm := evm) hget
   simp only [evalExprs?, hilk, howe, EvalResult.bind, bind, pure]
 
@@ -551,9 +549,9 @@ theorem clipperTakeGenericAssignSalesTab
       .ok (Frame.mk contract locals (immStore v),
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner
           (clipperTakeSalesTabSlot I) tab) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperTakeSalesTabRef I) (ty := uint256St)
-    (loc := wordLoc (clipperTakeSalesTabSlot I))
+    (loc := wordLoc (clipperTakeSalesTabSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · exact hsales
   · simp [clipperTakeSalesTabRef, clipperTakeIdKey, salesF,
       evalStorageRef, evalStorageRefSteps, evalStorageRefStep,
@@ -575,9 +573,9 @@ theorem clipperTakeGenericAssignSalesLot
       .ok (Frame.mk contract locals (immStore v),
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner
           (clipperTakeSalesLotSlot I) lot) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperTakeSalesLotRef I) (ty := uint256St)
-    (loc := wordLoc (clipperTakeSalesLotSlot I))
+    (loc := wordLoc (clipperTakeSalesLotSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · exact hsales
   · simp [clipperTakeSalesLotRef, clipperTakeIdKey, salesF,
       evalStorageRef, evalStorageRefSteps, evalStorageRefStep,
@@ -590,7 +588,7 @@ theorem clipperTakeGenericAssignSalesLot
       storageLocStore_uint256 evm (clipperTakeSalesLotSlot I) lot
 
 theorem clipperTakeGenericPostDogNonzeroStore
-    {locals : Store} {evm : EVM.State}
+    {v : ClipperImmutables} {locals : Store} {evm : EVM.State}
     {I : ExecutionEnv} {tab lot : UInt256}
     (htab : locals.get? "tab" = some (.int (Int.ofNat tab.toNat)))
     (hlot : locals.get? "lot" = some (.int (Int.ofNat lot.toNat)))

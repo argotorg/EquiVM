@@ -1,3 +1,4 @@
+import Reasoning.EVMWord
 import Benchmarks.Dss.Cat.BiteConnect
 import Benchmarks.Dss.Cat.BiteSuccessBranch
 import Benchmarks.Dss.Cat.BiteRevertLeaves
@@ -53,7 +54,7 @@ theorem catBiteVatCodeZero_of_uniswap {σ σ₀ A I} {g : UInt256}
   have haddr : biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       = AccountAddress.ofUInt256 (catBiteVatTargetWord σ I) := by
     rw [accountAddress_ofUInt256_eq_ofNat_toNat]
-    simp only [biteVatAddr, initState, catBiteVatTargetWord, catAddressReturnWord, catSlotWord]
+    simp only [biteVatAddr, initState, catBiteVatTargetWord, solcAddressSlotWord, solcSlotWordAt]
   unfold Reasoning.Theory.extCodeSizeWord at hvatCode
   rw [haddr]
   simp only [initState, State.lookupAccount]
@@ -71,7 +72,7 @@ theorem catBiteVatCodePos_of_uniswap {σ σ₀ A I} {g : UInt256}
   have haddr : biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       = AccountAddress.ofUInt256 (catBiteVatTargetWord σ I) := by
     rw [accountAddress_ofUInt256_eq_ofNat_toNat]
-    simp only [biteVatAddr, initState, catBiteVatTargetWord, catAddressReturnWord, catSlotWord]
+    simp only [biteVatAddr, initState, catBiteVatTargetWord, solcAddressSlotWord, solcSlotWordAt]
   unfold Reasoning.Theory.extCodeSizeWord at hvatCode
   rw [haddr]
   simp only [initState, State.lookupAccount]
@@ -102,13 +103,6 @@ theorem catBiteBodyIlksNoCode {σ σ₀ A I} {g : UInt256}
   exact catBiteIlksNoCodeLeaf hcode hdispatch hdecode rd1233 hvatCode (by simp)
     (catBiteSourceIlksNoCodeRevert hwv (catBiteVatCodeZero_of_uniswap hvatCode))
 
-/-- `EVM.address` is the identity on an `AccountAddress` (reduces mod `addressModulus`, a no-op since
-the address is already in range). Local clone of the Jug/Vow `evmAddress_accountAddress`. -/
-private theorem catEvmAddress_accountAddress (a : AccountAddress) : EVM.address a.val = a := by
-  apply Fin.ext
-  show a.val % EVM.addressModulus = a.val
-  rw [show EVM.addressModulus = AccountAddress.size from by decide]
-  exact Nat.mod_eq_of_lt a.isLt
 
 /-- Target-word ↔ vat-address reconciliation (σ-generic). The ilks/urns STATICCALL target word
 `catBiteVatTargetWord σ I` (as an `AccountAddress`) equals the Solm `biteVatAddr` under `EVM.address`. -/
@@ -118,8 +112,8 @@ theorem catBiteVatEvmAddr_eq_target {σ σ₀ A I} {g : UInt256} :
   have haddr : biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       = AccountAddress.ofUInt256 (catBiteVatTargetWord σ I) := by
     rw [accountAddress_ofUInt256_eq_ofNat_toNat]
-    simp only [biteVatAddr, initState, catBiteVatTargetWord, catAddressReturnWord, catSlotWord]
-  rw [haddr]; exact catEvmAddress_accountAddress _
+    simp only [biteVatAddr, initState, catBiteVatTargetWord, solcAddressSlotWord, solcSlotWordAt]
+  rw [haddr]; exact address_of_val _
 
 /-- **ilks call-failed core.** The ilks `STATICCALL` returned `success = 0` (cursor `@1249`, `⟨0⟩` on
 top). Map the σ ilks-fail call to σ, feed `catBiteSourceIlksFailRevert`, and bridge via
@@ -202,13 +196,13 @@ theorem catBiteReachGrabAw {σ σ₀ A I} {g : UInt256}
            (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)).toNat),
          .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))]
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ'', substate := A'' }, o') I.perm
+              accountMap := σ'', substate := A'' }, o') true
     ∧ o'.size < UInt256.size := by
   have h64 : (⟨64⟩ : UInt256).toNat = 64 := by decide
   have e164 : (p + ⟨164⟩).toNat = p.toNat + 164 := by
     rw [uadd_toNat, show (⟨164⟩ : UInt256).toNat = 164 from by decide, Nat.mod_eq_of_lt (by omega)]
   have hM7lt : MachineState.M aw.toNat (p + ⟨164⟩).toNat 32 < UInt256.size :=
-    catBiteMltL aw (p + ⟨164⟩).toNat (by omega)
+    machineState_M_32_lt_size aw (p + ⟨164⟩).toNat (by omega)
   have haw7val :
       (catBiteAwStepL aw (p + ⟨164⟩).toNat).toNat = MachineState.M aw.toNat (p + ⟨164⟩).toNat 32 :=
     catBiteAwStepL_toNat aw (p + ⟨164⟩).toNat hM7lt
@@ -248,7 +242,7 @@ theorem catBiteReachGrabAw {σ σ₀ A I} {g : UInt256}
   rw [hawEq] at rd2193raw
   refine ⟨σ'', z, o', A', k', C', rd2193raw, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
-    (callPerm := I.perm)
+    (callPerm := true)
     (targetWord := UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord)
     (mem := catBiteGrabCalldataMemP p (biteIlkWord I) urn (UInt256.ofNat I.codeOwner.val)
       (solcSlotWord σ' I ⟨4⟩) dink dart mem)
@@ -297,13 +291,13 @@ theorem catBiteReachFessAw {σ σ₀ A I} {g : UInt256}
         (AccountAddress.ofUInt256 (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)))
         "fess" 0 [.int (Int.ofNat dartRate.toNat)]
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ'', substate := A'' }, o') I.perm
+              accountMap := σ'', substate := A'' }, o') true
     ∧ o'.size < UInt256.size := by
   have e4 : (⟨4⟩ + p2).toNat = p2.toNat + 4 := by
     rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, Nat.add_comm,
       Nat.mod_eq_of_lt (by omega)]
   have hM2lt : MachineState.M aw.toNat (⟨4⟩ + p2).toNat 32 < UInt256.size :=
-    catBiteMltL aw (⟨4⟩ + p2).toNat (by omega)
+    machineState_M_32_lt_size aw (⟨4⟩ + p2).toNat (by omega)
   have hawFval :
       (catBiteAwStepL aw (⟨4⟩ + p2).toNat).toNat = MachineState.M aw.toNat (⟨4⟩ + p2).toNat 32 :=
     catBiteAwStepL_toNat aw (⟨4⟩ + p2).toNat hM2lt
@@ -339,7 +333,7 @@ theorem catBiteReachFessAw {σ σ₀ A I} {g : UInt256}
   rw [hawEq] at rd2300
   refine ⟨σ'', z, o', A', k', C', rd2300, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
-    (callPerm := I.perm)
+    (callPerm := true)
     (targetWord := UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩))
     (mem := catBiteFessCalldataMemP p2 dartRate mem) (inOff := p2) (inSize := ⟨36⟩)
     (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))

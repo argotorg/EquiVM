@@ -45,7 +45,7 @@ theorem uniswapSwapBalancesCases
   rcases caller with ⟨decl, locals, imms⟩
   dsimp only at hcaller himm
   subst decl imms
-  rw [balanceCallAddress_self] at htarget0 htarget1
+  rw [address_of_val] at htarget0 htarget1
   obtain ⟨_, _, rd2149⟩ := RD.uniswapSwapBalance0Prepared rd2091 hin hgap hlo haw hawLo
     hfit hread (by omega)
   have hr0 : evalExpr? config { contract := contract, locals := locals } evm (.var "_token0") =

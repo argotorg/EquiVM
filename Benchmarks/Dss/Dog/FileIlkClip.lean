@@ -1,3 +1,5 @@
+import Reasoning.SolcRoutines
+import Reasoning.ABIComposite
 import Benchmarks.Dss.Dog.FileIlkUint
 import Reasoning.ExternalCall
 
@@ -5,6 +7,267 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables
 
 set_option maxHeartbeats 0
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Dog
+
+theorem fileIlkClipPostCallWrite_size_gt64 (out base : ByteArray) (L : Nat)
+    (hbase : base.size = 160) (hLo : L ≤ out.size) :
+    64 < (out.write 0 base 128 L).size := by
+  rcases Nat.eq_zero_or_pos L with hzero | hpos
+  · subst L
+    rw [byteArray_write_len_zero, hbase]
+    norm_num
+  · by_cases hin : 128 + L ≤ base.size
+    · rw [write_eq_gen out base 128 L (by omega) hLo hin, ByteArray.size_append,
+        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
+        ByteArray.size_extract, hbase]
+      omega
+    · have hdest : 128 ≤ base.size := by
+        rw [hbase]
+        omega
+      have hext : base.size < 128 + L := Nat.lt_of_not_ge hin
+      rw [write_eq_gen_extend out base 128 L (by omega) hLo hdest hext,
+        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract, hbase]
+      omega
+
+theorem wordAt0Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
+    (wordAt0Mem word mem).size = 160 := by
+  unfold wordAt0Mem
+  exact toByteArray_write32_size_of_le mem word 0 160 160 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem wordAt32Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
+    (wordAt32Mem word mem).size = 160 := by
+  unfold wordAt32Mem
+  exact toByteArray_write32_size_of_le mem word 32 160 160 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem solcErrorStringMem0_size_of_size160 {mem : ByteArray} (hmem : mem.size = 160) :
+    (solcErrorStringMem0 mem).size = 160 := by
+  unfold solcErrorStringMem0
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract, hmem, toByteArray_size]
+
+theorem twoWordHashMem_read0_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 =
+      UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)]
+  exact wordAt0Mem_read0 key mem
+
+theorem twoWordHashMem_read32_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 =
+      UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_160 key hmem]; omega)]
+  exact toByteArray_extract_all slot
+
+theorem twoWordHashMem_size_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).size = 160 := by
+  unfold twoWordHashMem
+  exact wordAt32Mem_size_160 slot (wordAt0Mem_size_160 key hmem)
+
+theorem twoWordHashMem_read64_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (twoWordHashMem key slot mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)
+      (by rw [wordAt0Mem_size_160 key hmem]; norm_num)]
+  unfold wordAt0Mem
+  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
+      (by omega) (by rw [hmem]; norm_num)]
+  exact hread64
+
+theorem solcErrorStringMem1_size_of_size160 {mem : ByteArray} (hmem : mem.size = 160) :
+    (solcErrorStringMem1 mem).size = 164 := by
+  unfold solcErrorStringMem1
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [solcErrorStringMem0_size_of_size160 hmem]; omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    solcErrorStringMem0_size_of_size160 hmem,
+    toByteArray_size]
+
+theorem twoWordHashMem_read0_64_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem)]
+  have hleft :
+      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract _ 0 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem),
+      twoWordHashMem_read0_160 key slot hmem]
+  have hright :
+      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract _ 32 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem),
+      twoWordHashMem_read32_160 key slot hmem]
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+        (twoWordHashMem key slot mem).extract 32 64 by
+    rw [ByteArray.extract_append_extract]
+    norm_num]
+  rw [hleft, hright]
+
+theorem solcErrorStringMem2_size_of_size160 (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160) :
+    (solcErrorStringMem2 len mem).size = 196 := by
+  unfold solcErrorStringMem2
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [solcErrorStringMem1_size_of_size160 hmem])]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    solcErrorStringMem1_size_of_size160 hmem,
+    toByteArray_size]
+
+theorem twoWordHashMem_solcMappingSlot_160 (baseSlot key : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+      solcMappingSlot baseSlot key := by
+  rw [twoWordHashMem_read0_64_160 key baseSlot hmem]
+  unfold solcMappingSlot
+  exact mappingSlot_single key baseSlot
+
+theorem solcErrorStringMem3_size_of_size160 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160) :
+    (solcErrorStringMem3 len word mem).size = 228 := by
+  unfold solcErrorStringMem3
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [solcErrorStringMem2_size_of_size160 len hmem])]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    solcErrorStringMem2_size_of_size160 len hmem,
+    toByteArray_size]
+
+theorem solcErrorStringMem3_read64_of_size160 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcErrorStringMem3
+  rw [toByteArray_write_read_below_of_gap word _ 196 64
+      (by rw [solcErrorStringMem2_size_of_size160 len hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem2_size_of_size160 len hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem2
+  rw [toByteArray_write_read_below_of_gap len _ 164 64
+      (by rw [solcErrorStringMem1_size_of_size160 hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem1_size_of_size160 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem1
+  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
+      (by rw [solcErrorStringMem0_size_of_size160 hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem0_size_of_size160 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem0
+  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
+      (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
+  exact hread64
+
+theorem solcErrorStringMem3_mload64_of_size160 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((solcErrorStringMem3 len word mem).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size160 len word hmem]; decide)
+    (solcErrorStringMem3_read64_of_size160 len word hmem hread64)
+
+end Benchmarks.Dss.Dog
+
+namespace Benchmarks.Dss.Dog.RD
+
+theorem dogErrorStringRevertTailDirectAw5Size160 {code : ByteArray} {g : Sat256}
+    {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len word : UInt256}
+    {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
+    {acc : AccountMap}
+    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 5) rdata acc k C)
+    (hwf : solcErrorStringRevertTailDirectWf code pc len word op width)
+    (hpush : op ≠ .PUSH0)
+    (hmem : mem.size = 160)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : stk.length + 5 ≤ 1024) :
+    RDrev code g s0 := by
+  rcases hwf with
+    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
+      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hd68, hdDup3, hdAdd,
+      hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3, hdSub, hd100,
+      hdAdd2, hdSwap4, hdRev⟩
+  have rdMload := evm_run h with [
+    raw push1 ⟨64⟩ hd0 (by evm_ov),
+    raw dup1 hd2 (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) hd3
+      mem_cost
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
+      (by decide) (by evm_ov)]
+  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
+    (width := 3) (op := .PUSH3) (by decide) hd4 (by simp only [List.length_cons]; omega)
+  have rdPrefix := evm_run rdSelectorRaw with [
+    raw push1 ⟨229⟩ hd8 (by evm_ov),
+    raw shl hd10 (by evm_ov),
+    raw dup2 hd11 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
+      hd12 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ hd13 (by evm_ov),
+    raw push1 ⟨4⟩ hd15 (by evm_ov),
+    raw dup3 hd17 (by evm_ov),
+    raw add hd18 (by evm_ov),
+    raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
+      hd19 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 len hd20 (by evm_ov),
+    raw push1 ⟨36⟩ hd22 (by evm_ov),
+    raw dup3 hd24 (by evm_ov),
+    raw add hd25 (by evm_ov),
+    raw mstore 3 (solcErrorStringMem2 len mem)
+      (UInt256.ofNat 7) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
+  have rdWord := rdPrefix.pushConst word (width := width) (op := op)
+    hpush hd27 (by simp only [List.length_cons]; omega)
+  exact evm_run rdWord with [
+    raw push1 ⟨68⟩ hd68 (by evm_ov),
+    raw dup3 hdDup3 (by evm_ov),
+    raw add hdAdd (by evm_ov),
+    raw mstore 3 (solcErrorStringMem3 len word mem)
+      (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 hdSwap (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
+      mem_cost
+      (solcErrorStringMem3_mload64_of_size160 len word hmem hread64)
+      (by decide) (by evm_ov),
+    raw swap1 hdSwap2 (by evm_ov),
+    raw dup2 hdDup2 (by evm_ov),
+    raw swap1 hdSwap3 (by evm_ov),
+    raw sub hdSub (by evm_ov),
+    raw push1 ⟨100⟩ hd100 (by evm_ov),
+    raw add hdAdd2 (by evm_ov),
+    raw swap1 hdSwap4 (by evm_ov),
+    raw rev 0 hdRev mem_cost (by evm_ov)]
+
+end Benchmarks.Dss.Dog.RD
+
+end
 
 namespace Benchmarks.Dss.Dog
 
@@ -101,25 +364,6 @@ theorem fileIlkClipEncode_eq {mem : ByteArray}
   rw [fileIlkClipCallMem_read128_4 hmem]
   simp [config, externalABI, clipperIlkSelector]
 
-theorem fileIlkClipPostCallWrite_size_gt64 (out base : ByteArray) (L : Nat)
-    (hbase : base.size = 160) (hLo : L ≤ out.size) :
-    64 < (out.write 0 base 128 L).size := by
-  rcases Nat.eq_zero_or_pos L with hzero | hpos
-  · subst L
-    rw [byteArray_write_len_zero, hbase]
-    norm_num
-  · by_cases hin : 128 + L ≤ base.size
-    · rw [write_eq_gen out base 128 L (by omega) hLo hin, ByteArray.size_append,
-        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
-        ByteArray.size_extract, hbase]
-      omega
-    · have hdest : 128 ≤ base.size := by
-        rw [hbase]
-        omega
-      have hext : base.size < 128 + L := Nat.lt_of_not_ge hin
-      rw [write_eq_gen_extend out base 128 L (by omega) hLo hdest hext,
-        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract, hbase]
-      omega
 
 theorem fileIlkClipPostCallMem_size_gt64 {mem out : ByteArray}
     (hmem : mem.size = 96) (hshort : out.size < 32) (hout : out.size < UInt256.size) :
@@ -325,109 +569,6 @@ theorem fileIlkClipWhatWord_ne_of_bytes_ne {I : ExecutionEnv} {bs : List UInt8}
   intro hword
   exact hneq (fileIlkClipWhat_eq_of_word_eq hsz68 hword hbsLen)
 
-theorem dogDecodeABIValues_bytes32_bytes32_address_legacy_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hlen64 : ((bytes.drop 64).take 32).length = 32) :
-    decodeABIValues? [abiBytes32, abiBytes32, abiAddress] bytes 0 0 96 96
-        DecodeMode.legacySolc05 =
-      some ([.fixedBytes abiBytes32Width (bytes.take 32),
-        .fixedBytes abiBytes32Width ((bytes.drop 32).take 32),
-        .address (AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat)], 96) := by
-  have hge32 : 32 ≤ bytes.length - 32 := by
-    rw [List.length_take, List.length_drop] at hlen32
-    omega
-  simp [decodeABIValues?, abiBytes32, abiBytes32Width, abiAddress, isDynamicABIType,
-    staticABIEncodedSize?, decodeABIValue?, readBytes?, hlen0]
-  rw [if_pos hge32]
-  simpa [readWord?, readBytes?, decodeABIWord?, hlen64, UInt256.toNat]
-
-theorem dogDecodeABIValues_bytes32_bytes32_address_legacy_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 96) :
-    decodeABIValues? [abiBytes32, abiBytes32, abiAddress] bytes 0 0 96 96
-        DecodeMode.legacySolc05 = none := by
-  simp only [decodeABIValues?, abiBytes32, abiBytes32Width, abiAddress, isDynamicABIType,
-    Bool.false_eq_true, if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have htake0n : ¬ (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have hnot : ¬ 32 ≤ bytes.length := by omega
-    simp [decodeABIValue?, readBytes?, hnot]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    simp [decodeABIValue?, readBytes?, htake0]
-    by_cases h64 : bytes.length < 64
-    · have hnot : ¬ 32 ≤ bytes.length - 32 := by omega
-      simp [hnot]
-    · have hge32 : 32 ≤ bytes.length - 32 := by omega
-      rw [if_pos hge32]
-      have hnot : ¬ 32 ≤ bytes.length - 64 := by omega
-      simp [readWord?, readBytes?, hnot]
-
-theorem dogDecodeCalldataWithMode_legacyBytes32_bytes32_address_ok {cd : ByteArray}
-    {x y z : Solm.Ident} (hsz100 : 100 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y, z]
-      [abiBytes32, abiBytes32, abiAddress] cd =
-        some ((((∅ : Solm.Store).insert x
-          (.fixedBytes abiBytes32Width ((cd.toList.drop 4).take 32))).insert y
-          (.fixedBytes abiBytes32Width ((cd.toList.drop 36).take 32))).insert z
-          (.address (AccountAddress.ofNat (calldataWord cd 68).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have htake68 : ((cd.toList.drop 4).drop 64 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have hword68 :
-      ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32) = calldataWord cd 68 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-      using decode_word_at_eq cd 68 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiBytes32, abiAddress] = some 96 by native_decide]
-  simp only [bind, Option.bind]
-  rw [dogDecodeABIValues_bytes32_bytes32_address_legacy_ok
-    (bytes := cd.toList.drop 4) (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake68)]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (cd.toList.drop 4).length < 96)]
-  simp only [decodeCalldata.insertValues]
-  rw [hword68]
-  simp [List.drop_drop]
-
-theorem dogDecodeCalldataWithMode_legacyBytes32_bytes32_address_none_short
-    {cd : ByteArray} {x y z : Solm.Ident} (hsz4 : 4 ≤ cd.size)
-    (hshort : cd.size < 100) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y, z]
-      [abiBytes32, abiBytes32, abiAddress] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiBytes32, abiAddress] = some 96 by native_decide]
-  simp only [bind, Option.bind]
-  by_cases hbytes : (cd.toList.drop 4).length < 96
-  · rw [if_pos hbytes]
-  · rw [if_neg hbytes]
-    rw [dogDecodeABIValues_bytes32_bytes32_address_legacy_none_short
-      (bytes := cd.toList.drop 4) (by
-        rw [List.length_drop, htlen]
-        omega)]
 
 theorem dogDecode_fileIlkClip_ok {I : ExecutionEnv}
     (hsz100 : 100 ≤ I.calldata.size) :
@@ -438,7 +579,7 @@ theorem dogDecode_fileIlkClip_ok {I : ExecutionEnv}
   simpa [config, fileIlkClipTransition, bytes32, bytes32Width, addr, abiBytes32,
     abiBytes32Width, abiAddress, fileIlkClipLocals, fileIlkClipIlkValue,
     fileIlkClipIlkBytes, fileIlkClipWhat, fileIlkClipClip] using
-    dogDecodeCalldataWithMode_legacyBytes32_bytes32_address_ok (cd := I.calldata)
+    decodeCalldata_legacyBytes32_bytes32_address_ok (cd := I.calldata)
       (x := "ilk") (y := "what") (z := "clip") hsz100
 
 theorem dogDecode_fileIlkClip_none_short {I : ExecutionEnv}
@@ -448,67 +589,9 @@ theorem dogDecode_fileIlkClip_none_short {I : ExecutionEnv}
       (transitionSignature fileIlkClipTransition).paramTypes I.calldata = none := by
   simpa [config, fileIlkClipTransition, bytes32, bytes32Width, addr, abiBytes32,
     abiBytes32Width, abiAddress] using
-    dogDecodeCalldataWithMode_legacyBytes32_bytes32_address_none_short
+    decodeCalldata_legacyBytes32_bytes32_address_none_short
       (cd := I.calldata) (x := "ilk") (y := "what") (z := "clip") hsz4 hshort
 
-theorem fileIlkClipDecodeABIValues_bytes32_ok {bytes : List UInt8} {mode : DecodeMode}
-    (hlen0 : (bytes.take 32).length = 32) :
-    decodeABIValues? [bytes32] bytes 0 0 32 32 mode =
-      some ([.fixedBytes bytes32Width (bytes.take 32)], 32) := by
-  have htake : (bytes.take 32).take 32 = bytes.take 32 := by
-    simp
-  cases mode <;>
-    simp [decodeABIValues?, bytes32, bytes32Width, isDynamicABIType,
-      staticABIEncodedSize?, decodeABIValue?, readBytes?, zeroPadding?, hlen0, htake]
-
-theorem fileIlkClipDecodeABIValues_bytes32_none_short {bytes : List UInt8} {mode : DecodeMode}
-    (hshort : bytes.length < 32) :
-    decodeABIValues? [bytes32] bytes 0 0 32 32 mode = none := by
-  have hnot : ¬ 32 ≤ bytes.length := by omega
-  cases mode <;>
-    simp [decodeABIValues?, bytes32, bytes32Width, isDynamicABIType,
-      staticABIEncodedSize?, decodeABIValue?, readBytes?, zeroPadding?, hnot]
-
-theorem fileIlkClipDecodeReturnValue_bytes32_ok {returndata : ByteArray}
-    (hlo : 32 ≤ returndata.size) :
-    ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 bytes32 returndata =
-      some (.fixedBytes bytes32Width
-        (EVM.Word.toBytesBE (uInt256OfByteArray (returndata.extract 0 32)))) := by
-  have hlen : returndata.toList.length = returndata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake0 : (returndata.toList.take 32).length = 32 := by
-    rw [List.length_take, hlen]
-    omega
-  have hwordList := bytesToWord_take32_eq_extract0_32 (returndata := returndata)
-  have hword : ABI.bytesToWord (returndata.toList.take 32) =
-      uInt256OfByteArray (returndata.extract 0 32) := by
-    rw [hwordList, uInt256OfByteArray_eq]
-  have hbytes :
-      EVM.Word.toBytesBE (uInt256OfByteArray (returndata.extract 0 32)) =
-        returndata.toList.take 32 := by
-    rw [← hword]
-    exact toBytesBE_bytesToWord_of_length htake0
-  rw [hbytes]
-  unfold ABI.decodeReturnValueWithMode? ABI.decodeReturnValuesWithMode?
-  rw [show ABI.abiTupleHeadSize? [bytes32] = some 32 by native_decide]
-  simp only [bind, Option.bind]
-  rw [fileIlkClipDecodeABIValues_bytes32_ok
-    (bytes := returndata.toList) (mode := DecodeMode.legacySolc05) htake0]
-  rfl
-
-theorem fileIlkClipDecodeReturnValue_bytes32_none_short {returndata : ByteArray}
-    (hshort : returndata.size < 32) :
-    ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 bytes32 returndata = none := by
-  have hlen : returndata.toList.length = returndata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold ABI.decodeReturnValueWithMode? ABI.decodeReturnValuesWithMode?
-  rw [show ABI.abiTupleHeadSize? [bytes32] = some 32 by native_decide]
-  simp only [bind, Option.bind]
-  rw [fileIlkClipDecodeABIValues_bytes32_none_short
-    (bytes := returndata.toList) (mode := DecodeMode.legacySolc05) (by rw [hlen]; omega)]
-  rfl
 
 theorem fileIlkClipDecode_ilk_return_ok {out : ByteArray}
     (ho32 : 32 ≤ out.size) :
@@ -519,7 +602,7 @@ theorem fileIlkClipDecode_ilk_return_ok {out : ByteArray}
     some [.fixedBytes bytes32Width
       (EVM.Word.toBytesBE (uInt256OfByteArray (out.extract 0 32)))]
   unfold decodeReturn?
-  rw [fileIlkClipDecodeReturnValue_bytes32_ok ho32]
+  erw [decodeReturnValue_bytes32_ok ho32]
   rfl
 
 theorem fileIlkClipDecode_ilk_return_none_short {out : ByteArray}
@@ -527,7 +610,7 @@ theorem fileIlkClipDecode_ilk_return_none_short {out : ByteArray}
     config.externalABI.decode? "ilk" out = none := by
   change decodeReturn? bytes32 out = none
   unfold decodeReturn?
-  rw [fileIlkClipDecodeReturnValue_bytes32_none_short hshort]
+  erw [decodeReturnValue_bytes32_none_short hshort]
   rfl
 
 theorem fileIlkClipDecodedReturn_eq_ilkValue {I : ExecutionEnv} {out : ByteArray}
@@ -833,23 +916,22 @@ theorem assign_fileIlkClipClipStorage (v : DogImmutables) (evm : EVM.State)
     simpa [addrLoc, evm'] using
       storageLocStore_address_offset0 evm (fileIlkClipSlotFor I) (fileIlkClipClipKey I)
         (fileIlkClipClipKey_canonical I)
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem .address) (loc := addrLoc (fileIlkClipSlotFor I))
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem .address) (loc := addrLoc (fileIlkClipSlotFor I)) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, IlkStructTy,
       addrSt])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
-    (hscalar := by trivial)
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
+
     (hstore := hstore)
 
-theorem fileIlkClipSuccessSourceBody {σ σ₀ A I}
+theorem fileIlkClipSuccessSourceBodySplit {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
-    (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileIlkClipWhat I = fileIlkClipClipBytes)
     (hcodePos :
       0 < (UInt256.ofNat
@@ -868,8 +950,10 @@ theorem fileIlkClipSuccessSourceBody {σ σ₀ A I}
       (setAddressOffset0Word
         (Solm.EVM.storageLoad evmCall evmCall.executionEnv.codeOwner (fileIlkClipSlotFor I))
         (fileIlkClipClipKey I))
-    ExecTransitionBody config contract evm0 locals fileIlkClipTransition.body
-      (.returned { contract := contract, locals := locals1, immutables := immStore v } evm1 none) (immStore v) := by
+    (ExecTransitionBody config contract evm0 locals fileIlkClipTransition.body
+      (.returned { contract := contract, locals := locals1, immutables := immStore v } evm1 none) (immStore v)) ∧
+      (I.perm = false → ExecTransitionBody config contract
+        evm0 locals fileIlkClipTransition.body .staticViolation (immStore v)) := by
   intro locals locals1 evm0 evm1
   have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -934,39 +1018,30 @@ theorem fileIlkClipSuccessSourceBody {σ σ₀ A I}
           fileIlkClipLocalsClipIlk_get_ilks I (fileIlkClipIlkValue I))
         (by simpa [locals1] using
           fileIlkClipLocalsClipIlk_get_ilk I (fileIlkClipIlkValue I)))
-  have hthenRaw :
+  have hprefix {result : ExecResult}
+      (hwrite : ExecBlock config { contract := contract, locals := locals1, immutables := immStore v }
+        evmCall [.assign .storage (ilksF (.var "ilk") "clip") (.var "clip")] result) :
       ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
-        [ .require (.binary .gt (.extCodeSize (.var "clip")) (.intLit 0)),
-          .externalCall (.var "clip") "ilk" (.intLit 0) [] "clipIlk" (perm := false),
-          .require (.binary .eq (.var "ilk") (.var "clipIlk")),
-          .assign .storage (ilksF (.var "ilk") "clip") (.var "clip") ]
-        (.ok { contract := contract, locals := locals1, immutables := immStore v } evm1) := by
-    refine ExecBlock.consNormal (ExecStmt.requireTrue hcodeGuard) ?_
-    refine ExecBlock.consNormal hcallStmt ?_
-    refine ExecBlock.consNormal (ExecStmt.requireTrue heq) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign hclipPost hassign) ExecBlock.nil
-  have hthen :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
-        (checkedExternalCallStmts (.var "clip") "ilk" (.intLit 0) [] "clipIlk"
-          (perm := false) ++
-          [ .require (.binary .eq (.var "ilk") (.var "clipIlk")),
-            .assign .storage (ilksF (.var "ilk") "clip") (.var "clip") ])
-        (.ok { contract := contract, locals := locals1, immutables := immStore v } evm1) := by
-    simpa [checkedExternalCallStmts] using hthenRaw
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
-        fileIlkClipTransition.body (.ok { contract := contract, locals := locals1, immutables := immStore v } evm1) := by
+        fileIlkClipTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
-  simpa [ExecTransitionBody, evm0, evm1, locals, locals1] using
-    ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteTrue hcond
+      (ExecBlock.consNormal (ExecStmt.requireTrue hcodeGuard)
+        (ExecBlock.consNormal hcallStmt
+          (ExecBlock.consNormal (ExecStmt.requireTrue heq) hwrite))))
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign hclipPost hassign) ExecBlock.nil))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hclipPost hassign
+        (by rw [typedCallViaEVM_executionEnv_eq hcall]; exact hperm))))
 
-theorem fileIlkClipCallFailureSourceBody {σ σ₀ A I}
+theorem fileIlkClipCallFailureSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileIlkClipWhat I = fileIlkClipClipBytes)
     (hcodePos :
       0 < (UInt256.ofNat
@@ -1039,10 +1114,10 @@ theorem fileIlkClipCallFailureSourceBody {σ σ₀ A I}
     exact ExecBlock.consRevert (ExecStmt.iteTrue hcond hthen)
   simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockRevert hblock
 
-theorem fileIlkClipDecodeRevertSourceBody {σ σ₀ A I}
+theorem fileIlkClipDecodeRevertSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileIlkClipWhat I = fileIlkClipClipBytes)
     (hcodePos :
       0 < (UInt256.ofNat
@@ -1116,10 +1191,10 @@ theorem fileIlkClipDecodeRevertSourceBody {σ σ₀ A I}
     exact ExecBlock.consRevert (ExecStmt.iteTrue hcond hthen)
   simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockRevert hblock
 
-theorem fileIlkClipNoCodeSourceBody {σ σ₀ A I}
+theorem fileIlkClipNoCodeSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileIlkClipWhat I = fileIlkClipClipBytes)
     (hcodeZero :
       (UInt256.ofNat
@@ -1176,10 +1251,10 @@ theorem fileIlkClipNoCodeSourceBody {σ σ₀ A I}
     exact ExecBlock.consRevert (ExecStmt.iteTrue hcond hthen)
   simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockRevert hblock
 
-theorem fileIlkClipMismatchSourceBody {σ σ₀ A I}
+theorem fileIlkClipMismatchSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256} {evmCall : EVM.State} {out : ByteArray} {clipIlkBytes : List UInt8}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileIlkClipWhat I = fileIlkClipClipBytes)
     (hcodePos :
       0 < (UInt256.ofNat
@@ -1273,10 +1348,10 @@ theorem fileIlkClipMismatchSourceBody {σ σ₀ A I}
     exact ExecBlock.consRevert (ExecStmt.iteTrue hcond hthen)
   simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockRevert hblock
 
-theorem fileIlkClipUnrecognizedSourceBody {σ σ₀ A I}
+theorem fileIlkClipUnrecognizedSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotClip : fileIlkClipWhat I ≠ fileIlkClipClipBytes) :
     let locals := fileIlkClipLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1556,13 +1631,13 @@ theorem RD.dogFileIlkClipToSwitch {v : DogImmutables} {code : ByteArray}
   obtain ⟨_, _, hroutine⟩ := RD.dogFileIlkClipDecodeToRoutine
     (v := v) (code := code) (ret := ⟨313⟩) (sel := sel) (R := [])
     hpatch hdecoded (dogPatchedJumpDest hpatch (by native_decide)) (by simp)
-  obtain ⟨_, _, hafterAuth⟩ := RD.dogAuthCheckOk
+  obtain ⟨_, _, hafterAuth⟩ := RD.solcAuthCheckOk
     (code := code) (pc := ⟨2417⟩) (okPc := ⟨2506⟩)
     (key := fileIlkClipClipKey I) (ret := fileIlkClipWhatWord I)
     (R := [fileIlkClipIlkWord I, ⟨313⟩, sel])
     (by simpa [fileIlkClipClipKey, fileIlkClipWhatWord, fileIlkClipIlkWord] using hroutine)
     (by
-      unfold dogAuthCheckWf
+      unfold solcAuthCheckWf
       repeat' first
         | apply And.intro
         | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -1609,13 +1684,13 @@ theorem RD.dogFileIlkClipAuthRevert {v : DogImmutables} {code : ByteArray}
     (R := [fileIlkClipIlkWord I, ⟨313⟩, sel])
     (by simpa [fileIlkClipClipKey, fileIlkClipWhatWord, fileIlkClipIlkWord] using hroutine)
     (by
-      unfold dogAuthCheckWf
+      unfold solcAuthCheckWf
       repeat' first
         | apply And.intro
         | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
           native_decide)
     (by
-      unfold solcErrorStringRevertTailWf dogAuthTailPc dogNotAuthorizedRawWord
+      unfold solcErrorStringRevertTailWf solcAuthTailPc dogNotAuthorizedRawWord
       repeat' first
         | apply And.intro
         | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -1694,11 +1769,11 @@ theorem RD.dogFileIlkClipUnrecognizedRevert {v : DogImmutables} {code : ByteArra
       rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
       native_decide)
     (by evm_ov)
-  exact RD.dogErrorStringRevertTailDirect
+  exact RD.solcErrorStringRevertTailDirect
     (pc := ⟨1100⟩) (len := ⟨27⟩) (word := dogFileUnrecognizedRawWord)
     (op := .PUSH32) (width := 32) rd1100
     (by
-      unfold dogErrorStringRevertTailDirectWf dogFileUnrecognizedRawWord
+      unfold solcErrorStringRevertTailDirectWf dogFileUnrecognizedRawWord
       repeat' first
         | apply And.intro
         | rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
@@ -2502,231 +2577,6 @@ theorem RD.dogFileIlkClipReturnDecodeOk {v : DogImmutables} {code : ByteArray}
 abbrev dogFileIlkClipMismatchRawWord : UInt256 :=
   ⟨30954105885628950283352029347165118542796664119579042398819097392878058471424⟩
 
-theorem solcErrorStringMem0_size_of_size160 {mem : ByteArray} (hmem : mem.size = 160) :
-    (solcErrorStringMem0 mem).size = 160 := by
-  unfold solcErrorStringMem0
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract, hmem, toByteArray_size]
-
-theorem solcErrorStringMem1_size_of_size160 {mem : ByteArray} (hmem : mem.size = 160) :
-    (solcErrorStringMem1 mem).size = 164 := by
-  unfold solcErrorStringMem1
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [solcErrorStringMem0_size_of_size160 hmem]; omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract, solcErrorStringMem0_size_of_size160 hmem,
-    toByteArray_size]
-
-theorem solcErrorStringMem2_size_of_size160 (len : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 160) :
-    (solcErrorStringMem2 len mem).size = 196 := by
-  unfold solcErrorStringMem2
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [solcErrorStringMem1_size_of_size160 hmem])]
-  simp [ByteArray.size_append, ByteArray.size_extract, solcErrorStringMem1_size_of_size160 hmem,
-    toByteArray_size]
-
-theorem solcErrorStringMem3_size_of_size160 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 160) :
-    (solcErrorStringMem3 len word mem).size = 228 := by
-  unfold solcErrorStringMem3
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [solcErrorStringMem2_size_of_size160 len hmem])]
-  simp [ByteArray.size_append, ByteArray.size_extract, solcErrorStringMem2_size_of_size160 len hmem,
-    toByteArray_size]
-
-theorem solcErrorStringMem3_read64_of_size160 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 160)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold solcErrorStringMem3
-  rw [toByteArray_write_read_below_of_gap word _ 196 64
-      (by rw [solcErrorStringMem2_size_of_size160 len hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem2_size_of_size160 len hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem2
-  rw [toByteArray_write_read_below_of_gap len _ 164 64
-      (by rw [solcErrorStringMem1_size_of_size160 hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem1_size_of_size160 hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem1
-  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
-      (by rw [solcErrorStringMem0_size_of_size160 hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem0_size_of_size160 hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem0
-  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
-      (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
-  exact hread64
-
-theorem solcErrorStringMem3_mload64_of_size160 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 160)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
-     else UInt256.ofNat
-       (fromByteArrayBigEndian
-        ((solcErrorStringMem3 len word mem).readWithPadding
-          (⟨64⟩ : UInt256).toNat 32)))
-      = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size160 len word hmem]; decide) (solcErrorStringMem3_read64_of_size160 len word hmem hread64)
-
-theorem wordAt0Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
-    (wordAt0Mem word mem).size = 160 := by
-  unfold wordAt0Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
-  omega
-
-theorem wordAt32Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
-    (wordAt32Mem word mem).size = 160 := by
-  unfold wordAt32Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
-  omega
-
-theorem twoWordHashMem_size_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).size = 160 := by
-  unfold twoWordHashMem
-  exact wordAt32Mem_size_160 slot (wordAt0Mem_size_160 key hmem)
-
-theorem twoWordHashMem_read0_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 =
-      UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)]
-  unfold wordAt0Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray key).size ≤ 32
-    rw [toByteArray_size])
-
-theorem twoWordHashMem_read32_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 =
-      UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_160 key hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray slot).size ≤ 32
-    rw [toByteArray_size])
-
-theorem twoWordHashMem_read64_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (twoWordHashMem key slot mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)
-      (by rw [wordAt0Mem_size_160 key hmem]; omega)]
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
-      (by omega) (by rw [hmem]; omega)]
-  exact hread64
-
-theorem twoWordHashMem_read0_64_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [twoWordHashMem_size_160 key slot hmem]; omega)]
-  have hleft :
-      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [twoWordHashMem_size_160 key slot hmem]; omega),
-      twoWordHashMem_read0_160 key slot hmem]
-  have hright :
-      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by rw [twoWordHashMem_size_160 key slot hmem]; omega),
-      twoWordHashMem_read32_160 key slot hmem]
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-        (twoWordHashMem key slot mem).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      simp]
-  rw [hleft, hright]
-
-theorem twoWordHashMem_solcMappingSlot_160 (baseSlot key : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 160) :
-    UInt256.ofNat (fromByteArrayBigEndian
-        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
-      solcMappingSlot baseSlot key := by
-  rw [twoWordHashMem_read0_64_160 key baseSlot hmem]
-  unfold solcMappingSlot
-  exact mappingSlot_single key baseSlot
-
-theorem RD.dogErrorStringRevertTailDirectAw5Size160 {code : ByteArray} {g : Sat256}
-    {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len word : UInt256}
-    {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : AccountMap}
-    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 5) rdata acc k C)
-    (hwf : dogErrorStringRevertTailDirectWf code pc len word op width)
-    (hpush : op ≠ .PUSH0)
-    (hmem : mem.size = 160)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : stk.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
-  rcases hwf with
-    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
-      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hd68, hdDup3, hdAdd,
-      hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3, hdSub, hd100,
-      hdAdd2, hdSwap4, hdRev⟩
-  have rdMload := evm_run h with [
-    raw push1 ⟨64⟩ hd0 (by evm_ov),
-    raw dup1 hd2 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) hd3
-      mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
-      (by decide) (by evm_ov)]
-  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) hd4 (by simp only [List.length_cons]; omega)
-  have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ hd8 (by evm_ov),
-    raw shl hd10 (by evm_ov),
-    raw dup2 hd11 (by evm_ov),
-    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
-      hd12 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ hd13 (by evm_ov),
-    raw push1 ⟨4⟩ hd15 (by evm_ov),
-    raw dup3 hd17 (by evm_ov),
-    raw add hd18 (by evm_ov),
-    raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
-      hd19 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 len hd20 (by evm_ov),
-    raw push1 ⟨36⟩ hd22 (by evm_ov),
-    raw dup3 hd24 (by evm_ov),
-    raw add hd25 (by evm_ov),
-    raw mstore 3 (solcErrorStringMem2 len mem)
-      (UInt256.ofNat 7) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
-  have rdWord := rdPrefix.pushConst word (width := width) (op := op)
-    hpush hd27 (by simp only [List.length_cons]; omega)
-  exact evm_run rdWord with [
-    raw push1 ⟨68⟩ hd68 (by evm_ov),
-    raw dup3 hdDup3 (by evm_ov),
-    raw add hdAdd (by evm_ov),
-    raw mstore 3 (solcErrorStringMem3 len word mem)
-      (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 hdSwap (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
-      mem_cost
-      (solcErrorStringMem3_mload64_of_size160 len word hmem hread64)
-      (by decide) (by evm_ov),
-    raw swap1 hdSwap2 (by evm_ov),
-    raw dup2 hdDup2 (by evm_ov),
-    raw swap1 hdSwap3 (by evm_ov),
-    raw sub hdSub (by evm_ov),
-    raw push1 ⟨100⟩ hd100 (by evm_ov),
-    raw add hdAdd2 (by evm_ov),
-    raw swap1 hdSwap4 (by evm_ov),
-    raw rev 0 hdRev mem_cost (by evm_ov)]
 
 theorem RD.dogFileIlkClipMismatchRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -2765,11 +2615,11 @@ theorem RD.dogFileIlkClipMismatchRevert {v : DogImmutables} {code : ByteArray}
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
       native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  exact RD.dogErrorStringRevertTailDirectAw5Size160
+  exact Benchmarks.Dss.Dog.RD.dogErrorStringRevertTailDirectAw5Size160
     (pc := ⟨2629⟩) (len := ⟨25⟩) (word := dogFileIlkClipMismatchRawWord)
     (op := .PUSH32) (width := 32) rd2629
     (by
-      unfold dogErrorStringRevertTailDirectWf dogFileIlkClipMismatchRawWord
+      unfold solcErrorStringRevertTailDirectWf dogFileIlkClipMismatchRawWord
       repeat' first
         | apply And.intro
         | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -2907,7 +2757,7 @@ theorem RD.dogFileIlkClipLogTail {v : DogImmutables} {code : ByteArray}
     (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
     hret (by evm_ov)⟩
 
-theorem RD.dogFileIlkClipStoreLog {v : DogImmutables} {code : ByteArray}
+theorem RD.dogFileIlkClipStoreLogSplit {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {clipKey what ilk ret sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
@@ -2915,16 +2765,17 @@ theorem RD.dogFileIlkClipStoreLog {v : DogImmutables} {code : ByteArray}
     (h : RD code ee g s0 ⟨2705⟩ (clipKey :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 5) rdata σ k C)
     (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
     (hmem : mem.size = 160)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (sel :: R)
-      (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 (UInt256.land clipKey solcAddrMask))
-      (UInt256.ofNat 5) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
-        (setAddressOffset0Word (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ ilk)) clipKey))
-      k' C' := by
+    (ee.perm = true ∧
+      ∃ k' C', RD code ee g s0 ret (sel :: R)
+        (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 (UInt256.land clipKey solcAddrMask))
+        (UInt256.ofNat 5) rdata
+        (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
+          (setAddressOffset0Word (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ ilk)) clipKey))
+        k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   have rd2706 := h.jumpdest
     (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
     (by evm_ov)
@@ -3030,8 +2881,16 @@ theorem RD.dogFileIlkClipStoreLog {v : DogImmutables} {code : ByteArray}
     raw swap1
       (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
       (by evm_ov)]
+  have hstoreDec : decode code ⟨2744⟩ = some (.SSTORE, none) := by
+    rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
+    native_decide
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdBeforeStore.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdStore⟩ := rdBeforeStore.sstore hperm
-    (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
+    hstoreDec
     (by evm_ov)
   have hword :
       UInt256.lor (UInt256.land clipKey solcAddrMask)
@@ -3067,7 +2926,7 @@ theorem RD.dogFileIlkClipStoreLog {v : DogImmutables} {code : ByteArray}
           solcAddrMask from by decide] using rdStore⟩
   exact RD.dogFileIlkClipLogTail hpatch rdStore' hret hperm hhashSize hhashRead64 hov
 
-theorem RD.dogFileIlkClipSuccessToRet {v : DogImmutables} {code : ByteArray}
+theorem RD.dogFileIlkClipSuccessToRetSplit {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {mem rdata : ByteArray} {k C : ℕ}
     {retWord clipKey what ilk ret sel : UInt256} {R : List UInt256}
@@ -3078,16 +2937,17 @@ theorem RD.dogFileIlkClipSuccessToRet {v : DogImmutables} {code : ByteArray}
       mem (UInt256.ofNat 5) rdata σ k C)
     (hmatch : retWord = ilk)
     (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
     (hmem : mem.size = 160)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (sel :: R)
-      (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 (UInt256.land clipKey solcAddrMask))
-      (UInt256.ofNat 5) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
-        (setAddressOffset0Word (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ ilk)) clipKey))
-      k' C' := by
+    (ee.perm = true ∧
+      ∃ k' C', RD code ee g s0 ret (sel :: R)
+        (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 (UInt256.land clipKey solcAddrMask))
+        (UInt256.ofNat 5) rdata
+        (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
+          (setAddressOffset0Word (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ ilk)) clipKey))
+        k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   have rd2624 := rd.dup4
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -3111,9 +2971,9 @@ theorem RD.dogFileIlkClipSuccessToRet {v : DogImmutables} {code : ByteArray}
       native_decide)
     one_ne_zero_uint (dogPatchedJumpDest hpatch (by native_decide))
     (by evm_ov)
-  exact RD.dogFileIlkClipStoreLog hpatch rd2705pre hret hperm hmem hread64 hov
+  exact RD.dogFileIlkClipStoreLogSplit hpatch rd2705pre hret hmem hread64 hov
 
-theorem RD.dogFileIlkClipSuccessStop {v : DogImmutables} {code : ByteArray}
+theorem RD.dogFileIlkClipSuccessStopSplit {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {mem rdata : ByteArray} {k C : ℕ}
     {retWord clipKey what ilk sel : UInt256}
@@ -3123,16 +2983,18 @@ theorem RD.dogFileIlkClipSuccessStop {v : DogImmutables} {code : ByteArray}
       (retWord :: clipKey :: what :: ilk :: ⟨313⟩ :: sel :: [])
       mem (UInt256.ofNat 5) rdata σ k C)
     (hmatch : retWord = ilk)
-    (hperm : ee.perm = true)
     (hmem : mem.size = 160)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDret code g s0
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
-        (setAddressOffset0Word (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ ilk)) clipKey))
-      ByteArray.empty := by
-  obtain ⟨_, _, hretPc⟩ := RD.dogFileIlkClipSuccessToRet hpatch rd hmatch
+    (ee.perm = true ∧
+      RDret code g s0
+        (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
+          (setAddressOffset0Word (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ ilk)) clipKey))
+        ByteArray.empty) ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
+  refine permSplit_bind (RD.dogFileIlkClipSuccessToRetSplit hpatch rd hmatch
     (dogPatchedDJumpPrefix1405 ⟨313⟩ hpatch (by native_decide))
-    hperm hmem hread64 (by simp)
+    hmem hread64 (by simp)) fun _hperm hretReach ↦ ?_
+  obtain ⟨_, _, hretPc⟩ := hretReach
   have hretPc' := hretPc.jumpdest
     (by
       rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
@@ -3189,7 +3051,6 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code)
     (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some fileIlkClipTransition)
@@ -3207,11 +3068,11 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
   have henc : returnEquiv ByteArray.empty none fileIlkClipTransition.returnType := by
     rw [show fileIlkClipTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  by_cases hauthEvm : dogSlotWord callerSlot σ I = ⟨1⟩
-  · have hauthSolm : dogSlotWord callerSlot σ I = ⟨1⟩ := hauthEvm
+  by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
+  · have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := hauthEvm
     have hauthSolc :
         solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-      simpa [callerSlot, dogCallerWardsSlot, dogSlotWord] using hauthEvm
+      simpa [callerSlot, dogCallerWardsSlot, solcSlotWordAt] using hauthEvm
     have hmemAuth :
         (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
       twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
@@ -3242,7 +3103,7 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
             ExecTransitionBody config contract evm0 locals
               fileIlkClipTransition.body .reverted (immStore v) := by
           simpa [evm0, locals] using
-            (fileIlkClipNoCodeSourceBody
+            (fileIlkClipNoCodeSourceBody (v := v)
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               hwv hauthSolm hwhatClip hclipNoCode)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -3283,7 +3144,7 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
                 ExecTransitionBody config contract evmSolm locals
                   fileIlkClipTransition.body .reverted (immStore v) := by
               simpa [evmSolm, locals] using
-                (fileIlkClipCallFailureSourceBody
+                (fileIlkClipCallFailureSourceBody (v := v)
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                   (g := g) (evmCall := evmPostSolm) (out := out)
                   hwv hauthSolm hwhatClip hclipCode hcallSolm)
@@ -3308,8 +3169,8 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
                   hlo hosz (by simp)
               by_cases hretMatch :
                   uInt256OfByteArray (out.extract 0 32) = fileIlkClipIlkWord I
-              · have hrdret := RD.dogFileIlkClipSuccessStop hpatch rd2623 hretMatch
-                  hperm hpostMemSize hpostRead64
+              · have hrdretSplit := RD.dogFileIlkClipSuccessStopSplit hpatch rd2623 hretMatch
+                  hpostMemSize hpostRead64
                 have hdecRet :
                     config.externalABI.decode? "ilk" out =
                       some [fileIlkClipIlkValue I] := by
@@ -3327,18 +3188,24 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
                 have hslotEq : actualSlot = sourceSlot := by
                   simpa [actualSlot, sourceSlot] using
                     (fileIlkClipSlotFor_eq (I := I) hsz100).symm
-                have hbody :
-                    ExecTransitionBody config contract evmSolm locals
+                have hbodySplit :
+                    (ExecTransitionBody config contract evmSolm locals
                       fileIlkClipTransition.body
                       (.returned
                         { contract := contract,
                           locals := fileIlkClipLocalsClipIlk I (fileIlkClipIlkValue I), immutables := immStore v }
-                        evm1 none) (immStore v) := by
+                        evm1 none) (immStore v)) ∧
+                    (I.perm = false → ExecTransitionBody config contract
+                      evmSolm locals fileIlkClipTransition.body .staticViolation (immStore v)) := by
                   simpa [evmSolm, locals, evm1] using
-                    (fileIlkClipSuccessSourceBody
+                    (fileIlkClipSuccessSourceBodySplit (v := v)
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                       (g := g) (evmCall := evmPostSolm) (out := out)
                       hwv hsz100 hauthSolm hwhatClip hclipCode hcallSolm hdecRet)
+                rcases hrdretSplit with ⟨_hperm, hrdret⟩ | ⟨hperm, hstatic⟩
+                swap
+                · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+                    (hbodySplit.2 hperm)
                 let evmPostStoreEvm := Solm.EVM.storageStore evmPostEvm
                   evmPostEvm.executionEnv.codeOwner actualSlot
                   (setAddressOffset0Word
@@ -3371,7 +3238,7 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
                     hslotEq, storageStore_accountMap, solcSlotWord, Solm.EVM.storageLoad,
                     State.lookupAccount, Account.lookupStorage, initState] using hacc
                 exact hrdret.reEquivExecutionGen hcode hdispatch hdecode
-                  hbody haccounts henc
+                  hbodySplit.1 haccounts henc
               · have hrev := RD.dogFileIlkClipMismatchRevert hpatch rd2623 hretMatch
                   hpostMemSize hpostRead64 (by simp)
                 have hdecRet :
@@ -3388,7 +3255,7 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
                     ExecTransitionBody config contract evmSolm locals
                       fileIlkClipTransition.body .reverted (immStore v) := by
                   simpa [evmSolm, locals] using
-                    (fileIlkClipMismatchSourceBody
+                    (fileIlkClipMismatchSourceBody (v := v)
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                       (g := g) (evmCall := evmPostSolm) (out := out)
                       (clipIlkBytes :=
@@ -3404,7 +3271,7 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
                   ExecTransitionBody config contract evmSolm locals
                     fileIlkClipTransition.body .reverted (immStore v) := by
                 simpa [evmSolm, locals] using
-                  (fileIlkClipDecodeRevertSourceBody
+                  (fileIlkClipDecodeRevertSourceBody (v := v)
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                     (g := g) (evmCall := evmPostSolm) (out := out)
                     hwv hauthSolm hwhatClip hclipCode hcallSolm hdecRet)
@@ -3435,7 +3302,7 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
               ExecTransitionBody config contract evm0 locals
                 fileIlkClipTransition.body .reverted (immStore v) := by
             simpa [evm0, locals] using
-              (fileIlkClipCallFailureSourceBody
+              (fileIlkClipCallFailureSourceBody (v := v)
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                 (g := g) (evmCall := evmCall) (out := ByteArray.empty)
                 hwv hauthSolm hwhatClip hclipCode hcallDepth)
@@ -3449,7 +3316,7 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
           ExecTransitionBody config contract evm0 locals
             fileIlkClipTransition.body .reverted (immStore v) := by
         simpa [evm0, locals] using
-          (fileIlkClipUnrecognizedSourceBody
+          (fileIlkClipUnrecognizedSourceBody (v := v)
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             hwv hauthSolm hwhatClip)
       have hrev := RD.dogFileIlkClipUnrecognizedRevert
@@ -3458,7 +3325,7 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
         (ret := ⟨313⟩) (sel := sel) (R := [])
         hpatch hswitch hnotClipWord hmemAuth hread64Auth (by simp)
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-  · have hauthSolm : dogSlotWord callerSlot σ I ≠ ⟨1⟩ := by
+  · have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := by
       intro hsolm
       exact hauthEvm hsolm
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -3486,7 +3353,7 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
         using ExecFuncBody.execBlockRevert hblock
     have hauthSolc :
         solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-      simpa [callerSlot, dogCallerWardsSlot, dogSlotWord] using hauthEvm
+      simpa [callerSlot, dogCallerWardsSlot, solcSlotWordAt] using hauthEvm
     have hrev := RD.dogFileIlkClipAuthRevert hpatch hreach hsz100 hsize hauthSolc
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -3495,7 +3362,6 @@ theorem dogFileIlkClipBodyCore {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (dogSelBytes 10)) :
     runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
@@ -3507,7 +3373,7 @@ theorem dogFileIlkClipBodyCore {v : DogImmutables} {code : ByteArray}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
-  · exact dogFileIlkClipBodyCoreOk hpatch hcode hwv hperm hsz100 hsize hdispatch
+  · exact dogFileIlkClipBodyCoreOk hpatch hcode hwv hsz100 hsize hdispatch
       (dogDecode_fileIlkClip_ok hsz100) hreach
   · exact dogFileIlkClipBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach

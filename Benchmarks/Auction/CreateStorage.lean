@@ -68,14 +68,14 @@ theorem auctionFieldWrite (evm evm' : EVM.State) (locals : Store) (name : Ident)
     (hbase : locals.get? "auction" = none)
     (hty : storageTypeAt? auctionContract.storage
       { base := "auction", steps := [.field name] } = some ty)
-    (hloc : auctionConfig.storage.layout
-      { base := "auction", steps := [.field name] } = fun _ ↦ some loc)
-    (hscalar : match value with | .struct _ _ | .array _ | .bytes _ => False | _ => True)
+    (hloc : auctionConfig.storageBackend.locate?
+      { base := "auction", steps := [.field name] } = some (.leaf loc))
+    (hleaf : (∃ t, ty = .elem t) ∨ (∃ name, ty = .contract name))
     (hstore : storageLocStore evm loc value = some evm') :
     assignStorageRef? auctionConfig { contract := auctionContract, locals := locals } evm
       .storage (aField name) value =
         .ok ({ contract := auctionContract, locals := locals }, evm') := by
-  apply assignStorageRef_storage_scalar_value hbase _ hty hloc hscalar hstore
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl) hbase _ hty hloc hleaf hstore
   simp [aField, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, EvalResult.bind, pure,
     bind]
 
@@ -107,7 +107,7 @@ theorem clearAuctionPackedState_accounts (evm : EVM.State) :
 
 theorem SourceState.clearAuctionPacked {s0 I σ evm} (hs : SourceState s0 I σ evm) :
     SourceState s0 I
-      (sstoreAccountMap I.codeOwner σ ⟨211⟩ (clearAuctionPackedWord (storedWord σ I ⟨211⟩)))
+      (sstoreAccountMap I.codeOwner σ ⟨211⟩ (clearAuctionPackedWord (solcSlotWord σ I ⟨211⟩)))
       (clearAuctionPackedState evm) := by
   have hs1 := hs.storageWrite ⟨211⟩
     (setAddressOffset0Word (Solm.EVM.storageLoad evm I.codeOwner ⟨211⟩) ⟨0⟩)
@@ -120,6 +120,6 @@ theorem SourceState.clearAuctionPacked {s0 I σ evm} (hs : SourceState s0 I σ e
       storageStore_executionEnv, hs.env]
   · have he := clearAuctionPackedState_accounts evm
     rw [hs.accounts, ← hs.env]
-    simpa [storedWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage] using he
+    simpa [solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage] using he
 
 end Auction

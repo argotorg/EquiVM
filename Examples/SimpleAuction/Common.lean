@@ -82,18 +82,6 @@ theorem simpleAuctionLowArmsWellFormed :
 
 /-! ## Shared scalar storage and return helpers -/
 
-theorem simpleAuctionStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (simpleAuctionAddrLoc slot) =
-      .address (AccountAddress.ofNat
-        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-          solcAddrMask).toNat) := by
-  simpa [simpleAuctionAddrLoc, addressOffset0Loc] using
-    storageLocLoad_address_offset0 evm slot
-
-theorem simpleAuctionStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (simpleAuctionUint256Loc slot)
-      = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  simpa [simpleAuctionUint256Loc, uint256Loc] using storageLocLoad_uint256 evm slot
 
 abbrev simpleAuctionRetEnd : UInt256 := (⟨32⟩ : UInt256) + ⟨128⟩
 

@@ -119,8 +119,9 @@ def contractSyntax : ContractDecl := solidity% contract Dai {
     address recovered = abi.decode(${Expr.var "ecrecoverData"}, (address));
     require(holder == recovered);
     require(expiry == 0 || block.timestamp <= expiry);
-    require(nonce == nonces[holder]);
-    nonces[holder] = nonces[holder] + 1;
+    uint256 oldNonce = nonces[holder];
+    nonces[holder] = oldNonce + 1;
+    require(nonce == oldNonce);
     uint256 wad = allowed ? type(uint256).max : 0;
     allowance[holder][spender] = wad;
   }

@@ -58,7 +58,7 @@ def ownerSuccessPc (i : OwnerSite) : UInt256 :=
   | _ => ⟨2740⟩
 
 def ownerWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land solcAddrMask (storedWord σ I ⟨151⟩)
+  UInt256.land solcAddrMask (solcSlotWord σ I ⟨151⟩)
 
 abbrev ownerComparePc (i : OwnerSite) : UInt256 :=
   ownerPc i + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2

@@ -22,18 +22,18 @@ namespace Benchmarks.Dss.Pot
 
 /-! ## Storage-word abbreviations (flat scalar slots) -/
 
-abbrev dripDsrWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := potSlotWord ⟨3⟩ σ I
-abbrev dripChiWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := potSlotWord ⟨4⟩ σ I
-abbrev dripRhoWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := potSlotWord ⟨7⟩ σ I
-abbrev dripPieWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := potSlotWord ⟨2⟩ σ I
+abbrev dripDsrWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := solcSlotWordAt ⟨3⟩ σ I
+abbrev dripChiWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := solcSlotWordAt ⟨4⟩ σ I
+abbrev dripRhoWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := solcSlotWordAt ⟨7⟩ σ I
+abbrev dripPieWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := solcSlotWordAt ⟨2⟩ σ I
 
 /-- `vat` address (slot 5) masked to 160 bits — the external-call target for `suck`. -/
 abbrev dripVatTargetWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  potAddressReturnWord ⟨5⟩ σ I
+  solcAddressSlotWord ⟨5⟩ σ I
 
 /-- `vow` address (slot 6) masked to 160 bits — first `suck` argument. -/
 abbrev dripVowTargetWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  potAddressReturnWord ⟨6⟩ σ I
+  solcAddressSlotWord ⟨6⟩ σ I
 
 abbrev dripVatAddress (σ : AccountMap) (I : ExecutionEnv) : AccountAddress :=
   AccountAddress.ofNat (dripVatTargetWord σ I).toNat
@@ -114,7 +114,7 @@ theorem potDripX_guardCond {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : U
   have rd1825 : RD potBytecode I g s0 ⟨1825⟩
       (dripRhoWord σ I :: ⟨0⟩ :: ⟨341⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1825 C1825 := by
-    simpa [dripRhoWord, potSlotWord, solcSlotWord] using rd1825raw
+    simpa [dripRhoWord, solcSlotWordAt, solcSlotWord] using rd1825raw
   have rd1826 := RD.timestamp rd1825 (by native_decide) (by evm_ov)
   have rd1827 := rd1826.lt (by native_decide) (by evm_ov)
   have rd1828 := rd1827.iszero (by native_decide) (by evm_ov)
@@ -182,7 +182,7 @@ theorem evalExpr_dripStorageRho (evm : EVM.State) :
     evalExpr? config { contract := contract, locals := (∅ : Store) } evm (.storage rhoRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨7⟩).toNat)) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := (∅ : Store) })
     (slot := rhoRef) (er := ({ base := "rho", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨7⟩)
@@ -190,7 +190,7 @@ theorem evalExpr_dripStorageRho (evm : EVM.State) :
     (her := by simp [evalStorageRef, evalStorageRefSteps, rhoRef, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-    (hload := potStorageLocLoad_uint256 evm ⟨7⟩)]
+    (hload := storageLocLoad_uint256 evm ⟨7⟩)]
 
 theorem evalExpr_dripNowGeRho_true (evm : EVM.State)
     (hle : (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨7⟩).toNat ≤

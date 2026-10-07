@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Vat
 /-! ## `Line()` getter -/
 
 def LineWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vatSlotWord ⟨9⟩ σ I
+  solcSlotWordAt ⟨9⟩ σ I
 
 theorem vatDecode_Line {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (LineTransition.params.map Param.name)
@@ -48,8 +48,8 @@ theorem vatReachLineBody {σ σ₀ A I} {g : Sat256}
   exact vatReachArms163Body 3 (by omega) ⟨1295⟩ hcode hwv hsz hsize
     hroot hhigh hhighlow heq0 htake (by jump_dest) (by native_decide)
 
-theorem vatLineBodyCore : VatBodyTheorem 0 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatLineBodyCore : VatBodyTheoremAnyPerm 0 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 0) rfl hsel
   have hbody :
@@ -58,7 +58,7 @@ theorem vatLineBodyCore : VatBodyTheorem 0 := by
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (LineWord σ I).toNat))])) := by
-    simpa [LineTransition, LineWord, vatSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [LineTransition, LineWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vatUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

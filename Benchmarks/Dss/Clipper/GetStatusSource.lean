@@ -249,11 +249,10 @@ theorem clipperEvalStatusCalcTarget (v : ClipperImmutables) (evm : EVM.State)
     rfl
   have hty : storageTypeAt? contract.storage er = some (.elem .address) := by
     simp [er, storageTypeAt?, contract, storageDecls, addrSt]
-  have hloc : config.storage.layout er = fun _ => some (addrLoc ⟨4⟩) := by
-    funext evm'
+  have hloc : config.storageBackend.locate? er = some (.leaf (addrLoc ⟨4⟩)) := by
     rfl
-  have hload := evalExpr_storage_scalar_value hbase her hty hloc
-    (clipperStorageLocLoad_address evm ⟨4⟩)
+  have hload := evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
+    (storageLocLoad_address_offset0 evm ⟨4⟩)
   simpa [clipperStatusCalcAddress, clipperStatusCalcWord,
     accountAddress_ofUInt256_eq_ofNat_toNat] using hload
 
@@ -555,12 +554,11 @@ theorem clipperEvalStatusTail (v : ClipperImmutables) (evm : EVM.State)
     rfl
   have hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)) := by
     simp [er, storageTypeAt?, contract, storageDecls, uint256St]
-  have hloc : config.storage.layout er = fun _ => some (wordLoc ⟨6⟩) := by
-    funext evm'
+  have hloc : config.storageBackend.locate? er = some (.leaf (wordLoc ⟨6⟩)) := by
     rfl
   simpa [clipperStatusTailWord] using
-    evalExpr_storage_scalar_value hbase her hty hloc
-      (clipperStorageLocLoad_uint256 evm ⟨6⟩)
+    evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
+      (storageLocLoad_uint256 evm ⟨6⟩)
 
 theorem clipperEvalStatusVarAgeForDoneAfterDone (v : ClipperImmutables)
     (evm : EVM.State) (tic top ageForPrice price ageForDone : UInt256) :
@@ -840,12 +838,11 @@ theorem clipperEvalStatusCusp (v : ClipperImmutables) (evm : EVM.State)
     rfl
   have hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)) := by
     simp [er, storageTypeAt?, contract, storageDecls, uint256St]
-  have hloc : config.storage.layout er = fun _ => some (wordLoc ⟨7⟩) := by
-    funext evm'
+  have hloc : config.storageBackend.locate? er = some (.leaf (wordLoc ⟨7⟩)) := by
     rfl
   simpa [clipperStatusCuspWord] using
-    evalExpr_storage_scalar_value hbase her hty hloc
-      (clipperStorageLocLoad_uint256 evm ⟨7⟩)
+    evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
+      (storageLocLoad_uint256 evm ⟨7⟩)
 
 theorem clipperEvalStatusVarRatio (v : ClipperImmutables) (evm : EVM.State)
     (tic top ageForPrice price ageForDone ratio : UInt256) :
@@ -1307,7 +1304,7 @@ theorem clipperEvalGetStatusSalesUsr (v : ClipperImmutables) (evm : EVM.State)
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperGetStatusSalesPackedSlot I)) solcAddrMask).toNat)) := by
   let frame : Frame := { contract := contract, locals := clipperGetStatusStore I, immutables := immStore v }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "usr") (er := clipperGetStatusSalesUsrRef I)
     (t := .address) (loc := addrLoc (clipperGetStatusSalesPackedSlot I))
@@ -1324,7 +1321,7 @@ theorem clipperEvalGetStatusSalesUsr (v : ClipperImmutables) (evm : EVM.State)
       storageDecls, SaleStructTy, addrSt])
     (by rfl)
     (by simpa [clipperGetStatusSalesPackedSlot, clipperGetStatusSalesBaseSlot] using
-      clipperStorageLocLoad_address evm (clipperGetStatusSalesPackedSlot I))
+      storageLocLoad_address_offset0 evm (clipperGetStatusSalesPackedSlot I))
 
 theorem clipperEvalGetStatusSalesTic (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
@@ -1335,7 +1332,7 @@ theorem clipperEvalGetStatusSalesTic (v : ClipperImmutables) (evm : EVM.State)
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperGetStatusSalesPackedSlot I))).toNat)) := by
   let frame : Frame := { contract := contract, locals := clipperGetStatusStore I, immutables := immStore v }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "tic") (er := clipperGetStatusSalesTicRef I)
     (t := .int uint96Int)
@@ -1364,7 +1361,7 @@ theorem clipperEvalGetStatusSalesTop (v : ClipperImmutables) (evm : EVM.State)
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperGetStatusSalesTopSlot I)).toNat)) := by
   let frame : Frame := { contract := contract, locals := clipperGetStatusStore I, immutables := immStore v }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "top") (er := clipperGetStatusSalesTopRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperGetStatusSalesTopSlot I))
@@ -1381,7 +1378,7 @@ theorem clipperEvalGetStatusSalesTop (v : ClipperImmutables) (evm : EVM.State)
     (by rfl)
     (by simpa [clipperGetStatusSalesTopSlot, clipperGetStatusSalesBaseSlot, wordLoc,
       uint256Loc] using
-      clipperStorageLocLoad_uint256 evm (clipperGetStatusSalesTopSlot I))
+      storageLocLoad_uint256 evm (clipperGetStatusSalesTopSlot I))
 
 theorem clipperEvalGetStatusSalesLot (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
@@ -1391,7 +1388,7 @@ theorem clipperEvalGetStatusSalesLot (v : ClipperImmutables) (evm : EVM.State)
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperGetStatusSalesLotSlot I)).toNat)) := by
   let frame : Frame := { contract := contract, locals := clipperGetStatusStore I, immutables := immStore v }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "lot") (er := clipperGetStatusSalesLotRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperGetStatusSalesLotSlot I))
@@ -1408,7 +1405,7 @@ theorem clipperEvalGetStatusSalesLot (v : ClipperImmutables) (evm : EVM.State)
     (by rfl)
     (by simpa [clipperGetStatusSalesLotSlot, clipperGetStatusSalesBaseSlot, wordLoc,
       uint256Loc] using
-      clipperStorageLocLoad_uint256 evm (clipperGetStatusSalesLotSlot I))
+      storageLocLoad_uint256 evm (clipperGetStatusSalesLotSlot I))
 
 theorem clipperEvalGetStatusSalesTab (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
@@ -1418,7 +1415,7 @@ theorem clipperEvalGetStatusSalesTab (v : ClipperImmutables) (evm : EVM.State)
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperGetStatusSalesTabSlot I)).toNat)) := by
   let frame : Frame := { contract := contract, locals := clipperGetStatusStore I, immutables := immStore v }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "tab") (er := clipperGetStatusSalesTabRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperGetStatusSalesTabSlot I))
@@ -1435,7 +1432,7 @@ theorem clipperEvalGetStatusSalesTab (v : ClipperImmutables) (evm : EVM.State)
     (by rfl)
     (by simpa [clipperGetStatusSalesTabSlot, clipperGetStatusSalesBaseSlot, wordLoc,
       uint256Loc] using
-      clipperStorageLocLoad_uint256 evm (clipperGetStatusSalesTabSlot I))
+      storageLocLoad_uint256 evm (clipperGetStatusSalesTabSlot I))
 
 theorem clipperEvalGetStatusVarTicAfterTic (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
@@ -1453,7 +1450,7 @@ theorem clipperEvalGetStatusSalesTopAfterTic (v : ClipperImmutables) (evm : EVM.
       (.storage (salesF (.var "id") "top")) =
       .ok (.int (Int.ofNat (clipperGetStatusTopWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := clipperGetStatusLocalsTic evm I, immutables := immStore v }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "top") (er := clipperGetStatusSalesTopRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperGetStatusSalesTopSlot I))
@@ -1470,7 +1467,7 @@ theorem clipperEvalGetStatusSalesTopAfterTic (v : ClipperImmutables) (evm : EVM.
     (by rfl)
     (by simpa [clipperGetStatusTopWord, clipperGetStatusSalesTopSlot,
       clipperGetStatusSalesBaseSlot, wordLoc, uint256Loc] using
-      clipperStorageLocLoad_uint256 evm (clipperGetStatusSalesTopSlot I))
+      storageLocLoad_uint256 evm (clipperGetStatusSalesTopSlot I))
 
 theorem clipperEvalGetStatusStatusArgs (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
@@ -1683,7 +1680,7 @@ theorem clipperEvalGetStatusSalesTicAfterUsr (v : ClipperImmutables)
       (.storage (salesF (.var "id") "tic")) =
       .ok (.int (Int.ofNat (clipperGetStatusTicWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := clipperGetStatusLocalsUsr evm I, immutables := immStore v }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "tic") (er := clipperGetStatusSalesTicRef I)
     (t := .int uint96Int)
@@ -1806,7 +1803,7 @@ theorem clipperEvalGetStatusSalesLotAfterNeedsRedo (v : ClipperImmutables)
       .ok (.int (Int.ofNat (clipperGetStatusLotWord evmRead I).toNat)) := by
   let frame : Frame :=
     { contract := contract, locals := clipperGetStatusLocalsNeedsRedo evmLoc I done price, immutables := immStore v }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evmRead)
     (slot := salesF (.var "id") "lot") (er := clipperGetStatusSalesLotRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperGetStatusSalesLotSlot I))
@@ -1826,7 +1823,7 @@ theorem clipperEvalGetStatusSalesLotAfterNeedsRedo (v : ClipperImmutables)
     (by rfl)
     (by simpa [clipperGetStatusLotWord, clipperGetStatusSalesLotSlot,
       clipperGetStatusSalesBaseSlot, wordLoc, uint256Loc] using
-      clipperStorageLocLoad_uint256 evmRead (clipperGetStatusSalesLotSlot I))
+      storageLocLoad_uint256 evmRead (clipperGetStatusSalesLotSlot I))
 
 theorem clipperEvalGetStatusSalesTabAfterNeedsRedo (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv) (done : Bool) (price : UInt256) :
@@ -1836,7 +1833,7 @@ theorem clipperEvalGetStatusSalesTabAfterNeedsRedo (v : ClipperImmutables)
       .ok (.int (Int.ofNat (clipperGetStatusTabWord evmRead I).toNat)) := by
   let frame : Frame :=
     { contract := contract, locals := clipperGetStatusLocalsNeedsRedo evmLoc I done price, immutables := immStore v }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evmRead)
     (slot := salesF (.var "id") "tab") (er := clipperGetStatusSalesTabRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperGetStatusSalesTabSlot I))
@@ -1856,7 +1853,7 @@ theorem clipperEvalGetStatusSalesTabAfterNeedsRedo (v : ClipperImmutables)
     (by rfl)
     (by simpa [clipperGetStatusTabWord, clipperGetStatusSalesTabSlot,
       clipperGetStatusSalesBaseSlot, wordLoc, uint256Loc] using
-      clipperStorageLocLoad_uint256 evmRead (clipperGetStatusSalesTabSlot I))
+      storageLocLoad_uint256 evmRead (clipperGetStatusSalesTabSlot I))
 
 theorem clipperEvalGetStatusReturnValues (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv) (done : Bool) (price : UInt256) :

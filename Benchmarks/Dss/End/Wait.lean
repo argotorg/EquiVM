@@ -10,7 +10,7 @@ namespace Benchmarks.Dss.End
 /-! ## `wait()` getter -/
 
 def waitWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endSlotWord ⟨10⟩ σ I
+  solcSlotWordAt ⟨10⟩ σ I
 
 theorem endDecode_wait {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (waitTransition.params.map Param.name)
@@ -80,7 +80,7 @@ theorem endWaitBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (waitWord σ I).toNat))])) := by
-    simpa [waitTransition, waitWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [waitTransition, waitWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       endUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -107,7 +107,7 @@ theorem endWaitBodyCore
 
 theorem endWaitBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf waitTransition)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endWaitConcreteSelector := by

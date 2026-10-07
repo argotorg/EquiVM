@@ -10,7 +10,7 @@ namespace Benchmarks.Dss.End
 /-! ## `debt()` getter -/
 
 def debtWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endSlotWord ⟨11⟩ σ I
+  solcSlotWordAt ⟨11⟩ σ I
 
 theorem endDecode_debt {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (debtTransition.params.map Param.name)
@@ -36,7 +36,7 @@ theorem endDebtBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (debtWord σ I).toNat))])) := by
-    simpa [debtTransition, debtWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [debtTransition, debtWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       endUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -63,7 +63,7 @@ theorem endDebtBodyCore
 
 theorem endDebtBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf debtTransition)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsel' : selIs I debtSelector := by

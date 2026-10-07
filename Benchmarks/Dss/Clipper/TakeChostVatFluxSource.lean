@@ -214,8 +214,7 @@ theorem clipperTakeVatFluxNoCodeTailBlockOfLocals (v : ClipperImmutables)
     (hite :
       let owe0 := UInt256.mul slice price
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
+        (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
         evmRead clipperTakeOweAdjustmentStmt (.ok (Frame.mk contract locals (immStore v)) evmRead))
     (htabSub :
       evalExpr? config (Frame.mk contract locals (immStore v)) evmRead
@@ -308,8 +307,7 @@ theorem clipperTakeVatFluxCallFailureTailBlockOfLocals (v : ClipperImmutables)
     (hite :
       let owe0 := UInt256.mul slice price
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
+        (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
         evmRead clipperTakeOweAdjustmentStmt (.ok (Frame.mk contract locals (immStore v)) evmRead))
     (htabSub :
       evalExpr? config (Frame.mk contract locals (immStore v)) evmRead
@@ -419,8 +417,7 @@ theorem clipperTakeVatFluxCallSuccessTailBlockOfLocals (v : ClipperImmutables)
     (hite :
       let owe0 := UInt256.mul slice price
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
+        (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
         evmRead clipperTakeOweAdjustmentStmt (.ok (Frame.mk contract locals (immStore v)) evmRead))
     (htabSub :
       evalExpr? config (Frame.mk contract locals (immStore v)) evmRead
@@ -666,8 +663,7 @@ theorem clipperEvalTakeVatFluxBuyerArgsAtPostRemaining (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe chost remainingTab tabNew lotNew : UInt256) :
     evalExprs? config
-      (Frame.mk contract
-        (clipperTakeLocalsPostLotAssigned
+      (Frame.mk contract (clipperTakeLocalsPostLotAssigned
           (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe chost
             remainingTab) tabNew lotNew) (immStore v))
       evmRead [ilkExpr, thisAddr, .var "who", .var "slice"] =
@@ -685,24 +681,21 @@ theorem clipperEvalTakeVatFluxBuyerArgsAtPostRemaining (v : ClipperImmutables)
     rw [u256_land_comm solcAddrMask (clipperTakeWhoWord I)]
   have hilkEval :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsPostLotAssigned
+        (Frame.mk contract (clipperTakeLocalsPostLotAssigned
             (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe chost
               remainingTab) tabNew lotNew) (immStore v))
         evmRead ilkExpr = .ok v.ilk := by
-    simp [evalExpr_ilkExpr, hilk, evalExpr?, pure]
+    exact evalExpr_ilkExpr
   have hthisEval :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsPostLotAssigned
+        (Frame.mk contract (clipperTakeLocalsPostLotAssigned
             (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe chost
               remainingTab) tabNew lotNew) (immStore v))
         evmRead thisAddr = .ok (.address evmRead.executionEnv.codeOwner) := by
     simp [thisAddr, evalExpr?, envValue, pure]
   have hwhoRaw :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsPostLotAssigned
+        (Frame.mk contract (clipperTakeLocalsPostLotAssigned
             (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe chost
               remainingTab) tabNew lotNew) (immStore v))
         evmRead (.var "who") =
@@ -726,8 +719,7 @@ theorem clipperEvalTakeVatFluxBuyerArgsAtPostRemaining (v : ClipperImmutables)
     rfl
   have hwhoEval :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsPostLotAssigned
+        (Frame.mk contract (clipperTakeLocalsPostLotAssigned
             (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe chost
               remainingTab) tabNew lotNew) (immStore v))
         evmRead (.var "who") =
@@ -736,8 +728,7 @@ theorem clipperEvalTakeVatFluxBuyerArgsAtPostRemaining (v : ClipperImmutables)
     simpa [hwho] using hwhoRaw
   have hsliceEval :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsPostLotAssigned
+        (Frame.mk contract (clipperTakeLocalsPostLotAssigned
             (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe chost
               remainingTab) tabNew lotNew) (immStore v))
         evmRead (.var "slice") = .ok (.int (Int.ofNat slice.toNat)) := by
@@ -785,8 +776,7 @@ theorem clipperTakeChostNoAdjustVatFluxNoCodeTailBlock (v : ClipperImmutables)
   intro owe0 chost remainingTab locals tabNew lotNew
   have hite :
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
+        (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
         evmRead clipperTakeOweAdjustmentStmt
         (.ok (Frame.mk contract locals (immStore v)) evmRead) := by
     simpa [owe0, chost, remainingTab, locals] using
@@ -885,8 +875,7 @@ theorem clipperTakeChostNoAdjustVatFluxCallFailureTailBlock (v : ClipperImmutabl
   intro owe0 chost remainingTab locals tabNew lotNew
   have hite :
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
+        (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
         evmRead clipperTakeOweAdjustmentStmt
         (.ok (Frame.mk contract locals (immStore v)) evmRead) := by
     simpa [owe0, chost, remainingTab, locals] using
@@ -999,8 +988,7 @@ theorem clipperTakeChostNoAdjustVatFluxCallSuccessTailBlock (v : ClipperImmutabl
   intro owe0 chost remainingTab locals tabNew lotNew
   have hite :
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
+        (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
         evmRead clipperTakeOweAdjustmentStmt
         (.ok (Frame.mk contract locals (immStore v)) evmRead) := by
     simpa [owe0, chost, remainingTab, locals] using
@@ -1240,8 +1228,7 @@ theorem clipperEvalTakeVatFluxBuyerArgsAtPostChostOweSlice (v : ClipperImmutable
     (price slice owe0 owe chost remainingTab oweAdjusted sliceAdjusted tabNew lotNew :
       UInt256) :
     evalExprs? config
-      (Frame.mk contract
-        (clipperTakeLocalsPostLotAssigned
+      (Frame.mk contract (clipperTakeLocalsPostLotAssigned
           (clipperTakeLocalsChostOweSlice evmLoc evmRead I price slice owe0 owe chost
             remainingTab oweAdjusted sliceAdjusted) tabNew lotNew) (immStore v))
       evmRead [ilkExpr, thisAddr, .var "who", .var "slice"] =
@@ -1259,24 +1246,21 @@ theorem clipperEvalTakeVatFluxBuyerArgsAtPostChostOweSlice (v : ClipperImmutable
     rw [u256_land_comm solcAddrMask (clipperTakeWhoWord I)]
   have hilkEval :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsPostLotAssigned
+        (Frame.mk contract (clipperTakeLocalsPostLotAssigned
             (clipperTakeLocalsChostOweSlice evmLoc evmRead I price slice owe0 owe chost
               remainingTab oweAdjusted sliceAdjusted) tabNew lotNew) (immStore v))
         evmRead ilkExpr = .ok v.ilk := by
-    simp [evalExpr_ilkExpr, hilk, evalExpr?, pure]
+    exact evalExpr_ilkExpr
   have hthisEval :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsPostLotAssigned
+        (Frame.mk contract (clipperTakeLocalsPostLotAssigned
             (clipperTakeLocalsChostOweSlice evmLoc evmRead I price slice owe0 owe chost
               remainingTab oweAdjusted sliceAdjusted) tabNew lotNew) (immStore v))
         evmRead thisAddr = .ok (.address evmRead.executionEnv.codeOwner) := by
     simp [thisAddr, evalExpr?, envValue, pure]
   have hwhoRaw :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsPostLotAssigned
+        (Frame.mk contract (clipperTakeLocalsPostLotAssigned
             (clipperTakeLocalsChostOweSlice evmLoc evmRead I price slice owe0 owe chost
               remainingTab oweAdjusted sliceAdjusted) tabNew lotNew) (immStore v))
         evmRead (.var "who") =
@@ -1303,8 +1287,7 @@ theorem clipperEvalTakeVatFluxBuyerArgsAtPostChostOweSlice (v : ClipperImmutable
     rfl
   have hwhoEval :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsPostLotAssigned
+        (Frame.mk contract (clipperTakeLocalsPostLotAssigned
             (clipperTakeLocalsChostOweSlice evmLoc evmRead I price slice owe0 owe chost
               remainingTab oweAdjusted sliceAdjusted) tabNew lotNew) (immStore v))
         evmRead (.var "who") =
@@ -1313,8 +1296,7 @@ theorem clipperEvalTakeVatFluxBuyerArgsAtPostChostOweSlice (v : ClipperImmutable
     simpa [hwho] using hwhoRaw
   have hsliceEval :
       evalExpr? config
-        (Frame.mk contract
-          (clipperTakeLocalsPostLotAssigned
+        (Frame.mk contract (clipperTakeLocalsPostLotAssigned
             (clipperTakeLocalsChostOweSlice evmLoc evmRead I price slice owe0 owe chost
               remainingTab oweAdjusted sliceAdjusted) tabNew lotNew) (immStore v))
         evmRead (.var "slice") = .ok (.int (Int.ofNat sliceAdjusted.toNat)) := by
@@ -1369,8 +1351,7 @@ theorem clipperTakeChostAdjustVatFluxNoCodeTailBlock (v : ClipperImmutables)
   intro owe0 chost remainingTab oweAdjusted sliceAdjusted locals tabNew lotNew
   have hite :
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
+        (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
         evmRead clipperTakeOweAdjustmentStmt
         (.ok (Frame.mk contract locals (immStore v)) evmRead) := by
     simpa [owe0, chost, remainingTab, oweAdjusted, sliceAdjusted, locals] using
@@ -1490,8 +1471,7 @@ theorem clipperTakeChostAdjustVatFluxCallFailureTailBlock (v : ClipperImmutables
   intro owe0 chost remainingTab oweAdjusted sliceAdjusted locals tabNew lotNew
   have hite :
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
+        (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
         evmRead clipperTakeOweAdjustmentStmt
         (.ok (Frame.mk contract locals (immStore v)) evmRead) := by
     simpa [owe0, chost, remainingTab, oweAdjusted, sliceAdjusted, locals] using
@@ -1626,8 +1606,7 @@ theorem clipperTakeChostAdjustVatFluxCallSuccessTailBlock (v : ClipperImmutables
   intro owe0 chost remainingTab oweAdjusted sliceAdjusted locals tabNew lotNew
   have hite :
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
+        (Frame.mk contract (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) (immStore v))
         evmRead clipperTakeOweAdjustmentStmt
         (.ok (Frame.mk contract locals (immStore v)) evmRead) := by
     simpa [owe0, chost, remainingTab, oweAdjusted, sliceAdjusted, locals] using

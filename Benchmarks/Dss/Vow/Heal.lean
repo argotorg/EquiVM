@@ -230,7 +230,7 @@ theorem vowReachHealBody {σ σ₀ A I} {g : Sat256}
 
 theorem vowHealShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xf3, 0x7a, 0xc6, 0x1c]⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -355,7 +355,7 @@ theorem RD.vowHealToDaiExtcodesizeGuard
       dup1]
     exact ⟨_, _, by
       simpa [target, kissDaiTargetWord, kissDaiSelectorShifted, kissDaiSelectorMem,
-        kissDaiCalldataMem, kissDaiOutPtr, kissDaiInSize, kissDaiEndPtr, vowSlotWord,
+        kissDaiCalldataMem, kissDaiOutPtr, kissDaiInSize, kissDaiEndPtr, solcSlotWordAt,
         solcSlotWord, solcAddrMask] using rdRaw⟩
   exact ⟨k4703, C4703, by simpa [target] using rd4703⟩
 
@@ -717,7 +717,7 @@ theorem RD.vowHealToSinExtcodesizeGuard
         kissDaiTargetWord σ' I :: ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       (healSinCalldataMem I mem) (UInt256.ofNat 6) o σ' k' C' := by
   let target := kissDaiTargetWord σ' I
-  let rawTarget := vowSlotWord ⟨1⟩ σ' I
+  let rawTarget := solcSlotWordAt ⟨1⟩ σ' I
   have rd4839 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd4841 := rd4839.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k4842, C4842, rd4842₀⟩ := rd4841.sload (by native_decide) (by evm_ov)
@@ -725,7 +725,7 @@ theorem RD.vowHealToSinExtcodesizeGuard
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4842⟩
       (rawTarget :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o σ' k4842 C4842 := by
-    simpa [rawTarget, vowSlotWord, solcSlotWord] using rd4842₀
+    simpa [rawTarget, solcSlotWordAt, solcSlotWord] using rd4842₀
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -799,7 +799,7 @@ theorem RD.vowHealToSinExtcodesizeGuard
   exact ⟨_, _, by
     simpa [target, rawTarget, kissDaiTargetWord, healSinSelectorShifted, healSinSelector,
       healSinSelectorMem, healSinCalldataMem, healSinOutPtr, healSinInSize, healSinEndPtr,
-      vowSlotWord, solcSlotWord, solcAddrMask] using rd4909⟩
+      solcSlotWordAt, solcSlotWord, solcAddrMask] using rd4909⟩
 
 theorem RD.vowHealSinNoCode
     {σ σ₀ A I} {g sel : UInt256}
@@ -940,7 +940,7 @@ theorem vowHealSourceDaiNoCode
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [evm0, initState, kissVatAddress, vowAddressReturnWord, vowSlotWord] using
+    simpa [evm0, initState, kissVatAddress, solcAddressSlotWord, solcSlotWordAt] using
       evalExpr_kissVatStorage (evm := evm0) (locals := locals)
         (by simp [locals, healLocals])
   have hguard :
@@ -975,7 +975,7 @@ theorem vowHealSourceDaiDecodeRevert
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [evm0, initState, kissVatAddress, vowAddressReturnWord, vowSlotWord] using
+    simpa [evm0, initState, kissVatAddress, solcAddressSlotWord, solcSlotWordAt] using
       evalExpr_kissVatStorage (evm := evm0) (locals := locals)
         (by simp [locals, healLocals])
   have hguard :
@@ -1021,7 +1021,7 @@ theorem vowHealSourceDaiCallFailure
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [evm0, initState, kissVatAddress, vowAddressReturnWord, vowSlotWord] using
+    simpa [evm0, initState, kissVatAddress, solcAddressSlotWord, solcSlotWordAt] using
       evalExpr_kissVatStorage (evm := evm0) (locals := locals)
         (by simp [locals, healLocals])
   have hguard :
@@ -1071,7 +1071,7 @@ theorem vowHealSourceInsufficientSurplus
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [evm0, initState, kissVatAddress, vowAddressReturnWord, vowSlotWord] using
+    simpa [evm0, initState, kissVatAddress, solcAddressSlotWord, solcSlotWordAt] using
       evalExpr_kissVatStorage (evm := evm0) (locals := locals)
         (by simp [locals, healLocals])
   have hguard :
@@ -1132,7 +1132,7 @@ theorem vowHealSourceSinNoCode
     (hvatDaiEnough : (healRad I).toNat ≤ vatDai.toNat)
     (hvatLoadDai :
       Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatNoCodeSin :
       (UInt256.ofNat
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat =
@@ -1145,7 +1145,7 @@ theorem vowHealSourceSinNoCode
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [evm0, initState, kissVatAddress, vowAddressReturnWord, vowSlotWord] using
+    simpa [evm0, initState, kissVatAddress, solcAddressSlotWord, solcSlotWordAt] using
       evalExpr_kissVatStorage (evm := evm0) (locals := locals)
         (by simp [locals, healLocals])
   have hguard :
@@ -1182,7 +1182,7 @@ theorem vowHealSourceSinNoCode
   have hvatSin :
       evalExpr? config { contract := contract, locals := locals1 } evmDai (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [locals1, kissVatAddress, vowAddressReturnWord, hvatLoadDai] using
+    simpa [locals1, kissVatAddress, solcAddressSlotWord, hvatLoadDai] using
       evalExpr_kissVatStorage (evm := evmDai) (locals := locals1)
         (by simp [locals1, healLocalsVatDai, healLocals])
   have hguardSin :
@@ -1219,7 +1219,7 @@ theorem vowHealSourceSinCallFailure
     (hvatDaiEnough : (healRad I).toNat ≤ vatDai.toNat)
     (hvatLoadDai :
       Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeSin :
       0 < (UInt256.ofNat
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
@@ -1234,7 +1234,7 @@ theorem vowHealSourceSinCallFailure
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [evm0, initState, kissVatAddress, vowAddressReturnWord, vowSlotWord] using
+    simpa [evm0, initState, kissVatAddress, solcAddressSlotWord, solcSlotWordAt] using
       evalExpr_kissVatStorage (evm := evm0) (locals := locals)
         (by simp [locals, healLocals])
   have hguard :
@@ -1271,7 +1271,7 @@ theorem vowHealSourceSinCallFailure
   have hvatSin :
       evalExpr? config { contract := contract, locals := locals1 } evmDai (.storage vatRef) =
         .ok (.address (kissVatAddress σ I)) := by
-    simpa [locals1, kissVatAddress, vowAddressReturnWord, hvatLoadDai] using
+    simpa [locals1, kissVatAddress, solcAddressSlotWord, hvatLoadDai] using
       evalExpr_kissVatStorage (evm := evmDai) (locals := locals1)
         (by simp [locals1, healLocalsVatDai, healLocals])
   have hguardSin :
@@ -1322,7 +1322,7 @@ theorem vowHealDaiNoCodeBodyCore
   have hvatAddr :
       kissVatAddress σ I = AccountAddress.ofUInt256 (kissDaiTargetWord σ I) := by
     apply Fin.ext
-    simp [kissVatAddress, kissDaiTargetWord, vowAddressReturnWord,
+    simp [kissVatAddress, kissDaiTargetWord, solcAddressSlotWord,
       accountAddress_ofUInt256_eq_ofNat_toNat]
   have hvatNoCode :
       (UInt256.ofNat
@@ -1460,7 +1460,7 @@ theorem vowHealDaiSuccessInsufficientSurplusBodyCore
     runtimeRefinementFor config contract σ σ₀ g A I := by
   let vatDai : UInt256 := UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 32 :=
-    kissDaiMin32_toNat_of_ge ho32 hosz
+    ctorMin32_toNat_of_ge ho32 hosz
   have rd4719' := rd4719
   rw [hmin] at rd4719'
   obtain ⟨_, _, rd4737⟩ :=
@@ -1541,7 +1541,7 @@ theorem vowHealSinNoCodeBodyCore
     (hvatDaiEnough : (healRad I).toNat ≤ vatDai.toNat)
     (hvatLoadDai :
       Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatNoCodeSin :
       (UInt256.ofNat
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
@@ -1584,7 +1584,7 @@ theorem vowHealSinCallFailureBodyCore
     (hvatDaiEnough : (healRad I).toNat ≤ vatDai.toNat)
     (hvatLoadDai :
       Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ I)
+        solcSlotWordAt ⟨1⟩ σ I)
     (hvatCodeSin :
       0 < (UInt256.ofNat
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0

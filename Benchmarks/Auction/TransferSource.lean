@@ -65,7 +65,7 @@ theorem boolDecodeSourceValid {evm locals out}
       .ok (.bool (decide (calldataWord out 0 ≠ ⟨0⟩))) := by
   have hh := decodeReturnBool_valid hv hb
   simp only [evalExpr?, hd, EvalResult.ofOption, bind, EvalResult.bind, pure]
-  change (match ABI.decodeReturnValue? boolTy out with
+  change (match ABI.decodeReturnValue? abiBool out with
     | some value => EvalResult.ok value
     | none => EvalResult.revert) = _
   rw [hh]
@@ -77,7 +77,7 @@ theorem boolDecodeSourceInvalid {evm locals out}
       (.abiDecode boolTy (.var "_transferData")) = .revert := by
   have hh := decodeReturnBool_invalid hv hb
   simp only [evalExpr?, hd, EvalResult.ofOption, bind, EvalResult.bind, pure]
-  change (match ABI.decodeReturnValue? boolTy out with
+  change (match ABI.decodeReturnValue? abiBool out with
     | some value => EvalResult.ok value
     | none => EvalResult.revert) = _
   rw [hh]

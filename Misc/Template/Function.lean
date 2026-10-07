@@ -34,8 +34,16 @@ namespace Benchmarks.Xxx
 -- The theorem `Correct.lean` consumes (fixed signature shape):
 -- theorem xxxSetValueBody {σ σ₀ A I} {g : UInt256}
 --     (hcode : I.code = xxxBytecode) (hsize : I.calldata.size < UInt256.size)
---     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+--     (hwv : I.weiValue = ⟨0⟩)
 --     (hsel : selIs I (xxxSelBytes 0)) :
 --     runtimeRefinementFor config contract σ σ₀ g A I := …
+--
+-- There is no `I.perm = true` hypothesis: the body may run in static mode (STATICCALL).
+-- The trace segment holding a path's first SSTORE / LOG / value-CALL concludes
+--   (I.perm = true ∧ <usual RD>) ∨ (I.perm = false ∧ RDstatic code g s0)
+-- by `by_cases hperm` and `RD.sstoreStatic` / `RD.log*Static` / `RD.callValueStatic` on the false
+-- side; callers project with `permSplit_true` / `permSplit_false`.  The false side's Solm body is
+-- the success derivation cut at that statement with its `*Static` rule (e.g.
+-- `ExecBlock.consStatic (ExecStmt.assignStatic …)`), closed by `RDstatic.reEquivStaticHalt`.
 
 end Benchmarks.Xxx

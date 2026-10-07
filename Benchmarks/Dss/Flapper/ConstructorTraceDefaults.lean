@@ -56,10 +56,10 @@ theorem flapperCtorDefaultsReach
       rfl
     simpa [hload] using rd21raw
   have rd24 := flapper_ctor_run rd21 with [push2 flapperCtorTtlWord]
-  have rd31 := rd24.pushConst flapperUint48Mask (width := 6) (op := .PUSH6)
+  have rd31 := rd24.pushConst uint48Mask (width := 6) (op := .PUSH6)
     (by decide) (by flapper_ctor_decode) (by evm_ov)
   have rd36 := flapper_ctor_run rd31 with [not, swap1, swap2, and, or]
-  have rd43 := rd36.pushConst flapperUint48Mask (width := 6) (op := .PUSH6)
+  have rd43 := rd36.pushConst uint48Mask (width := 6) (op := .PUSH6)
     (by decide) (by flapper_ctor_decode) (by evm_ov)
   have rd48 := flapper_ctor_run rd43 with [push1 ⟨48⟩, shl, not, and]
   have rd58 := rd48.pushConst (UInt256.shiftLeft flapperCtorTauWord ⟨48⟩)

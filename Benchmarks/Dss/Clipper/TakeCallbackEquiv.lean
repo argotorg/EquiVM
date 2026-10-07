@@ -81,8 +81,7 @@ theorem clipperTakeCallbackSkipStmtOfEvmWords
       UInt256.land (clipperTakeWhoWord I) solcAddrMask =
         UInt256.land (solcSlotWord σ I ⟨1⟩) solcAddrMask) :
     ExecStmt config
-      (Frame.mk contract
-        (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew) (immStore v))
       evmVat
       (.ite
@@ -94,8 +93,7 @@ theorem clipperTakeCallbackSkipStmtOfEvmWords
         (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
           [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet") [])
       (.ok
-        (Frame.mk contract
-          (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
             slice' tabNew lotNew) (immStore v))
         evmVat) := by
   rcases hskip with hvat | hdog
@@ -146,8 +144,7 @@ theorem clipperTakeOweGtTabCallbackRevertTailBlock
         (clipperTakeSalesTabEVMWord evmRead I)
       let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice'
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe0
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe0
             slice' tabNew lotNew) (immStore v))
         evmVat
         (.ite
@@ -161,8 +158,7 @@ theorem clipperTakeOweGtTabCallbackRevertTailBlock
           [])
         .reverted) :
     ExecBlock config
-      (Frame.mk contract
-        (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
+      (Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
       evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
         [ .letDecl "owe" (some uint256) (.var "owe0"),
@@ -189,12 +185,10 @@ theorem clipperTakeOweGtTabCallbackRevertTailBlock
   let sliceFrame : Frame :=
     Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v)
   let fluxFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 slice'
+    Frame.mk contract (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 slice'
         tabNew lotNew) (immStore v)
   let dogFrame : Frame :=
-    Frame.mk contract
-      (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe0
+    Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe0
         slice' tabNew lotNew) (immStore v)
   have hflux :
       ExecBlock config sliceFrame evmRead
@@ -298,8 +292,7 @@ theorem clipperTakeOweGtTabCallbackRevertEquivFromPostWords
         (clipperTakeSalesTabEVMWord evmPriceSolm I)
       let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmPriceSolm I) slice'
       ExecStmt config
-        (Frame.mk contract
-          (clipperTakeLocalsDogLoaded evmLock evmPriceSolm evmVatSolm I price slice
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLock evmPriceSolm evmVatSolm I price slice
             owe0 owe0 slice' tabNew lotNew) (immStore v))
         evmVatSolm
         (.ite
@@ -440,7 +433,7 @@ theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
         ((evmPriceSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
         (clipperTakeVatTargetAddress v).symm
         (by simpa only [← hAccountsPost] using hvatCodeEvm)
@@ -481,14 +474,14 @@ theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
         AccountAddress.ofUInt256
           (UInt256.land (clipperTakeWhoWord I) solcAddrMask) := by
     rw [accountAddress_ofUInt256_eq_ofNat_toNat]
-    exact clipperTakeAddressOfWord_eq_masked (clipperTakeWhoWord I)
+    exact addressOfNat_eq_of_masked_word (clipperTakeWhoWord I)
   have hnoCodeSolm :
       (UInt256.ofNat
         ((evmVatSolm.lookupAccount
           (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_zero_lookup_code_zero haddr
+      extCodeSizeWord_zero_lookup_code_zero haddr
         (by simpa only [← hAccountsVat] using hcallbackNoCode)
   have hcallback :=
     clipperTakeCallbackNoCodeStmt v
@@ -591,7 +584,7 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveNoCodeRevertEquivFromPostCallAccou
         ((evmPriceSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
         (clipperTakeVatTargetAddress v).symm
         (by simpa only [← hAccountsPost] using hvatCodeEvm)
@@ -620,7 +613,7 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveNoCodeRevertEquivFromPostCallAccou
         ((evmVatSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_zero_lookup_code_zero
+      extCodeSizeWord_zero_lookup_code_zero
         (target := clipperTakeVatTarget v) (addr := v.vat)
         (clipperTakeVatTargetAddress v).symm
         (by simpa only [← hAccountsVat] using hvatMoveNoCodeEvm)
@@ -724,7 +717,7 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
         ((evmPriceSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
         (clipperTakeVatTargetAddress v).symm
         (by simpa only [← hAccountsPost] using hvatCodeEvm)
@@ -765,14 +758,14 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
         AccountAddress.ofUInt256
           (UInt256.land (clipperTakeWhoWord I) solcAddrMask) := by
     rw [accountAddress_ofUInt256_eq_ofNat_toNat]
-    exact clipperTakeAddressOfWord_eq_masked (clipperTakeWhoWord I)
+    exact addressOfNat_eq_of_masked_word (clipperTakeWhoWord I)
   have hcodeSolm :
       0 < (UInt256.ofNat
         ((evmVatSolm.lookupAccount
           (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         haddr
         (by simpa only [← hAccountsVat] using hcallbackCode)
   let evmVatEvm : EVM.State :=
@@ -809,7 +802,7 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
         AccountAddress.ofNat (UInt256.land who solcAddrMask).toNat =
           AccountAddress.ofNat (clipperTakeWhoWord I).toNat := by
       rw [hwhoClean, hwho]
-      exact (clipperTakeAddressOfWord_eq_masked (clipperTakeWhoWord I)).symm
+      exact (addressOfNat_eq_of_masked_word (clipperTakeWhoWord I)).symm
     rw [htargetAddr] at hcallCbSolmRaw
     simpa only [evmCbSolm, hevmVatEnv, htab] using hcallCbSolmRaw
   have hcallback :=
@@ -910,8 +903,7 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAcco
         { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
-        (.ok (Frame.mk contract
-          (clipperTakeLocalsSt evmLock I false price) (immStore v)) evmPriceSolm)) :
+        (.ok (Frame.mk contract (clipperTakeLocalsSt evmLock I false price) (immStore v)) evmPriceSolm)) :
     runtimeRefinementFor config contract
       σ σ₀ g A I (immStore v) := by
   obtain ⟨evmVatSolm, hcallVatSolm, hAccountsVat, hevmVatSigma0, hevmVatEnv⟩ :=
@@ -922,7 +914,7 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAcco
         ((evmPriceSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
         (clipperTakeVatTargetAddress v).symm
         (by simpa only [← hAccountsPost] using hvatCodeEvm)
@@ -951,7 +943,7 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAcco
         ((evmVatSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
         (clipperTakeVatTargetAddress v).symm
         (by simpa only [← hAccountsVat] using hvatMoveCodeEvm)

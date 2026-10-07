@@ -1,3 +1,5 @@
+import Reasoning.WordArithmetic
+import Reasoning.Memory
 import Benchmarks.Dss.GemJoin.Common
 import Reasoning.ExternalCall
 import Reasoning.Initcode
@@ -8,6 +10,80 @@ import Solm.Refine
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.GemJoin
+
+theorem wordAt0Mem_size_224 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 224) :
+    (wordAt0Mem word mem).size = 224 := by
+  unfold wordAt0Mem
+  exact toByteArray_write32_size_of_le mem word 0 224 224 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem wordAt32Mem_size_224 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 224) :
+    (wordAt32Mem word mem).size = 224 := by
+  unfold wordAt32Mem
+  exact toByteArray_write32_size_of_le mem word 32 224 224 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem twoWordHashMem_read0_224 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 224) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 =
+      UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below_len _ _ 32 0 32 (by rw [toByteArray_size])
+    (by rw [wordAt0Mem_size_224 key hmem]; omega) (by omega)
+    (by rw [wordAt0Mem_size_224 key hmem]; omega) (by decide) (by norm_num)]
+  exact wordAt0Mem_read0 key mem
+
+theorem twoWordHashMem_read32_224 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 224) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 =
+      UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  exact toByteArray_write_read_back_of_gap slot (wordAt0Mem key mem) 32
+    (by rw [wordAt0Mem_size_224 key hmem]; exact lt_usize 0 (by decide))
+
+theorem twoWordHashMem_read0_64_224 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 224) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num) (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_224]
+        · omega
+        · exact wordAt0Mem_size_224 key hmem)]
+  have h0 :
+      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract' (twoWordHashMem key slot mem) 0 32
+        (by norm_num) (by norm_num) (by
+          unfold twoWordHashMem
+          rw [wordAt32Mem_size_224]
+          · omega
+          · exact wordAt0Mem_size_224 key hmem),
+      twoWordHashMem_read0_224 key slot hmem]
+  have h32 :
+      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract' (twoWordHashMem key slot mem) 32 32
+        (by norm_num) (by norm_num) (by
+          unfold twoWordHashMem
+          rw [wordAt32Mem_size_224]
+          · omega
+          · exact wordAt0Mem_size_224 key hmem),
+      twoWordHashMem_read32_224 key slot hmem]
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+        (twoWordHashMem key slot mem).extract 32 64 by
+      rw [ByteArray.extract_append_extract]
+      norm_num, h0, h32]
+
+end Benchmarks.Dss.GemJoin
+
+end
 
 namespace Benchmarks.Dss.GemJoin
 
@@ -120,9 +196,6 @@ theorem gemJoinCtorDeployment_shape {args : List Value} {deployedInitcode : Byte
                       ABI.abiTupleHeadSize?, ABI.staticABIEncodedSize?, ABI.isDynamicABIType,
                       ABI.encodeABIValue?, ABI.encodeABIWord?, hcond] at hdeploy
 
-theorem gemJoin_word_toBytesBE_length_32 (w : UInt256) :
-    (EVM.Word.toBytesBE w).length = 32 := by
-  simpa using word_toBytesBE_toByteArray_size w
 
 theorem gemJoinCreationBytecode_size : gemJoinCreationBytecode.size = 2326 := by
   native_decide
@@ -137,7 +210,7 @@ theorem gemJoinCreationBytecode_runtime_window :
 theorem gemJoinCtorArgsTail_size (vat : AccountAddress) (ilk : UInt256)
     (gem : AccountAddress) :
     (gemJoinCtorArgsTail vat ilk gem).size = 96 := by
-  simp [gemJoinCtorArgsTail, ByteArray.size_append, gemJoin_word_toBytesBE_length_32]
+  simp [gemJoinCtorArgsTail, ByteArray.size_append, word_toBytesBE_length_32]
 
 theorem gemJoinCtorCode_size (vat : AccountAddress) (ilk : UInt256)
     (gem : AccountAddress) :
@@ -170,84 +243,6 @@ theorem gemJoinCtorArgLen_eq (vat : AccountAddress) (ilk : UInt256)
   rw [gemJoinCtorCode_size]
   native_decide
 
--- LIBRARY CANDIDATE: a generic `ByteArray.write` normalization when a copy extends a base.
-private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : ℕ)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
-    (hbase : base.size ≤ destAddr) :
-    src.write srcAddr base destAddr len =
-      base ++ ByteArray.zeroes (destAddr - base.size) ++
-        src.extract srcAddr (srcAddr + len) := by
-  have hsrcNonempty : ¬ srcAddr ≥ src.size := by omega
-  have hcopy : min len (src.size - srcAddr) = len := by
-    rw [Nat.min_eq_left]
-    omega
-  have hcopyData : min len (src.data.size - srcAddr) = len := by
-    rw [show src.data.size = src.size from rfl]
-    exact hcopy
-  have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by
-    have hle : min base.size (destAddr + len) ≤ destAddr + len := Nat.min_le_right _ _
-    omega
-  have hDsz :
-      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size =
-        destAddr := by
-    rw [Array.size_append]
-    have hz :
-        (ByteArray.zeroes (destAddr - base.size)).data.size =
-          destAddr - base.size := by
-      rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
-        ByteArray_zeroes_size]
-    rw [hz]
-    change base.size + (destAddr - base.size) = destAddr
-    omega
-  apply ByteArray.ext
-  unfold ByteArray.write
-  rw [if_neg hlen, if_neg hsrcNonempty]
-  simp only [ByteArray.data_copySlice, ByteArray.data_append]
-  change (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract 0
-          destAddr ++
-        (src.data ++
-            (ByteArray.zeroes
-              (min base.size (destAddr + len) -
-                (destAddr + min len (src.size - srcAddr)))).data).extract
-          srcAddr
-          (srcAddr +
-            (min len (src.size - srcAddr) +
-              (min base.size (destAddr + len) -
-                (destAddr + min len (src.size - srcAddr))))) ++
-        (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract
-          (destAddr +
-            min
-              (min len (src.size - srcAddr) +
-                (min base.size (destAddr + len) -
-                  (destAddr + min len (src.size - srcAddr))))
-              ((src.data ++
-                    (ByteArray.zeroes
-                      (min base.size (destAddr + len) -
-                        (destAddr + min len (src.size - srcAddr)))).data).size -
-                srcAddr)) =
-      base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
-        (src.extract srcAddr (srcAddr + len)).data
-  rw [hcopy, htail]
-  rw [show (ByteArray.zeroes 0).data =
-      (#[] : Array UInt8) from by
-    rw [zeroes_zero (n := 0) (by rfl)]
-    rfl]
-  simp only [Array.append_empty, Nat.add_zero]
-  rw [Array.extract_eq_self_of_le (by rw [hDsz])]
-  rw [show src.data.extract srcAddr (srcAddr + len) =
-      (src.extract srcAddr (srcAddr + len)).data from by rw [ByteArray.data_extract]]
-  rw [hcopyData]
-  rw [show
-      (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract
-        (destAddr + len) = #[] from by
-    apply Array.extract_eq_empty_of_le
-    rw [hDsz]
-    omega]
-  simp only [Array.append_empty]
 
 def gemJoinCtorArgMem (vat : AccountAddress) (ilk : UInt256)
     (gem : AccountAddress) : ByteArray :=
@@ -262,7 +257,7 @@ theorem gemJoinCtorArgMem_eq (vat : AccountAddress) (ilk : UInt256)
     gemJoinCtorArgMem vat ilk gem =
       solcFreePtrMem ++ ByteArray.zeroes 32 ++
         gemJoinCtorArgsTail vat ilk gem := by
-  rw [gemJoinCtorArgMem, gemJoinCtorCode, byteArray_write_from_ge_eq]
+  rw [gemJoinCtorArgMem, gemJoinCtorCode, byteArray_write_from_ge_eq_no_gap_bound]
   · rw [extract_append_right' gemJoinCreationBytecode (gemJoinCtorArgsTail vat ilk gem) 2326
       (2326 + 96)]
     · rw [solcFreePtrMem_size]
@@ -480,17 +475,6 @@ def gemJoinCtorWardsHashMem (I : ExecutionEnv) (vat : AccountAddress)
     (ilk : UInt256) (gem : AccountAddress) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ (gemJoinCtorArgFreeMem vat ilk gem)
 
-private theorem wordAt0Mem_size_224 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 224) :
-    (wordAt0Mem word mem).size = 224 := by
-  unfold wordAt0Mem
-  exact toByteArray_write32_size_of_le mem word 0 224 224 hmem
-    (by rw [hmem]; omega) (by omega)
-
-private theorem wordAt32Mem_size_224 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 224) :
-    (wordAt32Mem word mem).size = 224 := by
-  unfold wordAt32Mem
-  exact toByteArray_write32_size_of_le mem word 32 224 224 hmem
-    (by rw [hmem]; omega) (by omega)
 
 theorem gemJoinCtorWardsHashMem_size (I : ExecutionEnv) (vat : AccountAddress)
     (ilk : UInt256) (gem : AccountAddress) :
@@ -499,56 +483,6 @@ theorem gemJoinCtorWardsHashMem_size (I : ExecutionEnv) (vat : AccountAddress)
   exact wordAt32Mem_size_224 ⟨0⟩
     (wordAt0Mem_size_224 (solcSourceWord I) (gemJoinCtorArgFreeMem_size vat ilk gem))
 
-private theorem twoWordHashMem_read0_224 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 224) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 =
-      UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below_len _ _ 32 0 32 (by rw [toByteArray_size])
-    (by rw [wordAt0Mem_size_224 key hmem]; omega) (by omega)
-    (by rw [wordAt0Mem_size_224 key hmem]; omega) (by decide) (by norm_num)]
-  exact wordAt0Mem_read0 key mem
-
-private theorem twoWordHashMem_read32_224 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 224) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 =
-      UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  exact toByteArray_write_read_back_of_gap slot (wordAt0Mem key mem) 32
-    (by rw [wordAt0Mem_size_224 key hmem]; native_decide)
-
-private theorem twoWordHashMem_read0_64_224 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 224) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num) (by
-        unfold twoWordHashMem
-        rw [wordAt32Mem_size_224]
-        · omega
-        · exact wordAt0Mem_size_224 key hmem)]
-  have h0 :
-      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract' (twoWordHashMem key slot mem) 0 32
-        (by norm_num) (by norm_num) (by
-          unfold twoWordHashMem
-          rw [wordAt32Mem_size_224]
-          · omega
-          · exact wordAt0Mem_size_224 key hmem),
-      twoWordHashMem_read0_224 key slot hmem]
-  have h32 :
-      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract' (twoWordHashMem key slot mem) 32 32
-        (by norm_num) (by norm_num) (by
-          unfold twoWordHashMem
-          rw [wordAt32Mem_size_224]
-          · omega
-          · exact wordAt0Mem_size_224 key hmem),
-      twoWordHashMem_read32_224 key slot hmem]
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-        (twoWordHashMem key slot mem).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      norm_num, h0, h32]
 
 theorem gemJoinCtorWardsHashSlot (I : ExecutionEnv) (vat : AccountAddress)
     (ilk : UInt256) (gem : AccountAddress) :
@@ -656,62 +590,13 @@ abbrev gemJoinCtorGemStored (σ : AccountMap) (I : ExecutionEnv)
     (gem : AccountAddress) : UInt256 :=
   setAddressOffset0Word (solcSlotWord σ I ⟨3⟩) (EVM.word gem.val)
 
-theorem gemJoinCtorAddressOfNat_toNat_masked (w : UInt256) :
-    (AccountAddress.ofNat w.toNat).toNat = (UInt256.land w solcAddrMask).toNat := by
-  have hmaskAddr :
-      AccountAddress.ofNat w.toNat = AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat := by
-    apply Fin.ext
-    unfold AccountAddress.ofNat
-    simp only [Fin.val_ofNat]
-    rw [uland_toNat]
-    change w.val.val % AccountAddress.size =
-      Nat.land w.val.val solcAddrMask.toNat % AccountAddress.size
-    rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide]
-    rw [nat_land_mask_eq_mod]
-    rw [show AccountAddress.size = 2 ^ 160 by rfl]
-    rw [Nat.mod_mod]
-  have hcanon : (UInt256.land w solcAddrMask).toNat < AccountAddress.size := by
-    simpa [EVM.addressModulus] using solcAddrMask_result_canonical w
-  rw [hmaskAddr]
-  unfold AccountAddress.ofNat
-  change (UInt256.land w solcAddrMask).toNat % AccountAddress.size =
-    (UInt256.land w solcAddrMask).toNat
-  exact Nat.mod_eq_of_lt hcanon
-
-theorem gemJoinCtorSetAddressOffset0Word_low_address (old : UInt256)
-    (a : AccountAddress) :
-    UInt256.land solcAddrMask (setAddressOffset0Word old (EVM.word a.val)) =
-      EVM.word a.val := by
-  apply u256_inj
-  rw [u256_land_toNat, setAddressOffset0Word_toNat]
-  · rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by native_decide]
-    rw [nat_land_comm]
-    rw [nat_land_mask_eq_mod]
-    have ha : (EVM.word a.val).toNat = a.val := by
-      change (UInt256.ofNat a.val).toNat = a.val
-      rw [UInt256.toNat_ofNat_of_lt]
-      exact lt_trans a.isLt (by decide : AccountAddress.size < UInt256.size)
-    rw [ha]
-    have hmod : (a.val + old.toNat / 2 ^ 160 * 2 ^ 160) % 2 ^ 160 = a.val := by
-      rw [Nat.mul_comm (old.toNat / 2 ^ 160) (2 ^ 160)]
-      rw [Nat.add_mul_mod_self_left]
-      exact Nat.mod_eq_of_lt
-        (by simpa [AccountAddress.size, EVM.addressModulus, EVM.twoPow] using a.isLt)
-    rw [hmod]
-    exact Nat.mod_eq_of_lt (lt_trans a.isLt (by decide : AccountAddress.size < UInt256.size))
-  · have ha : (EVM.word a.val).toNat = a.val := by
-      change (UInt256.ofNat a.val).toNat = a.val
-      rw [UInt256.toNat_ofNat_of_lt]
-      exact lt_trans a.isLt (by decide : AccountAddress.size < UInt256.size)
-    rw [ha]
-    exact a.isLt
 
 theorem gemJoinCtorGemTargetAddress_eq (σ : AccountMap) (I : ExecutionEnv)
     (gem : AccountAddress) :
     AccountAddress.ofUInt256 (UInt256.land solcAddrMask (gemJoinCtorGemStored σ I gem)) =
       gem := by
   unfold gemJoinCtorGemStored
-  rw [gemJoinCtorSetAddressOffset0Word_low_address]
+  rw [ctorSetAddressOffset0Word_low_address]
   exact accountAddress_roundtrip gem
 
 abbrev gemJoinCtorAfterWardsState (evm : EVM.State) : EVM.State :=
@@ -742,13 +627,5 @@ theorem gemJoinCtorCallerWardsSlot_eq (I : ExecutionEnv) :
   unfold wardsSlot mapSlot gemJoinCtorCallerWardsSlot solcMappingSlot solcSourceWord
   rw [keyValueToWord_address]
 
-theorem word_val_addr_canonical (a : AccountAddress) :
-    (EVM.word a.val).toNat < EVM.addressModulus := by
-  have hsize : AccountAddress.size < UInt256.size := by decide
-  have hval : (EVM.word a.val).toNat = a.val := by
-    change (UInt256.ofNat a.val).toNat = a.val
-    rw [UInt256.toNat_ofNat_of_lt (lt_trans a.isLt hsize)]
-  rw [hval]
-  exact a.isLt
 
 end Benchmarks.Dss.GemJoin

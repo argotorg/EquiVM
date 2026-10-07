@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.LinearDecrease
 /-! ## `tau()` getter -/
 
 def tauWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  stairstepSlotWord ⟨1⟩ σ I
+  solcSlotWordAt ⟨1⟩ σ I
 
 theorem stairstepDecode_tau {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (tauTransition.params.map Param.name)
@@ -60,7 +60,7 @@ theorem stairstepTauBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (tauWord σ I).toNat))])) := by
-    simpa [tauTransition, tauWord, stairstepSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [tauTransition, tauWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       stairstepUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -88,7 +88,6 @@ theorem stairstepTauBodyCore
 theorem stairstepTauBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = linearDecreaseBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (stairstepSelBytes 4)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by

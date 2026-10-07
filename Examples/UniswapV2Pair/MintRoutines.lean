@@ -113,12 +113,13 @@ theorem evalExpr_mintFunction_totalSupply
     (evm : EVM.State) (recipient : AccountAddress) (value : UInt256) :
     evalExpr? config { contract := contract, locals := mintFunctionCallStore recipient value } evm
       (.storage totalSupplyRef) = .ok (uniswapUint256Value (mintFunctionTotalSupplyWord evm)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc ⟨0⟩)
     (hbase := by simp [totalSupplyRef])
     (her := evalStorageRef_mintFunction_totalSupply evm recipient value)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm ⟨0⟩)
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm ⟨0⟩)
 
 set_option maxHeartbeats 1000000 in
 theorem evalExpr_mintFunction_totalSupply_add
@@ -168,12 +169,13 @@ theorem mintFunctionAssignTotalSupply
       evm .storage totalSupplyRef (mintFunctionTotalSupplyNewValue evm value) =
         .ok ({ contract := contract, locals := mintFunctionCallStore recipient value },
           mintFunctionAfterTotalSupplyState evm value) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
+      (loc := wordLoc ⟨0⟩)
       (hbase := by simp [totalSupplyRef])
       (her := evalStorageRef_mintFunction_totalSupply evm recipient value)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [mintFunctionAfterTotalSupplyState, mintFunctionTotalSupplyNewWord]
 
 theorem mintFunctionAfterTotalSupply_codeOwner (evm : EVM.State) (value : UInt256) :
@@ -197,14 +199,16 @@ theorem evalExpr_mintFunction_to_balance
     evalExpr? config { contract := contract, locals := mintFunctionCallStore recipient value }
       (mintFunctionAfterTotalSupplyState evm value) (.storage (balanceOfRef (.var "to"))) =
         .ok (uniswapUint256Value (mintFunctionToBalanceWord evm recipient value)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc (mintFunctionToSlot recipient))
     (hbase := by simp [balanceOfRef])
     (her := evalStorageRef_mintFunction_to_balance
       (mintFunctionAfterTotalSupplyState evm value) recipient value)
     (hty := by simp [storageTypeAt?, mintFunctionToEvaledRef, contract, storageDecls,
       uint256St, storageTypeStep?])
     (hloc := by rfl)]
-  simp [mintFunctionToSlot, mintFunctionToBalanceWord, uniswapStorageLocLoad_uint256,
+  simp [mintFunctionToSlot, mintFunctionToBalanceWord, show wordLoc = uint256Loc from rfl,
+    storageLocLoad_uint256,
     mintFunctionAfterTotalSupply_codeOwner]
 
 set_option maxHeartbeats 1000000 in
@@ -263,14 +267,15 @@ theorem mintFunctionAssignToBalance
         .ok ({ contract := contract, locals := mintFunctionCallStore recipient value },
           mintFunctionPostState evm recipient value) := by
   simp only [balanceOfRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
+      (loc := wordLoc (mintFunctionToSlot recipient))
       (hbase := by simp [mintFunctionCallStore, balanceOfRef])
       (her := evalStorageRef_mintFunction_to_balance
         (mintFunctionAfterTotalSupplyState evm value) recipient value)
       (hty := by simp [storageTypeAt?, mintFunctionToEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
       (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [mintFunctionPostState, mintFunctionToSlot, mintFunctionToBalanceNewWord,
     mintFunctionAfterTotalSupply_codeOwner]
 

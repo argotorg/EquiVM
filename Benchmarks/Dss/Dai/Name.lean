@@ -37,7 +37,7 @@ private def daiNameLiteralWord : UInt256 :=
   UInt256.shiftLeft daiNameRawWord ⟨145⟩
 
 private theorem daiNameReturnRead :
-    (daiStringAbiMem3 daiNameLen daiNameLiteralWord).readWithPadding 192 96 =
+    (solcStringAbiMem3 daiNameLen daiNameLiteralWord).readWithPadding 192 96 =
       daiNameReturnBytes := by
   native_decide
 
@@ -57,18 +57,18 @@ theorem daiX_name_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     dup1, push1 ⟨64⟩, add, push1 ⟨64⟩]
   have h1271 := evm_run h1270 with [
-    raw mstore 0 daiStringObjectMem0 (UInt256.ofNat 3) (by native_decide)
+    raw mstore 0 solcStringObjectMem0 (UInt256.ofNat 3) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h1275 := evm_run h1271 with [dup1, push1 daiNameLen, dup2]
   have h1276 := evm_run h1275 with [
-    raw mstore 6 (daiStringObjectMem1 daiNameLen) (UInt256.ofNat 5)
+    raw mstore 6 (solcStringObjectMem1 daiNameLen) (UInt256.ofNat 5)
       (by native_decide) mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h1279 := evm_run h1276 with [push1 ⟨32⟩, add]
   have h1294 := h1279.pushConst daiNameRawWord
     (width := 14) (op := .PUSH14) (by decide) (by native_decide) (by evm_ov)
   have h1298 := evm_run h1294 with [push1 ⟨145⟩, shl, dup2]
   have h1299 := evm_run h1298 with [
-    raw mstore 3 (daiStringObjectMem daiNameLen daiNameLiteralWord)
+    raw mstore 3 (solcStringObjectMem daiNameLen daiNameLiteralWord)
       (UInt256.ofNat 6) (by native_decide) mem_cost
       (by native_decide) (by decide) (by evm_ov)]
   have h335 := evm_run h1299 with [pop, dup2, jump (by jump_dest)]
@@ -77,7 +77,7 @@ theorem daiX_name_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 ⟨192⟩ (UInt256.ofNat 6) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup1, dup3,
-    raw mstore 3 (daiStringAbiMem0 daiNameLen daiNameLiteralWord)
+    raw mstore 3 (solcStringAbiMem0 daiNameLen daiNameLiteralWord)
       (UInt256.ofNat 7) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h350 := evm_run h344 with [
@@ -85,7 +85,7 @@ theorem daiX_name_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 daiNameLen (UInt256.ofNat 7) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     dup2, dup4, add,
-    raw mstore 3 (daiStringAbiMem1 daiNameLen daiNameLiteralWord)
+    raw mstore 3 (solcStringAbiMem1 daiNameLen daiNameLiteralWord)
       (UInt256.ofNat 8) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h367 := evm_run h350 with [
@@ -101,7 +101,7 @@ theorem daiX_name_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 daiNameLiteralWord (UInt256.ofNat 8) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     dup4, dup3, add,
-    raw mstore 3 (daiStringAbiMem2 daiNameLen daiNameLiteralWord)
+    raw mstore 3 (solcStringAbiMem2 daiNameLen daiNameLiteralWord)
       (UInt256.ofNat 9) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨369⟩, jump (by jump_dest)]
@@ -115,7 +115,7 @@ theorem daiX_name_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 daiNameLiteralWord (UInt256.ofNat 9) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨1⟩, dup4, push1 ⟨32⟩, sub, push2 ⟨256⟩, exp, sub, not, and, dup2,
-    raw mstore 0 (daiStringAbiMem3 daiNameLen daiNameLiteralWord)
+    raw mstore 0 (solcStringAbiMem3 daiNameLen daiNameLiteralWord)
       (UInt256.ofNat 9) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, swap2, pop]
@@ -169,7 +169,7 @@ theorem daiDecode_name_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
 /-- `name()` body refines its Solm transition. -/
 theorem daiNameBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 9)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=

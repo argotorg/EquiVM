@@ -14,21 +14,22 @@ set_option maxRecDepth 2000000
 
 private theorem flopperCtorDefaultsSlot6Word_eq_source (old : UInt256) :
     flopperCtorDefaultsSlot6Word old =
-      fileSetUint48Offset6Word (fileSetUint48Offset0Word old flopperCtorTtlWord)
+      setUint48Offset6Word (setUint48Offset0Word old flopperCtorTtlWord)
         flopperCtorTauWord := by
-  rw [flopperCtorDefaultsSlot6Word, fileSetUint48Offset0Word, fileSetUint48Offset6Word]
-  rw [show UInt256.land flopperCtorTtlWord flopperUint48Mask = flopperCtorTtlWord
+  rw [flopperCtorDefaultsSlot6Word, setUint48Offset0Word, setUint48Offset6Word]
+  rw [show UInt256.land flopperCtorTtlWord uint48Mask = flopperCtorTtlWord
     by native_decide]
-  rw [show UInt256.land flopperCtorTauWord flopperUint48Mask = flopperCtorTauWord
+  rw [show UInt256.land flopperCtorTauWord uint48Mask = flopperCtorTauWord
     by native_decide]
   rw [show UInt256.mul flopperCtorTauWord (UInt256.ofNat (2 ^ 48)) =
       UInt256.shiftLeft flopperCtorTauWord ⟨48⟩ by native_decide]
-  rw [show fileUint48Offset6Mask = UInt256.shiftLeft flopperUint48Mask ⟨48⟩
+  rw [show uint48Offset6Mask = UInt256.shiftLeft uint48Mask ⟨48⟩
     by native_decide]
-  rw [u256_land_comm (UInt256.lnot (UInt256.shiftLeft flopperUint48Mask ⟨48⟩))
-    (UInt256.lor (UInt256.land old (UInt256.lnot flopperUint48Mask)) flopperCtorTtlWord)]
+  rw [u256_land_comm (UInt256.lnot (UInt256.shiftLeft uint48Mask ⟨48⟩))
+    (UInt256.lor (UInt256.land old (UInt256.lnot uint48Mask)) flopperCtorTtlWord)]
   rw [u256_lor_comm]
 
+set_option maxHeartbeats 2000000 in
 private theorem flopperCtorStateEquiv
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat gem : AccountAddress) :
@@ -86,30 +87,30 @@ private theorem flopperCtorStateEquiv
         have hTtlNoop : evm3s = evm2s := by
           simpa [evm3s, flopperCtorAfterTtlState] using
             storageStore_absent evm2s evm2s.executionEnv.codeOwner hacc ⟨6⟩
-              (fileSetUint48Offset0Word
+              (setUint48Offset0Word
                 (Solm.EVM.storageLoad evm2s evm2s.executionEnv.codeOwner ⟨6⟩)
                 flopperCtorTtlWord)
         have hTauNoop : evm4s = evm2s := by
           simpa [evm4s, flopperCtorAfterTauState, hTtlNoop] using
             storageStore_absent evm2s evm2s.executionEnv.codeOwner hacc ⟨6⟩
-              (fileSetUint48Offset6Word
+              (setUint48Offset6Word
                 (Solm.EVM.storageLoad evm2s evm2s.executionEnv.codeOwner ⟨6⟩)
                 flopperCtorTauWord)
         simpa [hPackedNoop, hTauNoop] using (rfl : evm2s.accountMap = evm2s.accountMap)
     | some acc =>
         have hTtlLoad :
             Solm.EVM.storageLoad evm3s evm3s.executionEnv.codeOwner ⟨6⟩ =
-              fileSetUint48Offset0Word
+              setUint48Offset0Word
                 (Solm.EVM.storageLoad evm2s evm2s.executionEnv.codeOwner ⟨6⟩)
                 flopperCtorTtlWord := by
           simpa [evm3s, flopperCtorAfterTtlState, storageStore_executionEnv] using
             storageLoad_storageStore_same_present evm2s evm2s.executionEnv.codeOwner hacc
               ⟨6⟩
-              (fileSetUint48Offset0Word
+              (setUint48Offset0Word
                 (Solm.EVM.storageLoad evm2s evm2s.executionEnv.codeOwner ⟨6⟩)
                 flopperCtorTtlWord)
         have hTauVal :
-            fileSetUint48Offset6Word
+            setUint48Offset6Word
                 (Solm.EVM.storageLoad evm3s evm3s.executionEnv.codeOwner ⟨6⟩)
                 flopperCtorTauWord =
               packedS := by
@@ -117,10 +118,10 @@ private theorem flopperCtorStateEquiv
           exact (flopperCtorDefaultsSlot6Word_eq_source
             (Solm.EVM.storageLoad evm2s evm2s.executionEnv.codeOwner ⟨6⟩)).symm
         have hTauVal' :
-            fileSetUint48Offset6Word
+            setUint48Offset6Word
                 (Solm.EVM.storageLoad
                   (Solm.EVM.storageStore evm2s evm2s.executionEnv.codeOwner ⟨6⟩
-                    (fileSetUint48Offset0Word
+                    (setUint48Offset0Word
                       (Solm.EVM.storageLoad evm2s evm2s.executionEnv.codeOwner ⟨6⟩)
                       flopperCtorTtlWord))
                   evm2s.executionEnv.codeOwner ⟨6⟩)
@@ -130,7 +131,7 @@ private theorem flopperCtorStateEquiv
         have hbase :=
           sstoreAccountMap_self_update evm2s.accountMap
             evm2s.executionEnv.codeOwner ⟨6⟩
-            (fileSetUint48Offset0Word
+            (setUint48Offset0Word
               (Solm.EVM.storageLoad evm2s evm2s.executionEnv.codeOwner ⟨6⟩)
               flopperCtorTtlWord)
             packedS
@@ -154,7 +155,7 @@ private theorem flopperCtorStateEquiv
         flopperCtorAfterTauState, flopperCtorAfterTtlState, flopperCtorAfterPadState,
         flopperCtorAfterBegState, initState, storageStore_executionEnv] using
         flopperCtorCallerWardsSlot_eq I
-    simpa [evm6e, evm6s, evm5e, evm5s, flopperCtorAfterWardsState, hslotE, hslotS]
+    simpa only [evm6e, evm6s, flopperCtorAfterWardsState, hslotE, hslotS]
       using h4.storageStore_codeOwner (flopperCtorCallerWardsSlot I)
         (show (⟨1⟩ : UInt256) = ⟨1⟩ by rfl)
   have h6 : EVMStateEquiv evm7e evm7s := by

@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flipper
 /-! ## `kicks()` getter -/
 
 def kicksWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperSlotWord ⟨6⟩ σ I
+  solcSlotWordAt ⟨6⟩ σ I
 
 theorem flipperDecode_kicks {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (kicksTransition.params.map Param.name)
@@ -53,7 +53,6 @@ theorem flipperReachKicksBody {σ σ₀ A I} {g : Sat256}
 theorem flipperKicksBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 10)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
@@ -65,7 +64,7 @@ theorem flipperKicksBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (kicksWord σ I).toNat))])) := by
-    simpa [kicksTransition, kicksWord, flipperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [kicksTransition, kicksWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flipperUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

@@ -89,8 +89,8 @@ theorem pausableEvalPausedFalse (evm : EVM.State) (locals : Store)
   have hty : storageTypeAt? contract.storage
       ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
     decide
-  rw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
-    (hloc := by rfl), pausableStorageLocLoad_bool_offset0_false evm ⟨0⟩ hstorageZero]
+  erw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
+    (hloc := by rfl), storageLocLoad_bool_offset0_false evm ⟨0⟩ hstorageZero]
 
 theorem pausableEvalPausedTrue (evm : EVM.State) (locals : Store)
     (hnz : pausedWord evm.accountMap evm.executionEnv ≠ ⟨0⟩)
@@ -107,8 +107,8 @@ theorem pausableEvalPausedTrue (evm : EVM.State) (locals : Store)
   have hty : storageTypeAt? contract.storage
       ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
     decide
-  rw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
-    (hloc := by rfl), pausableStorageLocLoad_bool_offset0_true evm ⟨0⟩ hstorageNz]
+  erw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
+    (hloc := by rfl), storageLocLoad_bool_offset0_true evm ⟨0⟩ hstorageNz]
 
 theorem pausableEvalWhenNotPausedTrue (evm : EVM.State) (locals : Store)
     (hzero : pausedWord evm.accountMap evm.executionEnv = ⟨0⟩)
@@ -335,14 +335,14 @@ theorem pausableNonPayable {σ σ₀ A I} {g : UInt256}
 
 theorem pausableShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
+    (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (pausableX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (pausableDispatch_none_short hsz)
 
 theorem pausableNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 5 → (pausableSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size

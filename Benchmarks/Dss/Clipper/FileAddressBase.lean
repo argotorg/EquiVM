@@ -1,5 +1,6 @@
 import Benchmarks.Dss.Clipper.Rely
 import Benchmarks.Dss.Clipper.FileDecode
+import Reasoning.ABIComposite
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
@@ -169,7 +170,7 @@ theorem clipperReachFileAddressBody {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperFileAddressSelectorWord hsz hsel
-  have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
+  have h43 := RD.selectorSplitNotTakenPush2 (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -189,7 +190,7 @@ theorem clipperReachFileAddressBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h54 := clipperSplitNotTaken (pc := (⟨43⟩ : UInt256))
+  have h54 := RD.selectorSplitNotTakenPush2 (pc := (⟨43⟩ : UInt256))
     (next := (⟨54⟩ : UInt256)) (pivot := clipperSelNat 3)
     (tgt := (⟨162⟩ : UInt256)) h43
     (by change decode code (⟨43⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -209,7 +210,7 @@ theorem clipperReachFileAddressBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h65 := clipperSplitNotTaken (pc := (⟨54⟩ : UInt256))
+  have h65 := RD.selectorSplitNotTakenPush2 (pc := (⟨54⟩ : UInt256))
     (next := (⟨65⟩ : UInt256)) (pivot := clipperSelNat 12)
     (tgt := (⟨113⟩ : UInt256)) h54
     (by change decode code (⟨54⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -229,7 +230,7 @@ theorem clipperReachFileAddressBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h76 := clipperArmNotTaken (pc := (⟨65⟩ : UInt256)) (next := (⟨76⟩ : UInt256))
+  have h76 := RD.selectorArmNotTakenPush2 (pc := (⟨65⟩ : UInt256)) (next := (⟨76⟩ : UInt256))
     (sel := clipperSelNat 12) (tgt := (⟨1349⟩ : UInt256)) h65
     (by change decode code (⟨65⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -248,7 +249,7 @@ theorem clipperReachFileAddressBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h87 := clipperArmNotTaken (pc := (⟨76⟩ : UInt256)) (next := (⟨87⟩ : UInt256))
+  have h87 := RD.selectorArmNotTakenPush2 (pc := (⟨76⟩ : UInt256)) (next := (⟨87⟩ : UInt256))
     (sel := clipperSelNat 14) (tgt := (⟨1357⟩ : UInt256)) h76
     (by change decode code (⟨76⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -267,7 +268,7 @@ theorem clipperReachFileAddressBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h1365 := clipperArmTaken (pc := (⟨87⟩ : UInt256)) (sel := clipperSelNat 10)
+  have h1365 := RD.selectorArmTakenPush2 (pc := (⟨87⟩ : UInt256)) (sel := clipperSelNat 10)
     (tgt := (⟨1365⟩ : UInt256)) h87
     (by change decode code (⟨87⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -376,7 +377,7 @@ theorem evalExpr_clipperFileAddress_auth_true (v : ClipperImmutables) (evm : EVM
   have hstorage :
       evalExpr? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }
         evm (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v })
       (slot := wardsRef sender)
@@ -390,7 +391,7 @@ theorem evalExpr_clipperFileAddress_auth_true (v : ClipperImmutables) (evm : EVM
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using clipperStorageLocLoad_uint256 evm
+        simpa [hload] using storageLocLoad_uint256 evm
           (clipperRelyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
@@ -408,7 +409,7 @@ theorem evalExpr_clipperFileAddress_auth_false (v : ClipperImmutables) (evm : EV
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (clipperRelyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v })
       (slot := wardsRef sender)
@@ -421,7 +422,7 @@ theorem evalExpr_clipperFileAddress_auth_false (v : ClipperImmutables) (evm : EV
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        exact clipperStorageLocLoad_uint256 evm (clipperRelyAuthStorageSlot I))
+        exact storageLocLoad_uint256 evm (clipperRelyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -429,7 +430,7 @@ theorem evalExpr_clipperFileAddress_auth_false (v : ClipperImmutables) (evm : EV
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact clipperUInt256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -458,7 +459,7 @@ theorem evalExpr_clipperFileAddress_locked_zero_true (v : ClipperImmutables)
   have hstorage :
       evalExpr? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }
         evm (.storage lockedRef) = .ok (.int 0) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v })
       (slot := lockedRef)
@@ -471,7 +472,7 @@ theorem evalExpr_clipperFileAddress_locked_zero_true (v : ClipperImmutables)
       (her := evalStorageRef_clipperFileAddress_locked v evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by simpa [hload] using clipperStorageLocLoad_uint256 evm ⟨13⟩)]
+      (hload := by simpa [hload] using storageLocLoad_uint256 evm ⟨13⟩)]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -485,7 +486,7 @@ theorem evalExpr_clipperFileAddress_locked_zero_false (v : ClipperImmutables)
         evm (.storage lockedRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨13⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v })
       (slot := lockedRef)
@@ -497,7 +498,7 @@ theorem evalExpr_clipperFileAddress_locked_zero_false (v : ClipperImmutables)
       (her := evalStorageRef_clipperFileAddress_locked v evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact clipperStorageLocLoad_uint256 evm ⟨13⟩)
+      (hload := by exact storageLocLoad_uint256 evm ⟨13⟩)
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨13⟩).toNat) ≠
@@ -525,9 +526,9 @@ theorem assign_clipperFileAddress_locked (v : ClipperImmutables) (evm : EVM.Stat
       evm .storage lockedRef (.int (Int.ofNat value.toNat)) =
         .ok ({ contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨13⟩ value) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc ⟨13⟩)
+      (loc := wordLoc ⟨13⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         exact clipperFileAddressLocals_get_base_none I (by native_decide) (by native_decide))
       (her := evalStorageRef_clipperFileAddress_locked v evm I)
@@ -545,17 +546,17 @@ theorem assign_clipperFileAddress_spotter (v : ClipperImmutables) (evm : EVM.Sta
         .ok ({ contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }, evm') := by
   intro evm'
   rw [clipperFileAddressData_value_masked I]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := ({ base := "spotter", steps := [] } : EvaledStorageRef))
-      (loc := addrLoc ⟨3⟩)
+      (loc := addrLoc ⟨3⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := clipperFileAddressLocals_get_base_none I
         (by native_decide) (by native_decide))
       (her := by simp [spotterRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure,
         bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   simpa [addrLoc, evm'] using
     storageLocStore_address_offset0 evm ⟨3⟩ (clipperFileAddressDataMaskedWord I)
       (clipperFileAddressDataMaskedWord_canonical I)
@@ -570,16 +571,16 @@ theorem assign_clipperFileAddress_dog (v : ClipperImmutables) (evm : EVM.State)
         .ok ({ contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }, evm') := by
   intro evm'
   rw [clipperFileAddressData_value_masked I]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := ({ base := "dog", steps := [] } : EvaledStorageRef))
-      (loc := addrLoc ⟨1⟩)
+      (loc := addrLoc ⟨1⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := clipperFileAddressLocals_get_base_none I
         (by native_decide) (by native_decide))
       (her := by simp [dogRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   simpa [addrLoc, evm'] using
     storageLocStore_address_offset0 evm ⟨1⟩ (clipperFileAddressDataMaskedWord I)
       (clipperFileAddressDataMaskedWord_canonical I)
@@ -594,16 +595,16 @@ theorem assign_clipperFileAddress_vow (v : ClipperImmutables) (evm : EVM.State)
         .ok ({ contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }, evm') := by
   intro evm'
   rw [clipperFileAddressData_value_masked I]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := ({ base := "vow", steps := [] } : EvaledStorageRef))
-      (loc := addrLoc ⟨2⟩)
+      (loc := addrLoc ⟨2⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := clipperFileAddressLocals_get_base_none I
         (by native_decide) (by native_decide))
       (her := by simp [vowRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   simpa [addrLoc, evm'] using
     storageLocStore_address_offset0 evm ⟨2⟩ (clipperFileAddressDataMaskedWord I)
       (clipperFileAddressDataMaskedWord_canonical I)
@@ -618,16 +619,16 @@ theorem assign_clipperFileAddress_calc (v : ClipperImmutables) (evm : EVM.State)
         .ok ({ contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }, evm') := by
   intro evm'
   rw [clipperFileAddressData_value_masked I]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := ({ base := "calc", steps := [] } : EvaledStorageRef))
-      (loc := addrLoc ⟨4⟩)
+      (loc := addrLoc ⟨4⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := clipperFileAddressLocals_get_base_none I
         (by native_decide) (by native_decide))
       (her := by simp [calcRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   simpa [addrLoc, evm'] using
     storageLocStore_address_offset0 evm ⟨4⟩ (clipperFileAddressDataMaskedWord I)
       (clipperFileAddressDataMaskedWord_canonical I)

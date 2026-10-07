@@ -17,7 +17,6 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -66,7 +65,7 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
     (solidityShortBytesWord (setDecodedValueBytes I))
   have hlenAbi :
       len = calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) := by
-    simpa [len] using setLengthWord_eq_abi I.calldata hoffMax
+    simpa [len] using calldataLengthWord_eq_abi I.calldata hoffMax
   have hshort : len.toNat < 32 := by
     rw [hlenAbi]
     exact hnewShort
@@ -77,20 +76,20 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
     simpa [len] using hz
   have hsrc : payloadStart.toNat + len.toNat ≤ I.calldata.size := by
     dsimp [payloadStart]
-    rw [hlenAbi, setPayloadStart_toNat I.calldata hoffMax]
-    have hle := setPayloadStartLen_le_of_payload I.calldata hlenWord hpayload
+    rw [hlenAbi, calldataPayloadStart_toNat I.calldata hoffMax]
+    have hle := calldataPayloadStartLen_le_of_payload I.calldata hlenWord hpayload
     omega
   have hstart :
       UInt256.slt ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨31⟩))
           (UInt256.ofNat I.calldata.size) = ⟨1⟩ :=
-    setStart_slt_one I.calldata hoffMax hlenWord hsizeSign
+    calldataStart_slt_one I.calldata hoffMax hlenWord hsizeSign
   have hlenMaxWord :
       UInt256.gt
           (uInt256OfByteArray
             (I.calldata.readBytes
               ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32))
           ⟨18446744073709551615⟩ = ⟨0⟩ :=
-    setLengthMaxWord_of_abi I.calldata hoffMax hlenMax
+    calldataLengthMaxWord_of_abi I.calldata hoffMax hlenMax
   have hpayloadWord :
       UInt256.gt
         (((((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩) +
@@ -99,7 +98,7 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
               (I.calldata.readBytes
                 ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32)) ⟨1⟩))
         (UInt256.ofNat I.calldata.size) = ⟨0⟩ :=
-    setPayloadWord_zero_of_payload I.calldata hsize hoffMax hlenWord hlenMax hpayload
+    calldataPayloadWord_zero_of_payload I.calldata hsize hoffMax hlenWord hlenMax hpayload
   obtain ⟨k175, C175, rd175₀⟩ := stringStoreLiteX_setDecoderOkCore
     (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := Sat256.ofUInt256 g)
@@ -111,11 +110,11 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
     simpa [len, payloadStart] using rd175₀
   obtain ⟨_, _, rd1350⟩ :=
     stringStoreLiteX_setReachStorageWriteMem (payloadStart := payloadStart) (len := len) rd175
-  have hwriteReach := stringStoreLiteX_setWriteShortNonemptyValid
-    (oldLen := oldLen) hperm hnz hshort hsrc rd1350 hflag rfl
-    (by simpa [oldLen] using hvalid)
-  have hret := stringStoreLiteX_setShortNonemptyReturnFromWrite
-    (payloadStart := payloadStart) (len := len) hnz hshort hsrc hwriteReach
+  have hsplit := permSplit_bind (stringStoreLiteX_setWriteShortNonemptyValid
+    (oldLen := oldLen) hnz hshort hsrc rd1350 hflag rfl
+    (by simpa [oldLen] using hvalid))
+    fun _ hwriteReach => stringStoreLiteX_setShortNonemptyReturnFromWrite
+      (payloadStart := payloadStart) (len := len) hnz hshort hsrc hwriteReach
   have hload :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ I := by
@@ -127,8 +126,8 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
     rw [setDecodedValueBytes_size hpayload]
     simpa [hlenAbi] using hshort
   have hwrite :
-      writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
-        .string (.bytes (setDecodedValueBytes I)) = .ok evmSolm1 := by
+      stringStoreLiteConfig.storageBackend.write { base := "current", steps := [] }
+        .string (.bytes (setDecodedValueBytes I)) evmSolm0 = .ok evmSolm1 := by
     have hwrite₀ := writeCurrentShortPacked (evm := evmSolm0)
       (header := currentLengthHeaderWord σ I) (len := oldLen)
       (value := setDecodedValueBytes I)
@@ -145,7 +144,11 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
         solidityShortBytesWord (setDecodedValueBytes I) :=
     setShortPackedHeader_eq_solidityShortBytesWord (I := I) (len := len)
       (payloadStart := payloadStart) hlenAbi rfl hoffMax hnz hshort hsrc hpayload
-  exact setRuntimeOfWriteAccountMapEq hcode hwv hret hd hdec hwrite
+  by_cases hperm : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hperm
+    exact setRuntimeStaticOfWrite hcode hwv hpf (permSplit_false hpf hsplit) hd hdec hwrite
+  exact setRuntimeOfWriteAccountMapEq hcode hwv (permSplit_true hperm hsplit) hd hdec hwrite
     (by simp [evmSolm1, evmSolm0, initState, storageStore_accountMap, hheaderEq])
     hretEnc
 
