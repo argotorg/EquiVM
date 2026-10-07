@@ -172,29 +172,37 @@ theorem clipperKickX_lockOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (clipperKickJumpDest5520 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperKickX_lockAndStoppedOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperKickX_lockAndStoppedOpenSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (hperm : I.perm = true)
-    (hstopped : (solcSlotWord
-      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 1)
     (h : RD code I g s0 ⟨5520⟩
       (⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨5609⟩
-      (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
-        clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' := by
+    (I.perm = true ∧
+      ((solcSlotWord
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 1 →
+        ∃ k' C', RD code I g s0 ⟨5609⟩
+          (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
+            clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
+          (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
+          (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C')) ∨
+    (I.perm = false ∧ RDstatic code g s0) := by
   have rd5527pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨13⟩ (by clipper_runtime_decode) (by evm_ov),
     raw dup2 (by clipper_runtime_decode) (by evm_ov),
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
-  obtain ⟨_, _, rd5528⟩ := rd5527pre.sstore hperm
-    (by clipper_runtime_decode) (by evm_ov)
+  have hstoreDec : decode code ⟨5527⟩ = some (.SSTORE, none) := by
+    clipper_runtime_decode
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd5527pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  intro hstopped
+  obtain ⟨_, _, rd5528⟩ := rd5527pre.sstore hperm hstoreDec (by evm_ov)
   have rd5530 := rd5528.pushConst (⟨14⟩ : UInt256)
     (width := 1) (op := .PUSH1) (by decide) (by clipper_runtime_decode) (by evm_ov)
   obtain ⟨k5531, C5531, rd5531raw⟩ := rd5530.sload
@@ -220,6 +228,23 @@ theorem clipperKickX_lockAndStoppedOpen {σ I} {g : Sat256} {s0 : State} {k C : 
     (width := 2) (op := .PUSH2) (by decide) (by clipper_runtime_decode) (by evm_ov)
   exact ⟨_, _, rd5536.jumpiT (by clipper_runtime_decode) one_ne_zero_uint
     (clipperKickJumpDest5609 v hpatch) (by evm_ov)⟩
+
+theorem clipperKickX_lockAndStoppedOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    (hperm : I.perm = true)
+    (hstopped : (solcSlotWord
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 1)
+    (h : RD code I g s0 ⟨5520⟩
+      (⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
+        clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD code I g s0 ⟨5609⟩
+      (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
+        clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' :=
+  permSplit_true hperm (clipperKickX_lockAndStoppedOpenSplit v hpatch h) hstopped
 
 set_option maxHeartbeats 1500000 in
 theorem clipperKickX_tabPositive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}

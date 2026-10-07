@@ -16,7 +16,7 @@ import Benchmarks.Dss.Dog.Rely
 import Benchmarks.Dss.Dog.Vat
 import Benchmarks.Dss.Dog.Vow
 import Benchmarks.Dss.Dog.Wards
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Dog benchmark correctness stub
@@ -74,61 +74,75 @@ theorem dogNoSelectorMatches {I : ExecutionEnv}
 
 theorem dogCorrect (v : DogImmutables) {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
-    runtimeEquivalence (config v) code (contract v) := by
-  refine runtimeEquivalence.intro ?_
-  intro σ σ₀ g A I hcode hsize hperm
+    runtimeRefinement config code contract (immStore v) := by
+  refine runtimeRefinement.intro ?_
+  intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hDirt : selIs I (dogSelBytes 0)
-    · exact dogDirtBodyCore hpatch hcode hsize hperm hwv hDirt
+    · exact dogDirtBodyCore hpatch hcode hsize hwv hDirt
     · by_cases hHole : selIs I (dogSelBytes 1)
-      · exact dogHoleBodyCore hpatch hcode hsize hperm hwv hHole
+      · exact dogHoleBodyCore hpatch hcode hsize hwv hHole
       · by_cases hBark : selIs I (dogSelBytes 2)
-        · exact dogBarkBodyCore hpatch hcode hsize hperm hwv hBark
+        · exact dogBarkBodyCore hpatch hcode hsize hwv hBark
         · by_cases hCage : selIs I (dogSelBytes 3)
-          · exact dogCageBodyCore hpatch hcode hsize hperm hwv hCage
+          · exact dogCageBodyCore hpatch hcode hsize hwv hCage
           · by_cases hChop : selIs I (dogSelBytes 4)
-            · exact dogChopBodyCore hpatch hcode hsize hperm hwv hChop
+            · exact dogChopBodyCore hpatch hcode hsize hwv hChop
             · by_cases hDeny : selIs I (dogSelBytes 5)
-              · exact dogDenyBodyCore hpatch hcode hsize hperm hwv hDeny
+              · exact dogDenyBodyCore hpatch hcode hsize hwv hDeny
               · by_cases hDigs : selIs I (dogSelBytes 6)
-                · exact dogDigsBodyCore hpatch hcode hsize hperm hwv hDigs
+                · exact dogDigsBodyCore hpatch hcode hsize hwv hDigs
                 · by_cases hFileIlkUint : selIs I (dogSelBytes 7)
-                  · exact dogFileIlkUintBodyCore hpatch hcode hsize hperm hwv
+                  · exact dogFileIlkUintBodyCore hpatch hcode hsize hwv
                       hFileIlkUint
                   · by_cases hFileUint : selIs I (dogSelBytes 8)
-                    · exact dogFileUintBodyCore hpatch hcode hsize hperm hwv hFileUint
+                    · exact dogFileUintBodyCore hpatch hcode hsize hwv hFileUint
                     · by_cases hFileAddress : selIs I (dogSelBytes 9)
-                      · exact dogFileAddressBodyCore hpatch hcode hsize hperm hwv
+                      · exact dogFileAddressBodyCore hpatch hcode hsize hwv
                           hFileAddress
                       · by_cases hFileIlkClip : selIs I (dogSelBytes 10)
-                        · exact dogFileIlkClipBodyCore hpatch hcode hsize hperm hwv
+                        · exact dogFileIlkClipBodyCore hpatch hcode hsize hwv
                             hFileIlkClip
                         · by_cases hIlks : selIs I (dogSelBytes 11)
-                          · exact dogIlksBodyCore hpatch hcode hsize hperm hwv hIlks
+                          · exact dogIlksBodyCore hpatch hcode hsize hwv hIlks
                           · by_cases hLive : selIs I (dogSelBytes 12)
-                            · exact dogLiveBodyCore hpatch hcode hsize hperm hwv hLive
+                            · exact dogLiveBodyCore hpatch hcode hsize hwv hLive
                             · by_cases hRely : selIs I (dogSelBytes 13)
-                              · exact dogRelyBodyCore hpatch hcode hsize hperm hwv hRely
+                              · exact dogRelyBodyCore hpatch hcode hsize hwv hRely
                               · by_cases hVat : selIs I (dogSelBytes 14)
-                                · exact dogVatBodyCore hpatch hcode hsize hperm hwv hVat
+                                · exact dogVatBodyCore hpatch hcode hsize hwv hVat
                                 · by_cases hVow : selIs I (dogSelBytes 15)
-                                  · exact dogVowBodyCore hpatch hcode hsize hperm hwv hVow
+                                  · exact dogVowBodyCore hpatch hcode hsize hwv hVow
                                   · by_cases hWards : selIs I (dogSelBytes 16)
-                                    · exact dogWardsBodyCore hpatch hcode hsize hperm hwv
+                                    · exact dogWardsBodyCore hpatch hcode hsize hwv
                                         hWards
-                                    · exact dogNoDispatch hpatch hcode hsize hperm hwv
+                                    · exact dogNoDispatch hpatch hcode hsize hwv
                                         (dogNoSelectorMatches hDirt hHole hBark hCage
                                           hChop hDeny hDigs hFileIlkUint hFileUint
                                           hFileAddress hFileIlkClip hIlks hLive hRely
                                           hVat hVow hWards)
   · exact dogNonPayable hpatch hcode hwv
 
-theorem dogContractCorrect (v : DogImmutables) {code : ByteArray}
-    (hcode : patchRuntime dogBytecode (patches v) = some code) :
-    contractEquivalenceWith (config v) dogCreationBytecode code (contract v)
-      (runtimeCodeOf dogBytecode) :=
-  contractEquivalenceWith.intro
-    (dogConstructorCorrect v)
-    (dogCorrect v hcode)
+/-- A well-typed immutables store runs as the store of some valuation. -/
+theorem restrictImmutables_of_fit {imms : Store} (h : immutablesFit contract imms) :
+    ∃ v, restrictImmutables contract imms = immStore v := by
+  obtain ⟨vo, hvo, hfo⟩ := h ⟨"vat", .address⟩ (by simp [contract])
+  simp only at hvo
+  cases vo <;> simp [elemValueFits] at hfo
+  rename_i vat
+  rw [Std.HashMap.get?_eq_getElem?] at hvo
+  exact ⟨{ vat := vat }, by simp [restrictImmutables, contract, immStore, hvo]⟩
+
+theorem dogRuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
+    runtimeRefinement config (immutableLayout.deployed dogBytecode imms) contract
+      (restrictImmutables contract imms) := by
+  obtain ⟨v, hv⟩ := restrictImmutables_of_fit hfit
+  rw [← Reasoning.Immutables.Layout.deployed_restrict immutableLayout_keys, hv,
+    dogDeployed_eq (vat := v.vat) (by simp [immStore])]
+  exact dogCorrect v (dogPatchRuntime_eq_ctorPatchedRuntime v.vat)
+
+theorem dogContractCorrect :
+    contractRefinement config dogCreationBytecode contract :=
+  .of_runtime dogConstructorCorrect dogRuntimeCorrect
 
 end Benchmarks.Dss.Dog

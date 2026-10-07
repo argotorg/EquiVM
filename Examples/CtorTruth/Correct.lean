@@ -6,6 +6,7 @@ import Reasoning.Solc
 import Reasoning.Dispatch
 import Reasoning.SolmBody
 import Reasoning.Reach
+import Solm.Refine
 
 /-!
 # CtorTruth — whole-contract equivalence smoke test
@@ -63,7 +64,7 @@ theorem ctorTruthReEquiv_callvalueZero
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ctorTruthRuntimeBytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) :
-    runtimeEquivalenceFor ctorTruthConfig CtorTruth.contract σ σ₀ g.toUInt256 A I := by
+    runtimeRefinementFor ctorTruthConfig CtorTruth.contract σ σ₀ g.toUInt256 A I := by
   have hcode' : I.code = truthBytecode := by
     rw [← ctorTruthRuntime_eq_truthBytecode]
     exact hcode
@@ -85,8 +86,8 @@ theorem ctorTruthReEquiv_callvalueZero
 
 /-- Runtime bytecode refines the Solm runtime specification. -/
 theorem ctorTruthRuntimeCorrect :
-    runtimeEquivalence ctorTruthConfig ctorTruthRuntimeBytecode CtorTruth.contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize _hperm => ?_⟩
+    runtimeRefinement ctorTruthConfig ctorTruthRuntimeBytecode CtorTruth.contract := by
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact ctorTruthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
   · have hcode' : I.code = truthBytecode := by
@@ -169,12 +170,12 @@ theorem ctorTruthInitcodeRun {σ σ₀ A I} {g : Sat256}
 
 /-- The creation/initcode bytecode refines the Solm constructor specification. -/
 theorem ctorTruthConstructorCorrect :
-    constructorEquivalence ctorTruthConfig ctorTruthInitcode CtorTruth.contract
-      ctorTruthRuntimeBytecode :=
+    typedConstructorRefinement ctorTruthConfig ctorTruthInitcode CtorTruth.contract
+      (fun _ => ctorTruthRuntimeBytecode) :=
   emptyConstructorCorrect_of_RDret rfl rfl rfl (fun hcode => ctorTruthInitcodeRun hcode)
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem ctorTruthCorrect :
-    contractEquivalence ctorTruthConfig ctorTruthInitcode ctorTruthRuntimeBytecode
+    contractRefinement ctorTruthConfig ctorTruthInitcode
       CtorTruth.contract :=
-  contractEquivalence.intro ctorTruthConstructorCorrect ctorTruthRuntimeCorrect
+  contractRefinement.of_constant ctorTruthConstructorCorrect ctorTruthRuntimeCorrect

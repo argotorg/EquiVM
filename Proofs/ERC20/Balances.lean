@@ -82,8 +82,9 @@ theorem storageStore_find_codeOwner (evm : EVM.State) (a : AccountAddress) (k v 
     this is exactly Keccak collision-freedom on the mapping-slot derivation; we keep it as a named
     hypothesis on the invariant theorems instead of axiomatizing it. -/
 def InjectiveLayout (cfg : Config) : Prop :=
-  ∀ (r₁ r₂ : EvaledStorageRef) (evm : EVM.State) (l₁ l₂ : StorageLoc),
-    cfg.storage.layout r₁ evm = some l₁ → cfg.storage.layout r₂ evm = some l₂ →
+  ∀ (r₁ r₂ : EvaledStorageRef) (l₁ l₂ : StorageLoc),
+    cfg.storageBackend.locate? r₁ = some (.leaf l₁) →
+    cfg.storageBackend.locate? r₂ = some (.leaf l₂) →
     r₁ ≠ r₂ → l₁.slot ≠ l₂.slot
 
 variable {cfg : Config}
@@ -91,22 +92,22 @@ variable {cfg : Config}
 /-- Helper: the ERC20 layout's slot for a resolved reference, when injectivity holds, is determined
     by the reference. -/
 theorem InjectiveLayout.slot_ne (hinj : InjectiveLayout erc20Config)
-    {r₁ r₂ : EvaledStorageRef} {l₁ l₂ : StorageLoc} (evm : EVM.State)
-    (h₁ : erc20Config.storage.layout r₁ evm = some l₁)
-    (h₂ : erc20Config.storage.layout r₂ evm = some l₂)
+    {r₁ r₂ : EvaledStorageRef} {l₁ l₂ : StorageLoc}
+    (h₁ : erc20Config.storageBackend.locate? r₁ = some (.leaf l₁))
+    (h₂ : erc20Config.storageBackend.locate? r₂ = some (.leaf l₂))
     (hr : r₁ ≠ r₂) : l₁.slot ≠ l₂.slot :=
-  hinj r₁ r₂ evm l₁ l₂ h₁ h₂ hr
+  hinj r₁ r₂ l₁ l₂ h₁ h₂ hr
 
 /-- Distinct holders ⇒ distinct `balanceOf` slots. -/
 theorem balanceOf_slot_ne (hinj : InjectiveLayout erc20Config) {a b : AccountAddress} (h : a ≠ b) :
     erc20BalanceOfSlot (.address a) ≠ erc20BalanceOfSlot (.address b) := by
-  have hL₁ : erc20Config.storage.layout
-      { base := "balanceOf", steps := [.mindex (.address a)] } (default : EVM.State) =
-        some (erc20Uint256Loc (erc20BalanceOfSlot (.address a))) := by
+  have hL₁ : erc20Config.storageBackend.locate?
+      { base := "balanceOf", steps := [.mindex (.address a)] } =
+        some (.leaf (erc20Uint256Loc (erc20BalanceOfSlot (.address a)))) := by
     rw [erc20Config_storage_balanceOf]
-  have hL₂ : erc20Config.storage.layout
-      { base := "balanceOf", steps := [.mindex (.address b)] } (default : EVM.State) =
-        some (erc20Uint256Loc (erc20BalanceOfSlot (.address b))) := by
+  have hL₂ : erc20Config.storageBackend.locate?
+      { base := "balanceOf", steps := [.mindex (.address b)] } =
+        some (.leaf (erc20Uint256Loc (erc20BalanceOfSlot (.address b)))) := by
     rw [erc20Config_storage_balanceOf]
   have hr : ({ base := "balanceOf", steps := [.mindex (.address a)] } : EvaledStorageRef) ≠
       { base := "balanceOf", steps := [.mindex (.address b)] } := by
@@ -115,53 +116,51 @@ theorem balanceOf_slot_ne (hinj : InjectiveLayout erc20Config) {a b : AccountAdd
     simp only [List.cons.injEq, EvaledStorageRefStep.mindex.injEq, KeyValue.address.injEq,
       and_true] at hsteps
     exact h hsteps
-  simpa [erc20Uint256Loc] using hinj.slot_ne (default : EVM.State) hL₁ hL₂ hr
+  simpa [erc20Uint256Loc] using hinj.slot_ne hL₁ hL₂ hr
 
 /-- A `balanceOf` slot is never the `totalSupply` slot. -/
 theorem balanceOf_slot_ne_totalSupply (hinj : InjectiveLayout erc20Config) (a : AccountAddress) :
     erc20BalanceOfSlot (.address a) ≠ (⟨2⟩ : UInt256) := by
-  have hL₁ : erc20Config.storage.layout
-      { base := "balanceOf", steps := [.mindex (.address a)] } (default : EVM.State) =
-        some (erc20Uint256Loc (erc20BalanceOfSlot (.address a))) := by
+  have hL₁ : erc20Config.storageBackend.locate?
+      { base := "balanceOf", steps := [.mindex (.address a)] } =
+        some (.leaf (erc20Uint256Loc (erc20BalanceOfSlot (.address a)))) := by
     rw [erc20Config_storage_balanceOf]
-  have hL₂ : erc20Config.storage.layout
-      { base := "totalSupply", steps := [] } (default : EVM.State) =
-        some (erc20Uint256Loc ⟨2⟩) := by rw [erc20Config_storage_totalSupply]
+  have hL₂ : erc20Config.storageBackend.locate?
+      { base := "totalSupply", steps := [] } =
+        some (.leaf (erc20Uint256Loc ⟨2⟩)) := by rw [erc20Config_storage_totalSupply]
   have hr : ({ base := "balanceOf", steps := [.mindex (.address a)] } : EvaledStorageRef) ≠
       { base := "totalSupply", steps := [] } := by
     intro he; simp at he
-  simpa [erc20Uint256Loc] using hinj.slot_ne (default : EVM.State) hL₁ hL₂ hr
+  simpa [erc20Uint256Loc] using hinj.slot_ne hL₁ hL₂ hr
 
 /-- An `allowance` slot is never a `balanceOf` slot. -/
 theorem allowance_slot_ne_balanceOf (hinj : InjectiveLayout erc20Config)
     (o s a : AccountAddress) :
     erc20AllowanceSlot (.address o) (.address s) ≠ erc20BalanceOfSlot (.address a) := by
-  have hL₁ : erc20Config.storage.layout
+  have hL₁ : erc20Config.storageBackend.locate?
       { base := "allowance", steps := [.mindex (.address o), .mindex (.address s)] }
-        (default : EVM.State) =
-        some (erc20Uint256Loc (erc20AllowanceSlot (.address o) (.address s))) := by
+        = some (.leaf (erc20Uint256Loc (erc20AllowanceSlot (.address o) (.address s)))) := by
     rw [erc20Config_storage_allowance]
-  have hL₂ : erc20Config.storage.layout
-      { base := "balanceOf", steps := [.mindex (.address a)] } (default : EVM.State) =
-        some (erc20Uint256Loc (erc20BalanceOfSlot (.address a))) := by
+  have hL₂ : erc20Config.storageBackend.locate?
+      { base := "balanceOf", steps := [.mindex (.address a)] } =
+        some (.leaf (erc20Uint256Loc (erc20BalanceOfSlot (.address a)))) := by
     rw [erc20Config_storage_balanceOf]
   have hr : ({ base := "allowance", steps := [.mindex (.address o), .mindex (.address s)] } : EvaledStorageRef) ≠ { base := "balanceOf", steps := [.mindex (.address a)] } := by
     intro he; simp at he
-  simpa [erc20Uint256Loc] using hinj.slot_ne (default : EVM.State) hL₁ hL₂ hr
+  simpa [erc20Uint256Loc] using hinj.slot_ne hL₁ hL₂ hr
 
 /-- An `allowance` slot is never the `totalSupply` slot. -/
 theorem allowance_slot_ne_totalSupply (hinj : InjectiveLayout erc20Config) (o s : AccountAddress) :
     erc20AllowanceSlot (.address o) (.address s) ≠ (⟨2⟩ : UInt256) := by
-  have hL₁ : erc20Config.storage.layout
+  have hL₁ : erc20Config.storageBackend.locate?
       { base := "allowance", steps := [.mindex (.address o), .mindex (.address s)] }
-        (default : EVM.State) =
-        some (erc20Uint256Loc (erc20AllowanceSlot (.address o) (.address s))) := by
+        = some (.leaf (erc20Uint256Loc (erc20AllowanceSlot (.address o) (.address s)))) := by
     rw [erc20Config_storage_allowance]
-  have hL₂ : erc20Config.storage.layout
-      { base := "totalSupply", steps := [] } (default : EVM.State) =
-        some (erc20Uint256Loc ⟨2⟩) := by rw [erc20Config_storage_totalSupply]
+  have hL₂ : erc20Config.storageBackend.locate?
+      { base := "totalSupply", steps := [] } =
+        some (.leaf (erc20Uint256Loc ⟨2⟩)) := by rw [erc20Config_storage_totalSupply]
   have hr : ({ base := "allowance", steps := [.mindex (.address o), .mindex (.address s)] } : EvaledStorageRef) ≠ { base := "totalSupply", steps := [] } := by
     intro he; simp at he
-  simpa [erc20Uint256Loc] using hinj.slot_ne (default : EVM.State) hL₁ hL₂ hr
+  simpa [erc20Uint256Loc] using hinj.slot_ne hL₁ hL₂ hr
 
 end ERC20

@@ -108,18 +108,19 @@ theorem vatReachDenyBody {σ σ₀ A I} {g : Sat256}
   ∧ decode code p24 = some (.SSTORE, .none)
   ∧ decode code p25 = some (.JUMP, .none)
 
-theorem RD.vatDenyStoreZero {code : ByteArray} {g : Sat256} {s0 : State}
+theorem RD.vatDenyStoreZeroSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vatDenyStoreZeroWf code pc)
     (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
     (hmem : mem.size = 96)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 5 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd12, hd13, hd14, hd15,
       hd17, hd18, hd19, hd20, hd22, hd23, hd24, hd25⟩
@@ -156,13 +157,18 @@ theorem RD.vatDenyStoreZero {code : ByteArray} {g : Sat256} {s0 : State}
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ key hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨0⟩ key)
     (UInt256.ofNat 3) hd23 mem_cost hslot (by native_decide) (by evm_ov)
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdSlot.sstoreStatic (by simpa using hperm) hd24 (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdOut⟩ := rdSlot.sstore hperm hd24 (by evm_ov)
   exact ⟨_, _, rdOut.jump hd25 hret (by evm_ov)⟩
 
 theorem vatDenyBodyCoreOk
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hdecode :
@@ -172,7 +178,7 @@ theorem vatDenyBodyCoreOk
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1169⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let key := relyKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let callerSlot := vatCallerWardsSlot I
@@ -206,55 +212,56 @@ theorem vatDenyBodyCoreOk
     by_cases hliveEvm : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩
     · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (relySlotFor I) ⟨0⟩
+      have hguardAuth := vatAuthGuardEval_true
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+        (g := Sat256.ofUInt256 g) (locals := locals)
+        (by simp [locals]) hauthEvm
+      have hguardLive := vatLiveGuardEval_true
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+        (g := Sat256.ofUInt256 g) (locals := locals)
+        (by simp [locals]) hliveEvm
+      have hassign :
+          assignStorageRef? config { contract := contract, locals := locals } evm0
+            .storage (wardsRef (.var "usr")) (.int 0) =
+              .ok ({ contract := contract, locals := locals }, evm1) := by
+        have her :
+            evalStorageRef config { contract := contract, locals := locals } evm0
+              (wardsRef (.var "usr")) = .ok (relyEvaledRef I) := by
+          simp [evm0, relyEvaledRef, relyUsr, wardsRef, evalStorageRef,
+            evalStorageRefSteps, evalStorageRefStep, evalExpr?, valueToKey?,
+            EvalResult.ofOption, EvalResult.bind, pure, bind, locals]
+        have hstore :
+            storageLocStore evm0 (wordLoc (relySlotFor I)) (.int 0) = some evm1 := by
+          simpa [evm1] using storageLocStore_uint256 evm0 (relySlotFor I) ⟨0⟩
+        exact assignStorageRef_storage_scalar (hbackend := rfl)
+          (hleaf := Or.inl ⟨_, rfl⟩)
+          (ty := .elem (.int uint256Int)) (loc := wordLoc (relySlotFor I))
+          (hbase := by simp [locals, wardsRef])
+          (her := her)
+          (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
+          (hloc := by
+            simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
+              relyEvaledRef, relySlotFor])
+          (hstore := hstore)
+      have hpre : ∀ r, ExecBlock config { contract := contract, locals := locals } evm0
+          [.assign .storage (wardsRef (.var "usr")) (.intLit 0)] r →
+          ExecBlock config { contract := contract, locals := locals } evm0
+            [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+              .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
+              .require (.binary .eq (.storage liveRef) (.intLit 1)),
+              .assign .storage (wardsRef (.var "usr")) (.intLit 0) ] r := by
+        intro r hrest
+        refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+        · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+        refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
+        refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
+        exact hrest
       have hbody :
           ExecTransitionBody config contract evm0 locals denyTransition.body
             (.returned { contract := contract, locals := locals } evm1 none) := by
-        have hguardAuth := vatAuthGuardEval_true
-          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-          (g := Sat256.ofUInt256 g) (locals := locals)
-          (by simp [locals]) hauthEvm
-        have hguardLive := vatLiveGuardEval_true
-          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-          (g := Sat256.ofUInt256 g) (locals := locals)
-          (by simp [locals]) hliveEvm
-        have hassign :
-            assignStorageRef? config { contract := contract, locals := locals } evm0
-              .storage (wardsRef (.var "usr")) (.int 0) =
-                .ok ({ contract := contract, locals := locals }, evm1) := by
-          have her :
-              evalStorageRef config { contract := contract, locals := locals } evm0
-                (wardsRef (.var "usr")) = .ok (relyEvaledRef I) := by
-            simp [evm0, relyEvaledRef, relyUsr, wardsRef, evalStorageRef,
-              evalStorageRefSteps, evalStorageRefStep, evalExpr?, valueToKey?,
-              EvalResult.ofOption, EvalResult.bind, pure, bind, locals]
-          have hstore :
-              storageLocStore evm0 (wordLoc (relySlotFor I)) (.int 0) = some evm1 := by
-            simpa [evm1] using storageLocStore_uint256 evm0 (relySlotFor I) ⟨0⟩
-          exact assignStorageRef_storage_scalar
-            (ty := .elem (.int uint256Int)) (loc := wordLoc (relySlotFor I))
-            (hbase := by simp [locals, wardsRef])
-            (her := her)
-            (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
-            (hloc := by
-              funext evm
-              simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
-                relyEvaledRef, relySlotFor])
-            (hstore := hstore)
-        have hblock :
-            ExecBlock config { contract := contract, locals := locals } evm0
-              [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-                .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
-                .require (.binary .eq (.storage liveRef) (.intLit 1)),
-                .assign .storage (wardsRef (.var "usr")) (.intLit 0) ]
-              (.ok { contract := contract, locals := locals } evm1) := by
-          refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-          · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-          refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
-          refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
-          exact ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassign)
-            ExecBlock.nil
         simpa [ExecTransitionBody, denyTransition, nonpayable, auth, requireLive, evm0, evm1] using
-          ExecFuncBody.execBlockOK hblock
+          ExecFuncBody.execBlockOK (hpre _ (ExecBlock.consNormal
+            (ExecStmt.assign (by simp [evalExpr?, pure]) hassign) ExecBlock.nil))
       have hliveSolc : solcSlotWord σ I ⟨10⟩ = ⟨1⟩ := by
         simpa [solcSlotWordAt] using hliveEvm
       obtain ⟨_, _, hstorePc⟩ := RD.vatLiveGuardOk
@@ -271,13 +278,23 @@ theorem vatDenyBodyCoreOk
         dsimp [key, relyKey]
         rw [u256_land_comm solcAddrMask (calldataWord I.calldata 4)]
         exact solcAddrMask_result_canonical (calldataWord I.calldata 4)
-      obtain ⟨_, _, hretPc⟩ := RD.vatDenyStoreZero
+      have hstore := RD.vatDenyStoreZeroSplit
         (code := vatBytecode) (pc := ⟨5514⟩) (key := key) (ret := ⟨524⟩) (R := [sel])
         hstorePc
         (by
           unfold vatDenyStoreZeroWf
           repeat' first | apply And.intro | native_decide)
-        (by jump_dest) hperm hmemAuth hcanonKey (by simp)
+        (by jump_dest) hmemAuth hcanonKey (by simp)
+      by_cases hperm : I.perm = true
+      swap
+      · have hpf : I.perm = false := by simpa using hperm
+        exact (permSplit_false hpf hstore).reEquivStaticHalt hcode hdispatch hdecode
+          (by
+            simpa [ExecTransitionBody, denyTransition, nonpayable, auth, requireLive, evm0] using
+              ExecFuncBody.execBlockStatic (hpre _ (ExecBlock.consStatic
+                (ExecStmt.assignStatic (by simp [evalExpr?, pure]) hassign
+                  (by simp [evm0, initState]; exact hpf)))))
+      obtain ⟨_, _, hretPc⟩ := permSplit_true hperm hstore
       have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
       have hret :
           RDret vatBytecode (Sat256.ofUInt256 g)
@@ -376,7 +393,7 @@ theorem vatDenyBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1169⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -393,8 +410,8 @@ theorem vatDenyBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (vatDecode_deny_none_short hsz4 hshort)
 
-theorem vatDenyBodyCore : VatBodyTheorem 5 := by
-  intro σ σ₀ A I g hcode hsize hperm hwv hsel
+theorem vatDenyBodyCore : VatBodyTheoremAnyPerm 5 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 5) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
@@ -403,7 +420,7 @@ theorem vatDenyBodyCore : VatBodyTheorem 5 := by
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
-  · exact vatDenyBodyCoreOk hcode hwv hperm hsz36 hsize hdispatch
+  · exact vatDenyBodyCoreOk hcode hwv hsz36 hsize hdispatch
       (vatDecode_deny_ok hsz36) hreach
   · exact vatDenyBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 

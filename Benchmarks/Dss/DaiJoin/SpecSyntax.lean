@@ -20,6 +20,9 @@ def contractSyntax : ContractDecl := solidity% contract DaiJoin {
   address dai;
   uint256 live;
 
+  event Join(address indexed usr, uint256 wad);
+  event Exit(address indexed usr, uint256 wad);
+
   constructor(address vat_, address dai_) {
     wards[msg.sender] = 1;
     live = 1;
@@ -54,6 +57,7 @@ def contractSyntax : ContractDecl := solidity% contract DaiJoin {
     var moveRet = vat.move(msg.sender, this, rad);
     require(${Expr.extCodeSize (Expr.storage daiRef)} > 0);
     var mintRet = dai.mint(usr, wad);
+    emit Exit(usr, wad);
   }
 
   function join(address usr, uint256 wad) external {
@@ -62,6 +66,7 @@ def contractSyntax : ContractDecl := solidity% contract DaiJoin {
     var moveRet = vat.move(this, usr, rad);
     require(${Expr.extCodeSize (Expr.storage daiRef)} > 0);
     var burnRet = dai.burn(msg.sender, wad);
+    emit Join(usr, wad);
   }
 
   function live() external returns (uint256) {

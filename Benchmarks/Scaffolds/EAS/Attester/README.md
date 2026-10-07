@@ -39,7 +39,7 @@ Generated artifacts and scaffold files:
 - `creation.hex`: optimized creation bytecode, 3371 bytes.
 - `runtime.hex`: optimized deployed runtime template, 3186 bytes.
 - `Attester.abi.json`: ABI emitted by solc.
-- `Immutables.lean`: `_eas` immutable value, runtime patch offsets, and `runtimeCodeOf`.
+- `Immutables.lean`: the `_eas` immutable read, runtime patch offsets, and `deployedRuntime`.
 - `Bytecode.lean`: creation/runtime bytecode as Lean `ByteArray`s plus verified `JUMPDEST` sets.
 - `Spec.lean`: compact Solm AST spec with the full public ABI surface.
 - `Constructor.lean`: constructor-equivalence theorem stub.

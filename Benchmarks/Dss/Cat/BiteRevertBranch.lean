@@ -195,7 +195,7 @@ theorem catBiteRevertGrabFail {σ σ₀ A I} {g : UInt256}
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
@@ -230,7 +230,7 @@ theorem catBiteRevertGrabFail {σ σ₀ A I} {g : UInt256}
           Value.address (AccountAddress.ofNat (biteAddrMaskWord.land (solcSlotWord σu I ⟨4⟩)).toNat),
           Value.int (-Int.ofNat dink.toNat), Value.int (-Int.ofNat dart.toNat)]
         (false, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                  accountMap := σg, substate := Ag }, og) I.perm)
+                  accountMap := σg, substate := Ag }, og) true)
     (rd2193 :
       RD catBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         ⟨2193⟩ (⟨0⟩ :: R) mem aw og σg k C)
@@ -262,7 +262,7 @@ theorem catBiteRevertGrabFail {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
@@ -429,7 +429,7 @@ theorem catBiteRevertGrabFail {σ σ₀ A I} {g : UInt256}
     rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
   -- reshape the mapped grab call to the source-revert form.
-  rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
+  rw [← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
   -- feed the leaf + source-revert.
   have hlive' : solcSlotWordAt ⟨2⟩ eUrnS.accountMap eUrnS.executionEnv = ⟨1⟩ := by
@@ -491,7 +491,7 @@ theorem catBiteRevertFessFail {σ σ₀ A I} {g : UInt256}
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
@@ -528,7 +528,7 @@ theorem catBiteRevertFessFail {σ σ₀ A I} {g : UInt256}
           Value.address (AccountAddress.ofNat (biteAddrMaskWord.land (solcSlotWord σu I ⟨4⟩)).toNat),
           Value.int (-Int.ofNat dink.toNat), Value.int (-Int.ofNat dart.toNat)]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                  accountMap := σg, substate := Ag }, og) I.perm)
+                  accountMap := σg, substate := Ag }, og) true)
     (hFessCall :
       typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -536,7 +536,7 @@ theorem catBiteRevertFessFail {σ σ₀ A I} {g : UInt256}
         (AccountAddress.ofUInt256 (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩))) "fess" 0
         [Value.int (Int.ofNat (dart.mul iRate).toNat)]
         (zf, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                accountMap := σf, substate := Af }, ofb) I.perm)
+                accountMap := σf, substate := Af }, ofb) true)
     (rd2300 :
       RD catBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         ⟨2300⟩ (⟨0⟩ :: R2) mem2 aw2 ofb σf k2 C2)
@@ -569,7 +569,7 @@ theorem catBiteRevertFessFail {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
@@ -743,7 +743,7 @@ theorem catBiteRevertFessFail {σ σ₀ A I} {g : UInt256}
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
     rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
-  rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
+  rw [← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
   have hGrabDec : config.externalABI.decode? "grab" og = some [] := by
     simp [config, externalABI, decodeVoid?]
@@ -760,7 +760,7 @@ theorem catBiteRevertFessFail {σ σ₀ A I} {g : UInt256}
     simp only [biteVowAddrV, solcSlotWordAt, heGEam, heGEee]
   have hfessArg : bw (biteDartRateV I eUrnS iRate art) =
       Value.int (Int.ofNat (dart.mul iRate).toNat) := by rw [hdartrateBS]
-  rw [hzff, hperm, ← htgtF, ← hfessArg] at hFessSolm
+  rw [hzff, ← htgtF, ← hfessArg] at hFessSolm
   have hvowCodeS : 0 < (UInt256.ofNat
       ((eGrabS.lookupAccount (biteVowAddrV eGrabS)).option 0
         (fun acc => acc.code.size))).toNat := by
@@ -827,7 +827,7 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
@@ -867,7 +867,7 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
           Value.address (AccountAddress.ofNat (biteAddrMaskWord.land (solcSlotWord σu I ⟨4⟩)).toNat),
           Value.int (-Int.ofNat dink.toNat), Value.int (-Int.ofNat dart.toNat)]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                  accountMap := σg, substate := Ag }, og) I.perm)
+                  accountMap := σg, substate := Ag }, og) true)
     (hFessCall :
       typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -875,7 +875,7 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
         (AccountAddress.ofUInt256 (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩))) "fess" 0
         [Value.int (Int.ofNat (dart.mul iRate).toNat)]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                accountMap := σf, substate := Af }, ofb) I.perm)
+                accountMap := σf, substate := Af }, ofb) true)
     (hKickCall :
       typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -884,7 +884,7 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
         (seg8KickArgs (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew) I
           (biteAddrMaskWord.land (calldataWord I.calldata 36)) tab dink)
         (zk, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                accountMap := σk, substate := Ak }, ok) I.perm)
+                accountMap := σk, substate := Ak }, ok) true)
     (rd2532 :
       RD catBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         ⟨2532⟩ (⟨0⟩ :: R3) mem3 aw3 ok σk k3 C3)
@@ -924,7 +924,7 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
@@ -1112,7 +1112,7 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
     rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
-  rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
+  rw [← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
   have hGrabDec : config.externalABI.decode? "grab" og = some [] := by
     simp [config, externalABI, decodeVoid?]
@@ -1136,7 +1136,7 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
     simp only [biteVowAddrV, solcSlotWordAt, heGEam, heGEee]
   have hfessArg : bw (biteDartRateV I eUrnS iRate art) =
       Value.int (Int.ofNat (dart.mul iRate).toNat) := by rw [hdartrateBS]
-  rw [hperm, ← htgtF, ← hfessArg] at hFessSolm
+  rw [← htgtF, ← hfessArg] at hFessSolm
   have hFessDec : config.externalABI.decode? "fess" ofb = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hvowCodeS : 0 < (UInt256.ofNat
@@ -1217,7 +1217,7 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
     simp only [biteVowAddrV, solcSlotWordAt, heLSam, heLSee, hmask]
     rw [hslot4, hvowW]
   simp only [seg8KickArgs, seg8UrnM] at hKickSolm
-  rw [hzkf, hperm, ← htgtK, ← h2, ← hvowLit, ← htabBS, ← hdinkvBS] at hKickSolm
+  rw [hzkf, ← htgtK, ← h2, ← hvowLit, ← htabBS, ← hdinkvBS] at hKickSolm
   have hflipCodeS : 0 < (UInt256.ofNat
       ((eLitS.lookupAccount (biteFlipAddrV I eUrnS)).option 0
         (fun acc => acc.code.size))).toNat := by
@@ -1290,7 +1290,7 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
@@ -1330,7 +1330,7 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
           Value.address (AccountAddress.ofNat (biteAddrMaskWord.land (solcSlotWord σu I ⟨4⟩)).toNat),
           Value.int (-Int.ofNat dink.toNat), Value.int (-Int.ofNat dart.toNat)]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                  accountMap := σg, substate := Ag }, og) I.perm)
+                  accountMap := σg, substate := Ag }, og) true)
     (hFessCall :
       typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1338,7 +1338,7 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
         (AccountAddress.ofUInt256 (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩))) "fess" 0
         [Value.int (Int.ofNat (dart.mul iRate).toNat)]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                accountMap := σf, substate := Af }, ofb) I.perm)
+                accountMap := σf, substate := Af }, ofb) true)
     (hKickCall :
       typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1347,7 +1347,7 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
         (seg8KickArgs (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew) I
           (biteAddrMaskWord.land (calldataWord I.calldata 36)) tab dink)
         (zk, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                accountMap := σk, substate := Ak }, ok) I.perm)
+                accountMap := σk, substate := Ak }, ok) true)
     (rd2532 :
       RD catBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         ⟨2532⟩ (status :: d0 :: d1 :: d2 :: R3) mem3 aw3 ok σk k3 C3)
@@ -1394,7 +1394,7 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
@@ -1582,7 +1582,7 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
     rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
-  rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
+  rw [← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
   have hGrabDec : config.externalABI.decode? "grab" og = some [] := by
     simp [config, externalABI, decodeVoid?]
@@ -1606,7 +1606,7 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
     simp only [biteVowAddrV, solcSlotWordAt, heGEam, heGEee]
   have hfessArg : bw (biteDartRateV I eUrnS iRate art) =
       Value.int (Int.ofNat (dart.mul iRate).toNat) := by rw [hdartrateBS]
-  rw [hperm, ← htgtF, ← hfessArg] at hFessSolm
+  rw [← htgtF, ← hfessArg] at hFessSolm
   have hFessDec : config.externalABI.decode? "fess" ofb = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hvowCodeS : 0 < (UInt256.ofNat
@@ -1687,7 +1687,7 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
     simp only [biteVowAddrV, solcSlotWordAt, heLSam, heLSee, hmask]
     rw [hslot4, hvowW]
   simp only [seg8KickArgs, seg8UrnM] at hKickSolm
-  rw [hzk, hperm, ← htgtK, ← h2, ← hvowLit, ← htabBS, ← hdinkvBS] at hKickSolm
+  rw [hzk, ← htgtK, ← h2, ← hvowLit, ← htabBS, ← hdinkvBS] at hKickSolm
   have hflipCodeS : 0 < (UInt256.ofNat
       ((eLitS.lookupAccount (biteFlipAddrV I eUrnS)).option 0
         (fun acc => acc.code.size))).toNat := by
@@ -1764,7 +1764,7 @@ theorem catBiteRevertKickDecodeW {σ σ₀ A I} {g : UInt256}
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
@@ -1804,7 +1804,7 @@ theorem catBiteRevertKickDecodeW {σ σ₀ A I} {g : UInt256}
           Value.address (AccountAddress.ofNat (biteAddrMaskWord.land (solcSlotWord σu I ⟨4⟩)).toNat),
           Value.int (-Int.ofNat dink.toNat), Value.int (-Int.ofNat dart.toNat)]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                  accountMap := σg, substate := Ag }, og) I.perm)
+                  accountMap := σg, substate := Ag }, og) true)
     (hFessCall :
       typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1812,7 +1812,7 @@ theorem catBiteRevertKickDecodeW {σ σ₀ A I} {g : UInt256}
         (AccountAddress.ofUInt256 (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩))) "fess" 0
         [Value.int (Int.ofNat (dart.mul iRate).toNat)]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                accountMap := σf, substate := Af }, ofb) I.perm)
+                accountMap := σf, substate := Af }, ofb) true)
     (hKickCall :
       typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1821,7 +1821,7 @@ theorem catBiteRevertKickDecodeW {σ σ₀ A I} {g : UInt256}
         (seg8KickArgs (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew) I
           (biteAddrMaskWord.land (calldataWord I.calldata 36)) tab dink)
         (zk, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                accountMap := σk, substate := Ak }, ok) I.perm)
+                accountMap := σk, substate := Ak }, ok) true)
     (rd2532 :
       RD catBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         ⟨2532⟩
@@ -1873,13 +1873,13 @@ theorem catBiteRevertKickDecodeW {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hMloadFreeAw : UInt256.ofNat (MachineState.M (⟨17⟩ : UInt256).toNat 64 32) = ⟨17⟩ := by
     native_decide
   have hMloadFreeValue := catBiteKickPostCallMemP_mload64_short p
     (biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36))) kvow tab dink ok
     hp96 hpmem hpsz hshort hread64
-  exact catBiteRevertKickDecode hcode hdispatch hdecode hwv hperm hsz36 hdepth hurn
+  exact catBiteRevertKickDecode hcode hdispatch hdecode hwv hsz36 hdepth hurn
     hilkslen hurnslen hlive hvatCode hUrnsVatCode hGrabCode hFessCode hKickCode hIlksCall
     hUrnsCall hGrabCall hFessCall hKickCall rd2532 hoszk hov3 hzk hstatus hshort
     hMloadFreeValue (memoryExpansionCost_zero_of_aw_stable hMloadFreeAw) hMloadFreeAw hRateFit hflipWDef hdartRateDef
@@ -2111,7 +2111,7 @@ theorem catBiteRoomUnderflowEmptyRevertLeaf {σ σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.solcCheckedSubEmptyRevertFromDecodes rd hsub (by native_decide) (by native_decide)
     (by native_decide) hlt hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -2169,7 +2169,7 @@ theorem catBiteRevertRoomSub {σ σ₀ A I} {g : UInt256}
     (hiSpot : iSpot = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 64 96)))
     (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have h64 : (⟨64⟩ : UInt256).toNat = 64 := by native_decide
   have h128 : (⟨128⟩ : UInt256).toNat = 128 := by native_decide
@@ -2314,7 +2314,7 @@ theorem catBiteRevertDunkRoomWad {σ σ₀ A I} {g : UInt256}
     (hmilkDunkDef : milkDunk = solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨2⟩))
     (hmilkChopDef : milkChop = solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨1⟩))
     (hdunkRoomDef : dunkRoom = if milkDunk.gt room = ⟨0⟩ then milkDunk else room) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   obtain ⟨_, _, rd1810⟩ := catBiteTraceSeg7a rd1708 hlitterbox hroomdust (by simp)
   obtain ⟨_, _, rd3720⟩ := catBiteReachGuardDunkRoomWad rd1810 hChop hDunk
@@ -2468,7 +2468,7 @@ theorem catBiteRevertMilkChopZero {σ σ₀ A I} {g : UInt256}
     (hdunkRoomDef : dunkRoom = if milkDunk.gt room = ⟨0⟩ then milkDunk else room)
     (hdunkRoomWadDef : dunkRoomWad = dunkRoom.mul ⟨1000000000000000000⟩)
     (hdartDenomDef : dartDenomRate = dunkRoomWad.div iRate) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   obtain ⟨_, _, rd1810⟩ := catBiteTraceSeg7a rd1708 hlitterbox hroomdust (by simp)
   obtain ⟨_, _, rd1865⟩ := catBiteReachGuardMilkChopZero rd1810 hChop hDunk
@@ -2594,7 +2594,7 @@ theorem catBiteRevertInkSpot {σ σ₀ A I} {g : UInt256}
     (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160)))
     (hInkSpotNofit : ¬ ink.toNat * iSpot.toNat < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hsz_pos : 0 < UInt256.size := by rw [show UInt256.size = 2 ^ 256 from rfl]; positivity
   have hspotPos : 0 < iSpot.toNat := by
@@ -2688,7 +2688,7 @@ theorem catBiteRevertLive {σ σ₀ A I} {g : UInt256}
     (hiSpot : iSpot = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 64 96)))
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160)))
     (hlive : solcSlotWordAt ⟨2⟩ σu I ≠ ⟨1⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmemI : 196 ≤ (catBiteIlksPostCallMem I o').size := by
     have h := catBiteIlksPostCallMem_size I o' hilkslen hosz; omega
@@ -2852,7 +2852,7 @@ theorem catBiteRevertUnsafe {σ σ₀ A I} {g : UInt256}
     (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160)))
     (hunsafeF : ¬ (ink * iSpot).toNat < (art * iRate).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmemI : 196 ≤ (catBiteIlksPostCallMem I o').size := by
     have h := catBiteIlksPostCallMem_size I o' hilkslen hosz; omega
@@ -2976,7 +2976,7 @@ theorem catBiteRevertSpotZero {σ σ₀ A I} {g : UInt256}
     (hiSpot : iSpot = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 64 96)))
     (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hspot0N : iSpot.toNat = 0 := by rw [hspot0]; native_decide
   have hmemI : 196 ≤ (catBiteIlksPostCallMem I o').size := by
@@ -3098,7 +3098,7 @@ theorem catBiteRevertArtRate {σ σ₀ A I} {g : UInt256}
     (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160)))
     (hfitArtRateF : ¬ art.toNat * iRate.toNat < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hsz_pos : 0 < UInt256.size := by rw [show UInt256.size = 2 ^ 256 from rfl]; positivity
   have hover : UInt256.size ≤ art.toNat * iRate.toNat := Nat.le_of_not_lt hfitArtRateF
@@ -3268,7 +3268,7 @@ theorem catBiteRevertInkDart {σ σ₀ A I} {g : UInt256}
     (hdartDenomDef : dartDenomRate = dunkRoomWad.div iRate)
     (hdartCandDef : dartCandidate = dartDenomRate.div milkChop)
     (hdartDef : dart = if art.gt dartCandidate = ⟨0⟩ then art else dartCandidate) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
@@ -3376,7 +3376,7 @@ theorem catBiteRevertTabBase {σ σ₀ A I} {g : UInt256}
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
@@ -3413,7 +3413,7 @@ theorem catBiteRevertTabBase {σ σ₀ A I} {g : UInt256}
           Value.address (AccountAddress.ofNat (biteAddrMaskWord.land (solcSlotWord σu I ⟨4⟩)).toNat),
           Value.int (-Int.ofNat dink.toNat), Value.int (-Int.ofNat dart.toNat)]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                  accountMap := σg, substate := Ag }, og) I.perm)
+                  accountMap := σg, substate := Ag }, og) true)
     (hFessCall :
       typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -3421,7 +3421,7 @@ theorem catBiteRevertTabBase {σ σ₀ A I} {g : UInt256}
         (AccountAddress.ofUInt256 (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩))) "fess" 0
         [Value.int (Int.ofNat dartRate.toNat)]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                accountMap := σf, substate := Af }, ofb) I.perm)
+                accountMap := σf, substate := Af }, ofb) true)
     (rd2300 :
       RD catBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         ⟨2300⟩ (status :: f0 :: f1 :: f2 :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate ::
@@ -3460,7 +3460,7 @@ theorem catBiteRevertTabBase {σ σ₀ A I} {g : UInt256}
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hChopNofit : ¬ milkChop.toNat * dartRate.toNat < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
@@ -3634,7 +3634,7 @@ theorem catBiteRevertTabBase {σ σ₀ A I} {g : UInt256}
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
     rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
-  rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
+  rw [← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
   have hGrabDec : config.externalABI.decode? "grab" og = some [] := by
     simp [config, externalABI, decodeVoid?]
@@ -3650,7 +3650,7 @@ theorem catBiteRevertTabBase {σ σ₀ A I} {g : UInt256}
     simp only [biteVowAddrV, solcSlotWordAt, heGEam, heGEee]
   have hfessArg : bw (biteDartRateV I eUrnS iRate art) =
       Value.int (Int.ofNat dartRate.toNat) := by rw [hdartrateBS]
-  rw [hperm, ← htgtF, ← hfessArg] at hFessSolm
+  rw [← htgtF, ← hfessArg] at hFessSolm
   have hFessDec : config.externalABI.decode? "fess" ofb = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hvowCodeS : 0 < (UInt256.ofNat
@@ -3812,7 +3812,7 @@ theorem catBiteRevertIlksDecode {σ σ₀ A I} {g : UInt256}
     (hstatus : status ≠ ⟨0⟩)
     (hosz : o'.size < UInt256.size) (hawout9 : awout = ⟨9⟩)
     (hilkslen : ¬ 160 ≤ o'.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   subst hawout9
   obtain ⟨σs, As, hIlksSolm, _hEq⟩ := catBiteMapIlksCall hIlksCall
   have htgt : (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I))
@@ -3913,7 +3913,7 @@ theorem catBiteMilkRequireStringRevertLeaf {σ σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have rd2 := rd.push2 okPc hpush2 (by simp only [List.length_cons]; omega)
   have rd3 := rd2.jumpiNT hjumpi hcond (by omega)
   have hrev :=
@@ -4008,7 +4008,7 @@ theorem catBiteRevertDartZero {σ σ₀ A I} {g : UInt256}
     (hdinkCandDef : dinkCandidate = UInt256.div inkDart art)
     (hdinkDef : dink = if UInt256.gt ink dinkCandidate = ⟨0⟩ then ink else dinkCandidate)
     (hDartPos : ¬ (0 < dart.toNat)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
@@ -4195,7 +4195,7 @@ theorem catBiteRevertDinkZero {σ σ₀ A I} {g : UInt256}
     (hdinkCandDef : dinkCandidate = UInt256.div inkDart art)
     (hdinkDef : dink = if UInt256.gt ink dinkCandidate = ⟨0⟩ then ink else dinkCandidate)
     (hDartPos : 0 < dart.toNat) (hDinkPos : ¬ (0 < dink.toNat)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
@@ -4392,7 +4392,7 @@ theorem catBiteRevertDartLimit {σ σ₀ A I} {g : UInt256}
     (hdinkDef : dink = if UInt256.gt ink dinkCandidate = ⟨0⟩ then ink else dinkCandidate)
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : ¬ (dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
@@ -4591,7 +4591,7 @@ theorem catBiteRevertDinkLimit {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : ¬ (dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
@@ -4874,7 +4874,7 @@ theorem catBiteMilkRequireStringFullWordRevertLeaf {σ σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have rd2 := rd.push2 okPc hpush2 (by simp only [List.length_cons]; omega)
   have rd3 := rd2.jumpiNT hjumpi hcond (by omega)
   have hrev := RD.catBiteMilkErrorStringFullWordRevertTail rd3 htail hmem hread64 hov
@@ -4936,7 +4936,7 @@ theorem catBiteRevertLitterGeBox {σ σ₀ A I} {g : UInt256}
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160)))
     (hle : (solcSlotWord σu I ⟨6⟩).toNat ≤ (solcSlotWord σu I ⟨5⟩).toNat)
     (hlitterbox : ¬ ((solcSlotWord σu I ⟨6⟩).toNat < (solcSlotWord σu I ⟨5⟩).toNat)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
@@ -5054,7 +5054,7 @@ theorem catBiteRevertRoomDust {σ σ₀ A I} {g : UInt256}
     (hroomDef : room = (solcSlotWord σu I ⟨5⟩).sub (solcSlotWord σu I ⟨6⟩))
     (hlitterbox : (solcSlotWord σu I ⟨6⟩).toNat < (solcSlotWord σu I ⟨5⟩).toNat)
     (hroomdust : ¬ (iDust.toNat ≤ room.toNat)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
@@ -5136,7 +5136,7 @@ theorem catBiteRevertFessNoCode {σ σ₀ A I} {g : UInt256}
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
@@ -5173,7 +5173,7 @@ theorem catBiteRevertFessNoCode {σ σ₀ A I} {g : UInt256}
           Value.address (AccountAddress.ofNat (biteAddrMaskWord.land (solcSlotWord σu I ⟨4⟩)).toNat),
           Value.int (-Int.ofNat dink.toNat), Value.int (-Int.ofNat dart.toNat)]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                  accountMap := σg, substate := Ag }, og) I.perm)
+                  accountMap := σg, substate := Ag }, og) true)
     (rd2284 :
       RD catBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         ⟨2284⟩ (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩) ::
@@ -5207,7 +5207,7 @@ theorem catBiteRevertFessNoCode {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
@@ -5381,7 +5381,7 @@ theorem catBiteRevertFessNoCode {σ σ₀ A I} {g : UInt256}
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
     rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
-  rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
+  rw [← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
   have hGrabDec : config.externalABI.decode? "grab" og = some [] := by
     simp [config, externalABI, decodeVoid?]
@@ -5463,9 +5463,8 @@ set_option maxHeartbeats 4000000 in
 at pc `2516` before any call. Maps the 4-call chain + the litter SSTORE, fires the generic
 `RD.solcExtcodesizeGuardMissing` at the post-SSTORE account map + `catBiteSourceKickNoCodeRevert`.
 Dual of `catBiteRevertKickFail`. -/
-theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
-    {σ' σu σg σf : AccountMap} {A' Au Ag Af : Substate} {o' ou og ofb rdata3 : ByteArray}
-    {mem3 : ByteArray} {aw3 : UInt256} {R3 : List UInt256} {k3 C3 : ℕ}
+theorem catBiteRevertKickNoCodeSplit {σ σ₀ A I} {g : UInt256}
+    {σ' σu σg σf : AccountMap} {A' Au Ag Af : Substate} {o' ou og ofb : ByteArray}
     {flipW dartRate tabBase tab litterNew : UInt256}
     {art ink iSpot iRate iDust room milkDunk milkChop dunkRoom dunkRoomWad
       dartDenomRate dartCandidate dart inkDart dinkCandidate dink : UInt256}
@@ -5474,9 +5473,10 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
+    (hurn :
+      biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
     (hlive : solcSlotWordAt ⟨2⟩ σu I = ⟨1⟩)
     (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ (catBiteVatTargetWord σ I) = ⟨0⟩)
@@ -5486,9 +5486,6 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
       ¬ Reasoning.Theory.extCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
     (hFessCode :
       ¬ Reasoning.Theory.extCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
-    (hKickCode :
-      Reasoning.Theory.extCodeSizeWord (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew)
-        (biteAddrMaskWord.land flipW) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I)) "ilks" 0 [biteIlkVal I]
@@ -5511,10 +5508,11 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
           Value.address (AccountAddress.ofNat
             (biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36))).toNat),
           Value.address (AccountAddress.ofNat (UInt256.ofNat I.codeOwner.val).toNat),
-          Value.address (AccountAddress.ofNat (biteAddrMaskWord.land (solcSlotWord σu I ⟨4⟩)).toNat),
+          Value.address
+            (AccountAddress.ofNat (biteAddrMaskWord.land (solcSlotWord σu I ⟨4⟩)).toNat),
           Value.int (-Int.ofNat dink.toNat), Value.int (-Int.ofNat dart.toNat)]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                  accountMap := σg, substate := Ag }, og) I.perm)
+                  accountMap := σg, substate := Ag }, og) true)
     (hFessCall :
       typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -5522,14 +5520,10 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
         (AccountAddress.ofUInt256 (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩))) "fess" 0
         [Value.int (Int.ofNat (dart.mul iRate).toNat)]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                accountMap := σf, substate := Af }, ofb) I.perm)
-    (rd2516 :
-      RD catBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        ⟨2516⟩ (biteAddrMaskWord.land flipW :: biteAddrMaskWord.land flipW :: R3) mem3 aw3 rdata3
-        (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew) k3 C3)
-    (hov3 : R3.length + 4 ≤ 1024)
+                accountMap := σf, substate := Af }, ofb) true)
     (hRateFit : iRate.toNat * dart.toNat < UInt256.size)
-    (hflipWDef : flipW = biteAddrMaskWord.land (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I))))
+    (hflipWDef :
+      flipW = biteAddrMaskWord.land (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I))))
     (hdartRateDef : dartRate = dart.mul iRate)
     (htabBaseDef : tabBase = dartRate.mul milkChop)
     (htabDef : tab = tabBase.div ⟨1000000000000000000⟩)
@@ -5563,16 +5557,28 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    (∀ {rdata3 mem3 : ByteArray} {aw3 : UInt256} {R3 : List UInt256} {k3 C3 : ℕ}
+      (_hKickCode :
+        Reasoning.Theory.extCodeSizeWord (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew)
+          (biteAddrMaskWord.land flipW) = ⟨0⟩)
+      (_rd2516 :
+        RD catBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          ⟨2516⟩ (biteAddrMaskWord.land flipW :: biteAddrMaskWord.land flipW :: R3) mem3 aw3 rdata3
+          (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew) k3 C3)
+      (_hov3 : R3.length + 4 ≤ 1024),
+      runtimeRefinementFor config contract σ σ₀ g A I) ∧
+    (I.perm = false →
+      RDstatic catBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) →
+      runtimeRefinementFor config contract σ σ₀ g A I) := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
-    fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
+    fun w hw ↦ Nat.pos_of_ne_zero (fun h ↦ hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
       extCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
       0 < (UInt256.ofNat ((e.lookupAccount
         (AccountAddress.ofUInt256 w)).option 0
-        (fun acc => acc.code.size))).toNat := by
+        (fun acc ↦ acc.code.size))).toNat := by
     intro e w hw
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
@@ -5751,7 +5757,7 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
     rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
-  rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
+  rw [← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
   have hGrabDec : config.externalABI.decode? "grab" og = some [] := by
     simp [config, externalABI, decodeVoid?]
@@ -5774,12 +5780,12 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
     simp only [biteVowAddrV, solcSlotWordAt, heGEam, heGEee]
   have hfessArg : bw (biteDartRateV I eUrnS iRate art) =
       Value.int (Int.ofNat (dart.mul iRate).toNat) := by rw [hdartrateBS]
-  rw [hperm, ← htgtF, ← hfessArg] at hFessSolm
+  rw [← htgtF, ← hfessArg] at hFessSolm
   have hFessDec : config.externalABI.decode? "fess" ofb = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hvowCodeS : 0 < (UInt256.ofNat
       ((eGrabS.lookupAccount (biteVowAddrV eGrabS)).option 0
-        (fun acc => acc.code.size))).toNat := by
+        (fun acc ↦ acc.code.size))).toNat := by
     rw [← biteVowAddrV_eq_of_equiv hEqGrabState,
       ← codeW_eq_of_equiv (biteVowAddrV eGrabE) hEqGrabState]
     have haddr : biteVowAddrV eGrabE =
@@ -5797,41 +5803,12 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
   set hLitVal := biteLitterNewV I eUrnS eFessS iRate art with hLitValDef
   have hLitValEq : litterNew = hLitVal :=
     hlitternewE.symm.trans (biteLitterNewV_eq_of_equiv hEqU hEqFessState iRate art)
-  have codeZero : ∀ (e : EVM.State) (w : UInt256),
-      extCodeSizeWord e.accountMap w = ⟨0⟩ →
-      (UInt256.ofNat ((e.lookupAccount
-        (AccountAddress.ofUInt256 w)).option 0
-        (fun acc => acc.code.size))).toNat = 0 := by
-    intro e w hw
-    unfold extCodeSizeWord at hw
-    simp only [State.lookupAccount]
-    cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
-    | none => native_decide
-    | some acc =>
-        rw [hf] at hw
-        simpa [Option.option] using congrArg UInt256.toNat hw
   set eLitS := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := sstoreAccountMap I.codeOwner σfs ⟨6⟩ hLitVal,
     substate := Afs } with heLitSdef
   have heLSam : eLitS.accountMap =
     sstoreAccountMap I.codeOwner σfs ⟨6⟩ hLitVal := rfl
   have heLSee : eLitS.executionEnv = I := rfl
-  have hflipAddrS : biteFlipAddrV I eUrnS =
-      AccountAddress.ofUInt256 (biteAddrMaskWord.land flipW) := by
-    rw [← biteFlipAddrV_eq_of_equiv hEqU,
-      accountAddress_ofUInt256_eq_ofNat_toNat, hflipWDef, hmask]
-    simp only [biteFlipAddrV, solcSlotWordAt, heUEam, heUEee,
-      biteFlipSlot_eq hsz36]
-    rw [solcAddrMask_clean_left
-      (by rw [u256_land_comm]; exact solcAddrMask_result_canonical _),
-      u256_land_comm]
-  have hflipCode0 : (UInt256.ofNat
-      ((eLitS.lookupAccount (biteFlipAddrV I eUrnS)).option 0
-        (fun acc => acc.code.size))).toNat = 0 := by
-    rw [hflipAddrS]
-    refine codeZero eLitS (biteAddrMaskWord.land flipW) ?_
-    rw [heLSam, ← hEqFess, ← hLitValEq]
-    exact hKickCode
   have hlive' : solcSlotWordAt ⟨2⟩ eUrnS.accountMap eUrnS.executionEnv = ⟨1⟩ := by
     rw [← solcSlotWordAt_eq_of_equiv hEqU ⟨2⟩]; exact hlive
   have hLitStoreS :
@@ -5840,18 +5817,25 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
     have h := storageLocStore_uint256 eFessS ⟨6⟩ hLitVal
     rw [storeFlat] at h
     exact h
-  have hbody :
+  have hbodySplit :
+    ((UInt256.ofNat
+      ((eLitS.lookupAccount (biteFlipAddrV I eUrnS)).option 0
+        (fun acc ↦ acc.code.size))).toNat = 0 →
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
-        biteTransition.body .reverted := by
-    refine catBiteSourceKickNoCodeRevert hwv
+        biteTransition.body .reverted) ∧
+    (eFessS.executionEnv.perm = false →
+      ExecTransitionBody config contract
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
+        biteTransition.body .staticViolation) := by
+    refine catBiteSourceKickNoCodeRevertSplit hwv
       (catBiteVatCodePos_of_uniswap hvatCode) hIlksSolm hIlksDec
       hvatCodeIlkS hUrnsSolm hUrnsDec hlive' hsz36 hfitInkSpot hfitArtRate
       hspotPos (hposNe iRate hRatePos) hunsafe ?_ ?_ ?_ ?_ ?_
       (hposNe art hArtPos) ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
       (by simpa [eUrnS, hAmEq] using hGrabSolm) hGrabDec
       hvowCodeS (by simpa [eGrabS, hσGrab, initState] using hFessSolm)
-      hFessDec hLitStoreS hflipCode0
+      hFessDec hLitStoreS
     · rw [← biteLitW_eq_of_equiv hEqU, ← biteBoxW_eq_of_equiv hEqU, hlitB, hboxB]
       exact hlitterbox
     · rw [← biteRoomV_eq_of_equiv hEqU, hroomB]; exact hroomdust
@@ -5882,13 +5866,162 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
         hdartrateBE, hchopB, Nat.mul_comm]; exact hChopFit
     · rw [← biteLitW_eq_of_equiv hEqFessState, ← biteTabV_eq_of_equiv hEqU,
         hlitFB, htabB]; exact hLitFit
-  have hrev : RDrev catBytecode (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
-    RD.solcExtcodesizeGuardMissing (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd2516 hKickCode
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) hov3
-  simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
+  constructor
+  · intro rdata3 mem3 aw3 R3 k3 C3 hKickCode rd2516 hov3
+    have codeZero : ∀ (e : EVM.State) (w : UInt256),
+        extCodeSizeWord e.accountMap w = ⟨0⟩ →
+        (UInt256.ofNat ((e.lookupAccount
+          (AccountAddress.ofUInt256 w)).option 0
+          (fun acc ↦ acc.code.size))).toNat = 0 := by
+      intro e w hw
+      unfold extCodeSizeWord at hw
+      simp only [State.lookupAccount]
+      cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
+      | none => native_decide
+      | some acc =>
+          rw [hf] at hw
+          simpa [Option.option] using congrArg UInt256.toNat hw
+    have hflipAddrS : biteFlipAddrV I eUrnS =
+        AccountAddress.ofUInt256 (biteAddrMaskWord.land flipW) := by
+      rw [← biteFlipAddrV_eq_of_equiv hEqU,
+        accountAddress_ofUInt256_eq_ofNat_toNat, hflipWDef, hmask]
+      simp only [biteFlipAddrV, solcSlotWordAt, heUEam, heUEee,
+        biteFlipSlot_eq hsz36]
+      rw [solcAddrMask_clean_left
+        (by rw [u256_land_comm]; exact solcAddrMask_result_canonical _),
+        u256_land_comm]
+    have hflipCode0 : (UInt256.ofNat
+        ((eLitS.lookupAccount (biteFlipAddrV I eUrnS)).option 0
+          (fun acc ↦ acc.code.size))).toNat = 0 := by
+      rw [hflipAddrS]
+      refine codeZero eLitS (biteAddrMaskWord.land flipW) ?_
+      rw [heLSam, ← hEqFess, ← hLitValEq]
+      exact hKickCode
+    have hrev : RDrev catBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
+      RD.solcExtcodesizeGuardMissing (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd2516 hKickCode
+        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by native_decide) hov3
+    simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode (hbodySplit.1 hflipCode0)
+  · intro hperm hstatic
+    exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+
+theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
+    {σ' σu σg σf : AccountMap} {A' Au Ag Af : Substate} {o' ou og ofb rdata3 : ByteArray}
+    {mem3 : ByteArray} {aw3 : UInt256} {R3 : List UInt256} {k3 C3 : ℕ}
+    {flipW dartRate tabBase tab litterNew : UInt256}
+    {art ink iSpot iRate iDust room milkDunk milkChop dunkRoom dunkRoomWad
+      dartDenomRate dartCandidate dart inkDart dinkCandidate dink : UInt256}
+    (hcode : I.code = catBytecode)
+    (hdispatch : dispatchMsg contract I.calldata = some biteTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
+        (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
+    (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
+    (hdepth : (I.depth : ℕ) < 1024)
+    (hurn :
+      biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
+    (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
+    (hlive : solcSlotWordAt ⟨2⟩ σu I = ⟨1⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ (catBiteVatTargetWord σ I) = ⟨0⟩)
+    (hUrnsVatCode :
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((solcSlotWordAt ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+    (hGrabCode :
+      ¬ Reasoning.Theory.extCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
+    (hFessCode :
+      ¬ Reasoning.Theory.extCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
+    (hKickCode :
+      Reasoning.Theory.extCodeSizeWord (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew)
+        (biteAddrMaskWord.land flipW) = ⟨0⟩)
+    (hIlksCall :
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I)) "ilks" 0 [biteIlkVal I]
+        (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σ', substate := A' }, o') false)
+    (hUrnsCall :
+      typedCallViaEVM config
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ' }
+        (AccountAddress.ofUInt256 ((solcSlotWordAt ⟨3⟩ σ' I).land biteAddrMaskWord)) "urns" 0
+        [biteIlkVal I, biteUrnVal I]
+        (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σu, substate := Au }, ou) false)
+    (hGrabCall :
+      typedCallViaEVM config
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σu }
+        (AccountAddress.ofUInt256 ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord)) "grab" 0
+        [Value.fixedBytes bytes32Width (EVM.Word.toBytesBE (biteIlkWord I)),
+          Value.address (AccountAddress.ofNat
+            (biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36))).toNat),
+          Value.address (AccountAddress.ofNat (UInt256.ofNat I.codeOwner.val).toNat),
+          Value.address
+            (AccountAddress.ofNat (biteAddrMaskWord.land (solcSlotWord σu I ⟨4⟩)).toNat),
+          Value.int (-Int.ofNat dink.toNat), Value.int (-Int.ofNat dart.toNat)]
+        (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σg, substate := Ag }, og) true)
+    (hFessCall :
+      typedCallViaEVM config
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σg }
+        (AccountAddress.ofUInt256 (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩))) "fess" 0
+        [Value.int (Int.ofNat (dart.mul iRate).toNat)]
+        (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+                accountMap := σf, substate := Af }, ofb) true)
+    (rd2516 :
+      RD catBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        ⟨2516⟩ (biteAddrMaskWord.land flipW :: biteAddrMaskWord.land flipW :: R3) mem3 aw3 rdata3
+        (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew) k3 C3)
+    (hov3 : R3.length + 4 ≤ 1024)
+    (hRateFit : iRate.toNat * dart.toNat < UInt256.size)
+    (hflipWDef :
+      flipW = biteAddrMaskWord.land (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I))))
+    (hdartRateDef : dartRate = dart.mul iRate)
+    (htabBaseDef : tabBase = dartRate.mul milkChop)
+    (htabDef : tab = tabBase.div ⟨1000000000000000000⟩)
+    (hlitterNewDef : litterNew = solcSlotWord σf I ⟨6⟩ + tab)
+    (hChopFit : milkChop.toNat * dartRate.toNat < UInt256.size)
+    (hLitFit : (solcSlotWord σf I ⟨6⟩).toNat + tab.toNat < UInt256.size)
+    (hart : art = UInt256.ofNat (fromByteArrayBigEndian (ou.extract 32 64)))
+    (hink : ink = UInt256.ofNat (fromByteArrayBigEndian (ou.extract 0 32)))
+    (hiSpot : iSpot = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 64 96)))
+    (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
+    (hiDustDef : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160)))
+    (hroomDef : room = (solcSlotWord σu I ⟨5⟩).sub (solcSlotWord σu I ⟨6⟩))
+    (hmilkDunkDef : milkDunk = solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨2⟩))
+    (hmilkChopDef : milkChop = solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨1⟩))
+    (hdunkRoomDef : dunkRoom = if milkDunk.gt room = ⟨0⟩ then milkDunk else room)
+    (hdunkRoomWadDef : dunkRoomWad = dunkRoom.mul ⟨1000000000000000000⟩)
+    (hdartDenomDef : dartDenomRate = dunkRoomWad.div iRate)
+    (hdartCandDef : dartCandidate = dartDenomRate.div milkChop)
+    (hdartDef : dart = if art.gt dartCandidate = ⟨0⟩ then art else dartCandidate)
+    (hinkDartDef : inkDart = ink.mul dart)
+    (hdinkCandDef : dinkCandidate = inkDart.div art)
+    (hdinkDef : dink = if ink.gt dinkCandidate = ⟨0⟩ then ink else dinkCandidate)
+    (hspotPos : 0 < iSpot.toNat) (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)
+    (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size)
+    (hunsafe : (ink * iSpot).toNat < (art * iRate).toNat)
+    (hlitterbox : (solcSlotWord σu I ⟨6⟩).toNat < (solcSlotWord σu I ⟨5⟩).toNat)
+    (hroomdust : iDust.toNat ≤ room.toNat)
+    (hRatePos : iRate ≠ ⟨0⟩) (hChopPos : milkChop ≠ ⟨0⟩)
+    (hFitWad : (⟨1000000000000000000⟩ : UInt256).toNat * dunkRoom.toNat < UInt256.size)
+    (hArtPos : art ≠ ⟨0⟩) (hFitInkDart : dart.toNat * ink.toNat < UInt256.size)
+    (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
+    (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
+    (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
+    runtimeRefinementFor config contract σ σ₀ g A I :=
+  (catBiteRevertKickNoCodeSplit
+    hcode hdispatch hdecode hwv hsz36 hdepth
+    hurn hilkslen hurnslen hlive hvatCode hUrnsVatCode
+    hGrabCode hFessCode hIlksCall hUrnsCall hGrabCall hFessCall
+    hRateFit hflipWDef hdartRateDef htabBaseDef htabDef hlitterNewDef
+    hChopFit hLitFit hart hink hiSpot hiRate
+    hiDustDef hroomDef hmilkDunkDef hmilkChopDef hdunkRoomDef hdunkRoomWadDef
+    hdartDenomDef hdartCandDef hdartDef hinkDartDef hdinkCandDef hdinkDef
+    hspotPos hfitArtRate hfitInkSpot hunsafe hlitterbox hroomdust
+    hRatePos hChopPos hFitWad hArtPos hFitInkDart hDartPos
+    hDinkPos hDartLim hDinkLim).1 hKickCode rd2516 hov3
 
 set_option maxHeartbeats 1000000 in
 /-- The shared DSMath checked-add routine `@3802` on the **overflow** path (empty `revert(0,0)`
@@ -5942,9 +6075,10 @@ theorem catBiteRevertLitterAdd {σ σ₀ A I} {g : UInt256}
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
-    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
+    (hurn :
+      biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
     (hlive : solcSlotWordAt ⟨2⟩ σu I = ⟨1⟩)
     (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ (catBiteVatTargetWord σ I) = ⟨0⟩)
@@ -5976,10 +6110,11 @@ theorem catBiteRevertLitterAdd {σ σ₀ A I} {g : UInt256}
           Value.address (AccountAddress.ofNat
             (biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36))).toNat),
           Value.address (AccountAddress.ofNat (UInt256.ofNat I.codeOwner.val).toNat),
-          Value.address (AccountAddress.ofNat (biteAddrMaskWord.land (solcSlotWord σu I ⟨4⟩)).toNat),
+          Value.address
+            (AccountAddress.ofNat (biteAddrMaskWord.land (solcSlotWord σu I ⟨4⟩)).toNat),
           Value.int (-Int.ofNat dink.toNat), Value.int (-Int.ofNat dart.toNat)]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                  accountMap := σg, substate := Ag }, og) I.perm)
+                  accountMap := σg, substate := Ag }, og) true)
     (hFessCall :
       typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -5987,7 +6122,7 @@ theorem catBiteRevertLitterAdd {σ σ₀ A I} {g : UInt256}
         (AccountAddress.ofUInt256 (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩))) "fess" 0
         [Value.int (Int.ofNat (dart.mul iRate).toNat)]
         (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                accountMap := σf, substate := Af }, ofb) I.perm)
+                accountMap := σf, substate := Af }, ofb) true)
     (rd2300 :
       RD catBytecode I (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         ⟨2300⟩ (status :: f0 :: f1 :: f2 :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate ::
@@ -6029,16 +6164,16 @@ theorem catBiteRevertLitterAdd {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
-    fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
+    fun w hw ↦ Nat.pos_of_ne_zero (fun h ↦ hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
       extCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
       0 < (UInt256.ofNat ((e.lookupAccount
         (AccountAddress.ofUInt256 w)).option 0
-        (fun acc => acc.code.size))).toNat := by
+        (fun acc ↦ acc.code.size))).toNat := by
     intro e w hw
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
@@ -6217,7 +6352,7 @@ theorem catBiteRevertLitterAdd {σ σ₀ A I} {g : UInt256}
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
     rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
-  rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
+  rw [← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
   have hGrabDec : config.externalABI.decode? "grab" og = some [] := by
     simp [config, externalABI, decodeVoid?]
@@ -6240,12 +6375,12 @@ theorem catBiteRevertLitterAdd {σ σ₀ A I} {g : UInt256}
     simp only [biteVowAddrV, solcSlotWordAt, heGEam, heGEee]
   have hfessArg : bw (biteDartRateV I eUrnS iRate art) =
       Value.int (Int.ofNat (dart.mul iRate).toNat) := by rw [hdartrateBS]
-  rw [hperm, ← htgtF, ← hfessArg] at hFessSolm
+  rw [← htgtF, ← hfessArg] at hFessSolm
   have hFessDec : config.externalABI.decode? "fess" ofb = some [] := by
     simp [config, externalABI, decodeVoid?]
   have hvowCodeS : 0 < (UInt256.ofNat
       ((eGrabS.lookupAccount (biteVowAddrV eGrabS)).option 0
-        (fun acc => acc.code.size))).toNat := by
+        (fun acc ↦ acc.code.size))).toNat := by
     rw [← biteVowAddrV_eq_of_equiv hEqGrabState,
       ← codeW_eq_of_equiv (biteVowAddrV eGrabE) hEqGrabState]
     have haddr : biteVowAddrV eGrabE =
@@ -6293,7 +6428,7 @@ theorem catBiteRevertLitterAdd {σ σ₀ A I} {g : UInt256}
       Nat.mul_comm]; exact hChopFit
   have hvowCode := hvowCodeS
   have hvatCodeMid : 0 < (UInt256.ofNat
-      ((eUrnS.lookupAccount (biteVatAddr eUrnS)).option 0 (fun acc => acc.code.size))).toNat := by
+      ((eUrnS.lookupAccount (biteVatAddr eUrnS)).option 0 (fun acc ↦ acc.code.size))).toNat := by
     have haddr : biteVatAddr eUrnS = AccountAddress.ofUInt256 (catBiteVatTargetWord σus I) := by
       rw [accountAddress_ofUInt256_eq_ofNat_toNat]
       simp only [biteVatAddr, catBiteVatTargetWord, solcAddressSlotWord, solcSlotWordAt, heUSam, heUSee]

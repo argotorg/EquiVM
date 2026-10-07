@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import ABI.Encode
 import Solm.Semantics
 import Solm.SolidityLayout
@@ -556,26 +557,25 @@ def auctionBoolLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def auctionBoolLocAt (slot : Ethereum.UInt256) (offset : Fin 32) : StorageLoc :=
   { slot := slot, offset := offset, size := 1, hbound := by omega, type := .bool }
 
-def auctionStorageLayout : StorageLayout where
-  layout ref _ :=
+def auctionStorageLayout : StorageLayout := fun ref =>
     match ref.base, ref.steps with
-    | "_initialized", [] => some (auctionBoolLoc ⟨0⟩)
-    | "_initializing", [] => some (auctionBoolLocAt ⟨0⟩ 1)
-    | "_paused", [] => some (auctionBoolLoc ⟨51⟩)
-    | "_status", [] => some (auctionUint256Loc ⟨101⟩)
-    | "_owner", [] => some (auctionAddrLoc ⟨151⟩)
-    | "nouns", [] => some (auctionAddrLoc ⟨201⟩)
-    | "weth", [] => some (auctionAddrLoc ⟨202⟩)
-    | "timeBuffer", [] => some (auctionUint256Loc ⟨203⟩)
-    | "reservePrice", [] => some (auctionUint256Loc ⟨204⟩)
-    | "minBidIncrementPercentage", [] => some (auctionUint8LocAt ⟨205⟩ 0)
-    | "duration", [] => some (auctionUint256Loc ⟨206⟩)
-    | "auction", [.field "nounId"] => some (auctionUint256Loc ⟨207⟩)
-    | "auction", [.field "amount"] => some (auctionUint256Loc ⟨208⟩)
-    | "auction", [.field "startTime"] => some (auctionUint256Loc ⟨209⟩)
-    | "auction", [.field "endTime"] => some (auctionUint256Loc ⟨210⟩)
-    | "auction", [.field "bidder"] => some (auctionAddrLoc ⟨211⟩)
-    | "auction", [.field "settled"] => some (auctionBoolLocAt ⟨211⟩ 20)
+    | "_initialized", [] => some (.leaf (auctionBoolLoc ⟨0⟩))
+    | "_initializing", [] => some (.leaf (auctionBoolLocAt ⟨0⟩ 1))
+    | "_paused", [] => some (.leaf (auctionBoolLoc ⟨51⟩))
+    | "_status", [] => some (.leaf (auctionUint256Loc ⟨101⟩))
+    | "_owner", [] => some (.leaf (auctionAddrLoc ⟨151⟩))
+    | "nouns", [] => some (.leaf (auctionAddrLoc ⟨201⟩))
+    | "weth", [] => some (.leaf (auctionAddrLoc ⟨202⟩))
+    | "timeBuffer", [] => some (.leaf (auctionUint256Loc ⟨203⟩))
+    | "reservePrice", [] => some (.leaf (auctionUint256Loc ⟨204⟩))
+    | "minBidIncrementPercentage", [] => some (.leaf (auctionUint8LocAt ⟨205⟩ 0))
+    | "duration", [] => some (.leaf (auctionUint256Loc ⟨206⟩))
+    | "auction", [.field "nounId"] => some (.leaf (auctionUint256Loc ⟨207⟩))
+    | "auction", [.field "amount"] => some (.leaf (auctionUint256Loc ⟨208⟩))
+    | "auction", [.field "startTime"] => some (.leaf (auctionUint256Loc ⟨209⟩))
+    | "auction", [.field "endTime"] => some (.leaf (auctionUint256Loc ⟨210⟩))
+    | "auction", [.field "bidder"] => some (.leaf (auctionAddrLoc ⟨211⟩))
+    | "auction", [.field "settled"] => some (.leaf (auctionBoolLocAt ⟨211⟩ 20))
     | _, _ => none
 
 /-- External-call ABI for the token/WETH calls made by the runtime. -/
@@ -606,6 +606,6 @@ def auctionExternalABI : ExternalCallABI where
 end Auction
 
 def auctionConfig : Config :=
-  { storage := Auction.auctionStorageLayout
+  { storageBackend := solidityStorageBackend Auction.auctionStorageLayout
     externalABI := Auction.auctionExternalABI
     selfDeployment := genSolidityConstructorDeployment Auction.auctionContract.ctor.params }

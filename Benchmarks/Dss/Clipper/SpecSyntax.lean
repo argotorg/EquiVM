@@ -8,8 +8,8 @@ The whole `clip.sol` spec written with `solidity%` and proven definitionally equ
 spec in `Spec.lean`.  Checked DSMath helpers keep their inlined spec shapes (`(…) as uint256`
 plus the overflow `require`), built-in wrapping arithmetic is the explicit `% #wordModulus`
 (resp. `#uint96Modulus`/`#uint64Modulus`/`#uint192Modulus`), `bytes32` file keys are big-endian
-ASCII literals, and immutable `vat`/`ilk` reads plus the external calls that target them are
-spliced from the spec (`${vatExpr v}`, `${checkedExternalCallStmts …}`).  Transition order
+ASCII literals, the immutables `vat`/`ilk` are declared and assigned as in Solidity, and the
+external calls that target `vat` are spliced from the spec (`${checkedExternalCallStmts …}`).  Transition order
 matches `contract.transitions` (selector order).
 -/
 
@@ -18,7 +18,10 @@ open Benchmarks.Dss.Clipper.Immutables
 
 namespace Benchmarks.Dss.Clipper.Syntax
 
-def contractSyntax (v : ClipperImmutables) : ContractDecl := solidity% contract Clipper {
+def contractSyntax : ContractDecl := solidity% contract Clipper {
+  address immutable vat;
+  bytes32 immutable ilk;
+
   struct Sale {
     uint256 pos;
     uint256 tab;
@@ -49,8 +52,8 @@ def contractSyntax (v : ClipperImmutables) : ContractDecl := solidity% contract 
   constructor(address vat_, address spotter_, address dog_, bytes32 ilk_) payable {
     stopped = 0;
     require(msg.value == 0);
-    address imm_vat = vat_;
-    bytes32 imm_ilk = ilk_;
+    vat = vat_;
+    ilk = ilk_;
     spotter = spotter_;
     dog = dog_;
     buf = #RAY;
@@ -100,7 +103,7 @@ def contractSyntax (v : ClipperImmutables) : ContractDecl := solidity% contract 
 
   function getFeedPrice() internal returns (uint256) {
     require(spotter.code.length > 0);
-    var spotterIlk = spotter.spotterIlks(${ilkExpr v});
+    var spotterIlk = spotter.spotterIlks(ilk);
     address pip = spotterIlk.0;
     require(pip.code.length > 0);
     var peekRet = pip.peek();
@@ -230,7 +233,7 @@ def contractSyntax (v : ClipperImmutables) : ContractDecl := solidity% contract 
   }
 
   function ilk() external returns (bytes32) {
-    return ${ilkExpr v};
+    return ilk;
   }
 
   function kick(uint256 tab, uint256 lot, address usr, address kpr) external returns (uint256) {
@@ -263,7 +266,7 @@ def contractSyntax (v : ClipperImmutables) : ContractDecl := solidity% contract 
       uint256 coinNew = (_tip + chipCoin) as uint256;
       require(coinNew >= _tip);
       coin = coinNew;
-      ${checkedExternalCallStmts (vatExpr v) "suck" (.intLit 0)
+      ${checkedExternalCallStmts (vatExpr) "suck" (.intLit 0)
         [.storage vowRef, .var "kpr", .var "coin"] "_suckRet"}
     }
     locked = 0;
@@ -306,7 +309,7 @@ def contractSyntax (v : ClipperImmutables) : ContractDecl := solidity% contract 
           var chipCoin = wmul(tab, _chip);
           uint256 coin = (_tip + chipCoin) as uint256;
           require(coin >= _tip);
-          ${checkedExternalCallStmts (vatExpr v) "suck" (.intLit 0)
+          ${checkedExternalCallStmts (vatExpr) "suck" (.intLit 0)
             [.storage vowRef, .var "kpr", .var "coin"] "_suckRet"}
         }
       }
@@ -373,29 +376,29 @@ def contractSyntax (v : ClipperImmutables) : ContractDecl := solidity% contract 
     uint256 lotNew = (lot - slice) % #wordModulus;
     tab = tabNew;
     lot = lotNew;
-    ${checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
-      [ilkExpr v, thisAddr, .var "who", .var "slice"] "_fluxBuyerRet"}
+    ${checkedExternalCallStmts (vatExpr) "flux" (.intLit 0)
+      [ilkExpr, thisAddr, .var "who", .var "slice"] "_fluxBuyerRet"}
     address dog_ = dog;
-    if (data.length > 0 && who != ${vatExpr v} && who != dog_) {
+    if (data.length > 0 && who != vat && who != dog_) {
       require(who.code.length > 0);
       var _clipperCallRet = who.clipperCall(msg.sender, owe, slice, data);
     }
-    ${checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+    ${checkedExternalCallStmts (vatExpr) "move" (.intLit 0)
       [sender, .storage vowRef, .var "owe"] "_moveRet"}
     if (lot == 0) {
       uint256 digsAmt = (tab + owe) % #wordModulus;
       require(dog_.code.length > 0);
-      var _digsRet = dog_.digs(${ilkExpr v}, digsAmt);
+      var _digsRet = dog_.digs(ilk, digsAmt);
     } else {
       require(dog_.code.length > 0);
-      var _digsRet = dog_.digs(${ilkExpr v}, owe);
+      var _digsRet = dog_.digs(ilk, owe);
     }
     if (lot == 0) {
       var _removeRet = _remove(id);
     } else {
       if (tab == 0) {
-        ${checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
-          [ilkExpr v, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet"}
+        ${checkedExternalCallStmts (vatExpr) "flux" (.intLit 0)
+          [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet"}
         var _removeRet2 = _remove(id);
       } else {
         sales[id].tab = tab;
@@ -410,16 +413,16 @@ def contractSyntax (v : ClipperImmutables) : ContractDecl := solidity% contract 
   }
 
   function upchost() external {
-    ${checkedExternalCallStmts (vatExpr v) "vatIlks" (.intLit 0) [ilkExpr v] "vatIlk"}
+    ${checkedExternalCallStmts (vatExpr) "vatIlks" (.intLit 0) [ilkExpr] "vatIlk"}
     uint256 _dust = ${Expr.tupleGet (Expr.var "vatIlk") 4};
     require(dog.code.length > 0);
-    var chop = dog.chop(${ilkExpr v});
+    var chop = dog.chop(ilk);
     var chostNew = wmul(_dust, chop);
     chost = chostNew;
   }
 
   function vat() external returns (address) {
-    return ${vatExpr v};
+    return vat;
   }
 
   function vow() external returns (address) {
@@ -436,15 +439,15 @@ def contractSyntax (v : ClipperImmutables) : ContractDecl := solidity% contract 
     locked = 1;
     require(sales[id].usr != address(0));
     require(dog.code.length > 0);
-    var _digsRet = dog.digs(${ilkExpr v}, sales[id].tab);
-    ${checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
-      [ilkExpr v, thisAddr, sender, .storage (salesF (.var "id") "lot")] "_fluxRet"}
+    var _digsRet = dog.digs(ilk, sales[id].tab);
+    ${checkedExternalCallStmts (vatExpr) "flux" (.intLit 0)
+      [ilkExpr, thisAddr, sender, .storage (salesF (.var "id") "lot")] "_fluxRet"}
     var _removeRet = _remove(id);
     locked = 0;
   }
 }
 
-theorem contractSyntax_eq (v : ClipperImmutables) :
-    contractSyntax v = Benchmarks.Dss.Clipper.contract v := by rfl
+theorem contractSyntax_eq :
+    contractSyntax = Benchmarks.Dss.Clipper.contract := by rfl
 
 end Benchmarks.Dss.Clipper.Syntax

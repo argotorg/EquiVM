@@ -17,7 +17,6 @@ theorem stringStoreLiteSetNewShortRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -38,7 +37,7 @@ theorem stringStoreLiteSetNewShortRuntime
           ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) ≠ ⟨0⟩)
     (hnewShort :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   by_cases hflag :
     UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ = ⟨0⟩
@@ -48,10 +47,10 @@ theorem stringStoreLiteSetNewShortRuntime
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩)
           ⟨32⟩) ≠ ⟨0⟩
     · exact stringStoreLiteSetNewShortOldShortValidRuntime
-        hcode hsize hperm hwv hsel hsz36 hhi hoffMax hlenWord hsizeSign
+        hcode hsize hwv hsel hsz36 hhi hoffMax hlenWord hsizeSign
         hlenMax hpayload hnonzero hnewShort hflag hvalid
     · exact stringStoreLiteSetShortNonemptyShortMalformedRuntime
-        hcode hsize hperm hwv hsel hsz36 hhi hoffMax hlenWord hsizeSign
+        hcode hsize hwv hsel hsz36 hhi hoffMax hlenWord hsizeSign
         hlenMax hpayload hnewShort hnonzero hflag
         (by
           by_contra hne
@@ -61,10 +60,10 @@ theorem stringStoreLiteSetNewShortRuntime
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) =
         ⟨0⟩
     · exact stringStoreLiteSetShortNonemptyLongMalformedRuntime
-        hcode hsize hperm hwv hsel hsz36 hhi hoffMax hlenWord hsizeSign
+        hcode hsize hwv hsel hsz36 hhi hoffMax hlenWord hsizeSign
         hlenMax hpayload hnewShort hnonzero hflag hbadLong
     · exact stringStoreLiteSetShortNonemptyLongValidRuntime
-        hcode hsize hperm hwv hsel hsz36 hhi hoffMax hlenWord hsizeSign
+        hcode hsize hwv hsel hsz36 hhi hoffMax hlenWord hsizeSign
         hlenMax hpayload hnewShort hnonzero hflag hbadLong
 
 

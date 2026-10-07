@@ -68,15 +68,15 @@ theorem evalExpr_healSinCapitalStorage (evm : EVM.State) {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage SinRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩).toNat)) := by
-  rw [evalExpr_storage_scalar (er := healSinCapitalEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := healSinCapitalEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨5⟩)]
   · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨5⟩)
   · exact hbase
   · simp [healSinCapitalEvaledRef, SinRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
       healSinCapitalEvaledRef]
 
 theorem healSinWrite_size (I : ExecutionEnv) (mem o : ByteArray) (L : ℕ)
@@ -617,8 +617,7 @@ theorem RD.vowHealHealPostCall
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) ≠ ⟨0⟩)
-    (hdepth : I.depth.val < 1024)
-    (hperm : I.perm = true) :
+    (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD vowBytecode I (Sat256.ofUInt256 g)
@@ -666,7 +665,7 @@ theorem RD.vowHealHealPostCall
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
       (kissVatAddress_eq_daiTarget acc I) ?_ ?_
     · simpa [healRad, kissRad] using kissHealEncode_eq I hmem
-    · simpa [initState, hperm, healRad, kissRad] using hΘ
+    · simpa [initState, healRad, kissRad] using hΘ
 
 theorem vowHealSourceSinDecodeRevert
     {σ σ₀ A I} {g : UInt256} {evmDai evmSin : EVM.State}
@@ -1379,7 +1378,7 @@ theorem vowHealSinDecodeShortBodyCore
     (hcallSin :
       typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd1295⟩ := RD.vowHealSinCallSuccessToDecode rd1277 (by simp)
   have hrev :=
     RD.vowHealSinReturnDecodeShortReverts rd1295 houtShort houtSize hMload64Value
@@ -1432,7 +1431,7 @@ theorem vowHealFreeSinUnderflowBodyCore
     (hSinLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨5⟩ =
         solcSlotWordAt ⟨5⟩ acc I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealFreeSinSubUnderflow rd1318 hunder
   have hbody := vowHealSourceFreeSinUnderflow
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1489,7 +1488,7 @@ theorem vowHealDebtUnderflowBodyCore
     (hAshLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨6⟩ =
         solcSlotWordAt ⟨6⟩ acc I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealDebtSubUnderflow rd1325 hunder
   have hbody := vowHealSourceHealDebtUnderflow
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1551,7 +1550,7 @@ theorem vowHealInsufficientDebtBodyCore
         solcSlotWordAt ⟨6⟩ acc I)
     (hdebt : healDebt = UInt256.sub freeSin (solcSlotWordAt ⟨6⟩ acc I))
     (hdebtOk : (solcSlotWordAt ⟨6⟩ acc I).toNat ≤ freeSin.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealInsufficientDebt rd4921 hinsuff hmem hread64
   have hbody := vowHealSourceInsufficientDebt
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)

@@ -132,14 +132,14 @@ theorem evalExpr_flapFlapperStorage (evm : EVM.State) {locals : Store}
     (hbase : locals.get? "flapper" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage flapperRef) =
       .ok (.address (flapFlapperAddressOf evm)) := by
-  rw [evalExpr_storage_scalar (er := ({ base := "flapper", steps := [] } : EvaledStorageRef))
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := ({ base := "flapper", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨2⟩)]
   · exact congrArg EvalResult.ok (storageLocLoad_address_offset0 evm ⟨2⟩)
   · exact hbase
   · simp [flapperRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, addrSt]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw]
 
 abbrev flapBumpEvaledRef : EvaledStorageRef :=
   { base := "bump", steps := [] }
@@ -149,15 +149,15 @@ theorem evalExpr_flapBumpStorage (evm : EVM.State) {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage bumpRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨10⟩).toNat)) := by
-  rw [evalExpr_storage_scalar (er := flapBumpEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := flapBumpEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨10⟩)]
   · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨10⟩)
   · exact hbase
   · simp [flapBumpEvaledRef, bumpRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, flapBumpEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, flapBumpEvaledRef]
 
 abbrev flapHumpEvaledRef : EvaledStorageRef :=
   { base := "hump", steps := [] }
@@ -167,15 +167,15 @@ theorem evalExpr_flapHumpStorage (evm : EVM.State) {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage humpRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat)) := by
-  rw [evalExpr_storage_scalar (er := flapHumpEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := flapHumpEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨11⟩)]
   · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨11⟩)
   · exact hbase
   · simp [flapHumpEvaledRef, humpRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, flapHumpEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, flapHumpEvaledRef]
 
 theorem flapEvalExpr_extCodeGuard_true {evm : EVM.State} {locals : Store}
     {receiver : Expr} {target : AccountAddress}
@@ -1356,7 +1356,7 @@ theorem vowFlapSurplus0AddOverflowBodyCore
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨10⟩ = BumpVal)
     (hBumpEvm : BumpVal = solcSlotWordAt ⟨10⟩ acc I)
     (hover : UInt256.size ≤ vatSin0.toNat + BumpVal.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hoverEvm :
       UInt256.size ≤ vatSin0.toNat + (solcSlotWordAt ⟨10⟩ acc I).toNat := by
     simpa [← hBumpEvm] using hover
@@ -1399,7 +1399,7 @@ theorem vowFlapSurplusNeedAddOverflowBodyCore
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨11⟩ = HumpVal)
     (hHumpEvm : HumpVal = solcSlotWordAt ⟨11⟩ acc I)
     (hover : UInt256.size ≤ surplus0.toNat + HumpVal.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hoverEvm :
       UInt256.size ≤ surplus0.toNat + (solcSlotWordAt ⟨11⟩ acc I).toNat := by
     simpa [← hHumpEvm] using hover
@@ -1460,7 +1460,7 @@ theorem vowFlapDai0InsufficientSurplusBodyCore
       config.externalABI.decode? "dai" outDai =
         some [.int (Int.ofNat vatDai.toNat)])
     (hinsuff : vatDai.toNat < surplusNeed.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapDai0InsufficientSurplus rd1113 hinsuff hmem hread64
   have hbody := flapSourceInsufficientSurplus
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)

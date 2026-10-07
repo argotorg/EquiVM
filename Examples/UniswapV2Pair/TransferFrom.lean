@@ -523,7 +523,8 @@ theorem evalExpr_transferFrom_currentAllowance (evm : EVM.State) (I : ExecutionE
     evalExpr? config { contract := contract, locals := transferFromStore I } evm
       (.storage (allowanceRef (.var "from") sender)) =
         .ok (transferFromCurrentAllowanceValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc (transferFromAllowanceSlot evm I))
     (hbase := transferFromStore_allowance I)
     (her := evalStorageRef_transferFrom_allowance evm I)
     (hty := by
@@ -629,7 +630,8 @@ theorem transferFromAssignAllowance (evm : EVM.State) (I : ExecutionEnv) :
       (.int (Int.ofNat (transferFromAllowanceDebitWord evm I).toNat)) =
         .ok ({ contract := contract, locals := transferFromStoreCurrentAllowance evm I },
           transferFromAfterAllowanceState evm I) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
+      (ty := uint256St) (loc := wordLoc (transferFromAllowanceSlot evm I))
       (hbase := by simp [allowanceRef])
       (her := evalStorageRef_transferFrom_allowance_currentAllowance evm evm I)
       (hty := by
@@ -1305,7 +1307,8 @@ theorem evalExpr_transferFrom_from_balance (evm : EVM.State) (I : ExecutionEnv) 
     evalExpr? config { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
       (transferFromAfterAllowanceState evm I) (.storage (balanceOfRef (.var "from"))) =
         .ok (transferFromFromBalanceValue (transferFromAfterAllowanceState evm I) I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc (transferFromFromSlot I))
     (hbase := by simp [balanceOfRef])
     (her := evalStorageRef_transferFrom_from_balance_currentAllowance evm
       (transferFromAfterAllowanceState evm I) I)
@@ -1319,7 +1322,8 @@ theorem evalExpr_transferFrom_from_balance_max (evm : EVM.State) (I : ExecutionE
     evalExpr? config { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
       evm (.storage (balanceOfRef (.var "from"))) =
         .ok (transferFromFromBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc (transferFromFromSlot I))
     (hbase := by simp [balanceOfRef])
     (her := evalStorageRef_transferFrom_from_balance_currentAllowance evm evm I)
     (hty := by simp [storageTypeAt?, transferFromFromBalanceEvaledRef, contract, storageDecls,
@@ -1429,7 +1433,8 @@ theorem transferFromAssignFrom (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := transferFromStoreFromBalance evm I },
           transferFromAfterBalanceState evm I) := by
   simp only [balanceOfRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
+      (ty := uint256St) (loc := wordLoc (transferFromFromSlot I))
       (hbase := by simp [balanceOfRef])
       (her := evalStorageRef_transferFrom_from_balance_fromBalance evm
         (transferFromAfterAllowanceState evm I) I)
@@ -1447,7 +1452,8 @@ theorem transferFromAssignFromMax (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := transferFromStoreFromBalanceMax evm I },
           transferFromAfterBalanceStateMax evm I) := by
   simp only [balanceOfRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
+      (ty := uint256St) (loc := wordLoc (transferFromFromSlot I))
       (hbase := by simp [balanceOfRef])
       (her := evalStorageRef_transferFrom_from_balance_fromBalanceMax evm evm I)
       (hty := by simp [storageTypeAt?, transferFromFromBalanceEvaledRef, contract, storageDecls,
@@ -1523,7 +1529,8 @@ theorem evalExpr_transferFrom_to_balance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferFromStoreFromBalance evm I }
       (transferFromAfterBalanceState evm I) (.storage (balanceOfRef (.var "to"))) =
         .ok (transferFromToBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc (transferFromToSlot I))
     (hbase := by simp [balanceOfRef])
     (her := evalStorageRef_transferFrom_to_balance_fromBalance evm
       (transferFromAfterBalanceState evm I) I)
@@ -1537,7 +1544,8 @@ theorem evalExpr_transferFrom_to_balance_max (evm : EVM.State) (I : ExecutionEnv
     evalExpr? config { contract := contract, locals := transferFromStoreFromBalanceMax evm I }
       (transferFromAfterBalanceStateMax evm I) (.storage (balanceOfRef (.var "to"))) =
         .ok (transferFromToBalanceValueMax evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc (transferFromToSlot I))
     (hbase := by simp [balanceOfRef])
     (her := evalStorageRef_transferFrom_to_balance_fromBalanceMax evm
       (transferFromAfterBalanceStateMax evm I) I)
@@ -1624,7 +1632,8 @@ theorem transferFromAssignTo (evm : EVM.State) (I : ExecutionEnv)
         .ok ({ contract := contract, locals := transferFromStoreToBalance evm I },
           transferFromPostState evm I) := by
   simp only [balanceOfRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
+      (ty := uint256St) (loc := wordLoc (transferFromToSlot I))
       (hbase := by simp [balanceOfRef])
       (her := evalStorageRef_transferFrom_to_balance_toBalance evm
         (transferFromAfterBalanceState evm I) I)
@@ -1643,7 +1652,8 @@ theorem transferFromAssignToMax (evm : EVM.State) (I : ExecutionEnv)
         .ok ({ contract := contract, locals := transferFromStoreToBalanceMax evm I },
           transferFromPostStateMax evm I) := by
   simp only [balanceOfRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
+      (ty := uint256St) (loc := wordLoc (transferFromToSlot I))
       (hbase := by simp [balanceOfRef])
       (her := evalStorageRef_transferFrom_to_balance_toBalanceMax evm
         (transferFromAfterBalanceStateMax evm I) I)
@@ -1849,6 +1859,69 @@ theorem uniswapTransferFromBodyReturns_maxAllowance (evm : EVM.State) (I : Execu
     (ExecStmt.assign (evalExpr_transferFrom_newToBalanceMax evm I hfit)
       (transferFromAssignToMax evm I hfit)) ?_
   exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
+
+theorem uniswapTransferFromBodyStatic_finiteAllowance (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hnotMax : (transferFromCurrentAllowanceWord evm I).toNat ≠ UInt256.size - 1)
+    (hallowance : (transferFromValueWord I).toNat ≤
+      (transferFromCurrentAllowanceWord evm I).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (transferFromStore I) transferFromTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+    [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+      .letDecl "currentAllowance" (some uint256) (.storage (allowanceRef (.var "from") sender)),
+      .ite (.binary .ne (.var "currentAllowance") (.intLit maxUint256))
+        [ .require (.binary .ge (.var "currentAllowance") (.var "value")),
+          .assign .storage (allowanceRef (.var "from") sender)
+            (.binary .sub (.var "currentAllowance") (.var "value")) ]
+        [],
+      .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
+      .require (.binary .ge (.var "fromBalance") (.var "value")),
+      .assign .storage (balanceOfRef (.var "from"))
+        (.binary .sub (.var "fromBalance") (.var "value")),
+      .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
+      .assign .storage (balanceOfRef (.var "to"))
+        (u256 (.binary .add (.var "toBalance") (.var "value"))),
+      .return [(.boolLit true)] ]
+    .staticViolation
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+  refine ExecBlock.consStatic
+    (ExecStmt.iteTrue (evalExpr_transferFrom_currentAllowance_ne_max_true evm I hnotMax) ?_)
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFrom_require_allowance_true evm I hallowance)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_transferFrom_allowance_debit evm I hallowance)
+      (transferFromAssignAllowance evm I) hperm)
+
+theorem uniswapTransferFromBodyStatic_maxAllowance (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hmax : (transferFromCurrentAllowanceWord evm I).toNat = UInt256.size - 1)
+    (hbalance : (transferFromValueWord I).toNat ≤ (transferFromFromBalanceWord evm I).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (transferFromStore I) transferFromTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  change ExecBlock config { contract := contract, locals := transferFromStore I } evm
+    (transferFromAllowancePrefixBody ++
+      [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
+        .require (.binary .ge (.var "fromBalance") (.var "value")),
+        .assign .storage (balanceOfRef (.var "from"))
+          (.binary .sub (.var "fromBalance") (.var "value")),
+        .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
+        .assign .storage (balanceOfRef (.var "to"))
+          (u256 (.binary .add (.var "toBalance") (.var "value"))),
+        .return [(.boolLit true)] ])
+    .staticViolation
+  refine execBlock_append (uniswapTransferFromAllowanceMaxPrefix evm I hwv hmax) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance_max evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFrom_require_from_true_max evm I hbalance)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_transferFrom_balance_debit_max evm I hbalance)
+      (transferFromAssignFromMax evm I) hperm)
 
 theorem uniswapTransferFromBodyReverts_allowance (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

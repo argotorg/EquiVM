@@ -124,16 +124,16 @@ theorem erc20AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       some (.elem (.int uint256Int)) := by
     simp [storageTypeAt?, erc20Contract, ERC20.erc20Contract, ERC20.erc20StorageDecls,
       uint256Storage, ERC20.uint256Storage, List.find?, List.foldlM, storageTypeStep?]
-  have hloc : vyperERC20Config.storage.layout
+  have hloc : vyperERC20Config.storageBackend.locate?
       { base := "allowance",
         steps := [.mindex (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat)),
                   .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat))] } =
-      fun _ => some (vyperUint256Loc (allowanceSlot I)) := by
+      some (.leaf (vyperUint256Loc (allowanceSlot I))) := by
     simp [allowanceSlot, vyperERC20Config_storage_allowance, allowanceOwnerValue,
       allowanceSpenderValue, erc20AllowanceSlot]
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar (t := .int uint256Int)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
         (hbase := allowanceStore_allowance I)
         (her := her)
         (hty := hty)
@@ -779,7 +779,7 @@ theorem erc20AllowanceBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨681⟩
       [allowanceSelectorWord] allowanceDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract
+    runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   have hd := erc20Dispatch_allowance (cd := I.calldata) hsel
   have hbody :
@@ -843,7 +843,7 @@ theorem erc20AllowanceRuntimeSuccess
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract
+    runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20AllowanceBodyCore hcode hwv hsize hsel
     (erc20X_allowanceReach (σ := σ)

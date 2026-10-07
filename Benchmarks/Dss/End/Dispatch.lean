@@ -1893,7 +1893,7 @@ theorem endX_noMatch {σ σ₀ A I} {g : Sat256}
 
 theorem endNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (endX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -1915,7 +1915,6 @@ theorem endNonPayable {σ σ₀ A I} {g : UInt256}
 theorem endNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hwards : ¬ selIs I (selectorOf wardsTransition))
     (hvat : ¬ selIs I (selectorOf vatTransition))
@@ -1949,7 +1948,7 @@ theorem endNoDispatch {σ σ₀ A I} {g : UInt256}
     (hflow : ¬ selIs I (selectorOf flowTransition))
     (hpack : ¬ selIs I (selectorOf packTransition))
     (hcash : ¬ selIs I (selectorOf cashTransition)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hnm := endNoSelectorMatches hwards hvat hcat hdog hvow hpot hspot hcure hlive hwhen
     hwait hdebt htag hgap hArt hfix hbag hout hrely hdeny hfileAddress hfileUint hcage
     hcageIlk hsnip hskip hskim hfree hthaw hflow hpack hcash

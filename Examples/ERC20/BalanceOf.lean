@@ -69,7 +69,7 @@ theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (balanceOfSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar (t := .int uint256Int)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
         (hbase := by simp [balanceOfStore, balanceOfRef])
         (her := by
           simp [evalStorageRef, evalStorageRefStep, balanceOfRef, balanceOfStore,
@@ -477,7 +477,7 @@ theorem erc20BalanceOfBodyCore
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨226⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor erc20Config erc20Contract
+    runtimeRefinementFor erc20Config erc20Contract
       σ σ₀ g A I := by
   have hsz4 := erc20BalanceOfSelector_size hsel
   have hd := erc20Dispatch_balanceOf (cd := I.calldata) hsel

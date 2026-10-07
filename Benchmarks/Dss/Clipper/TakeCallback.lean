@@ -93,10 +93,9 @@ theorem clipperTakeWhoAddressVatOfMaskEq (v : ClipperImmutables) {I : ExecutionE
 theorem clipperEvalTakeDataLength (v : ClipperImmutables)
     (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe slice' tabNew lotNew : UInt256) :
-    evalExpr? (config v)
-      (Frame.mk (contract v)
-        (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
-          tabNew lotNew))
+    evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v))
       evmVat (bytesLength "data") =
         .ok (.int (Int.ofNat (clipperTakeDataBytes I).length)) := by
   simp only [bytesLength, localRef, evalExpr?, readLocalPath?, EvalResult.bind, bind, pure]
@@ -130,10 +129,9 @@ theorem clipperEvalTakeDataLength (v : ClipperImmutables)
 theorem clipperEvalTakeWhoAtDogLoaded (v : ClipperImmutables)
     (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe slice' tabNew lotNew : UInt256) :
-    evalExpr? (config v)
-      (Frame.mk (contract v)
-        (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
-          tabNew lotNew))
+    evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v))
       evmVat (.var "who") =
         .ok (.address (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)) := by
   simp only [evalExpr?]
@@ -161,10 +159,9 @@ theorem clipperEvalTakeWhoAtDogLoaded (v : ClipperImmutables)
 theorem clipperEvalTakeDogAtDogLoaded (v : ClipperImmutables)
     (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe slice' tabNew lotNew : UInt256) :
-    evalExpr? (config v)
-      (Frame.mk (contract v)
-        (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
-          tabNew lotNew))
+    evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v))
       evmVat (.var "dog_") =
         .ok (.address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)) := by
   simp only [evalExpr?]
@@ -175,15 +172,14 @@ theorem clipperEvalTakeCallbackGuardWhoVat (v : ClipperImmutables)
     (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe slice' tabNew lotNew : UInt256)
     (hwho : UInt256.land (clipperTakeWhoWord I) solcAddrMask = clipperTakeVatTarget v) :
-    evalExpr? (config v)
-      (Frame.mk (contract v)
-        (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
-          tabNew lotNew))
+    evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v))
       evmVat
       (.binary .and
         (.binary .gt (bytesLength "data") (.intLit 0))
         (.binary .and
-          (.binary .ne (.var "who") (vatExpr v))
+          (.binary .ne (.var "who") vatExpr)
           (.binary .ne (.var "who") (.var "dog_")))) =
         .ok (.bool false) := by
   have hwhoAddr := clipperTakeWhoAddressVatOfMaskEq v hwho
@@ -229,15 +225,14 @@ theorem clipperEvalTakeCallbackGuardWhoDog (v : ClipperImmutables)
     (hwho :
       UInt256.land (clipperTakeWhoWord I) solcAddrMask =
         UInt256.land (clipperTakeDogEVMWord evmVat) solcAddrMask) :
-    evalExpr? (config v)
-      (Frame.mk (contract v)
-        (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
-          tabNew lotNew))
+    evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v))
       evmVat
       (.binary .and
         (.binary .gt (bytesLength "data") (.intLit 0))
         (.binary .and
-          (.binary .ne (.var "who") (vatExpr v))
+          (.binary .ne (.var "who") vatExpr)
           (.binary .ne (.var "who") (.var "dog_")))) =
         .ok (.bool false) := by
   have hwhoAddr :
@@ -1186,7 +1181,7 @@ theorem clipperTakeCallbackCalldataMem_read128 (I : ExecutionEnv)
   simp [H, D, Z, ByteArray.append_assoc]
 
 
-theorem clipperTakeCallbackEncode_eq (v : ClipperImmutables) (I : ExecutionEnv)
+theorem clipperTakeCallbackEncode_eq (I : ExecutionEnv)
     (owe slice dataLen dataStart : UInt256) {mem : ByteArray}
     (hmem : mem.size = 260) (hdataLen : dataLen ≠ ⟨0⟩)
     (hdataLenEq : dataLen = clipperTakeDataLenWord I)
@@ -1198,7 +1193,7 @@ theorem clipperTakeCallbackEncode_eq (v : ClipperImmutables) (I : ExecutionEnv)
         ((clipperTakeDataOffsetWord I).toNat + 32)).take
         (clipperTakeDataLenWord I).toNat).length =
           (clipperTakeDataLenWord I).toNat) :
-    (config v).externalABI.encode? "clipperCall"
+    config.externalABI.encode? "clipperCall"
         [.address I.source, .int (Int.ofNat owe.toNat),
           .int (Int.ofNat slice.toNat), clipperTakeDataValue I] =
       some ((clipperTakeCallbackCalldataMem I owe slice dataLen dataStart mem).readWithPadding

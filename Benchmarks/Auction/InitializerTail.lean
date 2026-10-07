@@ -50,19 +50,20 @@ theorem initializerTails : ∀ i : InitializerTailSite, initializerTailWf i := b
   unfold initializerTailWf
   native_decide
 
-theorem initializerTail {I g s0 top ret R mem aw rdata σ k C} (i : InitializerTailSite)
+theorem initializerTailSplit {I g s0 top ret R mem aw rdata σ k C} (i : InitializerTailSite)
     (h : RD auctionBytecode I g s0 (initializerTailPc i)
       (top :: ret :: R) mem aw rdata σ k C)
-    (hf : InitializerNestedFlag σ I top) (hperm : I.perm = true)
+    (hf : InitializerNestedFlag σ I top)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C' := by
+    (    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C') ∨
+      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ :=
     initializerTails i
   by_cases ht : top = ⟨0⟩
   · have rd2850 := evm_run h with [
       raw dup1 h0 (by evm_ov), raw iszero h1 (by evm_ov), raw push2 ⟨2850⟩ h2 (by evm_ov),
       raw jumpiT h3 (by rw [ht]; decide) (by jump_dest) (by evm_ov) ]
-    exact ⟨_, _, evm_run rd2850 with [jumpdest, pop, jump hret]⟩
+    exact Or.inl ⟨_, _, evm_run rd2850 with [jumpdest, pop, jump hret]⟩
   · have ha := hf.resolve_left ht
     have rdLoad := evm_run h with [
       raw dup1 h0 (by evm_ov), raw iszero h1 (by evm_ov), raw push2 ⟨2850⟩ h2 (by evm_ov),
@@ -72,22 +73,44 @@ theorem initializerTail {I g s0 top ret R mem aw rdata σ k C} (i : InitializerT
     have rdStore := evm_run rdOld with [
       raw push2 ⟨65280⟩ h7 (by evm_ov), raw not h8 (by evm_ov),
       raw and h9 (by evm_ov), raw swap1 h10 (by evm_ov) ]
+    by_cases hperm : I.perm = true
+    swap
+    · exact Or.inr ⟨by simpa using hperm,
+        rdStore.sstoreStatic (by simpa using hperm) h11 (by evm_ov)⟩
+    apply Or.inl
     obtain ⟨_, _, rdPop⟩ := rdStore.sstore hperm h11 (by evm_ov)
     rw [sstoreAccountMap_absent_same ha] at rdPop
     exact ⟨_, _, evm_run rdPop with [raw pop h12 (by evm_ov), raw jump h13 hret (by evm_ov)]⟩
+
+theorem initializerTail {I g s0 top ret R mem aw rdata σ k C} (i : InitializerTailSite)
+    (h : RD auctionBytecode I g s0 (initializerTailPc i)
+      (top :: ret :: R) mem aw rdata σ k C)
+    (hf : InitializerNestedFlag σ I top) (hperm : I.perm = true)
+    (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
+    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C' :=
+  (initializerTailSplit i h hf hret hov).resolve_right (by rintro ⟨hp, _⟩; simp [hperm] at hp)
+
+theorem initializerSharedTailSplit {I g s0 top ret R mem aw rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨3877⟩ (top :: ret :: R) mem aw rdata σ k C)
+    (hf : InitializerNestedFlag σ I top)
+    (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
+    (    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C') ∨
+      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+  exact initializerTailSplit 0 (h.jumpdest (by native_decide) (by evm_ov)) hf hret hov
 
 theorem initializerSharedTail {I g s0 top ret R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3877⟩ (top :: ret :: R) mem aw rdata σ k C)
     (hf : InitializerNestedFlag σ I top) (hperm : I.perm = true)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C' := by
-  exact initializerTail 0 (h.jumpdest (by native_decide) (by evm_ov)) hf hperm hret hov
+    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C' :=
+  (initializerSharedTailSplit h hf hret hov).resolve_right (by rintro ⟨hp, _⟩; simp [hperm] at hp)
 
-theorem contextInitializer {I g s0 ret R mem aw rdata σ k C}
+theorem contextInitializerSplit {I g s0 ret R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨4892⟩ (ret :: R) mem aw rdata σ k C)
-    (hr : InitializerReady σ I) (hperm : I.perm = true)
+    (hr : InitializerReady σ I)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C' := by
+    (    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C') ∨
+      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
   obtain ⟨_, _, rd4943⟩ := initializerGuardReady 4 h hr (by evm_ov)
   have rd4945 := evm_run rd4943 with [jumpdest, push0]
   obtain ⟨_, _, rd4946⟩ := rd4945.sload (by native_decide) (by evm_ov)
@@ -103,12 +126,26 @@ theorem contextInitializer {I g s0 ret R mem aw rdata σ k C}
     have rd4963 := evm_run rd4955 with [dup1, iszero, push2 ⟨3877⟩, jumpiNT ht, push0, dup1]
     obtain ⟨_, _, rd4964⟩ := rd4963.sload (by native_decide) (by evm_ov)
     have rd4974 := evm_run rd4964 with [push2 ⟨65535⟩, not, and, push2 ⟨257⟩, or, swap1]
-    obtain ⟨_, _, rd4975⟩ := rd4974.sstore hperm (by native_decide) (by evm_ov)
+    have hstoreDec : decode auctionBytecode ⟨4974⟩ = some (.SSTORE, none) := by
+      native_decide
+    by_cases hperm : I.perm = true
+    swap
+    · exact Or.inr ⟨by simpa using hperm,
+        rd4974.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+    apply Or.inl
+    obtain ⟨_, _, rd4975⟩ := rd4974.sstore hperm hstoreDec (by evm_ov)
     rw [sstoreAccountMap_absent_same ha] at rd4975
     exact initializerTail 1 rd4975 (Or.inr ha) hperm hret (by omega)
   · have ht : UInt256.isZero (UInt256.isZero (initializingWord σ I)) ≠ ⟨0⟩ := by
       rw [isZero_eq_zero_of_ne hi]; decide
     have rd3877 := evm_run rd4955 with [dup1, iszero, push2 ⟨3877⟩, jumpiT ht (by jump_dest)]
-    exact initializerSharedTail rd3877 (initializerNestedFlag_of_ready hr) hperm hret (by omega)
+    exact initializerSharedTailSplit rd3877 (initializerNestedFlag_of_ready hr) hret (by omega)
+
+theorem contextInitializer {I g s0 ret R mem aw rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨4892⟩ (ret :: R) mem aw rdata σ k C)
+    (hr : InitializerReady σ I) (hperm : I.perm = true)
+    (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 7 ≤ 1024) :
+    ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata σ k' C' :=
+  (contextInitializerSplit h hr hret hov).resolve_right (by rintro ⟨hp, _⟩; simp [hperm] at hp)
 
 end Auction

@@ -8,9 +8,9 @@ namespace Auction
 
 theorem createBidBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (entryBytes 6))
+    (hsel : selIs I (entryBytes 6))
     (hreach : EntryReached 6 σ σ₀ A I g) :
-    runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
+    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
   have hd := dispatchEntry 6 hsel
   have hsz := calldata_size_ge_of_selIs I (entryBytes 6) (entryBytes_size 6) hsel
   obtain ⟨_, _, rd500⟩ := hreach
@@ -28,7 +28,11 @@ theorem createBidBodyCore {σ σ₀ A I} {g : UInt256}
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hs0 : SourceState (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           I σ evm0 := SourceState.init
-      rcases bidRoutine rd1165 hs0 hperm freshHeapMemory (by jump_dest) (by evm_ov) with
+      rcases bidRoutineSplit rd1165 hs0 freshHeapMemory (by jump_dest) (by evm_ov) with
+        hnormal | ⟨_hperm, hbody, hstatic⟩
+      swap
+      · exact hstatic.reEquivStaticHalt hcode hd hdec (ExecFuncBody.execBlockStatic hbody)
+      rcases hnormal with
         ⟨evm', σ', locals', mem', aw', out, _, _, hbody, hs', rd413⟩ | ⟨hbody, hr⟩
       · exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
           hcode hd hdec (ExecFuncBody.execBlockOK hbody) hs'.accounts

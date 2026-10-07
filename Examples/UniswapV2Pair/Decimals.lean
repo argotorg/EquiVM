@@ -56,7 +56,7 @@ theorem uniswapDecimalsBodyCore
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨941⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ decimalsTransition.body
@@ -88,7 +88,7 @@ theorem uniswapDecimalsBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x31, 0x3c, 0xe5, 0x67]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some decimalsTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x31, 0x3c, 0xe5, 0x67]⟩ rfl hsel
   exact uniswapDecimalsBodyCore hcode hwv hdispatch (uniswapDecode_decimals hsz)

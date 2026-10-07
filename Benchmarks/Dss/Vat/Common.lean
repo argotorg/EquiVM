@@ -70,7 +70,16 @@ abbrev VatBodyTheorem (i : ℕ) : Prop :=
     I.perm = true →
     I.weiValue = ⟨0⟩ →
     selIs I (vatSelBytes i) →
-    runtimeEquivalenceFor config contract σ σ₀ g A I
+    runtimeRefinementFor config contract σ σ₀ g A I
+
+/-- `VatBodyTheorem` for any call permission. -/
+abbrev VatBodyTheoremAnyPerm (i : ℕ) : Prop :=
+  ∀ {σ σ₀ A I} {g : UInt256},
+    I.code = vatBytecode →
+    I.calldata.size < UInt256.size →
+    I.weiValue = ⟨0⟩ →
+    selIs I (vatSelBytes i) →
+    runtimeRefinementFor config contract σ σ₀ g A I
 
 
 @[reducible] def solcSixWordThreeAddressExternalLoadAndJumpWf
@@ -233,14 +242,14 @@ theorem vatUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       exact congrArg EvalResult.ok (storageLocLoad_uint256 evm slot))
 
 theorem vatUint256GetterBodyCore
@@ -266,7 +275,7 @@ theorem vatUint256GetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
         (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])

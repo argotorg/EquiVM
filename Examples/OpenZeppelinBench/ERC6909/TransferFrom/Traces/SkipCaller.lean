@@ -505,7 +505,7 @@ theorem erc6909TransferFromX_skipCaller_insufficient {σ σ₀ A I}
 theorem erc6909TransferFromX_skipCaller_afterDebit {σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
     (hsz132 : 132 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
     (hsenderCaller : transferFromSenderWord I = transferFromCallerWord I)
@@ -516,7 +516,7 @@ theorem erc6909TransferFromX_skipCaller_afterDebit {σ σ₀ A I}
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨388⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1476⟩
+    (I.perm = true ∧ ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1476⟩
       [transferFromSenderWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -528,7 +528,8 @@ theorem erc6909TransferFromX_skipCaller_afterDebit {σ σ₀ A I}
         (transferFromSenderWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (transferFromSenderBalanceSlot I)
-        (transferFromTailSenderDebitWord (initState σ σ₀ g A I) I)) k C := by
+        (transferFromTailSenderDebitWord (initState σ σ₀ g A I) I)) k C)
+    ∨ (I.perm = false ∧ RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1437⟩ := erc6909TransferFromX_skipCaller_afterRequire
     (σ := σ) (σ₀ := σ₀) (A := A)
     (g := g) (sel := sel) hsz132 hsize hszhi hcanonSender hcanonReceiver
@@ -620,8 +621,11 @@ theorem erc6909TransferFromX_skipCaller_afterDebit {σ σ₀ A I}
     swap1, dup4, swap1, sub, swap1 ]
   have rd1475 := rd1475₀
   rw [hdebit, hslot] at rd1475
-  obtain ⟨_, _, rd1476⟩ := rd1475.sstore hperm (by decide) (by evm_ov)
-  exact ⟨_, _, rd1476⟩
+  by_cases hp : I.perm = true
+  · obtain ⟨_, _, rd1476⟩ := rd1475.sstore hp (by decide) (by evm_ov)
+    exact Or.inl ⟨hp, _, _, rd1476⟩
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd1475.sstoreStatic hpf (by decide) (by evm_ov)⟩
 
 theorem erc6909TransferFromX_skipCaller_toCheckedAdd {σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
@@ -655,10 +659,10 @@ theorem erc6909TransferFromX_skipCaller_toCheckedAdd {σ σ₀ A I}
       (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (transferFromSenderBalanceSlot I)
         (transferFromTailSenderDebitWord (initState σ σ₀ g A I) I)) k C := by
-  obtain ⟨_, _, rd1476⟩ := erc6909TransferFromX_skipCaller_afterDebit
+  obtain ⟨_, _, rd1476⟩ := permSplit_true hperm (erc6909TransferFromX_skipCaller_afterDebit
     (σ := σ) (σ₀ := σ₀) (A := A)
-    (g := g) (sel := sel) hsz132 hsize hszhi hperm hcanonSender hcanonReceiver
-    hsenderCaller hsenderNZ hreceiverNZ henough hreach
+    (g := g) (sel := sel) hsz132 hsize hszhi hcanonSender hcanonReceiver
+    hsenderCaller hsenderNZ hreceiverNZ henough hreach)
   let debitMem :=
     transferMapScratchMem (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
       (transferFromSenderWord I) (transferFromIdWord I)

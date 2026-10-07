@@ -222,7 +222,7 @@ theorem truthReEquiv_callvalueZero
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = truthBytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) :
-    runtimeEquivalenceFor truthConfig truthContract σ σ₀
+    runtimeRefinementFor truthConfig truthContract σ σ₀
       g.toUInt256 A I := by
   by_cases hsz : I.calldata.size < 4
   · -- short calldata ⇒ EVM reverts, Solm fails to dispatch
@@ -246,8 +246,8 @@ theorem truthReEquiv_callvalueZero
 
 /-- The runtime bytecode refines the Solm specification, for every initial state. -/
 theorem truthCorrect :
-    runtimeEquivalence truthConfig truthBytecode truthContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize _hperm => ?_⟩
+    runtimeRefinement truthConfig truthBytecode truthContract := by
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact truthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling
@@ -328,10 +328,10 @@ theorem truthInitcodeRun {σ σ₀ A I} {g : Sat256}
 
 /-- The creation/initcode bytecode refines the Solm constructor specification. -/
 theorem truthConstructorCorrect :
-    constructorEquivalence truthConfig ctorTruthInitcode truthContract truthBytecode :=
+    typedConstructorRefinement truthConfig ctorTruthInitcode truthContract (fun _ => truthBytecode) :=
   emptyConstructorCorrect_of_RDret rfl rfl rfl (fun hcode => truthInitcodeRun hcode)
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem truthContractCorrect :
-    contractEquivalence truthConfig ctorTruthInitcode truthBytecode truthContract :=
+    contractRefinement truthConfig ctorTruthInitcode truthContract :=
   emptyContractCorrect_of_RDret rfl rfl rfl (fun hcode => truthInitcodeRun hcode) truthCorrect

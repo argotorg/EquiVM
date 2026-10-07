@@ -18,16 +18,16 @@ abbrev clipperSpotterParWord (out : ByteArray) : UInt256 :=
 abbrev clipperSpotterParValues (out : ByteArray) : List Value :=
   [.int (Int.ofNat (clipperSpotterParWord out).toNat)]
 
-theorem clipperSpotterParDecode_none_short {v : ClipperImmutables} {out : ByteArray}
+theorem clipperSpotterParDecode_none_short {out : ByteArray}
     (hshort : out.size < 32) :
-    (config v).externalABI.decode? "par" out = none := by
+    config.externalABI.decode? "par" out = none := by
   simpa [config, externalABI, decodeReturn?, uint256, uint256Int, abiUInt256] using
     (decodeReturnValueWithMode_legacy_uint256_none_short
       (returndata := out) hshort)
 
-theorem clipperSpotterParDecode_ok {v : ClipperImmutables} {out : ByteArray}
+theorem clipperSpotterParDecode_ok {out : ByteArray}
     (hlo : 32 ≤ out.size) :
-    (config v).externalABI.decode? "par" out =
+    config.externalABI.decode? "par" out =
       some (clipperSpotterParValues out) := by
   have hword :
       (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))).toNat =
@@ -62,23 +62,23 @@ abbrev clipperGetFeedPriceResultLocals
 theorem clipperEvalGetFeedPriceHas_true
     (v : ClipperImmutables) (evm : EVM.State) (outIlks outPeek : ByteArray)
     (hnz : clipperPipPeekHasWord outPeek ≠ ⟨0⟩) :
-    evalExpr? (config v)
-      { contract := contract v,
-        locals := clipperGetFeedPriceHasLocals outIlks outPeek } evm
+    evalExpr? config
+      { contract := contract,
+        locals := clipperGetFeedPriceHasLocals outIlks outPeek, immutables := immStore v } evm
       (.var "has") = .ok (.bool true) := by
   simp [clipperGetFeedPriceHasLocals, hnz, evalExpr?, EvalResult.ofOption]
 
 theorem clipperEvalGetFeedPriceValCast
     (v : ClipperImmutables) (evm : EVM.State) (outIlks outPeek : ByteArray)
     (hlo : 32 ≤ outPeek.size) :
-    evalExpr? (config v)
-      { contract := contract v,
-        locals := clipperGetFeedPriceHasLocals outIlks outPeek } evm
+    evalExpr? config
+      { contract := contract,
+        locals := clipperGetFeedPriceHasLocals outIlks outPeek, immutables := immStore v } evm
       (.cast (.var "val") uint256St) =
       .ok (.int (Int.ofNat (clipperPipPeekValueWord outPeek).toNat)) := by
   let locals := clipperGetFeedPriceHasLocals outIlks outPeek
   have hval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
         (.var "val") =
           .ok (.fixedBytes abiBytes32Width (clipperPipPeekValueBytes outPeek)) := by
     simp only [locals, clipperGetFeedPriceHasLocals, evalExpr?]
@@ -114,7 +114,7 @@ theorem clipperEvalGetFeedPriceValCast
     rw [byteArray_toList_eq, Array.length_toList]
     simp [fixedBytesSize, abiBytes32Width]
     omega
-  change evalExpr? (config v) { contract := contract v, locals := locals } evm
+  change evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
     (.cast (.var "val") uint256St) =
       .ok (.int (Int.ofNat (clipperPipPeekValueWord outPeek).toNat))
   simp [evalExpr?, EvalResult.bind, bind, hval, castValue?, fixedBytesToNat?,
@@ -125,9 +125,9 @@ theorem clipperEvalGetFeedPriceValCast
 theorem clipperEvalGetFeedPriceValBlnArgs
     (v : ClipperImmutables) (evm : EVM.State) (outIlks outPeek : ByteArray)
     (hlo : 32 ≤ outPeek.size) :
-    evalExprs? (config v)
-      { contract := contract v,
-        locals := clipperGetFeedPriceHasLocals outIlks outPeek } evm
+    evalExprs? config
+      { contract := contract,
+        locals := clipperGetFeedPriceHasLocals outIlks outPeek, immutables := immStore v } evm
       [.cast (.var "val") uint256St, .intLit BLN] =
       .ok [.int (Int.ofNat (clipperPipPeekValueWord outPeek).toNat),
         .int (Int.ofNat (⟨1000000000⟩ : UInt256).toNat)] := by
@@ -141,8 +141,8 @@ theorem clipperEvalGetFeedPriceValBlnMul_ok
     (hmul :
       (clipperPipPeekValueWord outPeek).toNat *
           (⟨1000000000⟩ : UInt256).toNat < UInt256.size) :
-    evalExpr? (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evm
+    evalExpr? config
+      (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evm
       (mul256 (.cast (.var "val") uint256St) (.intLit BLN)) =
       .ok (.int (Int.ofNat
         (UInt256.mul (clipperPipPeekValueWord outPeek) ⟨1000000000⟩).toNat)) := by
@@ -170,8 +170,8 @@ theorem clipperEvalGetFeedPriceValBlnMul_revert
     (hover : UInt256.size ≤
       (clipperPipPeekValueWord outPeek).toNat *
         (⟨1000000000⟩ : UInt256).toNat) :
-    evalExpr? (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evm
+    evalExpr? config
+      (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evm
       (mul256 (.cast (.var "val") uint256St) (.intLit BLN)) = .revert := by
   have hcast := clipperEvalGetFeedPriceValCast v evm outIlks outPeek hlo
   have hBLN : BLN = Int.ofNat (⟨1000000000⟩ : UInt256).toNat := by native_decide
@@ -186,8 +186,8 @@ theorem clipperEvalGetFeedPriceValBlnRequire_true
     (hmul :
       (clipperPipPeekValueWord outPeek).toNat *
           (⟨1000000000⟩ : UInt256).toNat < UInt256.size) :
-    evalExpr? (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm
+    evalExpr? config
+      (Frame.mk contract (clipperGetFeedPriceValBlnLocals outIlks outPeek) (immStore v)) evm
       (.binary .or
         (.binary .eq (.intLit BLN) (.intLit 0))
         (.binary .eq
@@ -206,8 +206,8 @@ theorem clipperEvalGetFeedPriceValBlnRequire_true
     exact (Int.ofNat_ediv_ofNat (a := (UInt256.mul x y).toNat) (b := y.toNat)).trans
       (congrArg Int.ofNat hnat)
   have hval :
-      evalExpr? (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm
+      evalExpr? config
+        (Frame.mk contract (clipperGetFeedPriceValBlnLocals outIlks outPeek) (immStore v)) evm
         (.cast (.var "val") uint256St) = .ok (.int (Int.ofNat x.toNat)) := by
     have hlookup :
         (clipperGetFeedPriceValBlnLocals outIlks outPeek).get? "val" =
@@ -220,8 +220,8 @@ theorem clipperEvalGetFeedPriceValBlnRequire_true
     simpa only [evalExpr?, hlookup, x] using
       clipperEvalGetFeedPriceValCast v evm outIlks outPeek hlo
   have hvalBln :
-      evalExpr? (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm
+      evalExpr? config
+        (Frame.mk contract (clipperGetFeedPriceValBlnLocals outIlks outPeek) (immStore v)) evm
         (.var "valBln") = .ok (.int (Int.ofNat (UInt256.mul x y).toNat)) := by
     simp only [evalExpr?, clipperGetFeedPriceValBlnLocals, store_get_self, x, y]
     rfl
@@ -229,13 +229,13 @@ theorem clipperEvalGetFeedPriceValBlnRequire_true
     intro hzero
     exact hy0 (Int.ofNat.inj hzero)
   have hleft :
-      evalExpr? (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm
+      evalExpr? config
+        (Frame.mk contract (clipperGetFeedPriceValBlnLocals outIlks outPeek) (immStore v)) evm
         (.binary .eq (.intLit BLN) (.intLit 0)) = .ok (.bool false) := by
     simp [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, hy, hy0, y]
   have hright :
-      evalExpr? (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm
+      evalExpr? config
+        (Frame.mk contract (clipperGetFeedPriceValBlnLocals outIlks outPeek) (immStore v)) evm
         (.binary .eq
           (.binary .div (.var "valBln") (.intLit BLN))
           (.cast (.var "val") uint256St)) = .ok (.bool true) := by
@@ -250,18 +250,18 @@ theorem clipperGetFeedPriceValBlnMulSuccessBlock
     (hmul :
       (clipperPipPeekValueWord outPeek).toNat *
           (⟨1000000000⟩ : UInt256).toNat < UInt256.size) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evm
+    ExecBlock config
+      (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evm
       (checkedMulUintInto "valBln" (.cast (.var "val") uint256St) (.intLit BLN))
       (.ok
-        (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm) := by
+        (Frame.mk contract (clipperGetFeedPriceValBlnLocals outIlks outPeek) (immStore v)) evm) := by
   have hlet :
-      ExecStmt (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evm
+      ExecStmt config
+        (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evm
         (.letDecl "valBln" (some uint256)
           (mul256 (.cast (.var "val") uint256St) (.intLit BLN)))
         (.ok
-          (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm) := by
+          (Frame.mk contract (clipperGetFeedPriceValBlnLocals outIlks outPeek) (immStore v)) evm) := by
     simpa [clipperGetFeedPriceValBlnLocals] using
       ExecStmt.letDecl
         (clipperEvalGetFeedPriceValBlnMul_ok v evm outIlks outPeek hlo hmul)
@@ -278,8 +278,8 @@ theorem clipperGetFeedPriceValBlnMulRevertBlock
     (hover : UInt256.size ≤
       (clipperPipPeekValueWord outPeek).toNat *
         (⟨1000000000⟩ : UInt256).toNat) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evm
+    ExecBlock config
+      (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evm
       (checkedMulUintInto "valBln" (.cast (.var "val") uint256St) (.intLit BLN))
       .reverted := by
   simpa [checkedMulUintInto] using
@@ -299,13 +299,13 @@ theorem clipperGetFeedPriceParNoCode
     (hnoCode :
       (UInt256.ofNat ((evm.lookupAccount (clipperGetFeedPriceSpotterAddress evm)).option 0
         (fun acc => acc.code.size))).toNat = 0) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm
+    ExecBlock config
+      (Frame.mk contract (clipperGetFeedPriceValBlnLocals outIlks outPeek) (immStore v)) evm
       (checkedExternalCallStmts (.storage spotterRef) "par" (.intLit 0) [] "par")
       .reverted := by
   simpa [checkedExternalCallStmts] using
     checkedExternalCallNoCode
-      (cfg := config v) (C := contract v) (evm := evm)
+      (cfg := config) (C := contract) (evm := evm)
       (locals := clipperGetFeedPriceValBlnLocals outIlks outPeek)
       (receiver := .storage spotterRef) (retVar := "par") (name := "par")
       (sendVal := 0) (args := []) (perm := true)
@@ -320,16 +320,16 @@ theorem clipperGetFeedPriceParCallFailure
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperGetFeedPriceSpotterAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) evm
+      typedCallViaEVM config evm
         (EVM.address (clipperGetFeedPriceSpotterAddress evm)) "par" 0 []
         (false, evmPar, outPar) true) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm
+    ExecBlock config
+      (Frame.mk contract (clipperGetFeedPriceValBlnLocals outIlks outPeek) (immStore v)) evm
       (checkedExternalCallStmts (.storage spotterRef) "par" (.intLit 0) [] "par")
       .reverted := by
   simpa [checkedExternalCallStmts] using
     checkedExternalCallFailure
-      (cfg := config v) (C := contract v) (evm := evm) (evm' := evmPar)
+      (cfg := config) (C := contract) (evm := evm) (evm' := evmPar)
       (locals := clipperGetFeedPriceValBlnLocals outIlks outPeek)
       (receiver := .storage spotterRef) (retVar := "par") (name := "par")
       (target := clipperGetFeedPriceSpotterAddress evm)
@@ -349,17 +349,17 @@ theorem clipperGetFeedPriceParDecodeRevert
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperGetFeedPriceSpotterAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) evm
+      typedCallViaEVM config evm
         (EVM.address (clipperGetFeedPriceSpotterAddress evm)) "par" 0 []
         (true, evmPar, outPar) true)
-    (hdec : (config v).externalABI.decode? "par" outPar = none) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm
+    (hdec : config.externalABI.decode? "par" outPar = none) :
+    ExecBlock config
+      (Frame.mk contract (clipperGetFeedPriceValBlnLocals outIlks outPeek) (immStore v)) evm
       (checkedExternalCallStmts (.storage spotterRef) "par" (.intLit 0) [] "par")
       .reverted := by
   simpa [checkedExternalCallStmts] using
     checkedExternalCallDecodeRevert
-      (cfg := config v) (C := contract v) (evm := evm) (evm' := evmPar)
+      (cfg := config) (C := contract) (evm := evm) (evm' := evmPar)
       (locals := clipperGetFeedPriceValBlnLocals outIlks outPeek)
       (receiver := .storage spotterRef) (retVar := "par") (name := "par")
       (target := clipperGetFeedPriceSpotterAddress evm)
@@ -379,21 +379,21 @@ theorem clipperGetFeedPriceParSuccess
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperGetFeedPriceSpotterAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) evm
+      typedCallViaEVM config evm
         (EVM.address (clipperGetFeedPriceSpotterAddress evm)) "par" 0 []
         (true, evmPar, outPar) true)
     (hdec :
-      (config v).externalABI.decode? "par" outPar =
+      config.externalABI.decode? "par" outPar =
         some (clipperSpotterParValues outPar)) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm
+    ExecBlock config
+      (Frame.mk contract (clipperGetFeedPriceValBlnLocals outIlks outPeek) (immStore v)) evm
       (checkedExternalCallStmts (.storage spotterRef) "par" (.intLit 0) [] "par")
       (.ok
-        (Frame.mk (contract v) (clipperGetFeedPriceParLocals outIlks outPeek outPar))
+        (Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v))
         evmPar) := by
   simpa [checkedExternalCallStmts, clipperGetFeedPriceParLocals] using
     checkedExternalCallSuccess
-      (cfg := config v) (C := contract v) (evm := evm) (evm' := evmPar)
+      (cfg := config) (C := contract) (evm := evm) (evm' := evmPar)
       (locals := clipperGetFeedPriceValBlnLocals outIlks outPeek)
       (receiver := .storage spotterRef) (retVar := "par") (name := "par")
       (target := clipperGetFeedPriceSpotterAddress evm)
@@ -410,16 +410,16 @@ theorem clipperGetFeedPriceParSuccess
 theorem clipperEvalGetFeedPriceRdivArgs
     (v : ClipperImmutables) (evm : EVM.State)
     (outIlks outPeek outPar : ByteArray) :
-    evalExprs? (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceParLocals outIlks outPeek outPar)) evm
+    evalExprs? config
+      (Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v)) evm
       [.var "valBln", .var "par"] =
       .ok
         [.int (Int.ofNat
           (UInt256.mul (clipperPipPeekValueWord outPeek) ⟨1000000000⟩).toNat),
         .int (Int.ofNat (clipperSpotterParWord outPar).toNat)] := by
   have hvalBln :
-      evalExpr? (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceParLocals outIlks outPeek outPar)) evm
+      evalExpr? config
+        (Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v)) evm
         (.var "valBln") =
         .ok (.int (Int.ofNat
           (UInt256.mul (clipperPipPeekValueWord outPeek) ⟨1000000000⟩).toNat)) := by
@@ -428,8 +428,8 @@ theorem clipperEvalGetFeedPriceRdivArgs
     simp only [clipperGetFeedPriceValBlnLocals, store_get_self]
     rfl
   have hpar :
-      evalExpr? (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceParLocals outIlks outPeek outPar)) evm
+      evalExpr? config
+        (Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v)) evm
         (.var "par") = .ok (.int (Int.ofNat (clipperSpotterParWord outPar).toNat)) := by
     simp [evalExpr?, clipperGetFeedPriceParLocals, collapseReturns]
     rfl
@@ -438,8 +438,8 @@ theorem clipperEvalGetFeedPriceRdivArgs
 theorem clipperEvalGetFeedPriceReturn
     (v : ClipperImmutables) (evm : EVM.State)
     (outIlks outPeek outPar : ByteArray) :
-    evalExprs? (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceResultLocals outIlks outPeek outPar)) evm
+    evalExprs? config
+      (Frame.mk contract (clipperGetFeedPriceResultLocals outIlks outPeek outPar) (immStore v)) evm
       [.var "feedPrice"] =
       .ok [.int (Int.ofNat
         (UInt256.div
@@ -448,8 +448,8 @@ theorem clipperEvalGetFeedPriceReturn
             clipperRayWord)
           (clipperSpotterParWord outPar)).toNat)] := by
   have hfeedPrice :
-      evalExpr? (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceResultLocals outIlks outPeek outPar)) evm
+      evalExpr? config
+        (Frame.mk contract (clipperGetFeedPriceResultLocals outIlks outPeek outPar) (immStore v)) evm
         (.var "feedPrice") = .ok (.int (Int.ofNat
           (UInt256.div
             (UInt256.mul
@@ -466,27 +466,26 @@ theorem clipperGetFeedPriceRdivRevertsMul
     (hover : UInt256.size ≤
       (UInt256.mul (clipperPipPeekValueWord outPeek) ⟨1000000000⟩).toNat *
         clipperRayWord.toNat) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceParLocals outIlks outPeek outPar)) evm
+    ExecBlock config
+      (Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v)) evm
       [ .internalCall "rdiv" [.var "valBln", .var "par"] "feedPrice",
         .return [.var "feedPrice"] ] .reverted := by
   let x := UInt256.mul (clipperPipPeekValueWord outPeek) ⟨1000000000⟩
   let y := clipperSpotterParWord outPar
   have hcall :
-      ExecStmt (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceParLocals outIlks outPeek outPar)) evm
+      ExecStmt config
+        (Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v)) evm
         (.internalCall "rdiv" [.var "valBln", .var "par"] "feedPrice") .reverted :=
     internalCallFunctionRevert
-      (cfg := config v)
-      (caller := Frame.mk (contract v)
-        (clipperGetFeedPriceParLocals outIlks outPeek outPar))
+      (cfg := config)
+      (caller := Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v))
       (evm := evm) (name := "rdiv") (retVar := "feedPrice")
       (args := [.var "valBln", .var "par"])
       (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
       (callee := rdivFunction) (locals := clipperUintBinaryLocals x y)
       (by simpa [x, y] using
         clipperEvalGetFeedPriceRdivArgs v evm outIlks outPeek outPar)
-      (clipperLookupRdivFunction v) (clipperBindParamsRdiv x y)
+      (clipperLookupRdivFunction) (clipperBindParamsRdiv x y)
       (clipperRdivFunctionRevertsMul v evm x y (by simpa [x] using hover))
   exact ExecBlock.consRevert hcall
 
@@ -497,27 +496,26 @@ theorem clipperGetFeedPriceRdivRevertsDivZero
       (UInt256.mul (clipperPipPeekValueWord outPeek) ⟨1000000000⟩).toNat *
           clipperRayWord.toNat < UInt256.size)
     (hzero : clipperSpotterParWord outPar = ⟨0⟩) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceParLocals outIlks outPeek outPar)) evm
+    ExecBlock config
+      (Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v)) evm
       [ .internalCall "rdiv" [.var "valBln", .var "par"] "feedPrice",
         .return [.var "feedPrice"] ] .reverted := by
   let x := UInt256.mul (clipperPipPeekValueWord outPeek) ⟨1000000000⟩
   let y := clipperSpotterParWord outPar
   have hcall :
-      ExecStmt (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceParLocals outIlks outPeek outPar)) evm
+      ExecStmt config
+        (Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v)) evm
         (.internalCall "rdiv" [.var "valBln", .var "par"] "feedPrice") .reverted :=
     internalCallFunctionRevert
-      (cfg := config v)
-      (caller := Frame.mk (contract v)
-        (clipperGetFeedPriceParLocals outIlks outPeek outPar))
+      (cfg := config)
+      (caller := Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v))
       (evm := evm) (name := "rdiv") (retVar := "feedPrice")
       (args := [.var "valBln", .var "par"])
       (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
       (callee := rdivFunction) (locals := clipperUintBinaryLocals x y)
       (by simpa [x, y] using
         clipperEvalGetFeedPriceRdivArgs v evm outIlks outPeek outPar)
-      (clipperLookupRdivFunction v) (clipperBindParamsRdiv x y)
+      (clipperLookupRdivFunction) (clipperBindParamsRdiv x y)
       (clipperRdivFunctionRevertsDivZero v evm x y
         (by simpa [x] using hmul) (by simpa [y] using hzero))
   exact ExecBlock.consRevert hcall
@@ -529,13 +527,12 @@ theorem clipperGetFeedPriceRdivReturns
       (UInt256.mul (clipperPipPeekValueWord outPeek) ⟨1000000000⟩).toNat *
           clipperRayWord.toNat < UInt256.size)
     (hnz : clipperSpotterParWord outPar ≠ ⟨0⟩) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceParLocals outIlks outPeek outPar)) evm
+    ExecBlock config
+      (Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v)) evm
       [ .internalCall "rdiv" [.var "valBln", .var "par"] "feedPrice",
         .return [.var "feedPrice"] ]
       (.returned
-        (Frame.mk (contract v)
-          (clipperGetFeedPriceResultLocals outIlks outPeek outPar)) evm
+        (Frame.mk contract (clipperGetFeedPriceResultLocals outIlks outPeek outPar) (immStore v)) evm
         (some [.int (Int.ofNat
           (UInt256.div
             (UInt256.mul
@@ -546,29 +543,27 @@ theorem clipperGetFeedPriceRdivReturns
   let y := clipperSpotterParWord outPar
   let result := UInt256.div (UInt256.mul x clipperRayWord) y
   let resultFrame : Frame :=
-    Frame.mk (contract v) (clipperGetFeedPriceResultLocals outIlks outPeek outPar)
+    Frame.mk contract (clipperGetFeedPriceResultLocals outIlks outPeek outPar) (immStore v)
   have hcall :
-      ExecStmt (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceParLocals outIlks outPeek outPar)) evm
+      ExecStmt config
+        (Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v)) evm
         (.internalCall "rdiv" [.var "valBln", .var "par"] "feedPrice")
         (.ok resultFrame evm) := by
     simpa [resultFrame, clipperGetFeedPriceResultLocals, result,
       resumeAfterInternalCall, x, y] using
       (internalCallFunctionReturn
-        (cfg := config v)
-        (caller := Frame.mk (contract v)
-          (clipperGetFeedPriceParLocals outIlks outPeek outPar))
+        (cfg := config)
+        (caller := Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v))
         (evm := evm) (calleeEvm := evm)
         (name := "rdiv") (retVar := "feedPrice")
         (args := [.var "valBln", .var "par"])
         (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
         (callee := rdivFunction) (locals := clipperUintBinaryLocals x y)
-        (calleeSolm := Frame.mk (contract v)
-          (clipperRdivReturnLocals x y (UInt256.mul x clipperRayWord)))
+        (calleeSolm := Frame.mk contract (clipperRdivReturnLocals x y (UInt256.mul x clipperRayWord)) (immStore v))
         (value := some [.int (Int.ofNat result.toNat)])
         (by simpa [x, y] using
           clipperEvalGetFeedPriceRdivArgs v evm outIlks outPeek outPar)
-        (clipperLookupRdivFunction v) (clipperBindParamsRdiv x y)
+        (clipperLookupRdivFunction) (clipperBindParamsRdiv x y)
         (clipperRdivFunctionReturns v evm x y
           (by simpa [x] using hmul) (by simpa [y] using hnz)))
   refine ExecBlock.consNormal hcall ?_
@@ -583,37 +578,37 @@ theorem clipperGetFeedPricePrefixToHas
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperGetFeedPriceSpotterAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcallIlks :
-      typedCallViaEVM (config v) evm
+      typedCallViaEVM config evm
         (EVM.address (clipperGetFeedPriceSpotterAddress evm)) "spotterIlks" 0 [v.ilk]
         (true, evmIlks, outIlks) true)
     (hdecIlks :
-      (config v).externalABI.decode? "spotterIlks" outIlks =
+      config.externalABI.decode? "spotterIlks" outIlks =
         some (clipperSpotterIlksValues outIlks))
     (hcodePip :
       0 < (UInt256.ofNat ((evmIlks.lookupAccount
         (clipperSpotterIlksPipAddress outIlks)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallPeek :
-      typedCallViaEVM (config v) evmIlks
+      typedCallViaEVM config evmIlks
         (EVM.address (clipperSpotterIlksPipAddress outIlks)) "peek" 0 []
         (true, evmPeek, outPeek) true)
     (hdecPeek :
-      (config v).externalABI.decode? "peek" outPeek =
+      config.externalABI.decode? "peek" outPeek =
         some (clipperPipPeekValues outPeek))
     (hnz : clipperPipPeekHasWord outPeek ≠ ⟨0⟩) :
-    ExecBlock (config v) ({ contract := contract v, locals := ∅ } : Frame) evm
+    ExecBlock config ({ contract := contract, locals := ∅, immutables := immStore v } : Frame) evm
       (checkedExternalCallStmts (.storage spotterRef) "spotterIlks" (.intLit 0)
-          [ilkExpr v] "spotterIlk" ++
+          [ilkExpr] "spotterIlk" ++
         [ .letDecl "pip" (some addr) (tuple0 (.var "spotterIlk")) ] ++
         checkedExternalCallStmts (.var "pip") "peek" (.intLit 0) [] "peekRet" ++
         [ .letDecl "val" (some bytes32) (tuple0 (.var "peekRet")),
           .letDecl "has" (some boolTy) (tuple1 (.var "peekRet")),
           .require (.var "has") ])
       (.ok
-        (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek))
+        (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v))
         evmPeek) := by
   let callStmts := checkedExternalCallStmts (.storage spotterRef) "spotterIlks" (.intLit 0)
-    [ilkExpr v] "spotterIlk"
+    [ilkExpr] "spotterIlk"
   let pipLetStmts : List Stmt :=
     [ .letDecl "pip" (some addr) (tuple0 (.var "spotterIlk")) ]
   let peekStmts := checkedExternalCallStmts (.var "pip") "peek" (.intLit 0) [] "peekRet"
@@ -621,51 +616,51 @@ theorem clipperGetFeedPricePrefixToHas
     [ .letDecl "val" (some bytes32) (tuple0 (.var "peekRet")),
       .letDecl "has" (some boolTy) (tuple1 (.var "peekRet")),
       .require (.var "has") ]
-  let emptyFrame : Frame := { contract := contract v, locals := ∅ }
+  let emptyFrame : Frame := { contract := contract, locals := ∅, immutables := immStore v }
   let spotterFrame : Frame :=
-    { contract := contract v, locals := clipperGetFeedPriceSpotterIlkLocals outIlks }
+    { contract := contract, locals := clipperGetFeedPriceSpotterIlkLocals outIlks, immutables := immStore v }
   let pipFrame : Frame :=
-    { contract := contract v, locals := clipperGetFeedPricePipLocals outIlks }
+    { contract := contract, locals := clipperGetFeedPricePipLocals outIlks, immutables := immStore v }
   let peekFrame : Frame :=
-    { contract := contract v, locals := clipperGetFeedPricePeekLocals outIlks outPeek }
+    { contract := contract, locals := clipperGetFeedPricePeekLocals outIlks outPeek, immutables := immStore v }
   let valFrame : Frame :=
-    { contract := contract v, locals := clipperGetFeedPriceValLocals outIlks outPeek }
+    { contract := contract, locals := clipperGetFeedPriceValLocals outIlks outPeek, immutables := immStore v }
   let hasFrame : Frame :=
-    { contract := contract v, locals := clipperGetFeedPriceHasLocals outIlks outPeek }
+    { contract := contract, locals := clipperGetFeedPriceHasLocals outIlks outPeek, immutables := immStore v }
   have hcallBlock :
-      ExecBlock (config v) emptyFrame evm callStmts (.ok spotterFrame evmIlks) := by
+      ExecBlock config emptyFrame evm callStmts (.ok spotterFrame evmIlks) := by
     simpa [emptyFrame, spotterFrame, callStmts, clipperGetFeedPriceSpotterIlkLocals] using
       checkedExternalCallSuccess
-        (cfg := config v) (C := contract v) (evm := evm) (evm' := evmIlks)
+        (cfg := config) (C := contract) (evm := evm) (evm' := evmIlks)
         (locals := ∅) (receiver := .storage spotterRef) (retVar := "spotterIlk")
         (name := "spotterIlks") (target := clipperGetFeedPriceSpotterAddress evm)
-        (sendVal := 0) (args := [ilkExpr v]) (argVals := [v.ilk]) (out := outIlks)
+        (sendVal := 0) (args := [ilkExpr]) (argVals := [v.ilk]) (out := outIlks)
         (perm := true) (value := clipperSpotterIlksValues outIlks)
         (clipperEvalGetFeedPriceSpotterCodeGuard_true v evm ∅ (by simp) hcodeIlks)
         (clipperEvalGetFeedPriceSpotterTarget v evm ∅ (by simp))
         (clipperEvalGetFeedPriceIlkArgs v evm) hcallIlks hdecIlks
   have hpipStmt :
-      ExecStmt (config v) spotterFrame evmIlks
+      ExecStmt config spotterFrame evmIlks
         (.letDecl "pip" (some addr) (tuple0 (.var "spotterIlk")))
         (.ok pipFrame evmIlks) := by
     simpa [spotterFrame, pipFrame, clipperGetFeedPricePipLocals] using
       ExecStmt.letDecl
-        (cfg := config v) (solm := spotterFrame) (evm := evmIlks)
+        (cfg := config) (solm := spotterFrame) (evm := evmIlks)
         (name := "pip") (ty := some addr) (expr := tuple0 (.var "spotterIlk"))
         (value := .address (clipperSpotterIlksPipAddress outIlks))
         (clipperEvalGetFeedPricePipFromSpotterIlk v evmIlks outIlks)
   have hpipBlock :
-      ExecBlock (config v) spotterFrame evmIlks pipLetStmts (.ok pipFrame evmIlks) :=
+      ExecBlock config spotterFrame evmIlks pipLetStmts (.ok pipFrame evmIlks) :=
     ExecBlock.consNormal hpipStmt ExecBlock.nil
   have hpipReceiver :
       (clipperGetFeedPricePipLocals outIlks).get? "pip" =
         some (.address (clipperSpotterIlksPipAddress outIlks)) := by
     simp [clipperGetFeedPricePipLocals]
   have hpeekBlock :
-      ExecBlock (config v) pipFrame evmIlks peekStmts (.ok peekFrame evmPeek) := by
+      ExecBlock config pipFrame evmIlks peekStmts (.ok peekFrame evmPeek) := by
     simpa [pipFrame, peekFrame, peekStmts, clipperGetFeedPricePeekLocals] using
       checkedExternalCallVarSuccess
-        (cfg := config v) (C := contract v) (evm := evmIlks) (evm' := evmPeek)
+        (cfg := config) (C := contract) (evm := evmIlks) (evm' := evmPeek)
         (locals := clipperGetFeedPricePipLocals outIlks) (receiver := "pip")
         (retVar := "peekRet") (name := "peek")
         (target := clipperSpotterIlksPipAddress outIlks)
@@ -674,53 +669,53 @@ theorem clipperGetFeedPricePrefixToHas
         (clipperEvalGetFeedPricePipCodeGuard_true v evmIlks outIlks hcodePip)
         hpipReceiver (by rfl) hcallPeek hdecPeek
   have hvalStmt :
-      ExecStmt (config v) peekFrame evmPeek
+      ExecStmt config peekFrame evmPeek
         (.letDecl "val" (some bytes32) (tuple0 (.var "peekRet")))
         (.ok valFrame evmPeek) := by
     simpa [peekFrame, valFrame, clipperGetFeedPriceValLocals] using
       ExecStmt.letDecl
-        (cfg := config v) (solm := peekFrame) (evm := evmPeek)
+        (cfg := config) (solm := peekFrame) (evm := evmPeek)
         (name := "val") (ty := some bytes32) (expr := tuple0 (.var "peekRet"))
         (value := .fixedBytes abiBytes32Width (clipperPipPeekValueBytes outPeek))
         (clipperEvalGetFeedPricePeekVal v evmPeek outIlks outPeek)
   have hhasStmt :
-      ExecStmt (config v) valFrame evmPeek
+      ExecStmt config valFrame evmPeek
         (.letDecl "has" (some boolTy) (tuple1 (.var "peekRet")))
         (.ok hasFrame evmPeek) := by
     simpa [valFrame, hasFrame, clipperGetFeedPriceHasLocals] using
       ExecStmt.letDecl
-        (cfg := config v) (solm := valFrame) (evm := evmPeek)
+        (cfg := config) (solm := valFrame) (evm := evmPeek)
         (name := "has") (ty := some boolTy) (expr := tuple1 (.var "peekRet"))
         (value := .bool (clipperPipPeekHasWord outPeek != ⟨0⟩))
         (clipperEvalGetFeedPricePeekHas v evmPeek outIlks outPeek)
   have hrequire :
-      ExecStmt (config v) hasFrame evmPeek (.require (.var "has"))
+      ExecStmt config hasFrame evmPeek (.require (.var "has"))
         (.ok hasFrame evmPeek) :=
     ExecStmt.requireTrue (clipperEvalGetFeedPriceHas_true v evmPeek outIlks outPeek hnz)
   have hvalHas :
-      ExecBlock (config v) peekFrame evmPeek valHasStmts (.ok hasFrame evmPeek) := by
+      ExecBlock config peekFrame evmPeek valHasStmts (.ok hasFrame evmPeek) := by
     simpa [valHasStmts] using
       (ExecBlock.consNormal hvalStmt
         (ExecBlock.consNormal hhasStmt (ExecBlock.consNormal hrequire ExecBlock.nil)))
   have hafterPeek :
-      ExecBlock (config v) pipFrame evmIlks (peekStmts ++ valHasStmts)
+      ExecBlock config pipFrame evmIlks (peekStmts ++ valHasStmts)
         (.ok hasFrame evmPeek) :=
     execBlock_append hpeekBlock hvalHas
   have hafterPip :
-      ExecBlock (config v) spotterFrame evmIlks
+      ExecBlock config spotterFrame evmIlks
         (pipLetStmts ++ (peekStmts ++ valHasStmts)) (.ok hasFrame evmPeek) :=
     execBlock_append hpipBlock hafterPeek
   have hbody :
-      ExecBlock (config v) emptyFrame evm
+      ExecBlock config emptyFrame evm
         (callStmts ++ (pipLetStmts ++ (peekStmts ++ valHasStmts)))
         (.ok hasFrame evmPeek) :=
     execBlock_append hcallBlock hafterPip
   simpa [emptyFrame, hasFrame, callStmts, pipLetStmts, peekStmts, valHasStmts,
     List.append_assoc] using hbody
 
-abbrev clipperGetFeedPriceSuccessPrefixStmts (v : ClipperImmutables) : List Stmt :=
+abbrev clipperGetFeedPriceSuccessPrefixStmts : List Stmt :=
   checkedExternalCallStmts (.storage spotterRef) "spotterIlks" (.intLit 0)
-      [ilkExpr v] "spotterIlk" ++
+      [ilkExpr] "spotterIlk" ++
     [ .letDecl "pip" (some addr) (tuple0 (.var "spotterIlk")) ] ++
     checkedExternalCallStmts (.var "pip") "peek" (.intLit 0) [] "peekRet" ++
     [ .letDecl "val" (some bytes32) (tuple0 (.var "peekRet")),
@@ -737,16 +732,15 @@ theorem clipperGetFeedPriceSuccessBlockOfTail
     (v : ClipperImmutables) {evm evmPeek : EVM.State}
     {outIlks outPeek : ByteArray} {result : ExecResult}
     (hprefix :
-      ExecBlock (config v) (Frame.mk (contract v) ∅) evm
-        (clipperGetFeedPriceSuccessPrefixStmts v)
-        (.ok (Frame.mk (contract v)
-          (clipperGetFeedPriceHasLocals outIlks outPeek)) evmPeek))
+      ExecBlock config (Frame.mk contract ∅ (immStore v)) evm
+        (clipperGetFeedPriceSuccessPrefixStmts)
+        (.ok (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
     (htail :
-      ExecBlock (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evmPeek
+      ExecBlock config
+        (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek
         clipperGetFeedPriceSuccessTailStmts result) :
-    ExecBlock (config v) (Frame.mk (contract v) ∅) evm
-      (getFeedPriceFunction v).body result := by
+    ExecBlock config (Frame.mk contract ∅ (immStore v)) evm
+      getFeedPriceFunction.body result := by
   have hwhole := execBlock_append hprefix htail
   simpa [getFeedPriceFunction, clipperGetFeedPriceSuccessPrefixStmts,
     clipperGetFeedPriceSuccessTailStmts, List.append_assoc] using hwhole
@@ -755,16 +749,15 @@ theorem clipperGetFeedPriceSuccessFunctionRevertsOfTail
     (v : ClipperImmutables) {evm evmPeek : EVM.State}
     {outIlks outPeek : ByteArray}
     (hprefix :
-      ExecBlock (config v) (Frame.mk (contract v) ∅) evm
-        (clipperGetFeedPriceSuccessPrefixStmts v)
-        (.ok (Frame.mk (contract v)
-          (clipperGetFeedPriceHasLocals outIlks outPeek)) evmPeek))
+      ExecBlock config (Frame.mk contract ∅ (immStore v)) evm
+        (clipperGetFeedPriceSuccessPrefixStmts)
+        (.ok (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
     (htail :
-      ExecBlock (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evmPeek
+      ExecBlock config
+        (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek
         clipperGetFeedPriceSuccessTailStmts .reverted) :
-    ExecFuncBody (config v) (Frame.mk (contract v) ∅) evm
-      (getFeedPriceFunction v).body .reverted :=
+    ExecFuncBody config (Frame.mk contract ∅ (immStore v)) evm
+      getFeedPriceFunction.body .reverted :=
   ExecFuncBody.execBlockRevert
     (clipperGetFeedPriceSuccessBlockOfTail v hprefix htail)
 
@@ -772,17 +765,16 @@ theorem clipperGetFeedPriceSuccessFunctionReturnsOfTail
     (v : ClipperImmutables) {evm evmPeek evmResult : EVM.State}
     {outIlks outPeek : ByteArray} {resultFrame : Frame} {values : List Value}
     (hprefix :
-      ExecBlock (config v) (Frame.mk (contract v) ∅) evm
-        (clipperGetFeedPriceSuccessPrefixStmts v)
-        (.ok (Frame.mk (contract v)
-          (clipperGetFeedPriceHasLocals outIlks outPeek)) evmPeek))
+      ExecBlock config (Frame.mk contract ∅ (immStore v)) evm
+        (clipperGetFeedPriceSuccessPrefixStmts)
+        (.ok (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
     (htail :
-      ExecBlock (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evmPeek
+      ExecBlock config
+        (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek
         clipperGetFeedPriceSuccessTailStmts
         (.returned resultFrame evmResult (some values))) :
-    ExecFuncBody (config v) (Frame.mk (contract v) ∅) evm
-      (getFeedPriceFunction v).body
+    ExecFuncBody config (Frame.mk contract ∅ (immStore v)) evm
+      getFeedPriceFunction.body
       (.returned resultFrame evmResult (some values)) :=
   ExecFuncBody.execBlockRet
     (clipperGetFeedPriceSuccessBlockOfTail v hprefix htail)
@@ -791,21 +783,20 @@ theorem clipperGetFeedPriceSuccessCallRevertsOfTail
     (v : ClipperImmutables) (callerLocals : Store) (retVar : Ident)
     {evm evmPeek : EVM.State} {outIlks outPeek : ByteArray}
     (hprefix :
-      ExecBlock (config v) (Frame.mk (contract v) ∅) evm
-        (clipperGetFeedPriceSuccessPrefixStmts v)
-        (.ok (Frame.mk (contract v)
-          (clipperGetFeedPriceHasLocals outIlks outPeek)) evmPeek))
+      ExecBlock config (Frame.mk contract ∅ (immStore v)) evm
+        (clipperGetFeedPriceSuccessPrefixStmts)
+        (.ok (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
     (htail :
-      ExecBlock (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evmPeek
+      ExecBlock config
+        (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek
         clipperGetFeedPriceSuccessTailStmts .reverted) :
-    ExecStmt (config v) (Frame.mk (contract v) callerLocals) evm
+    ExecStmt config (Frame.mk contract callerLocals (immStore v)) evm
       (.internalCall "getFeedPrice" [] retVar) .reverted :=
   internalCallFunctionRevert
-    (cfg := config v) (caller := Frame.mk (contract v) callerLocals) (evm := evm)
+    (cfg := config) (caller := Frame.mk contract callerLocals (immStore v)) (evm := evm)
     (name := "getFeedPrice") (retVar := retVar) (args := []) (argVals := [])
-    (callee := getFeedPriceFunction v) (locals := ∅) (by rfl)
-    (clipperLookupGetFeedPriceFunction v) (clipperBindParamsGetFeedPrice v)
+    (callee := getFeedPriceFunction) (locals := ∅) (by rfl)
+    (clipperLookupGetFeedPriceFunction) (clipperBindParamsGetFeedPrice)
     (clipperGetFeedPriceSuccessFunctionRevertsOfTail v hprefix htail)
 
 theorem clipperGetFeedPriceSuccessCallReturnsOfTail
@@ -813,27 +804,25 @@ theorem clipperGetFeedPriceSuccessCallReturnsOfTail
     {evm evmPeek evmResult : EVM.State}
     {outIlks outPeek : ByteArray} {resultFrame : Frame} {values : List Value}
     (hprefix :
-      ExecBlock (config v) (Frame.mk (contract v) ∅) evm
-        (clipperGetFeedPriceSuccessPrefixStmts v)
-        (.ok (Frame.mk (contract v)
-          (clipperGetFeedPriceHasLocals outIlks outPeek)) evmPeek))
+      ExecBlock config (Frame.mk contract ∅ (immStore v)) evm
+        (clipperGetFeedPriceSuccessPrefixStmts)
+        (.ok (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
     (htail :
-      ExecBlock (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evmPeek
+      ExecBlock config
+        (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek
         clipperGetFeedPriceSuccessTailStmts
         (.returned resultFrame evmResult (some values))) :
-    ExecStmt (config v) (Frame.mk (contract v) callerLocals) evm
+    ExecStmt config (Frame.mk contract callerLocals (immStore v)) evm
       (.internalCall "getFeedPrice" [] retVar)
-      (.ok (Frame.mk (contract v)
-        (callerLocals.insert retVar (collapseReturns values))) evmResult) := by
+      (.ok (Frame.mk contract (callerLocals.insert retVar (collapseReturns values)) (immStore v)) evmResult) := by
   simpa [resumeAfterInternalCall] using
     (internalCallFunctionReturn
-      (cfg := config v) (caller := Frame.mk (contract v) callerLocals)
+      (cfg := config) (caller := Frame.mk contract callerLocals (immStore v))
       (evm := evm) (calleeEvm := evmResult)
       (name := "getFeedPrice") (retVar := retVar) (args := []) (argVals := [])
-      (callee := getFeedPriceFunction v) (locals := ∅)
+      (callee := getFeedPriceFunction) (locals := ∅)
       (calleeSolm := resultFrame) (value := some values) (by rfl)
-      (clipperLookupGetFeedPriceFunction v) (clipperBindParamsGetFeedPrice v)
+      (clipperLookupGetFeedPriceFunction) (clipperBindParamsGetFeedPrice)
       (clipperGetFeedPriceSuccessFunctionReturnsOfTail v hprefix htail))
 
 theorem clipperGetFeedPriceTailRevertsValBlnOverflow
@@ -842,8 +831,8 @@ theorem clipperGetFeedPriceTailRevertsValBlnOverflow
     (hover : UInt256.size ≤
       (clipperPipPeekValueWord outPeek).toNat *
         (⟨1000000000⟩ : UInt256).toNat) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evm
+    ExecBlock config
+      (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evm
       clipperGetFeedPriceSuccessTailStmts .reverted := by
   have hmul := clipperGetFeedPriceValBlnMulRevertBlock
     v evm outIlks outPeek hlo hover
@@ -864,8 +853,8 @@ theorem clipperGetFeedPriceTailRevertsParNoCode
     (hnoCode :
       (UInt256.ofNat ((evm.lookupAccount (clipperGetFeedPriceSpotterAddress evm)).option 0
         (fun acc => acc.code.size))).toNat = 0) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evm
+    ExecBlock config
+      (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evm
       clipperGetFeedPriceSuccessTailStmts .reverted := by
   have hmulBlock := clipperGetFeedPriceValBlnMulSuccessBlock
     v evm outIlks outPeek hlo hmul
@@ -890,11 +879,11 @@ theorem clipperGetFeedPriceTailRevertsParCallFailure
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperGetFeedPriceSpotterAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) evm
+      typedCallViaEVM config evm
         (EVM.address (clipperGetFeedPriceSpotterAddress evm)) "par" 0 []
         (false, evmPar, outPar) true) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evm
+    ExecBlock config
+      (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evm
       clipperGetFeedPriceSuccessTailStmts .reverted := by
   have hmulBlock := clipperGetFeedPriceValBlnMulSuccessBlock
     v evm outIlks outPeek hlo hmul
@@ -919,12 +908,12 @@ theorem clipperGetFeedPriceTailRevertsParDecode
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperGetFeedPriceSpotterAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) evm
+      typedCallViaEVM config evm
         (EVM.address (clipperGetFeedPriceSpotterAddress evm)) "par" 0 []
         (true, evmPar, outPar) true)
-    (hdec : (config v).externalABI.decode? "par" outPar = none) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evm
+    (hdec : config.externalABI.decode? "par" outPar = none) :
+    ExecBlock config
+      (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evm
       clipperGetFeedPriceSuccessTailStmts .reverted := by
   have hmulBlock := clipperGetFeedPriceValBlnMulSuccessBlock
     v evm outIlks outPeek hlo hmul
@@ -949,19 +938,19 @@ theorem clipperGetFeedPriceTailOfParSuccess
       0 < (UInt256.ofNat ((evm.lookupAccount (clipperGetFeedPriceSpotterAddress evm)).option 0
         (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) evm
+      typedCallViaEVM config evm
         (EVM.address (clipperGetFeedPriceSpotterAddress evm)) "par" 0 []
         (true, evmPar, outPar) true)
     (hdec :
-      (config v).externalABI.decode? "par" outPar =
+      config.externalABI.decode? "par" outPar =
         some (clipperSpotterParValues outPar))
     (hrdiv :
-      ExecBlock (config v)
-        (Frame.mk (contract v) (clipperGetFeedPriceParLocals outIlks outPeek outPar)) evmPar
+      ExecBlock config
+        (Frame.mk contract (clipperGetFeedPriceParLocals outIlks outPeek outPar) (immStore v)) evmPar
         [ .internalCall "rdiv" [.var "valBln", .var "par"] "feedPrice",
           .return [.var "feedPrice"] ] result) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evm
+    ExecBlock config
+      (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evm
       clipperGetFeedPriceSuccessTailStmts result := by
   have hmulBlock := clipperGetFeedPriceValBlnMulSuccessBlock
     v evm outIlks outPeek hlo hmul

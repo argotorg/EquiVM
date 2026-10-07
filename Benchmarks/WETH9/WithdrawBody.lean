@@ -154,7 +154,7 @@ theorem withdrawAssign (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.executio
       (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (callerBalSlot I)).toNat - Int.ofNat (withdrawWadWord I).toNat)) =
       .ok ({ contract := contract, locals := withdrawStore I }, withdrawStoreState evm I) := by
-  refine assignStorageRef_storage_scalar_value
+  refine assignStorageRef_storage_scalar_value (hleaf := by simp [uint256St, uint8St])
     (er := callerBalRef I) (ty := uint256St) (loc := wordLoc (callerBalSlot I))
     (hbase := by simp [balanceOfRef, withdrawStore_balanceOf_get I]) ?_ ?_ (by rfl) (by trivial) ?_
   · simp only [balanceOfRef, sender, evalStorageRef, evalStorageRefSteps, evalStorageRefStep,
@@ -176,6 +176,29 @@ theorem weth9WithdrawBodyReverts_geFalse (evm : EVM.State) (I : ExecutionEnv)
   exact ExecBlock.consRevert (ExecStmt.requireFalse (evalWithdrawGe_false evm I hsrc hlt))
 
 /-- Body execution, `bal ≥ wad`, call succeeds: `require(success)` passes, body returns (void). -/
+theorem weth9WithdrawBodyPrefix {evm : EVM.State} {I : ExecutionEnv}
+    {result : ExecResult} (hsrc : evm.executionEnv = I)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hle : (withdrawWadWord I).toNat ≤
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (callerBalSlot I)).toNat)
+    (htail : ExecBlock config { contract := contract, locals := withdrawStore I } evm
+      (withdrawTransition.body.drop 2) result) :
+    ExecBlock config { contract := contract, locals := withdrawStore I } evm
+      withdrawTransition.body result :=
+  ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
+    (ExecBlock.consNormal (ExecStmt.requireTrue (evalWithdrawGe_true evm I hsrc hle)) htail)
+
+theorem weth9WithdrawBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hsrc : evm.executionEnv = I) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hle : (withdrawWadWord I).toNat ≤
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (callerBalSlot I)).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (withdrawStore I)
+      withdrawTransition.body .staticViolation :=
+  ExecFuncBody.execBlockStatic (weth9WithdrawBodyPrefix hsrc hwv hle
+    (ExecBlock.consStatic (ExecStmt.assignStatic
+      (evalWithdrawSub evm I hsrc) (withdrawAssign evm I hsrc hle) hperm)))
+
 theorem weth9WithdrawBodyReturns_success (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
     (hsrc : evm.executionEnv = I) (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hle : (withdrawWadWord I).toNat ≤
@@ -186,9 +209,7 @@ theorem weth9WithdrawBodyReturns_success (evm evm' : EVM.State) (I : ExecutionEn
     ExecTransitionBody config contract evm (withdrawStore I) withdrawTransition.body
       (.returned { contract := contract, locals := withdrawCallStore I true out } evm' none) := by
   refine ExecFuncBody.execBlockOK ?_
-  unfold withdrawTransition
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalWithdrawGe_true evm I hsrc hle)) ?_
+  apply weth9WithdrawBodyPrefix hsrc hwv hle
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalWithdrawSub evm I hsrc) (withdrawAssign evm I hsrc hle)) ?_
   refine ExecBlock.consNormal
@@ -209,9 +230,7 @@ theorem weth9WithdrawBodyReverts_callFailure (evm evm' : EVM.State) (I : Executi
       (Int.ofNat (withdrawWadWord I).toNat) ByteArray.empty (false, evm', out)) :
     ExecTransitionBody config contract evm (withdrawStore I) withdrawTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
-  unfold withdrawTransition
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalWithdrawGe_true evm I hsrc hle)) ?_
+  apply weth9WithdrawBodyPrefix hsrc hwv hle
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalWithdrawSub evm I hsrc) (withdrawAssign evm I hsrc hle)) ?_
   refine ExecBlock.consNormal
@@ -359,18 +378,20 @@ theorem weth9WithdrawRequireRev {σ σ₀ A I} {g : Sat256} {k C : ℕ}
 
 /-- `bal ≥ wad`: pass the require, re-keccak, `balanceOf[caller] -= wad` (`SSTORE`), reaching the
     `CALL` setup (pc 1447) with the mapping-hash memory and the decremented balance. -/
-theorem weth9WithdrawReachStore {σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (hperm : I.perm = true)
+theorem weth9WithdrawReachStoreSplit {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (hle : (withdrawWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat)
     (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1395⟩
       [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1447⟩
-      [⟨64⟩, ⟨0⟩, solcSourceWord I, withdrawWadWord I, ⟨164⟩, weth9SelWord I]
-      (twoWordHashMem (solcSourceWord I) ⟨3⟩ (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem))
-      (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ (callerBalSlot I)
-        (UInt256.sub (solcSlotWord σ I (callerBalSlot I)) (withdrawWadWord I))) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1447⟩
+        [⟨64⟩, ⟨0⟩, solcSourceWord I, withdrawWadWord I, ⟨164⟩, weth9SelWord I]
+        (twoWordHashMem (solcSourceWord I) ⟨3⟩
+          (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem))
+        (UInt256.ofNat 3) ByteArray.empty
+        (sstoreAccountMap I.codeOwner σ (callerBalSlot I)
+          (UInt256.sub (solcSlotWord σ I (callerBalSlot I)) (withdrawWadWord I))) k' C') ∨
+      (I.perm = false ∧ RDstatic weth9Bytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, h1415⟩ := weth9WithdrawRequireCheck h
   have h1423 := h1415.push2 ⟨1423⟩ (by native_decide) (by simp)
     |>.jumpiT (by native_decide) (by rw [ugt_zero hle]; decide) (by jump_dest) (by simp)
@@ -391,8 +412,29 @@ theorem weth9WithdrawReachStore {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     dup1]
   obtain ⟨_, _, hSload2⟩ := hC.sload (by native_decide) (by evm_ov)
   have hD := evm_run hSload2 with [dup6, swap1, sub, swap1]
-  obtain ⟨_, _, hSstore⟩ := hD.sstore hperm (by native_decide) (by evm_ov)
+  have hstoreDec : decode weth9Bytecode ⟨1446⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      hD.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, hSstore⟩ := hD.sstore hperm hstoreDec (by evm_ov)
   exact ⟨_, _, hSstore⟩
+
+theorem weth9WithdrawReachStore {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (hperm : I.perm = true)
+    (hle : (withdrawWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat)
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1395⟩
+      [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1447⟩
+      [⟨64⟩, ⟨0⟩, solcSourceWord I, withdrawWadWord I, ⟨164⟩, weth9SelWord I]
+      (twoWordHashMem (solcSourceWord I) ⟨3⟩ (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem))
+      (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner σ (callerBalSlot I)
+        (UInt256.sub (solcSlotWord σ I (callerBalSlot I)) (withdrawWadWord I))) k' C' :=
+  permSplit_true hperm (weth9WithdrawReachStoreSplit hle h)
 
 /-! ## EVM trace: `CALL` setup (pc 1447 → 1464) -/
 

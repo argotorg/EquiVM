@@ -15,7 +15,7 @@ theorem uniswapSkimBodyDecoded
     (hsz36 : 36 ≤ I.calldata.size)
     (hdecode : decodeCalldataWithMode config.abiDecodeMode (skimTransition.params.map Param.name)
       (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hlocked :
     (σ.get? I.codeOwner |>.option ⟨0⟩
       (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩
@@ -869,7 +869,7 @@ theorem uniswapSkimBodyDecoded
                                         skimSecondSafeTransferStore evmS evm0S evm2S I
                                           balance0 balance1 }
                                     evm3S) →
-                                runtimeEquivalenceFor config contract σ σ₀
+                                runtimeRefinementFor config contract σ σ₀
                                   g A I := by
                             intro mem outRet aw kR CR rd5433 hsafe1
                             have rdRet :=
@@ -1617,7 +1617,7 @@ theorem uniswapSkimBodyDecoded
                                               skimSecondSafeTransferStore evmS evm0S evm2S I
                                                 balance0 balance1 }
                                           evm3S) →
-                                      runtimeEquivalenceFor config contract σ
+                                      runtimeRefinementFor config contract σ
                                         σ₀ g A I := by
                                   intro mem outRet aw kR CR rd5433 hsafe1
                                   have rdRet :=

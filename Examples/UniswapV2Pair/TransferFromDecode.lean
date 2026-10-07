@@ -38,7 +38,7 @@ theorem uniswapTransferFromBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_transferFrom_none_short (I := I) hsz4 hshort
   exact (uniswapTransferFromX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -52,7 +52,7 @@ theorem uniswapTransferFromBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩)
     (hshort : I.calldata.size < 100)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ rfl hsel
   exact uniswapTransferFromBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -64,7 +64,7 @@ theorem uniswapTransferFromBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz100 : 100 ≤ I.calldata.size
   · by_cases hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus
     · by_cases hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus
@@ -220,6 +220,73 @@ theorem uniswapTransferFromBody
           hsz100 hnotMax (by omega) hdispatch
           (uniswapDecode_transferFrom_ok_noncanon_from hsz100 hcanonFrom)
 
+  · exact uniswapTransferFromBodyDecodeFailed_short hcode hsize hwv hsel (by omega)
+      hdispatch
+
+/-- `transferFrom` with any call permission.  A static call halts at the allowance `SSTORE`
+    (finite allowance) or at the sender-balance `SSTORE` (maximal allowance); both paths go
+    through the masking wrapper, which accepts every address word. -/
+theorem uniswapTransferFromBodyAnyPerm
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact uniswapTransferFromBody hcode hsize hperm hwv hsel hdispatch
+  replace hperm : I.perm = false := by simpa using hperm
+  by_cases hsz100 : 100 ≤ I.calldata.size
+  · have hdecode :
+        decodeCalldataWithMode config.abiDecodeMode (transferFromTransition.params.map Param.name)
+          (transitionSignature transferFromTransition).paramTypes I.calldata =
+            some (transferFromStore I) := by
+      by_cases hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus
+      · by_cases hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus
+        · exact uniswapDecode_transferFrom_ok hsz100 hcanonFrom hcanonTo
+        · exact uniswapDecode_transferFrom_ok_noncanon_to hsz100 hcanonFrom hcanonTo
+      · exact uniswapDecode_transferFrom_ok_noncanon_from hsz100 hcanonFrom
+    have hsz4 : 4 ≤ I.calldata.size :=
+      calldata_size_ge_of_selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ rfl hsel
+    have hreach := uniswapReachTransferFromBody (σ := σ) (σ₀ := σ₀) (A := A)
+      (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
+    have hwvS : (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.weiValue = ⟨0⟩ := by
+      simp only [initState]; exact hwv
+    have hpermS : (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.perm = false := by
+      simp only [initState]; exact hperm
+    by_cases hmax : (transferFromCurrentAllowanceWord
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat = UInt256.size - 1
+    · by_cases hbalance : (transferFromValueWord I).toNat ≤
+          (transferFromFromBalanceWord (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat
+      · obtain ⟨_, _, rd7551⟩ :=
+          uniswapTransferFromX_allowanceMaxAfterDebit_masked hsz100 hsize hmax hbalance hreach
+        exact (RD.uniswapTransferInternalStoreDebitStatic rd7551
+            (uniswapApproveHashMem_size _ _) hperm (transferFromFromMaskedWord_canonical I)
+            (by simp only [List.length_cons, List.length_nil]; omega))
+          |>.reEquivStaticHalt hcode hdispatch hdecode
+            (uniswapTransferFromBodyStatic_maxAllowance _ I hwvS hmax hbalance hpermS)
+      · exact uniswapTransferFromBodyRevert_balance_maxAllowance_masked hcode hsize hwv hsel
+          hsz100 hmax (by omega) hdispatch hdecode
+    · by_cases hallowance : (transferFromValueWord I).toNat ≤
+          (transferFromCurrentAllowanceWord (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat
+      · obtain ⟨_, _, rd2938⟩ := uniswapTransferFromX_decoded_masked hsz100 hsize hreach
+        have hnotMaxEvm :
+            (uniswapCodeOwnerStorageWord I σ (mapSlot (uniswapSourceWord I)
+              (mapSlot (transferFromFromMaskedWord I) ⟨2⟩))).toNat ≠ UInt256.size - 1 := by
+          rwa [transferFromCurrentAllowanceWord_initState_eq_uniswapCodeOwnerStorageWord_masked]
+            at hmax
+        have hallowanceEvm : (transferFromValueWord I).toNat ≤
+            (uniswapCodeOwnerStorageWord I σ (mapSlot (uniswapSourceWord I)
+              (mapSlot (transferFromFromMaskedWord I) ⟨2⟩))).toNat := by
+          rwa [transferFromCurrentAllowanceWord_initState_eq_uniswapCodeOwnerStorageWord_masked]
+            at hallowance
+        exact (RD.uniswapTransferFromAllowanceFiniteStatic rd2938 hperm
+            (transferFromFromMaskedWord_canonical I) hnotMaxEvm hallowanceEvm
+            (by simp only [List.length_singleton]; omega))
+          |>.reEquivStaticHalt hcode hdispatch hdecode
+            (uniswapTransferFromBodyStatic_finiteAllowance _ I hwvS hmax hallowance hpermS)
+      · exact uniswapTransferFromBodyRevert_allowance_masked hcode hsize hwv hsel
+          hsz100 hmax (by omega) hdispatch hdecode
   · exact uniswapTransferFromBodyDecodeFailed_short hcode hsize hwv hsel (by omega)
       hdispatch
 

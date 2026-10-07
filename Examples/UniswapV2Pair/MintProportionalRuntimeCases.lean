@@ -67,8 +67,8 @@ theorem uniswapMintProportionalRuntimeCases
     let afterBranch : Frame := ⟨contract,
       ((locals.insert "liquidity0" (mintProportionalLiquidityValue amount0 totalSupply reserve0)).insert
         "liquidity1" (mintProportionalLiquidityValue amount1 totalSupply reserve1)).insert
-        "liquidity" (uniswapUint256Value liquidity)⟩
-    have hbranch : ExecStmt config ⟨contract, locals⟩ evm mintLiquidityBranchStmt
+        "liquidity" (uniswapUint256Value liquidity), ∅⟩
+    have hbranch : ExecStmt config ⟨contract, locals, ∅⟩ evm mintLiquidityBranchStmt
         (.ok afterBranch evm) := uniswapMintProportionalLiquidityBranchMin evm amount0 amount1
       totalSupply reserve0 reserve1 htotal htotalNonzero hamount0 hamount1 hreserve0 hreserve1
       hfit0 hfit1 hr0 hr1

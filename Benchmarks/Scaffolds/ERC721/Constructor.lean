@@ -1,5 +1,5 @@
 import Benchmarks.Scaffolds.ERC721.Bytecode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # ERC721 constructor correctness stub
@@ -13,7 +13,7 @@ open Solm ABI Ethereum Ethereum.EVM
 namespace ERC721
 
 theorem erc721ConstructorCorrect :
-    constructorEquivalence erc721Config erc721CreationBytecode erc721Contract erc721Bytecode := by
+    typedConstructorRefinement erc721Config erc721CreationBytecode erc721Contract (fun _ => erc721Bytecode) := by
   sorry
 
 end ERC721

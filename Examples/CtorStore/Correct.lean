@@ -5,6 +5,7 @@ import Reasoning.Solc
 import Reasoning.Dispatch
 import Reasoning.SolmBody
 import Reasoning.Reach
+import Solm.Refine
 
 /-!
 # CtorStore — whole-contract equivalence for a constructor storage write
@@ -45,8 +46,8 @@ theorem ctorStoreRuntimeRevert {σ σ₀ A I} {g : Sat256}
     raw rev 0 (by decide) mem_cost (by evm_ov)]
 
 theorem ctorStoreRuntimeCorrect :
-    runtimeEquivalence ctorStoreConfig ctorStoreRuntimeBytecode CtorStore.contract := by
-  refine ⟨fun σ σ₀ g A I hcode _hsize _hperm => ?_⟩
+    runtimeRefinement ctorStoreConfig ctorStoreRuntimeBytecode CtorStore.contract := by
+  refine ⟨fun σ σ₀ g A I hcode _hsize => ?_⟩
   exact (ctorStoreRuntimeRevert (σ := σ)
     (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode).reEquivNoDispatch hcode
@@ -314,10 +315,14 @@ theorem ctorStoreAssign (evm : EVM.State) (L : Store) (i : Int)
   have hty : storageTypeAt? CtorStore.contract.storage { base := "stored", steps := [] } =
       some (.elem (.int (.uint ⟨256, by decide⟩))) := by
     simp [storageTypeAt?, CtorStore.contract]
-  have hloc : ctorStoreConfig.storage.layout { base := "stored", steps := [] } =
-      fun _ => some { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
-                      type := .int (.uint ⟨256, (by decide)⟩) } := rfl
-  exact assignStorageRef_storage_scalar hbase her hty hloc (ctorStoreLocStore _ _ h0)
+  have hbackend : ctorStoreConfig.storageBackend =
+      solidityStorageBackend CtorStore.generatedStorageBackend.locate? := rfl
+  have hloc : CtorStore.generatedStorageBackend.locate?
+      { base := "stored", steps := [] } =
+      some (.leaf { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
+                    type := .int (.uint ⟨256, (by decide)⟩) }) := rfl
+  exact assignStorageRef_storage_scalar hbase her hty hbackend hloc
+    (Or.inl ⟨_, rfl⟩) (ctorStoreLocStore _ _ h0)
 
 theorem ctorStoreCtorBodyReturns (evm : EVM.State) (locals : Store) (i : Int)
     (h0 : 0 ≤ i)
@@ -357,9 +362,8 @@ theorem ctorStoreSolmCtorExec
 
 /-- The creation/initcode bytecode refines the Solm constructor specification. -/
 theorem ctorStoreConstructorCorrect :
-    constructorEquivalence ctorStoreConfig ctorStoreInitcode CtorStore.contract
-      ctorStoreRuntimeBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement ctorStoreConfig ctorStoreInitcode CtorStore.contract
+      (fun _ => ctorStoreRuntimeBytecode) := by
   intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
   rcases ctorStoreDeployment_shape hdeploy with ⟨i, hargs, h0, _hlt, hdeployed⟩
   subst args
@@ -368,7 +372,7 @@ theorem ctorStoreConstructorCorrect :
       (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) (w := EVM.word i.toNat) hcode hperm
   rcases hrd with hoog | ⟨s, hX, hacc⟩
-  · exact constructorEquivalenceFor.outOfGas
+  · exact typedConstructorRefinementFor.outOfGas
       (Xi_error_of_X (g := g) (by
         rw [← hcode] at hoog
         simpa [initState, Sat256.ofUInt256] using hoog))
@@ -376,7 +380,7 @@ theorem ctorStoreConstructorCorrect :
       rw [← hcode] at hX
       simpa [initState, Sat256.ofUInt256] using hX)
     rw [hacc] at hsuccess
-    refine constructorEquivalenceFor.execution hsuccess
+    refine typedConstructorRefinementFor.execution hsuccess
       (ctorStoreSolmCtorExec (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
         i h0) ?_
     refine ctorResultEquiv.success rfl rfl ?_ rfl
@@ -384,6 +388,6 @@ theorem ctorStoreConstructorCorrect :
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem ctorStoreCorrect :
-    contractEquivalence ctorStoreConfig ctorStoreInitcode ctorStoreRuntimeBytecode
+    contractRefinement ctorStoreConfig ctorStoreInitcode
       CtorStore.contract :=
-  contractEquivalence.intro ctorStoreConstructorCorrect ctorStoreRuntimeCorrect
+  contractRefinement.of_constant ctorStoreConstructorCorrect ctorStoreRuntimeCorrect

@@ -155,10 +155,11 @@ theorem accessControlGetRoleAdminBodyReturns (evm : EVM.State) (I : ExecutionEnv
         simp [getRoleAdminEvaledRef, storageTypeAt?, storageTypeStep?, contract, storageDecls,
           roleDataStruct, roleDataSt, bytes32St]
       have hloc :
-          config.storage.layout (getRoleAdminEvaledRef I) = fun _ => some (getRoleAdminLoc I) := by
-        funext evm'
-        simp [config, storageLayout, getRoleAdminEvaledRef, getRoleAdminLoc, getRoleAdminSlot]
-      rw [evalExpr_storage_scalar (t := .bytes bytes32Width)
+          config.storageBackend.locate? (getRoleAdminEvaledRef I) =
+            some (.leaf (getRoleAdminLoc I)) := by
+        simpa [config, getRoleAdminEvaledRef, getRoleAdminLoc, getRoleAdminSlot] using
+          storageLayout_adminRole (getRoleAdminRoleKey I)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bytes bytes32Width)
         (hbase := by simp [getRoleAdminStore, roleAdminRef])
         (her := her) (hty := hty) (hloc := hloc)]
       rw [show storageLocLoad evm (getRoleAdminLoc I) =
@@ -402,15 +403,14 @@ theorem accessControlGetRoleAdminX {σ σ₀ A I} {g : Sat256}
 theorem accessControlGetRoleAdminBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x24, 0x8a, 0x9c, 0xa3]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨166⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
-  have _hperm : I.perm = true := hperm
   have hsz4 := accessControlGetRoleAdminSelector_size hsel
   have hd := accessControlDispatch_getRoleAdmin (cd := I.calldata) (by
     simpa [selIs] using hsel)

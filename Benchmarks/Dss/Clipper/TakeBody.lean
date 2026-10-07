@@ -14,16 +14,16 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 22))
     (hStorageWF : clipperStorageWF σ I) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hcalldataSmall : I.calldata.size < 2 ^ 255 :=
     clipperStorageWF_calldata_lt_sign hStorageWF
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 22) (by native_decide) hsel
-  have hdispatch : dispatchMsg (contract v) I.calldata = some (takeTransition v) :=
-    clipperDispatch_take v hsel
+  have hdispatch : dispatchMsg contract I.calldata = some takeTransition :=
+    clipperDispatch_take hsel
   have hreach := clipperReachTakeBody
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
@@ -33,7 +33,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
       (sel := clipperSelWord I) (v := v) hpatch hsz164 hsize hreach
     by_cases hoffHuge :
         solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat
-    · have hdec := clipperDecode_take_none_offset_huge v (I := I)
+    · have hdec := clipperDecode_take_none_offset_huge (I := I)
         hcalldataSmall hsz164 hoffHuge
       have hgtWord :
           UInt256.gt (clipperTakeDataOffsetWord I) (⟨4294967296⟩ : UInt256) = ⟨1⟩ := by
@@ -61,7 +61,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
           (sel := clipperSelWord I) (v := v) hpatch hgtLenOk hreachOffsetOk
         by_cases hlenHuge :
             solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataLenWord I).toNat
-        · have hdec := clipperDecode_take_none_length_huge v (I := I)
+        · have hdec := clipperDecode_take_none_length_huge (I := I)
             hcalldataSmall hsz164 hoffHuge hlenWord hlenHuge
           exact (clipperTakeX_length_huge
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -72,7 +72,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
               (((I.calldata.toList.drop 4).drop
                 ((clipperTakeDataOffsetWord I).toNat + 32)).take
                 (clipperTakeDataLenWord I).toNat).length = (clipperTakeDataLenWord I).toNat
-          · have hdec := clipperDecode_take_ok v (I := I)
+          · have hdec := clipperDecode_take_ok (I := I)
               hcalldataSmall hsz164 hoffHuge hlenWord hlenMax hpayloadOk
             have hpayloadGt := clipperTakePayloadGt_zero hsize hsz4 hoffHuge hlenWord
               hlenMax hpayloadOk
@@ -86,10 +86,14 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                 (σ := σ) (I := I) (g := Sat256.ofUInt256 g)
                 (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (sel := clipperSelWord I) (v := v) hpatch hlockedEvm rd3527
-              obtain ⟨_, _, rd3610⟩ := clipperTakeX_lockStore
+              have hfirstWrite := clipperTakeX_lockStoreSplit
                 (σ := σ) (I := I) (g := Sat256.ofUInt256 g)
                 (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
-                (sel := clipperSelWord I) (v := v) hpatch hperm rd3604
+                (sel := clipperSelWord I) (v := v) hpatch rd3604
+              rcases hfirstWrite with ⟨hperm, _, _, rd3610⟩ | ⟨hperm, hstatic⟩
+              swap
+              · exact hstatic.reEquivStaticHalt hcode hdispatch hdec
+                  ((clipperTakeStoppedSourceRevertsSplit v hwv hlockedEvm).2 hperm)
               let σLock := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
               by_cases hstoppedLt : (solcSlotWord σLock I ⟨14⟩).toNat < 3
               · obtain ⟨_, _, rd3694⟩ := clipperTakeX_stoppedOpen (v := v)
@@ -98,8 +102,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                 by_cases husrEvm : clipperTakeSalesUsrWord σLock I = ⟨0⟩
                 · let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                   have hbody :
-                      ExecTransitionBody (config v) (contract v) evmSolm
-                        (clipperTakeStore I) (takeTransition v).body .reverted := by
+                      ExecTransitionBody config contract evmSolm
+                        (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
                     simpa [evmSolm, σLock] using
                       (clipperTakeInactiveSourceReverts
                         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
@@ -266,7 +270,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                 State.setAccount, sstoreAccountMap, Account.updateStorage,
                                 Option.option, hOne, hacc]
                           have hcallPriceSolm :
-                              typedCallViaEVM (config v) evmLockSolm
+                              typedCallViaEVM config evmLockSolm
                                 (EVM.address (clipperStatusCalcAddress evmLockSolm))
                                 "price" 0
                                 [.int (Int.ofNat
@@ -292,9 +296,9 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                               let evmLock :=
                                 Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                                   ⟨13⟩ ⟨1⟩
-                              ExecStmt (config v)
-                                { contract := contract v,
-                                  locals := clipperTakeLocalsTic evmLock I }
+                              ExecStmt config
+                                { contract := contract,
+                                  locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
                                 evmLock
                                 (.internalCall "status"
                                   [.var "tic", .storage (salesF (.var "id") "top")] "st")
@@ -304,8 +308,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                 (evm := evmLockSolm) (evmPrice := evmPriceSolm)
                                 I hlePriceSolm hcalcCodeSolm hcallPriceSolm
                           have hbody :
-                              ExecTransitionBody (config v) (contract v) evmSolm
-                                (clipperTakeStore I) (takeTransition v).body .reverted := by
+                              ExecTransitionBody config contract evmSolm
+                                (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
                             simpa [evmSolm, σLock] using
                               (clipperTakeStatusSourceRevertsOfStatus
                                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -325,7 +329,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                 hshortOut hout
                                 (by simp only [List.length_cons, List.length_nil]; omega)
                             have hpriceDecode :
-                                (config v).externalABI.decode? "price" o = none :=
+                                config.externalABI.decode? "price" o = none :=
                               clipperStatusPriceDecode_none_short hshortOut
                             have hcallPriceSolmRaw := hcallPrice
                             let evmPriceSolm : EVM.State :=
@@ -343,7 +347,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                   State.setAccount, sstoreAccountMap, Account.updateStorage,
                                   Option.option, hOne, hacc]
                             have hcallPriceSolm :
-                                typedCallViaEVM (config v) evmLockSolm
+                                typedCallViaEVM config evmLockSolm
                                   (EVM.address (clipperStatusCalcAddress evmLockSolm))
                                   "price" 0
                                   [.int (Int.ofNat
@@ -369,9 +373,9 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                 let evmLock :=
                                   Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                                     ⟨13⟩ ⟨1⟩
-                                ExecStmt (config v)
-                                  { contract := contract v,
-                                    locals := clipperTakeLocalsTic evmLock I }
+                                ExecStmt config
+                                  { contract := contract,
+                                    locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
                                   evmLock
                                   (.internalCall "status"
                                     [.var "tic", .storage (salesF (.var "id") "top")] "st")
@@ -381,8 +385,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                   (evm := evmLockSolm) (evmPrice := evmPriceSolm)
                                   I hlePriceSolm hcalcCodeSolm hcallPriceSolm hpriceDecode
                             have hbody :
-                                ExecTransitionBody (config v) (contract v) evmSolm
-                                  (clipperTakeStore I) (takeTransition v).body .reverted := by
+                                ExecTransitionBody config contract evmSolm
+                                  (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
                               simpa [evmSolm, σLock] using
                                 (clipperTakeStatusSourceRevertsOfStatus
                                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -400,10 +404,10 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                 (by simp only [List.length_cons, List.length_nil]; omega)
                             let priceWord : UInt256 := clipperStatusPriceWord o
                             have hdecPrice :
-                                (config v).externalABI.decode? "price" o =
+                                config.externalABI.decode? "price" o =
                                   some [.int (Int.ofNat priceWord.toNat)] := by
                               simpa [priceWord, clipperStatusPriceValues] using
-                                (clipperStatusPriceDecode_ok (v := v) (out := o) hloOut)
+                                (clipperStatusPriceDecode_ok (out := o) hloOut)
                             have hcallPriceSolmRaw := hcallPrice
                             let evmPriceSolm : EVM.State :=
                               { evmLockSolm with accountMap := σ', substate := A' }
@@ -429,7 +433,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                               simpa [initState] using congrArg
                                 (fun s : EVM.State => s.executionEnv) hlockStateSolm
                             have hcallPriceSolm :
-                                typedCallViaEVM (config v) evmLockSolm
+                                typedCallViaEVM config evmLockSolm
                                   (EVM.address (clipperStatusCalcAddress evmLockSolm))
                                   "price" 0
                                   [.int (Int.ofNat
@@ -507,15 +511,15 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                     let evmLock :=
                                       Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                                         ⟨13⟩ ⟨1⟩
-                                    ExecStmt (config v)
-                                      { contract := contract v,
-                                        locals := clipperTakeLocalsTic evmLock I }
+                                    ExecStmt config
+                                      { contract := contract,
+                                        locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
                                       evmLock
                                       (.internalCall "status"
                                         [.var "tic", .storage (salesF (.var "id") "top")] "st")
                                       (.ok
-                                        { contract := contract v,
-                                          locals := clipperTakeLocalsSt evmLock I true priceWord }
+                                        { contract := contract,
+                                          locals := clipperTakeLocalsSt evmLock I true priceWord, immutables := immStore v }
                                         evmPriceSolm) := by
                                   simpa [evmSolm, evmLockSolm] using
                                     clipperTakeStatusCallReturnsDoneTailTrue v
@@ -523,8 +527,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                       I priceWord (out := o) hlePriceSolm hcalcCodeSolm
                                       hcallPriceSolm hdecPrice hleDoneSolm htailSolm
                                 have hbody :
-                                    ExecTransitionBody (config v) (contract v) evmSolm
-                                      (clipperTakeStore I) (takeTransition v).body .reverted := by
+                                    ExecTransitionBody config contract evmSolm
+                                      (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
                                   simpa [evmSolm, σLock] using
                                     (clipperTakeStatusDoneTrueSourceReverts
                                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -571,9 +575,9 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                         let evmLock :=
                                           Solm.EVM.storageStore evm0
                                             evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-                                        ExecStmt (config v)
-                                          { contract := contract v,
-                                            locals := clipperTakeLocalsTic evmLock I }
+                                        ExecStmt config
+                                          { contract := contract,
+                                            locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
                                           evmLock
                                           (.internalCall "status"
                                             [.var "tic",
@@ -586,9 +590,9 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                           hcallPriceSolm hdecPrice hleDoneSolm htailSolm
                                           hmul htopSolmZero
                                     have hbody :
-                                        ExecTransitionBody (config v) (contract v) evmSolm
-                                          (clipperTakeStore I) (takeTransition v).body
-                                          .reverted := by
+                                        ExecTransitionBody config contract evmSolm
+                                          (clipperTakeStore I) takeTransition.body
+                                          .reverted (immStore v) := by
                                       simpa [evmSolm, σLock] using
                                         (clipperTakeStatusSourceRevertsOfStatus
                                           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -623,8 +627,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                         ratioWord.toNat <
                                           (clipperStatusCuspWord evmPriceSolm).toNat
                                     · have hdoneEval :
-                                          evalExpr? (config v)
-                                            { contract := contract v,
+                                          evalExpr? config
+                                            { contract := contract,
                                               locals := clipperStatusRatioLocals
                                                 (clipperTakeSalesTicEVMWord evmLockSolm I)
                                                 (clipperTakeSalesTopEVMWord evmLockSolm I)
@@ -635,7 +639,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                                   (clipperTakeSalesTicEVMWord evmLockSolm I))
                                                 (UInt256.div
                                                   (UInt256.mul priceWord clipperRayWord)
-                                                  (clipperTakeSalesTopEVMWord evmLockSolm I)) }
+                                                  (clipperTakeSalesTopEVMWord evmLockSolm I)), immutables := immStore v }
                                             evmPriceSolm
                                             (.binary .lt (.var "ratio") (.storage cuspRef)) =
                                               .ok (.bool true) := by
@@ -682,17 +686,17 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                           let evmLock :=
                                             Solm.EVM.storageStore evm0
                                               evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-                                          ExecStmt (config v)
-                                            { contract := contract v,
-                                              locals := clipperTakeLocalsTic evmLock I }
+                                          ExecStmt config
+                                            { contract := contract,
+                                              locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
                                             evmLock
                                             (.internalCall "status"
                                               [.var "tic",
                                                 .storage (salesF (.var "id") "top")] "st")
                                             (.ok
-                                              { contract := contract v,
+                                              { contract := contract,
                                                 locals :=
-                                                  clipperTakeLocalsSt evmLock I true priceWord }
+                                                  clipperTakeLocalsSt evmLock I true priceWord, immutables := immStore v }
                                               evmPriceSolm) := by
                                         simpa [evmSolm, evmLockSolm] using
                                           clipperTakeStatusCallReturnsRdivBranch v
@@ -708,9 +712,9 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                                     using hzero))
                                             true hdoneEval
                                       have hbody :
-                                          ExecTransitionBody (config v) (contract v) evmSolm
-                                            (clipperTakeStore I) (takeTransition v).body
-                                            .reverted := by
+                                          ExecTransitionBody config contract evmSolm
+                                            (clipperTakeStore I) takeTransition.body
+                                            .reverted (immStore v) := by
                                         simpa [evmSolm, σLock] using
                                           (clipperTakeStatusDoneTrueSourceReverts
                                             (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -722,8 +726,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                             ratioWord.toNat := by
                                         exact Nat.le_of_not_gt hratio
                                       have hdoneEval :
-                                          evalExpr? (config v)
-                                            { contract := contract v,
+                                          evalExpr? config
+                                            { contract := contract,
                                               locals := clipperStatusRatioLocals
                                                 (clipperTakeSalesTicEVMWord evmLockSolm I)
                                                 (clipperTakeSalesTopEVMWord evmLockSolm I)
@@ -734,7 +738,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                                   (clipperTakeSalesTicEVMWord evmLockSolm I))
                                                 (UInt256.div
                                                   (UInt256.mul priceWord clipperRayWord)
-                                                  (clipperTakeSalesTopEVMWord evmLockSolm I)) }
+                                                  (clipperTakeSalesTopEVMWord evmLockSolm I)), immutables := immStore v }
                                             evmPriceSolm
                                             (.binary .lt (.var "ratio") (.storage cuspRef)) =
                                               .ok (.bool false) := by
@@ -761,17 +765,17 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                           let evmLock :=
                                             Solm.EVM.storageStore evm0
                                               evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-                                          ExecStmt (config v)
-                                            { contract := contract v,
-                                              locals := clipperTakeLocalsTic evmLock I }
+                                          ExecStmt config
+                                            { contract := contract,
+                                              locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
                                             evmLock
                                             (.internalCall "status"
                                               [.var "tic",
                                                 .storage (salesF (.var "id") "top")] "st")
                                             (.ok
-                                              { contract := contract v,
+                                              { contract := contract,
                                                 locals :=
-                                                  clipperTakeLocalsSt evmLock I false priceWord }
+                                                  clipperTakeLocalsSt evmLock I false priceWord, immutables := immStore v }
                                               evmPriceSolm) := by
                                         simpa [evmSolm, evmLockSolm] using
                                           clipperTakeStatusCallReturnsRdivBranch v
@@ -814,9 +818,9 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                               simp only [List.length_cons, List.length_nil]
                                               omega)
                                         have hbody :
-                                            ExecTransitionBody (config v) (contract v) evmSolm
-                                              (clipperTakeStore I) (takeTransition v).body
-                                              .reverted := by
+                                            ExecTransitionBody config contract evmSolm
+                                              (clipperTakeStore I) takeTransition.body
+                                              .reverted (immStore v) := by
                                           simpa [evmSolm, σLock] using
                                             (clipperTakeTooExpensiveSourceReverts
                                               (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -1135,9 +1139,9 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                       let evmLock :=
                                         Solm.EVM.storageStore evm0
                                           evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-                                      ExecStmt (config v)
-                                        { contract := contract v,
-                                          locals := clipperTakeLocalsTic evmLock I }
+                                      ExecStmt config
+                                        { contract := contract,
+                                          locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
                                         evmLock
                                         (.internalCall "status"
                                           [.var "tic",
@@ -1149,9 +1153,9 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                         I priceWord (out := o) hlePriceSolm hcalcCodeSolm
                                         hcallPriceSolm hdecPrice hleDoneSolm htailSolm hover
                                   have hbody :
-                                      ExecTransitionBody (config v) (contract v) evmSolm
-                                        (clipperTakeStore I) (takeTransition v).body
-                                        .reverted := by
+                                      ExecTransitionBody config contract evmSolm
+                                        (clipperTakeStore I) takeTransition.body
+                                        .reverted (immStore v) := by
                                     simpa [evmSolm, σLock] using
                                       (clipperTakeStatusSourceRevertsOfStatus
                                         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -1178,9 +1182,9 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                   let evmLock :=
                                     Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                                       ⟨13⟩ ⟨1⟩
-                                  ExecStmt (config v)
-                                    { contract := contract v,
-                                      locals := clipperTakeLocalsTic evmLock I }
+                                  ExecStmt config
+                                    { contract := contract,
+                                      locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
                                     evmLock
                                     (.internalCall "status"
                                       [.var "tic", .storage (salesF (.var "id") "top")] "st")
@@ -1191,8 +1195,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                     I priceWord (out := o) hlePriceSolm hcalcCodeSolm
                                     hcallPriceSolm hdecPrice hltDoneSolm
                               have hbody :
-                                  ExecTransitionBody (config v) (contract v) evmSolm
-                                    (clipperTakeStore I) (takeTransition v).body .reverted := by
+                                  ExecTransitionBody config contract evmSolm
+                                    (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
                                 simpa [evmSolm, σLock] using
                                   (clipperTakeStatusSourceRevertsOfStatus
                                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -1231,7 +1235,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                               (evmLockSolm.addAccessedAccount
                                 (EVM.address (clipperStatusCalcAddress evmLockSolm))).substate }
                         have hcd :
-                            (config v).externalABI.encode? "price"
+                            config.externalABI.encode? "price"
                               [.int (Int.ofNat
                                 (clipperTakeSalesTopEVMWord evmLockSolm I).toNat),
                                 .int (Int.ofNat
@@ -1241,7 +1245,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                 (clipperTakeSalesTopWord σLock I) ageForPrice
                                 (clipperTakeSalesTopHashMem I)).readWithPadding 128 68) := by
                           have hcdRaw :
-                              (config v).externalABI.encode? "price"
+                              config.externalABI.encode? "price"
                                 [.int (Int.ofNat
                                   (clipperTakeSalesTopWord σLock I).toNat),
                                   .int (Int.ofNat ageForPrice.toNat)] =
@@ -1249,7 +1253,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                   (clipperTakeSalesTopWord σLock I) ageForPrice
                                   (clipperTakeSalesTopHashMem I)).readWithPadding 128 68) := by
                             simpa using
-                              clipperStatusPriceEncode_eq v
+                              clipperStatusPriceEncode_eq
                                 (clipperTakeSalesTopWord σLock I) ageForPrice
                                 (clipperTakeSalesTopHashMem_size I)
                           have htopEvmSolm :
@@ -1265,7 +1269,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                           rw [htopEvmSolm, hageForPriceSolm]
                           exact hcdRaw
                         have hcallPriceSolm :
-                            typedCallViaEVM (config v) evmLockSolm
+                            typedCallViaEVM config evmLockSolm
                               (EVM.address (clipperStatusCalcAddress evmLockSolm))
                               "price" 0
                               [.int (Int.ofNat
@@ -1275,7 +1279,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                     (clipperTakeSalesTicEVMWord evmLockSolm I)).toNat)]
                               (false, evmPriceSolm, ByteArray.empty) false := by
                           simpa [evmPriceSolm] using
-                            (callNotMade_depthLimit (cfg := config v) (evm := evmLockSolm)
+                            (callNotMade_depthLimit (cfg := config) (evm := evmLockSolm)
                               (tgt := EVM.address (clipperStatusCalcAddress evmLockSolm))
                               (name := "price")
                               (args :=
@@ -1296,9 +1300,9 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                             let evmLock :=
                               Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                                 ⟨13⟩ ⟨1⟩
-                            ExecStmt (config v)
-                              { contract := contract v,
-                                locals := clipperTakeLocalsTic evmLock I }
+                            ExecStmt config
+                              { contract := contract,
+                                locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
                               evmLock
                               (.internalCall "status"
                                 [.var "tic", .storage (salesF (.var "id") "top")] "st")
@@ -1309,8 +1313,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                               I (out := ByteArray.empty) hlePriceSolm hcalcCodeSolm
                               hcallPriceSolm
                         have hbody :
-                            ExecTransitionBody (config v) (contract v) evmSolm
-                              (clipperTakeStore I) (takeTransition v).body .reverted := by
+                            ExecTransitionBody config contract evmSolm
+                              (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
                           simpa [evmSolm, σLock] using
                             (clipperTakeStatusSourceRevertsOfStatus
                               (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -1354,9 +1358,9 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                             (Sat256.ofUInt256 g) A I
                           let evmLock :=
                             Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-                          ExecStmt (config v)
-                            { contract := contract v,
-                              locals := clipperTakeLocalsTic evmLock I }
+                          ExecStmt config
+                            { contract := contract,
+                              locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
                             evmLock
                             (.internalCall "status"
                               [.var "tic", .storage (salesF (.var "id") "top")] "st")
@@ -1365,8 +1369,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                           clipperTakeStatusCallRevertsPriceNoCode v evmLockSolm I
                             hlePriceSolm hnoCodeSolm
                       have hbody :
-                          ExecTransitionBody (config v) (contract v) evmSolm
-                            (clipperTakeStore I) (takeTransition v).body .reverted := by
+                          ExecTransitionBody config contract evmSolm
+                            (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
                         simpa [evmSolm, σLock] using
                           (clipperTakeStatusSourceRevertsOfStatus
                             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1396,8 +1400,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
                         let evmLock :=
                           Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-                        ExecStmt (config v)
-                          { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
+                        ExecStmt config
+                          { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
                           evmLock
                           (.internalCall "status"
                             [.var "tic", .storage (salesF (.var "id") "top")] "st")
@@ -1405,8 +1409,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                       simpa [evmSolm, evmLockSolm] using
                         clipperTakeStatusCallRevertsAgeForPrice v evmLockSolm I hltLoad
                     have hbody :
-                        ExecTransitionBody (config v) (contract v) evmSolm
-                          (clipperTakeStore I) (takeTransition v).body .reverted := by
+                        ExecTransitionBody config contract evmSolm
+                          (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
                       simpa [evmSolm, σLock] using
                         (clipperTakeStatusSourceRevertsOfStatus
                           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1421,8 +1425,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                   omega
                 let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                 have hbody :
-                    ExecTransitionBody (config v) (contract v) evmSolm
-                      (clipperTakeStore I) (takeTransition v).body .reverted := by
+                    ExecTransitionBody config contract evmSolm
+                      (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
                   simpa [evmSolm, σLock] using
                     (clipperTakeStoppedSourceReverts
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
@@ -1432,9 +1436,9 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                   (by simpa [σLock] using rd3610)
                 exact hrev.reEquivExecutionRevert hcode hdispatch hdec hbody
             · have hbody :
-                  ExecTransitionBody (config v) (contract v)
+                  ExecTransitionBody config contract
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-                    (clipperTakeStore I) (takeTransition v).body .reverted :=
+                    (clipperTakeStore I) takeTransition.body .reverted (immStore v) :=
                 clipperTakeBodyRevertsLocked
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
                   hlockedEvm
@@ -1449,7 +1453,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                   ((clipperTakeDataOffsetWord I).toNat + 32)).take
                   (clipperTakeDataLenWord I).toNat).length ≠
                     (clipperTakeDataLenWord I).toNat := hpayloadOk
-            have hdec := clipperDecode_take_none_payload_short v (I := I)
+            have hdec := clipperDecode_take_none_payload_short (I := I)
               hcalldataSmall hsz164 hoffHuge hlenWord hlenMax hpayloadShort
             have hpayloadGt := clipperTakePayloadGt_one hsize hsz4 hoffHuge hlenWord
               hlenMax hpayloadShort
@@ -1460,7 +1464,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
       · have hlenShort : I.calldata.size <
             4 + (clipperTakeDataOffsetWord I).toNat + 32 := by
           omega
-        have hdec := clipperDecode_take_none_length_short v (I := I)
+        have hdec := clipperDecode_take_none_length_short (I := I)
           hcalldataSmall hsz164 hoffHuge hlenShort
         have hgtLen := clipperTakeLenWordGt_one hsize hsz4 hoffHuge hlenShort
         exact (clipperTakeX_length_short
@@ -1468,7 +1472,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
           (sel := clipperSelWord I) (v := v) hpatch hgtLen hreachOffsetOk)
           |>.reEquivDecodingFailed hcode hdispatch hdec
   · have hshort : I.calldata.size < 164 := by omega
-    have hdec := clipperDecode_take_none_short v (I := I) hsz4 hshort
+    have hdec := clipperDecode_take_none_short (I := I) hsz4 hshort
     exact (clipperTakeX_shortarg (v := v) (g := Sat256.ofUInt256 g) hpatch hsz4 hsize
       hshort hreach)
       |>.reEquivDecodingFailed hcode hdispatch hdec

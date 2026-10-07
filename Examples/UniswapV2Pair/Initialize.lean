@@ -128,6 +128,7 @@ theorem evalExpr_initialize_factory (evm : EVM.State) (I : ExecutionEnv) :
       ({ base := "factory", steps := [] } : EvaledStorageRef) = some addrSt := by
     decide
   rw [evalExpr_storage_scalar
+    (hbackend := rfl)
     (er := ({ base := "factory", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨5⟩)
     (hbase := initializeStore_factory I)
@@ -228,12 +229,12 @@ theorem initializeAssignToken0 (evm : EVM.State) (I : ExecutionEnv) :
     simpa [initializeToken0State] using
       storageLocStore_address_offset0 evm ⟨6⟩ (initializeToken0MaskedWord I)
         (initializeToken0MaskedWord_canonical I)
-  exact assignStorageRef_storage_scalar_value (cfg := config)
+  exact assignStorageRef_storage_scalar_value (cfg := config) (hbackend := rfl)
+    (hleaf := Or.inl ⟨_, rfl⟩)
     (solm := { contract := contract, locals := initializeStore I }) (evm := evm)
     (evm' := initializeToken0State evm I) (slot := token0Ref)
     (er := { base := "token0", steps := [] }) (ty := addrSt) (loc := addrLoc ⟨6⟩)
-    (value := initializeToken0Value I) (initializeStore_token0Base I) her hty (by rfl)
-    (by trivial) hstore
+    (value := initializeToken0Value I) (initializeStore_token0Base I) her hty (by rfl) hstore
 
 theorem initializeAssignToken1 (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := initializeStore I }
@@ -255,12 +256,13 @@ theorem initializeAssignToken1 (evm : EVM.State) (I : ExecutionEnv) :
     simpa [initializePostState] using
       storageLocStore_address_offset0 (initializeToken0State evm I) ⟨7⟩
         (initializeToken1MaskedWord I) (initializeToken1MaskedWord_canonical I)
-  exact assignStorageRef_storage_scalar_value (cfg := config)
+  exact assignStorageRef_storage_scalar_value (cfg := config) (hbackend := rfl)
+    (hleaf := Or.inl ⟨_, rfl⟩)
     (solm := { contract := contract, locals := initializeStore I })
     (evm := initializeToken0State evm I) (evm' := initializePostState evm I)
     (slot := token1Ref) (er := { base := "token1", steps := [] }) (ty := addrSt)
     (loc := addrLoc ⟨7⟩) (value := initializeToken1Value I)
-    (initializeStore_token1Base I) her hty (by rfl) (by trivial) hstore
+    (initializeStore_token1Base I) her hty (by rfl) hstore
 
 theorem uniswapDecode_initialize_ok {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size) :
@@ -310,6 +312,22 @@ theorem uniswapInitializeBodyReverts_forbidden (evm : EVM.State) (I : ExecutionE
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (evalExpr_initialize_factory_eq_sender_false evm I hfactory))
+
+theorem uniswapInitializeBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hfactory :
+      UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩) solcAddrMask =
+        uniswapSourceWord evm.executionEnv)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (initializeStore I) initializeTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_initialize_factory_eq_sender_true evm I hfactory)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_initialize_token0 evm I)
+      (initializeAssignToken0 evm I) hperm)
 
 /-! ## EVM success path -/
 
@@ -401,21 +419,17 @@ theorem uniswapInitializeX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (entry := ⟨979⟩) (ret := ⟨570⟩) (routine := ⟨3139⟩)
     hreach uniswap_two_address_external_entry_wf hsz4 hsize hshort
 
-/-- EVM success path for `initialize(address,address)`.
-
-This proves the exact success slice: canonical calldata, `msg.sender == factory`, and writable
-storage.  The forbidden-sender revert string is left for a later revert-slice proof.
--/
-theorem uniswapX_initialize_success {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hperm : I.perm = true)
+theorem uniswapX_initialize_split {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hfactory :
       UInt256.land (initializeFactoryWord σ I) solcAddrMask = uniswapSourceWord I)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
     RDret uniswapV2PairBytecode g (initState σ σ₀ g A I)
-      (initializePostMap σ I) ByteArray.empty := by
+      (initializePostMap σ I) ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd3139⟩ := uniswapInitializeX_decoded (g := g)
     hsz68 hsize hreach
   have rd3142 := evm_run rd3139 with [jumpdest, push1 ⟨5⟩]
@@ -470,6 +484,11 @@ theorem uniswapX_initialize_success {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd3256 := rd3256₀
   rw [hmask] at rd3256
   rw [hset0] at rd3256
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd3256.sstoreStatic (by simpa using hperm) (by decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd3257₀⟩ := rd3256.sstore hperm (by decide) (by evm_ov)
   obtain ⟨_, _, rd3257⟩ : ∃ k C, RD uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨3257⟩
@@ -503,6 +522,36 @@ theorem uniswapX_initialize_success {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     exact ⟨_, _, by simpa [initializePostMap] using rd3270₀⟩
   have rd570 := evm_run rd3270 with [jump (by jump_dest), jumpdest]
   exact rd570.stop (by decide) (by evm_ov)
+
+/-- EVM success path for `initialize(address,address)`.
+
+This proves the exact success slice: canonical calldata, `msg.sender == factory`, and writable
+storage.  The forbidden-sender revert string is left for a later revert-slice proof.
+-/
+theorem uniswapX_initialize_success {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hperm : I.perm = true)
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hfactory :
+      UInt256.land (initializeFactoryWord σ I) solcAddrMask = uniswapSourceWord I)
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+      (initState σ σ₀ g A I) ⟨979⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I)
+      (initializePostMap σ I) ByteArray.empty :=
+  permSplit_true hperm (uniswapX_initialize_split hsz68 hsize hfactory hreach)
+
+/-- EVM path for `initialize(address,address)` in a static call: halts at the `token0`
+    `SSTORE`. -/
+theorem uniswapX_initialize_static {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hperm : I.perm = false)
+    (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hfactory :
+      UInt256.land (initializeFactoryWord σ I) solcAddrMask = uniswapSourceWord I)
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+      (initState σ σ₀ g A I) ⟨979⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I) :=
+  permSplit_false hperm (uniswapX_initialize_split hsz68 hsize hfactory hreach)
 
 theorem uniswapX_initialize_forbidden {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -566,7 +615,7 @@ theorem uniswapInitializeBodyCoreOk
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hfactoryS :
       UInt256.land (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨5⟩)
@@ -606,7 +655,7 @@ theorem uniswapInitializeBodyCoreRevert_forbidden
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hfactoryS :
       UInt256.land (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨5⟩)
@@ -636,7 +685,7 @@ theorem uniswapInitializeBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_initialize_none_short (I := I) hsz4 hshort
   exact (uniswapInitializeX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -653,7 +702,7 @@ theorem uniswapInitializeBodyOk
     (hfactory :
       UInt256.land (initializeFactoryWord σ I) solcAddrMask = uniswapSourceWord I)
     (hdispatch : dispatchMsg contract I.calldata = some initializeTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩ rfl hsel
   exact uniswapInitializeBodyCoreOk hcode hsize hperm hwv hsz68
@@ -669,7 +718,7 @@ theorem uniswapInitializeBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩)
     (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some initializeTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩ rfl hsel
   exact uniswapInitializeBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -681,7 +730,7 @@ theorem uniswapInitializeBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some initializeTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz68 : 68 ≤ I.calldata.size
   · by_cases hfactory :
       UInt256.land (initializeFactoryWord σ I) solcAddrMask = uniswapSourceWord I
@@ -692,6 +741,37 @@ theorem uniswapInitializeBody
         (uniswapReachInitializeBody (g := Sat256.ofUInt256 g) hcode hwv
           (calldata_size_ge_of_selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩ rfl hsel)
           hsize hsel)
+  · exact uniswapInitializeBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
+
+/-- `initialize` with any call permission; a static call halts at the `token0` `SSTORE`. -/
+theorem uniswapInitializeBodyAnyPerm
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some initializeTransition) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact uniswapInitializeBody hcode hsize hperm hwv hsel hdispatch
+  replace hperm : I.perm = false := by simpa using hperm
+  by_cases hsz68 : 68 ≤ I.calldata.size
+  · have hreach := uniswapReachInitializeBody (σ := σ) (σ₀ := σ₀) (A := A)
+      (g := Sat256.ofUInt256 g) hcode hwv
+      (calldata_size_ge_of_selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩ rfl hsel) hsize hsel
+    by_cases hfactory :
+      UInt256.land (initializeFactoryWord σ I) solcAddrMask = uniswapSourceWord I
+    · let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
+      have hfactoryS :
+          UInt256.land (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨5⟩)
+              solcAddrMask =
+            uniswapSourceWord evmS.executionEnv := by
+        simpa [evmS, initState, initializeFactoryWord, solcSlotWordAt] using hfactory
+      exact (uniswapX_initialize_static hperm hsz68 hsize hfactory hreach)
+        |>.reEquivStaticHalt hcode hdispatch (uniswapDecode_initialize_ok hsz68)
+          (uniswapInitializeBodyStatic evmS I (by simp only [evmS, initState]; exact hwv)
+            hfactoryS (by simp only [evmS, initState]; exact hperm))
+    · exact uniswapInitializeBodyCoreRevert_forbidden hcode hsize hwv hsz68
+        hfactory hdispatch (uniswapDecode_initialize_ok hsz68) hreach
   · exact uniswapInitializeBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
 
 end UniswapV2Pair

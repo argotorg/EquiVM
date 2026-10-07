@@ -691,7 +691,6 @@ theorem RD.gemJoinExitSlipPostCall
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
         (solcAddressSlotWord ⟨1⟩ σ I) ≠ ⟨0⟩)
-    (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k C : ℕ),
@@ -757,7 +756,7 @@ theorem RD.gemJoinExitSlipPostCall
       (by simpa [joinSlipInSize] using
         exitSlipEncode_eq I σ solcFreePtrMem_size hwadOk)
       ?_
-    simpa [initState, hperm] using hΘ
+    simpa [initState] using hΘ
 
 theorem RD.gemJoinExitSlipCallFailure
     {σ σ₀ A I} {g sel : UInt256}
@@ -1270,7 +1269,6 @@ theorem RD.gemJoinExitTransferPostCall
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σcur
         (solcAddressSlotWord ⟨3⟩ σcur I) ≠ ⟨0⟩)
-    (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (outTransfer : ByteArray) (A' : Substate) (k' C' : ℕ),
@@ -1335,7 +1333,7 @@ theorem RD.gemJoinExitTransferPostCall
         simpa [exitTransferInSize] using
           exitTransferEncode_eq I hSlipMem)
       ?_
-    simpa [initState, hperm] using hΘ
+    simpa [initState] using hΘ
 
 theorem RD.gemJoinExitTransferCallFailure
     {σ σ₀ A I} {g sel gemTarget : UInt256}
@@ -1571,7 +1569,7 @@ theorem RD.gemJoinExitTransferReturnFalseReverts
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
-theorem RD.gemJoinExitTransferReturnTrueToStop
+theorem RD.gemJoinExitTransferReturnTrueToStopSplit
     {σ σ₀ A I} {g sel retWord : UInt256}
     {acc : AccountMap}
     {mem outTransfer : ByteArray} {k C : ℕ}
@@ -1580,11 +1578,13 @@ theorem RD.gemJoinExitTransferReturnTrueToStop
       (retWord :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       mem (UInt256.ofNat 8) outTransfer acc k C)
     (hret : retWord ≠ ⟨0⟩)
-    (hperm : I.perm = true)
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDret gemJoinBytecode (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty := by
+    (I.perm = true ∧
+      RDret gemJoinBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic gemJoinBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -1657,6 +1657,13 @@ theorem RD.gemJoinExitTransferReturnTrueToStop
     raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
+  have hlogDec : decode gemJoinBytecode ⟨2005⟩ = some (.LOG2, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2005pre.log2Static (by simpa using hperm) hlogDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   have rd2006 := RD.log2
     (a := ⟨128⟩) (b := ⟨32⟩)
     (c := ⟨0x22d324652c93739755cf4581508b60875ebdd78c20c0cff5cf8e23452b299631⟩)
@@ -1666,7 +1673,7 @@ theorem RD.gemJoinExitTransferReturnTrueToStop
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 8).toNat (⟨128⟩ : UInt256).toNat
         (⟨32⟩ : UInt256).toNat))
-    rd2005pre (by native_decide) hperm mem_cost (by native_decide)
+    rd2005pre hlogDec hperm mem_cost (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd2009pre := evm_run rd2006 with [
     raw pop (by native_decide) (by evm_ov),
@@ -1752,7 +1759,7 @@ theorem evalExprs_exit_slipArgs (evm : EVM.State) (I : ExecutionEnv)
 theorem evalExpr_exit_gem_afterSlip (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := exitLocalsAfterSlip I } evm
       (.storage gemRef) = .ok (.address (joinGemAddressOf evm)) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := exitLocalsAfterSlip I })
     (slot := gemRef)
@@ -1817,7 +1824,19 @@ theorem evalExpr_exit_transferOk_false (evm : EVM.State) (I : ExecutionEnv) :
   unfold EvalResult.ofOption
   rfl
 
-theorem gemJoinExitBodySuccess (evm evmSlip evmTransfer : EVM.State) (I : ExecutionEnv)
+theorem evalExprs_gemJoinExitEvent (evm : EVM.State) (I : ExecutionEnv) :
+    evalExprs? config { contract := contract, locals := exitLocalsAfterTransferOk I }
+      evm [.var "usr", .var "wad"] = .ok [joinUsrValue I, joinWadValue I] := by
+  have husr : (exitLocalsAfterTransferOk I).get? "usr" = some (joinUsrValue I) := by
+    rw [exitLocalsAfterTransferOk, store_get_ne _ _ (by decide),
+      exitLocalsAfterSlip, store_get_ne _ _ (by decide), exitStore, joinStore,
+      store_get_ne _ _ (by decide), store_get_self]
+  have hwad : (exitLocalsAfterTransferOk I).get? "wad" = some (joinWadValue I) := by
+    rw [exitLocalsAfterTransferOk, store_get_ne _ _ (by decide),
+      exitLocalsAfterSlip, store_get_ne _ _ (by decide), exitStore, joinStore, store_get_self]
+  simp only [evalExprs?, evalExpr?, husr, hwad, EvalResult.ofOption, EvalResult.bind, bind, pure]
+
+theorem gemJoinExitBodySuccessSplit (evm evmSlip evmTransfer : EVM.State) (I : ExecutionEnv)
     {outSlip outTransfer : ByteArray}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hwadOk : (joinWadWord I).toNat ≤ intLimit)
@@ -1840,9 +1859,12 @@ theorem gemJoinExitBodySuccess (evm evmSlip evmTransfer : EVM.State) (I : Execut
         "transfer" 0 [joinUsrValue I, joinWadValue I]
         (true, evmTransfer, outTransfer) true)
     (hdecTransfer : config.externalABI.decode? "transfer" outTransfer = some [.bool true]) :
-    ExecTransitionBody config contract evm (exitStore I) exitTransition.body
+    (ExecTransitionBody config contract evm (exitStore I) exitTransition.body
       (.returned { contract := contract, locals := exitLocalsAfterTransferOk I }
-        evmTransfer none) := by
+        evmTransfer none)) ∧
+      (evmTransfer.executionEnv.perm = false →
+        ExecTransitionBody config contract evm (exitStore I)
+          exitTransition.body .staticViolation) := by
   have hvat :
       evalExpr? config { contract := contract, locals := exitStore I } evm (.storage vatRef) =
         .ok (.address (joinVatAddressOf evm)) := by
@@ -1890,18 +1912,30 @@ theorem gemJoinExitBodySuccess (evm evmSlip evmTransfer : EVM.State) (I : Execut
     simpa [exitLocalsAfterTransferOk, collapseReturns] using
       ExecStmt.externalCallSuccess hgem (by simp [evalExpr?, pure]) htransferArgs
         hcallTransfer hdecTransfer
-  refine ExecFuncBody.execBlockOK ?_
-  simp only [exitTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
-    List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalExpr_exit_wad_le_true evm I hwadOk)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hvatGuard) ?_
-  refine ExecBlock.consNormal hslipStmt ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hgemGuard) ?_
-  refine ExecBlock.consNormal htransferStmt ?_
-  exact ExecBlock.consNormal
-    (ExecStmt.requireTrue (evalExpr_exit_transferOk_true evmTransfer I))
-    ExecBlock.nil
+  have hprefix {result : ExecResult}
+      (hlog : ExecBlock config
+        { contract := contract, locals := exitLocalsAfterTransferOk I } evmTransfer
+        [.emit "Exit" [.var "usr", .var "wad"]] result) :
+      ExecBlock config { contract := contract, locals := exitStore I } evm
+        exitTransition.body result := by
+    simp only [exitTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
+      List.nil_append]
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (evalExpr_exit_wad_le_true evm I hwadOk)) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hvatGuard) ?_
+    refine ExecBlock.consNormal hslipStmt ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hgemGuard) ?_
+    refine ExecBlock.consNormal htransferStmt ?_
+    exact ExecBlock.consNormal
+      (ExecStmt.requireTrue (evalExpr_exit_transferOk_true evmTransfer I)) hlog
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal
+        (ExecStmt.emit (evalExprs_gemJoinExitEvent evmTransfer I)) ExecBlock.nil))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic
+        (ExecStmt.emitStatic (evalExprs_gemJoinExitEvent evmTransfer I) hperm)))
 
 theorem gemJoinExitBodyRevertsOverflow (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -2294,7 +2328,7 @@ theorem gemJoinExitBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨428⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (gemJoinExitX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (gemJoinDecode_exit_none_short hsz4 hshort)
 
@@ -2311,7 +2345,7 @@ theorem gemJoinExitBodyCoreOverflow
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨428⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   obtain ⟨_, _, rd1544⟩ :=
     gemJoinExitX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
@@ -2340,7 +2374,7 @@ theorem gemJoinExitBodyCoreVatNoCode
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨428⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   obtain ⟨_, _, rd1544⟩ :=
     gemJoinExitX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
@@ -2413,7 +2447,7 @@ theorem gemJoinExitBodyCoreSlipCallDepthLimit
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨428⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   obtain ⟨_, _, rd1544⟩ :=
     gemJoinExitX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
@@ -2524,7 +2558,7 @@ theorem gemJoinExitBodyCoreSlipCallFailure
             accountMap := σ_slip, substate := A_slip, }),
           outSlip) true)
     (houtSlipSize : outSlip.size < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hrev := RD.gemJoinExitSlipCallFailure rd1717 houtSlipSize
@@ -2652,7 +2686,7 @@ theorem gemJoinExitBodyCoreGemNoCode
         (true, ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ_slip, substate := A_slip, }),
           outSlip) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
@@ -2840,7 +2874,7 @@ theorem gemJoinExitBodyCoreTransferCallFailure
             accountMap := σ_transfer, substate := A_transfer, },
           outTransfer) true)
     (houtTransferSize : outTransfer.size < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
@@ -3062,7 +3096,7 @@ theorem gemJoinExitBodyCoreTransferDecodeShort
             accountMap := σ_transfer, substate := A_transfer, },
           outTransfer) true)
     (houtTransferSize : outTransfer.size < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
@@ -3286,7 +3320,7 @@ theorem gemJoinExitBodyCoreTransferReturnTrueSmall
     {σ_slip σ_transfer : AccountMap}
     {outSlip outTransfer mem : ByteArray} {A_slip A_transfer : Substate} {k1868 C1868 : ℕ}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hwadOk : (joinWadWord I).toNat ≤ intLimit)
     (hvatCode :
@@ -3330,7 +3364,7 @@ theorem gemJoinExitBodyCoreTransferReturnTrueSmall
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ_transfer, substate := A_transfer, },
           outTransfer) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
@@ -3341,7 +3375,7 @@ theorem gemJoinExitBodyCoreTransferReturnTrueSmall
     accountMap := σ_transfer,
     substate := A_transfer,
     }
-  have hretFinal := RD.gemJoinExitTransferReturnTrueToStop rd1868 hret hperm hmem hread64
+  have hretSplit := RD.gemJoinExitTransferReturnTrueToStopSplit rd1868 hret hmem hread64
   have hVatSlot :
       solcAddressSlotWord ⟨1⟩ σ I =
         solcAddressSlotWord ⟨1⟩ σ I := by
@@ -3498,11 +3532,13 @@ theorem gemJoinExitBodyCoreTransferReturnTrueSmall
       using hcallTransferSolmRaw
   have hdecTransfer : config.externalABI.decode? "transfer" outTransfer = some [.bool true] :=
     gemJoinDecode_transferReturn_true hlo hword
-  have hbody :
-      ExecTransitionBody config contract evmSolm (exitStore I) exitTransition.body
+  have hbodySplit :
+      (ExecTransitionBody config contract evmSolm (exitStore I) exitTransition.body
         (.returned { contract := contract, locals := exitLocalsAfterTransferOk I }
-          evmSolmTransfer none) := by
-    exact gemJoinExitBodySuccess evmSolm evmSolmSlip evmSolmTransfer I
+          evmSolmTransfer none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evmSolm
+        (exitStore I) exitTransition.body .staticViolation) := by
+    exact gemJoinExitBodySuccessSplit evmSolm evmSolmSlip evmSolmTransfer I
       (by simp only [evmSolm, initState]; exact hwv)
       hwadOk hvatCodeSolm hcallSlipSolm hgemCodeSolm hcallTransferSolm
       hdecTransfer
@@ -3511,7 +3547,10 @@ theorem gemJoinExitBodyCoreTransferReturnTrueSmall
   have henc : returnEquiv ByteArray.empty none exitTransition.returnType := by
     rw [show exitTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  exact hretFinal.reEquivExecutionGen hcode hdispatch hdecode hbody
+  rcases hretSplit with ⟨_hperm, hretFinal⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+  exact hretFinal.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
     haccounts henc
 
 
@@ -3521,7 +3560,7 @@ theorem gemJoinExitBodyCoreTransferReturnFalseSmall
     {σ_slip σ_transfer : AccountMap}
     {outSlip outTransfer mem : ByteArray} {A_slip A_transfer : Substate} {k1868 C1868 : ℕ}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hwadOk : (joinWadWord I).toNat ≤ intLimit)
     (hvatCode :
@@ -3565,7 +3604,7 @@ theorem gemJoinExitBodyCoreTransferReturnFalseSmall
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ_transfer, substate := A_transfer, },
           outTransfer) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
@@ -3745,10 +3784,9 @@ theorem gemJoinExitBodyCoreTransferReturnFalseSmall
 theorem gemJoinExitBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = gemJoinBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (gemJoinSelBytes 3)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (gemJoinSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some exitTransition :=
@@ -3776,7 +3814,7 @@ theorem gemJoinExitBodyCore {σ σ₀ A I} {g : UInt256}
             (g := Sat256.ofUInt256 g) hwadOk rd1544
           obtain ⟨σ_slip, zSlip, outSlip, A_slip, k1717, C1717,
               rd1717, hcallSlipEvmRaw, houtSlipSize⟩ :=
-            RD.gemJoinExitSlipPostCall ⟨_, _, rd1620⟩ hwadOk hvatCode hperm hdepthLt
+            RD.gemJoinExitSlipPostCall ⟨_, _, rd1620⟩ hwadOk hvatCode hdepthLt
           cases zSlip
           · exact gemJoinExitBodyCoreSlipCallFailure hcode hsize hwv hsz68 hwadOk
               hvatCode hdispatch (gemJoinDecode_exit_ok hsz68) rd1717
@@ -3795,7 +3833,7 @@ theorem gemJoinExitBodyCore {σ σ₀ A I} {g : UInt256}
               obtain ⟨σ_transfer, zTransfer, outTransfer, A_transfer,
                   k1827, C1827, rd1827, hcallTransferEvmRaw, houtTransferSize⟩ :=
                 RD.gemJoinExitTransferPostCall (Acur := A_slip) rd1736 hgemCode
-                  hperm hdepthLt
+                  hdepthLt
               cases zTransfer
               · exact gemJoinExitBodyCoreTransferCallFailure hcode hsize hwv hsz68
                   hwadOk hvatCode hgemCode hdepthLt hdispatch
@@ -3889,7 +3927,7 @@ theorem gemJoinExitBodyCore {σ σ₀ A I} {g : UInt256}
                         UInt256.ofNat
                           (fromByteArrayBigEndian (outTransfer.extract 0 32)) = ⟨0⟩ := by
                       simpa [retWord] using hretZero
-                    exact gemJoinExitBodyCoreTransferReturnFalseSmall hcode hsize hwv hperm
+                    exact gemJoinExitBodyCoreTransferReturnFalseSmall hcode hsize hwv
                       hsz68 hwadOk hvatCode hgemCode hdepthLt hretZero hword hlo hmem
                       hread64 hdispatch (gemJoinDecode_exit_ok hsz68) rd1868
                       hcallSlipEvmRaw hcallTransferEvmRaw
@@ -3897,7 +3935,7 @@ theorem gemJoinExitBodyCore {σ σ₀ A I} {g : UInt256}
                         UInt256.ofNat
                           (fromByteArrayBigEndian (outTransfer.extract 0 32)) ≠ ⟨0⟩ := by
                       simpa [retWord] using hretZero
-                    exact gemJoinExitBodyCoreTransferReturnTrueSmall hcode hsize hwv hperm
+                    exact gemJoinExitBodyCoreTransferReturnTrueSmall hcode hsize hwv
                       hsz68 hwadOk hvatCode hgemCode hdepthLt hretZero hword hlo hmem
                       hread64 hdispatch (gemJoinDecode_exit_ok hsz68) rd1868
                       hcallSlipEvmRaw hcallTransferEvmRaw

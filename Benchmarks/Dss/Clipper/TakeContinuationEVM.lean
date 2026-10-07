@@ -28,7 +28,7 @@ theorem RD.clipperTakeOweGtTabContinuationElim
       ∀ (σMove : AccountMap)
         (outMove : ByteArray) (AMove : Substate),
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM (config v)
+        typedCallViaEVM config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "move" 0
@@ -44,7 +44,7 @@ theorem RD.clipperTakeOweGtTabContinuationElim
       ∀ (σMove : AccountMap)
         (outMove : ByteArray) (AMove : Substate),
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM (config v)
+        typedCallViaEVM config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "move" 0
@@ -63,7 +63,7 @@ theorem RD.clipperTakeOweGtTabContinuationElim
         (σDog : AccountMap)
         (outDog : ByteArray) (ADog : Substate),
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM (config v)
+        typedCallViaEVM config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "move" 0
@@ -75,7 +75,7 @@ theorem RD.clipperTakeOweGtTabContinuationElim
               accountMap := σMove, substate := AMove },
             outMove) true →
         extCodeSizeWord σMove (UInt256.land solcAddrMask dog) ≠ ⟨0⟩ →
-        typedCallViaEVM (config v)
+        typedCallViaEVM config
           { initState σStart σ₀ g A I with
             accountMap := σMove }
           (EVM.address (AccountAddress.ofUInt256 (UInt256.land solcAddrMask dog)))
@@ -91,7 +91,7 @@ theorem RD.clipperTakeOweGtTabContinuationElim
         (σDog : AccountMap)
         (outDog : ByteArray) (ADog : Substate) (kDog CDog : ℕ),
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM (config v)
+        typedCallViaEVM config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "move" 0
@@ -103,7 +103,7 @@ theorem RD.clipperTakeOweGtTabContinuationElim
               accountMap := σMove, substate := AMove },
             outMove) true →
         extCodeSizeWord σMove (UInt256.land solcAddrMask dog) ≠ ⟨0⟩ →
-        typedCallViaEVM (config v)
+        typedCallViaEVM config
           { initState σStart σ₀ g A I with
             accountMap := σMove }
           (EVM.address (AccountAddress.ofUInt256 (UInt256.land solcAddrMask dog)))

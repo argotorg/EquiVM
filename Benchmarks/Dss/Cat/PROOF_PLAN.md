@@ -1,7 +1,7 @@
 # Cat proof — status & remaining-work plan
 
 ## Done (15/16 interface fns + constructor), sorry-free, axiom-clean, integrated
-`Correct.lean` builds; `catContractCorrect = contractEquivalence.intro catConstructorCorrect catCorrect`.
+`Correct.lean` builds; `catContractCorrect = contractRefinement.of_constant catConstructorCorrect catCorrect`.
 Proved: getters `live box litter vat vow wards ilks`; auth setters `rely deny cage claw`;
 file setters `file(bytes32,uint256) file(bytes32,address) file(bytes32,bytes32,uint256)`; the constructor.
 Axiom footprint of each = `propext`/`Classical.choice`/`Quot.sound` + `native_decide`

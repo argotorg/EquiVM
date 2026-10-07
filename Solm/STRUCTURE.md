@@ -26,6 +26,32 @@ type errors. Counts at least as large as the width yield zero, or negative one
 for a signed right shift of a negative value. Unqualified bit operators act on
 fixed bytes, with the width carried by the values.
 
+Contracts declare `constant`s and `immutable`s. A constant's value is a compile-time
+constant expression (`evalConstExprWith`). Immutables live in the frame
+(`Frame.immutables`): the constructor starts from their zero values and assigns them
+with `setImmutable`, and a runtime call reads the values the constructor left. How a
+compiler embeds those values in the deployed code is not part of the semantics; the
+refinement relation (`Refine.lean`) quantifies over the map from immutable values to
+deployed code.
+
+Transient state is declared with `uint256 transient flag;` and stored separately in
+`ContractDecl.transient`. Configure it with
+`solidityTransientStorage! [contract.structs] [contract.transient]` in
+`Config.transientBackend`; persistent state still uses `Config.storageBackend`.
+The two layouts each start at slot zero and use the current Solidity packing rules.
+The transient backend reuses the persistent backend's encoding and aggregate operations
+against the executing account's `tstorage` map.
+
+Reads and assignments resolve the declared storage kind. `delete`, `push`, and `pop`
+also select the appropriate backend; local persistent-storage aliases take precedence.
+Transient writes halt in static mode, while reads remain available. External calls use
+the existing EVM call semantics, including account ownership and rollback; transient
+state is cleared by the EVM transaction boundary, not between message calls. Solm also
+supports transient aggregates as a specification extension. This does not imply Solidity
+compiler support for transient arrays, mappings, or structs, or for local transient aliases.
+`Examples/TransientFlag` proves runtime refinement for a compiled scalar setter/getter,
+including static calls, using a generated layout.
+
 Currently, Sol⁻ does not currently model events, error payloads, or gas.
 ```
 Solm/
@@ -45,9 +71,11 @@ Solm/
 │                          layout implements
 ├── SolidityLayout.lean    solc's storage layout (slots, packing, keccak-derived
 │                          mapping/array locations, bytes/string representation)
+├── SolidityStorage.lean   operations on Solidity storage through StorageBackend
+├── TransientStorage.lean  Solidity encoding over the executing account's transient map
+├── MetaSolidityLayout.lean generated layouts and persistent/transient backend macros
+├── TransientTests.lean    transient packing, isolation, aggregate, and resolution regressions
 ├── VyperLayout.lean       Vyper's storage layout
-├── Immutables.lean        splice immutable values / library addresses into the
-│                          runtime-code template (patchRuntime)
 ├── Semantics.lean         umbrella for Semantics/
 ├── Semantics/
 │   ├── Types.lean         shared context: Config, ExternalCallABI, Frame
@@ -61,8 +89,10 @@ Solm/
 │   │                      EVM's Θ/Λ (relational)
 │   └── Exec.lean          statement and transaction execution relations
 │                          (ExecStmt … solmExec, solmCtorExec)
-└── Equiv.lean             the top-level refinement statement (contractEquivalence)
-                           and supporting definitions.
+└── Refine.lean            the refinement relation: result equivalences, runtime
+                           refinement (runtimeRefinement), and the top-level
+                           contractRefinement linking constructor and runtime
+                           through the deployed immutables
 ```
 
 Dependency order (each layer imports the previous):
@@ -70,7 +100,6 @@ Dependency order (each layer imports the previous):
 ```
 Syntax → Notation
 Syntax → Value → Storage → {SolidityLayout, VyperLayout}
-         Value → Immutables
 Semantics: Types → ValueOps → StorageOps → Eval → Exec   (Calls, Dispatch join at Exec)
 Equiv: on top of Semantics
 ```

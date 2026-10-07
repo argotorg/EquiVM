@@ -14,19 +14,19 @@ theorem clipperDogSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
     solcSelectorWord_eq_of_beq I hsz 0xc3 0xb3 0xad 0x7f (clipperSelNat 8)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_dog (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_dog {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 8)) :
-    dispatchMsg (contract v) I.calldata = some dogTransition := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some dogTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre :=
       [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
         countTransition, cuspTransition, denyTransition])
     (post :=
-      [fileUintTransition, fileAddressTransition, getStatusTransition, ilkTransition v,
-        kickTransition v, kicksTransition, listTransition, redoTransition v, relyTransition,
-        salesTransition, spotterTransition, stoppedTransition, tailTransition, takeTransition v,
-        tipTransition, upchostTransition v, vatTransition v, vowTransition, wardsTransition,
-        yankTransition v])
+      [fileUintTransition, fileAddressTransition, getStatusTransition, ilkTransition,
+        kickTransition, kicksTransition, listTransition, redoTransition, relyTransition,
+        salesTransition, spotterTransition, stoppedTransition, tailTransition, takeTransition,
+        tipTransition, upchostTransition, vatTransition, vowTransition, wardsTransition,
+        yankTransition])
     (ti := dogTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
@@ -52,43 +52,42 @@ theorem clipperDispatch_dog (v : ClipperImmutables) {I : ExecutionEnv}
   · rw [selectorOf, dogSelectorBytes]
     simpa [clipperSelBytes] using hsel
 
-theorem clipperDecode_dog (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_dog {I : ExecutionEnv}
     (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (dogTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (dogTransition.params.map Param.name)
       (transitionSignature dogTransition).paramTypes I.calldata = some ∅ := by
-  show decodeCalldataWithMode (config v).abiDecodeMode [] [] I.calldata = some ∅
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldataWithMode_empty_ok hsz
 
 theorem clipperEvalDog (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "dog" = none) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.storage dogRef) =
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩)
           solcAddrMask).toNat)) := by
   let er : EvaledStorageRef := { base := "dog", steps := [] }
-  have her : evalStorageRef (config v)
-      { contract := contract v, locals := locals } evm dogRef = .ok er := by
+  have her : evalStorageRef config
+      { contract := contract, locals := locals, immutables := immStore v } evm dogRef = .ok er := by
     unfold evalStorageRef dogRef
     simp only [evalStorageRefSteps]
     rfl
-  have hty : storageTypeAt? (contract v).storage er = some (.elem .address) := by
+  have hty : storageTypeAt? contract.storage er = some (.elem .address) := by
     simp [er, storageTypeAt?, contract, storageDecls, addrSt]
-  have hloc : (config v).storage.layout er = fun _ => some (addrLoc ⟨1⟩) := by
-    funext evm'
+  have hloc : config.storageBackend.locate? er = some (.leaf (addrLoc ⟨1⟩)) := by
     rfl
-  exact evalExpr_storage_scalar_value hbase her hty hloc
+  exact evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
     (storageLocLoad_address_offset0 evm ⟨1⟩)
 
 theorem clipperDogBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "dog" = none) :
-    ExecTransitionBody (config v) (contract v) evm locals dogTransition.body
-      (.returned { contract := contract v, locals := locals } evm
+    ExecTransitionBody config contract evm locals dogTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩)
-            solcAddrMask).toNat))])) := by
+            solcAddrMask).toNat))])) (immStore v) := by
   simpa [dogTransition] using
-    nonpayableReturnExprBodyReturns (cfg := config v) (contract := contract v) h
+    nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h
       (clipperEvalDog v evm locals hbase)
 
 set_option maxHeartbeats 1000000 in
@@ -330,18 +329,18 @@ theorem clipperDogBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 8)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 8) (by native_decide) hsel
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ dogTransition.body
-        (.returned { contract := contract v, locals := ∅ }
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (UInt256.land (solcSlotWord σ I ⟨1⟩) solcAddrMask).toNat))])) := by
+            (UInt256.land (solcSlotWord σ I ⟨1⟩) solcAddrMask).toNat))])) (immStore v) := by
     simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       clipperDogBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -356,7 +355,7 @@ theorem clipperDogBody (v : ClipperImmutables) {code : ByteArray}
     (g := g) (sel := clipperSelWord I) (transition := dogTransition)
     (entry := (⟨1341⟩ : UInt256)) (routine := (⟨6783⟩ : UInt256))
     (slot := (⟨1⟩ : UInt256)) (returnPc := (⟨716⟩ : UInt256))
-    hcode (clipperDispatch_dog v hsel) (clipperDecode_dog v hsz) hreach
+    hcode (clipperDispatch_dog hsel) (clipperDecode_dog hsz) hreach
     (clipperDogGetterEntryWf v hpatch) (clipperDogSlotGetterWf v hpatch) hroutine
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨716⟩ : UInt256) (by native_decide))
     (clipperReturnAddress716Wf v hpatch) (by rfl) hbody

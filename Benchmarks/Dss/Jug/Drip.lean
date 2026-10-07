@@ -9,10 +9,9 @@ set_option linter.unusedSimpArgs false in
 theorem jugDripBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = jugBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (jugSelBytes 2)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (jugSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dripTransition :=
@@ -44,12 +43,12 @@ theorem jugDripBody {σ σ₀ A I} {g : UInt256}
           cases z
           · exact jugDripBodyCoreVatIlksCallFailed
               (σ' := σ') (Ain := Ain) (gasWord := callGas)
-              hcode hsize hperm hwv hsz36 hle hdispatch (jugDecode_drip_ok hsz36)
+              hcode hsize hwv hsz36 hle hdispatch (jugDecode_drip_ok hsz36)
               hvatCode hdepth (by simpa using rd1400) hΘ hout
           · by_cases hshort : out.size < 64
             · exact jugDripBodyCoreVatIlksReturnDecodeShort
                 (σ' := σ') (Ain := Ain) (gasWord := callGas)
-                hcode hsize hperm hwv hsz36 hle hdispatch (jugDecode_drip_ok hsz36)
+                hcode hsize hwv hsz36 hle hdispatch (jugDecode_drip_ok hsz36)
                 hvatCode hdepth (by simpa using rd1400) hΘ hshort hout
             · have hlo : 64 ≤ out.size := by omega
               have _hdecOut := dripVatIlksDecode_ok (out := out) hlo
@@ -63,7 +62,7 @@ theorem jugDripBody {σ σ₀ A I} {g : UInt256}
               · exact jugDripBodyCoreVatIlksAddOverflow
                   (σ' := σ') (Ain := Ain) (callGas := callGas)
                   (out := out)
-                  hcode hsize hperm hwv hsz36 hle hdispatch (jugDecode_drip_ok hsz36)
+                  hcode hsize hwv hsz36 hle hdispatch (jugDecode_drip_ok hsz36)
                   hvatCode hdepth (by simpa using _rd2131) hΘ _hdecOut
                   haddOverflow
               · jug_drip_add_returns_tac
@@ -77,7 +76,7 @@ theorem jugDripBody {σ σ₀ A I} {g : UInt256}
           obtain ⟨_, _, hnowOk⟩ := jugDripX_nowOk (I := I) hsz36 hle hdecoded
           obtain ⟨gasWord, _, _, rd1399⟩ := RD.jugDripVatIlksCallReady hnowOk hvatCode
           obtain ⟨_, _, rd1400⟩ := RD.jugDripVatIlksCallDepthLimit rd1399 hdepthEq
-          exact jugDripBodyCoreVatIlksCallDepthLimit hcode hsize hperm hwv hsz36 hle
+          exact jugDripBodyCoreVatIlksCallDepthLimit hcode hsize hwv hsz36 hle
             hdispatch (jugDecode_drip_ok hsz36) hvatCode hdepthEq rd1400
   · exact jugDripBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 

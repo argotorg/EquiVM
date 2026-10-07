@@ -6,7 +6,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
-theorem RD.vatFoldRateStoreOk
+theorem RD.vatFoldRateStoreOkSplit
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
     (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨5733⟩
@@ -22,8 +22,8 @@ theorem RD.vatFoldRateStoreOk
       UInt256.sgt (foldRateWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt
           (foldRateWord I + solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩))
-          (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩)) = ⟨0⟩)
-    (hperm : I.perm = true) :
+          (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩)) = ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨5768⟩
       [solcMappingSlot ⟨2⟩ (foldIlkWord I), foldRateWord I, foldUsrMaskedWord I,
         foldIlkWord I, ⟨524⟩, sel]
@@ -32,7 +32,8 @@ theorem RD.vatFoldRateStoreOk
       (sstoreAccountMap I.codeOwner σ
         (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩)
         (foldRateWord I + solcSlotWord σ I
-          (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩))) k' C' := by
+          (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩))) k' C') ∨
+      (I.perm = false ∧ RDstatic vatBytecode g (initState σ σ₀ g A I)) := by
   let base := solcMappingSlot ⟨2⟩ (foldIlkWord I)
   let old := solcSlotWord σ I (base + ⟨1⟩)
   let sum := foldRateWord I + old
@@ -81,6 +82,11 @@ theorem RD.vatFoldRateStoreOk
   have rd5765 := rd5763.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   have rd5766 := rd5765.dup3 (by native_decide) (by evm_ov)
   have rd5767 := rd5766.add (by native_decide) (by evm_ov)
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd5767.sstoreStatic (by simpa using hperm) (by native_decide) (by norm_num)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd5768⟩ := rd5767.sstore hperm (by native_decide)
     (by norm_num)
   exact ⟨_, _, by simpa [base, old, sum] using rd5768⟩
@@ -261,7 +267,7 @@ theorem vatFoldFinishSuccess
     (hretPc : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       mem (UInt256.ofNat 3) ByteArray.empty acc k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
@@ -275,8 +281,8 @@ theorem vatFoldFinishSuccess
     haccounts henc
 
 set_option maxHeartbeats 0 in
-theorem vatFoldBodyCore : VatBodyTheorem 9 := by
-  intro σ σ₀ A I g hcode hsize hperm hwv hsel
+theorem vatFoldBodyCore : VatBodyTheoremAnyPerm 9 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 9) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some foldTransition :=
@@ -430,11 +436,17 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                       (.storage (ilksF (.var "i") "rate")))) =
                   .ok (.bool true) :=
               evalSignedAddGuardPos_true hrateVar hrateNewVar hrateLoadEval hRatePosSource
-            obtain ⟨_, _, hafterRate⟩ := RD.vatFoldRateStoreOk
-              (σ := σ) (σ₀ := σ₀)
-              (A := A) (I := I) (g := Sat256.ofUInt256 g)
-              (sel := vatSelWord I)
-              hafterLive hmemLive hRateNegSolc hRatePosSolc hperm
+            rcases RD.vatFoldRateStoreOkSplit
+                (σ := σ) (σ₀ := σ₀)
+                (A := A) (I := I) (g := Sat256.ofUInt256 g)
+                (sel := vatSelWord I)
+                hafterLive hmemLive hRateNegSolc hRatePosSolc with
+              ⟨hperm, _, _, hafterRate⟩ | ⟨hpf, hstatic⟩
+            swap
+            · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+                (vatFoldSourceStatic evm0 I hwv hguardAuth hguardLive
+                  ((vatFoldRateAddAssignSplit evm0 I hsz100 hloadRateS (by rfl) hRateGuardNeg
+                    hRateGuardPos).2 (by simpa [evm0, initState] using hpf)))
             let evmRate := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
               rateSlotS rateNewS
             let artSlotE := solcMappingSlot ⟨2⟩ (foldIlkWord I)

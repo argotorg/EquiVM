@@ -23,7 +23,8 @@ theorem uniswapOptionalSafeTransferAnyDepthCases
     (hrecipient : UInt256.ofNat recipient.val = UInt256.land solcAddrMask toWord)
     (hperm : I.perm = true)
     (hready : SafeTransferMemoryReady mem aw ptr) (hptrCap : ptr.toNat ≤ 2 ^ 255 + 1024)
-    (hret : (D_J uniswapV2PairBytecode 0).contains ret = true) (hov : R.length + 20 ≤ 1024) :
+    (hret : (D_J uniswapV2PairBytecode 0).contains ret = true) (hov : R.length + 20 ≤ 1024)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     (ExecStmt config caller evm (.ite condition [.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar] [])
       .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
     (∃ evm' σ' mem' aw' ptr' data' k' C',

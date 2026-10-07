@@ -1,5 +1,5 @@
 import Benchmarks.Scaffolds.CometRewards.Bytecode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # Compound III CometRewards constructor correctness stub
@@ -13,7 +13,7 @@ open Solm ABI Ethereum Ethereum.EVM
 namespace Benchmarks.CompoundIII.CometRewards
 
 theorem cometRewardsConstructorCorrect :
-    constructorEquivalence config cometRewardsCreationBytecode contract cometRewardsBytecode := by
+    typedConstructorRefinement config cometRewardsCreationBytecode contract (fun _ => cometRewardsBytecode) := by
   sorry
 
 end Benchmarks.CompoundIII.CometRewards

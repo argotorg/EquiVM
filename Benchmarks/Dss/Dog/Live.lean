@@ -5,8 +5,8 @@ open Benchmarks.Dss.Dog.Immutables
 
 namespace Benchmarks.Dss.Dog
 
-theorem dogDecode_live {v : DogImmutables} {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (liveTransition.params.map Param.name)
+theorem dogDecode_live {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
+    decodeCalldataWithMode config.abiDecodeMode (liveTransition.params.map Param.name)
       (transitionSignature liveTransition).paramTypes I.calldata = some ∅ := by
   show decodeCalldataWithMode DecodeMode.legacySolc05 [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
@@ -162,18 +162,17 @@ theorem dogLiveBodyCore {v : DogImmutables} {code : ByteArray}
     (_hpatch : patchRuntime dogBytecode (patches v) = some code)
     (_hcode : I.code = code)
     (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (_hwv : I.weiValue = ⟨0⟩)
     (_hsel : selIs I (dogSelBytes 12)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 12) rfl _hsel
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ liveTransition.body
-        (.returned { contract := contract v, locals := ∅ }
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (solcSlotWordAt ⟨3⟩ σ I).toNat))])) := by
+          (some [(.int (Int.ofNat (solcSlotWordAt ⟨3⟩ σ I).toNat))])) (immStore v) := by
     simpa [liveTransition, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       dogUint256GetterBodyReturns v
@@ -185,7 +184,7 @@ theorem dogLiveBodyCore {v : DogImmutables} {code : ByteArray}
         (by simp [storageTypeAt?, contract, storageDecls, uint256St]) (by rfl)
   exact dogUint256GetterBodyCore (entry := ⟨440⟩) (returnPc := ⟨448⟩)
     (routine := ⟨1749⟩) (slot := ⟨3⟩)
-    _hcode (dogDispatchLive _hsel) (dogDecode_live (v := v) hsz)
+    _hcode (dogDispatchLive _hsel) (dogDecode_live hsz)
     (dogReachLiveBody (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv hsz _hsize _hsel)
     (by
       unfold solcGetterEntryWf

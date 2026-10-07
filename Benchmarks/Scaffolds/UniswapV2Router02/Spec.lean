@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 import Benchmarks.Scaffolds.UniswapV2Router02.Immutables
@@ -170,11 +171,11 @@ def routerExternalABI : ExternalCallABI where
 
 def storageDecls : List StorageDecl := []
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -615,30 +616,30 @@ def constructorDecl : ConstructorDecl :=
   { params := [{ name := "_factory", ty := addr }, { name := "_WETH", ty := addr }]
     body :=
       nonpayable ++
-      [ .letDecl "imm_factory" (some addr) (.var "_factory"),
-        .letDecl "imm_WETH" (some addr) (.var "_WETH") ] }
+      [ .setImmutable "factory" (.var "_factory"),
+        .setImmutable "WETH" (.var "_WETH") ] }
 
-def receiveTransition (v : RouterImmutables) : TransitionDecl :=
+def receiveTransition : TransitionDecl :=
   { name := "receive"
     params := []
     returnType := []
-    body := [ .require (.binary .eq sender (WETH v)), .return [] ] }
+    body := [ .require (.binary .eq sender WETH), .return [] ] }
 
-def factoryTransition (v : RouterImmutables) : TransitionDecl :=
+def factoryTransition : TransitionDecl :=
   { name := "factory"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [factory v] ] }
+    body := nonpayable ++ [ .return [factory] ] }
 
-def WETHTransition (v : RouterImmutables) : TransitionDecl :=
+def WETHTransition : TransitionDecl :=
   { name := "WETH"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [WETH v] ] }
+    body := nonpayable ++ [ .return [WETH] ] }
 
 /-! ## Public transitions -/
 
-def addLiquidityTransition (v : RouterImmutables) : TransitionDecl :=
+def addLiquidityTransition : TransitionDecl :=
   { name := "addLiquidity"
     params :=
       [ { name := "tokenA", ty := addr }, { name := "tokenB", ty := addr },
@@ -649,9 +650,9 @@ def addLiquidityTransition (v : RouterImmutables) : TransitionDecl :=
     body :=
       nonpayable ++ ensure (.var "deadline") ++
       [ .internalCall "addLiquidityBody"
-          [factory v, .var "tokenA", .var "tokenB", .var "amountADesired",
+          [factory, .var "tokenA", .var "tokenB", .var "amountADesired",
             .var "amountBDesired", .var "amountAMin", .var "amountBMin"] "amounts",
-        .internalCall "pairFor" [factory v, .var "tokenA", .var "tokenB"] "pair",
+        .internalCall "pairFor" [factory, .var "tokenA", .var "tokenB"] "pair",
         .internalCall "safeTransferFrom"
           [.var "tokenA", sender, .var "pair", tuple0 (.var "amounts")] "_a",
         .internalCall "safeTransferFrom"
@@ -659,7 +660,7 @@ def addLiquidityTransition (v : RouterImmutables) : TransitionDecl :=
         .externalCall (.var "pair") "mint" (.intLit 0) [.var "to"] "liquidity",
         .return [tuple0 (.var "amounts"), tuple1 (.var "amounts"), .var "liquidity"] ] }
 
-def addLiquidityETHTransition (v : RouterImmutables) : TransitionDecl :=
+def addLiquidityETHTransition : TransitionDecl :=
   { name := "addLiquidityETH"
     params :=
       [ { name := "token", ty := addr }, { name := "amountTokenDesired", ty := uint256 },
@@ -669,13 +670,13 @@ def addLiquidityETHTransition (v : RouterImmutables) : TransitionDecl :=
     body :=
       ensure (.var "deadline") ++
       [ .internalCall "addLiquidityBody"
-          [factory v, .var "token", WETH v, .var "amountTokenDesired", (.env .callvalue),
+          [factory, .var "token", WETH, .var "amountTokenDesired", (.env .callvalue),
             .var "amountTokenMin", .var "amountETHMin"] "amounts",
-        .internalCall "pairFor" [factory v, .var "token", WETH v] "pair",
+        .internalCall "pairFor" [factory, .var "token", WETH] "pair",
         .internalCall "safeTransferFrom"
           [.var "token", sender, .var "pair", tuple0 (.var "amounts")] "_t",
-        .externalCall (WETH v) "deposit" (tuple1 (.var "amounts")) [] "_d",
-        .externalCall (WETH v) "transfer" (.intLit 0) [.var "pair", tuple1 (.var "amounts")]
+        .externalCall WETH "deposit" (tuple1 (.var "amounts")) [] "_d",
+        .externalCall WETH "transfer" (.intLit 0) [.var "pair", tuple1 (.var "amounts")]
           "wethTransferOk",
         .require (.var "wethTransferOk"),
         .externalCall (.var "pair") "mint" (.intLit 0) [.var "to"] "liquidity",
@@ -686,7 +687,7 @@ def addLiquidityETHTransition (v : RouterImmutables) : TransitionDecl :=
           [],
         .return [tuple0 (.var "amounts"), tuple1 (.var "amounts"), .var "liquidity"] ] }
 
-def removeLiquidityTransition (v : RouterImmutables) : TransitionDecl :=
+def removeLiquidityTransition : TransitionDecl :=
   { name := "removeLiquidity"
     params :=
       [ { name := "tokenA", ty := addr }, { name := "tokenB", ty := addr },
@@ -697,11 +698,11 @@ def removeLiquidityTransition (v : RouterImmutables) : TransitionDecl :=
     body :=
       nonpayable ++
       [ .internalCall "removeLiquidityBody"
-          [factory v, .var "tokenA", .var "tokenB", .var "liquidity",
+          [factory, .var "tokenA", .var "tokenB", .var "liquidity",
             .var "amountAMin", .var "amountBMin", .var "to", .var "deadline"] "amounts",
         .return [tuple0 (.var "amounts"), tuple1 (.var "amounts")] ] }
 
-def removeLiquidityETHTransition (v : RouterImmutables) : TransitionDecl :=
+def removeLiquidityETHTransition : TransitionDecl :=
   { name := "removeLiquidityETH"
     params :=
       [ { name := "token", ty := addr }, { name := "liquidity", ty := uint256 },
@@ -711,14 +712,14 @@ def removeLiquidityETHTransition (v : RouterImmutables) : TransitionDecl :=
     body :=
       nonpayable ++
       [ .internalCall "removeLiquidityETHBody"
-          [factory v, WETH v, .var "token", .var "liquidity", .var "amountTokenMin",
+          [factory, WETH, .var "token", .var "liquidity", .var "amountTokenMin",
             .var "amountETHMin", .var "to", .var "deadline"] "amounts",
         .return [tuple0 (.var "amounts"), tuple1 (.var "amounts")] ] }
 
 def permitValue : Expr :=
   .ite (.var "approveMax") (.intLit maxUint256) (.var "liquidity")
 
-def removeLiquidityWithPermitTransition (v : RouterImmutables) : TransitionDecl :=
+def removeLiquidityWithPermitTransition : TransitionDecl :=
   { name := "removeLiquidityWithPermit"
     params :=
       [ { name := "tokenA", ty := addr }, { name := "tokenB", ty := addr },
@@ -730,15 +731,15 @@ def removeLiquidityWithPermitTransition (v : RouterImmutables) : TransitionDecl 
     returnType := [uint256, uint256]
     body :=
       nonpayable ++
-      [ .internalCall "pairFor" [factory v, .var "tokenA", .var "tokenB"] "pair",
+      [ .internalCall "pairFor" [factory, .var "tokenA", .var "tokenB"] "pair",
         .externalCall (.var "pair") "permit" (.intLit 0)
           [sender, thisAddr, permitValue, .var "deadline", .var "v", .var "r", .var "s"] "_permit",
         .internalCall "removeLiquidityBody"
-          [factory v, .var "tokenA", .var "tokenB", .var "liquidity",
+          [factory, .var "tokenA", .var "tokenB", .var "liquidity",
             .var "amountAMin", .var "amountBMin", .var "to", .var "deadline"] "amounts",
         .return [tuple0 (.var "amounts"), tuple1 (.var "amounts")] ] }
 
-def removeLiquidityETHWithPermitTransition (v : RouterImmutables) : TransitionDecl :=
+def removeLiquidityETHWithPermitTransition : TransitionDecl :=
   { name := "removeLiquidityETHWithPermit"
     params :=
       [ { name := "token", ty := addr }, { name := "liquidity", ty := uint256 },
@@ -749,15 +750,15 @@ def removeLiquidityETHWithPermitTransition (v : RouterImmutables) : TransitionDe
     returnType := [uint256, uint256]
     body :=
       nonpayable ++
-      [ .internalCall "pairFor" [factory v, .var "token", WETH v] "pair",
+      [ .internalCall "pairFor" [factory, .var "token", WETH] "pair",
         .externalCall (.var "pair") "permit" (.intLit 0)
           [sender, thisAddr, permitValue, .var "deadline", .var "v", .var "r", .var "s"] "_permit",
         .internalCall "removeLiquidityETHBody"
-          [factory v, WETH v, .var "token", .var "liquidity", .var "amountTokenMin",
+          [factory, WETH, .var "token", .var "liquidity", .var "amountTokenMin",
             .var "amountETHMin", .var "to", .var "deadline"] "amounts",
         .return [tuple0 (.var "amounts"), tuple1 (.var "amounts")] ] }
 
-def removeLiquidityETHSupportingFeeTransition (v : RouterImmutables) : TransitionDecl :=
+def removeLiquidityETHSupportingFeeTransition : TransitionDecl :=
   { name := "removeLiquidityETHSupportingFeeOnTransferTokens"
     params :=
       [ { name := "token", ty := addr }, { name := "liquidity", ty := uint256 },
@@ -767,11 +768,11 @@ def removeLiquidityETHSupportingFeeTransition (v : RouterImmutables) : Transitio
     body :=
       nonpayable ++
       [ .internalCall "removeLiquidityETHSupportingFeeBody"
-          [factory v, WETH v, .var "token", .var "liquidity", .var "amountTokenMin",
+          [factory, WETH, .var "token", .var "liquidity", .var "amountTokenMin",
             .var "amountETHMin", .var "to", .var "deadline"] "amountETH",
         .return [.var "amountETH"] ] }
 
-def removeLiquidityETHWithPermitSupportingFeeTransition (v : RouterImmutables) : TransitionDecl :=
+def removeLiquidityETHWithPermitSupportingFeeTransition : TransitionDecl :=
   { name := "removeLiquidityETHWithPermitSupportingFeeOnTransferTokens"
     params :=
       [ { name := "token", ty := addr }, { name := "liquidity", ty := uint256 },
@@ -782,22 +783,22 @@ def removeLiquidityETHWithPermitSupportingFeeTransition (v : RouterImmutables) :
     returnType := [uint256]
     body :=
       nonpayable ++
-      [ .internalCall "pairFor" [factory v, .var "token", WETH v] "pair",
+      [ .internalCall "pairFor" [factory, .var "token", WETH] "pair",
         .externalCall (.var "pair") "permit" (.intLit 0)
           [sender, thisAddr, permitValue, .var "deadline", .var "v", .var "r", .var "s"] "_permit",
         .internalCall "removeLiquidityETHSupportingFeeBody"
-          [factory v, WETH v, .var "token", .var "liquidity", .var "amountTokenMin",
+          [factory, WETH, .var "token", .var "liquidity", .var "amountTokenMin",
             .var "amountETHMin", .var "to", .var "deadline"] "amountETH",
         .return [.var "amountETH"] ] }
 
 def lastIndex (arrayName : Ident) : Expr :=
   .binary .sub (lenLocal arrayName) (.intLit 1)
 
-def firstPairForPath (v : RouterImmutables) : List Stmt :=
-  [ .internalCall "pairFor" [factory v, arrGet "path" (.intLit 0), arrGet "path" (.intLit 1)]
+def firstPairForPath : List Stmt :=
+  [ .internalCall "pairFor" [factory, arrGet "path" (.intLit 0), arrGet "path" (.intLit 1)]
       "firstPair" ]
 
-def swapExactTokensForTokensTransition (v : RouterImmutables) : TransitionDecl :=
+def swapExactTokensForTokensTransition : TransitionDecl :=
   { name := "swapExactTokensForTokens"
     params :=
       [ { name := "amountIn", ty := uint256 }, { name := "amountOutMin", ty := uint256 },
@@ -806,15 +807,15 @@ def swapExactTokensForTokensTransition (v : RouterImmutables) : TransitionDecl :
     returnType := [uintArray]
     body :=
       nonpayable ++ ensure (.var "deadline") ++
-      [ .internalCall "getAmountsOutBody" [factory v, .var "amountIn", .var "path"] "amounts",
+      [ .internalCall "getAmountsOutBody" [factory, .var "amountIn", .var "path"] "amounts",
         .require (.binary .ge (arrGet "amounts" (lastIndex "amounts")) (.var "amountOutMin")) ] ++
-      firstPairForPath v ++
+      firstPairForPath ++
       [ .internalCall "safeTransferFrom"
           [arrGet "path" (.intLit 0), sender, .var "firstPair", arrGet "amounts" (.intLit 0)] "_t",
-        .internalCall "swapBody" [factory v, .var "amounts", .var "path", .var "to"] "_swap",
+        .internalCall "swapBody" [factory, .var "amounts", .var "path", .var "to"] "_swap",
         .return [.var "amounts"] ] }
 
-def swapTokensForExactTokensTransition (v : RouterImmutables) : TransitionDecl :=
+def swapTokensForExactTokensTransition : TransitionDecl :=
   { name := "swapTokensForExactTokens"
     params :=
       [ { name := "amountOut", ty := uint256 }, { name := "amountInMax", ty := uint256 },
@@ -823,15 +824,15 @@ def swapTokensForExactTokensTransition (v : RouterImmutables) : TransitionDecl :
     returnType := [uintArray]
     body :=
       nonpayable ++ ensure (.var "deadline") ++
-      [ .internalCall "getAmountsInBody" [factory v, .var "amountOut", .var "path"] "amounts",
+      [ .internalCall "getAmountsInBody" [factory, .var "amountOut", .var "path"] "amounts",
         .require (.binary .le (arrGet "amounts" (.intLit 0)) (.var "amountInMax")) ] ++
-      firstPairForPath v ++
+      firstPairForPath ++
       [ .internalCall "safeTransferFrom"
           [arrGet "path" (.intLit 0), sender, .var "firstPair", arrGet "amounts" (.intLit 0)] "_t",
-        .internalCall "swapBody" [factory v, .var "amounts", .var "path", .var "to"] "_swap",
+        .internalCall "swapBody" [factory, .var "amounts", .var "path", .var "to"] "_swap",
         .return [.var "amounts"] ] }
 
-def swapExactETHForTokensTransition (v : RouterImmutables) : TransitionDecl :=
+def swapExactETHForTokensTransition : TransitionDecl :=
   { name := "swapExactETHForTokens"
     params :=
       [ { name := "amountOutMin", ty := uint256 }, { name := "path", ty := addrArray },
@@ -839,18 +840,18 @@ def swapExactETHForTokensTransition (v : RouterImmutables) : TransitionDecl :=
     returnType := [uintArray]
     body :=
       ensure (.var "deadline") ++
-      [ .require (.binary .eq (arrGet "path" (.intLit 0)) (WETH v)),
-        .internalCall "getAmountsOutBody" [factory v, (.env .callvalue), .var "path"] "amounts",
+      [ .require (.binary .eq (arrGet "path" (.intLit 0)) WETH),
+        .internalCall "getAmountsOutBody" [factory, (.env .callvalue), .var "path"] "amounts",
         .require (.binary .ge (arrGet "amounts" (lastIndex "amounts")) (.var "amountOutMin")),
-        .externalCall (WETH v) "deposit" (arrGet "amounts" (.intLit 0)) [] "_d" ] ++
-      firstPairForPath v ++
-      [ .externalCall (WETH v) "transfer" (.intLit 0)
+        .externalCall WETH "deposit" (arrGet "amounts" (.intLit 0)) [] "_d" ] ++
+      firstPairForPath ++
+      [ .externalCall WETH "transfer" (.intLit 0)
           [.var "firstPair", arrGet "amounts" (.intLit 0)] "wethTransferOk",
         .require (.var "wethTransferOk"),
-        .internalCall "swapBody" [factory v, .var "amounts", .var "path", .var "to"] "_swap",
+        .internalCall "swapBody" [factory, .var "amounts", .var "path", .var "to"] "_swap",
         .return [.var "amounts"] ] }
 
-def swapTokensForExactETHTransition (v : RouterImmutables) : TransitionDecl :=
+def swapTokensForExactETHTransition : TransitionDecl :=
   { name := "swapTokensForExactETH"
     params :=
       [ { name := "amountOut", ty := uint256 }, { name := "amountInMax", ty := uint256 },
@@ -859,20 +860,20 @@ def swapTokensForExactETHTransition (v : RouterImmutables) : TransitionDecl :=
     returnType := [uintArray]
     body :=
       nonpayable ++ ensure (.var "deadline") ++
-      [ .require (.binary .eq (arrGet "path" (lastIndex "path")) (WETH v)),
-        .internalCall "getAmountsInBody" [factory v, .var "amountOut", .var "path"] "amounts",
+      [ .require (.binary .eq (arrGet "path" (lastIndex "path")) WETH),
+        .internalCall "getAmountsInBody" [factory, .var "amountOut", .var "path"] "amounts",
         .require (.binary .le (arrGet "amounts" (.intLit 0)) (.var "amountInMax")) ] ++
-      firstPairForPath v ++
+      firstPairForPath ++
       [ .internalCall "safeTransferFrom"
           [arrGet "path" (.intLit 0), sender, .var "firstPair", arrGet "amounts" (.intLit 0)] "_t",
-        .internalCall "swapBody" [factory v, .var "amounts", .var "path", thisAddr] "_swap",
-        .externalCall (WETH v) "withdraw" (.intLit 0) [arrGet "amounts" (lastIndex "amounts")]
+        .internalCall "swapBody" [factory, .var "amounts", .var "path", thisAddr] "_swap",
+        .externalCall WETH "withdraw" (.intLit 0) [arrGet "amounts" (lastIndex "amounts")]
           "_w",
         .internalCall "safeTransferETH" [.var "to", arrGet "amounts" (lastIndex "amounts")]
           "_eth",
         .return [.var "amounts"] ] }
 
-def swapExactTokensForETHTransition (v : RouterImmutables) : TransitionDecl :=
+def swapExactTokensForETHTransition : TransitionDecl :=
   { name := "swapExactTokensForETH"
     params :=
       [ { name := "amountIn", ty := uint256 }, { name := "amountOutMin", ty := uint256 },
@@ -881,20 +882,20 @@ def swapExactTokensForETHTransition (v : RouterImmutables) : TransitionDecl :=
     returnType := [uintArray]
     body :=
       nonpayable ++ ensure (.var "deadline") ++
-      [ .require (.binary .eq (arrGet "path" (lastIndex "path")) (WETH v)),
-        .internalCall "getAmountsOutBody" [factory v, .var "amountIn", .var "path"] "amounts",
+      [ .require (.binary .eq (arrGet "path" (lastIndex "path")) WETH),
+        .internalCall "getAmountsOutBody" [factory, .var "amountIn", .var "path"] "amounts",
         .require (.binary .ge (arrGet "amounts" (lastIndex "amounts")) (.var "amountOutMin")) ] ++
-      firstPairForPath v ++
+      firstPairForPath ++
       [ .internalCall "safeTransferFrom"
           [arrGet "path" (.intLit 0), sender, .var "firstPair", arrGet "amounts" (.intLit 0)] "_t",
-        .internalCall "swapBody" [factory v, .var "amounts", .var "path", thisAddr] "_swap",
-        .externalCall (WETH v) "withdraw" (.intLit 0) [arrGet "amounts" (lastIndex "amounts")]
+        .internalCall "swapBody" [factory, .var "amounts", .var "path", thisAddr] "_swap",
+        .externalCall WETH "withdraw" (.intLit 0) [arrGet "amounts" (lastIndex "amounts")]
           "_w",
         .internalCall "safeTransferETH" [.var "to", arrGet "amounts" (lastIndex "amounts")]
           "_eth",
         .return [.var "amounts"] ] }
 
-def swapETHForExactTokensTransition (v : RouterImmutables) : TransitionDecl :=
+def swapETHForExactTokensTransition : TransitionDecl :=
   { name := "swapETHForExactTokens"
     params :=
       [ { name := "amountOut", ty := uint256 }, { name := "path", ty := addrArray },
@@ -902,15 +903,15 @@ def swapETHForExactTokensTransition (v : RouterImmutables) : TransitionDecl :=
     returnType := [uintArray]
     body :=
       ensure (.var "deadline") ++
-      [ .require (.binary .eq (arrGet "path" (.intLit 0)) (WETH v)),
-        .internalCall "getAmountsInBody" [factory v, .var "amountOut", .var "path"] "amounts",
+      [ .require (.binary .eq (arrGet "path" (.intLit 0)) WETH),
+        .internalCall "getAmountsInBody" [factory, .var "amountOut", .var "path"] "amounts",
         .require (.binary .le (arrGet "amounts" (.intLit 0)) (.env .callvalue)),
-        .externalCall (WETH v) "deposit" (arrGet "amounts" (.intLit 0)) [] "_d" ] ++
-      firstPairForPath v ++
-      [ .externalCall (WETH v) "transfer" (.intLit 0)
+        .externalCall WETH "deposit" (arrGet "amounts" (.intLit 0)) [] "_d" ] ++
+      firstPairForPath ++
+      [ .externalCall WETH "transfer" (.intLit 0)
           [.var "firstPair", arrGet "amounts" (.intLit 0)] "wethTransferOk",
         .require (.var "wethTransferOk"),
-        .internalCall "swapBody" [factory v, .var "amounts", .var "path", .var "to"] "_swap",
+        .internalCall "swapBody" [factory, .var "amounts", .var "path", .var "to"] "_swap",
         .ite
           (.binary .gt (.env .callvalue) (arrGet "amounts" (.intLit 0)))
           [ .internalCall "safeTransferETH"
@@ -918,7 +919,7 @@ def swapETHForExactTokensTransition (v : RouterImmutables) : TransitionDecl :=
           [],
         .return [.var "amounts"] ] }
 
-def swapExactTokensForTokensSupportingFeeTransition (v : RouterImmutables) : TransitionDecl :=
+def swapExactTokensForTokensSupportingFeeTransition : TransitionDecl :=
   { name := "swapExactTokensForTokensSupportingFeeOnTransferTokens"
     params :=
       [ { name := "amountIn", ty := uint256 }, { name := "amountOutMin", ty := uint256 },
@@ -926,19 +927,19 @@ def swapExactTokensForTokensSupportingFeeTransition (v : RouterImmutables) : Tra
         { name := "deadline", ty := uint256 } ]
     returnType := []
     body :=
-      nonpayable ++ ensure (.var "deadline") ++ firstPairForPath v ++
+      nonpayable ++ ensure (.var "deadline") ++ firstPairForPath ++
       [ .internalCall "safeTransferFrom"
           [arrGet "path" (.intLit 0), sender, .var "firstPair", .var "amountIn"] "_t",
         .externalCall (arrGet "path" (lastIndex "path")) "balanceOf" (.intLit 0) [.var "to"]
           "balanceBefore" false,
-        .internalCall "swapSupportingFeeBody" [factory v, .var "path", .var "to"] "_swap",
+        .internalCall "swapSupportingFeeBody" [factory, .var "path", .var "to"] "_swap",
         .externalCall (arrGet "path" (lastIndex "path")) "balanceOf" (.intLit 0) [.var "to"]
           "balanceAfter" false,
         .internalCall "safeSub" [.var "balanceAfter", .var "balanceBefore"] "delta",
         .require (.binary .ge (.var "delta") (.var "amountOutMin")),
         .return [] ] }
 
-def swapExactETHForTokensSupportingFeeTransition (v : RouterImmutables) : TransitionDecl :=
+def swapExactETHForTokensSupportingFeeTransition : TransitionDecl :=
   { name := "swapExactETHForTokensSupportingFeeOnTransferTokens"
     params :=
       [ { name := "amountOutMin", ty := uint256 }, { name := "path", ty := addrArray },
@@ -946,23 +947,23 @@ def swapExactETHForTokensSupportingFeeTransition (v : RouterImmutables) : Transi
     returnType := []
     body :=
       ensure (.var "deadline") ++
-      [ .require (.binary .eq (arrGet "path" (.intLit 0)) (WETH v)),
+      [ .require (.binary .eq (arrGet "path" (.intLit 0)) WETH),
         .letDecl "amountIn" (some uint256) (.env .callvalue),
-        .externalCall (WETH v) "deposit" (.var "amountIn") [] "_d" ] ++
-      firstPairForPath v ++
-      [ .externalCall (WETH v) "transfer" (.intLit 0) [.var "firstPair", .var "amountIn"]
+        .externalCall WETH "deposit" (.var "amountIn") [] "_d" ] ++
+      firstPairForPath ++
+      [ .externalCall WETH "transfer" (.intLit 0) [.var "firstPair", .var "amountIn"]
           "wethTransferOk",
         .require (.var "wethTransferOk"),
         .externalCall (arrGet "path" (lastIndex "path")) "balanceOf" (.intLit 0) [.var "to"]
           "balanceBefore" false,
-        .internalCall "swapSupportingFeeBody" [factory v, .var "path", .var "to"] "_swap",
+        .internalCall "swapSupportingFeeBody" [factory, .var "path", .var "to"] "_swap",
         .externalCall (arrGet "path" (lastIndex "path")) "balanceOf" (.intLit 0) [.var "to"]
           "balanceAfter" false,
         .internalCall "safeSub" [.var "balanceAfter", .var "balanceBefore"] "delta",
         .require (.binary .ge (.var "delta") (.var "amountOutMin")),
         .return [] ] }
 
-def swapExactTokensForETHSupportingFeeTransition (v : RouterImmutables) : TransitionDecl :=
+def swapExactTokensForETHSupportingFeeTransition : TransitionDecl :=
   { name := "swapExactTokensForETHSupportingFeeOnTransferTokens"
     params :=
       [ { name := "amountIn", ty := uint256 }, { name := "amountOutMin", ty := uint256 },
@@ -971,14 +972,14 @@ def swapExactTokensForETHSupportingFeeTransition (v : RouterImmutables) : Transi
     returnType := []
     body :=
       nonpayable ++ ensure (.var "deadline") ++
-      [ .require (.binary .eq (arrGet "path" (lastIndex "path")) (WETH v)) ] ++
-      firstPairForPath v ++
+      [ .require (.binary .eq (arrGet "path" (lastIndex "path")) WETH) ] ++
+      firstPairForPath ++
       [ .internalCall "safeTransferFrom"
           [arrGet "path" (.intLit 0), sender, .var "firstPair", .var "amountIn"] "_t",
-        .internalCall "swapSupportingFeeBody" [factory v, .var "path", thisAddr] "_swap",
-        .externalCall (WETH v) "balanceOf" (.intLit 0) [thisAddr] "amountOut" false,
+        .internalCall "swapSupportingFeeBody" [factory, .var "path", thisAddr] "_swap",
+        .externalCall WETH "balanceOf" (.intLit 0) [thisAddr] "amountOut" false,
         .require (.binary .ge (.var "amountOut") (.var "amountOutMin")),
-        .externalCall (WETH v) "withdraw" (.intLit 0) [.var "amountOut"] "_w",
+        .externalCall WETH "withdraw" (.intLit 0) [.var "amountOut"] "_w",
         .internalCall "safeTransferETH" [.var "to", .var "amountOut"] "_eth",
         .return [] ] }
 
@@ -1017,62 +1018,63 @@ def getAmountInTransition : TransitionDecl :=
           [.var "amountOut", .var "reserveIn", .var "reserveOut"] "amountIn",
         .return [.var "amountIn"] ] }
 
-def getAmountsOutTransition (v : RouterImmutables) : TransitionDecl :=
+def getAmountsOutTransition : TransitionDecl :=
   { name := "getAmountsOut"
     params := [{ name := "amountIn", ty := uint256 }, { name := "path", ty := addrArray }]
     returnType := [uintArray]
     body :=
       nonpayable ++
-      [ .internalCall "getAmountsOutBody" [factory v, .var "amountIn", .var "path"] "amounts",
+      [ .internalCall "getAmountsOutBody" [factory, .var "amountIn", .var "path"] "amounts",
         .return [.var "amounts"] ] }
 
-def getAmountsInTransition (v : RouterImmutables) : TransitionDecl :=
+def getAmountsInTransition : TransitionDecl :=
   { name := "getAmountsIn"
     params := [{ name := "amountOut", ty := uint256 }, { name := "path", ty := addrArray }]
     returnType := [uintArray]
     body :=
       nonpayable ++
-      [ .internalCall "getAmountsInBody" [factory v, .var "amountOut", .var "path"] "amounts",
+      [ .internalCall "getAmountsInBody" [factory, .var "amountOut", .var "path"] "amounts",
         .return [.var "amounts"] ] }
 
-def transitions (v : RouterImmutables) : List TransitionDecl :=
-  [ factoryTransition v,
-    WETHTransition v,
-    addLiquidityTransition v,
-    addLiquidityETHTransition v,
-    removeLiquidityTransition v,
-    removeLiquidityETHTransition v,
-    removeLiquidityWithPermitTransition v,
-    removeLiquidityETHWithPermitTransition v,
-    removeLiquidityETHSupportingFeeTransition v,
-    removeLiquidityETHWithPermitSupportingFeeTransition v,
-    swapExactTokensForTokensTransition v,
-    swapTokensForExactTokensTransition v,
-    swapExactETHForTokensTransition v,
-    swapTokensForExactETHTransition v,
-    swapExactTokensForETHTransition v,
-    swapETHForExactTokensTransition v,
-    swapExactTokensForTokensSupportingFeeTransition v,
-    swapExactETHForTokensSupportingFeeTransition v,
-    swapExactTokensForETHSupportingFeeTransition v,
+def transitions : List TransitionDecl :=
+  [ factoryTransition,
+    WETHTransition,
+    addLiquidityTransition,
+    addLiquidityETHTransition,
+    removeLiquidityTransition,
+    removeLiquidityETHTransition,
+    removeLiquidityWithPermitTransition,
+    removeLiquidityETHWithPermitTransition,
+    removeLiquidityETHSupportingFeeTransition,
+    removeLiquidityETHWithPermitSupportingFeeTransition,
+    swapExactTokensForTokensTransition,
+    swapTokensForExactTokensTransition,
+    swapExactETHForTokensTransition,
+    swapTokensForExactETHTransition,
+    swapExactTokensForETHTransition,
+    swapETHForExactTokensTransition,
+    swapExactTokensForTokensSupportingFeeTransition,
+    swapExactETHForTokensSupportingFeeTransition,
+    swapExactTokensForETHSupportingFeeTransition,
     quoteTransition,
     getAmountOutTransition,
     getAmountInTransition,
-    getAmountsOutTransition v,
-    getAmountsInTransition v ]
+    getAmountsOutTransition,
+    getAmountsInTransition ]
 
-def contract (v : RouterImmutables) : ContractDecl :=
+def contract : ContractDecl :=
   { name := "UniswapV2Router02"
     storage := storageDecls
+    immutables := [⟨"factory", .address⟩, ⟨"WETH", .address⟩]
     ctor := constructorDecl
     functions := functions
-    transitions := transitions v
-    receive := some (receiveTransition v) }
+    transitions := transitions
+    receive := some (receiveTransition) }
 
-def config (v : RouterImmutables) : Config :=
-  { storage := storageLayout
+def config : Config :=
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := routerExternalABI
     abiDecodeMode := DecodeMode.legacySolc05
-    selfDeployment := genSolidityConstructorDeployment (contract v).ctor.params }
+    selfDeployment := genSolidityConstructorDeployment (contract).ctor.params }
 
 end Benchmarks.UniswapV2Router02

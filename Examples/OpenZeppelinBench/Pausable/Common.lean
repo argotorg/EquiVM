@@ -89,7 +89,7 @@ theorem pausableEvalPausedFalse (evm : EVM.State) (locals : Store)
   have hty : storageTypeAt? contract.storage
       ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
     decide
-  erw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
+  erw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
     (hloc := by rfl), storageLocLoad_bool_offset0_false evm ⟨0⟩ hstorageZero]
 
 theorem pausableEvalPausedTrue (evm : EVM.State) (locals : Store)
@@ -107,7 +107,7 @@ theorem pausableEvalPausedTrue (evm : EVM.State) (locals : Store)
   have hty : storageTypeAt? contract.storage
       ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
     decide
-  erw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
+  erw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
     (hloc := by rfl), storageLocLoad_bool_offset0_true evm ⟨0⟩ hstorageNz]
 
 theorem pausableEvalWhenNotPausedTrue (evm : EVM.State) (locals : Store)
@@ -314,7 +314,7 @@ theorem pausableX_noMatch {σ σ₀ A I} {g : Sat256}
 
 theorem pausableNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (pausableX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -335,16 +335,16 @@ theorem pausableNonPayable {σ σ₀ A I} {g : UInt256}
 
 theorem pausableShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (pausableX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (pausableDispatch_none_short hsz)
 
 theorem pausableNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 5 → (pausableSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (pausableX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (pausableDispatch_none_nomatch hnm)

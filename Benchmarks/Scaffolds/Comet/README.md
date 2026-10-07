@@ -27,9 +27,9 @@ Artifacts:
 - `Spec.lean`: Solm AST scaffold with ABI surface, solc storage layout, explicit runtime-template
   immutables, and the payable delegate-call fallback.
 - `SpecSyntax.lean`: syntax-side wrapper checked definitionally against the AST scaffold.
-- `Constructor.lean`: constructor status note. It deliberately does not state a
-  `constructorEquivalence` theorem for the unpatched runtime template.
-- `Correct.lean`: runtime-template equivalence target, currently `sorry`.
+- `Constructor.lean`: constructor target (`typedConstructorRefinement`), currently `sorry`.
+- `Correct.lean`: runtime target for every well-typed immutables store, and the
+  `contractRefinement` bundle; currently `sorry`.
 
 Main source sha256:
 `c9099e56eda092fd0150005706edf086723899afb102f164b60ad1f36a426961`.
@@ -41,7 +41,7 @@ Status:
   slots.
 - The payable fallback path is represented by a raw-bytes Solm fallback that delegates to
   `extensionDelegate`.
-- The theorem now uses an immutable-aware `constructorEquivalenceWith` wrapper, but the constructor
+- The theorems use the immutable-aware `contractRefinement`, but the constructor
   spec is still not faithful enough for handoff: `numAssets`, asset-list creation, constructor
   validation, and constructor external-call wiring remain placeholders.
 - Several protocol bodies are still source-level scaffolds, not final proof-ready specs. In

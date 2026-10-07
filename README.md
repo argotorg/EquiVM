@@ -62,7 +62,7 @@ tactics to help with the proofs.
 
 The top-level *refinement* states that the bytecode faithfully implements the
 semantics of the Sol⁻ specification. The refinement relation is defined in
-[`Solm/Equiv.lean`](Solm/Equiv.lean).
+[`Solm/Refine.lean`](Solm/Refine.lean).
 
 Once refinement is established, one can reason about the bytecode at the Sol⁻
 level. This alleviates the need to both reason about low-level EVM bytecode and
@@ -73,11 +73,14 @@ For a contract `<Name>`, the certificate is the capstone theorem of its
 
 ```lean
 theorem <name>ContractCorrect :
-    contractEquivalence config creationBytecode runtimeBytecode contract
+    contractRefinement config creationBytecode contract
 ```
 
-which bundles the constructor equivalence (creation code) with the runtime
-equivalence (deployed code).
+Every deployment of the creation code is matched by a run of the spec's constructor, and the
+code it deploys refines the spec run with the immutables that constructor set.  For a contract
+without immutables it is built with `contractRefinement.of_constant` from a constructor proof
+returning one runtime bytecode and a runtime equivalence of that bytecode; contracts with
+immutables use `contractRefinement.of_runtime`.
 
 ## Interoperability
 
@@ -97,7 +100,7 @@ boundary is defined in terms of the EVM semantics.
 
 - **Sol⁻** ([`Solm/`](Solm/))
   This contains Sol⁻'s syntax, semantics, and surface notation. The file
-  [`Solm/Equiv.lean`](Solm/Equiv.lean) defines the refinement relation between
+  [`Solm/Refine.lean`](Solm/Refine.lean) defines the refinement relation between
   Sol⁻ and EVM.
 
 - **ABI** ([`ABI/`](ABI/))
@@ -193,11 +196,12 @@ def contractSyntax : ContractDecl := solidity% contract ERC20 {
 The top-level theorem is
 
 ```lean
-theorem erc20Correct : runtimeEquivalence erc20Config erc20Bytecode erc20Contract
+theorem erc20Correct : runtimeRefinement erc20Config erc20Bytecode erc20Contract
 ```
 
 It quantifies over every initial state: any account map, block environment,
-calldata, call value, and gas, provided the deployed code is `erc20Bytecode`.
+calldata, call value, gas, and permission mode (the contract may be entered through
+`STATICCALL`), provided the deployed code is `erc20Bytecode`.
 For each such state it relates one full execution of the bytecode to one
 execution of the specification: either the bytecode execution runs out of gas
 (in which case the specification side is unconstrained), or both revert (no
@@ -234,7 +238,7 @@ trusted base is small and explicit. Accepting a certificate means trusting:
   [EVMLean](https://github.com/lefterislazar/EVMLean) semantics that follows the
   EVM Yellow Paper. The model is executable and passes the official EVM
   conformance test suite, but its faithfulness to the EVM is trusted.
-- **The refinement relation.** [`Solm/Equiv.lean`](Solm/Equiv.lean) defines
+- **The refinement relation.** [`Solm/Refine.lean`](Solm/Refine.lean) defines
   what equivalence means. It deliberately does not compare gas consumption,
   logs and substate, or revert payloads.
 

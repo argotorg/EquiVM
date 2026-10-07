@@ -1,6 +1,6 @@
 import Benchmarks.Dss.End.Common
 import Reasoning.Constructor
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS End constructor correctness
@@ -97,15 +97,14 @@ theorem assign_endCtorWardsCaller (evm : EVM.State) {locals : Store}
         some (endCtorAfterWardsState evm) := by
     simpa [endCtorAfterWardsState] using
       storageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (ty := .elem (.int uint256Int))
-    (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
+    (loc := wordLoc (wardsSlot (.address evm.executionEnv.source))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_endCtorLive (evm : EVM.State) {locals : Store}
@@ -121,15 +120,14 @@ theorem assign_endCtorLive (evm : EVM.State) {locals : Store}
       storageLocStore evm (wordLoc ⟨8⟩) (.int 1) =
         some (endCtorAfterLiveState evm) := by
     simpa [endCtorAfterLiveState] using storageLocStore_uint256 evm ⟨8⟩ ⟨1⟩
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (ty := .elem (.int uint256Int))
-    (loc := wordLoc ⟨8⟩)
+    (loc := wordLoc ⟨8⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [liveRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem endCtorBodySuccess
@@ -332,8 +330,7 @@ theorem endCtorInitcodeSuccess {σ σ₀ A I} {g : Sat256}
 
 set_option maxHeartbeats 1200000 in
 theorem endConstructorCorrect :
-    constructorEquivalence config endCreationBytecode contract endBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config endCreationBytecode contract (fun _ => endBytecode) := by
   intro σ σ₀ g A I
       args deployedInitcode hdeploy hcode _hcalldata hperm
   have hdeployed := emptyCtorDeployment_eq_initcode end_selfDeployment_eq
@@ -349,7 +346,7 @@ theorem endConstructorCorrect :
       (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
-    · exact constructorEquivalenceFor.outOfGas
+    · exact typedConstructorRefinementFor.outOfGas
         (Xi_error_of_X (g := g) (by
           rw [← hcode] at hOOG
           simpa [Sat256.ofUInt256] using hOOG))
@@ -362,7 +359,7 @@ theorem endConstructorCorrect :
           (Sat256.ofUInt256 g) A I
       let evm1s := endCtorAfterWardsState evm0s
       let evm2s := endCtorAfterLiveState evm1s
-      refine constructorEquivalenceFor.execution hsuccess
+      refine typedConstructorRefinementFor.execution hsuccess
         (by
           simpa [evm0s, evm1s, evm2s] using
             endSolmCtorExecSuccess
@@ -378,8 +375,8 @@ theorem endConstructorCorrect :
       (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv
     rcases hrd.xiResult hcode with hOOG | ⟨g', o, hrev⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-    · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hrev)
         (endSolmCtorExecReverts_nonpayable
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := g) hwv) ?_

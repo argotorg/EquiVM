@@ -19,7 +19,6 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -59,12 +58,14 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
           (((setDecodedValueBytes I).size + 31) / 32)).executionEnv.codeOwner
         ⟨0⟩ (solidityBytesHeaderWord (setDecodedValueBytes I).size) =
           evmSolm1) :
-    ∃ evmEvm1,
+    (I.perm = true ∧ ∃ evmEvm1,
       EVMStateEquiv evmEvm1 evmSolm1 ∧
       RDret stringStoreLiteBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         evmEvm1.accountMap
-        (UInt256.toByteArray (UInt256.ofNat (setDecodedValueBytes I).size)) := by
+        (UInt256.toByteArray (UInt256.ofNat (setDecodedValueBytes I).size))) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let len : UInt256 :=
     uInt256OfByteArray
@@ -159,13 +160,14 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
     simp [writeSolidityBytesDataWordsFrom_executionEnv,
       storageStore_executionEnv, initState]
   by_cases hmod : len.toNat % 32 = 0
-  · obtain ⟨k261, C261, rd261₀⟩ :=
+  · refine permSplit_bind (
       stringStoreLiteX_setWriteLongFrom1405NoTail
         (payloadStart := payloadStart) (len := len) (oldLen := oldLen)
         (aw := setHelperEntryAw len) (mem := setPaddedMem I.calldata len payloadStart)
         (rdata := ByteArray.empty)
-        hperm hlong hmod rd1405
-        (longDataWordsLoopMloadCost_setHelper_zero (len := len) hlenMaxLen)
+        hlong hmod rd1405
+        (longDataWordsLoopMloadCost_setHelper_zero (len := len) hlenMaxLen)) fun _ hrd261 => ?_
+    obtain ⟨k261, C261, rd261₀⟩ := hrd261
     have hawLoop :
         longDataWordsLoopAw (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩ ⟨32⟩
           (len.toNat / 32) =
@@ -263,17 +265,19 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
       exact longDataWordsLoopMload_setHelper_decoded_tail_word
         (I := I) (len := len) (payloadStart := payloadStart)
         hnz hlenMaxLen hsrc hmod hlenAbi rfl hoffMax
-    obtain ⟨k261, C261, rd261₀⟩ :=
+    refine permSplit_bind (
       stringStoreLiteX_setWriteLongFrom1405Tail
         (payloadStart := payloadStart) (len := len) (oldLen := oldLen)
         (wordTail := wordTail) (awTail := clearCurrentHashAw (setHelperEntryAw len))
         (aw := setHelperEntryAw len) (mem := setPaddedMem I.calldata len payloadStart)
         (rdata := ByteArray.empty)
-        hperm hlong hmod rd1405
+        hlong hmod rd1405
         (longDataWordsLoopMloadCost_setHelper_zero (len := len) hlenMaxLen)
         (longDataWordsLoopTailMloadCost_setHelper_zero (len := len) hlenMaxLen hmod)
         hmloadTail
-        (longDataWordsLoopAw_setHelper_tail_mload_eq (len := len) hlenMaxLen hmod)
+        (longDataWordsLoopAw_setHelper_tail_mload_eq (len := len) hlenMaxLen hmod))
+      fun _ hrd261 => ?_
+    obtain ⟨k261, C261, rd261₀⟩ := hrd261
     have hreach261 :
         ∃ k C, RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨261⟩

@@ -35,7 +35,7 @@ theorem uniswapMintInitialBranchRuntimeCases
       ExecStmt config { contract := contract, locals := locals } evm
         mintLiquidityBranchStmt
         (.ok ⟨contract, ((locals.insert "rootLiquidity" (.int root)).insert
-          "liquidity" (uniswapUint256Value liquidity)).insert "_minimumMint" Value.unit⟩
+          "liquidity" (uniswapUint256Value liquidity)).insert "_minimumMint" Value.unit, ∅⟩
           (mintFunctionPostState evm (AccountAddress.ofNat 0) ⟨1000⟩)) ∧
       Eq (mintRuntimeMintMap σFee I ⟨0⟩ ⟨1000⟩ mem)
         (mintFunctionPostState evm (AccountAddress.ofNat 0) ⟨1000⟩).accountMap ∧
@@ -50,7 +50,7 @@ theorem uniswapMintInitialBranchRuntimeCases
         UInt256.toByteArray ⟨128⟩) := by
   by_cases hfit : mintAmountProductNat amount0 amount1 < UInt256.size
   · obtain ⟨root, _, _, hsqrt, hrootNonneg, hrootSize, rd2531⟩ :=
-      mintInitialLiquiditySqrtPrefixRuntimeBounded ⟨contract, locals⟩ evm rfl
+      mintInitialLiquiditySqrtPrefixRuntimeBounded ⟨contract, locals, ∅⟩ evm rfl
         (evalExprs_mint_initialSqrtArg_of_get evm amount0 amount1 hamount0 hamount1 hfit)
         rd3701 htotalZero hfit
     by_cases hge : minimumLiquidity ≤ root

@@ -28,7 +28,7 @@ theorem simpleAuctionAuctionEndTimeBodyReturns (evm : EVM.State) (locals : Store
           ({ base := "auctionEndTime", steps := [] } : EvaledStorageRef)
           = some (.elem (.int uint256Int)) := by
         decide
-      erw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
+      erw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := simpleAuctionConfig_storage_auctionEndTime),
         storageLocLoad_uint256])
 
@@ -126,12 +126,12 @@ theorem simpleAuctionDecode_auctionEndTime {I : ExecutionEnv} (hsz : 4 ≤ I.cal
 theorem simpleAuctionAuctionEndTimeBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I ⟨#[0x4b, 0x44, 0x9c, 0xba]⟩)
+    (hsel : selIs I ⟨#[0x4b, 0x44, 0x9c, 0xba]⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨239⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
+    runtimeRefinementFor simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
   have hsz := simpleAuctionAuctionEndTimeSelector_size hsel
   have hd := simpleAuctionDispatch_auctionEndTime (cd := I.calldata) hsel

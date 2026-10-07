@@ -37,7 +37,7 @@ theorem blindAuctionEndedBodyReturns (evm : EVM.State) (locals : Store)
       have hty : storageTypeAt? blindAuctionContract.storage
           ({ base := "ended", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
         decide
-      erw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her)
+      erw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := blindAuctionConfig_storage_ended),
         storageLocLoad_bool_offset0]
       rw [u256_land_comm])
@@ -130,15 +130,14 @@ theorem blindAuctionDecode_ended {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size
 /-- `ended()` getter body (pc 215) refines its transition. -/
 theorem blindAuctionEndedBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I ⟨#[0x12, 0xfa, 0x6f, 0xeb]⟩)
+    (hsel : selIs I ⟨#[0x12, 0xfa, 0x6f, 0xeb]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨215⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
       k C) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
-  have _hperm : I.perm = true := hperm
 
   have hsz := blindAuctionEndedSelector_size hsel
   have hd := blindAuctionDispatch_ended (cd := I.calldata) hsel

@@ -1,8 +1,9 @@
+import Benchmarks.WETH9.ScalarStorage
 import Reasoning.WordArithmetic
 import Benchmarks.WETH9.ConstructorClear
 import Reasoning.SolmBody
 import Reasoning.Constructor
-import Solm.Equiv
+import Solm.Refine
 
 
 /-!
@@ -102,8 +103,8 @@ theorem weth9SolmAssignBytes (evm : EVM.State) (frame : Frame) (slotRef : Storag
     (hbase : frame.locals.get? slotRef.base = none)
     (her : evalStorageRef config frame evm slotRef = .ok { base := slotRef.base, steps := [] })
     (hty : storageTypeAt? frame.contract.storage { base := slotRef.base, steps := [] } = some .string)
-    (hlen : storageLayoutRaw { base := slotRef.base, steps := [.length] } evm =
-      some (bytesLikeLengthLoc slotIdx evm))
+    (hlen : storageLayoutRaw { base := slotRef.base, steps := [.length] } =
+      some (.anchor slotIdx))
     (hsize : bs.size < 32) :
     assignStorageRef? config frame evm .storage slotRef (.bytes bs) =
       .ok (frame,
@@ -116,10 +117,7 @@ theorem weth9SolmAssignBytes (evm : EVM.State) (frame : Frame) (slotRef : Storag
   have hbsl : weth9BytesBaseSlotAndLength? storageLayoutRaw { base := slotRef.base, steps := [] } evm =
       .ok (slotIdx,
         (weth9DecodeLenWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slotIdx)).toNat) := by
-    rw [weth9BytesBaseSlotAndLength?]
-    simp only [List.nil_append, hlen, weth9DecodeBytesLengthHeader_eq,
-      show (bytesLikeLengthLoc slotIdx evm).slot = slotIdx from by
-        unfold bytesLikeLengthLoc; split <;> rfl]
+    simp [weth9BytesBaseSlotAndLength?, hlen, weth9DecodeBytesLengthHeader_eq]
   have hbytes : weth9WriteBytesValue? storageLayoutRaw { base := slotRef.base, steps := [] } bs evm =
       .ok (Solm.EVM.storageStore
         (clearSolidityBytesDataWordsFrom evm slotIdx 0
@@ -129,17 +127,16 @@ theorem weth9SolmAssignBytes (evm : EVM.State) (frame : Frame) (slotRef : Storag
         evm.executionEnv.codeOwner slotIdx (solidityShortBytesWord bs)) := by
     rw [weth9WriteBytesValue?, hbsl]
     simp only [hsize, ↓reduceIte, clearSolidityBytesDataWordsFrom_executionEnv]
-  have hwrite : writeStorage? config evm { base := slotRef.base, steps := [] } .string (.bytes bs) =
+  have hwrite : config.storageBackend.write { base := slotRef.base, steps := [] }
+      .string (.bytes bs) evm =
       .ok (Solm.EVM.storageStore
         (clearSolidityBytesDataWordsFrom evm slotIdx 0
           (solidityBytesDataWordCount
             (weth9DecodeLenWord
               (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slotIdx)).toNat))
         evm.executionEnv.codeOwner slotIdx (solidityShortBytesWord bs)) := by
-    simp only [writeStorage?,
-      show config.storage.writeValue? { base := slotRef.base, steps := [] } .string (.bytes bs) evm =
-        some (weth9WriteBytesValue? storageLayoutRaw { base := slotRef.base, steps := [] } bs evm)
-        from rfl, hbytes, storagePrepareResultToEval]
+    simpa [config, storageLayout, weth9StorageBackend,
+      solidityStateResultToEval] using congrArg solidityStateResultToEval hbytes
   rw [assignStorageRef?]
   simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind, pure, hwrite]
 
@@ -193,7 +190,7 @@ theorem weth9SolmCtorBodyReturns (evm : EVM.State) (hwv : evm.executionEnv.weiVa
         (by simp [storageTypeAt?, contract, storageDecls, symbolRef]) rfl (by native_decide))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (value := .int 18) (by unfold evalExpr?; rfl)
-      (assignStorageRef_storage_scalar (er := { base := "decimals", steps := [] })
+      (assignStorageRef_storage_scalar (hleaf := by simp [uint256St, uint8St]) (er := { base := "decimals", steps := [] })
         (ty := uint8St) (loc := uint8Loc ⟨2⟩)
         (by simp) (by simp [evalStorageRef, decimalsRef, EvalResult.bind, bind, pure])
         (by simp [storageTypeAt?, contract, storageDecls, uint8St]) rfl

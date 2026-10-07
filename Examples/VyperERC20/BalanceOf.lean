@@ -73,7 +73,7 @@ theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (balanceOfSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar (t := .int uint256Int)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
         (hbase := by simp [balanceOfStore, balanceOfRef, ERC20.balanceOfRef])
         (her := by
           simp [evalStorageRef, evalStorageRefStep, balanceOfRef, ERC20.balanceOfRef,
@@ -476,7 +476,7 @@ theorem erc20BalanceOfBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨623⟩
       [balanceOfSelectorWord] balanceOfDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract
+    runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   have hd := erc20Dispatch_balanceOf (cd := I.calldata) hsel
   have hbody :
@@ -528,7 +528,7 @@ theorem erc20BalanceOfRuntimeSuccess
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract
+    runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20BalanceOfBodyCore hcode hwv hsize hsel
     (erc20X_balanceOfReach (σ := σ)

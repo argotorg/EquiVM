@@ -301,6 +301,11 @@ mutual
           (by rintro ⟨rfl, rfl⟩; rfl)
           (by intro h; cases h; exact ⟨rfl, rfl⟩)
     next x y =>
+        exact decEqOfIff (x = y) (by intro h; cases h; rfl) (by intro h; cases h; rfl)
+    next x y =>
+        exact decEqOfIff (x = y) (by intro h; cases h; rfl) (by intro h; cases h; rfl)
+
+    next x y =>
         letI : Decidable (x = y) := StorageRef.decEq x y
         exact decEqOfIff (x = y) (by intro h; cases h; rfl) (by intro h; cases h; rfl)
 
@@ -483,6 +488,15 @@ mutual
     next rx ry =>
         letI : Decidable (rx = ry) := StorageRef.decEq rx ry
         exact decEqOfIff (rx = ry) (by intro h; cases h; rfl) (by intro h; cases h; rfl)
+    next nx ex ny ey =>
+        letI : Decidable (ex = ey) := Expr.decEq ex ey
+        exact decEqOfIff (nx = ny ∧ ex = ey)
+          (by rintro ⟨rfl, rfl⟩; rfl)
+          (by intro h; cases h; exact ⟨rfl, rfl⟩)
+    next nx argsx ny argsy =>
+        exact decEqOfIff (nx = ny ∧ argsx = argsy)
+          (by rintro ⟨rfl, rfl⟩; rfl)
+          (by intro h; cases h; exact ⟨rfl, rfl⟩)
 
   private def Stmt.decEqList : (as bs : List Stmt) → Decidable (as = bs)
     | [], [] => isTrue rfl
@@ -500,6 +514,8 @@ instance : DecidableEq Stmt := Stmt.decEq
 
 deriving instance DecidableEq for Param
 deriving instance DecidableEq for StorageDecl
+deriving instance DecidableEq for ConstantDecl
+deriving instance DecidableEq for ImmutableDecl
 deriving instance DecidableEq for ConstructorDecl
 deriving instance DecidableEq for StructDecl
 deriving instance DecidableEq for FunctionDecl

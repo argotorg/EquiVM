@@ -597,7 +597,7 @@ theorem evalExpr_yankIlk_ofLocals {evm : EVM.State} {locals : Store}
       (.storage ilkRef) =
         .ok (.fixedBytes bytes32Width
           (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩))) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .bytes bytes32Width)
     (er := ({ base := "ilk", steps := [] } : EvaledStorageRef))
     (loc := bytes32Loc ⟨3⟩)
@@ -606,8 +606,7 @@ theorem evalExpr_yankIlk_ofLocals {evm : EVM.State} {locals : Store}
       simp [evalStorageRef, evalStorageRefSteps, ilkRef, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, bytes32St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, ilkRef])]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, ilkRef])]
   exact congrArg EvalResult.ok (storageLocLoad_bytes32 evm ⟨3⟩)
 
 abbrev yankFluxArgValsOf (evm : EVM.State) (id : UInt256) : List Value :=
@@ -1391,7 +1390,6 @@ theorem flipperYankX_catPostCall
     {σ σ₀ A I} {g : UInt256} {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
-    (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1250⟩
@@ -1445,7 +1443,7 @@ theorem flipperYankX_catPostCall
         exact absurd hdepth (by rw [hEq]; decide))
       (by rfl)
       (yankCatCallMem_encode σ I) ?_
-    simpa [initState, hperm] using hΘ
+    simpa [initState] using hΘ
 
 theorem flipperYankX_catCallFailure {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector : UInt256}

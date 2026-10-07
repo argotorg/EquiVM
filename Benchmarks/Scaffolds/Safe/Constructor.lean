@@ -1,5 +1,5 @@
 import Benchmarks.Scaffolds.Safe.Bytecode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # Safe constructor correctness stub
@@ -13,7 +13,7 @@ open Solm ABI Ethereum Ethereum.EVM
 namespace Benchmarks.Safe
 
 theorem safeConstructorCorrect :
-    constructorEquivalence config safeCreationBytecode contract safeBytecode := by
+    typedConstructorRefinement config safeCreationBytecode contract (fun _ => safeBytecode) := by
   sorry
 
 end Benchmarks.Safe

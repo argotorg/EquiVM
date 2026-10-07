@@ -154,7 +154,7 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
             .ok (.int (Int.ofNat (UInt256.land
               (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
               reserve112Mask).toNat)) := by
-        rw [evalExpr_storage_scalar (t := .int uint112Int) (slot := reserve0Ref)
+        rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint112Int) (slot := reserve0Ref)
           (er := ({ base := "reserve0", steps := [] } : EvaledStorageRef))
           (loc := uint112Loc0 ⟨8⟩)
           (hbase := by simp [reserve0Ref])
@@ -168,7 +168,7 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
             .ok (.int (Int.ofNat (UInt256.land
               (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
                 reserve112Shift) reserve112Mask).toNat)) := by
-        rw [evalExpr_storage_scalar (t := .int uint112Int) (slot := reserve1Ref)
+        rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint112Int) (slot := reserve1Ref)
           (er := ({ base := "reserve1", steps := [] } : EvaledStorageRef))
           (loc := uint112Loc14 ⟨8⟩)
           (hbase := by simp [reserve1Ref])
@@ -182,7 +182,7 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
             .ok (.int (Int.ofNat (UInt256.land
               (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
                 reserve224Shift) reserve32Mask).toNat)) := by
-        rw [evalExpr_storage_scalar (t := .int uint32Int) (slot := blockTimestampLastRef)
+        rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint32Int) (slot := blockTimestampLastRef)
           (er := ({ base := "blockTimestampLast", steps := [] } : EvaledStorageRef))
           (loc := uint32Loc28 ⟨8⟩)
           (hbase := by simp [blockTimestampLastRef])
@@ -468,7 +468,7 @@ theorem uniswapGetReservesBodyCore
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨697⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -514,7 +514,7 @@ theorem uniswapGetReservesBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x09, 0x02, 0xf1, 0xac]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some getReservesTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x09, 0x02, 0xf1, 0xac]⟩ rfl hsel
   exact uniswapGetReservesBodyCore hcode hwv hdispatch (uniswapDecode_getReserves hsz)

@@ -542,7 +542,7 @@ theorem RD.clipperYankVatFluxPostCall {σ₀ σStart σ I}
             (⟨128⟩ : UInt256).toNat (⟨132⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outVat σ_vat k' C' ∧
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address v.vat) "flux" 0
@@ -576,7 +576,7 @@ theorem RD.clipperYankVatFluxPostCall {σ₀ σStart σ I}
       { initState σStart σ₀ g A I with
         accountMap := σ }
     simp only [evmVat, initState]
-    refine callCoincides (cfg := config v)
+    refine callCoincides (cfg := config)
       (evm := evmVat)
       (name := "flux")
       (args := [v.ilk, .address I.codeOwner, .address I.source,

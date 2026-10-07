@@ -40,17 +40,17 @@ theorem clipperKickIncentiveWmulReverts (v : ClipperImmutables)
       clipperRedoChipSolmWord evmTop ≠ ⟨0⟩)
     (hover : UInt256.size ≤ (clipperKickTabWord I).toNat *
       (clipperRedoChipSolmWord evmTop).toNat) :
-    ExecBlock (config v)
-      { contract := contract v,
-        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top }
+    ExecBlock config
+      { contract := contract,
+        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop
-      [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody v) [],
+      [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody) [],
         .assign .storage lockedRef (.intLit 0), .return [.var "id"] ]
       .reverted := by
-  have hbody : ExecBlock (config v)
-      { contract := contract v,
-        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top }
-      evmTop (clipperKickIncentiveBody v) .reverted := by
+  have hbody : ExecBlock config
+      { contract := contract,
+        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
+      evmTop (clipperKickIncentiveBody) .reverted := by
     simpa [clipperKickIncentiveBody] using ExecBlock.consRevert
       (clipperKickWmulCallReverts v evmLock evmTop I feedPrice top hover)
   have hite := ExecStmt.iteTrue (elseB := [])
@@ -66,21 +66,21 @@ theorem clipperKickIncentiveAddReverts (v : ClipperImmutables)
       (clipperRedoChipSolmWord evmTop).toNat < UInt256.size)
     (hover : UInt256.size ≤ (clipperRedoTipSolmWord evmTop).toNat +
       (clipperKickSourceChipCoinWord evmTop I).toNat) :
-    ExecBlock (config v)
-      { contract := contract v,
-        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top }
+    ExecBlock config
+      { contract := contract,
+        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop
-      [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody v) [],
+      [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody) [],
         .assign .storage lockedRef (.intLit 0), .return [.var "id"] ]
       .reverted := by
   have hmulStmt :=
     clipperKickWmulCallReturns v evmLock evmTop I feedPrice top hmul
   have hadd :=
     clipperKickCheckedAddCoinReverts v evmLock evmTop I feedPrice top hover
-  have hbody : ExecBlock (config v)
-      { contract := contract v,
-        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top }
-      evmTop (clipperKickIncentiveBody v) .reverted := by
+  have hbody : ExecBlock config
+      { contract := contract,
+        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
+      evmTop (clipperKickIncentiveBody) .reverted := by
     simpa [clipperKickIncentiveBody] using ExecBlock.consNormal hmulStmt
       (execBlock_append_term hadd (by intro frame state h; cases h))
   have hite := ExecStmt.iteTrue (elseB := [])
@@ -96,26 +96,26 @@ theorem clipperKickIncentiveSuckReverts (v : ClipperImmutables)
       (clipperRedoChipSolmWord evmTop).toNat < UInt256.size)
     (hadd : (clipperRedoTipSolmWord evmTop).toNat +
       (clipperKickSourceChipCoinWord evmTop I).toNat < UInt256.size)
-    (hsuck : ExecBlock (config v)
-      { contract := contract v,
-        locals := clipperKickLocalsCoin evmLock evmTop I feedPrice top }
-      evmTop (checkedExternalCallStmts (vatExpr v) "suck" (.intLit 0)
+    (hsuck : ExecBlock config
+      { contract := contract,
+        locals := clipperKickLocalsCoin evmLock evmTop I feedPrice top, immutables := immStore v }
+      evmTop (checkedExternalCallStmts vatExpr "suck" (.intLit 0)
         [.storage vowRef, .var "kpr", .var "coin"] "_suckRet") .reverted) :
-    ExecBlock (config v)
-      { contract := contract v,
-        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top }
+    ExecBlock config
+      { contract := contract,
+        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop
-      [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody v) [],
+      [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody) [],
         .assign .storage lockedRef (.intLit 0), .return [.var "id"] ]
       .reverted := by
   have hmulStmt :=
     clipperKickWmulCallReturns v evmLock evmTop I feedPrice top hmul
   have haddBlock := clipperKickCheckedAddCoin v evmLock evmTop I feedPrice top hadd
   have hcoinStmt := clipperKickAssignCoin v evmLock evmTop I feedPrice top
-  have hbody : ExecBlock (config v)
-      { contract := contract v,
-        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top }
-      evmTop (clipperKickIncentiveBody v) .reverted := by
+  have hbody : ExecBlock config
+      { contract := contract,
+        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
+      evmTop (clipperKickIncentiveBody) .reverted := by
     simpa [clipperKickIncentiveBody] using ExecBlock.consNormal hmulStmt
       (execBlock_append haddBlock
         (ExecBlock.consNormal hcoinStmt hsuck))
@@ -133,34 +133,32 @@ theorem clipperKickIncentiveSucceeds (v : ClipperImmutables)
       (clipperRedoChipSolmWord evmTop).toNat < UInt256.size)
     (hadd : (clipperRedoTipSolmWord evmTop).toNat +
       (clipperKickSourceChipCoinWord evmTop I).toNat < UInt256.size)
-    (hsuck : ExecBlock (config v)
-      { contract := contract v,
-        locals := clipperKickLocalsCoin evmLock evmTop I feedPrice top }
-      evmTop (checkedExternalCallStmts (vatExpr v) "suck" (.intLit 0)
+    (hsuck : ExecBlock config
+      { contract := contract,
+        locals := clipperKickLocalsCoin evmLock evmTop I feedPrice top, immutables := immStore v }
+      evmTop (checkedExternalCallStmts vatExpr "suck" (.intLit 0)
         [.storage vowRef, .var "kpr", .var "coin"] "_suckRet")
-      (.ok (Frame.mk (contract v)
-        (clipperKickLocalsSuckRet evmLock evmTop I feedPrice top)) evmAfter)) :
-    ExecBlock (config v)
-      { contract := contract v,
-        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top }
+      (.ok (Frame.mk contract (clipperKickLocalsSuckRet evmLock evmTop I feedPrice top) (immStore v)) evmAfter)) :
+    ExecBlock config
+      { contract := contract,
+        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
       evmTop
-      [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody v) [],
+      [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody) [],
         .assign .storage lockedRef (.intLit 0), .return [.var "id"] ]
       (.returned
-        { contract := contract v,
-          locals := clipperKickLocalsSuckRet evmLock evmTop I feedPrice top }
+        { contract := contract,
+          locals := clipperKickLocalsSuckRet evmLock evmTop I feedPrice top, immutables := immStore v }
         (Solm.EVM.storageStore evmAfter evmAfter.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)
         (some [.int (Int.ofNat (clipperKickSourceIdWord evmLock).toNat)])) := by
   have hmulStmt :=
     clipperKickWmulCallReturns v evmLock evmTop I feedPrice top hmul
   have haddBlock := clipperKickCheckedAddCoin v evmLock evmTop I feedPrice top hadd
   have hcoinStmt := clipperKickAssignCoin v evmLock evmTop I feedPrice top
-  have hbody : ExecBlock (config v)
-      { contract := contract v,
-        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top }
-      evmTop (clipperKickIncentiveBody v)
-      (.ok (Frame.mk (contract v)
-        (clipperKickLocalsSuckRet evmLock evmTop I feedPrice top)) evmAfter) := by
+  have hbody : ExecBlock config
+      { contract := contract,
+        locals := clipperKickLocalsCoinZero evmLock evmTop I feedPrice top, immutables := immStore v }
+      evmTop (clipperKickIncentiveBody)
+      (.ok (Frame.mk contract (clipperKickLocalsSuckRet evmLock evmTop I feedPrice top) (immStore v)) evmAfter) := by
     simpa [clipperKickIncentiveBody] using ExecBlock.consNormal hmulStmt
       (execBlock_append haddBlock
         (ExecBlock.consNormal hcoinStmt hsuck))

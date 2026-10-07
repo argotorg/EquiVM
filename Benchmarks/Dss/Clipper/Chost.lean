@@ -14,17 +14,17 @@ theorem clipperChostSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size
     solcSelectorWord_eq_of_beq I hsz 0xba 0x2c 0xdc 0x75 (clipperSelNat 4)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_chost (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_chost {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 4)) :
-    dispatchMsg (contract v) I.calldata = some chostTransition := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some chostTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre := [activeTransition, bufTransition, calcTransition, chipTransition])
     (post :=
       [countTransition, cuspTransition, denyTransition, dogTransition, fileUintTransition,
-        fileAddressTransition, getStatusTransition, ilkTransition v, kickTransition v,
-        kicksTransition, listTransition, redoTransition v, relyTransition, salesTransition,
-        spotterTransition, stoppedTransition, tailTransition, takeTransition v, tipTransition,
-        upchostTransition v, vatTransition v, vowTransition, wardsTransition, yankTransition v])
+        fileAddressTransition, getStatusTransition, ilkTransition, kickTransition,
+        kicksTransition, listTransition, redoTransition, relyTransition, salesTransition,
+        spotterTransition, stoppedTransition, tailTransition, takeTransition, tipTransition,
+        upchostTransition, vatTransition, vowTransition, wardsTransition, yankTransition])
     (ti := chostTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
@@ -42,40 +42,39 @@ theorem clipperDispatch_chost (v : ClipperImmutables) {I : ExecutionEnv}
   · rw [selectorOf, chostSelectorBytes]
     simpa [clipperSelBytes] using hsel
 
-theorem clipperDecode_chost (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_chost {I : ExecutionEnv}
     (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (chostTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (chostTransition.params.map Param.name)
       (transitionSignature chostTransition).paramTypes I.calldata = some ∅ := by
-  show decodeCalldataWithMode (config v).abiDecodeMode [] [] I.calldata = some ∅
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldataWithMode_empty_ok hsz
 
 theorem clipperEvalChost (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "chost" = none) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.storage chostRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨9⟩).toNat)) := by
   let er : EvaledStorageRef := { base := "chost", steps := [] }
-  have her : evalStorageRef (config v)
-      { contract := contract v, locals := locals } evm chostRef = .ok er := by
+  have her : evalStorageRef config
+      { contract := contract, locals := locals, immutables := immStore v } evm chostRef = .ok er := by
     unfold evalStorageRef chostRef
     simp only [evalStorageRefSteps]
     rfl
-  have hty : storageTypeAt? (contract v).storage er = some (.elem (.int uint256Int)) := by
+  have hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)) := by
     simp [er, storageTypeAt?, contract, storageDecls, uint256St]
-  have hloc : (config v).storage.layout er = fun _ => some (wordLoc ⟨9⟩) := by
-    funext evm'
+  have hloc : config.storageBackend.locate? er = some (.leaf (wordLoc ⟨9⟩)) := by
     rfl
-  exact evalExpr_storage_scalar_value hbase her hty hloc
+  exact evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
     (storageLocLoad_uint256 evm ⟨9⟩)
 
 theorem clipperChostBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "chost" = none) :
-    ExecTransitionBody (config v) (contract v) evm locals chostTransition.body
-      (.returned { contract := contract v, locals := locals } evm
+    ExecTransitionBody config contract evm locals chostTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.int (Int.ofNat
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨9⟩).toNat))])) := by
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨9⟩).toNat))])) (immStore v) := by
   simpa [chostTransition] using
-    nonpayableReturnExprBodyReturns (cfg := config v) (contract := contract v) h
+    nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h
       (clipperEvalChost v evm locals hbase)
 
 set_option maxHeartbeats 1000000 in
@@ -267,17 +266,17 @@ theorem clipperChostBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 4)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 4) (by native_decide) hsel
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ chostTransition.body
-        (.returned { contract := contract v, locals := ∅ }
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (solcSlotWord σ I ⟨9⟩).toNat))])) := by
+          (some [(.int (Int.ofNat (solcSlotWord σ I ⟨9⟩).toNat))])) (immStore v) := by
     simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       clipperChostBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -292,7 +291,7 @@ theorem clipperChostBody (v : ClipperImmutables) {code : ByteArray}
     (g := g) (sel := clipperSelWord I) (transition := chostTransition)
     (entry := (⟨1295⟩ : UInt256)) (routine := (⟨6759⟩ : UInt256))
     (slot := (⟨9⟩ : UInt256)) (returnPc := (⟨476⟩ : UInt256))
-    hcode (clipperDispatch_chost v hsel) (clipperDecode_chost v hsz) hreach
+    hcode (clipperDispatch_chost hsel) (clipperDecode_chost hsz) hreach
     (clipperChostGetterEntryWf v hpatch) (clipperChostSlotGetterWf v hpatch) hroutine
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨476⟩ : UInt256) (by native_decide))
     (clipperReturnWord476Wf v hpatch) (by rfl) hbody

@@ -146,7 +146,7 @@ theorem uniswapMintInitialSmallRootRevertsFromFactoryCases
           ⟨0⟩ ∧
         amount0.toNat * amount1.toNat < UInt256.size ∧
         (UInt256.mul amount0 amount1).toNat ≤ 3)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hmem :
       (feeToStaticcallMem
         (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)

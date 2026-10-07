@@ -59,7 +59,7 @@ theorem uniswapFactoryBodyCore
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1324⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ factoryTransition.body
@@ -80,7 +80,7 @@ theorem uniswapFactoryBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xc4, 0x5a, 0x01, 0x55]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some factoryTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xc4, 0x5a, 0x01, 0x55]⟩ rfl hsel
   exact uniswapFactoryBodyCore hcode hwv hdispatch (uniswapDecode_factory hsz)

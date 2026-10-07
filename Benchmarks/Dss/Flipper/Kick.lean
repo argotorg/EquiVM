@@ -982,19 +982,20 @@ theorem flipperKickDecodePushMask6276 :
       some (.Push .PUSH6, some (uint48Mask, 6)) := by
   native_decide
 
-theorem flipperKickX_toAdd48 {σ I} {g : Sat256} {s0 : State}
+theorem flipperKickX_toAdd48Split {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
-    (hperm : I.perm = true)
     (hkicksLt : (kickKicksWord σ I).toNat < UInt256.size - 1)
     (h : RD flipperBytecode I g s0 ⟨2074⟩
       [⟨0⟩, kickBid I, kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
       (kickAuthMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨6272⟩
-      [kickTauWord (kickAfterGuyMap σ I) I, kickNow I, ⟨2235⟩,
-        kickIdWord σ I, kickBid I, kickLot I, kickTab I, kickGalKey I, kickUsrKey I,
-        ⟨426⟩, sel]
-      (kickBidHashMem σ I) (UInt256.ofNat 3) ByteArray.empty
-      (kickAfterGuyMap σ I) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD flipperBytecode I g s0 ⟨6272⟩
+        [kickTauWord (kickAfterGuyMap σ I) I, kickNow I, ⟨2235⟩,
+          kickIdWord σ I, kickBid I, kickLot I, kickTab I, kickGalKey I, kickUsrKey I,
+          ⟨426⟩, sel]
+        (kickBidHashMem σ I) (UInt256.ofNat 3) ByteArray.empty
+        (kickAfterGuyMap σ I) k' C') ∨
+      (I.perm = false ∧ RDstatic flipperBytecode g s0) := by
   have rd2081raw := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -1037,8 +1038,13 @@ theorem flipperKickX_toAdd48 {σ I} {g : Sat256} {s0 : State}
     raw swap2 (by native_decide) (by evm_ov),
     raw dup3 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨k2164, C2164, rd2164⟩ :=
-    rd2163pre.sstore hperm (by native_decide) (by evm_ov)
+  have hstoreDec : decode flipperBytecode ⟨2163⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2163pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨k2164, C2164, rd2164⟩ := rd2163pre.sstore hperm hstoreDec (by evm_ov)
   have rd2164' : RD flipperBytecode I g s0 ⟨2164⟩
       [⟨1⟩, kickIdWord σ I, kickBid I, kickLot I, kickTab I, kickGalKey I,
         kickUsrKey I, ⟨426⟩, sel]
@@ -1287,7 +1293,7 @@ theorem evalExpr_kickKicks {σ σ₀ A I} {g : Sat256} {locals : Store}
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage kicksRef) =
         .ok (.int (Int.ofNat (kickKicksWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int)
     (er := ({ base := "kicks", steps := [] } : EvaledStorageRef))
     (loc := wordLoc ⟨6⟩)
@@ -1296,8 +1302,7 @@ theorem evalExpr_kickKicks {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [evalStorageRef, evalStorageRefSteps, kicksRef, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])]
   exact congrArg EvalResult.ok
     (storageLocLoad_uint256 (initState σ σ₀ g A I) ⟨6⟩)
 

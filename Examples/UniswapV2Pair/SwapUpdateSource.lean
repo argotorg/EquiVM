@@ -17,6 +17,14 @@ theorem swapBeforeUpdateFrame_contract (evm : EVM.State) (I : ExecutionEnv)
     (swapBeforeUpdateFrame evm I balance0 balance1 amount0In amount1In).contract = contract := by
   simp only [swapAfterCallbackFrame_contract, swapAfterTransfersFrame_contract]
 
+theorem swapBeforeUpdateFrame_immutables (evm : EVM.State) (I : ExecutionEnv)
+    (balance0 balance1 amount0In amount1In : UInt256) :
+    (swapBeforeUpdateFrame evm I balance0 balance1 amount0In amount1In).immutables = ∅ := by
+  simp only [swapBeforeUpdateFrame, swapAfterAdjustmentsFrame, swapAfterInputsFrame,
+    swapBeforeInputsFrame, swapAfterBalancesFrame, swapAfterCallbackFrame,
+    swapAfterTransfersFrame, optionalSafeTransferFrame]
+  split_ifs <;> rfl
+
 theorem swapBeforeUpdateFrame_balances (evm : EVM.State) (I : ExecutionEnv)
     (balance0 balance1 amount0In amount1In : UInt256) :
     (swapBeforeUpdateFrame evm I balance0 balance1 amount0In amount1In).locals.get? "balance0" =

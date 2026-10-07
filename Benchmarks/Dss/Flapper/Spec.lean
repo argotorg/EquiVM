@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -158,31 +159,31 @@ def uint48Loc (slot : Ethereum.UInt256) (offset : Fin 32)
     (hbound : offset.val + 6 - 1 < 32) : StorageLoc :=
   { slot := slot, offset := offset, size := 6, hbound := hbound, type := .int uint48Int }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "bids", steps := [.mindex id, .field "bid"] }, _ =>
-      some (wordLoc (bidsBase id))
-  | { base := "bids", steps := [.mindex id, .field "lot"] }, _ =>
-      some (wordLoc (bidsBase id + ⟨1⟩))
-  | { base := "bids", steps := [.mindex id, .field "guy"] }, _ =>
-      some (addrLoc (bidsBase id + ⟨2⟩))
-  | { base := "bids", steps := [.mindex id, .field "tic"] }, _ =>
-      some (uint48Loc (bidsBase id + ⟨2⟩) ⟨20, by decide⟩ (by decide))
-  | { base := "bids", steps := [.mindex id, .field "end"] }, _ =>
-      some (uint48Loc (bidsBase id + ⟨2⟩) ⟨26, by decide⟩ (by decide))
-  | { base := "vat", steps := [] }, _ => some (addrLoc ⟨2⟩)
-  | { base := "gem", steps := [] }, _ => some (addrLoc ⟨3⟩)
-  | { base := "beg", steps := [] }, _ => some (wordLoc ⟨4⟩)
-  | { base := "ttl", steps := [] }, _ => some (uint48Loc ⟨5⟩ ⟨0, by decide⟩ (by decide))
-  | { base := "tau", steps := [] }, _ => some (uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide))
-  | { base := "kicks", steps := [] }, _ => some (wordLoc ⟨6⟩)
-  | { base := "live", steps := [] }, _ => some (wordLoc ⟨7⟩)
-  | { base := "lid", steps := [] }, _ => some (wordLoc ⟨8⟩)
-  | { base := "fill", steps := [] }, _ => some (wordLoc ⟨9⟩)
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } => some (.leaf (wordLoc (wardsSlot usr)))
+  | { base := "bids", steps := [.mindex id, .field "bid"] } =>
+      some (.leaf (wordLoc (bidsBase id)))
+  | { base := "bids", steps := [.mindex id, .field "lot"] } =>
+      some (.leaf (wordLoc (bidsBase id + ⟨1⟩)))
+  | { base := "bids", steps := [.mindex id, .field "guy"] } =>
+      some (.leaf (addrLoc (bidsBase id + ⟨2⟩)))
+  | { base := "bids", steps := [.mindex id, .field "tic"] } =>
+      some (.leaf (uint48Loc (bidsBase id + ⟨2⟩) ⟨20, by decide⟩ (by decide)))
+  | { base := "bids", steps := [.mindex id, .field "end"] } =>
+      some (.leaf (uint48Loc (bidsBase id + ⟨2⟩) ⟨26, by decide⟩ (by decide)))
+  | { base := "vat", steps := [] } => some (.leaf (addrLoc ⟨2⟩))
+  | { base := "gem", steps := [] } => some (.leaf (addrLoc ⟨3⟩))
+  | { base := "beg", steps := [] } => some (.leaf (wordLoc ⟨4⟩))
+  | { base := "ttl", steps := [] } => some (.leaf (uint48Loc ⟨5⟩ ⟨0, by decide⟩ (by decide)))
+  | { base := "tau", steps := [] } => some (.leaf (uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide)))
+  | { base := "kicks", steps := [] } => some (.leaf (wordLoc ⟨6⟩))
+  | { base := "live", steps := [] } => some (.leaf (wordLoc ⟨7⟩))
+  | { base := "lid", steps := [] } => some (.leaf (wordLoc ⟨8⟩))
+  | { base := "fill", steps := [] } => some (.leaf (wordLoc ⟨9⟩))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -492,7 +493,7 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := externalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }

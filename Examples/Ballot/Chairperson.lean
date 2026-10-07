@@ -32,7 +32,7 @@ theorem ballotChairpersonBodyReturns (evm : EVM.State) (locals : Store)
       have hty : storageTypeAt? ballotContract.storage
           ({ base := "chairperson", steps := [] } : EvaledStorageRef) = some (.elem .address) := by
         decide
-      rw [evalExpr_storage_scalar (t := .address) (hbase := hlocals) (her := her)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .address) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := by rfl)]
       change EvalResult.ok (storageLocLoad evm (addressOffset0Loc ⟨0⟩)) = _
       rw [storageLocLoad_address_offset0])
@@ -98,7 +98,7 @@ theorem ballotChairpersonBodyCore
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨203⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hsz := ballotChairpersonSelector_size hsel
   have hd := ballotDispatch_chairperson (cd := I.calldata) hsel

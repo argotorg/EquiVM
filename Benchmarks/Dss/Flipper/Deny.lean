@@ -61,7 +61,7 @@ theorem flipperReachDenyBody {σ σ₀ A I} {g : Sat256}
 theorem flipperDenyBodyCoreOk
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hdecode :
@@ -70,7 +70,7 @@ theorem flipperDenyBodyCoreOk
     (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨757⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let key := flipperUsrKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let callerSlot := flipperCallerWardsSlot I
@@ -93,9 +93,11 @@ theorem flipperDenyBodyCoreOk
   by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
   · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (flipperUsrSlotFor I) ⟨0⟩
-    have hbody :
-        ExecTransitionBody config contract evm0 locals denyTransition.body
-          (.returned { contract := contract, locals := locals } evm1 none) := by
+    have hbodySplit :
+        (ExecTransitionBody config contract evm0 locals denyTransition.body
+          (.returned { contract := contract, locals := locals } evm1 none)) ∧
+        (I.perm = false → ExecTransitionBody config contract
+          evm0 locals denyTransition.body .staticViolation) := by
       have hguard := flipperAuthGuardEval_true
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
         (locals := locals) (by simp [locals, flipperUsrStore]) hauthEvm
@@ -112,25 +114,36 @@ theorem flipperDenyBodyCoreOk
         have hstore :
             storageLocStore evm0 (wordLoc (flipperUsrSlotFor I)) (.int 0) = some evm1 := by
           simpa [evm1] using storageLocStore_uint256 evm0 (flipperUsrSlotFor I) ⟨0⟩
-        exact assignStorageRef_storage_scalar
-          (ty := .elem (.int uint256Int)) (loc := wordLoc (flipperUsrSlotFor I))
+        exact assignStorageRef_storage_scalar (hbackend := rfl)
+          (ty := .elem (.int uint256Int)) (loc := wordLoc (flipperUsrSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
           (hbase := by simp [locals, flipperUsrStore, wardsRef])
           (her := her)
           (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
           (hloc := by
-            funext evm
-            simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+            simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
               flipperUsrEvaledRef, flipperUsrSlotFor])
           (hstore := hstore)
-      have hblock := nonpayableRequireAssignStorageBlock
-        (cfg := config) (solm := { contract := contract, locals := locals })
-        (evm := evm0) (evm' := evm1)
-        (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
-        (rhs := .intLit 0) (ref := wardsRef (.var "usr")) (value := .int 0)
-        (by simp [evm0, initState]; exact hwv)
-        hguard (by simp [evalExpr?, pure]) hassign
-      simpa [ExecTransitionBody, denyTransition, nonpayable, auth, evm0, evm1, locals,
-        flipperUsrStore] using ExecFuncBody.execBlockOK hblock
+      constructor
+      · have hblock := nonpayableRequireAssignStorageBlock
+          (cfg := config) (solm := { contract := contract, locals := locals })
+          (evm := evm0) (evm' := evm1)
+          (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
+          (rhs := .intLit 0) (ref := wardsRef (.var "usr")) (value := .int 0)
+          (by simp [evm0, initState]; exact hwv)
+          hguard (by simp [evalExpr?, pure]) hassign
+        simpa [ExecTransitionBody, denyTransition, nonpayable, auth, evm0, evm1, locals,
+          flipperUsrStore] using ExecFuncBody.execBlockOK hblock
+      · intro hperm
+        have hblock := nonpayableRequireAssignStorageBlockStatic
+          (cfg := config) (solm := { contract := contract, locals := locals })
+          (evm := evm0) (rest := [])
+          (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
+          (rhs := .intLit 0) (ref := wardsRef (.var "usr")) (value := .int 0)
+          (by simp [evm0, initState]; exact hwv)
+          hguard (by simp [evalExpr?, pure]) hassign
+          (by simp only [evm0, initState]; exact hperm)
+        simpa [ExecTransitionBody, denyTransition, nonpayable, auth, evm0, locals,
+          flipperUsrStore] using ExecFuncBody.execBlockStatic hblock
     have hauthSolc :
         solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
       simpa [callerSlot, flipperCallerWardsSlot, solcSlotWordAt] using hauthEvm
@@ -149,13 +162,16 @@ theorem flipperDenyBodyCoreOk
       dsimp [key, flipperUsrKey]
       rw [u256_land_comm solcAddrMask (calldataWord I.calldata 4)]
       exact solcAddrMask_result_canonical (calldataWord I.calldata 4)
-    obtain ⟨_, _, hretPc⟩ := RD.flipperMappingStoreZero
+    rcases RD.flipperMappingStoreZeroSplit
       (code := flipperBytecode) (pc := ⟨5315⟩) (key := key) (ret := ⟨323⟩) (R := [sel])
       hafterAuth
       (by
         unfold flipperMappingStoreZeroWf
         repeat' first | apply And.intro | native_decide)
-      (by jump_dest) hperm hmemAuth hcanonKey (by simp)
+      (by jump_dest) hmemAuth hcanonKey (by simp) with
+        ⟨_hperm, _, _, hretPc⟩ | ⟨hperm, hstatic⟩
+    swap
+    · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
     have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
     have hret :
         RDret flipperBytecode (Sat256.ofUInt256 g)
@@ -168,7 +184,7 @@ theorem flipperDenyBodyCoreOk
     have henc : returnEquiv ByteArray.empty none denyTransition.returnType := by
       rw [show denyTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-    exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+    exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
       haccounts henc
   · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbody : ExecTransitionBody config contract evm0 locals denyTransition.body .reverted := by
@@ -207,7 +223,7 @@ theorem flipperDenyBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨757⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -227,10 +243,9 @@ theorem flipperDenyBodyCoreDecodeFailed_short
 theorem flipperDenyBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 5)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 5) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
@@ -239,7 +254,7 @@ theorem flipperDenyBodyCore {σ σ₀ A I} {g : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
-  · exact flipperDenyBodyCoreOk hcode hwv hperm hsz36 hsize hdispatch
+  · exact flipperDenyBodyCoreOk hcode hwv hsz36 hsize hdispatch
       (flipperDecode_deny_ok hsz36) hreach
   · exact flipperDenyBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach

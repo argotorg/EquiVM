@@ -9,7 +9,7 @@ import Reasoning.Solc
 import Reasoning.SolmBody
 import Reasoning.Stepping
 import Reasoning.Reach
-import Solm.Equiv
+import Solm.Refine
 import Mathlib.Tactic.IntervalCases
 
 /-!
@@ -114,7 +114,8 @@ theorem flagAfterSet_accountMap (evm : EVM.State) (val : UInt256) :
       set written := Account.updateStorage swapped ⟨0⟩ val
       set restored := { written with storage := written.tstorage, tstorage := written.storage }
       have hrest : restored = Account.updateTransientStorage acc ⟨0⟩ val := by
-        simp only [restored, written, swapped, Account.updateStorage, Account.updateTransientStorage]
+        simp only [restored, written, swapped, Account.updateStorage,
+          Account.updateTransientStorage]
         by_cases hv : (val == (default : UInt256)) = true <;> simp [hv]
       have hswap1 : (Solm.EVM.swapCodeOwnerMaps evm).accountMap =
           evm.accountMap.insert owner swapped := by
@@ -136,8 +137,8 @@ theorem flagAfterSet_accountMap (evm : EVM.State) (val : UInt256) :
           rw [hstore]
           simp [Std.ExtTreeMap.get?_eq_getElem?]
         have hco :
-            (Solm.EVM.storageStore (Solm.EVM.swapCodeOwnerMaps evm) owner ⟨0⟩ val).executionEnv.codeOwner
-              = owner := by
+            (Solm.EVM.storageStore (Solm.EVM.swapCodeOwnerMaps evm)
+              owner ⟨0⟩ val).executionEnv.codeOwner = owner := by
           rw [storageStore_executionEnv, swap_codeOwner]
         unfold flagAfterSet
         rw [Solm.EVM.swapCodeOwnerMaps, State.lookupAccount, hco, hs2]
@@ -310,7 +311,8 @@ theorem flagX_noMatch {σ σ₀ A I} {g : Sat256}
     (opR := solcCalldataRevertTgtOp flagBytecode)
     (wR := solcCalldataRevertTgtWidth flagBytecode)
     h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
+  obtain ⟨k3, C3, h3⟩ :=
+    solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
   have h4 : RD flagBytecode I g (initState σ σ₀ g A I) flagFirstArmPc
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k3 C3 := by
     simpa [flagFirstArmPc, solcSelectorWord, solcFirstArmPcFromPrefix, solcSelectorLoadPc,
@@ -350,6 +352,28 @@ theorem flagX_set_success {σ σ₀ A I} {g : Sat256}
     jumpdest, push1 ⟨89⟩, jump (by jump_dest),
     jumpdest, dup1, dup1, push0, tstore hperm, pop, pop, jump (by jump_dest),
     jumpdest, stop ]
+
+/-- A valid setter call in static mode halts at its transient store. -/
+theorem flagX_set_static {σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = flagBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = false)
+    (hmatch : (flagSelBytes 0 == I.calldata.extract 0 4) = true) :
+    RDstatic flagBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨heq0, htake⟩ := flagMatches 0 (by omega) (by omega : 4 ≤ I.calldata.size) hmatch
+  have hsz4 : 4 ≤ I.calldata.size := by omega
+  obtain ⟨_, _, hreach⟩ := flagReachBody 0 (by omega) ⟨52⟩ hcode hwv hsz4 hsize heq0 htake
+    (by jump_dest) (by decide)
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩ :=
+    solcDecodeLenCheckOk_4_32 hsz36 hbig hsize
+  exact evm_run hreach with [
+    jumpdest, push1 ⟨67⟩, push1 ⟨63⟩, calldatasize, push1 ⟨4⟩, push1 ⟨97⟩,
+    jump (by jump_dest),
+    jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push1 ⟨112⟩,
+    jumpiT (by rw [hslt]; decide) (by jump_dest),
+    jumpdest, pop, calldataload, swap2, swap1, pop, jump (by jump_dest),
+    jumpdest, push1 ⟨89⟩, jump (by jump_dest),
+    jumpdest, dup1, dup1, push0, tstoreStatic hperm ]
 
 theorem flagX_set_shortarg {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flagBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -434,11 +458,13 @@ theorem flagAssign (evm : EVM.State) (I : ExecutionEnv) :
         .transient TransientFlag.flagRef (flagArgValue I) =
       .ok ({ contract := TransientFlag.flagContract, locals := flagArgStore I },
         flagAfterSet evm (flagArg I)) := by
+  have hwrite := solidityTransientStorageBackend_write_elem flagLayout { base := "flag" }
+    (.int TransientFlag.uint256Int) (flagArgValue I) evm (flagAfterSet evm (flagArg I))
+    TransientFlag.flagLoc flagLayout_flag (transientLocStore_flag evm (flagArg I))
   rw [assignStorageRef?]
   simp [resolveTransientStorageRef?, TransientFlag.flagRef,
     evalTransientStorageRef, evalTransientStorageRefSteps, bind, EvalResult.bind, pure,
-    EvalResult.ofOption, storageTypeAt?, TransientFlag.flagContract, flagConfig, flagArgValue,
-    transientLocStore_flag]
+    EvalResult.ofOption, storageTypeAt?, TransientFlag.flagContract, flagConfig, hwrite]
 
 theorem setFlagBody (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
@@ -451,14 +477,25 @@ theorem setFlagBody (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal (ExecStmt.assign (flagEvalArg evm I) (flagAssign evm I)) ?_
   exact ExecBlock.nil
 
+theorem setFlagBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody flagConfig TransientFlag.flagContract evm (flagArgStore I)
+      TransientFlag.setFlagTransition.body .staticViolation := by
+  apply ExecFuncBody.execBlockStatic
+  apply ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
+  exact ExecBlock.consStatic
+    (ExecStmt.assignTransientStatic (flagEvalArg evm I) (flagAssign evm I) hperm)
+
 theorem getFlagEval (evm : EVM.State) (locals : Store) :
     evalExpr? flagConfig { contract := TransientFlag.flagContract, locals := locals } evm
         (.transient TransientFlag.flagRef) =
       .ok (flagValue evm.accountMap evm.executionEnv.codeOwner) := by
+  have hread := solidityTransientStorageBackend_read_elem flagLayout { base := "flag" }
+    (.int TransientFlag.uint256Int) evm TransientFlag.flagLoc flagLayout_flag
   simp [evalExpr?, resolveTransientStorageRef?, TransientFlag.flagRef,
     evalTransientStorageRef, evalTransientStorageRefSteps,
     bind, EvalResult.bind, pure, EvalResult.ofOption, storageTypeAt?,
-    TransientFlag.flagContract, readTransientStorage?, flagConfig, transientLocLoad_flag, flagValue]
+    TransientFlag.flagContract, flagConfig, hread, transientLocLoad_flag, flagValue]
 
 theorem getFlagBody (evm : EVM.State) (locals : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
@@ -507,9 +544,9 @@ theorem flagGetReturnEncoding (σ : AccountMap) (owner : AccountAddress) :
 
 theorem flagNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flagBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 2 → (flagSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor flagConfig TransientFlag.flagContract σ σ₀ g A I := by
+    runtimeRefinementFor flagConfig TransientFlag.flagContract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (flagX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm).reEquivNoDispatch
       hcode (flagDispatch_none_nomatch hnm)
@@ -519,7 +556,7 @@ theorem flagNoDispatch {σ σ₀ A I} {g : UInt256}
 
 theorem flagNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flagBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor flagConfig TransientFlag.flagContract σ σ₀ g A I := by
+    runtimeRefinementFor flagConfig TransientFlag.flagContract σ σ₀ g A I := by
   exact (flagX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg TransientFlag.flagContract I.calldata = none
@@ -540,8 +577,8 @@ theorem flagNonPayable {σ σ₀ A I} {g : UInt256}
 
 theorem flagReEquiv_callvalueZero {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flagBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) :
-    runtimeEquivalenceFor flagConfig TransientFlag.flagContract σ σ₀ g A I := by
+    (hwv : I.weiValue = ⟨0⟩) :
+    runtimeRefinementFor flagConfig TransientFlag.flagContract σ σ₀ g A I := by
   by_cases hselShort : I.calldata.size < 4
   · exact (flagX_short (g := Sat256.ofUInt256 g) hcode hwv hselShort).reEquivNoDispatch
       hcode (flagDispatch_none_short hselShort)
@@ -554,13 +591,20 @@ theorem flagReEquiv_callvalueZero {σ σ₀ A I} {g : UInt256}
           have hbody := setFlagBody
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)
-          exact (flagX_set_success (g := Sat256.ofUInt256 g) hcode hwv hsz36 hbig hsize hperm
-              hf).reEquivExecutionGen hcode hd hdec hbody
-            (by
-              symm
-              simpa [initState] using
-                flagAfterSet_accountMap (initState σ σ₀ (Sat256.ofUInt256 g) A I) (flagArg I))
-            (returnEquiv.fallthrough rfl rfl (by native_decide))
+          cases hperm : I.perm with
+          | false =>
+              exact RDstatic.reEquivStaticHalt hcode
+                (flagX_set_static (g := Sat256.ofUInt256 g) hcode hwv hsz36 hbig hsize hperm hf)
+                hd hdec (setFlagBodyStatic _ I (by simpa [initState] using hwv)
+                  (by simpa [initState] using hperm))
+          | true =>
+              exact (flagX_set_success (g := Sat256.ofUInt256 g) hcode hwv hsz36 hbig hsize hperm
+                  hf).reEquivExecutionGen hcode hd hdec hbody
+                (by
+                  symm
+                  simpa [initState] using
+                    flagAfterSet_accountMap (initState σ σ₀ (Sat256.ofUInt256 g) A I) (flagArg I))
+                (returnEquiv.fallthrough rfl rfl (by native_decide))
         · have hbigge : 2 ^ 255 + 4 ≤ I.calldata.size := by omega
           have hdec := flagDecode_set_none_huge (I := I) hbigge
           exact (flagX_set_hugearg (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hbigge
@@ -586,11 +630,12 @@ theorem flagReEquiv_callvalueZero {σ σ₀ A I} {g : UInt256}
           interval_cases i
           · exact hf
           · exact hg
-        exact flagNoDispatch hcode hsize hperm hwv hnm
+        exact flagNoDispatch hcode hsize hwv hnm
 
 /-- **Correctness of `TransientFlag`.** -/
-theorem transientFlagCorrect : runtimeEquivalence flagConfig flagBytecode TransientFlag.flagContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
+theorem transientFlagCorrect :
+    runtimeRefinement flagConfig flagBytecode TransientFlag.flagContract := by
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
-  · exact flagReEquiv_callvalueZero hcode hsize hperm hwv
+  · exact flagReEquiv_callvalueZero hcode hsize hwv
   · exact flagNonPayable hcode hwv

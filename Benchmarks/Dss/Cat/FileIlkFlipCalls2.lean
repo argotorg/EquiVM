@@ -114,8 +114,7 @@ theorem RD.catFileIlkFlipNopePostCall {σ σ₀ A I} {g : Sat256} {flip ret sel 
         ret :: sel :: [])
       (fifNopeCdMem I (fifNopeArg σ I)) (UInt256.ofNat 6) ByteArray.empty σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (fifVatM σ I) ≠ ⟨0⟩)
-    (hdepth : I.depth.val < 1024)
-    (hperm : I.perm = true) :
+    (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD catBytecode I g (initState σ σ₀ g A I) ⟨3562⟩
@@ -161,7 +160,7 @@ theorem RD.catFileIlkFlipNopePostCall {σ σ₀ A I} {g : Sat256} {flip ret sel 
         simpa [show (⟨128⟩ : UInt256).toNat = 128 from rfl,
           show (⟨36⟩ : UInt256).toNat = 36 from rfl] using h)
       ?_
-    simpa [initState, hperm] using hΘ
+    simpa [initState] using hΘ
 
 theorem RD.catFileIlkFlipNopeNoCode {σ σ₀ A I} {g : Sat256} {flip ret sel : UInt256}
     {k C : ℕ}
@@ -213,21 +212,22 @@ theorem RD.catFileIlkFlipNopeCallSuccessToStore {σ σ₀ A I} {g : Sat256}
 /-! ### RMW `ilks[ilk].flip := flip` store (⟨3582⟩ → ⟨3626⟩) — `keccak(ilk,1)+0`, offset-0 address -/
 
 
-theorem RD.catFileIlkFlipStore {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+theorem RD.catFileIlkFlipStoreSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {vatM flip ret sel : UInt256} {mem rdata : ByteArray}
     {σ' : AccountMap}
     (rd : RD catBytecode ee g s0 ⟨3582⟩
       (vatM :: flip :: fileIlkFlipWhatWord ee :: fileIlkFlipIlkWord ee :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ' k C)
-    (hmem : mem.size = 164)
-    (hperm : ee.perm = true) :
-    ∃ k' C', RD catBytecode ee g s0 ⟨3626⟩
-      (UInt256.land flip solcAddrMask :: solcAddrMask :: ⟨64⟩ :: ⟨0⟩ :: vatM :: flip ::
-        fileIlkFlipWhatWord ee :: fileIlkFlipIlkWord ee :: ret :: sel :: [])
-      (twoWordHashMem (fileIlkFlipIlkWord ee) ⟨1⟩ mem) (UInt256.ofNat 6) rdata
-      (sstoreAccountMap ee.codeOwner σ' (solcMappingSlot ⟨1⟩ (fileIlkFlipIlkWord ee))
-        (setAddressOffset0Word
-          (solcSlotWord σ' ee (solcMappingSlot ⟨1⟩ (fileIlkFlipIlkWord ee))) flip)) k' C' := by
+    (hmem : mem.size = 164) :
+    (ee.perm = true ∧
+      ∃ k' C', RD catBytecode ee g s0 ⟨3626⟩
+        (UInt256.land flip solcAddrMask :: solcAddrMask :: ⟨64⟩ :: ⟨0⟩ :: vatM :: flip ::
+          fileIlkFlipWhatWord ee :: fileIlkFlipIlkWord ee :: ret :: sel :: [])
+        (twoWordHashMem (fileIlkFlipIlkWord ee) ⟨1⟩ mem) (UInt256.ofNat 6) rdata
+        (sstoreAccountMap ee.codeOwner σ' (solcMappingSlot ⟨1⟩ (fileIlkFlipIlkWord ee))
+          (setAddressOffset0Word
+            (solcSlotWord σ' ee (solcMappingSlot ⟨1⟩ (fileIlkFlipIlkWord ee))) flip)) k' C') ∨
+      (ee.perm = false ∧ RDstatic catBytecode g s0) := by
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by decide
   have rd3584 := rd.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd3585 := rd3584.dup5 (by native_decide) (by evm_ov)
@@ -275,7 +275,14 @@ theorem RD.catFileIlkFlipStore {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k 
   rw [u256_land_comm solcAddrMask flip, setAddressOffset0Word_bytecode] at rd3622
   have rd3623 := rd3622.swap1 (by native_decide) (by evm_ov)
   have rd3624 := rd3623.swap3 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3625⟩ := rd3624.sstore hperm (by native_decide) (by evm_ov)
+  have hstoreDec : decode catBytecode ⟨3625⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd3624.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd3625⟩ := rd3624.sstore hperm hstoreDec (by evm_ov)
   exact ⟨_, _, rd3625⟩
 
 

@@ -289,7 +289,7 @@ theorem uniswapMintInitialFeeOffKLastZeroReturnFromFactoryWitnessCase
         0)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hfeeToAddr : feeTo = AccountAddress.ofNat 0 := by
     rw [hfeeToEq]
@@ -636,7 +636,7 @@ theorem uniswapMintInitialFeeOnKLastZeroReturnFromFactoryWitnessCase
         UInt256.size)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hfeeToAddr : feeTo ≠ AccountAddress.ofNat 0 := by
     rw [hfeeToEq]
@@ -952,7 +952,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroReturnFromFactoryWitnessCase
         0)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let σCleared := sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩

@@ -29,7 +29,8 @@ theorem uniswapSwapTransfersAnyDepthCases
     (hperm : I.perm = true)
     (hready : SafeTransferMemoryReady mem aw freePtr)
     (hcap : freePtr.toNat + 2 ^ 138 + 227 ≤ 2 ^ 255 + 1024)
-    (hov : R.length + 31 ≤ 1024) :
+    (hov : R.length + 31 ≤ 1024)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     (ExecBlock config caller evm [swapFirstTransferStmt, swapSecondTransferStmt] .reverted ∧
       RDrev uniswapV2PairBytecode g s0) ∨
     (∃ evm' σ' mem' aw' ptr' data' k' C',
@@ -54,6 +55,9 @@ theorem uniswapSwapTransfersAnyDepthCases
     have hcaller0 : caller0.contract = contract := by
       unfold caller0 optionalSafeTransferFrame
       split <;> exact hcaller
+    have himm0 : caller0.immutables = ∅ := by
+      unfold caller0 optionalSafeTransferFrame
+      split <;> exact himm
     have ht1' : caller0.locals.get? "_token1" = some (.address token1Addr) :=
       (optionalSafeTransferFrame_get_ne caller "ok0" "_token1" amount0Out (by decide)).trans ht1
     have hto' : caller0.locals.get? "to" = some (.address recipient) :=

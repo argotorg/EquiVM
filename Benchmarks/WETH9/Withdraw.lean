@@ -14,8 +14,8 @@ namespace Benchmarks.WETH9
     reverting if the transfer fails. -/
 theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 4)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    (hsel : selIs I (weth9SelBytes 4)) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 4) (by native_decide) hsel
   have hdisp := weth9SelectorDispatchWithdraw hsel
@@ -39,6 +39,15 @@ theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
         have hleLoadS : (withdrawWadWord I).toNat ≤
             (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner (callerBalSlot I)).toNat := by
           rw [show evmS.executionEnv.codeOwner = I.codeOwner from rfl, hstoreLoadS]; exact hle
+        by_cases hperm : I.perm = true
+        swap
+        · have hp : I.perm = false := by simpa using hperm
+          have hstatic := permSplit_false hp
+            (weth9WithdrawReachStoreSplit (g := gs) hle h1395)
+          have hbody := weth9WithdrawBodyStatic evmS I hsrcS
+            (by simpa [evmS, initState] using hwv) hleLoadS
+            (by simpa [evmS, initState] using hp)
+          exact weth9ReEquivExecStatic hcode hstatic hdisp hdec hbody
         set evmSZero := withdrawStoreState evmS I with hevmSZero
         have hStoreMap : withdrawStoreMap σ I = evmSZero.accountMap := by
           simpa [hevmSZero, withdrawStoreMap] using

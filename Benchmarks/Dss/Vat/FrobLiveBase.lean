@@ -24,7 +24,7 @@ theorem vatFrobSuccessEquivFromFinalState
         (.returned { contract := contract, locals := finalLocals } evmFinal none))
     (haccounts :
       Eq (frobAfterRuntimeFinal σ I) evmFinal.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc : returnEquiv ByteArray.empty none frobTransition.returnType := by
     rw [show frobTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
@@ -53,7 +53,7 @@ theorem vatFrobSuccessEquivFromSourceFinal
             (frobUrnInkNew σ I) (frobUrnArtNew σ I)
             (frobIlkArtNew σ I) (frobGemNew σ I)
             (frobDaiNew σ I)) none)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsourceAccounts :=
     frobSourceFinalState_accountMap_eq
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)

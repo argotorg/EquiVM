@@ -49,6 +49,27 @@ class GeneratorTests(unittest.TestCase):
         self.assertIn("(hperm : ee.perm = true)", rendered)
         self.assertNotIn("Unsupported instruction boundary", rendered)
 
+    def test_cancun_arith_and_account_opcodes(self) -> None:
+        rendered = units(
+            "600360021d" "6001" "60ff1a" "600060800b"
+            "60036002600108" "60036002600109"
+            "600131" "60013f" "600140" "48"
+            "6020600060405e" "60206000a0")
+        for step in (".sar", ".byte", ".signextend", ".addmod", ".mulmod",
+                     ".balance", ".extcodehash", ".blockhash", ".basefee",
+                     "RD.genMcopy", "RD.genLog0"):
+            self.assertIn(step, rendered)
+        self.assertIn("balanceWord", rendered)
+        self.assertIn("extCodeHashWord", rendered)
+        self.assertIn("blockHashWord ee", rendered)
+        self.assertIn("Mmcopy aw", rendered)
+        self.assertIn("(hperm : ee.perm = true)", rendered)
+        self.assertNotIn("Unsupported instruction boundary", rendered)
+        # Without warm/cold operations the block keeps exact counters, so the MCOPY cost shows.
+        rendered = units("6020600060405e")
+        self.assertIn("RD.genMcopy", rendered)
+        self.assertIn("mcopyExpansionCost aw", rendered)
+
     def test_immutable_mode_uses_deployed_code_and_symbolic_push(self) -> None:
         code = bytes([0x7F, *([0] * 32), 0x56])
         sites = rd.validate_immutable_sites(

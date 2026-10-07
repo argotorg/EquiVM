@@ -33,7 +33,7 @@ theorem flopperDentBodyCoreLotNotLower
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨533⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let packedSlot := auctionPackedSlot (dentIdWord I)
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
@@ -102,7 +102,7 @@ theorem flopperDentBodyCoreLotOneOverflow
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨533⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let packedSlot := auctionPackedSlot (dentIdWord I)
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
@@ -173,7 +173,7 @@ theorem flopperDentBodyCoreBegLotOverflow
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨533⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let packedSlot := auctionPackedSlot (dentIdWord I)
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
@@ -259,7 +259,7 @@ theorem flopperDentBodyCoreInsufficientDecrease
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨533⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let packedSlot := auctionPackedSlot (dentIdWord I)
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
@@ -310,7 +310,7 @@ theorem flopperDentBodyCoreInsufficientDecrease
 theorem flopperDentBodyCoreAddOverflowCallerEq
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {memStart : ByteArray} {k C : ℕ}
-    (hcode : I.code = flopperBytecode) (hperm : I.perm = true)
+    (hcode : I.code = flopperBytecode)
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
@@ -346,7 +346,7 @@ theorem flopperDentBodyCoreAddOverflowCallerEq
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2405⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memStart (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let packedSlot := auctionPackedSlot (dentIdWord I)
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
@@ -394,6 +394,18 @@ theorem flopperDentBodyCoreAddOverflowCallerEq
         (dentNow48Word evmSolm).toNat +
           (dentTtlWord (dentAfterLotStore evmSolm I)).toNat := by
     simpa [evmSolm, dentNow48Word, dentTimestampWord, initState, httl] using haddOverflow
+  by_cases hperm : I.perm = true
+  swap
+  · have hp : I.perm = false := by simpa using hperm
+    obtain ⟨_, _, rd2435⟩ := flopperDentX_toCallerEqGuard rd2405
+    obtain ⟨_, _, rd2889⟩ := flopperDentX_callerEqOkFromGuard hcaller rd2435
+    have hstatic := permSplit_false hp
+      (flopperDentX_toCheckedAddStartFromTailSplit rd2889)
+    have hsource := (flopperDentBodyReturns_success_callerEqSplit evmSolm I
+        (by simpa [evmSolm, initState] using hwv) hliveSolm hguySolm hticOkSolm
+        hendGtSolm hbidSolm hlotLtSolm hbegFitSolm hlotOneFitSolm hsuffSolm
+        hcallerSolm).2 hp
+    exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
   have hbody :
       ExecTransitionBody config contract evmSolm (dentLocals I) dentTransition.body .reverted := by
     exact flopperDentBodyReverts_addOverflow_callerEq evmSolm I
@@ -409,7 +421,7 @@ theorem flopperDentBodyCoreAddOverflowCallerEq
 theorem flopperDentBodyCoreSuccessCallerEq
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {memStart : ByteArray} {k C : ℕ}
-    (hcode : I.code = flopperBytecode) (hperm : I.perm = true)
+    (hcode : I.code = flopperBytecode)
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
@@ -445,7 +457,7 @@ theorem flopperDentBodyCoreSuccessCallerEq
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2405⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memStart (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let packedSlot := auctionPackedSlot (dentIdWord I)
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
@@ -492,6 +504,18 @@ theorem flopperDentBodyCoreSuccessCallerEq
       (dentNow48Word evmSolm).toNat +
           (dentTtlWord (dentAfterLotStore evmSolm I)).toNat < 2 ^ 48 := by
     simpa [evmSolm, dentNow48Word, dentTimestampWord, initState, httl] using haddFit
+  by_cases hperm : I.perm = true
+  swap
+  · have hp : I.perm = false := by simpa using hperm
+    obtain ⟨_, _, rd2435⟩ := flopperDentX_toCallerEqGuard rd2405
+    obtain ⟨_, _, rd2889⟩ := flopperDentX_callerEqOkFromGuard hcaller rd2435
+    have hstatic := permSplit_false hp
+      (flopperDentX_toCheckedAddStartFromTailSplit rd2889)
+    have hsource := (flopperDentBodyReturns_success_callerEqSplit evmSolm I
+        (by simpa [evmSolm, initState] using hwv) hliveSolm hguySolm hticOkSolm
+        hendGtSolm hbidSolm hlotLtSolm hbegFitSolm hlotOneFitSolm hsuffSolm
+        hcallerSolm).2 hp
+    exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
   have hbody :
       ExecTransitionBody config contract evmSolm (dentLocals I) dentTransition.body
         (.returned { contract := contract, locals := dentTicLocals evmSolm I }
@@ -514,7 +538,7 @@ set_option maxHeartbeats 2000000 in
 theorem flopperDentBodyCoreMoveSuccessTicZero
     {σ σ' σ₀ A A' I} {g : UInt256} {sel : UInt256}
     {mem outMove : ByteArray} {k C : ℕ}
-    (hcode : I.code = flopperBytecode) (hperm : I.perm = true)
+    (hcode : I.code = flopperBytecode)
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
@@ -571,7 +595,7 @@ theorem flopperDentBodyCoreMoveSuccessTicZero
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hashNoCode :
       Reasoning.Theory.extCodeSizeWord σ'
         (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ' I) = ⟨0⟩
@@ -586,7 +610,7 @@ theorem flopperDentBodyCoreMoveSuccessTicZero
         rd2690, hashCall, houtAshSize, hmemAsh64, hreadAsh64, hmemAsh128Of,
         hreadAsh128Of⟩ :=
       flopperDentX_moveSuccessTicZeroAshCall
-        (g := Sat256.ofUInt256 g) hperm hmem hread64 hticMove hashCodeSize hdepth rd2545
+        (g := Sat256.ofUInt256 g) hmem hread64 hticMove hashCodeSize hdepth rd2545
     let evmAshPre : EVM.State :=
       { initState σ σ₀ (Sat256.ofUInt256 g) A I with
         accountMap := σ', substate := AinAsh }
@@ -666,7 +690,7 @@ theorem flopperDentBodyCoreMoveSuccessTicZero
           obtain ⟨σKiss, zKiss, outKiss, AinKiss, AKiss, k2833, C2833,
               rd2833, hkissCall, houtKissSize⟩ :=
             flopperDentX_kissCall
-              (g := Sat256.ofUInt256 g) hperm hkissCodeSize hdepth
+              (g := Sat256.ofUInt256 g) hkissCodeSize hdepth
               (by simpa only [memAsh, memKissMap, memKiss] using hkissEncode)
               (by simpa only [memAsh, memKissMap, memKiss] using rd2817)
           by_cases hzKiss : zKiss = true
@@ -697,12 +721,12 @@ theorem flopperDentBodyCoreMoveSuccessTicZero
                       (dentRuntimeAfterGuyMap I.codeOwner σKiss I) I).toNat <
                   2 ^ 48
             · exact flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
-                hcode hperm hwv hlive hguy hticOk hendGt hbid hlotLt hbegFit hlotOneFit
+                hcode hwv hlive hguy hticOk hendGt hbid hlotLt hbegFit hlotOneFit
                 hsuff hcaller hcodeSize hticMove hashCodeSize hkissCodeSize haddFit
                 hdepth rd2833True hcall hashCallTrueCore houtAsh32 hkissCallTrue
                 hdispatch hdecode
             · exact flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
-                hcode hperm hwv hlive hguy hticOk hendGt hbid hlotLt hbegFit hlotOneFit
+                hcode hwv hlive hguy hticOk hendGt hbid hlotLt hbegFit hlotOneFit
                 hsuff hcaller hcodeSize hticMove hashCodeSize hkissCodeSize
                 (Nat.le_of_not_gt haddFit) hdepth rd2833True hcall hashCallTrueCore
                 houtAsh32 hkissCallTrue hdispatch hdecode

@@ -226,9 +226,9 @@ theorem clipperRedoSuckCalldataMem_read128_100 (σ : AccountMap) (ee : Execution
   rw [hselectorExt, hvowExt, hkprExt, hcoinExt]
 
 
-theorem clipperRedoSuckEncode_eq (v : ClipperImmutables) (σ : AccountMap)
+theorem clipperRedoSuckEncode_eq (σ : AccountMap)
     (ee : ExecutionEnv) (kpr coin : UInt256) {mem : ByteArray} (hmem : mem.size = 196) :
-    (config v).externalABI.encode? "suck"
+    config.externalABI.encode? "suck"
       [.address (AccountAddress.ofNat (clipperRedoVowTarget σ ee).toNat),
         .address (AccountAddress.ofNat kpr.toNat), .int (Int.ofNat coin.toNat)] =
       some ((clipperRedoSuckCalldataMem σ ee kpr coin mem).readWithPadding 128 100) := by
@@ -586,7 +586,7 @@ theorem RD.clipperRedoSuckPostCall
           done :: topNew :: tic :: usr :: two :: kpr :: id :: ret :: sel :: R)
         (clipperRedoSuckCalldataMem σ ee kpr coin mem) (UInt256.ofNat 8) out
         σ' k' C' ∧
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         { initState σStart σ₀ g A ee with
           accountMap := σ }
         (EVM.address v.vat) "suck" 0
@@ -630,7 +630,7 @@ theorem RD.clipperRedoSuckPostCall
   · let evmVat : EVM.State :=
       { initState σStart σ₀ g A ee with
         accountMap := σ }
-    refine callCoincides (cfg := config v)
+    refine callCoincides (cfg := config)
       (evm := evmVat) (name := "suck")
       (args :=
         [.address (AccountAddress.ofNat (clipperRedoVowTarget σ ee).toNat),
@@ -650,7 +650,7 @@ theorem RD.clipperRedoSuckPostCall
       exact eVM_address_id v.vat
     · simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
         show (⟨100⟩ : UInt256).toNat = 100 from by decide] using
-        clipperRedoSuckEncode_eq v σ ee kpr coin hmem
+        clipperRedoSuckEncode_eq σ ee kpr coin hmem
     · simpa [evmVat, initState, hperm] using hΘ
 
 theorem RD.clipperRedoSuckCallFailure {code : ByteArray}

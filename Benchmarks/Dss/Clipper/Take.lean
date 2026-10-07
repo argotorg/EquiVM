@@ -60,7 +60,7 @@ abbrev clipperTakeStore (I : ExecutionEnv) : Store :=
     (clipperTakeWhoValue I)).insert "data" (clipperTakeDataValue I)
 
 
-theorem clipperDecode_take_ok (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_take_ok {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
     (hsz164 : 164 ≤ I.calldata.size)
     (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
@@ -69,8 +69,8 @@ theorem clipperDecode_take_ok (v : ClipperImmutables) {I : ExecutionEnv}
     (hpayload :
       (((I.calldata.toList.drop 4).drop ((clipperTakeDataOffsetWord I).toNat + 32)).take
         (clipperTakeDataLenWord I).toNat).length = (clipperTakeDataLenWord I).toNat) :
-    decodeCalldataWithMode (config v).abiDecodeMode ((takeTransition v).params.map Param.name)
-      (transitionSignature (takeTransition v)).paramTypes I.calldata =
+    decodeCalldataWithMode config.abiDecodeMode (takeTransition.params.map Param.name)
+      (transitionSignature takeTransition).paramTypes I.calldata =
         some (clipperTakeStore I) := by
   change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "amt", "max", "who", "data"]
     [uint256, uint256, uint256, addr, bytesDyn] I.calldata =
@@ -79,10 +79,10 @@ theorem clipperDecode_take_ok (v : ClipperImmutables) {I : ExecutionEnv}
     (cd := I.calldata) (a := "id") (b := "amt") (c := "max") (d := "who") (e := "data")
     hsmall hsz164 hoffMax hlenWord hlenMax hpayload
 
-theorem clipperDecode_take_none_short (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_take_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 164) :
-    decodeCalldataWithMode (config v).abiDecodeMode ((takeTransition v).params.map Param.name)
-      (transitionSignature (takeTransition v)).paramTypes I.calldata = none := by
+    decodeCalldataWithMode config.abiDecodeMode (takeTransition.params.map Param.name)
+      (transitionSignature takeTransition).paramTypes I.calldata = none := by
   change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "amt", "max", "who", "data"]
     [uint256, uint256, uint256, addr, bytesDyn] I.calldata = none
   exact decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_short
@@ -90,12 +90,12 @@ theorem clipperDecode_take_none_short (v : ClipperImmutables) {I : ExecutionEnv}
     hsz4 hshort
 
 
-theorem clipperDecode_take_none_offset_huge (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_take_none_offset_huge {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
     (hsz164 : 164 ≤ I.calldata.size)
     (hoff : solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat) :
-    decodeCalldataWithMode (config v).abiDecodeMode ((takeTransition v).params.map Param.name)
-      (transitionSignature (takeTransition v)).paramTypes I.calldata = none := by
+    decodeCalldataWithMode config.abiDecodeMode (takeTransition.params.map Param.name)
+      (transitionSignature takeTransition).paramTypes I.calldata = none := by
   change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "amt", "max", "who", "data"]
     [uint256, uint256, uint256, addr, bytesDyn] I.calldata = none
   exact decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_offset_huge
@@ -103,13 +103,13 @@ theorem clipperDecode_take_none_offset_huge (v : ClipperImmutables) {I : Executi
     hsmall hsz164 hoff
 
 
-theorem clipperDecode_take_none_length_short (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_take_none_length_short {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
     (hsz164 : 164 ≤ I.calldata.size)
     (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
     (hshort : I.calldata.size < 4 + (clipperTakeDataOffsetWord I).toNat + 32) :
-    decodeCalldataWithMode (config v).abiDecodeMode ((takeTransition v).params.map Param.name)
-      (transitionSignature (takeTransition v)).paramTypes I.calldata = none := by
+    decodeCalldataWithMode config.abiDecodeMode (takeTransition.params.map Param.name)
+      (transitionSignature takeTransition).paramTypes I.calldata = none := by
   change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "amt", "max", "who", "data"]
     [uint256, uint256, uint256, addr, bytesDyn] I.calldata = none
   exact decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_length_short
@@ -117,14 +117,14 @@ theorem clipperDecode_take_none_length_short (v : ClipperImmutables) {I : Execut
     hsmall hsz164 hoffMax hshort
 
 
-theorem clipperDecode_take_none_length_huge (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_take_none_length_huge {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
     (hsz164 : 164 ≤ I.calldata.size)
     (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
     (hlenWord : 4 + (clipperTakeDataOffsetWord I).toNat + 32 ≤ I.calldata.size)
     (hlenHuge : solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataLenWord I).toNat) :
-    decodeCalldataWithMode (config v).abiDecodeMode ((takeTransition v).params.map Param.name)
-      (transitionSignature (takeTransition v)).paramTypes I.calldata = none := by
+    decodeCalldataWithMode config.abiDecodeMode (takeTransition.params.map Param.name)
+      (transitionSignature takeTransition).paramTypes I.calldata = none := by
   change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "amt", "max", "who", "data"]
     [uint256, uint256, uint256, addr, bytesDyn] I.calldata = none
   exact decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_length_huge
@@ -132,7 +132,7 @@ theorem clipperDecode_take_none_length_huge (v : ClipperImmutables) {I : Executi
     hsmall hsz164 hoffMax hlenWord hlenHuge
 
 
-theorem clipperDecode_take_none_payload_short (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_take_none_payload_short {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
     (hsz164 : 164 ≤ I.calldata.size)
     (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
@@ -141,8 +141,8 @@ theorem clipperDecode_take_none_payload_short (v : ClipperImmutables) {I : Execu
     (hpayloadShort :
       (((I.calldata.toList.drop 4).drop ((clipperTakeDataOffsetWord I).toNat + 32)).take
         (clipperTakeDataLenWord I).toNat).length ≠ (clipperTakeDataLenWord I).toNat) :
-    decodeCalldataWithMode (config v).abiDecodeMode ((takeTransition v).params.map Param.name)
-      (transitionSignature (takeTransition v)).paramTypes I.calldata = none := by
+    decodeCalldataWithMode config.abiDecodeMode (takeTransition.params.map Param.name)
+      (transitionSignature takeTransition).paramTypes I.calldata = none := by
   change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "amt", "max", "who", "data"]
     [uint256, uint256, uint256, addr, bytesDyn] I.calldata = none
   exact decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_payload_short
@@ -151,20 +151,20 @@ theorem clipperDecode_take_none_payload_short (v : ClipperImmutables) {I : Execu
 
 /-! ## Dispatch prerequisite for `take(uint256,uint256,uint256,address,bytes)` -/
 
-theorem clipperDispatch_take (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_take {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 22)) :
-    dispatchMsg (contract v) I.calldata = some (takeTransition v) := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some takeTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre :=
       [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
         countTransition, cuspTransition, denyTransition, dogTransition, fileUintTransition,
-        fileAddressTransition, getStatusTransition, ilkTransition v, kickTransition v,
-        kicksTransition, listTransition, redoTransition v, relyTransition, salesTransition,
+        fileAddressTransition, getStatusTransition, ilkTransition, kickTransition,
+        kicksTransition, listTransition, redoTransition, relyTransition, salesTransition,
         spotterTransition, stoppedTransition, tailTransition])
     (post :=
-      [tipTransition, upchostTransition v, vatTransition v, vowTransition, wardsTransition,
-        yankTransition v])
-    (ti := takeTransition v) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
+      [tipTransition, upchostTransition, vatTransition, vowTransition, wardsTransition,
+        yankTransition])
+    (ti := takeTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
     simp only [List.mem_cons, List.mem_nil_iff] at ht
@@ -194,15 +194,15 @@ theorem clipperDispatch_take (v : ClipperImmutables) {I : ExecutionEnv}
       native_decide
     · rw [selectorOf, getStatusSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, ilkSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, ilkSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, kickSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, kickSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, kicksSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, listSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, redoSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, redoSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, relySelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
@@ -215,7 +215,7 @@ theorem clipperDispatch_take (v : ClipperImmutables) {I : ExecutionEnv}
     · rw [selectorOf, tailSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · cases hfalse
-  · rw [selectorOf, takeSelectorBytes v]
+  · rw [selectorOf, takeSelectorBytes]
     simpa [clipperSelBytes] using hsel
 
 set_option maxHeartbeats 1000000 in

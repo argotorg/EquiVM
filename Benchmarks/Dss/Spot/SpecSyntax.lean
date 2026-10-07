@@ -30,6 +30,8 @@ def contractSyntax : ContractDecl := solidity% contract Spotter {
   uint256 par;
   uint256 live;
 
+  event Poke(bytes32 ilk, bytes32 val, uint256 spot);
+
   constructor(address vat_) {
     wards[msg.sender] = 1;
     vat = vat_;
@@ -116,6 +118,7 @@ def contractSyntax : ContractDecl := solidity% contract Spotter {
     }
     require(${Expr.extCodeSize (Expr.storage vatRef)} > 0);
     var _fileRet = vat.file(ilk, ${spotParamLit}, spot);
+    emit Poke(ilk, val, spot);
   }
 
   function rely(address guy) external {

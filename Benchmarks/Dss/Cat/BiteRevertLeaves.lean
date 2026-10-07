@@ -12,7 +12,7 @@ namespace Benchmarks.Dss.Cat
 
 /-! # Cat `bite(bytes32,address)` — revert leaves
 
-Each leaf concludes the SUCCESS-branch `runtimeEquivalenceFor …` shape but under a failing-condition
+Each leaf concludes the SUCCESS-branch `runtimeRefinementFor …` shape but under a failing-condition
 hypothesis, via the revert path: reach the divergence with the public `catBiteReach*`/`catBiteTraceSeg*`
 segment lemmas, fire the matching revert primitive to get `RDrev`, and bridge to the Solm body's
 `.reverted` result with `RDrev.reEquivExecutionRevert` + the matching `catBiteSource*Revert`.
@@ -96,7 +96,7 @@ theorem catBiteArtRateOverflowLeaf {σ σ₀ A I} {g : UInt256}
     (hlive : solcSlotWordAt ⟨2⟩ evmUrn.accountMap evmUrn.executionEnv = ⟨1⟩)
     (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size) (hspotPos : 0 < iSpot.toNat)
     (hover : UInt256.size ≤ art.toNat * iRate.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev : RDrev catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.catBiteCheckedMulRevert rd (by rw [Nat.mul_comm]; exact hover) hov
@@ -130,7 +130,7 @@ theorem catBiteKickFailLeaf {σ σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev : RDrev catBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.catBiteKickCallFailed rd hrdataSize hov
@@ -156,7 +156,7 @@ theorem catBiteMulOverflowRevertLeaf {σ σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.catBiteCheckedMulRevert rd hover hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -177,7 +177,7 @@ theorem catBiteGrabFailLeaf {σ σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.catBiteGrabCallFailed rd hrdataSize hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -197,7 +197,7 @@ theorem catBiteFessFailLeaf {σ σ' σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.catBiteFessCallFailed rd hrdataSize hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -231,7 +231,7 @@ theorem catBiteRequireStringRevertLeaf {σ σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.catBiteGuardStringRevert rd hcond hpush2 hjumpi htail hpush hword
     hmemsz haw hawsz hread64 hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -264,7 +264,7 @@ theorem catBiteRoomUnderflowRevertLeaf {σ σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.solcCheckedSubStringRevertGrown rd hsub htail hpush hlt hword
     hmemsz haw hawsz hread64 hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -292,7 +292,7 @@ theorem catBiteMilkChopZeroRevertLeaf {σ σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have rd' : RD I.code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) invalidPc stk mem aw rdata acc k C := by
     rw [hcode]; exact rd

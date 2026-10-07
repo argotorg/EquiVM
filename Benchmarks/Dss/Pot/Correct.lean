@@ -16,7 +16,7 @@ import Benchmarks.Dss.Pot.Rho
 import Benchmarks.Dss.Pot.Vat
 import Benchmarks.Dss.Pot.Vow
 import Benchmarks.Dss.Pot.Wards
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Pot benchmark correctness
@@ -35,7 +35,7 @@ namespace Benchmarks.Dss.Pot
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem potNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (potX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -57,10 +57,9 @@ theorem potNonPayable {σ σ₀ A I} {g : UInt256}
 theorem potNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 17 → (potSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (potX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (potDispatch_none_nomatch hnm)
@@ -100,52 +99,52 @@ theorem potNoSelectorMatches {I : ExecutionEnv}
   · simpa [selIs] using h16
 
 theorem potCorrect :
-    runtimeEquivalence config potBytecode contract := by
-  refine runtimeEquivalence.intro ?_
-  intro σ σ₀ g A I hcode hsize hperm
+    runtimeRefinement config potBytecode contract := by
+  refine runtimeRefinement.intro ?_
+  intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases h0 : selIs I (potSelBytes 0)
-    · exact potPieTotalBody hcode hsize hperm hwv h0
+    · exact potPieTotalBody hcode hsize hwv h0
     · by_cases h1 : selIs I (potSelBytes 1)
-      · exact potCageBody hcode hsize hperm hwv h1
+      · exact potCageBodyAnyPerm hcode hsize hwv h1
       · by_cases h2 : selIs I (potSelBytes 2)
-        · exact potChiBody hcode hsize hperm hwv h2
+        · exact potChiBody hcode hsize hwv h2
         · by_cases h3 : selIs I (potSelBytes 3)
-          · exact potDenyBody hcode hsize hperm hwv h3
+          · exact potDenyBodyAnyPerm hcode hsize hwv h3
           · by_cases h4 : selIs I (potSelBytes 4)
-            · exact potDripBody hcode hsize hperm hwv h4
+            · exact potDripBodyAnyPerm hcode hsize hwv h4
             · by_cases h5 : selIs I (potSelBytes 5)
-              · exact potDsrBody hcode hsize hperm hwv h5
+              · exact potDsrBody hcode hsize hwv h5
               · by_cases h6 : selIs I (potSelBytes 6)
-                · exact potExitBody hcode hsize hperm hwv h6
+                · exact potExitBodyAnyPerm hcode hsize hwv h6
                 · by_cases h7 : selIs I (potSelBytes 7)
-                  · exact potFileDsrBody hcode hsize hperm hwv h7
+                  · exact potFileDsrBodyAnyPerm hcode hsize hwv h7
                   · by_cases h8 : selIs I (potSelBytes 8)
-                    · exact potFileVowBody hcode hsize hperm hwv h8
+                    · exact potFileVowBodyAnyPerm hcode hsize hwv h8
                     · by_cases h9 : selIs I (potSelBytes 9)
-                      · exact potJoinBody hcode hsize hperm hwv h9
+                      · exact potJoinBodyAnyPerm hcode hsize hwv h9
                       · by_cases h10 : selIs I (potSelBytes 10)
-                        · exact potLiveBody hcode hsize hperm hwv h10
+                        · exact potLiveBody hcode hsize hwv h10
                         · by_cases h11 : selIs I (potSelBytes 11)
-                          · exact potPieBody hcode hsize hperm hwv h11
+                          · exact potPieBody hcode hsize hwv h11
                           · by_cases h12 : selIs I (potSelBytes 12)
-                            · exact potRelyBody hcode hsize hperm hwv h12
+                            · exact potRelyBodyAnyPerm hcode hsize hwv h12
                             · by_cases h13 : selIs I (potSelBytes 13)
-                              · exact potRhoBody hcode hsize hperm hwv h13
+                              · exact potRhoBody hcode hsize hwv h13
                               · by_cases h14 : selIs I (potSelBytes 14)
-                                · exact potVatBody hcode hsize hperm hwv h14
+                                · exact potVatBody hcode hsize hwv h14
                                 · by_cases h15 : selIs I (potSelBytes 15)
-                                  · exact potVowBody hcode hsize hperm hwv h15
+                                  · exact potVowBody hcode hsize hwv h15
                                   · by_cases h16 : selIs I (potSelBytes 16)
-                                    · exact potWardsBody hcode hsize hperm hwv h16
-                                    · exact potNoDispatch hcode hsize hperm hwv
+                                    · exact potWardsBody hcode hsize hwv h16
+                                    · exact potNoDispatch hcode hsize hwv
                                         (potNoSelectorMatches h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10
                                           h11 h12 h13 h14 h15 h16)
 
   · exact potNonPayable hcode hwv
 
 theorem potContractCorrect :
-    contractEquivalence config potCreationBytecode potBytecode contract :=
-  contractEquivalence.intro potConstructorCorrect potCorrect
+    contractRefinement config potCreationBytecode contract :=
+  contractRefinement.of_constant potConstructorCorrect potCorrect
 
 end Benchmarks.Dss.Pot

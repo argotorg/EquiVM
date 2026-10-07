@@ -24,22 +24,21 @@ def nameEvaledRef : EvaledStorageRef := { base := "name", steps := [] }
 theorem weth9NameStorageRead {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := ∅ } (initState σ σ₀ g A I)
       (.storage nameRef)
-    = storageValueResultToEval (weth9ReadBytesValue? storageLayoutRaw
+    = solidityValueResultToEval (weth9ReadBytesValue? storageLayoutRaw
         nameEvaledRef (initState σ σ₀ g A I)) := by
   rw [evalExpr?, resolveStorageRef?_ok (er := nameEvaledRef) (ty := .string)
     (by simp [nameRef])
     (by simp [evalStorageRef, nameRef, nameEvaledRef, EvalResult.bind, bind, pure])
     (by simp [storageTypeAt?, contract, storageDecls, nameEvaledRef])]
-  simp only [bind, EvalResult.bind, readStorage?, config, storageLayout, weth9StorageLayout,
+  simp only [bind, EvalResult.bind, config, storageLayout, weth9StorageBackend,
     weth9ReadValue?]
 
 theorem weth9NameBaseSlotLen {σ σ₀ A I} {g : Sat256} :
     weth9BytesBaseSlotAndLength? storageLayoutRaw nameEvaledRef (initState σ σ₀ g A I) =
       .ok ((⟨0⟩ : UInt256), (weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat) := by
   unfold weth9BytesBaseSlotAndLength?
-  simp only [nameEvaledRef, List.nil_append, storageLayoutRaw, bytesLikeLengthLoc,
-    apply_ite StorageLoc.slot, ite_self, storageLoad_initState_solcSlotWord,
-      weth9DecodeBytesLengthHeader_stringLen]
+  simp only [nameEvaledRef, List.nil_append, storageLayoutRaw,
+    storageLoad_initState_solcSlotWord, weth9DecodeBytesLengthHeader_stringLen]
 
 /-- The `.bytes` value the Solm `name()` body returns: the decoded compact string. -/
 theorem weth9NameReadValue {σ σ₀ A I} {g : Sat256} :
@@ -220,8 +219,8 @@ theorem weth9Decode_name_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
 
 theorem weth9NameBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 0)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    (hsel : selIs I (weth9SelBytes 0)) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 0) (by native_decide) hsel
   by_cases hwv : I.weiValue = ⟨0⟩

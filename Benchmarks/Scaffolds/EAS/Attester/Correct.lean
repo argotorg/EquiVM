@@ -1,26 +1,24 @@
 import Benchmarks.Scaffolds.EAS.Attester.Constructor
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # EAS Attester benchmark correctness stub
 
-For each immutable value `v`, the deployed runtime is the solc template patched with `_eas`, and
-runtime equivalence is stated against `contract v`.  Proofs are the benchmark target.
+For every well-typed assignment of `_eas`, the runtime deployed for it (the template patched with
+it) refines the spec run with those immutables.  With the constructor target this gives the
+contract refinement.  Proofs are the benchmark target.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Benchmarks.EAS.Attester.Immutables
 
 namespace Benchmarks.EAS.Attester
 
-theorem attesterCorrect (v : AttesterImmutables) {code : ByteArray}
-    (hcode : patchRuntime attesterBytecode (patches v) = some code) :
-    runtimeEquivalence (config v) code (contract v) := by
+theorem attesterCorrect (imms : Store) (_hfit : immutablesFit contract imms) :
+    runtimeRefinement config (deployedRuntime attesterBytecode imms) contract
+      (restrictImmutables contract imms) := by
   sorry
 
-theorem attesterContractCorrect (v : AttesterImmutables) {code : ByteArray}
-    (hcode : patchRuntime attesterBytecode (patches v) = some code) :
-    contractEquivalenceWith (config v) attesterCreationBytecode code (contract v)
-      (runtimeCodeOf attesterBytecode) :=
-  contractEquivalenceWith.intro (attesterConstructorCorrect v) (attesterCorrect v hcode)
+theorem attesterContractCorrect : contractRefinement config attesterCreationBytecode contract :=
+  .of_runtime attesterConstructorCorrect attesterCorrect
 
 end Benchmarks.EAS.Attester

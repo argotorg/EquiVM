@@ -216,9 +216,9 @@ theorem clipperTakeVatMoveCalldataMem_read128_100 (σ : AccountMap) (I : Executi
     clipperTakeVatMoveCalldataMem_read196_32 σ I owe hmem]
   simp [ByteArray.append_assoc]
 
-theorem clipperTakeVatMoveEncode_eq (v : ClipperImmutables) (σ : AccountMap)
+theorem clipperTakeVatMoveEncode_eq (σ : AccountMap)
     (I : ExecutionEnv) (owe : UInt256) {mem : ByteArray} (hmem : mem.size = 260) :
-    (config v).externalABI.encode? "move"
+    config.externalABI.encode? "move"
       [.address I.source, .address (AccountAddress.ofNat (clipperTakeVowTarget σ I).toNat),
         .int (Int.ofNat owe.toNat)] =
       some ((clipperTakeVatMoveCalldataMem σ I owe mem).readWithPadding 128 100) := by
@@ -516,7 +516,7 @@ theorem RD.clipperTakeVatMovePostCall {σ₀ σStart σ I}
             (⟨128⟩ : UInt256).toNat (⟨100⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outVat σ_vat k' C' ∧
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address v.vat) "move" 0
@@ -549,7 +549,7 @@ theorem RD.clipperTakeVatMovePostCall {σ₀ σStart σ I}
   · let evmVat : EVM.State :=
       { initState σStart σ₀ g A I with
         accountMap := σ }
-    refine callCoincides (cfg := config v)
+    refine callCoincides (cfg := config)
       (evm := evmVat)
       (name := "move")
       (args :=
@@ -571,7 +571,7 @@ theorem RD.clipperTakeVatMovePostCall {σ₀ σStart σ I}
       exact eVM_address_id v.vat
     · simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
         show (⟨100⟩ : UInt256).toNat = 100 from by decide] using
-        clipperTakeVatMoveEncode_eq v σ I owe hbaseMem
+        clipperTakeVatMoveEncode_eq σ I owe hbaseMem
     · simpa [evmVat, initState, hperm] using hΘ
 
 theorem RD.clipperTakeVatMoveCallFailure {code : ByteArray}

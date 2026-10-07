@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -88,12 +89,11 @@ def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
 
-def storageLayout : StorageLayout where
-  layout ref _ :=
+def storageLayout : StorageLayout := fun ref =>
     match ref.base, ref.steps with
-    | "_owner", [] => some (addrLoc ⟨0⟩)
-    | "_released", [] => some (wordLoc ⟨1⟩)
-    | "_erc20Released", [.mindex token] => some (wordLoc (erc20ReleasedSlot token))
+    | "_owner", [] => some (.leaf (addrLoc ⟨0⟩))
+    | "_released", [] => some (.leaf (wordLoc ⟨1⟩))
+    | "_erc20Released", [.mindex token] => some (.leaf (wordLoc (erc20ReleasedSlot token)))
     | _, _ => none
 
 def vestingEnd : Expr :=
@@ -295,7 +295,7 @@ def contract : ContractDecl :=
     receive := some receiveTransition }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := externalABI
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 

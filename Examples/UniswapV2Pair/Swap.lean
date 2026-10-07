@@ -30,7 +30,7 @@ theorem uniswapSwapBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz132 : 132 ≤ I.calldata.size
   · by_cases hoff : solcLegacyMaxU32 < swapDataOffset I
     · exact uniswapSwapBodyDecodeFailed_offsetHuge hcode hsize hwv hsel hsz132 hoff
@@ -198,7 +198,12 @@ theorem uniswapSwapBody
                           rw [swapAfterCallbackFrame_get_ne _ _ _ (by decide),
                             swapAfterTransfersFrame_get_ne _ _ _ _ (by decide) (by decide)]
                           exact ht1
-                        rcases uniswapSwapBalancesCases evmCb (uniswapAddressAtSlot evmL ⟨6⟩)
+                        rcases uniswapSwapBalancesCases
+                            (himm := by
+                              simp only [swapAfterCallbackFrame, swapAfterTransfersFrame,
+                                optionalSafeTransferFrame]
+                              split_ifs <;> rfl)
+                            evmCb (uniswapAddressAtSlot evmL ⟨6⟩)
                             (uniswapAddressAtSlot evmL ⟨7⟩) rd2091 haCb heCb hsCb
                             (by rw [swapAfterCallbackFrame_contract, swapAfterTransfersFrame_contract])
                             ht0Cb ht1Cb htarget0 htarget1 hmCb hgapCb
@@ -276,6 +281,8 @@ theorem uniswapSwapBody
                                   hb0U hb1U hr0Inv hr1Inv
                                 have hframeU := frame_eq_of_contract
                                   (swapBeforeUpdateFrame_contract evmL I balance0 balance1 amount0In amount1In)
+                                  (swapBeforeUpdateFrame_immutables evmL I balance0 balance1 amount0In
+                                    amount1In)
                                 rw [hframeU] at hargsU
                                 dsimp only [swapBeforeUpdateFrame] at hframeU
                                 rw [hframeU] at hinvariantPrefix
@@ -315,6 +322,58 @@ theorem uniswapSwapBody
                                     (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload) hbody
                                     haFinal
                                     (returnEquiv.fallthrough rfl rfl (by native_decide))
+          · exact uniswapSwapBodyDecodeFailed_payloadShort hcode hsize hwv hsel hsz132
+              hoff hlenWord hlenHuge hpayload hdispatch
+      · exact uniswapSwapBodyDecodeFailed_lengthShort hcode hsize hwv hsel hsz132
+          hoff (by omega) hdispatch
+  · exact uniswapSwapBodyDecodeFailed_headShort hcode hsize hwv hsel (by omega) hdispatch
+
+/-- `swap` with any call permission; a static call halts at the lock-entry `SSTORE`. -/
+theorem uniswapSwapBodyAnyPerm
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact uniswapSwapBody hcode hsize hperm hwv hsel hdispatch
+  replace hperm : I.perm = false := by simpa using hperm
+  by_cases hsz132 : 132 ≤ I.calldata.size
+  · by_cases hoff : solcLegacyMaxU32 < swapDataOffset I
+    · exact uniswapSwapBodyDecodeFailed_offsetHuge hcode hsize hwv hsel hsz132 hoff
+        hdispatch
+    · by_cases hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size
+      · by_cases hlenHuge : solcLegacyMaxU32 < swapDataSize I
+        · exact uniswapSwapBodyDecodeFailed_lengthHuge hcode hsize hwv hsel hsz132
+            hoff hlenWord hlenHuge hdispatch
+        · by_cases hpayload : (((I.calldata.toList.drop 4).drop
+              (swapDataOffset I + 32)).take (swapDataSize I)).length = swapDataSize I
+          · have hpayloadLe := swapPayloadPresent_le (I := I) hlenWord hpayload
+            have hsz4 : 4 ≤ I.calldata.size := by omega
+            obtain ⟨_, _, rd1475⟩ := uniswapSwapDecodeRuntimeOk hsize hsz132 hoff hlenWord
+              hlenHuge hpayloadLe
+              (uniswapReachSwapBody (σ := σ) (σ₀ := σ₀) (A := A)
+                (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
+            let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
+            have hstorage : Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ =
+                (σ.get? I.codeOwner |>.option ⟨0⟩
+                  (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) := by
+              rfl
+            have hdecode := uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload
+            by_cases hlocked : (σ.get? I.codeOwner |>.option ⟨0⟩
+                (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩
+            · exact (RD.uniswapSwapLockedReverts rd1475 hlocked
+                  (by simp only [List.length_cons, List.length_nil]; omega))
+                |>.reEquivExecutionRevert hcode hdispatch hdecode
+                  (uniswapSwapBodyReverts_locked evmS I (by simpa only [evmS, initState] using hwv)
+                    (by rw [hstorage]; exact hlocked))
+            · have hunlocked := not_not.mp hlocked
+              exact (RD.uniswapSwapLockEnteredStatic rd1475 hunlocked hperm
+                  (by simp only [List.length_cons, List.length_nil]; omega))
+                |>.reEquivStaticHalt hcode hdispatch hdecode
+                  (uniswapSwapBodyStatic evmS I (by simpa only [evmS, initState] using hwv)
+                    (hstorage.trans hunlocked) (by simpa only [evmS, initState] using hperm))
           · exact uniswapSwapBodyDecodeFailed_payloadShort hcode hsize hwv hsel hsz132
               hoff hlenWord hlenHuge hpayload hdispatch
       · exact uniswapSwapBodyDecodeFailed_lengthShort hcode hsize hwv hsel hsz132

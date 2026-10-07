@@ -34,10 +34,9 @@ theorem cureDecode_tCount {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
 theorem cureTCountBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 15)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 15) rfl hsel
   have hbody :
@@ -50,18 +49,12 @@ theorem cureTCountBodyCore {σ σ₀ A I} {g : UInt256}
     · simp only [initState]
       exact hwv
     · simp [evalExpr?, tCountWord, solcSlotWordAt, initState, config, contract,
-        srcsRef, storageDecls, storageLayout, solidityStorageLayout, storageLayoutRaw,
-        readStorageArrayLength?, resolveStorageRef?, storageTypeAt?, evalStorageRef, evalStorageRefSteps,
+        srcsRef, storageDecls, storageLayout, solidityStorageBackend, storageLayoutRaw,
+        resolveStorageRef?, storageTypeAt?, evalStorageRef, evalStorageRefSteps,
         wordLoc, EvalResult.ofOption, EvalResult.bind, pure, bind]
-      change
-        (match storageLocLoad
-          (initState σ σ₀ (Sat256.ofUInt256 g) A I) (wordLoc ⟨2⟩) with
-        | Value.int n => EvalResult.ok (Value.int n)
-        | _ => EvalResult.error EvalError.storageError) =
-          EvalResult.ok (Value.int ↑(solcSlotWordAt ⟨2⟩ σ I).toNat)
-      erw [storageLocLoad_uint256]
-      simp [solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage]
+      rw [cureSrcsLength]
+      simp [solcSlotWordAt, solcSlotWord, initState,
+        Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   have hreach := cureReachTCountBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel

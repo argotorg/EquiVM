@@ -111,7 +111,8 @@ theorem uniswapSqrtFunctionCallSuccess_le3 {caller : Frame} {evm : EVM.State}
     {y : UInt256} {args : List Expr} {retVar : Ident}
     (hcontract : caller.contract = contract)
     (hsmall : y.toNat ≤ 3)
-    (hargs : evalExprs? config caller evm args = .ok [sqrtFunctionYValue y]) :
+    (hargs : evalExprs? config caller evm args = .ok [sqrtFunctionYValue y])
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ExecStmt config caller evm (.internalCall "sqrt" args retVar)
       (.ok (resumeAfterInternalCall caller retVar (some [sqrtFunctionSmallResultValue y])) evm) := by
   exact internalCallFunctionReturn
@@ -122,9 +123,9 @@ theorem uniswapSqrtFunctionCallSuccess_le3 {caller : Frame} {evm : EVM.State}
     (calleeSolm := { contract := contract, locals := sqrtFunctionCallStore y })
     (value := some [sqrtFunctionSmallResultValue y])
     hargs
-    (by simpa [hcontract] using uniswapLookupSqrtFunction)
+    (by simpa [hcontract, himm] using uniswapLookupSqrtFunction)
     (bindParams_sqrtFunction_call y)
-    (by simpa [hcontract] using uniswapSqrtFunctionBody_le3 evm y hsmall)
+    (by simpa [hcontract, himm] using uniswapSqrtFunctionBody_le3 evm y hsmall)
 
 abbrev sqrtLoopCond : Expr :=
   .binary .lt (.var "x") (.var "z")
@@ -523,7 +524,8 @@ theorem uniswapSqrtFunctionBody_intExistsBounded (evm : EVM.State) (y : UInt256)
 theorem uniswapSqrtFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     {y : UInt256} {args : List Expr} {retVar : Ident}
     (hcontract : caller.contract = contract)
-    (hargs : evalExprs? config caller evm args = .ok [sqrtFunctionYValue y]) :
+    (hargs : evalExprs? config caller evm args = .ok [sqrtFunctionYValue y])
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ∃ value,
       ExecStmt config caller evm (.internalCall "sqrt" args retVar)
         (.ok (resumeAfterInternalCall caller retVar (some [value])) evm) := by
@@ -537,14 +539,15 @@ theorem uniswapSqrtFunctionCallSuccess {caller : Frame} {evm : EVM.State}
       (calleeSolm := { contract := contract, locals := locals' })
       (value := some [value])
       hargs
-      (by simpa [hcontract] using uniswapLookupSqrtFunction)
+      (by simpa [hcontract, himm] using uniswapLookupSqrtFunction)
       (bindParams_sqrtFunction_call y)
-      (by simpa [hcontract] using hbody)⟩
+      (by simpa [hcontract, himm] using hbody)⟩
 
 theorem uniswapSqrtFunctionCallSuccessInt {caller : Frame} {evm : EVM.State}
     {y : UInt256} {args : List Expr} {retVar : Ident}
     (hcontract : caller.contract = contract)
-    (hargs : evalExprs? config caller evm args = .ok [sqrtFunctionYValue y]) :
+    (hargs : evalExprs? config caller evm args = .ok [sqrtFunctionYValue y])
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ∃ result,
       ExecStmt config caller evm (.internalCall "sqrt" args retVar)
         (.ok (resumeAfterInternalCall caller retVar (some [.int result])) evm) := by
@@ -558,14 +561,15 @@ theorem uniswapSqrtFunctionCallSuccessInt {caller : Frame} {evm : EVM.State}
       (calleeSolm := { contract := contract, locals := locals' })
       (value := some [.int result])
       hargs
-      (by simpa [hcontract] using uniswapLookupSqrtFunction)
+      (by simpa [hcontract, himm] using uniswapLookupSqrtFunction)
       (bindParams_sqrtFunction_call y)
-      (by simpa [hcontract] using hbody)⟩
+      (by simpa [hcontract, himm] using hbody)⟩
 
 theorem uniswapSqrtFunctionCallSuccessIntBounded {caller : Frame} {evm : EVM.State}
     {y : UInt256} {args : List Expr} {retVar : Ident}
     (hcontract : caller.contract = contract)
-    (hargs : evalExprs? config caller evm args = .ok [sqrtFunctionYValue y]) :
+    (hargs : evalExprs? config caller evm args = .ok [sqrtFunctionYValue y])
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ∃ result,
       ExecStmt config caller evm (.internalCall "sqrt" args retVar)
         (.ok (resumeAfterInternalCall caller retVar (some [.int result])) evm) ∧
@@ -581,9 +585,9 @@ theorem uniswapSqrtFunctionCallSuccessIntBounded {caller : Frame} {evm : EVM.Sta
     (calleeSolm := { contract := contract, locals := locals' })
     (value := some [.int result])
     hargs
-    (by simpa [hcontract] using uniswapLookupSqrtFunction)
+    (by simpa [hcontract, himm] using uniswapLookupSqrtFunction)
     (bindParams_sqrtFunction_call y)
-    (by simpa [hcontract] using hbody)
+    (by simpa [hcontract, himm] using hbody)
 
 abbrev minFunctionXValue (x : UInt256) : Value :=
   uniswapUint256Value x
@@ -707,7 +711,8 @@ theorem uniswapMinFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     {x y : UInt256} {args : List Expr} {retVar : Ident}
     (hcontract : caller.contract = contract)
     (hargs : evalExprs? config caller evm args =
-      .ok [minFunctionXValue x, minFunctionYValue y]) :
+      .ok [minFunctionXValue x, minFunctionYValue y])
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ExecStmt config caller evm (.internalCall "min" args retVar)
       (.ok (resumeAfterInternalCall caller retVar (some [minFunctionResultValue x y])) evm) := by
   exact internalCallFunctionReturn
@@ -718,8 +723,8 @@ theorem uniswapMinFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     (calleeSolm := { contract := contract, locals := minFunctionCallStore x y })
     (value := some [minFunctionResultValue x y])
     hargs
-    (by simpa [hcontract] using uniswapLookupMinFunction)
+    (by simpa [hcontract, himm] using uniswapLookupMinFunction)
     (bindParams_minFunction_call x y)
-    (by simpa [hcontract] using uniswapMinFunctionBody evm x y)
+    (by simpa [hcontract, himm] using uniswapMinFunctionBody evm x y)
 
 end UniswapV2Pair

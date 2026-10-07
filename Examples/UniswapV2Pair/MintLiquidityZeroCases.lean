@@ -251,7 +251,7 @@ theorem uniswapMintProportionalLiquidityZeroAfterMintFeeCase
         ⟨0⟩)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hreserve0EqS : uniswapReserve0Word (uniswapLockEnteredState evmS) = reserve0 := by
     simpa [evmS] using hreserve0Eq
@@ -425,7 +425,7 @@ theorem uniswapMintProportionalFeeOffKLastZeroLiquidityZeroFromFactoryCase
       minFunctionResultWord ((amount0.mul totalSupply).div reserve0)
           ((amount1.mul totalSupply).div reserve1) =
         ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hzero with
     ⟨hfeeToZero, hkLastZero, htotalNonzero, hmulFit0, hmulFit1, hreserve0Nonzero,
       hreserve1Nonzero, hliqZero⟩
@@ -651,7 +651,7 @@ theorem uniswapMintProportionalFeeOffKLastZeroLiquidityZeroCase
         ⟨0⟩)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -841,7 +841,7 @@ theorem uniswapMintProportionalFeeOnKLastZeroLiquidityZeroCase
         ⟨0⟩)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -1007,7 +1007,7 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroLiquidityZeroCase
         ⟨0⟩)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=

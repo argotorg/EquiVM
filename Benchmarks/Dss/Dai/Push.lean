@@ -120,6 +120,32 @@ theorem daiPushBodyReverts_from_transferFrom (evm : EVM.State) (I : ExecutionEnv
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
       ExecBlock.consRevert hcall
 
+theorem daiPushBodyStatic_from_transferFrom (evm : EVM.State) (I : ExecutionEnv)
+    (hsel : selIs I (daiSelBytes 14))
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hcallee :
+      ExecTransitionBody config contract evm (transferFromCallStore I) transferFromTransition.body
+        .staticViolation) :
+    ExecTransitionBody config contract evm (pushStore I) pushTransition.body .staticViolation := by
+  let caller : Frame := { contract := contract, locals := pushStore I }
+  have hcall : ExecStmt config caller evm
+      (.internalCall "transferFrom" [sender, .var "usr", .var "wad"] "_ok") .staticViolation := by
+    exact ExecStmt.internalCallStatic (cfg := config)
+      (solm := caller) (evm := evm)
+      (name := "transferFrom") (args := [sender, .var "usr", .var "wad"])
+      (retVar := "_ok")
+      (argVals := [transferFromSrcValue I, transferFromDstValue I, transferFromWadValue I])
+      (callee := transferFromTransition.toCallable) (locals := transferFromCallStore I)
+      (evalExprs_push_internalCall evm I hsel hsrc)
+      daiLookupTransferFromForPush
+      (daiBindTransferFromCallStore I)
+      hcallee
+  rw [pushTransition]
+  exact ExecFuncBody.execBlockStatic <|
+    ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
+      ExecBlock.consStatic hcall
+
 theorem daiPushX_toTransferFrom {σ σ₀ A I} {g : Sat256}
     (hsel : selIs I (daiSelBytes 14))
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -196,7 +222,7 @@ theorem daiPushBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1034⟩ [daiSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := daiDecode_push_none_short (I := I) hsz4 hshort
   exact (daiPushX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
@@ -204,9 +230,9 @@ theorem daiPushBodyCoreDecodeFailed_short
 /-- `push(address,uint256)` body refines its Solm transition. -/
 theorem daiPushBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 14)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 14) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some pushTransition :=
@@ -226,7 +252,7 @@ theorem daiPushBodyCore {σ σ₀ A I} {g : UInt256}
       (S := [transferFromWadWord I, transferFromDstMaskedWord I, ⟨686⟩, daiSelWord I])
       (out := ByteArray.empty)
       (retVal := none)
-      hcode hdispatch hdecode hperm hwv
+      hcode hdispatch hdecode hwv
       (by simp only [List.length_cons, List.length_nil]; omega)
       (by jump_dest)
       rd1411
@@ -244,6 +270,14 @@ theorem daiPushBodyCore {σ σ₀ A I} {g : UInt256}
       (by
         intro hcallee
         exact daiPushBodyReverts_from_transferFrom
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+          hsel
+          (by simp only [initState]; exact hwv)
+          (by simp [initState])
+          hcallee)
+      (by
+        intro hcallee
+        exact daiPushBodyStatic_from_transferFrom
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
           hsel
           (by simp only [initState]; exact hwv)

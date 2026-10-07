@@ -386,10 +386,10 @@ theorem scratch_revealBid_arrayIndexInBounds_ok (evm : EVM.State) (i len : UInt2
     (hbound : i.toNat < len.toNat) :
     arrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
       [.mindex (.address evm.executionEnv.source)] (.int (Int.ofNat i.toNat)) = .ok () := by
-  simp [show blindAuctionUint256Loc = uint256Loc from rfl, arrayIndexInBounds?, storageTypeAt?,
-    storageTypeStep?, blindAuctionConfig,
-    blindAuctionStorageLayout, blindAuctionContract, storageDecls, bidStructTy, uint256St,
-    bytes32St, storageLocLoad_uint256, hlen, hbound]
+  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionContract,
+    storageDecls]
+  rw [bidsArrayLength evm (.address evm.executionEnv.source)]
+  simp [hlen, hbound]
 
 theorem scratch_evalStorageRef_reveal_bid_ok (evm : EVM.State) (callargs : Store)
     (len refund i : UInt256)
@@ -568,15 +568,13 @@ theorem scratch_resolveStorageRef_reveal_bid_deposit_ok (evm : EVM.State)
     uint256St]
 
 theorem scratch_revealBid_blinded_layout (evm : EVM.State) (i : UInt256) :
-    blindAuctionConfig.storage.layout (scratch_revealBidFieldRef evm i "blindedBid") =
-      fun _ => some (blindAuctionBytes32Loc (scratch_revealBidBlindedSlot evm i)) := by
-  funext evm'
+    blindAuctionConfig.storageBackend.locate? (scratch_revealBidFieldRef evm i "blindedBid") =
+      some (.leaf (blindAuctionBytes32Loc (scratch_revealBidBlindedSlot evm i))) := by
   simp [scratch_revealBidFieldRef, scratch_revealBidEvaledRef, scratch_revealBidBlindedSlot]
 
 theorem scratch_revealBid_deposit_layout (evm : EVM.State) (i : UInt256) :
-    blindAuctionConfig.storage.layout (scratch_revealBidFieldRef evm i "deposit") =
-      fun _ => some (blindAuctionUint256Loc (scratch_revealBidDepositSlot evm i)) := by
-  funext evm'
+    blindAuctionConfig.storageBackend.locate? (scratch_revealBidFieldRef evm i "deposit") =
+      some (.leaf (blindAuctionUint256Loc (scratch_revealBidDepositSlot evm i))) := by
   simp [scratch_revealBidFieldRef, scratch_revealBidEvaledRef, scratch_revealBidDepositSlot,
     scratch_revealBidBlindedSlot]
 
@@ -595,7 +593,7 @@ theorem scratch_evalExpr_reveal_bid_blinded (evm : EVM.State) (locals : Store)
   simp only [scratch_resolveStorageRef_reveal_bid_blinded_ok evm locals i hbid,
     EvalResult.bind, bind]
   unfold bytes32St
-  rw [readStorage?_elem (cfg := blindAuctionConfig)
+  rw [readStorage?_elem (hbackend := rfl) (cfg := blindAuctionConfig)
     (evm := evm) (er := scratch_revealBidFieldRef evm i "blindedBid")
     (t := .bytes ⟨31, by decide⟩)
     (loc := blindAuctionBytes32Loc (scratch_revealBidBlindedSlot evm i))
@@ -1123,7 +1121,7 @@ theorem scratch_evalExpr_reveal_bid_deposit (evm : EVM.State) (locals : Store)
   simp only [scratch_resolveStorageRef_reveal_bid_deposit_ok evm locals i hbid,
     EvalResult.bind, bind]
   unfold uint256St
-  rw [readStorage?_elem (cfg := blindAuctionConfig)
+  rw [readStorage?_elem (hbackend := rfl) (cfg := blindAuctionConfig)
     (evm := evm) (er := scratch_revealBidFieldRef evm i "deposit")
     (t := .int uint256Int)
     (loc := blindAuctionUint256Loc (scratch_revealBidDepositSlot evm i))
@@ -1231,11 +1229,24 @@ theorem scratch_assign_reveal_blinded_zero (evm : EVM.State) (locals : Store)
   rw [assignStorageRef?]
   simp only [scratch_resolveStorageRef_reveal_bid_blinded_ok evm locals i hbid,
     EvalResult.bind, bind]
-  have hloc := scratch_revealBid_blinded_layout evm i
-  simp only [hloc, EvalResult.ofOption, Option.bind]
-  erw [storageLocStore_bytes32 (word := EVM.Word.ofNat 0)]
-  · rfl
-  · native_decide
+  unfold bytes32St
+  rw [show blindAuctionConfig.storageBackend =
+      solidityStorageBackend blindAuctionStorageLayout from rfl,
+    solidityStorageBackend_write_elem
+      (layout := blindAuctionStorageLayout)
+      (er := scratch_revealBidFieldRef evm i "blindedBid")
+      (ty := .bytes ⟨31, by decide⟩)
+      (value := .fixedBytes ⟨31, by decide⟩
+        (EVM.Word.toBytesBE (EVM.Word.ofNat 0)))
+      (evm := evm)
+      (evm' := scratch_revealZeroBlindedState evm i)
+      (loc := blindAuctionBytes32Loc (scratch_revealBidBlindedSlot evm i))
+      (hloc := by simpa only [blindAuctionConfig, solidityStorageBackend] using
+        scratch_revealBid_blinded_layout evm i)
+      (hstore := by
+        apply storageLocStore_bytes32
+        native_decide)]
+  rfl
 
 theorem scratch_assign_local_value (evm : EVM.State) (locals : Store)
     (name : Ident) (old value : Value)
@@ -1948,6 +1959,117 @@ theorem scratch_blindAuctionRevealBodyReverts_callFailure_fromLoopOfLocals
       hcall) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (scratch_evalExpr_reveal_success_of evm' loopLocals false out))
+
+theorem scratch_blindAuctionRevealBodyStatic_callValue_fromLoopOfLocals
+    (evm evmLoop : EVM.State) (callargs loopLocals : Store)
+    (values fakes secrets : List Value) (len refund : UInt256)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hafter :
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat <
+        (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
+    (hbefore :
+      (UInt256.ofNat evm.executionEnv.header.timestamp).toNat <
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)
+    (hbidding : callargs.get? biddingEndRef.base = none)
+    (hreveal : callargs.get? revealEndRef.base = none)
+    (hbids : callargs.get? "bids" = none)
+    (hvalues : callargs.get? "values" = some (.array values))
+    (hfakes : callargs.get? "fakes" = some (.array fakes))
+    (hsecrets : callargs.get? "secrets" = some (.array secrets))
+    (hlen :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bidsBase (.address evm.executionEnv.source)) = len)
+    (hvaluesLen : values.length = len.toNat)
+    (hfakesLen : fakes.length = len.toNat)
+    (hsecretsLen : secrets.length = len.toNat)
+    (hrefund : loopLocals.get? "refund" = some (.int (Int.ofNat refund.toNat)))
+    (hloop :
+      ExecForLoop blindAuctionConfig
+        ({ contract := blindAuctionContract, locals := scratch_revealLoopStore callargs len ⟨0⟩ ⟨0⟩ } :
+          Frame) evm
+        (.binary .lt (.var "i") (.var "length")) scratch_revealLoopPostStmts
+        scratch_revealLoopBodyStmts
+        (.ok ({ contract := blindAuctionContract, locals := loopLocals } : Frame) evmLoop))
+    (hval : refund ≠ ⟨0⟩)
+    (hperm : evmLoop.executionEnv.perm = false) :
+      ExecTransitionBody blindAuctionConfig blindAuctionContract evm callargs revealTransition.body
+        .staticViolation := by
+  let lengthFrame : Frame :=
+    { contract := blindAuctionContract, locals := scratch_revealLengthStore callargs len }
+  let refundFrame : Frame :=
+    { contract := blindAuctionContract,
+      locals := scratch_revealRefundStore callargs len ⟨0⟩ }
+  let initLoopFrame : Frame :=
+    { contract := blindAuctionContract,
+      locals := scratch_revealLoopStore callargs len ⟨0⟩ ⟨0⟩ }
+  refine ExecFuncBody.execBlockStatic ?_
+  unfold revealTransition
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_reveal_afterBiddingEnd_true evm callargs hbidding hafter)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_reveal_beforeRevealEnd_true evm callargs hreveal hbefore)) ?_
+  have hlengthEval :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := callargs }
+        evm (.arrayLength .storage (bidsRef sender)) = .ok (.int (Int.ofNat len.toNat)) := by
+    exact evalExpr_reveal_bids_length_any evm callargs len hbids hlen
+  refine ExecBlock.consNormal (ExecStmt.letDecl hlengthEval) ?_
+  change ExecBlock blindAuctionConfig lengthFrame evm
+    (List.drop 4 revealTransition.body) .staticViolation
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_reveal_local_array_length_eq_var_true evm
+        (scratch_revealLengthStore callargs len) "values" values len ?_
+        (by simp [scratch_revealLengthStore]) hvaluesLen)) ?_
+  · unfold scratch_revealLengthStore
+    rw [store_get_ne]
+    · exact hvalues
+    · decide
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_reveal_local_array_length_eq_var_true evm
+        (scratch_revealLengthStore callargs len) "fakes" fakes len ?_
+        (by simp [scratch_revealLengthStore]) hfakesLen)) ?_
+  · unfold scratch_revealLengthStore
+    rw [store_get_ne]
+    · exact hfakes
+    · decide
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_reveal_local_array_length_eq_var_true evm
+        (scratch_revealLengthStore callargs len) "secrets" secrets len ?_
+        (by simp [scratch_revealLengthStore]) hsecretsLen)) ?_
+  · unfold scratch_revealLengthStore
+    rw [store_get_ne]
+    · exact hsecrets
+    · decide
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+  change ExecBlock blindAuctionConfig refundFrame evm
+    [ scratch_revealForStmt,
+      .lowLevelCall sender (.var "refund") (.newBytes (.intLit 0)) "success" "_data",
+      .require (.var "success") ]
+    .staticViolation
+  have hfor :
+      ExecStmt blindAuctionConfig refundFrame evm
+        scratch_revealForStmt
+        (.ok { contract := blindAuctionContract, locals := loopLocals } evmLoop) := by
+    have hinit :
+        ExecBlock blindAuctionConfig
+          refundFrame evm
+          [ .letDecl "i" (some uint256) (.intLit 0) ]
+          (.ok initLoopFrame evm) := by
+      refine ExecBlock.consNormal
+        (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+      exact ExecBlock.nil
+    exact ExecStmt.for hinit hloop
+  refine ExecBlock.consNormal hfor ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.lowLevelCallStatic
+      (evalExpr_reveal_sender evmLoop loopLocals)
+      (evalExpr_reveal_refund evmLoop loopLocals refund hrefund)
+      (evalExpr_reveal_emptyBytes evmLoop loopLocals)
+      (by rw [wordOfInt_ofNat_toNat]; exact hval) hperm)
 
 theorem scratch_revealLoopBody_ok_noPlace (evm : EVM.State) (callargs : Store)
     (values fakes secrets : List Value) (len refund i value secret blinded deposit : UInt256)
@@ -3817,5 +3939,596 @@ theorem scratch_revealLoopBody_ok_placeBid_true_nonzero_of_get (evm : EVM.State)
         value high old pending hhigh hold holdAddr hpending hlt hnonzero hsum
   · simp [evmPB, scratch_placeBidAfterBidder, scratch_placeBidAfterHigh,
       scratch_placeBidAfterPending, scratch_revealBidEvaledRef_storageStore]
+
+/-! ### Static-mode halts of the matched-hash loop body -/
+
+theorem scratch_revealLoopBody_static_noPlace_of_get (evm : EVM.State) (locals : Store)
+    (values fakes secrets : List Value) (len refund i value secret blinded deposit : UInt256)
+    (fake : Bool) (fakeRaw : Value) (hashBytes : List UInt8)
+    (hbids : locals.get? "bids" = none)
+    (hvalues : locals.get? "values" = some (.array values))
+    (hfakes : locals.get? "fakes" = some (.array fakes))
+    (hsecrets : locals.get? "secrets" = some (.array secrets))
+    (hi : locals.get? "i" = some (.int (Int.ofNat i.toNat)))
+    (hrefund : locals.get? "refund" = some (.int (Int.ofNat refund.toNat)))
+    (hlen :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bidsBase (.address evm.executionEnv.source)) = len)
+    (hboundBids : i.toNat < len.toNat)
+    (hboundValues : i.toNat < values.length)
+    (hboundFakes : i.toNat < fakes.length)
+    (hboundSecrets : i.toNat < secrets.length)
+    (hvalueLookup :
+      lookupNth? values i.toNat = some (.int (Int.ofNat value.toNat)))
+    (hfakeLookup : lookupNth? fakes i.toNat = some fakeRaw)
+    (hfakeNorm : normalizeRawBoolWord? fakeRaw = .ok (.bool fake))
+    (hsecretLookup :
+      lookupNth? secrets i.toNat =
+        some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret)))
+    (hblinded :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (scratch_revealBidBlindedSlot evm i) = blinded)
+    (hdeposit :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (scratch_revealBidDepositSlot evm i) = deposit)
+    (hhash :
+      evalExpr? blindAuctionConfig
+        { contract := blindAuctionContract,
+          locals := scratch_revealSecretStoreOf locals evm i value secret fake } evm
+        scratch_revealPackedHashExpr =
+        .ok (.fixedBytes ⟨31, by decide⟩ hashBytes))
+    (heq : EVM.Word.toBytesBE blinded = hashBytes)
+    (hfit : refund.toNat + deposit.toNat < UInt256.size)
+    (hskipPlace : fake = true ∨ deposit.toNat < value.toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecBlock blindAuctionConfig
+      { contract := blindAuctionContract, locals := locals }
+      evm scratch_revealLoopBodyStmts .staticViolation := by
+  let L4 := scratch_revealSecretStoreOf locals evm i value secret fake
+  let L5 := scratch_revealRefundAddedStoreOf locals evm i refund value secret deposit fake
+  have hbidL4 :
+      L4.get? "bidToCheck" =
+        some (.storageRef (scratch_revealBidEvaledRef evm i) bidStructTy) := by
+    simpa [L4] using scratch_revealSecretStoreOf_bid_get locals evm i value secret fake
+  have hguard :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
+        (.binary .ne (.storage (aliasF "bidToCheck" "blindedBid"))
+          (.keccak256 (.abiEncodePacked
+            [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")]))) =
+          .ok (.bool false) := by
+    simpa [scratch_revealPackedHashExpr, L4] using
+      scratch_evalExpr_reveal_hash_guard_false evm L4 i blinded hashBytes hbidL4 hblinded
+        (by simpa [L4] using hhash) heq
+  have hrefundL4 :
+      L4.get? "refund" = some (.int (Int.ofNat refund.toNat)) := by
+    simpa [L4] using
+      scratch_revealSecretStoreOf_refund_get locals evm i refund value secret fake hrefund
+  have hadd :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
+        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
+          .ok (.int (Int.ofNat (refund.toNat + deposit.toNat))) :=
+    scratch_evalExpr_reveal_refund_add_deposit evm L4 i refund deposit hbidL4 hrefundL4
+      hdeposit hfit
+  have hassignRefund :
+      assignStorageRef? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
+        .localVar { base := "refund" } (.int (Int.ofNat (refund.toNat + deposit.toNat))) =
+          .ok ({ contract := blindAuctionContract, locals := L5 }, evm) := by
+    simpa [L5, scratch_revealRefundAddedStoreOf, L4] using
+      scratch_assign_local_value evm L4 "refund" (.int (Int.ofNat refund.toNat))
+        (.int (Int.ofNat (refund.toNat + deposit.toNat))) hrefundL4
+  have hbidL5 :
+      L5.get? "bidToCheck" =
+        some (.storageRef (scratch_revealBidEvaledRef evm i) bidStructTy) := by
+    simpa [L5] using
+      scratch_revealRefundAddedStoreOf_bid_get locals evm i refund value secret deposit fake
+  have hvalueL5 :
+      L5.get? "value" = some (.int (Int.ofNat value.toNat)) := by
+    simpa [L5] using
+      scratch_revealRefundAddedStoreOf_value_get locals evm i refund value secret deposit fake
+  have hcondFalse :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
+        (.binary .and (.unary .not (.var "fake"))
+          (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value"))) =
+          .ok (.bool false) := by
+    cases fake with
+    | false =>
+        have hfakeL5 : L5.get? "fake" = some (.bool false) := by
+          simpa [L5] using
+            scratch_revealRefundAddedStoreOf_fake_get locals evm i refund value secret deposit
+              false
+        rcases hskipPlace with hfakeTrue | hlt
+        · cases hfakeTrue
+        · exact scratch_evalExpr_reveal_placeBid_cond_false_deposit evm L5 i value deposit
+            hbidL5 hfakeL5 hvalueL5 hdeposit hlt
+    | true =>
+        have hfakeL5 : L5.get? "fake" = some (.bool true) := by
+          simpa [L5] using
+            scratch_revealRefundAddedStoreOf_fake_get locals evm i refund value secret deposit true
+        exact scratch_evalExpr_reveal_placeBid_cond_false_fake evm L5 i value deposit
+          hbidL5 hfakeL5 hvalueL5 hdeposit
+  have hzero :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
+        (.cast (.intLit 0) bytes32St) =
+          .ok (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (EVM.Word.ofNat 0))) :=
+    scratch_evalExpr_reveal_cast_zero_bytes32 evm L5
+  have hassignZero :
+      assignStorageRef? blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
+        .storage (aliasF "bidToCheck" "blindedBid")
+        (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (EVM.Word.ofNat 0))) =
+          .ok ({ contract := blindAuctionContract, locals := L5 },
+            scratch_revealZeroBlindedState evm i) :=
+    scratch_assign_reveal_blinded_zero evm L5 i hbidL5
+  have htail :
+      ExecBlock blindAuctionConfig
+        { contract := blindAuctionContract, locals := L4 } evm
+        (List.drop 4 scratch_revealLoopBodyStmts)
+        .staticViolation := by
+    change ExecBlock blindAuctionConfig
+      { contract := blindAuctionContract, locals := L4 } evm
+      [ .ite
+          (.binary .ne (.storage (aliasF "bidToCheck" "blindedBid"))
+            (.keccak256 (.abiEncodePacked
+              [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
+          [.continue] [],
+        .assign .localVar { base := "refund" }
+          (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+        .ite
+          (.binary .and (.unary .not (.var "fake"))
+            (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
+          [ .internalCall "placeBid" [sender, .var "value"] "ok",
+            .ite (.var "ok")
+              [ .assign .localVar { base := "refund" }
+                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+        .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
+      .staticViolation
+    refine ExecBlock.consNormal (ExecStmt.iteFalse hguard ExecBlock.nil) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign hadd hassignRefund) ?_
+    refine ExecBlock.consNormal (ExecStmt.iteFalse hcondFalse ExecBlock.nil) ?_
+    exact ExecBlock.consStatic (ExecStmt.assignStatic hzero hassignZero hperm)
+  exact scratch_revealLoopBody_prefix_exec_of_get evm locals values fakes secrets len refund i
+    value secret fake fakeRaw hbids hvalues hfakes hsecrets hi hlen hboundBids hboundValues
+    hboundFakes hboundSecrets hvalueLookup hfakeLookup hfakeNorm hsecretLookup htail
+
+theorem scratch_revealLoopBody_static_placeBid_false_of_get (evm : EVM.State) (locals : Store)
+    (values fakes secrets : List Value) (len refund i value secret blinded deposit high : UInt256)
+    (fakeRaw : Value) (hashBytes : List UInt8)
+    (hbids : locals.get? "bids" = none)
+    (hvalues : locals.get? "values" = some (.array values))
+    (hfakes : locals.get? "fakes" = some (.array fakes))
+    (hsecrets : locals.get? "secrets" = some (.array secrets))
+    (hi : locals.get? "i" = some (.int (Int.ofNat i.toNat)))
+    (hrefund : locals.get? "refund" = some (.int (Int.ofNat refund.toNat)))
+    (hlen :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bidsBase (.address evm.executionEnv.source)) = len)
+    (hboundBids : i.toNat < len.toNat)
+    (hboundValues : i.toNat < values.length)
+    (hboundFakes : i.toNat < fakes.length)
+    (hboundSecrets : i.toNat < secrets.length)
+    (hvalueLookup :
+      lookupNth? values i.toNat = some (.int (Int.ofNat value.toNat)))
+    (hfakeLookup : lookupNth? fakes i.toNat = some fakeRaw)
+    (hfakeNorm : normalizeRawBoolWord? fakeRaw = .ok (.bool false))
+    (hsecretLookup :
+      lookupNth? secrets i.toNat =
+        some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret)))
+    (hblinded :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (scratch_revealBidBlindedSlot evm i) = blinded)
+    (hdeposit :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (scratch_revealBidDepositSlot evm i) = deposit)
+    (hhigh : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩ = high)
+    (hhash :
+      evalExpr? blindAuctionConfig
+        { contract := blindAuctionContract,
+          locals := scratch_revealSecretStoreOf locals evm i value secret false } evm
+        scratch_revealPackedHashExpr =
+        .ok (.fixedBytes ⟨31, by decide⟩ hashBytes))
+    (heq : EVM.Word.toBytesBE blinded = hashBytes)
+    (hfit : refund.toNat + deposit.toNat < UInt256.size)
+    (hdepositGe : value.toNat ≤ deposit.toNat)
+    (hplaceFalse : value.toNat ≤ high.toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecBlock blindAuctionConfig
+      { contract := blindAuctionContract, locals := locals }
+      evm scratch_revealLoopBodyStmts .staticViolation := by
+  let L4 := scratch_revealSecretStoreOf locals evm i value secret false
+  let L5 := scratch_revealRefundAddedStoreOf locals evm i refund value secret deposit false
+  let L6 := L5.insert "ok" (.bool false)
+  have hbidL4 :
+      L4.get? "bidToCheck" =
+        some (.storageRef (scratch_revealBidEvaledRef evm i) bidStructTy) := by
+    simpa [L4] using scratch_revealSecretStoreOf_bid_get locals evm i value secret false
+  have hguard :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
+        (.binary .ne (.storage (aliasF "bidToCheck" "blindedBid"))
+          (.keccak256 (.abiEncodePacked
+            [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")]))) =
+          .ok (.bool false) := by
+    simpa [scratch_revealPackedHashExpr, L4] using
+      scratch_evalExpr_reveal_hash_guard_false evm L4 i blinded hashBytes hbidL4 hblinded
+        (by simpa [L4] using hhash) heq
+  have hrefundL4 :
+      L4.get? "refund" = some (.int (Int.ofNat refund.toNat)) := by
+    simpa [L4] using
+      scratch_revealSecretStoreOf_refund_get locals evm i refund value secret false hrefund
+  have hadd :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
+        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
+          .ok (.int (Int.ofNat (refund.toNat + deposit.toNat))) :=
+    scratch_evalExpr_reveal_refund_add_deposit evm L4 i refund deposit hbidL4 hrefundL4
+      hdeposit hfit
+  have hassignRefund :
+      assignStorageRef? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
+        .localVar { base := "refund" } (.int (Int.ofNat (refund.toNat + deposit.toNat))) =
+          .ok ({ contract := blindAuctionContract, locals := L5 }, evm) := by
+    simpa [L5, scratch_revealRefundAddedStoreOf, L4] using
+      scratch_assign_local_value evm L4 "refund" (.int (Int.ofNat refund.toNat))
+        (.int (Int.ofNat (refund.toNat + deposit.toNat))) hrefundL4
+  have hbidL5 :
+      L5.get? "bidToCheck" =
+        some (.storageRef (scratch_revealBidEvaledRef evm i) bidStructTy) := by
+    simpa [L5] using
+      scratch_revealRefundAddedStoreOf_bid_get locals evm i refund value secret deposit false
+  have hvalueL5 :
+      L5.get? "value" = some (.int (Int.ofNat value.toNat)) := by
+    simpa [L5] using
+      scratch_revealRefundAddedStoreOf_value_get locals evm i refund value secret deposit false
+  have hfakeL5 : L5.get? "fake" = some (.bool false) := by
+    simpa [L5] using
+      scratch_revealRefundAddedStoreOf_fake_get locals evm i refund value secret deposit false
+  have hcondTrue :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
+        (.binary .and (.unary .not (.var "fake"))
+          (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value"))) =
+          .ok (.bool true) :=
+    scratch_evalExpr_reveal_placeBid_cond_true evm L5 i value deposit hbidL5 hfakeL5
+      hvalueL5 hdeposit hdepositGe
+  have hcall :
+      ExecStmt blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
+        (.internalCall "placeBid" [sender, .var "value"] "ok")
+        (.ok { contract := blindAuctionContract, locals := L6 } evm) := by
+    let calleeFrame : Frame :=
+      { contract := blindAuctionContract,
+        locals := scratch_placeBidStore evm.executionEnv.source value }
+    simpa [L6] using
+      ExecStmt.internalCallReturn
+        (cfg := blindAuctionConfig)
+        (solm := { contract := blindAuctionContract, locals := L5 })
+        (evm := evm)
+        (name := "placeBid") (retVar := "ok")
+        (args := [sender, .var "value"])
+        (argVals := [.address evm.executionEnv.source, .int (Int.ofNat value.toNat)])
+        (callee := placeBidFn.toCallable)
+        (locals := scratch_placeBidStore evm.executionEnv.source value)
+        (calleeSolm := calleeFrame)
+        (calleeEvm := evm)
+        (value := some [(.bool false)])
+        (scratch_evalExprs_reveal_placeBid_args evm L5 value hvalueL5)
+        scratch_placeBid_lookup
+        (by simpa [FunctionDecl.toCallable] using
+          scratch_placeBid_bind evm.executionEnv.source value)
+        (by
+          simpa [ExecTransitionBody, FunctionDecl.toCallable, calleeFrame] using
+            (scratch_blindAuctionPlaceBidBodyReturns_false evm evm.executionEnv.source value high
+              hhigh hplaceFalse))
+  have hokFalse :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L6 } evm
+        (.var "ok") = .ok (.bool false) := by
+    exact evalExpr_reveal_var_value evm L6 "ok" (.bool false) (by simp [L6])
+  have hbidL6 :
+      L6.get? "bidToCheck" =
+        some (.storageRef (scratch_revealBidEvaledRef evm i) bidStructTy) := by
+    simpa [L6, Std.HashMap.getElem?_insert, Std.HashMap.get?_eq_getElem?] using hbidL5
+  have hzero :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L6 } evm
+        (.cast (.intLit 0) bytes32St) =
+          .ok (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (EVM.Word.ofNat 0))) :=
+    scratch_evalExpr_reveal_cast_zero_bytes32 evm L6
+  have hassignZero :
+      assignStorageRef? blindAuctionConfig { contract := blindAuctionContract, locals := L6 } evm
+        .storage (aliasF "bidToCheck" "blindedBid")
+        (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (EVM.Word.ofNat 0))) =
+          .ok ({ contract := blindAuctionContract, locals := L6 },
+            scratch_revealZeroBlindedState evm i) :=
+    scratch_assign_reveal_blinded_zero evm L6 i hbidL6
+  have hplaceThen :
+      ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
+        [ .internalCall "placeBid" [sender, .var "value"] "ok",
+          .ite (.var "ok")
+            [ .assign .localVar { base := "refund" }
+                (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ]
+        (.ok { contract := blindAuctionContract, locals := L6 } evm) := by
+    refine ExecBlock.consNormal hcall ?_
+    exact ExecBlock.consNormal (ExecStmt.iteFalse hokFalse ExecBlock.nil) ExecBlock.nil
+  have hplaceIte :
+      ExecStmt blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
+        (.ite
+          (.binary .and (.unary .not (.var "fake"))
+            (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
+          [ .internalCall "placeBid" [sender, .var "value"] "ok",
+            .ite (.var "ok")
+              [ .assign .localVar { base := "refund" }
+                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [])
+        (.ok { contract := blindAuctionContract, locals := L6 } evm) :=
+    ExecStmt.iteTrue hcondTrue hplaceThen
+  have htail :
+      ExecBlock blindAuctionConfig
+        { contract := blindAuctionContract, locals := L4 } evm
+        (List.drop 4 scratch_revealLoopBodyStmts)
+        .staticViolation := by
+    change ExecBlock blindAuctionConfig
+      { contract := blindAuctionContract, locals := L4 } evm
+      [ .ite
+          (.binary .ne (.storage (aliasF "bidToCheck" "blindedBid"))
+            (.keccak256 (.abiEncodePacked
+              [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
+          [.continue] [],
+        .assign .localVar { base := "refund" }
+          (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+        .ite
+          (.binary .and (.unary .not (.var "fake"))
+            (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
+          [ .internalCall "placeBid" [sender, .var "value"] "ok",
+            .ite (.var "ok")
+              [ .assign .localVar { base := "refund" }
+                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+        .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
+      .staticViolation
+    refine ExecBlock.consNormal (ExecStmt.iteFalse hguard ExecBlock.nil) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign hadd hassignRefund) ?_
+    refine ExecBlock.consNormal (solm' := { contract := blindAuctionContract, locals := L6 })
+      (evm' := evm) hplaceIte ?_
+    exact ExecBlock.consStatic (ExecStmt.assignStatic hzero hassignZero hperm)
+  exact
+    scratch_revealLoopBody_prefix_exec_of_get evm locals values fakes secrets len refund i value
+      secret false fakeRaw hbids hvalues hfakes hsecrets hi hlen hboundBids hboundValues
+      hboundFakes hboundSecrets hvalueLookup hfakeLookup hfakeNorm hsecretLookup htail
+
+theorem scratch_revealLoopBody_static_placeBid_true_core_of_get (evm : EVM.State)
+    (locals : Store)
+    (values fakes secrets : List Value) (len refund i value secret blinded deposit : UInt256)
+    (fakeRaw : Value) (hashBytes : List UInt8)
+    (hbids : locals.get? "bids" = none)
+    (hvalues : locals.get? "values" = some (.array values))
+    (hfakes : locals.get? "fakes" = some (.array fakes))
+    (hsecrets : locals.get? "secrets" = some (.array secrets))
+    (hi : locals.get? "i" = some (.int (Int.ofNat i.toNat)))
+    (hrefund : locals.get? "refund" = some (.int (Int.ofNat refund.toNat)))
+    (hlen :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bidsBase (.address evm.executionEnv.source)) = len)
+    (hboundBids : i.toNat < len.toNat)
+    (hboundValues : i.toNat < values.length)
+    (hboundFakes : i.toNat < fakes.length)
+    (hboundSecrets : i.toNat < secrets.length)
+    (hvalueLookup :
+      lookupNth? values i.toNat = some (.int (Int.ofNat value.toNat)))
+    (hfakeLookup : lookupNth? fakes i.toNat = some fakeRaw)
+    (hfakeNorm : normalizeRawBoolWord? fakeRaw = .ok (.bool false))
+    (hsecretLookup :
+      lookupNth? secrets i.toNat =
+        some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret)))
+    (hblinded :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (scratch_revealBidBlindedSlot evm i) = blinded)
+    (hdeposit :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (scratch_revealBidDepositSlot evm i) = deposit)
+    (hhash :
+      evalExpr? blindAuctionConfig
+        { contract := blindAuctionContract,
+          locals := scratch_revealSecretStoreOf locals evm i value secret false } evm
+        scratch_revealPackedHashExpr =
+        .ok (.fixedBytes ⟨31, by decide⟩ hashBytes))
+    (heq : EVM.Word.toBytesBE blinded = hashBytes)
+    (hfit : refund.toNat + deposit.toNat < UInt256.size)
+    (hdepositGe : value.toNat ≤ deposit.toNat)
+    (hplaceBody :
+      ExecTransitionBody blindAuctionConfig blindAuctionContract evm
+        (scratch_placeBidStore evm.executionEnv.source value) placeBidFn.body .staticViolation) :
+    ExecBlock blindAuctionConfig
+      { contract := blindAuctionContract, locals := locals }
+      evm scratch_revealLoopBodyStmts .staticViolation := by
+  let L4 := scratch_revealSecretStoreOf locals evm i value secret false
+  let L5 := scratch_revealRefundAddedStoreOf locals evm i refund value secret deposit false
+  have hbidL4 :
+      L4.get? "bidToCheck" =
+        some (.storageRef (scratch_revealBidEvaledRef evm i) bidStructTy) := by
+    simpa [L4] using scratch_revealSecretStoreOf_bid_get locals evm i value secret false
+  have hguard :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
+        (.binary .ne (.storage (aliasF "bidToCheck" "blindedBid"))
+          (.keccak256 (.abiEncodePacked
+            [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")]))) =
+          .ok (.bool false) := by
+    simpa [scratch_revealPackedHashExpr, L4] using
+      scratch_evalExpr_reveal_hash_guard_false evm L4 i blinded hashBytes hbidL4 hblinded
+        (by simpa [L4] using hhash) heq
+  have hrefundL4 :
+      L4.get? "refund" = some (.int (Int.ofNat refund.toNat)) := by
+    simpa [L4] using
+      scratch_revealSecretStoreOf_refund_get locals evm i refund value secret false hrefund
+  have hadd :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
+        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
+          .ok (.int (Int.ofNat (refund.toNat + deposit.toNat))) :=
+    scratch_evalExpr_reveal_refund_add_deposit evm L4 i refund deposit hbidL4 hrefundL4
+      hdeposit hfit
+  have hassignRefund :
+      assignStorageRef? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
+        .localVar { base := "refund" } (.int (Int.ofNat (refund.toNat + deposit.toNat))) =
+          .ok ({ contract := blindAuctionContract, locals := L5 }, evm) := by
+    simpa [L5, scratch_revealRefundAddedStoreOf, L4] using
+      scratch_assign_local_value evm L4 "refund" (.int (Int.ofNat refund.toNat))
+        (.int (Int.ofNat (refund.toNat + deposit.toNat))) hrefundL4
+  have hbidL5 :
+      L5.get? "bidToCheck" =
+        some (.storageRef (scratch_revealBidEvaledRef evm i) bidStructTy) := by
+    simpa [L5] using
+      scratch_revealRefundAddedStoreOf_bid_get locals evm i refund value secret deposit false
+  have hvalueL5 :
+      L5.get? "value" = some (.int (Int.ofNat value.toNat)) := by
+    simpa [L5] using
+      scratch_revealRefundAddedStoreOf_value_get locals evm i refund value secret deposit false
+  have hfakeL5 : L5.get? "fake" = some (.bool false) := by
+    simpa [L5] using
+      scratch_revealRefundAddedStoreOf_fake_get locals evm i refund value secret deposit false
+  have hcondTrue :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
+        (.binary .and (.unary .not (.var "fake"))
+          (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value"))) =
+          .ok (.bool true) :=
+    scratch_evalExpr_reveal_placeBid_cond_true evm L5 i value deposit hbidL5 hfakeL5
+      hvalueL5 hdeposit hdepositGe
+  have hcall :
+      ExecStmt blindAuctionConfig { contract := blindAuctionContract, locals := L5 } evm
+        (.internalCall "placeBid" [sender, .var "value"] "ok") .staticViolation :=
+    ExecStmt.internalCallStatic
+      (scratch_evalExprs_reveal_placeBid_args evm L5 value hvalueL5)
+      scratch_placeBid_lookup
+      (by simpa [FunctionDecl.toCallable] using
+        scratch_placeBid_bind evm.executionEnv.source value)
+      (by simpa [ExecTransitionBody, FunctionDecl.toCallable] using hplaceBody)
+  have htail :
+      ExecBlock blindAuctionConfig
+        { contract := blindAuctionContract, locals := L4 } evm
+        (List.drop 4 scratch_revealLoopBodyStmts) .staticViolation := by
+    change ExecBlock blindAuctionConfig
+      { contract := blindAuctionContract, locals := L4 } evm
+      [ .ite
+          (.binary .ne (.storage (aliasF "bidToCheck" "blindedBid"))
+            (.keccak256 (.abiEncodePacked
+              [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
+          [.continue] [],
+        .assign .localVar { base := "refund" }
+          (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+        .ite
+          (.binary .and (.unary .not (.var "fake"))
+            (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
+          [ .internalCall "placeBid" [sender, .var "value"] "ok",
+            .ite (.var "ok")
+              [ .assign .localVar { base := "refund" }
+                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+        .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
+      .staticViolation
+    refine ExecBlock.consNormal (ExecStmt.iteFalse hguard ExecBlock.nil) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign hadd hassignRefund) ?_
+    exact ExecBlock.consStatic (ExecStmt.iteTrue hcondTrue (ExecBlock.consStatic hcall))
+  exact scratch_revealLoopBody_prefix_exec_of_get evm locals values fakes secrets len refund i value
+    secret false fakeRaw hbids hvalues hfakes hsecrets hi hlen hboundBids hboundValues
+    hboundFakes hboundSecrets hvalueLookup hfakeLookup hfakeNorm hsecretLookup htail
+
+theorem scratch_revealLoopBody_static_placeBid_true_zero_of_get (evm : EVM.State) (locals : Store)
+    (values fakes secrets : List Value) (len refund i value secret blinded deposit high old : UInt256)
+    (fakeRaw : Value) (hashBytes : List UInt8)
+    (hbids : locals.get? "bids" = none)
+    (hvalues : locals.get? "values" = some (.array values))
+    (hfakes : locals.get? "fakes" = some (.array fakes))
+    (hsecrets : locals.get? "secrets" = some (.array secrets))
+    (hi : locals.get? "i" = some (.int (Int.ofNat i.toNat)))
+    (hrefund : locals.get? "refund" = some (.int (Int.ofNat refund.toNat)))
+    (hlen :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bidsBase (.address evm.executionEnv.source)) = len)
+    (hboundBids : i.toNat < len.toNat)
+    (hboundValues : i.toNat < values.length)
+    (hboundFakes : i.toNat < fakes.length)
+    (hboundSecrets : i.toNat < secrets.length)
+    (hvalueLookup :
+      lookupNth? values i.toNat = some (.int (Int.ofNat value.toNat)))
+    (hfakeLookup : lookupNth? fakes i.toNat = some fakeRaw)
+    (hfakeNorm : normalizeRawBoolWord? fakeRaw = .ok (.bool false))
+    (hsecretLookup :
+      lookupNth? secrets i.toNat =
+        some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret)))
+    (hblinded :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (scratch_revealBidBlindedSlot evm i) = blinded)
+    (hdeposit :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (scratch_revealBidDepositSlot evm i) = deposit)
+    (hhigh : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩ = high)
+    (hold : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩ = old)
+    (hhash :
+      evalExpr? blindAuctionConfig
+        { contract := blindAuctionContract,
+          locals := scratch_revealSecretStoreOf locals evm i value secret false } evm
+        scratch_revealPackedHashExpr =
+        .ok (.fixedBytes ⟨31, by decide⟩ hashBytes))
+    (heq : EVM.Word.toBytesBE blinded = hashBytes)
+    (hfit : refund.toNat + deposit.toNat < UInt256.size)
+    (hdepositGe : value.toNat ≤ deposit.toNat)
+    (hlt : high.toNat < value.toNat)
+    (hzero : UInt256.land old solcAddrMask = ⟨0⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecBlock blindAuctionConfig
+      { contract := blindAuctionContract, locals := locals }
+      evm scratch_revealLoopBodyStmts .staticViolation :=
+  scratch_revealLoopBody_static_placeBid_true_core_of_get evm locals values fakes
+    secrets len refund i value secret blinded deposit fakeRaw hashBytes hbids hvalues hfakes
+    hsecrets hi hrefund hlen hboundBids hboundValues hboundFakes hboundSecrets hvalueLookup
+    hfakeLookup hfakeNorm hsecretLookup hblinded hdeposit hhash heq hfit hdepositGe
+    (scratch_blindAuctionPlaceBidBodyStatic_true_zero evm evm.executionEnv.source value high
+      old hhigh hold hlt hzero hperm)
+
+theorem scratch_revealLoopBody_static_placeBid_true_nonzero_of_get (evm : EVM.State)
+    (locals : Store) (values fakes secrets : List Value)
+    (len refund i value secret blinded deposit high old pending : UInt256)
+    (oldAddr : AccountAddress) (fakeRaw : Value) (hashBytes : List UInt8)
+    (hbids : locals.get? "bids" = none)
+    (hvalues : locals.get? "values" = some (.array values))
+    (hfakes : locals.get? "fakes" = some (.array fakes))
+    (hsecrets : locals.get? "secrets" = some (.array secrets))
+    (hi : locals.get? "i" = some (.int (Int.ofNat i.toNat)))
+    (hrefund : locals.get? "refund" = some (.int (Int.ofNat refund.toNat)))
+    (hlen :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bidsBase (.address evm.executionEnv.source)) = len)
+    (hboundBids : i.toNat < len.toNat)
+    (hboundValues : i.toNat < values.length)
+    (hboundFakes : i.toNat < fakes.length)
+    (hboundSecrets : i.toNat < secrets.length)
+    (hvalueLookup :
+      lookupNth? values i.toNat = some (.int (Int.ofNat value.toNat)))
+    (hfakeLookup : lookupNth? fakes i.toNat = some fakeRaw)
+    (hfakeNorm : normalizeRawBoolWord? fakeRaw = .ok (.bool false))
+    (hsecretLookup :
+      lookupNth? secrets i.toNat =
+        some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret)))
+    (hblinded :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (scratch_revealBidBlindedSlot evm i) = blinded)
+    (hdeposit :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (scratch_revealBidDepositSlot evm i) = deposit)
+    (hhigh : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩ = high)
+    (hold : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩ = old)
+    (holdAddr : oldAddr = AccountAddress.ofNat (UInt256.land old solcAddrMask).toNat)
+    (hpending : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (pendingReturnsSlot (.address oldAddr)) = pending)
+    (hhash :
+      evalExpr? blindAuctionConfig
+        { contract := blindAuctionContract,
+          locals := scratch_revealSecretStoreOf locals evm i value secret false } evm
+        scratch_revealPackedHashExpr =
+        .ok (.fixedBytes ⟨31, by decide⟩ hashBytes))
+    (heq : EVM.Word.toBytesBE blinded = hashBytes)
+    (hfit : refund.toNat + deposit.toNat < UInt256.size)
+    (hdepositGe : value.toNat ≤ deposit.toNat)
+    (hlt : high.toNat < value.toNat)
+    (hnonzero : UInt256.land old solcAddrMask ≠ ⟨0⟩)
+    (hsum : pending.toNat + high.toNat < UInt256.size)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecBlock blindAuctionConfig
+      { contract := blindAuctionContract, locals := locals }
+      evm scratch_revealLoopBodyStmts .staticViolation :=
+  scratch_revealLoopBody_static_placeBid_true_core_of_get evm locals values fakes
+    secrets len refund i value secret blinded deposit fakeRaw hashBytes hbids hvalues hfakes
+    hsecrets hi hrefund hlen hboundBids hboundValues hboundFakes hboundSecrets hvalueLookup
+    hfakeLookup hfakeNorm hsecretLookup hblinded hdeposit hhash heq hfit hdepositGe
+    (scratch_blindAuctionPlaceBidBodyStatic_true_nonzero evm evm.executionEnv.source oldAddr
+      value high old pending hhigh hold holdAddr hpending hlt hnonzero hsum hperm)
 
 end BlindAuction

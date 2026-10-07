@@ -110,7 +110,7 @@ theorem uniswapMintAfterMintFeeCases
     (hkLast : nextLocals.get? "kLast" = none)
     (hunlocked : nextLocals.get? "unlocked" = none)
     (hperm : I.perm = true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases htotalZero : totalSupply = ⟨0⟩
   · exact uniswapMintInitialAfterMintFeeCases nextLocals recipient fee hcode hdispatch hsz36
       hwv hunlockedSolm hguard0 hguard1 hcall0 hdec0 hcall1 hdec1 hle0Source hle1Source

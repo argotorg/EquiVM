@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Clipper
 
 /-! The source-level `kick` prefix through construction of `sales[id]`. -/
 
-def clipperKickAfterInitializationBody (v : ClipperImmutables) : List Stmt :=
+def clipperKickAfterInitializationBody : List Stmt :=
   [ .internalCall "getFeedPrice" [] "feedPrice",
     .internalCall "rmul" [.var "feedPrice", .storage bufRef] "top",
     .require (.binary .gt (.var "top") (.intLit 0)),
@@ -21,7 +21,7 @@ def clipperKickAfterInitializationBody (v : ClipperImmutables) : List Stmt :=
       ([ .internalCall "wmul" [.var "tab", .var "_chip"] "chipCoin" ] ++
         checkedAddUintInto "coinNew" (.var "_tip") (.var "chipCoin") ++
         [ .assign .localVar (varRef "coin") (.var "coinNew") ] ++
-        checkedExternalCallStmts (vatExpr v) "suck" (.intLit 0)
+        checkedExternalCallStmts vatExpr "suck" (.intLit 0)
           [.storage vowRef, .var "kpr", .var "coin"] "_suckRet")
       [],
     .assign .storage lockedRef (.intLit 0),
@@ -45,65 +45,65 @@ theorem clipperKickSourcePrefix
         UInt256.size)
     {result : ExecResult}
     (hafter :
-      ExecBlock (config v)
-        { contract := contract v,
-          locals := clipperKickLocalsActivePos (clipperKickLockedState evm) I }
+      ExecBlock config
+        { contract := contract,
+          locals := clipperKickLocalsActivePos (clipperKickLockedState evm) I, immutables := immStore v }
         (clipperKickSourceInitializedState (clipperKickLockedState evm) I)
-        (clipperKickAfterInitializationBody v) result) :
-    ExecBlock (config v) { contract := contract v, locals := clipperKickStore I }
-      evm (kickTransition v).body result := by
+        (clipperKickAfterInitializationBody) result) :
+    ExecBlock config { contract := contract, locals := clipperKickStore I, immutables := immStore v }
+      evm kickTransition.body result := by
   let evmLock := clipperKickLockedState evm
-  let startFrame : Frame := { contract := contract v, locals := clipperKickStore I }
+  let startFrame : Frame := { contract := contract, locals := clipperKickStore I, immutables := immStore v }
   let idFrame : Frame :=
-    { contract := contract v, locals := clipperKickLocalsId evmLock I }
+    { contract := contract, locals := clipperKickLocalsId evmLock I, immutables := immStore v }
   let posFrame : Frame :=
-    { contract := contract v, locals := clipperKickLocalsActivePos evmLock I }
+    { contract := contract, locals := clipperKickLocalsActivePos evmLock I, immutables := immStore v }
   have hauthEval :
-      evalExpr? (config v) startFrame evm
+      evalExpr? config startFrame evm
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     exact evalExpr_clipperAuth_true v evm I (clipperKickStore I) hsrc
       (clipperKickStore_get_wards I) hauth
   have hlockedEval :
-      evalExpr? (config v) startFrame evm
+      evalExpr? config startFrame evm
         (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool true) := by
     exact evalExpr_clipperLocked_zero_true v evm (clipperKickStore I)
       (clipperKickStore_get_locked I) hlocked
   have hlockAssign :
-      ExecStmt (config v) startFrame evm
+      ExecStmt config startFrame evm
         (.assign .storage lockedRef (.intLit 1)) (.ok startFrame evmLock) := by
-    have hone : evalExpr? (config v) startFrame evm (.intLit 1) =
+    have hone : evalExpr? config startFrame evm (.intLit 1) =
         .ok (.int 1) := by simp [startFrame, evalExpr?, pure]
     apply ExecStmt.assign hone
     simpa [startFrame, evmLock, clipperKickLockedState] using
       assign_clipperLocked v evm (clipperKickStore I)
         (clipperKickStore_get_locked I) ⟨1⟩
   have hstoppedEval :
-      evalExpr? (config v) startFrame evmLock
+      evalExpr? config startFrame evmLock
         (.binary .lt (.storage stoppedRef) (.intLit 1)) = .ok (.bool true) := by
     exact evalExpr_clipperStopped_lt_one v evmLock (clipperKickStore I)
       (clipperKickStore_get_stopped I) hstopped
   have hidLet :
-      ExecStmt (config v) startFrame evmLock
+      ExecStmt config startFrame evmLock
         (.letDecl "id" (some uint256)
           (wrap256 (.binary .add (.storage kicksRef) (.intLit 1))))
         (.ok idFrame evmLock) := by
     simpa [startFrame, idFrame, evmLock] using
       (ExecStmt.letDecl (clipperEvalKickIdExpr v evmLock I))
   have hidAssign :
-      ExecStmt (config v) idFrame evmLock
+      ExecStmt config idFrame evmLock
         (.assign .storage kicksRef (.var "id"))
         (.ok idFrame (clipperKickSourceIdState evmLock)) := by
-    have hidValue : evalExpr? (config v) idFrame evmLock (.var "id") =
+    have hidValue : evalExpr? config idFrame evmLock (.var "id") =
         .ok (.int (Int.ofNat (clipperKickSourceIdWord evmLock).toNat)) := by
       simp only [idFrame, evalExpr?, clipperKickLocalsId, store_get_self,
         EvalResult.ofOption]
     apply ExecStmt.assign hidValue
     · simpa [idFrame] using clipperKickAssignId v evmLock I
   have hpush :
-      ExecStmt (config v) idFrame (clipperKickSourceIdState evmLock)
+      ExecStmt config idFrame (clipperKickSourceIdState evmLock)
         (.push activeRef (some (.var "id")))
         (.ok idFrame (clipperKickSourceActiveState evmLock)) := by
-    have hidValue : evalExpr? (config v) idFrame (clipperKickSourceIdState evmLock)
+    have hidValue : evalExpr? config idFrame (clipperKickSourceIdState evmLock)
         (.var "id") =
         .ok (.int (Int.ofNat (clipperKickSourceIdWord evmLock).toNat)) := by
       simp only [idFrame, evalExpr?, clipperKickLocalsId, store_get_self,
@@ -111,14 +111,14 @@ theorem clipperKickSourcePrefix
     apply ExecStmt.pushVal hidValue
     · simpa [idFrame] using clipperKickPushActive v evmLock I hlen
   have hposLet :
-      ExecStmt (config v) idFrame (clipperKickSourceActiveState evmLock)
+      ExecStmt config idFrame (clipperKickSourceActiveState evmLock)
         (.letDecl "activePos" (some uint256)
           (wrap256 (.binary .sub (.arrayLength .storage activeRef) (.intLit 1))))
         (.ok posFrame (clipperKickSourceActiveState evmLock)) := by
     simpa [idFrame, posFrame] using
       (ExecStmt.letDecl (clipperEvalKickActivePosExpr v evmLock I))
   have hbody :
-      ExecBlock (config v) startFrame evm (kickTransition v).body result := by
+      ExecBlock config startFrame evm kickTransition.body result := by
     simpa [kickTransition, nonpayable, auth, lockPrefix, isStopped,
       wrappingSubInto, checkedAddUintInto, checkedExternalCallStmts,
       clipperKickAfterInitializationBody, startFrame, idFrame, posFrame,

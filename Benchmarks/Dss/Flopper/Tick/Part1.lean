@@ -261,7 +261,7 @@ theorem evalExpr_tick_end_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 26)))
       uint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "end") (er := tickEndEvaledRef I)
     (t := .int uint48Int)
@@ -295,7 +295,7 @@ theorem evalExpr_tick_tic_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 20)))
       uint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "tic") (er := tickTicEvaledRef I)
     (t := .int uint48Int)
@@ -317,7 +317,7 @@ theorem evalExpr_tick_lot_storage (evm : EVM.State) (I : ExecutionEnv) :
         (.storage (bidsF (.var "id") "lot")) =
       .ok (.int (Int.ofNat (tickLotWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := tickLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "lot") (er := tickLotEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionLotSlot (tickIdWord I)))
@@ -338,7 +338,7 @@ theorem evalExpr_tick_pad_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := tickLocals I } evm (.storage padRef) =
       .ok (.int (Int.ofNat (tickPadWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := tickLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := padRef) (er := tickPadEvaledRef)
     (t := .int uint256Int) (loc := wordLoc ⟨5⟩)
@@ -363,7 +363,7 @@ theorem evalExpr_tick_tau_storage (evm0 evm : EVM.State) (I : ExecutionEnv) :
       (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩)
         (UInt256.ofNat (256 ^ 6))) uint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := tauRef) (er := tickTauEvaledRef)
     (t := .int uint48Int) (loc := uint48Loc ⟨6⟩ ⟨6, by decide⟩ (by decide))
@@ -434,7 +434,7 @@ theorem evalExpr_tick_lot_storage_lotBaseLocals (evm0 evm : EVM.State)
         (.storage (bidsF (.var "id") "lot")) =
       .ok (.int (Int.ofNat (tickLotWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := tickLotBaseLocals evm0 I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "lot") (er := tickLotEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionLotSlot (tickIdWord I)))
@@ -456,7 +456,7 @@ theorem evalExpr_tick_pad_storage_lotBaseLocals (evm0 evm : EVM.State) (I : Exec
         (.storage padRef) =
       .ok (.int (Int.ofNat (tickPadWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := tickLotBaseLocals evm0 I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := padRef) (er := tickPadEvaledRef)
     (t := .int uint256Int) (loc := wordLoc ⟨5⟩)
@@ -631,10 +631,10 @@ theorem assign_tickLotStorage (evm0 evm : EVM.State) (I : ExecutionEnv) :
       .ok ({ contract := contract, locals := tickLotBaseLocals evm0 I },
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner (auctionLotSlot (tickIdWord I))
           (tickLotPostWord evm0 I)) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := tickLotEvaledRef I)
-      (loc := wordLoc (auctionLotSlot (tickIdWord I)))
+      (loc := wordLoc (auctionLotSlot (tickIdWord I))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := tickLotBaseLocals_get_bids evm0 I)
       (her := by
         simpa [tickLotEvaledRef, tickIdValue] using
@@ -644,8 +644,7 @@ theorem assign_tickLotStorage (evm0 evm : EVM.State) (I : ExecutionEnv) :
         simp [auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
           BidStructTy, uint256St])
       (hloc := by
-        funext evm'
-        exact auctionLotLayout evm' (tickIdWord I))
+        exact auctionLotLayout evm (tickIdWord I))
   simpa [wordLoc, uint256Loc] using
     storageLocStore_uint256 evm (auctionLotSlot (tickIdWord I)) (tickLotPostWord evm0 I)
 
@@ -853,10 +852,10 @@ theorem assign_tickEndStorage (evm : EVM.State) (I : ExecutionEnv) :
       .storage (bidsF (.var "id") "end")
         (.int (Int.ofNat (tickEndPostWord evm I).toNat % uint48Modulus)) =
       .ok ({ contract := contract, locals := tickEndLocals evm I }, tickPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint48St)
       (er := tickEndEvaledRef I)
-      (loc := uint48Loc (auctionPackedSlot (tickIdWord I)) ⟨26, by decide⟩ (by decide))
+      (loc := uint48Loc (auctionPackedSlot (tickIdWord I)) ⟨26, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := tickEndLocals_get_bids evm I)
       (her := by
         simpa [tickEndEvaledRef, tickIdValue] using
@@ -867,8 +866,7 @@ theorem assign_tickEndStorage (evm : EVM.State) (I : ExecutionEnv) :
         simp [auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
           BidStructTy, uint48St])
       (hloc := by
-        funext evm'
-        exact auctionEndLayout evm' (tickIdWord I))
+        exact auctionEndLayout evm (tickIdWord I))
   simpa [tickPostState, tickEndStoredWord, uint48Loc] using
     storageLocStore_uint48_offset26_word (tickAfterLotStore evm I)
       (auctionPackedSlot (tickIdWord I)) (tickEndPostWord evm I)
@@ -1005,6 +1003,76 @@ theorem flopperTickBodyReverts_addOverflow (evm : EVM.State) (I : ExecutionEnv)
         (ExecStmt.requireTrue (evalExpr_tick_mul_guard_true evm I hmulFit)) <|
       htail)
 
+theorem flopperTickBodyReturns_successSplit (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hendLt : (tickEndWord evm I).toNat < (tickTimestampWord evm).toNat)
+    (htic : tickTicWord evm I = ⟨0⟩)
+    (hmulFit : (tickPadWord evm).toNat * (tickLotWord evm I).toNat < UInt256.size) :
+    (((tickNow48Word evm).toNat + (tickTauWord (tickAfterLotStore evm I)).toNat <
+        2 ^ 48) →
+      ExecTransitionBody config contract evm (tickLocals I) tickTransition.body
+      (.returned { contract := contract, locals := tickEndLocals evm I }
+        (tickPostState evm I) none)) ∧
+      (evm.executionEnv.perm = false →
+        ExecTransitionBody config contract evm (tickLocals I)
+          tickTransition.body .staticViolation) := by
+  have hprefix {result : ExecResult}
+      (hwrite : ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evm
+        (tickTransition.body.drop 5) result) :
+      ExecBlock config { contract := contract, locals := tickLocals I } evm
+        tickTransition.body result := by
+    simpa [tickTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
+      using
+      (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_tick_end_lt_timestamp_true evm I hendLt)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_tick_tic_eq_zero_true evm I htic)) <|
+        ExecBlock.consNormal
+          (ExecStmt.letDecl (evalExpr_tick_lotBase_ok evm I hmulFit)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_tick_mul_guard_true evm I hmulFit)) <|
+        hwrite)
+  constructor
+  · intro haddFit
+    let evmLot := tickAfterLotStore evm I
+    have hlotAssign :
+        ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evm
+          [.assign .storage (bidsF (.var "id") "lot")
+            (.binary .div (.var "lotBase") (.intLit ONE))]
+          (.ok { contract := contract, locals := tickLotBaseLocals evm I } evmLot) := by
+      exact ExecBlock.consNormal
+        (ExecStmt.assign (evalExpr_tick_lotPost evm I)
+          (by simpa [evmLot] using assign_tickLotStorage evm evm I))
+        ExecBlock.nil
+    have hendLet :
+        ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evmLot
+          (checkedAdd48Into "end_" now48 (.storage tauRef) ++
+            [.assign .storage (bidsF (.var "id") "end") (.var "end_")])
+          (.ok { contract := contract, locals := tickEndLocals evm I } (tickPostState evm I)) := by
+      simpa [checkedAdd48Into, evmLot] using
+        (ExecBlock.consNormal
+          (ExecStmt.letDecl (evalExpr_tick_endAdd_ok evm I haddFit)) <|
+          ExecBlock.consNormal
+            (ExecStmt.requireTrue (evalExpr_tick_end_guard_true evm I haddFit)) <|
+          ExecBlock.consNormal
+            (ExecStmt.assign (evalExpr_tick_end_var evm I)
+              (assign_tickEndStorage_value evm I haddFit))
+            ExecBlock.nil)
+    have htail :
+        ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evm
+          ([.assign .storage (bidsF (.var "id") "lot")
+              (.binary .div (.var "lotBase") (.intLit ONE))] ++
+            (checkedAdd48Into "end_" now48 (.storage tauRef) ++
+              [.assign .storage (bidsF (.var "id") "end") (.var "end_")]))
+          (.ok { contract := contract, locals := tickEndLocals evm I } (tickPostState evm I)) :=
+     execBlock_append hlotAssign hendLet
+    exact ExecFuncBody.execBlockOK (hprefix htail)
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic
+        (evalExpr_tick_lotPost evm I) (assign_tickLotStorage evm evm I) hperm)))
+
 theorem flopperTickBodyReturns_success (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hendLt : (tickEndWord evm I).toNat < (tickTimestampWord evm).toNat)
@@ -1015,52 +1083,8 @@ theorem flopperTickBodyReturns_success (evm : EVM.State) (I : ExecutionEnv)
         2 ^ 48) :
     ExecTransitionBody config contract evm (tickLocals I) tickTransition.body
       (.returned { contract := contract, locals := tickEndLocals evm I }
-        (tickPostState evm I) none) := by
-  let evmLot := tickAfterLotStore evm I
-  have hlotAssign :
-      ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evm
-        [.assign .storage (bidsF (.var "id") "lot")
-          (.binary .div (.var "lotBase") (.intLit ONE))]
-        (.ok { contract := contract, locals := tickLotBaseLocals evm I } evmLot) := by
-    exact ExecBlock.consNormal
-      (ExecStmt.assign (evalExpr_tick_lotPost evm I)
-        (by simpa [evmLot] using assign_tickLotStorage evm evm I))
-      ExecBlock.nil
-  have hendLet :
-      ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evmLot
-        (checkedAdd48Into "end_" now48 (.storage tauRef) ++
-          [.assign .storage (bidsF (.var "id") "end") (.var "end_")])
-        (.ok { contract := contract, locals := tickEndLocals evm I } (tickPostState evm I)) := by
-    simpa [checkedAdd48Into, evmLot] using
-      (ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tick_endAdd_ok evm I haddFit)) <|
-        ExecBlock.consNormal
-          (ExecStmt.requireTrue (evalExpr_tick_end_guard_true evm I haddFit)) <|
-        ExecBlock.consNormal
-          (ExecStmt.assign (evalExpr_tick_end_var evm I)
-            (assign_tickEndStorage_value evm I haddFit))
-          ExecBlock.nil)
-  have htail :
-      ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evm
-        ([.assign .storage (bidsF (.var "id") "lot")
-            (.binary .div (.var "lotBase") (.intLit ONE))] ++
-          (checkedAdd48Into "end_" now48 (.storage tauRef) ++
-            [.assign .storage (bidsF (.var "id") "end") (.var "end_")]))
-        (.ok { contract := contract, locals := tickEndLocals evm I } (tickPostState evm I)) :=
-   execBlock_append hlotAssign hendLet
-  refine ExecFuncBody.execBlockOK ?_
-  simpa [tickTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
-    using
-    (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_tick_end_lt_timestamp_true evm I hendLt)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_tick_tic_eq_zero_true evm I htic)) <|
-      ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tick_lotBase_ok evm I hmulFit)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_tick_mul_guard_true evm I hmulFit)) <|
-      htail)
+        (tickPostState evm I) none) :=
+  (flopperTickBodyReturns_successSplit evm I hwv hendLt htic hmulFit).1 haddFit
 
 
 theorem flopperDecode_tick_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :

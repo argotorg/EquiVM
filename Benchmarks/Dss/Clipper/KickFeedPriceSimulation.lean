@@ -18,7 +18,7 @@ inductive ClipperKickIlksOutcome (v : ClipperImmutables) (code : ByteArray)
     (callerLocals : Store) (sourceEvm : EVM.State)
     (ret scratch lot tab : UInt256) (R : List UInt256) : Prop
   | reverted
-      (hsource : ExecStmt (config v) { contract := contract v, locals := callerLocals }
+      (hsource : ExecStmt config { contract := contract, locals := callerLocals, immutables := immStore v }
         sourceEvm (.internalCall "getFeedPrice" [] "feedPrice") .reverted)
       (hevm : RDrev code (Sat256.ofUInt256 g) s0)
   | ready
@@ -27,10 +27,10 @@ inductive ClipperKickIlksOutcome (v : ClipperImmutables) (code : ByteArray)
       (hcode : 0 < (UInt256.ofNat ((sourceEvm.lookupAccount
         (clipperGetFeedPriceSpotterAddress sourceEvm)).option 0
           (fun acc => acc.code.size))).toNat)
-      (hcall : typedCallViaEVM (config v) sourceEvm
+      (hcall : typedCallViaEVM config sourceEvm
         (EVM.address (clipperGetFeedPriceSpotterAddress sourceEvm))
         "spotterIlks" 0 [v.ilk] (true, evmIlks, outIlks))
-      (hdec : (config v).externalABI.decode? "spotterIlks" outIlks =
+      (hdec : config.externalABI.decode? "spotterIlks" outIlks =
         some (clipperSpotterIlksValues outIlks))
       (halign : ClipperKickCallAligned s0 σ I evmIlks)
       (hout : outIlks.size < UInt256.size)
@@ -45,7 +45,7 @@ inductive ClipperKickIlksOutcome (v : ClipperImmutables) (code : ByteArray)
         mem (UInt256.ofNat 6) outIlks σ k C)
       (hmem : mem.size = 192)
       (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-      (hcalldata : (config v).externalABI.encode? "peek" [] =
+      (hcalldata : config.externalABI.encode? "peek" [] =
         some (mem.readWithPadding 128 4))
 
 theorem clipperKickSimulateSpotterIlks
@@ -100,7 +100,7 @@ theorem clipperKickSimulateSpotterIlks
             halignIlks⟩ := clipperKickCallAligned_transport halign hcallIlks
         have haddr := clipperKickSpotterAddress_eq_of_aligned halign
         have hcodeSolm := clipperKickHasCode_of_aligned halign haddr hspotter
-        have hdec := clipperSpotterIlksDecode_none_short (v := v) hshort
+        have hdec := clipperSpotterIlksDecode_none_short hshort
         have hsource := clipperGetFeedPriceCallRevertsSpotterIlksDecode
           v callerLocals "feedPrice" hcodeSolm
             (by simpa [haddr] using hcallIlksSolm) hdec
@@ -123,9 +123,9 @@ theorem clipperKickSimulateSpotterIlks
           v hmem hread64 houtIlks
         have hreadPeek : memPeek.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
           simpa [memPeek] using clipperKickPipPeekSelectorMem_read64 hmemPost hreadPost
-        have hcalldata : (config v).externalABI.encode? "peek" [] =
+        have hcalldata : config.externalABI.encode? "peek" [] =
             some (memPeek.readWithPadding 128 4) := by
-          simpa [memPeek] using clipperPipPeekEncode_eq v (by omega : 132 ≤
+          simpa [memPeek] using clipperPipPeekEncode_eq (by omega : 132 ≤
             (clipperSpotterIlksPostCallMem v mem outIlks).size)
         exact .ready σIlks outIlks evmIlks memPeek k8937 C8937
           hcodeSolm (by simpa [haddr] using hcallIlksSolm)
@@ -138,17 +138,16 @@ inductive ClipperKickPeekOutcome (v : ClipperImmutables) (code : ByteArray)
     (callerLocals : Store) (sourceEvm : EVM.State)
     (ret scratch lot tab : UInt256) (R : List UInt256) : Prop
   | reverted
-      (hsource : ExecStmt (config v) { contract := contract v, locals := callerLocals }
+      (hsource : ExecStmt config { contract := contract, locals := callerLocals, immutables := immStore v }
         sourceEvm (.internalCall "getFeedPrice" [] "feedPrice") .reverted)
       (hevm : RDrev code (Sat256.ofUInt256 g) s0)
   | ready
       (σ : AccountMap)
       (outIlks outPeek : ByteArray) (evmPeek : EVM.State)
       (mem : ByteArray) (k C : ℕ)
-      (hprefix : ExecBlock (config v) { contract := contract v, locals := ∅ }
-        sourceEvm (clipperGetFeedPriceSuccessPrefixStmts v)
-        (.ok (Frame.mk (contract v)
-          (clipperGetFeedPriceHasLocals outIlks outPeek)) evmPeek))
+      (hprefix : ExecBlock config { contract := contract, locals := ∅, immutables := immStore v }
+        sourceEvm (clipperGetFeedPriceSuccessPrefixStmts)
+        (.ok (Frame.mk contract (clipperGetFeedPriceHasLocals outIlks outPeek) (immStore v)) evmPeek))
       (halign : ClipperKickCallAligned s0 σ I evmPeek)
       (hout : outPeek.size < UInt256.size)
       (hlo : 64 ≤ outPeek.size)
@@ -215,7 +214,7 @@ theorem clipperKickSimulatePipPeek
               halignPeek⟩ := clipperKickCallAligned_transport halign hcallPeek
           have hcodePip := clipperKickHasCode_of_aligned halign
             (clipperSpotterIlksPipAddress_eq_target outIlks) hpip
-          have hdecPeek := clipperPipPeekDecode_none_short (v := v) hshort
+          have hdecPeek := clipperPipPeekDecode_none_short hshort
           have hsource := clipperGetFeedPriceCallRevertsPipPeekDecode
             v callerLocals "feedPrice" hcodeIlks hcallIlks hdecIlks hcodePip
               (by simpa using hcallPeekSolm) hdecPeek
@@ -242,7 +241,7 @@ theorem clipperKickSimulatePipPeek
                 halignPeek⟩ := clipperKickCallAligned_transport halign hcallPeek
             have hcodePip := clipperKickHasCode_of_aligned halign
               (clipperSpotterIlksPipAddress_eq_target outIlks) hpip
-            have hdecPeek := clipperPipPeekDecode_ok (v := v) hlo
+            have hdecPeek := clipperPipPeekDecode_ok hlo
             have hsource := clipperGetFeedPriceCallRevertsPipPeekHasFalse
               v callerLocals "feedPrice" hcodeIlks hcallIlks hdecIlks hcodePip
                 (by simpa using hcallPeekSolm) hdecPeek hhas
@@ -256,7 +255,7 @@ theorem clipperKickSimulatePipPeek
                 halignPeek⟩ := clipperKickCallAligned_transport halign hcallPeek
             have hcodePip := clipperKickHasCode_of_aligned halign
               (clipperSpotterIlksPipAddress_eq_target outIlks) hpip
-            have hdecPeek := clipperPipPeekDecode_ok (v := v) hlo
+            have hdecPeek := clipperPipPeekDecode_ok hlo
             have hprefix := clipperGetFeedPricePrefixToHas
               v hcodeIlks hcallIlks hdecIlks hcodePip
                 (by simpa using hcallPeekSolm) hdecPeek hhas
@@ -270,21 +269,21 @@ inductive ClipperKickFeedPriceOutcome (v : ClipperImmutables) (code : ByteArray)
     (callerLocals : Store) (sourceEvm : EVM.State)
     (ret scratch lot tab : UInt256) (R : List UInt256) : Prop
   | reverted
-      (hsource : ExecStmt (config v) (Frame.mk (contract v) callerLocals)
+      (hsource : ExecStmt config (Frame.mk contract callerLocals (immStore v))
         sourceEvm (.internalCall "getFeedPrice" [] "feedPrice") .reverted)
       (hevm : RDrev code (Sat256.ofUInt256 g) s0)
   | invalid
-      (hsource : ExecStmt (config v) (Frame.mk (contract v) callerLocals)
+      (hsource : ExecStmt config (Frame.mk contract callerLocals (immStore v))
         sourceEvm (.internalCall "getFeedPrice" [] "feedPrice") .reverted)
       (hevm : RDinvalid code (Sat256.ofUInt256 g) s0)
   | returned
       (feedPrice : UInt256)
       (σ : AccountMap)
       (sourceAfter : EVM.State) (mem : ByteArray) (out : ByteArray) (k C : ℕ)
-      (hsource : ExecStmt (config v) (Frame.mk (contract v) callerLocals)
+      (hsource : ExecStmt config (Frame.mk contract callerLocals (immStore v))
         sourceEvm (.internalCall "getFeedPrice" [] "feedPrice")
-        (.ok (Frame.mk (contract v) (callerLocals.insert "feedPrice"
-          (.int (Int.ofNat feedPrice.toNat)))) sourceAfter))
+        (.ok (Frame.mk contract (callerLocals.insert "feedPrice"
+          (.int (Int.ofNat feedPrice.toNat))) (immStore v)) sourceAfter))
       (halign : ClipperKickCallAligned s0 σ I sourceAfter)
       (hrd : RD code I (Sat256.ofUInt256 g) s0 ret
         (feedPrice :: scratch :: lot :: tab :: R)
@@ -342,9 +341,9 @@ theorem clipperKickFinishFeedPrice
         have hreadPar : memPar.readWithPadding 64 32 =
             UInt256.toByteArray ⟨128⟩ := by
           simpa [memPar] using clipperKickSpotterParSelectorMem_read64 hmem hread64
-        have hcalldata : (config v).externalABI.encode? "par" [] =
+        have hcalldata : config.externalABI.encode? "par" [] =
             some (memPar.readWithPadding 128 4) := by
-          simpa [memPar] using clipperKickSpotterParEncode_eq v hmem
+          simpa [memPar] using clipperKickSpotterParEncode_eq hmem
         obtain ⟨σPar, zPar, outPar, APar, k9180, C9180,
             rd9180, hcallPar, houtPar⟩ :=
           RD.clipperKickGetFeedPriceParPostCall
@@ -379,7 +378,7 @@ theorem clipperKickFinishFeedPrice
                 halignPar⟩ := clipperKickCallAligned_transport halign hcallPar
             have haddr := clipperKickSpotterAddress_eq_of_aligned halign
             have hcodePar := clipperKickHasCode_of_aligned halign haddr hspotter
-            have hdec := clipperSpotterParDecode_none_short (v := v) hshort
+            have hdec := clipperSpotterParDecode_none_short hshort
             have htail := clipperGetFeedPriceTailRevertsParDecode
               v outIlks outPeek (by omega) hmulVal hcodePar
                 (by simpa [haddr] using hcallParSolm) hdec
@@ -406,7 +405,7 @@ theorem clipperKickFinishFeedPrice
                 halignPar⟩ := clipperKickCallAligned_transport halign hcallPar
             have haddr := clipperKickSpotterAddress_eq_of_aligned halign
             have hcodePar := clipperKickHasCode_of_aligned halign haddr hspotter
-            have hdec := clipperSpotterParDecode_ok (v := v) hlo
+            have hdec := clipperSpotterParDecode_ok hlo
             let valBln := UInt256.mul (clipperPipPeekValueWord outPeek) ⟨1000000000⟩
             by_cases hoverRdiv : UInt256.size ≤ valBln.toNat * clipperRayWord.toNat
             · have hevm := RD.clipperGetFeedPriceRdivOverflowReverts
@@ -448,11 +447,11 @@ theorem clipperKickFinishFeedPrice
                     (by simpa [haddr] using hcallParSolm) hdec hrdiv
                 have hsourceRaw := clipperGetFeedPriceSuccessCallReturnsOfTail
                   v callerLocals "feedPrice" hprefix htail
-                have hsource : ExecStmt (config v)
-                    (Frame.mk (contract v) callerLocals) sourceEvm
+                have hsource : ExecStmt config
+                    (Frame.mk contract callerLocals (immStore v)) sourceEvm
                     (.internalCall "getFeedPrice" [] "feedPrice")
-                    (.ok (Frame.mk (contract v) (callerLocals.insert "feedPrice"
-                      (.int (Int.ofNat feedPrice.toNat)))) evmPar) := by
+                    (.ok (Frame.mk contract (callerLocals.insert "feedPrice"
+                      (.int (Int.ofNat feedPrice.toNat))) (immStore v)) evmPar) := by
                   simpa [feedPrice, valBln, collapseReturns] using hsourceRaw
                 exact .returned feedPrice σPar evmPar memPost outPar kret Cret
                   hsource (by simpa [hevmeq] using halignPar)

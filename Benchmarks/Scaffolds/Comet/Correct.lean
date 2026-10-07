@@ -1,28 +1,24 @@
 import Benchmarks.Scaffolds.Comet.Constructor
-import Solm.Equiv
+import Solm.Refine
 
 /-!
-# Compound III CometWithExtendedAssetList correctness stub
+# Compound III CometWithExtendedAssetList benchmark correctness stub
 
-Parameterized over Comet's 25 immutable values `v`.  For each `v`, the deployed runtime is the
-template patched with `v` (`patchRuntime cometBytecode (patches v) = some code`), and runtime
-equivalence is stated against `contract v` (whose immutable getters return `v`'s values).  The
-whole-contract bundle pairs this with the parameterized constructor target.  All proofs are targets.
+For every well-typed assignment of Comet's 25 immutables, the runtime deployed for it (the template patched with
+it) refines the spec run with those immutables.  With the constructor target this gives the
+contract refinement.  Proofs are the benchmark target.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Benchmarks.CompoundIII.Comet.Immutables
 
 namespace Benchmarks.CompoundIII.Comet
 
-theorem cometCorrect (v : CometImmutables) {code : ByteArray}
-    (hcode : patchRuntime cometBytecode (patches v) = some code) :
-    runtimeEquivalence (config v) code (contract v) := by
+theorem cometCorrect (imms : Store) (_hfit : immutablesFit contract imms) :
+    runtimeRefinement config (deployedRuntime cometBytecode imms) contract
+      (restrictImmutables contract imms) := by
   sorry
 
-theorem cometContractCorrect (v : CometImmutables) {code : ByteArray}
-    (hcode : patchRuntime cometBytecode (patches v) = some code) :
-    contractEquivalenceWith (config v) cometCreationBytecode code (contract v)
-      (runtimeCodeOf cometBytecode) :=
-  contractEquivalenceWith.intro (cometConstructorCorrect v) (cometCorrect v hcode)
+theorem cometContractCorrect : contractRefinement config cometCreationBytecode contract :=
+  .of_runtime cometConstructorCorrect cometCorrect
 
 end Benchmarks.CompoundIII.Comet

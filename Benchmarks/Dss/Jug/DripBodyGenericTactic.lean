@@ -56,8 +56,8 @@ have hΘE :
           (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
         (evm.executionEnv.depth + 1)
-        (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) true := by
-  simpa [evm, initState, hperm] using hΘ'
+        (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) (true && evm.executionEnv.perm) := by
+  simpa [evm, initState] using hΘ'
 let σ'_solm := σ'
 let A'_solm := A'
 have hcallSolm :
@@ -396,8 +396,8 @@ cases hrpowCoupled with
                           dripVatFoldOutPtr.toNat
                           dripVatFoldInSize.toNat)
                       (evmVatE.executionEnv.depth + 1)
-                      (evmVatE.executionEnv.header) (evmVatE.executionEnv.blobVersionedHashes) (evmVatE.executionEnv.blocks) true := by
-                simpa [evmVatE, evm, initState, hperm, foldBaseMem] using
+                      (evmVatE.executionEnv.header) (evmVatE.executionEnv.blobVersionedHashes) (evmVatE.executionEnv.blocks) (true && evmVatE.executionEnv.perm) := by
+                simpa [evmVatE, evm, initState, foldBaseMem] using
                   hΘFold'
               let σ''_solm := σ''
               let A''_solm := AFold'
@@ -481,8 +481,8 @@ cases hrpowCoupled with
                           dripVatFoldOutPtr.toNat
                           dripVatFoldInSize.toNat)
                       (evmVatE.executionEnv.depth + 1)
-                      (evmVatE.executionEnv.header) (evmVatE.executionEnv.blobVersionedHashes) (evmVatE.executionEnv.blocks) true := by
-                simpa [evmVatE, evm, initState, hperm, foldBaseMem] using
+                      (evmVatE.executionEnv.header) (evmVatE.executionEnv.blobVersionedHashes) (evmVatE.executionEnv.blocks) (true && evmVatE.executionEnv.perm) := by
+                simpa [evmVatE, evm, initState, foldBaseMem] using
                   hΘFold'
               let σ''_solm := σ''
               let A''_solm := AFold'
@@ -525,16 +525,8 @@ cases hrpowCoupled with
                   evmFoldS.executionEnv.codeOwner
                   (fileDutyRhoSlotFor I)
                   (UInt256.ofNat evmFoldS.executionEnv.header.timestamp)
-              have hbody :
-                  ExecTransitionBody config contract evm locals
-                    dripTransition.body
-                    (.returned
-                      { contract := contract, locals := finalLocals }
-                      evmRhoS
-                      (some [.int (Int.ofNat rate.toNat)])) := by
-                simpa [evm, evmVatS, evmFoldS, finalLocals, evmRhoS,
-                  locals, initState, solcSlotWordAt, rate] using
-                  (jugDripSourceBodyVatFoldCallSucceededReturnsGeneric
+              have hboth :=
+                  (jugDripSourceBodyVatFoldCallSucceededReturnsGenericSplit
                     (σ := σ)
                     (σ₀ := σ₀) (A := A) (I := I) (g := g)
                     (evmVat := evmVatS) (evmFold := evmFoldS)
@@ -573,23 +565,35 @@ cases hrpowCoupled with
                 dripVatFoldCalldataMem_read64 σ' I
                   (UInt256.sub rate (dripVatIlksPrevWord out))
                   hfoldBaseSize hfoldBaseRead64
+              have hbody :
+                  ExecTransitionBody config contract evm locals
+                    dripTransition.body
+                    (.returned
+                      { contract := contract, locals := finalLocals }
+                      evmRhoS
+                      (some [.int (Int.ofNat rate.toNat)])) := by
+                simpa [evm, evmVatS, evmFoldS, finalLocals, evmRhoS,
+                  locals, initState, solcSlotWordAt, rate] using hboth.1
               obtain ⟨_, _, rd1669⟩ :=
                 RD.jugDripVatFoldCallSucceeded
                   (targetWord := dripVatTargetWord σ' I) rd1651
-              have hret := RD.jugDripVatFoldStoreRhoReturns
-                (targetWord := dripVatTargetWord σ' I)
-                hsz36 hperm hfoldCallMemSize hfoldCallMemRead64 rd1669
-              exact hret.reEquivExecutionGen hcode hdispatch
-                (jugDecode_drip_ok hsz36) hbody
-                (by
-                  simp [evmRhoS, evmFoldS, evmVatS, evmVatE, σ''_solm,
-                    A''_solm, σ'_solm, evm, initState,
-                    storageStore_accountMap])
-                (by
-                  rw [show dripTransition.returnType = [uint256] by rfl]
-                  exact returnEquiv_of_encode
-                    (by simpa [uint256] using
-                      uint256ReturnEncoding rate))
+              rcases RD.jugDripVatFoldStoreRhoReturnsSplit
+                  (targetWord := dripVatTargetWord σ' I)
+                  hsz36 hfoldCallMemSize hfoldCallMemRead64 rd1669 with
+                ⟨_, hret⟩ | ⟨hpf, hstatic⟩
+              · exact hret.reEquivExecutionGen hcode hdispatch
+                  (jugDecode_drip_ok hsz36) hbody
+                  (by
+                    simp [evmRhoS, evmFoldS, evmVatS, evmVatE, σ''_solm,
+                      A''_solm, σ'_solm, evm, initState,
+                      storageStore_accountMap])
+                  (by
+                    rw [show dripTransition.returnType = [uint256] by rfl]
+                    exact returnEquiv_of_encode
+                      (by simpa [uint256] using
+                        uint256ReturnEncoding rate))
+              · exact hstatic.reEquivStaticHalt hcode hdispatch (jugDecode_drip_ok hsz36)
+                  (hboth.2 hpf)
         · have hbody :
               ExecTransitionBody config contract evm locals
                 dripTransition.body .reverted := by

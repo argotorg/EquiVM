@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Vat.Common
 import Reasoning.Constructor
 import Reasoning.Initcode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Vat constructor correctness stub
@@ -335,14 +335,13 @@ theorem assign_vatCtorWardsCaller (evm : EVM.State) {locals : Store}
         some evm' := by
     simpa [evm', vatCtorAfterWardsState] using
       storageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_vatCtorLiveStorage (evm : EVM.State) {locals : Store}
@@ -358,14 +357,13 @@ theorem assign_vatCtorLiveStorage (evm : EVM.State) {locals : Store}
     simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
   have hstore : storageLocStore evm (wordLoc ⟨10⟩) (.int 1) = some evm' := by
     simpa [evm', vatCtorAfterLiveState] using storageLocStore_uint256 evm ⟨10⟩ ⟨1⟩
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨10⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨10⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [liveRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem vatCtorCallerWardsSlot_eq (I : ExecutionEnv) :
@@ -445,8 +443,7 @@ theorem vatSolmCtorExecReverts_nonpayable
         (locals := vatCtorLocals) hwv
 
 theorem vatConstructorBodyCore :
-    constructorEquivalence config vatCreationBytecode contract vatBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config vatCreationBytecode contract (fun _ => vatBytecode) := by
   intro σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   have hargsLen :
@@ -467,7 +464,7 @@ theorem vatConstructorBodyCore :
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) hcode hperm hwv
         rcases hrd with hOOG | ⟨s, hX, hacc⟩
-        · exact constructorEquivalenceFor.outOfGas
+        · exact typedConstructorRefinementFor.outOfGas
             (Xi_error_of_X (g := g) (by
               rw [← hcode] at hOOG
               simpa [Sat256.ofUInt256] using hOOG))
@@ -490,7 +487,7 @@ theorem vatConstructorBodyCore :
             simp [σLive, σWards, evm2s, evm1s, evm0s, vatCtorAfterLiveState,
               vatCtorAfterWardsState, initState, storageStore_accountMap,
               storageStore_executionEnv, hslot]
-          refine constructorEquivalenceFor.execution hsuccess
+          refine typedConstructorRefinementFor.execution hsuccess
             (by
               simpa [evm0s, evm1s, evm2s] using
                 vatSolmCtorExecSuccess
@@ -503,9 +500,9 @@ theorem vatConstructorBodyCore :
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) hcode hwv
         rcases hrd.xiResult hcode with hOOG | ⟨g', out, hRev⟩
-        · exact constructorEquivalenceFor.outOfGas
+        · exact typedConstructorRefinementFor.outOfGas
             (by simpa [Sat256.ofUInt256] using hOOG)
-        · refine constructorEquivalenceFor.execution
+        · refine typedConstructorRefinementFor.execution
             (by simpa [Sat256.ofUInt256] using hRev)
             (vatSolmCtorExecReverts_nonpayable
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -516,7 +513,7 @@ theorem vatConstructorBodyCore :
       simp [contract, constructorDecl] at hargsLen
 
 theorem vatConstructorCorrect :
-    constructorEquivalence config vatCreationBytecode contract vatBytecode :=
+    typedConstructorRefinement config vatCreationBytecode contract (fun _ => vatBytecode) :=
   vatConstructorBodyCore
 
 end Benchmarks.Dss.Vat

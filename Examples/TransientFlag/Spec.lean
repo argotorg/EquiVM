@@ -1,5 +1,5 @@
 import Solm.Semantics
-import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # TransientFlag — Solm specification
@@ -48,13 +48,16 @@ def flagContract : ContractDecl :=
 
 end TransientFlag
 
+/-- Generate the transient slot independently of persistent storage. -/
+def flagLayout : StorageLayout :=
+  solidityLayout! [TransientFlag.flagContract.structs] [TransientFlag.flagContract.transient]
+
+theorem flagLayout_flag :
+    flagLayout { base := "flag" } = some (.leaf TransientFlag.flagLoc) := rfl
+
 /-- `flag` lives in the transient map at slot 0. Persistent storage is empty. -/
 def flagConfig : Config :=
-  { storage := { layout := fun _ _ => none }
-    transient :=
-      { layout := fun ref _ =>
-          match ref.base, ref.steps with
-          | "flag", [] => some TransientFlag.flagLoc
-          | _, _ => none }
+  { storageBackend := StorageBackend.empty
+    transientBackend := solidityTransientStorageBackend flagLayout
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment TransientFlag.flagContract.ctor.params }

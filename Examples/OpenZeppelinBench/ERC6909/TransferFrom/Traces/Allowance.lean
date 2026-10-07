@@ -681,7 +681,6 @@ theorem erc6909TransferFromX_from1193_allowanceDebit_to661_base
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     {base : ByteArray}
     (hbase : base.size = 96)
-    (hperm : I.perm = true)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hallowanceNotMax :
       (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat <
@@ -695,14 +694,15 @@ theorem erc6909TransferFromX_from1193_allowanceDebit_to661_base
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨193⟩, sel]
       base (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨661⟩
+    (I.perm = true ∧ ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨661⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨649⟩, transferFromCallerWord I, ⟨0⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨193⟩, sel]
       (transferFromAllowanceScratchMem base I) (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
-        (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I)) k C := by
+        (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I)) k C)
+    ∨ (I.perm = false ∧ RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I)) := by
   let ownerMem := twoWordHashMem (transferFromSenderWord I) ⟨2⟩ base
   let ownerKeyMem := wordAt0Mem (transferFromSenderWord I) base
   let spenderMem := twoWordHashMem (transferFromCallerWord I)
@@ -846,7 +846,12 @@ theorem erc6909TransferFromX_from1193_allowanceDebit_to661_base
   have rd1315₀ := evm_run rd1310 with [dup3, dup3, sub, swap1]
   have rd1315 := rd1315₀
   rw [hdebit] at rd1315
-  obtain ⟨_, _, rd1316⟩ := rd1315.sstore hperm (by decide) (by evm_ov)
+  by_cases hp : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd1315.sstoreStatic hpf (by decide) (by evm_ov)⟩
+  refine Or.inl ⟨hp, ?_⟩
+  obtain ⟨_, _, rd1316⟩ := rd1315.sstore hp (by decide) (by evm_ov)
   have rd637 := evm_run rd1316 with [
     jumpdest, pop, pop, pop, pop, pop, jump (by jump_dest) ]
   exact erc6909TransferFromX_from637_to661_base

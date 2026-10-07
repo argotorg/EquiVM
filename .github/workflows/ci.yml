@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 330
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Installs the toolchain from lean-toolchain, fetches the mathlib
       # olean cache, caches .lake in the GitHub cache, and builds the
@@ -32,8 +32,8 @@ jobs:
         run: lake build ABI.SignatureTests
 
       # Standalone regression modules are not imported by the Solm library root.
-      - name: Check Solminus integer semantics
-        run: lake build Solm.CastTests Solm.IntegerTests
+      - name: Check Solminus semantics
+        run: lake build Solm.CastTests Solm.IntegerTests Solm.TransientTests
 
       # Mirrors the imports of Examples.lean. Remove lines to prune.
       - name: Build examples
@@ -56,7 +56,8 @@ jobs:
             Examples.OpenZeppelinBench.ERC6909.Correct \
             Examples.UniswapV2Pair.Correct \
             Examples.Reuse.Correct \
-            Examples.VyperERC20.Correct
+            Examples.VyperERC20.Correct \
+            Examples.TransientFlag.Correct
 
       - name: Compile generated large benchmark blocks
         run: |

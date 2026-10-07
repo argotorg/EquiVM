@@ -25,7 +25,8 @@ theorem uniswapSafeTransferCallRuntimeCases
     (h64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (h96 : mem.readWithPadding 96 32 = UInt256.toByteArray ⟨0⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
-    (hov : R.length + 20 ≤ 1024) :
+    (hov : R.length + 20 ≤ 1024)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     (ExecStmt config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
         .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
     (∃ evm' σ' out k' C',

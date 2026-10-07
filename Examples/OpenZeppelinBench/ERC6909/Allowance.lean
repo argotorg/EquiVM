@@ -144,14 +144,14 @@ theorem evalExpr_allowance_storage (evm : EVM.State) (I : ExecutionEnv) :
                   .mindex (.int (Int.ofNat (allowanceIdWord I).toNat))] } =
       some (.elem (.int uint256Int)) := by
     simp [storageTypeAt?, contract, storageDecls, uint256St, storageTypeStep?]
-  have hloc : config.storage.layout
+  have hloc : config.storageBackend.locate?
       { base := "_allowances",
         steps := [.mindex (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat)),
                   .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat)),
                   .mindex (.int (Int.ofNat (allowanceIdWord I).toNat))] } =
-      fun _ => some (wordLoc (allowanceSlotOf I)) := by
+      some (.leaf (wordLoc (allowanceSlotOf I))) := by
     rfl
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (hbase := by
       rw [allowanceStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
         store_get_ne _ _ (by decide)]
@@ -928,7 +928,7 @@ theorem erc6909AllowanceBodyCore
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨266⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   have hsz4 := erc6909AllowanceSelector_size hsel
   have hd := erc6909Dispatch_allowance (cd := I.calldata) hsel

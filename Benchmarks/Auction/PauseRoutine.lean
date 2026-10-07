@@ -19,17 +19,25 @@ theorem pausePrefix {I g s0 R mem aw rdata σ k C}
   rw [u256_land_comm ⟨255⟩] at rd3663
   exact ⟨_, _, rd3663⟩
 
-theorem pauseStore {I g s0 ret R mem aw rdata σ k C}
+theorem pauseStoreSplit {I g s0 ret R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3725⟩ (ret :: R) mem aw rdata σ k C)
-    (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
+    (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R (addressEventMem mem (solcSourceWord I))
-      (addressEventWords mem aw (solcSourceWord I)) rdata
-      (sstoreAccountMap I.codeOwner σ ⟨51⟩ (pauseWord (solcSlotWord σ I ⟨51⟩))) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD auctionBytecode I g s0 ret R (addressEventMem mem (solcSourceWord I))
+        (addressEventWords mem aw (solcSourceWord I)) rdata
+        (sstoreAccountMap I.codeOwner σ ⟨51⟩ (pauseWord (solcSlotWord σ I ⟨51⟩))) k' C') ∨
+      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
   have rd3729 := evm_run h with [jumpdest, push1 ⟨51⟩, dup1]
   obtain ⟨_, _, rd3730⟩ := rd3729.sload (by native_decide) (by evm_ov)
   have rd3738 := evm_run rd3730 with [push1 ⟨255⟩, not, and, push1 ⟨1⟩, or, swap1]
-  obtain ⟨_, _, rd3739⟩ := rd3738.sstore hperm (by native_decide) (by evm_ov)
+  have hstoreDec : decode auctionBytecode ⟨3738⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd3738.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd3739⟩ := rd3738.sstore hperm hstoreDec (by evm_ov)
   have rd3772 := rd3739.pushConst
     ⟨0x62e78cea01bee320cd4e420270b5ea74000d11b0c9f74754ebdbfc544b05a258⟩
     (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
@@ -40,17 +48,37 @@ theorem pauseStore {I g s0 ret R mem aw rdata σ k C}
   rw [u256_land_comm (UInt256.lnot ⟨255⟩), u256_lor_comm ⟨1⟩] at rd2971
   exact addressEventReturn rd2971 hperm hret hov
 
+theorem pauseStore {I g s0 ret R mem aw rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨3725⟩ (ret :: R) mem aw rdata σ k C)
+    (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
+    (hov : R.length + 7 ≤ 1024) :
+    ∃ k' C', RD auctionBytecode I g s0 ret R (addressEventMem mem (solcSourceWord I))
+      (addressEventWords mem aw (solcSourceWord I)) rdata
+      (sstoreAccountMap I.codeOwner σ ⟨51⟩ (pauseWord (solcSlotWord σ I ⟨51⟩))) k' C' :=
+  permSplit_true hperm (pauseStoreSplit h hret hov)
+
+theorem pauseRoutineOkSplit {I g s0 ret R mem aw rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨3655⟩ (ret :: R) mem aw rdata σ k C)
+    (hp : pausedWord σ I = ⟨0⟩)
+    (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 7 ≤ 1024) :
+    (I.perm = true ∧
+      ∃ k' C', RD auctionBytecode I g s0 ret R (addressEventMem mem (solcSourceWord I))
+        (addressEventWords mem aw (solcSourceWord I)) rdata
+        (sstoreAccountMap I.codeOwner σ ⟨51⟩ (pauseWord (solcSlotWord σ I ⟨51⟩))) k' C') ∨
+      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+  obtain ⟨_, _, rd3663⟩ := pausePrefix h (by evm_ov)
+  have rd3725 := evm_run rd3663 with [
+    push2 ⟨3725⟩, jumpiT (by rw [hp]; decide) (by jump_dest) ]
+  exact pauseStoreSplit rd3725 hret hov
+
 theorem pauseRoutineOk {I g s0 ret R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3655⟩ (ret :: R) mem aw rdata σ k C)
     (hp : pausedWord σ I = ⟨0⟩) (hperm : I.perm = true)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret R (addressEventMem mem (solcSourceWord I))
       (addressEventWords mem aw (solcSourceWord I)) rdata
-      (sstoreAccountMap I.codeOwner σ ⟨51⟩ (pauseWord (solcSlotWord σ I ⟨51⟩))) k' C' := by
-  obtain ⟨_, _, rd3663⟩ := pausePrefix h (by evm_ov)
-  have rd3725 := evm_run rd3663 with [
-    push2 ⟨3725⟩, jumpiT (by rw [hp]; decide) (by jump_dest) ]
-  exact pauseStore rd3725 hperm hret hov
+      (sstoreAccountMap I.codeOwner σ ⟨51⟩ (pauseWord (solcSlotWord σ I ⟨51⟩))) k' C' :=
+  permSplit_true hperm (pauseRoutineOkSplit h hp hret hov)
 
 theorem pauseRoutineRevert {I g s0 R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3655⟩ R mem aw rdata σ k C)

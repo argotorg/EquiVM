@@ -637,7 +637,7 @@ theorem uniswapSkimBodyCoreRevert_locked
     (hRuntime :
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let _toWord := maskFn (skimToWord I)
   have hlockedSolm :
@@ -665,7 +665,7 @@ theorem uniswapSkimBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1286⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_skim_none_short (I := I) hsz4 hshort
   exact (uniswapSkimX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -690,7 +690,7 @@ theorem uniswapSkimBodyCoreRevert_firstNoCode
     (hRuntime :
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let _toWord := maskFn (skimToWord I)
   have hunlockedSolm :
@@ -726,7 +726,7 @@ theorem uniswapSkimBodyCoreRevert_firstCallDepth
     (hRuntime :
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let target := EVM.address (uniswapAddressAtSlot evmL ⟨6⟩)
@@ -774,7 +774,7 @@ theorem uniswapSkimBodyRevert_locked
     (hRuntime :
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact uniswapSkimBodyCoreRevert_locked maskFn hcode hwv hlocked hdispatch hdecode
     hRuntime
 
@@ -786,7 +786,7 @@ theorem uniswapSkimBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
     (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some skimTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
   exact uniswapSkimBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -811,7 +811,7 @@ theorem uniswapSkimBodyRevert_firstNoCode
     (hRuntime :
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact uniswapSkimBodyCoreRevert_firstNoCode maskFn hcode hwv hunlocked htoken0NoCode
     hdispatch hdecode hRuntime
 

@@ -32,9 +32,9 @@ theorem timeBufferX {σ σ₀ A I} {g : UInt256}
 
 theorem timeBufferBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (entryBytes 17))
+    (hsel : selIs I (entryBytes 17))
     (hreach : EntryReached 17 σ σ₀ A I g) :
-    runtimeEquivalenceFor auctionConfig auctionContract
+    runtimeRefinementFor auctionConfig auctionContract
       σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hsz := calldata_size_ge_of_selIs I (entryBytes 17) (entryBytes_size 17) hsel

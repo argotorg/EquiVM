@@ -28,9 +28,9 @@ theorem denyAssign (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := relyStore I } evm
       .storage (wardsRef (.var "usr")) (.int 0) =
         .ok ({ contract := contract, locals := relyStore I }, denyPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (relyUsrStorageSlot I))
+      (loc := wordLoc (relyUsrStorageSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := relyStore_wards I)
       (her := evalStorageRef_rely_usr evm I)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
@@ -38,28 +38,33 @@ theorem denyAssign (evm : EVM.State) (I : ExecutionEnv) :
   simpa [denyPostState, wordLoc, uint256Loc] using
     storageLocStore_uint256 evm (relyUsrStorageSlot I) ⟨0⟩
 
-theorem flopperDenyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
+theorem flopperDenyBodyReturnsSplit (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
     (hauth :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩) :
-    ExecTransitionBody config contract evm (relyStore I) denyTransition.body
-      (.returned { contract := contract, locals := relyStore I } (denyPostState evm I) none) := by
-  refine ExecFuncBody.execBlockOK ?_
-  simpa [denyTransition, nonpayable, auth] using
-    nonpayableRequireAssignStorageBlock
-      (cfg := config)
-      (solm := { contract := contract, locals := relyStore I })
-      (evm := evm)
-      (evm' := denyPostState evm I)
-      (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
-      (rhs := .intLit 0)
-      (ref := wardsRef (.var "usr"))
-      (value := .int 0)
-      hwv
-      (evalExpr_rely_auth_true evm I hsrc hauth)
-      (by simp [evalExpr?, pure])
-      (denyAssign evm I)
+    (ExecTransitionBody config contract evm (relyStore I) denyTransition.body
+      (.returned { contract := contract, locals := relyStore I } (denyPostState evm I) none)) ∧
+      (evm.executionEnv.perm = false →
+        ExecTransitionBody config contract evm (relyStore I)
+          denyTransition.body .staticViolation) := by
+  have hguard := evalExpr_rely_auth_true evm I hsrc hauth
+  have hval : evalExpr? config { contract := contract, locals := relyStore I } evm
+      (.intLit 0) = .ok (.int 0) := by simp [evalExpr?, pure]
+  have hassign := denyAssign evm I
+  have hprefix {result : ExecResult}
+      (htail : ExecBlock config { contract := contract, locals := relyStore I } evm
+        [.assign .storage (wardsRef (.var "usr")) (.intLit 0)] result) :
+      ExecBlock config { contract := contract, locals := relyStore I } evm
+        denyTransition.body result := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hguard) htail
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign hval hassign) ExecBlock.nil))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hval hassign hperm)))
 
 theorem flopperDenyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -277,14 +282,16 @@ theorem flopperDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem flopperDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem flopperDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (h : RD flopperBytecode I g s0 ⟨3375⟩
       [relyUsrMaskedWord I, ⟨334⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
-      ByteArray.empty := by
+    (I.perm = true ∧
+      RDret flopperBytecode g s0
+        (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic flopperBytecode g s0) := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
@@ -331,25 +338,33 @@ theorem flopperDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have rd1951 := rd1950pre.keccak256 0 (mapSlot (relyUsrMaskedWord I) ⟨0⟩)
     (UInt256.ofNat 3) (by native_decide) mem_cost hstoreSlot (by native_decide)
     (by evm_ov)
-  obtain ⟨_, _, rd1952raw⟩ := rd1951.sstore hperm (by native_decide)
+  have hstoreDec : decode flopperBytecode ⟨3399⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1951.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd1952raw⟩ := rd1951.sstore hperm hstoreDec
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd226 := rd1952raw.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd227 := rd226.jumpdest (by native_decide) (by evm_ov)
   simpa [relyUsrStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd227 (by native_decide) (by evm_ov)
 
-theorem flopperX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flopperX_deny_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
     (hreach : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨678⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
-      ByteArray.empty := by
+    (I.perm = true ∧
+      RDret flopperBytecode g (initState σ σ₀ g A I)
+        (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic flopperBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1838⟩ := flopperDenyX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨_, _, rd1927⟩ := flopperDenyX_authorized (I := I) hauth rd1838
-  exact flopperDenyX_storeAuthorized hperm rd1927
+  exact flopperDenyX_storeAuthorizedSplit rd1927
 
 theorem flopperX_deny_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -364,7 +379,7 @@ theorem flopperX_deny_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem flopperDenyBodyCoreOk
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
@@ -374,22 +389,27 @@ theorem flopperDenyBodyCoreOk
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨678⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
-  have hbody :
-      ExecTransitionBody config contract evmSolm (relyStore I)
+  have hbodySplit :
+      (ExecTransitionBody config contract evmSolm (relyStore I)
         denyTransition.body
         (.returned { contract := contract, locals := relyStore I }
-          (denyPostState evmSolm I) none) := by
+          (denyPostState evmSolm I) none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evmSolm (relyStore I)
+        denyTransition.body .staticViolation) := by
     simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
-      flopperDenyBodyReturns evmSolm I
+      flopperDenyBodyReturnsSplit evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
         (by simp [evmSolm, initState])
         hauthWord
-  exact (flopperX_deny_ok (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
-    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
+  rcases flopperX_deny_okSplit (g := Sat256.ofUInt256 g) hsz36 hsize hauth hreach with
+    ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
       (by
         simp [denyPostState, evmSolm, initState,
           storageStore_accountMap, storageStore_executionEnv])
@@ -411,7 +431,7 @@ theorem flopperDenyBodyCoreUnauthorized
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨678⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I ≠ ⟨1⟩ := hauth
   have hbody :
@@ -434,17 +454,16 @@ theorem flopperDenyBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨678⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (flopperDenyX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (flopperDecode_deny_none_short hsz4 hshort)
 
 theorem flopperDenyBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 5)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flopperSelBytes 5) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
@@ -454,7 +473,7 @@ theorem flopperDenyBody {σ σ₀ A I} {g : UInt256}
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
-    · exact flopperDenyBodyCoreOk hcode hsize hperm hwv hsz36 hauth hdispatch
+    · exact flopperDenyBodyCoreOk hcode hsize hwv hsz36 hauth hdispatch
         (flopperDecode_deny_ok hsz36) hreach
     · exact flopperDenyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
         (flopperDecode_deny_ok hsz36) hreach

@@ -684,11 +684,10 @@ theorem scratch_revealBid_arrayIndexInBounds_revert (evm : EVM.State) (i curLen 
     (hbound : curLen.toNat ≤ i.toNat) :
     arrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
       [.mindex (.address evm.executionEnv.source)] (.int (Int.ofNat i.toNat)) = .revert := by
-  simp [show blindAuctionUint256Loc = uint256Loc from rfl,
-    arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionConfig,
-    blindAuctionStorageLayout, blindAuctionContract, storageDecls, bidStructTy, uint256St,
-    bytes32St, storageLocLoad_uint256, hlen]
-  omega
+  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionContract,
+    storageDecls]
+  rw [bidsArrayLength evm (.address evm.executionEnv.source)]
+  simp [hlen, Nat.not_lt.mpr hbound]
 
 theorem scratch_resolveStorageRef_reveal_bid_revert_of_get (evm : EVM.State) (locals : Store)
     (i curLen : UInt256)
@@ -2332,6 +2331,9 @@ theorem scratch_revealLoop_from_body_or_revert {I} {g : Sat256} {s0 : State}
         (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
             scratch_revealLoopBodyStmts .reverted ∧
           RDrev blindAuctionBytecode g s0) ∨
+        (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+            scratch_revealLoopBodyStmts .staticViolation ∧
+          RDstatic blindAuctionBytecode g s0) ∨
         ∃ a' L1 evm1 L2 evm2 k' C',
           (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
               scratch_revealLoopBodyStmts
@@ -2367,8 +2369,13 @@ theorem scratch_revealLoop_from_body_or_revert {I} {g : Sat256} {s0 : State}
           { contract := blindAuctionContract, locals := L } evm
           (.binary .lt (.var "i") (.var "length")) scratch_revealLoopPostStmts
           scratch_revealLoopBodyStmts .reverted ∧
-        RDrev blindAuctionBytecode g s0) := by
-  refine Reasoning.Reach.RD.execForLoopOrRevertCarryFull
+        RDrev blindAuctionBytecode g s0) ∨
+      (ExecForLoop blindAuctionConfig
+          { contract := blindAuctionContract, locals := L } evm
+          (.binary .lt (.var "i") (.var "length")) scratch_revealLoopPostStmts
+          scratch_revealLoopBodyStmts .staticViolation ∧
+        RDstatic blindAuctionBytecode g s0) := by
+  refine Reasoning.Reach.RD.execForLoopOrRevertOrStaticCarryFull
     (cfg := blindAuctionConfig) (contract := blindAuctionContract)
     (code := blindAuctionBytecode) (ee := I) (g := g) (s0 := s0) (rdata := rdata)
     (header := ⟨1014⟩) (bodyHeader := ⟨1023⟩) (exit := ⟨1331⟩)
@@ -2506,5 +2513,102 @@ theorem scratch_blindAuctionRevealBodyReverts_fromLoopRevertOfLocals
       exact ExecBlock.nil
     exact ExecStmt.for hinit hloop
   exact ExecBlock.consRevert hfor
+
+theorem scratch_blindAuctionRevealBodyStatic_fromLoopStaticOfLocals
+    (evm : EVM.State) (callargs : Store)
+    (values fakes secrets : List Value) (len : UInt256)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hafter :
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat <
+        (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
+    (hbefore :
+      (UInt256.ofNat evm.executionEnv.header.timestamp).toNat <
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)
+    (hbidding : callargs.get? biddingEndRef.base = none)
+    (hreveal : callargs.get? revealEndRef.base = none)
+    (hbids : callargs.get? "bids" = none)
+    (hvalues : callargs.get? "values" = some (.array values))
+    (hfakes : callargs.get? "fakes" = some (.array fakes))
+    (hsecrets : callargs.get? "secrets" = some (.array secrets))
+    (hlen :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bidsBase (.address evm.executionEnv.source)) = len)
+    (hvaluesLen : values.length = len.toNat)
+    (hfakesLen : fakes.length = len.toNat)
+    (hsecretsLen : secrets.length = len.toNat)
+    (hloop :
+      ExecForLoop blindAuctionConfig
+        ({ contract := blindAuctionContract, locals := scratch_revealLoopStore callargs len ⟨0⟩ ⟨0⟩ } :
+          Frame) evm
+        (.binary .lt (.var "i") (.var "length")) scratch_revealLoopPostStmts
+        scratch_revealLoopBodyStmts .staticViolation) :
+    ExecTransitionBody blindAuctionConfig blindAuctionContract evm callargs revealTransition.body
+      .staticViolation := by
+  let lengthFrame : Frame :=
+    { contract := blindAuctionContract, locals := scratch_revealLengthStore callargs len }
+  let refundFrame : Frame :=
+    { contract := blindAuctionContract, locals := scratch_revealRefundStore callargs len ⟨0⟩ }
+  let initLoopFrame : Frame :=
+    { contract := blindAuctionContract, locals := scratch_revealLoopStore callargs len ⟨0⟩ ⟨0⟩ }
+  refine ExecFuncBody.execBlockStatic ?_
+  unfold revealTransition
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_reveal_afterBiddingEnd_true evm callargs hbidding hafter)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_reveal_beforeRevealEnd_true evm callargs hreveal hbefore)) ?_
+  have hlengthEval :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := callargs }
+        evm (.arrayLength .storage (bidsRef sender)) = .ok (.int (Int.ofNat len.toNat)) := by
+    exact evalExpr_reveal_bids_length_any evm callargs len hbids hlen
+  refine ExecBlock.consNormal (ExecStmt.letDecl hlengthEval) ?_
+  change ExecBlock blindAuctionConfig lengthFrame evm
+    (List.drop 4 revealTransition.body) .staticViolation
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_reveal_local_array_length_eq_var_true evm
+        (scratch_revealLengthStore callargs len) "values" values len ?_
+        (by simp [scratch_revealLengthStore]) hvaluesLen)) ?_
+  · unfold scratch_revealLengthStore
+    rw [store_get_ne]
+    · exact hvalues
+    · decide
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_reveal_local_array_length_eq_var_true evm
+        (scratch_revealLengthStore callargs len) "fakes" fakes len ?_
+        (by simp [scratch_revealLengthStore]) hfakesLen)) ?_
+  · unfold scratch_revealLengthStore
+    rw [store_get_ne]
+    · exact hfakes
+    · decide
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_reveal_local_array_length_eq_var_true evm
+        (scratch_revealLengthStore callargs len) "secrets" secrets len ?_
+        (by simp [scratch_revealLengthStore]) hsecretsLen)) ?_
+  · unfold scratch_revealLengthStore
+    rw [store_get_ne]
+    · exact hsecrets
+    · decide
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+  change ExecBlock blindAuctionConfig refundFrame evm
+    [ scratch_revealForStmt,
+      .lowLevelCall sender (.var "refund") (.newBytes (.intLit 0)) "success" "_data",
+      .require (.var "success") ]
+    .staticViolation
+  have hfor :
+      ExecStmt blindAuctionConfig refundFrame evm scratch_revealForStmt .staticViolation := by
+    have hinit :
+        ExecBlock blindAuctionConfig
+          refundFrame evm
+          [ .letDecl "i" (some uint256) (.intLit 0) ]
+          (.ok initLoopFrame evm) := by
+      refine ExecBlock.consNormal
+        (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+      exact ExecBlock.nil
+    exact ExecStmt.for hinit hloop
+  exact ExecBlock.consStatic hfor
 
 end BlindAuction

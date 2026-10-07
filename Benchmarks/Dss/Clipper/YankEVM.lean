@@ -353,7 +353,7 @@ theorem clipperDogDigsCalldataMem_read128_68 (v : ClipperImmutables) (tab : UInt
 
 theorem clipperDogDigsEncode_eq (v : ClipperImmutables) (tab : UInt256)
     {mem : ByteArray} (hmem : mem.size = 96) :
-    (config v).externalABI.encode? "digs" [v.ilk, .int (Int.ofNat tab.toNat)] =
+    config.externalABI.encode? "digs" [v.ilk, .int (Int.ofNat tab.toNat)] =
       some ((clipperDogDigsCalldataMem v tab mem).readWithPadding 128 68) := by
   rcases v.ilk_wf with ⟨bs, hilk, hlen⟩
   rw [hilk]
@@ -717,7 +717,7 @@ theorem clipperVatFluxCalldataMem_read128_132 (v : ClipperImmutables) (I : Execu
 
 theorem clipperVatFluxEncode_eq (v : ClipperImmutables) (I : ExecutionEnv)
     (lot : UInt256) {mem : ByteArray} (hmem : mem.size = 196) :
-    (config v).externalABI.encode? "flux"
+    config.externalABI.encode? "flux"
       [v.ilk, .address I.codeOwner, .address I.source, .int (Int.ofNat lot.toNat)] =
       some ((clipperVatFluxCalldataMem v I lot mem).readWithPadding 128 132) := by
   rcases v.ilk_wf with ⟨bs, hilk, hlen⟩
@@ -1255,22 +1255,30 @@ theorem clipperYankX_lockOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, rd2002.jumpiT (by clipper_yank_decode) hcond
     (clipperYankJumpDest2071 v hpatch) (by evm_ov)⟩
 
-theorem clipperYankX_lockStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperYankX_lockStoreSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (hperm : I.perm = true)
     (h : RD code I g s0 ⟨2071⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨2077⟩
-      [clipperYankArgWord I, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD code I g s0 ⟨2077⟩
+        [clipperYankArgWord I, ⟨502⟩, sel]
+        (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
+        (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C') ∨
+      (I.perm = false ∧ RDstatic code g s0) := by
   have rd2076 := evm_run h with [
     raw jumpdest (by clipper_yank_decode) (by evm_ov),
     raw push1 ⟨1⟩ (by clipper_yank_decode) (by evm_ov),
     raw push1 ⟨13⟩ (by clipper_yank_decode) (by evm_ov)]
-  obtain ⟨_, _, rd2077⟩ := rd2076.sstore hperm (by clipper_yank_decode) (by evm_ov)
+  have hstoreDec : decode code ⟨2076⟩ = some (.SSTORE, none) := by
+    clipper_yank_decode
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2076.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd2077⟩ := rd2076.sstore hperm hstoreDec (by evm_ov)
   exact ⟨_, _, by simpa using rd2077⟩
 
 set_option maxHeartbeats 1000000 in
@@ -1593,7 +1601,7 @@ theorem clipperYankX_dogDigsPostCall {σ₀ σStart σ I}
             (⟨128⟩ : UInt256).toNat (⟨68⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outDog σ_dog k' C' ∧
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         { initState σStart σ₀ g A I with accountMap := σ }
         (EVM.address (AccountAddress.ofUInt256 target)) "digs" 0
         [v.ilk, .int (Int.ofNat tab.toNat)]
@@ -1623,7 +1631,7 @@ theorem clipperYankX_dogDigsPostCall {σ₀ σStart σ I}
   · exact rd2317raw
   · let evmDog : EVM.State :=
       { initState σStart σ₀ g A I with accountMap := σ }
-    refine callCoincides (cfg := config v)
+    refine callCoincides (cfg := config)
       (evm := evmDog)
       (name := "digs") (args := [v.ilk, .int (Int.ofNat tab.toNat)])
       (tgt := EVM.address (AccountAddress.ofUInt256 target))
