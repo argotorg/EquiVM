@@ -1,6 +1,7 @@
 import Benchmarks.Dss.Dog.ConstructorSource
 import Benchmarks.Dss.Dog.ConstructorTrace
 import Solm.Refine
+import Reasoning.ImmutableWords
 
 /-!
 # MakerDAO/Sky DSS Dog constructor correctness stub
@@ -11,18 +12,26 @@ present. The constructor-equivalence proof is intentionally left as the benchmar
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables
+open Reasoning.Immutables (wordsOf wordsOf_of_get Layout.deployed)
 
 namespace Benchmarks.Dss.Dog
 
 set_option maxRecDepth 2000000
 
-/-- The runtime code deployed for an immutables store: solc's template patched with its `vat`. -/
-def deployedRuntime (imms : Store) : ByteArray :=
-  dogCtorPatchedRuntime (immsOf imms).vat
+/-- Every patch site is a declared immutable. -/
+theorem immutableLayout_keys :
+    ∀ site ∈ immutableLayout.sites, site.2.2 ∈ contract.immutables.map (·.name) := by
+  decide
 
-theorem immsOf_dogCtorFinalImms (vat : AccountAddress) :
-    immsOf (dogCtorFinalImms vat) = { vat := vat } := by
-  simp [immsOf, dogCtorFinalImms]
+/-- The runtime deployed for immutables holding `vat` is the constructor's patched template. -/
+theorem dogDeployed_eq {imms : Store} {vat : AccountAddress}
+    (h : imms.get? "vat" = some (.address vat)) :
+    immutableLayout.deployed dogBytecode imms = dogCtorPatchedRuntime vat := by
+  simp only [Layout.deployed, Reasoning.Immutables.Layout.runtime,
+    Reasoning.Immutables.Layout.writes, immutableLayout, offsets, List.flatMap_cons,
+    List.flatMap_nil, List.map_cons, List.map_nil, List.append_nil,
+    wordsOf_of_get h rfl, dogCtorPatchedRuntime, dogRuntimeWrites]
+  rfl
 
 theorem dogCtorFinalImms_fit (vat : AccountAddress) :
     immutablesFit contract (dogCtorFinalImms vat) := by
@@ -33,7 +42,8 @@ theorem dogCtorFinalImms_fit (vat : AccountAddress) :
 
 set_option maxHeartbeats 1000000 in
 theorem dogConstructorCorrect :
-    typedConstructorRefinement config dogCreationBytecode contract deployedRuntime := by
+    typedConstructorRefinement config dogCreationBytecode contract
+      (immutableLayout.deployed dogBytecode) := by
   intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
   rcases dogCtorDeployment_shape hdeploy with ⟨vat, hargs, hdeployed⟩
   subst args
@@ -72,7 +82,7 @@ theorem dogConstructorCorrect :
         ?_ ?_
       · refine ctorResultEquiv.success rfl rfl ?_ ?_
         · simpa [evm2s] using hAccountsWards
-        · simp [deployedRuntime, immsOf_dogCtorFinalImms]
+        · exact (dogDeployed_eq (by simp [dogCtorFinalImms])).symm
       · exact dogCtorFinalImms_fit vat
   · have hrd := dogInitcodeNonpayableRevert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)

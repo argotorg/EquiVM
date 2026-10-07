@@ -30,12 +30,6 @@ def vatExpr : Expr := .immutable "vat"
 def immStore (v : DogImmutables) : Store :=
   (∅ : Store).insert "vat" (.address v.vat)
 
-/-- The valuation an immutables store holds (zero for a missing or ill-typed entry). -/
-def immsOf (imms : Store) : DogImmutables :=
-  { vat := match imms.get? "vat" with
-      | some (.address a) => a
-      | _ => Ethereum.AccountAddress.ofNat 0 }
-
 def offsets : List (Ident × List Nat) :=
   [("vat", [1405, 2890, 3170, 3965])]
 

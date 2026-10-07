@@ -147,11 +147,10 @@ theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
                                                                   hyank)
   · exact clipperNonPayable v hcode hIcode hwv
 
-/-- The runtime half for every well-typed immutables store: the store holds some `vat` and a
-    32-byte `ilk`, and the code deployed for it is the template patched with them. -/
-theorem clipperRuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
-    runtimeRefinementWithWF clipperStorageWF config (deployedRuntime imms) contract
-      (restrictImmutables contract imms) := by
+/-- A well-typed immutables store runs as the store of the immutables some deployment sets. -/
+theorem restrictImmutables_of_fit {imms : Store} (hfit : immutablesFit contract imms) :
+    ∃ vat ilk hlen,
+      restrictImmutables contract imms = immStore (clipperCtorImmutables vat ilk hlen) := by
   obtain ⟨vv, hvv, hfv⟩ := hfit ⟨"vat", .address⟩ (by simp [contract])
   obtain ⟨vi, hvi, hfi⟩ := hfit ⟨"ilk", .bytes ⟨31, by decide⟩⟩ (by simp [contract])
   simp only at hvv hvi
@@ -161,13 +160,18 @@ theorem clipperRuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms
   obtain ⟨hn, hlen⟩ := hfi
   have hilk : n = bytes32Width := by rw [bytes32Width]; exact hn.symm
   subst hilk
-  have hcode : deployedRuntime imms = clipperCtorPatchedRuntime vat ilk := by
-    simp only [deployedRuntime, hvv, hvi]
-  have hrestr :
-      restrictImmutables contract imms = immStore (clipperCtorImmutables vat ilk hlen) := by
-    rw [Std.HashMap.get?_eq_getElem?] at hvv hvi
-    simp [restrictImmutables, contract, immStore, clipperCtorImmutables, hvv, hvi]
-  rw [hcode, hrestr]
+  rw [Std.HashMap.get?_eq_getElem?] at hvv hvi
+  exact ⟨vat, ilk, hlen,
+    by simp [restrictImmutables, contract, immStore, clipperCtorImmutables, hvv, hvi]⟩
+
+/-- The runtime half for every well-typed immutables store. -/
+theorem clipperRuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
+    runtimeRefinementWithWF clipperStorageWF config
+      (immutableLayout.deployed clipperBytecode imms) contract
+      (restrictImmutables contract imms) := by
+  obtain ⟨vat, ilk, hlen, hv⟩ := restrictImmutables_of_fit hfit
+  rw [← Reasoning.Immutables.Layout.deployed_restrict immutableLayout_keys, hv,
+    clipperDeployed_eq (vat := vat) (immStore_get_vat _) (immStore_get_ilk _) hlen]
   exact clipperCorrect _ (clipperPatchRuntime_eq_ctorPatchedRuntime vat ilk hlen)
 
 theorem clipperContractCorrect :

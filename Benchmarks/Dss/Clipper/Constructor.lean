@@ -1,6 +1,7 @@
 import Benchmarks.Dss.Clipper.ConstructorSource
 import Benchmarks.Dss.Clipper.ConstructorTrace
 import Solm.Refine
+import Reasoning.ImmutableWords
 
 /-!
 # MakerDAO/Sky DSS Clipper constructor correctness
@@ -8,6 +9,7 @@ import Solm.Refine
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
+open Reasoning.Immutables (wordsOf wordsOf_of_get Layout.deployed)
 
 namespace Benchmarks.Dss.Clipper
 
@@ -80,12 +82,27 @@ private theorem clipperCtorStateEquiv
       (show (⟨1⟩ : UInt256) = ⟨1⟩ by rfl)
 
 set_option maxHeartbeats 3000000 in
-/-- The runtime code deployed for an immutables store: solc's template patched with its `vat` and
-    `ilk`. -/
-def deployedRuntime (imms : Store) : ByteArray :=
-  match imms.get? "vat", imms.get? "ilk" with
-  | some (.address vat), some (.fixedBytes _ ilk) => clipperCtorPatchedRuntime vat ilk
-  | _, _ => clipperBytecode
+/-- Every patch site is a declared immutable. -/
+theorem immutableLayout_keys :
+    ∀ site ∈ immutableLayout.sites, site.2.2 ∈ contract.immutables.map (·.name) := by
+  decide
+
+/-- The runtime deployed for immutables holding `vat` and a 32-byte `ilk` is the constructor's
+    patched template. -/
+theorem clipperDeployed_eq {imms : Store} {vat : AccountAddress} {ilk : List UInt8}
+    (hvat : imms.get? "vat" = some (.address vat))
+    (hilkv : imms.get? "ilk" = some (.fixedBytes bytes32Width ilk)) (hilk : ilk.length = 32) :
+    immutableLayout.deployed clipperBytecode imms = clipperCtorPatchedRuntime vat ilk := by
+  have hvatw : wordsOf imms "vat" = EVM.word vat.val := wordsOf_of_get hvat rfl
+  have hilkw : wordsOf imms "ilk" = ABI.bytesToWord ilk :=
+    wordsOf_of_get hilkv (by
+      simp [valueToWord, bytes32Width, hilk, ABI.bytesToWord, fromByteArrayBigEndian,
+        byteArray_toList_eq]
+      rfl)
+  simp only [Layout.deployed, Reasoning.Immutables.Layout.runtime,
+    Reasoning.Immutables.Layout.writes, immutableLayout, offsets, List.flatMap_cons,
+    List.flatMap_nil, List.map_cons, List.map_nil, List.cons_append, List.nil_append,
+    List.append_nil, hvatw, hilkw, clipperCtorPatchedRuntime, clipperCtorRuntimeWrites]
 
 theorem clipperCtorFinalImms_get_vat (vat : AccountAddress) (ilk : List UInt8) :
     (clipperCtorFinalImms vat ilk).get? "vat" = some (.address vat) := by
@@ -104,7 +121,8 @@ theorem clipperCtorFinalImms_fit (vat : AccountAddress) (ilk : List UInt8)
   · exact ⟨_, clipperCtorFinalImms_get_ilk vat ilk, by simp [elemValueFits, bytes32Width, hilk]⟩
 
 theorem clipperConstructorCorrect :
-    typedConstructorRefinement config clipperCreationBytecode contract deployedRuntime := by
+    typedConstructorRefinement config clipperCreationBytecode contract
+      (immutableLayout.deployed clipperBytecode) := by
   intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
   rcases clipperCtorDeployment_shape hdeploy with
     ⟨vat, spotter, dog, ilk, hilk, hargs, hdeployed⟩
@@ -167,7 +185,8 @@ theorem clipperConstructorCorrect :
               vat spotter dog ilk hilk hwv)
         ?_ ?_
       · refine ctorResultEquiv.success rfl rfl hMapFinal ?_
-        simp only [deployedRuntime, clipperCtorFinalImms_get_vat, clipperCtorFinalImms_get_ilk]
+        exact (clipperDeployed_eq (clipperCtorFinalImms_get_vat vat ilk)
+          (clipperCtorFinalImms_get_ilk vat ilk) hilk).symm
       · exact clipperCtorFinalImms_fit vat ilk hilk
   · have hrd := clipperInitcodeNonpayableRevert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)

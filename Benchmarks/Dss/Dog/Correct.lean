@@ -122,20 +122,23 @@ theorem dogCorrect (v : DogImmutables) {code : ByteArray}
                                           hVat hVow hWards)
   · exact dogNonPayable hpatch hcode hwv
 
-/-- A well-typed immutables store runs as the store of the valuation it holds. -/
+/-- A well-typed immutables store runs as the store of some valuation. -/
 theorem restrictImmutables_of_fit {imms : Store} (h : immutablesFit contract imms) :
-    restrictImmutables contract imms = immStore (immsOf imms) := by
+    ∃ v, restrictImmutables contract imms = immStore v := by
   obtain ⟨vo, hvo, hfo⟩ := h ⟨"vat", .address⟩ (by simp [contract])
   simp only at hvo
   cases vo <;> simp [elemValueFits] at hfo
+  rename_i vat
   rw [Std.HashMap.get?_eq_getElem?] at hvo
-  simp [restrictImmutables, contract, immStore, immsOf, hvo]
+  exact ⟨{ vat := vat }, by simp [restrictImmutables, contract, immStore, hvo]⟩
 
 theorem dogRuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
-    runtimeRefinement config (deployedRuntime imms) contract
+    runtimeRefinement config (immutableLayout.deployed dogBytecode imms) contract
       (restrictImmutables contract imms) := by
-  rw [restrictImmutables_of_fit hfit]
-  exact dogCorrect (immsOf imms) (dogPatchRuntime_eq_ctorPatchedRuntime (immsOf imms).vat)
+  obtain ⟨v, hv⟩ := restrictImmutables_of_fit hfit
+  rw [← Reasoning.Immutables.Layout.deployed_restrict immutableLayout_keys, hv,
+    dogDeployed_eq (vat := v.vat) (by simp [immStore])]
+  exact dogCorrect v (dogPatchRuntime_eq_ctorPatchedRuntime v.vat)
 
 theorem dogContractCorrect :
     contractRefinement config dogCreationBytecode contract :=
