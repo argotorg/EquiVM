@@ -12,7 +12,7 @@ namespace OpenZeppelinBench.Ownable2Step
 
 /-- The deployed Ownable2Step benchmark runtime bytecode refines the Solm specification. -/
 theorem ownable2StepCorrect :
-    runtimeEquivalenceAnyPerm config ownable2StepBenchBytecode contract := by
+    runtimeEquivalence config ownable2StepBenchBytecode contract := by
   refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size

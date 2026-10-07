@@ -167,8 +167,8 @@ theorem vowCorrectWith
         I.weiValue = ⟨0⟩ →
         selIs I ⟨#[0xbb, 0xbb, 0x0d, 0x7b]⟩ →
         runtimeEquivalenceFor config contract σ σ₀ g A I) :
-    runtimeEquivalenceAnyPerm config vowBytecode contract := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence config vowBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hAsh : selIs I ⟨#[0x2a, 0x1d, 0x2b, 0x3c]⟩
@@ -269,11 +269,11 @@ theorem vowCorrectWith
   · exact vowNonPayable hcode hwv
 
 theorem vowCorrect :
-    runtimeEquivalenceAnyPerm config vowBytecode contract := by
+    runtimeEquivalence config vowBytecode contract := by
   exact vowCorrectWith vowCageBody vowFlapBody vowFlopBody
 
 theorem vowContractCorrect :
-    contractEquivalenceAnyPerm config vowCreationBytecode vowBytecode contract :=
-  contractEquivalenceAnyPerm.intro vowConstructorCorrect vowCorrect
+    contractEquivalence config vowCreationBytecode vowBytecode contract :=
+  contractEquivalence.intro vowConstructorCorrect vowCorrect
 
 end Benchmarks.Dss.Vow

@@ -34,8 +34,8 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Dss.Flopper
 
 theorem flopperCorrect :
-    runtimeEquivalenceAnyPerm config flopperBytecode contract := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence config flopperBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbeg : selIs I (flopperSelBytes 0)
@@ -85,7 +85,7 @@ theorem flopperCorrect :
   · exact flopperNonPayable hcode hwv
 
 theorem flopperContractCorrect :
-    contractEquivalenceAnyPerm config flopperCreationBytecode flopperBytecode contract :=
-  contractEquivalenceAnyPerm.intro flopperConstructorCorrect flopperCorrect
+    contractEquivalence config flopperCreationBytecode flopperBytecode contract :=
+  contractEquivalence.intro flopperConstructorCorrect flopperCorrect
 
 end Benchmarks.Dss.Flopper

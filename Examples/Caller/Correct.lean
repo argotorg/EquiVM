@@ -1252,7 +1252,7 @@ theorem callerReEquiv_callvalueZero
 
 /-- The runtime bytecode refines the Solm specification, for every initial state. -/
 theorem callerCorrect :
-    runtimeEquivalenceAnyPerm callerConfig callerBytecode callerContract := by
+    runtimeEquivalence callerConfig callerBytecode callerContract := by
   refine ⟨fun σ σ₀ g A I
       hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
@@ -1340,8 +1340,8 @@ theorem callerConstructorCorrect :
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem callerContractCorrect :
-    contractEquivalenceAnyPerm callerConfig callerInitcode callerBytecode callerContract :=
-  emptyContractCorrectAnyPerm_of_RDret rfl rfl rfl (fun hcode => callerInitcodeRun hcode)
+    contractEquivalence callerConfig callerInitcode callerBytecode callerContract :=
+  emptyContractCorrect_of_RDret rfl rfl rfl (fun hcode => callerInitcodeRun hcode)
     callerCorrect
 
 end Caller

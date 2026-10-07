@@ -29,8 +29,8 @@ namespace Benchmarks.Xxx
 
 -- theorem xxxNoSelectorMatches … : ∀ i, i < nArms → … := by interval_cases i <;> simpa [selIs] …
 
--- theorem xxxCorrect : runtimeEquivalenceAnyPerm config xxxBytecode contract := by
---   refine runtimeEquivalenceAnyPerm.intro ?_
+-- theorem xxxCorrect : runtimeEquivalence config xxxBytecode contract := by
+--   refine runtimeEquivalence.intro ?_
 --   intro σ σ₀ g A I hcode hsize
 --   by_cases hwv : I.weiValue = ⟨0⟩
 --   · by_cases h0 : selIs I (xxxSelBytes 0)
@@ -41,7 +41,7 @@ namespace Benchmarks.Xxx
 --   · exact xxxNonPayable hcode hwv
 
 -- theorem xxxContractCorrect :
---     contractEquivalenceAnyPerm config xxxCreationBytecode xxxBytecode contract :=
---   contractEquivalenceAnyPerm.intro xxxConstructorCorrect xxxCorrect
+--     contractEquivalence config xxxCreationBytecode xxxBytecode contract :=
+--   contractEquivalence.intro xxxConstructorCorrect xxxCorrect
 
 end Benchmarks.Xxx

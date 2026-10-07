@@ -360,8 +360,8 @@ theorem daiNoDispatch {σ σ₀ A I} {g : UInt256}
       (daiDispatch_none_short hshort)
 
 theorem daiCorrect :
-    runtimeEquivalenceAnyPerm config daiBytecode contract := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence config daiBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
@@ -438,7 +438,7 @@ theorem daiCorrect :
   · exact daiNonPayable hcode hwv
 
 theorem daiContractCorrect :
-    contractEquivalenceAnyPerm config daiCreationBytecode daiBytecode contract :=
-  contractEquivalenceAnyPerm.intro daiConstructorCorrect daiCorrect
+    contractEquivalence config daiCreationBytecode daiBytecode contract :=
+  contractEquivalence.intro daiConstructorCorrect daiCorrect
 
 end Benchmarks.Dss.Dai

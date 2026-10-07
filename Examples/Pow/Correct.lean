@@ -907,7 +907,7 @@ theorem powXiSuccess {σ σ₀ A I} {g : Sat256}
   (powX_success hcode hwv hsz36 hsz255 hmatch hn).xiResult hcode
 
 /-- **Runtime equivalence of `Pow.sol`'s `pow2` bytecode and its Solm specification.** -/
-theorem powCorrect : runtimeEquivalenceAnyPerm powConfig powBytecode Pow.powContract := by
+theorem powCorrect : runtimeEquivalence powConfig powBytecode Pow.powContract := by
   refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact powReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hwv hsize
@@ -995,7 +995,7 @@ theorem powConstructorCorrect :
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem powContractCorrect :
-    contractEquivalenceAnyPerm powConfig powInitcode powBytecode Pow.powContract :=
-  emptyContractCorrectAnyPerm_of_RDret rfl rfl rfl (fun hcode => powInitcodeRun hcode) powCorrect
+    contractEquivalence powConfig powInitcode powBytecode Pow.powContract :=
+  emptyContractCorrect_of_RDret rfl rfl rfl (fun hcode => powInitcodeRun hcode) powCorrect
 
 end Pow

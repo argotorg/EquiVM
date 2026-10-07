@@ -19,8 +19,8 @@ open Solm ABI Ethereum Ethereum.EVM
 namespace Benchmarks.Dss.LinearDecrease
 
 theorem linearDecreaseCorrect :
-    runtimeEquivalenceAnyPerm config linearDecreaseBytecode contract := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence config linearDecreaseBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hdeny : selIs I (stairstepSelBytes 0)
@@ -40,8 +40,8 @@ theorem linearDecreaseCorrect :
   · exact stairstepNonPayable hcode hwv
 
 theorem linearDecreaseContractCorrect :
-    contractEquivalenceAnyPerm config linearDecreaseCreationBytecode
+    contractEquivalence config linearDecreaseCreationBytecode
       linearDecreaseBytecode contract :=
-  contractEquivalenceAnyPerm.intro linearDecreaseConstructorCorrect linearDecreaseCorrect
+  contractEquivalence.intro linearDecreaseConstructorCorrect linearDecreaseCorrect
 
 end Benchmarks.Dss.LinearDecrease

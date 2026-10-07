@@ -149,8 +149,8 @@ theorem vatNoSelectorMatches {I : ExecutionEnv}
   · simpa [selIs] using hwards
 
 theorem vatCorrect :
-    runtimeEquivalenceAnyPerm config vatBytecode contract := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence config vatBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hLine : selIs I (vatSelBytes 0)
@@ -219,7 +219,7 @@ theorem vatCorrect :
   · exact vatNonPayable hcode hwv
 
 theorem vatContractCorrect :
-    contractEquivalenceAnyPerm config vatCreationBytecode vatBytecode contract :=
-  contractEquivalenceAnyPerm.intro vatConstructorCorrect vatCorrect
+    contractEquivalence config vatCreationBytecode vatBytecode contract :=
+  contractEquivalence.intro vatConstructorCorrect vatCorrect
 
 end Benchmarks.Dss.Vat

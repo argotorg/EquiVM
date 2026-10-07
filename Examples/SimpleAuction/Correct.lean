@@ -48,7 +48,7 @@ theorem simpleAuctionNoDispatch {σ σ₀ A I} {g : UInt256}
 
 /-- The deployed SimpleAuction runtime bytecode refines the Solm specification. -/
 theorem simpleAuctionCorrect :
-    runtimeEquivalenceAnyPerm simpleAuctionConfig simpleAuctionBytecode simpleAuctionContract := by
+    runtimeEquivalence simpleAuctionConfig simpleAuctionBytecode simpleAuctionContract := by
   refine ⟨fun σ σ₀ g A I hcode hsize
       => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
@@ -1162,8 +1162,8 @@ theorem simpleAuctionConstructorCorrect :
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem simpleAuctionContractCorrect :
-    contractEquivalenceAnyPerm simpleAuctionConfig simpleAuctionInitcode simpleAuctionBytecode
+    contractEquivalence simpleAuctionConfig simpleAuctionInitcode simpleAuctionBytecode
       simpleAuctionContract :=
-  contractEquivalenceAnyPerm.intro simpleAuctionConstructorCorrect simpleAuctionCorrect
+  contractEquivalence.intro simpleAuctionConstructorCorrect simpleAuctionCorrect
 
 end SimpleAuction

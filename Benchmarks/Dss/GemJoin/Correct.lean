@@ -23,8 +23,8 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Dss.GemJoin
 
 theorem gemJoinCorrect :
-    runtimeEquivalenceAnyPerm config gemJoinBytecode contract := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence config gemJoinBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcage : selIs I (gemJoinSelBytes 0)
@@ -55,7 +55,7 @@ theorem gemJoinCorrect :
   · exact gemJoinNonPayable hcode hwv
 
 theorem gemJoinContractCorrect :
-    contractEquivalenceAnyPerm config gemJoinCreationBytecode gemJoinBytecode contract :=
-  contractEquivalenceAnyPerm.intro gemJoinConstructorCorrect gemJoinCorrect
+    contractEquivalence config gemJoinCreationBytecode gemJoinBytecode contract :=
+  contractEquivalence.intro gemJoinConstructorCorrect gemJoinCorrect
 
 end Benchmarks.Dss.GemJoin

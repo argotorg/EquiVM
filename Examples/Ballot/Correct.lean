@@ -593,7 +593,7 @@ theorem ballotNoDispatch {σ σ₀ A I} {g : UInt256}
 
 /-- The deployed Ballot runtime bytecode refines the Solm specification, for every initial state. -/
 theorem ballotCorrect :
-    runtimeEquivalenceAnyPerm ballotConfig ballotBytecode ballotContract := by
+    runtimeEquivalence ballotConfig ballotBytecode ballotContract := by
   refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size

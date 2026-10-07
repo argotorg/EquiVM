@@ -27,7 +27,7 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.WETH9
 
 theorem weth9Correct :
-    runtimeEquivalenceAnyPerm config weth9Bytecode contract := by
+    runtimeEquivalence config weth9Bytecode contract := by
   refine ⟨fun σ σ₀ g A I hcode hsize ↦ ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   · by_cases h0 : selIs I (weth9SelBytes 0)
@@ -69,7 +69,7 @@ theorem weth9Correct :
   · exact weth9ShortFallbackBodyCore hcode hsize (by omega)
 
 theorem weth9ContractCorrect :
-    contractEquivalenceAnyPerm config weth9CreationBytecode weth9Bytecode contract :=
-  contractEquivalenceAnyPerm.intro weth9ConstructorCorrect weth9Correct
+    contractEquivalence config weth9CreationBytecode weth9Bytecode contract :=
+  contractEquivalence.intro weth9ConstructorCorrect weth9Correct
 
 end Benchmarks.WETH9

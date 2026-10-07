@@ -340,7 +340,7 @@ theorem erc20NonPayable {σ σ₀ A I} {g : UInt256}
     `callvalue ≠ 0` / short calldata / no-match revert; otherwise the dispatcher machinery
     (`erc20ReachBody`) drives the EVM to the matched function's body entry, handed to that function's
     body obligation. -/
-theorem erc20Correct : runtimeEquivalenceAnyPerm erc20Config erc20Bytecode erc20Contract := by
+theorem erc20Correct : runtimeEquivalence erc20Config erc20Bytecode erc20Contract := by
   refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
@@ -929,7 +929,7 @@ theorem erc20ConstructorCorrect :
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem erc20ContractCorrect :
-    contractEquivalenceAnyPerm erc20Config erc20Initcode erc20Bytecode erc20Contract :=
-  contractEquivalenceAnyPerm.intro erc20ConstructorCorrect erc20Correct
+    contractEquivalence erc20Config erc20Initcode erc20Bytecode erc20Contract :=
+  contractEquivalence.intro erc20ConstructorCorrect erc20Correct
 
 end ERC20

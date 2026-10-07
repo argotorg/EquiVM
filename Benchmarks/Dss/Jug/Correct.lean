@@ -93,8 +93,8 @@ theorem jugNoSelectorMatches {I : ExecutionEnv}
   · simpa [selIs, jugSelBytes] using hwards
 
 theorem jugCorrect :
-    runtimeEquivalenceAnyPerm config jugBytecode contract := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence config jugBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbase : selIs I (jugSelBytes 0)
@@ -128,7 +128,7 @@ theorem jugCorrect :
   · exact jugNonPayable hcode hwv
 
 theorem jugContractCorrect :
-    contractEquivalenceAnyPerm config jugCreationBytecode jugBytecode contract :=
-  contractEquivalenceAnyPerm.intro jugConstructorCorrect jugCorrect
+    contractEquivalence config jugCreationBytecode jugBytecode contract :=
+  contractEquivalence.intro jugConstructorCorrect jugCorrect
 
 end Benchmarks.Dss.Jug

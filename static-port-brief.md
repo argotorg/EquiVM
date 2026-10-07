@@ -1,10 +1,11 @@
-# Brief: port to the strong runtime relation
+# Brief: runtime equivalence in either permission mode
 
 ## Task
 
-Restate and re-prove the runtime theorem of each contract below with
-`runtimeEquivalenceAnyPerm` instead of `runtimeEquivalence`. The strong relation has no
-`I.perm = true` precondition, so it also covers calls entered with STATICCALL.
+The runtime theorems of the contracts below now use the canonical `runtimeEquivalence`
+relation, which has no `I.perm = true` precondition and also covers calls entered with
+STATICCALL. The permission-restricted relations and their conversion helpers have been removed.
+The recipe below describes how to prove this relation for further contracts.
 
 Contracts (proved ones only; the `Benchmarks/Scaffolds` stubs are out of scope):
 
@@ -38,9 +39,9 @@ Report pre-existing failures instead of repairing them silently.
   Dss/Cat (`BiteBody`, `BiteBodyReach`, `BiteBodyKick`, `BiteTrace`) and Dss/Pot (`Join`,
   `Exit`).
 - `Solm/Equiv.lean`: `execResultsEquiv.staticHalt` pairs EVM `StaticModeViolation` with Solm
-  `.staticViolation`. The weak relations are unchanged. New: `runtimeEquivalenceAnyPerm`,
-  `runtimeEquivalenceWithWFAnyPerm`, `contractEquivalence{,WF,With,WithWF}AnyPerm`, each with
-  `.toPerm`.
+  `.staticViolation`. The canonical `runtimeEquivalence`, `runtimeEquivalenceWithWF`, and
+  `contractEquivalence{,WF,With,WithWF}` relations cover either runtime permission mode.
+  Constructor equivalence retains its permission precondition.
 - `Reasoning/Reach.lean`: `RDstatic`; static steps `RD.sstoreStatic`, `RD.log0Static` …
   `RD.log4Static`, `RD.callValueStatic`; `permSplit_true`, `permSplit_false`, `permSplit_bind`,
   `staticOr_bind`; `RDstatic.reEquivStaticHalt`, `RDstatic.reEquivReceiveStaticHalt`;
@@ -105,12 +106,12 @@ Proof side, following `Examples/ERC20`:
 6. Remove unused `hperm` binders and arguments (`hsize hperm` becomes `hsize`). Capstone:
 
    ```lean
-   theorem xxxCorrect : runtimeEquivalenceAnyPerm config xxxBytecode contract := by
-     refine runtimeEquivalenceAnyPerm.intro ?_
+   theorem xxxCorrect : runtimeEquivalence config xxxBytecode contract := by
+     refine runtimeEquivalence.intro ?_
      intro σ σ₀ g A I hcode hsize
    ```
 
-   Bundle: `contractEquivalenceAnyPerm.intro` (or the `WF` / `With` / `WithWF` variant the
+   Bundle: `contractEquivalence.intro` (or the `WF` / `With` / `WithWF` variant the
    contract already uses).
 
 ## Worked examples in this repository
@@ -131,7 +132,7 @@ Proof side, following `Examples/ERC20`:
 ## Acceptance
 
 - `lake build <Contract>.Correct` succeeds.
-- The capstone states `runtimeEquivalenceAnyPerm` (or `runtimeEquivalenceWithWFAnyPerm`).
+- The capstone states `runtimeEquivalence` (or `runtimeEquivalenceWithWF`).
 - `#print axioms` shows the same footprint as before: `propext`, `Classical.choice`,
   `Quot.sound` and documented `native_decide` facts; no `sorryAx`, no new axioms.
 - Do not change `Solm/`, `EVM/`, `ABI/` or existing `Reasoning/` statements without asking.

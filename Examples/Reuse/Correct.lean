@@ -1072,7 +1072,7 @@ theorem cReEquiv_callvalueZero {σ σ₀ A I} {g : UInt256}
         exact cNoDispatch hcode hsize hwv hnm
 
 /-- **Correctness of `C`.** -/
-theorem cCorrect : runtimeEquivalenceAnyPerm cConfig cBytecode Reuse.cContract := by
+theorem cCorrect : runtimeEquivalence cConfig cBytecode Reuse.cContract := by
   refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact cReEquiv_callvalueZero hcode hsize hwv
@@ -1158,5 +1158,5 @@ theorem cConstructorCorrect :
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem cContractCorrect :
-    contractEquivalenceAnyPerm cConfig cInitcode cBytecode Reuse.cContract :=
-  emptyContractCorrectAnyPerm_of_RDret rfl rfl rfl (fun hcode => cInitcodeRun hcode) cCorrect
+    contractEquivalence cConfig cInitcode cBytecode Reuse.cContract :=
+  emptyContractCorrect_of_RDret rfl rfl rfl (fun hcode => cInitcodeRun hcode) cCorrect

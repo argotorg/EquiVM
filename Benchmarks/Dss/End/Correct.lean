@@ -42,8 +42,8 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Dss.End
 
 theorem endCorrect :
-    runtimeEquivalenceAnyPerm config endBytecode contract := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence config endBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hwards : selIs I (selectorOf wardsTransition)
@@ -144,7 +144,7 @@ theorem endCorrect :
   · exact endNonPayable hcode hwv
 
 theorem endContractCorrect :
-    contractEquivalenceAnyPerm config endCreationBytecode endBytecode contract :=
-  contractEquivalenceAnyPerm.intro endConstructorCorrect endCorrect
+    contractEquivalence config endCreationBytecode endBytecode contract :=
+  contractEquivalence.intro endConstructorCorrect endCorrect
 
 end Benchmarks.Dss.End

@@ -47,8 +47,8 @@ namespace Benchmarks.Dss.Clipper
 
 theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
     (hcode : patchRuntime clipperBytecode (patches v) = some code) :
-    runtimeEquivalenceWithWFAnyPerm clipperStorageWF (config v) code (contract v) := by
-  refine runtimeEquivalenceWithWFAnyPerm.intro ?_
+    runtimeEquivalenceWithWF clipperStorageWF (config v) code (contract v) := by
+  refine runtimeEquivalenceWithWF.intro ?_
   intro σ σ₀ g A I hIcode hsize hStorageWF
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hactive : selIs I (clipperSelBytes 0)
@@ -149,10 +149,10 @@ theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
 
 theorem clipperContractCorrect (v : ClipperImmutables) {code : ByteArray}
     (hcode : patchRuntime clipperBytecode (patches v) = some code) :
-    contractEquivalenceWithWFAnyPerm clipperStorageWF (config v)
+    contractEquivalenceWithWF clipperStorageWF (config v)
       clipperCreationBytecode code (contract v)
       (runtimeCodeOf clipperBytecode) :=
-  contractEquivalenceWithWFAnyPerm.intro
+  contractEquivalenceWithWF.intro
     (clipperConstructorCorrect v)
     (clipperCorrect v hcode)
 

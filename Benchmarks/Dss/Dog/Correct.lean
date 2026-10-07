@@ -74,8 +74,8 @@ theorem dogNoSelectorMatches {I : ExecutionEnv}
 
 theorem dogCorrect (v : DogImmutables) {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
-    runtimeEquivalenceAnyPerm (config v) code (contract v) := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence (config v) code (contract v) := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hDirt : selIs I (dogSelBytes 0)
@@ -125,9 +125,9 @@ theorem dogCorrect (v : DogImmutables) {code : ByteArray}
 
 theorem dogContractCorrect (v : DogImmutables) {code : ByteArray}
     (hcode : patchRuntime dogBytecode (patches v) = some code) :
-    contractEquivalenceWithAnyPerm (config v) dogCreationBytecode code (contract v)
+    contractEquivalenceWith (config v) dogCreationBytecode code (contract v)
       (runtimeCodeOf dogBytecode) :=
-  contractEquivalenceWithAnyPerm.intro
+  contractEquivalenceWith.intro
     (dogConstructorCorrect v)
     (dogCorrect v hcode)
 

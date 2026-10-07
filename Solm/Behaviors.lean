@@ -67,40 +67,11 @@ theorem runtimeEquivalenceFor_captured {cfg : Config} {contract : ContractDecl}
       left; exact hΞ
 
 /-- **Behavioral inclusion.**  If the bytecode refines the specification, then on every admissible
-    input (the deployed code, calldata shorter than `2^256` bytes, write permission set, related
-    initial account maps) the bytecode's unique result is either out of gas or captured by a
-    behavior of the specification.  No other behavior of the bytecode exists. -/
+    input (the deployed code and calldata shorter than `2^256` bytes), in either permission mode,
+    the bytecode's unique result is either out of gas or captured by a behavior of the
+    specification.  No other behavior of the bytecode exists. -/
 theorem runtimeEquivalence_behaviors_included {cfg : Config} {bytecode : ByteArray}
     {contract : ContractDecl} (h : runtimeEquivalence cfg bytecode contract)
-    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv)
-    (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
-    (hperm : I.perm = true) :
-    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass ∨
-    capturedBySpec cfg contract σ σ₀ g A I
-      (Ethereum.EVM.Ξ σ σ₀ g A I) := by
-  obtain ⟨hrun⟩ := h
-  exact runtimeEquivalenceFor_captured
-    (hrun σ σ₀ g A I hcode hsize hperm)
-
-/-- The same inclusion for relations carrying a storage well-formedness precondition. -/
-theorem runtimeEquivalenceWithWF_behaviors_included {wf : StorageWF} {cfg : Config}
-    {bytecode : ByteArray} {contract : ContractDecl}
-    (h : runtimeEquivalenceWithWF wf cfg bytecode contract)
-    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv)
-    (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
-    (hperm : I.perm = true) (hwf : wf σ I) :
-    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass ∨
-    capturedBySpec cfg contract σ σ₀ g A I
-      (Ethereum.EVM.Ξ σ σ₀ g A I) := by
-  obtain ⟨hrun⟩ := h
-  exact runtimeEquivalenceFor_captured
-    (hrun σ σ₀ g A I hcode hsize hperm hwf)
-
-/-- Behavioral inclusion in either permission mode. -/
-theorem runtimeEquivalenceAnyPerm_behaviors_included {cfg : Config} {bytecode : ByteArray}
-    {contract : ContractDecl} (h : runtimeEquivalenceAnyPerm cfg bytecode contract)
     (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv)
     (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size) :
@@ -110,6 +81,21 @@ theorem runtimeEquivalenceAnyPerm_behaviors_included {cfg : Config} {bytecode : 
   obtain ⟨hrun⟩ := h
   exact runtimeEquivalenceFor_captured
     (hrun σ σ₀ g A I hcode hsize)
+
+/-- The same inclusion for relations carrying a storage well-formedness precondition. -/
+theorem runtimeEquivalenceWithWF_behaviors_included {wf : StorageWF} {cfg : Config}
+    {bytecode : ByteArray} {contract : ContractDecl}
+    (h : runtimeEquivalenceWithWF wf cfg bytecode contract)
+    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
+    (I : Ethereum.ExecutionEnv)
+    (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
+    (hwf : wf σ I) :
+    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass ∨
+    capturedBySpec cfg contract σ σ₀ g A I
+      (Ethereum.EVM.Ξ σ σ₀ g A I) := by
+  obtain ⟨hrun⟩ := h
+  exact runtimeEquivalenceFor_captured
+    (hrun σ σ₀ g A I hcode hsize hwf)
 
 /-- A captured exceptional halt is `INVALID`, or a static-mode violation matched by a Solm
     `.staticViolation`. -/
@@ -152,24 +138,10 @@ theorem runtimeEquivalence_no_crash {cfg : Config} {bytecode : ByteArray}
     (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv)
     (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
-    (hperm : I.perm = true) {e : Ethereum.EVM.ExecutionException}
-    (herr : Ethereum.EVM.Ξ σ σ₀ g A I = .error e) :
-    e = .OutOfGass ∨ e = .InvalidInstruction ∨ e = .StaticModeViolation := by
-  rcases runtimeEquivalence_behaviors_included h
-      σ σ₀ g A I hcode hsize hperm with hoog | hcap
-  · left; rw [herr] at hoog; exact Except.error.inj hoog
-  · right; rw [herr] at hcap; exact capturedBySpec_error hcap
-
-/-- `runtimeEquivalence_no_crash` in either permission mode. -/
-theorem runtimeEquivalenceAnyPerm_no_crash {cfg : Config} {bytecode : ByteArray}
-    {contract : ContractDecl} (h : runtimeEquivalenceAnyPerm cfg bytecode contract)
-    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv)
-    (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
     {e : Ethereum.EVM.ExecutionException}
     (herr : Ethereum.EVM.Ξ σ σ₀ g A I = .error e) :
     e = .OutOfGass ∨ e = .InvalidInstruction ∨ e = .StaticModeViolation := by
-  rcases runtimeEquivalenceAnyPerm_behaviors_included h
+  rcases runtimeEquivalence_behaviors_included h
       σ σ₀ g A I hcode hsize with hoog | hcap
   · left; rw [herr] at hoog; exact Except.error.inj hoog
   · right; rw [herr] at hcap; exact capturedBySpec_error hcap

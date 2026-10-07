@@ -99,8 +99,8 @@ theorem potNoSelectorMatches {I : ExecutionEnv}
   · simpa [selIs] using h16
 
 theorem potCorrect :
-    runtimeEquivalenceAnyPerm config potBytecode contract := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence config potBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases h0 : selIs I (potSelBytes 0)
@@ -144,7 +144,7 @@ theorem potCorrect :
   · exact potNonPayable hcode hwv
 
 theorem potContractCorrect :
-    contractEquivalenceAnyPerm config potCreationBytecode potBytecode contract :=
-  contractEquivalenceAnyPerm.intro potConstructorCorrect potCorrect
+    contractEquivalence config potCreationBytecode potBytecode contract :=
+  contractEquivalence.intro potConstructorCorrect potCorrect
 
 end Benchmarks.Dss.Pot

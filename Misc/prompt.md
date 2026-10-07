@@ -32,7 +32,7 @@ constructorEquivalence <config> <initcode> <contract> <runtimeBytecode>
 and the correctness of the runtime code:
 
 ```lean
-runtimeEquivalenceAnyPerm <config> <runtimeBytecode> <contract>
+runtimeEquivalence <config> <runtimeBytecode> <contract>
 ```
 
 It has no `I.perm = true` precondition, so it also covers calls entered

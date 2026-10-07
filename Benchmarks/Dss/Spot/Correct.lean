@@ -28,8 +28,8 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.Spot
 
 theorem spotCorrect :
-    runtimeEquivalenceAnyPerm config spotBytecode contract := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence config spotBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcage : selIs I (spotSelBytes 0)
@@ -62,7 +62,7 @@ theorem spotCorrect :
   · exact spotNonPayable hcode hwv
 
 theorem spotContractCorrect :
-    contractEquivalenceAnyPerm config spotCreationBytecode spotBytecode contract :=
-  contractEquivalenceAnyPerm.intro spotConstructorCorrect spotCorrect
+    contractEquivalence config spotCreationBytecode spotBytecode contract :=
+  contractEquivalence.intro spotConstructorCorrect spotCorrect
 
 end Benchmarks.Dss.Spot

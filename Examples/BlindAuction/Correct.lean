@@ -17,7 +17,7 @@ import Reasoning.SolmArithmetic
 # BlindAuction — top-level correctness proof
 
 This file is the Phase 0 dispatcher assembly for
-`blindAuctionCorrect : runtimeEquivalenceAnyPerm …`.  It follows the optimizer-on binary-search
+`blindAuctionCorrect : runtimeEquivalence …`.  It follows the optimizer-on binary-search
 dispatcher shape shared with Ballot/SimpleAuction, but with BlindAuction's payable top-level
 dispatcher: calldata size and selector routing happen before any callvalue check, and non-payable
 guards are proved inside the individual body files.
@@ -32,7 +32,7 @@ namespace BlindAuction
 
 /-- The deployed BlindAuction runtime bytecode refines the Solm specification. -/
 theorem blindAuctionCorrect :
-    runtimeEquivalenceAnyPerm blindAuctionConfig blindAuctionBytecode blindAuctionContract := by
+    runtimeEquivalence blindAuctionConfig blindAuctionBytecode blindAuctionContract := by
   refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   · by_cases h0 : selIs I ⟨#[0x95, 0x7b, 0xb1, 0xe0]⟩
@@ -1883,8 +1883,8 @@ theorem blindAuctionConstructorCorrect :
 
 /-- The full BlindAuction contract equivalence combines constructor/initcode and runtime proofs. -/
 theorem blindAuctionContractCorrect :
-    contractEquivalenceAnyPerm blindAuctionConfig blindAuctionInitcode blindAuctionBytecode
+    contractEquivalence blindAuctionConfig blindAuctionInitcode blindAuctionBytecode
       blindAuctionContract :=
-  contractEquivalenceAnyPerm.intro blindAuctionConstructorCorrect blindAuctionCorrect
+  contractEquivalence.intro blindAuctionConstructorCorrect blindAuctionCorrect
 
 end BlindAuction

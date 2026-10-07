@@ -34,7 +34,7 @@ end Auction
 open Auction
 
 theorem auctionCorrect :
-    runtimeEquivalenceAnyPerm auctionConfig auctionBytecode Auction.auctionContract := by
+    runtimeEquivalence auctionConfig auctionBytecode Auction.auctionContract := by
   refine ⟨fun σ σ₀ g A I hcode hsize ↦ ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   swap
@@ -124,6 +124,6 @@ theorem auctionCorrect :
   · exact h19
 
 theorem auctionContractCorrect :
-    contractEquivalenceAnyPerm auctionConfig auctionCreationBytecode auctionBytecode
+    contractEquivalence auctionConfig auctionCreationBytecode auctionBytecode
       Auction.auctionContract :=
-  contractEquivalenceAnyPerm.intro auctionConstructorCorrect auctionCorrect
+  contractEquivalence.intro auctionConstructorCorrect auctionCorrect

@@ -114,8 +114,8 @@ theorem catNoSelectorMatches {I : ExecutionEnv}
   · simpa [catSelBytes, selIs] using hwards
 
 theorem catCorrect :
-    runtimeEquivalenceAnyPerm config catBytecode contract := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence config catBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbite : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩
@@ -157,7 +157,7 @@ theorem catCorrect :
   · exact catNonPayable hcode hwv
 
 theorem catContractCorrect :
-    contractEquivalenceAnyPerm config catCreationBytecode catBytecode contract :=
-  contractEquivalenceAnyPerm.intro catConstructorCorrect catCorrect
+    contractEquivalence config catCreationBytecode catBytecode contract :=
+  contractEquivalence.intro catConstructorCorrect catCorrect
 
 end Benchmarks.Dss.Cat

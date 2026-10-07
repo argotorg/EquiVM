@@ -25,8 +25,8 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.DaiJoin
 
 theorem daiJoinCorrect :
-    runtimeEquivalenceAnyPerm config daiJoinBytecode contract := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence config daiJoinBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcage : selIs I (daiJoinSelBytes 0)
@@ -53,7 +53,7 @@ theorem daiJoinCorrect :
   · exact daiJoinNonPayable hcode hwv
 
 theorem daiJoinContractCorrect :
-    contractEquivalenceAnyPerm config daiJoinCreationBytecode daiJoinBytecode contract :=
-  contractEquivalenceAnyPerm.intro daiJoinConstructorCorrect daiJoinCorrect
+    contractEquivalence config daiJoinCreationBytecode daiJoinBytecode contract :=
+  contractEquivalence.intro daiJoinConstructorCorrect daiJoinCorrect
 
 end Benchmarks.Dss.DaiJoin

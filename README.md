@@ -193,7 +193,7 @@ def contractSyntax : ContractDecl := solidity% contract ERC20 {
 The top-level theorem is
 
 ```lean
-theorem erc20Correct : runtimeEquivalenceAny erc20Config erc20Bytecode erc20Contract
+theorem erc20Correct : runtimeEquivalence erc20Config erc20Bytecode erc20Contract
 ```
 
 It quantifies over every initial state: any account map, block environment,

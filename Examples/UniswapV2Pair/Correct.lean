@@ -45,7 +45,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 
 theorem uniswapV2PairCorrect :
-    runtimeEquivalenceAnyPerm config uniswapV2PairBytecode contract := by
+    runtimeEquivalence config uniswapV2PairBytecode contract := by
   refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
@@ -173,7 +173,7 @@ theorem uniswapV2PairCorrect :
   · exact uniswapNonPayable hcode hwv
 
 theorem uniswapV2PairContractCorrect :
-    contractEquivalenceAnyPerm config uniswapV2PairInitcode uniswapV2PairBytecode contract :=
-  contractEquivalenceAnyPerm.intro uniswapV2PairConstructorCorrect uniswapV2PairCorrect
+    contractEquivalence config uniswapV2PairInitcode uniswapV2PairBytecode contract :=
+  contractEquivalence.intro uniswapV2PairConstructorCorrect uniswapV2PairCorrect
 
 end UniswapV2Pair

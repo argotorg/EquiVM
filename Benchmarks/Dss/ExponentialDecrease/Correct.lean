@@ -20,8 +20,8 @@ open Solm ABI Ethereum Ethereum.EVM
 namespace Benchmarks.Dss.ExponentialDecrease
 
 theorem exponentialDecreaseCorrect :
-    runtimeEquivalenceAnyPerm config exponentialDecreaseBytecode contract := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence config exponentialDecreaseBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcut : selIs I (stairstepSelBytes 0)
@@ -41,8 +41,8 @@ theorem exponentialDecreaseCorrect :
   · exact stairstepNonPayable hcode hwv
 
 theorem exponentialDecreaseContractCorrect :
-    contractEquivalenceAnyPerm config exponentialDecreaseCreationBytecode
+    contractEquivalence config exponentialDecreaseCreationBytecode
       exponentialDecreaseBytecode contract :=
-  contractEquivalenceAnyPerm.intro exponentialDecreaseConstructorCorrect exponentialDecreaseCorrect
+  contractEquivalence.intro exponentialDecreaseConstructorCorrect exponentialDecreaseCorrect
 
 end Benchmarks.Dss.ExponentialDecrease

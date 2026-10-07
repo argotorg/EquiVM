@@ -1498,7 +1498,7 @@ The dispatcher routing is explicit here.  The proven Vyper function-body obligat
 `approve`, `totalSupply`, `balanceOf`, `transfer`, and `allowance`; only `transferFrom`
 success remains isolated above as a bytecode obligation. -/
 theorem runtimeCorrect :
-    runtimeEquivalenceAnyPerm config vyperERC20Bytecode contract := by
+    runtimeEquivalence config vyperERC20Bytecode contract := by
   refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases h0 : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true
@@ -1578,7 +1578,7 @@ theorem constructorCorrect :
 
 /-- Full Vyper ERC20 equivalence, combining constructor and runtime obligations. -/
 theorem contractCorrect :
-    contractEquivalenceAnyPerm config vyperERC20Initcode vyperERC20Bytecode contract :=
-  contractEquivalenceAnyPerm.intro constructorCorrect runtimeCorrect
+    contractEquivalence config vyperERC20Initcode vyperERC20Bytecode contract :=
+  contractEquivalence.intro constructorCorrect runtimeCorrect
 
 end VyperERC20

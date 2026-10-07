@@ -67,7 +67,7 @@ theorem accessControlNoDispatch {σ σ₀ A I} {g : UInt256}
 
 /-- The deployed AccessControl benchmark runtime bytecode refines the Solm specification. -/
 theorem accessControlCorrect :
-    runtimeEquivalenceAnyPerm config accessControlBenchBytecode contract := by
+    runtimeEquivalence config accessControlBenchBytecode contract := by
   refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size

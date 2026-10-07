@@ -78,8 +78,8 @@ theorem flipperNoSelectorMatches {I : ExecutionEnv}
   · simpa [selIs, flipperSelBytes] using hyank
 
 theorem flipperCorrect :
-    runtimeEquivalenceAnyPerm config flipperBytecode contract := by
-  refine runtimeEquivalenceAnyPerm.intro ?_
+    runtimeEquivalence config flipperBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbeg : selIs I (flipperSelBytes 0)
@@ -137,7 +137,7 @@ theorem flipperCorrect :
   · exact flipperNonPayable hcode hwv
 
 theorem flipperContractCorrect :
-    contractEquivalenceAnyPerm config flipperCreationBytecode flipperBytecode contract :=
-  contractEquivalenceAnyPerm.intro flipperConstructorCorrect flipperCorrect
+    contractEquivalence config flipperCreationBytecode flipperBytecode contract :=
+  contractEquivalence.intro flipperConstructorCorrect flipperCorrect
 
 end Benchmarks.Dss.Flipper
