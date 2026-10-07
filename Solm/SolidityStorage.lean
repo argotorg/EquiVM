@@ -5,7 +5,7 @@ import Solm.Semantics.ValueOps
 # Solidity storage backend
 
 The generic Solm semantics only knows `StorageBackend`.  This module implements that interface for
-Solidity, given a locator produced by either `genSolidityLayout` or `solidityLayout!`.
+Solidity, given a storage locator such as one produced by `solidityLayout!`.
 
 The recursive behavior is driven by the supplied `StorageType`: elementary leaves use the locator,
 structs and arrays recurse over their components, mappings are non-enumerable, and bytes/string use

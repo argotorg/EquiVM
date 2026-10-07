@@ -9,8 +9,7 @@ import Solm.SolidityStorage
 locator function. Bare dynamically-sized references locate their length/header anchor, and an
 index into a bytes/string locates symbolically as `.byte header index`. The generated function
 does not depend on the EVM state: it contains only matching on the evaluated reference and its
-slot arithmetic; it does not rebuild `StorageNode`s, traverse the declaration list, or run another
-layout-generation function at runtime.
+slot arithmetic; it does not traverse the declaration list or generate a layout at runtime.
 -/
 
 namespace Solm
