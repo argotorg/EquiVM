@@ -1576,8 +1576,7 @@ theorem RD.clipperUpchostVatIlksPostCall
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (clipperUpchostVatTarget v) ≠ ⟨0⟩)
-    (hdepth : I.depth.val < 1024)
-    (hperm : I.perm = true) :
+    (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (o : ByteArray) (A' : Substate) (k C : ℕ),
       RD code I (Sat256.ofUInt256 g)
@@ -1629,7 +1628,7 @@ theorem RD.clipperUpchostVatIlksPostCall
       ?_ (by simpa using clipperVatIlksEncode_eq v) ?_
     · rw [clipperUpchostVatTargetAddress v]
       exact eVM_address_id v.vat
-    · simpa [initState, hperm] using hΘ
+    · simpa [initState] using hΘ
 
 set_option maxHeartbeats 1000000 in
 theorem RD.clipperUpchostVatIlksCallDepthLimit
@@ -2061,7 +2060,7 @@ theorem RD.clipperUpchostDogChopPostCall
     (hcodeSizeDog :
       Reasoning.Theory.extCodeSizeWord σ_vat
         (clipperUpchostDogTarget σ_vat I) ≠ ⟨0⟩)
-    (hdepth : I.depth.val < 1024) (hperm : I.perm = true) :
+    (hdepth : I.depth.val < 1024) :
     ∃ (σ_dog : AccountMap)
       (zDog : Bool) (outDog : ByteArray) (A_dog : Substate) (k' C' : ℕ),
       RD code I g (initState σ σ₀ g A I) ⟨1761⟩
@@ -2129,7 +2128,7 @@ theorem RD.clipperUpchostDogChopPostCall
       ?_ (by simpa using clipperDogChopEncode_eq v out hlo hout) ?_
     · exact eVM_address_id
         (AccountAddress.ofUInt256 (clipperUpchostDogTarget σ_vat I))
-    · simpa [evmVat, initState, hperm] using hΘ
+    · simpa [evmVat, initState] using hΘ
 
 theorem RD.clipperUpchostDogChopCallFailure
     {code : ByteArray} (v : ClipperImmutables)
@@ -2606,6 +2605,121 @@ theorem clipperUpchostAssignChost (v : ClipperImmutables) (evm : EVM.State)
       (hloc := by rfl)
   simpa using storageLocStore_uint256 evm ⟨9⟩ (clipperUpchostChostWord out outDog)
 
+theorem clipperUpchostBodyDogChopSuccessSplit (v : ClipperImmutables)
+    (evm evmVat evmDog : EVM.State) (out outDog : ByteArray)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hvatCode :
+      0 < (UInt256.ofNat ((evm.lookupAccount v.vat).option 0 (fun acc ↦ acc.code.size))).toNat)
+    (hcallVat :
+      typedCallViaEVM (config v) evm (EVM.address v.vat) "vatIlks" 0 [v.ilk]
+        (true, evmVat, out) true)
+    (hdecVat : (config v).externalABI.decode? "vatIlks" out = some (clipperVatIlksValues out))
+    (hdogCode :
+      0 < (UInt256.ofNat ((evmVat.lookupAccount
+        (AccountAddress.ofUInt256
+          (clipperUpchostDogTarget evmVat.accountMap evmVat.executionEnv))).option 0
+          (fun acc ↦ acc.code.size))).toNat)
+    (hcallDog :
+      typedCallViaEVM (config v) evmVat
+        (EVM.address (AccountAddress.ofUInt256
+          (clipperUpchostDogTarget evmVat.accountMap evmVat.executionEnv)))
+        "chop" 0 [v.ilk] (true, evmDog, outDog) true)
+    (hdecDog : (config v).externalABI.decode? "chop" outDog = some (clipperDogChopValues outDog))
+    (hloDog : 32 ≤ outDog.size)
+    (hmul : (clipperVatIlksDustWord out).toNat * (clipperDogChopWord outDog).toNat <
+      UInt256.size) :
+    ExecTransitionBody (config v) (contract v) evm ∅ (upchostTransition v).body
+      (.returned { contract := contract v, locals := clipperUpchostChostLocals out outDog }
+        (Solm.EVM.storageStore evmDog evmDog.executionEnv.codeOwner ⟨9⟩
+          (clipperUpchostChostWord out outDog)) none) ∧
+    (evmDog.executionEnv.perm = false →
+      ExecTransitionBody (config v) (contract v) evm ∅ (upchostTransition v).body
+        .staticViolation) := by
+  have hprefix {result : ExecResult}
+      (hrest : ExecBlock (config v)
+        { contract := contract v, locals := clipperUpchostChostLocals out outDog } evmDog
+        [.assign .storage chostRef (.var "chostNew")] result) :
+      ExecBlock (config v) { contract := contract v, locals := ∅ } evm
+        (upchostTransition v).body result := by
+    simp only [upchostTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
+      List.nil_append]
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true hwv
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact clipperEvalVatCodeGuard_true v evm ∅ hvatCode
+    refine ExecBlock.consNormal
+      (solm' := { contract := contract v, locals := clipperUpchostVatIlkLocals out })
+      (evm' := evmVat) ?_ ?_
+    · simpa [clipperUpchostVatIlkLocals] using
+        (ExecStmt.externalCallSuccess (clipperEvalVat v evm ∅) (by simp [evalExpr?, pure])
+          (clipperEvalIlkArg v evm ∅) hcallVat hdecVat)
+    refine ExecBlock.consNormal
+      (solm' := { contract := contract v, locals := clipperUpchostDustLocals out })
+      (evm' := evmVat) ?_ ?_
+    · simpa [clipperUpchostVatIlkLocals, clipperUpchostDustLocals] using
+        (ExecStmt.letDecl
+          (cfg := config v)
+          (solm := { contract := contract v, locals := clipperUpchostVatIlkLocals out })
+          (evm := evmVat)
+          (name := "_dust")
+          (ty := some uint256)
+          (expr := .tupleGet (.var "vatIlk") 4)
+          (value := .int (Int.ofNat (clipperVatIlksDustWord out).toNat))
+          (clipperEvalVatIlkDust v evmVat out))
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact clipperEvalDogCodeGuard_true v evmVat (clipperUpchostDustLocals out)
+        (clipperUpchostDustLocals_get_dog out) hdogCode
+    refine ExecBlock.consNormal
+      (solm' := { contract := contract v, locals := clipperUpchostChopLocals out outDog })
+      (evm' := evmDog) ?_ ?_
+    · simpa [clipperUpchostChopLocals] using
+        (ExecStmt.externalCallSuccess
+          (clipperEvalDogTarget v evmVat (clipperUpchostDustLocals out)
+            (clipperUpchostDustLocals_get_dog out))
+          (by simp [evalExpr?, pure])
+          (clipperEvalIlkArg v evmVat (clipperUpchostDustLocals out))
+          hcallDog hdecDog)
+    let afterWmul : Frame :=
+      { contract := contract v, locals := clipperUpchostChostLocals out outDog }
+    have hwmul :
+        ExecStmt (config v)
+          { contract := contract v, locals := clipperUpchostChopLocals out outDog } evmDog
+          (.internalCall "wmul" [.var "_dust", .var "chop"] "chostNew")
+          (.ok afterWmul evmDog) := by
+      simpa [afterWmul, clipperUpchostChostLocals, resumeAfterInternalCall] using
+        (internalCallFunctionReturn
+          (cfg := config v)
+          (caller := { contract := contract v, locals := clipperUpchostChopLocals out outDog })
+          (evm := evmDog) (calleeEvm := evmDog)
+          (name := "wmul") (retVar := "chostNew")
+          (args := [.var "_dust", .var "chop"])
+          (argVals := [.int (Int.ofNat (clipperVatIlksDustWord out).toNat),
+            .int (Int.ofNat (clipperDogChopWord outDog).toNat)])
+          (callee := wmulFunction)
+          (locals := clipperUintBinaryLocals (clipperVatIlksDustWord out)
+            (clipperDogChopWord outDog))
+          (calleeSolm :=
+            { contract := contract v,
+              locals := clipperWmulReturnLocals (clipperVatIlksDustWord out)
+                (clipperDogChopWord outDog)
+                (UInt256.mul (clipperVatIlksDustWord out) (clipperDogChopWord outDog)) })
+          (value := some [.int (Int.ofNat (clipperUpchostChostWord out outDog).toNat)])
+          (clipperEvalUpchostWmulArgs v evmDog out outDog hloDog)
+          (clipperLookupWmulFunction v)
+          (clipperBindParamsWmul (clipperVatIlksDustWord out) (clipperDogChopWord outDog))
+          (clipperWmulFunctionReturns v evmDog (clipperVatIlksDustWord out)
+            (clipperDogChopWord outDog) hmul))
+    refine ExecBlock.consNormal hwmul ?_
+    exact hrest
+  have hvalue := clipperEvalUpchostChostNew v evmDog out outDog
+  have hassign := clipperUpchostAssignChost v evmDog out outDog
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign hvalue hassign) ExecBlock.nil))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hvalue hassign hperm)))
+
 theorem clipperUpchostBodyDogChopSuccess (v : ClipperImmutables)
     (evm evmVat evmDog : EVM.State) (out outDog : ByteArray)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -2632,80 +2746,9 @@ theorem clipperUpchostBodyDogChopSuccess (v : ClipperImmutables)
     ExecTransitionBody (config v) (contract v) evm ∅ (upchostTransition v).body
       (.returned { contract := contract v, locals := clipperUpchostChostLocals out outDog }
         (Solm.EVM.storageStore evmDog evmDog.executionEnv.codeOwner ⟨9⟩
-          (clipperUpchostChostWord out outDog)) none) := by
-  refine ExecFuncBody.execBlockOK ?_
-  simp only [upchostTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
-    List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-  · exact evalCallvalueEq_true hwv
-  refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-  · exact clipperEvalVatCodeGuard_true v evm ∅ hvatCode
-  refine ExecBlock.consNormal
-    (solm' := { contract := contract v, locals := clipperUpchostVatIlkLocals out })
-    (evm' := evmVat) ?_ ?_
-  · simpa [clipperUpchostVatIlkLocals] using
-      (ExecStmt.externalCallSuccess (clipperEvalVat v evm ∅) (by simp [evalExpr?, pure])
-        (clipperEvalIlkArg v evm ∅) hcallVat hdecVat)
-  refine ExecBlock.consNormal
-    (solm' := { contract := contract v, locals := clipperUpchostDustLocals out })
-    (evm' := evmVat) ?_ ?_
-  · simpa [clipperUpchostVatIlkLocals, clipperUpchostDustLocals] using
-      (ExecStmt.letDecl
-        (cfg := config v)
-        (solm := { contract := contract v, locals := clipperUpchostVatIlkLocals out })
-        (evm := evmVat)
-        (name := "_dust")
-        (ty := some uint256)
-        (expr := .tupleGet (.var "vatIlk") 4)
-        (value := .int (Int.ofNat (clipperVatIlksDustWord out).toNat))
-        (clipperEvalVatIlkDust v evmVat out))
-  refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-  · exact clipperEvalDogCodeGuard_true v evmVat (clipperUpchostDustLocals out)
-      (clipperUpchostDustLocals_get_dog out) hdogCode
-  refine ExecBlock.consNormal
-    (solm' := { contract := contract v, locals := clipperUpchostChopLocals out outDog })
-    (evm' := evmDog) ?_ ?_
-  · simpa [clipperUpchostChopLocals] using
-      (ExecStmt.externalCallSuccess
-        (clipperEvalDogTarget v evmVat (clipperUpchostDustLocals out)
-          (clipperUpchostDustLocals_get_dog out))
-        (by simp [evalExpr?, pure])
-        (clipperEvalIlkArg v evmVat (clipperUpchostDustLocals out))
-        hcallDog hdecDog)
-  let afterWmul : Frame := { contract := contract v, locals := clipperUpchostChostLocals out outDog }
-  have hwmul :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperUpchostChopLocals out outDog } evmDog
-        (.internalCall "wmul" [.var "_dust", .var "chop"] "chostNew")
-        (.ok afterWmul evmDog) := by
-    simpa [afterWmul, clipperUpchostChostLocals, resumeAfterInternalCall] using
-      (internalCallFunctionReturn
-        (cfg := config v)
-        (caller := { contract := contract v, locals := clipperUpchostChopLocals out outDog })
-        (evm := evmDog) (calleeEvm := evmDog)
-        (name := "wmul") (retVar := "chostNew")
-        (args := [.var "_dust", .var "chop"])
-        (argVals := [.int (Int.ofNat (clipperVatIlksDustWord out).toNat),
-          .int (Int.ofNat (clipperDogChopWord outDog).toNat)])
-        (callee := wmulFunction)
-        (locals := clipperUintBinaryLocals (clipperVatIlksDustWord out)
-          (clipperDogChopWord outDog))
-        (calleeSolm :=
-          { contract := contract v,
-            locals := clipperWmulReturnLocals (clipperVatIlksDustWord out)
-              (clipperDogChopWord outDog)
-              (UInt256.mul (clipperVatIlksDustWord out) (clipperDogChopWord outDog)) })
-        (value := some [.int (Int.ofNat (clipperUpchostChostWord out outDog).toNat)])
-        (clipperEvalUpchostWmulArgs v evmDog out outDog hloDog)
-        (clipperLookupWmulFunction v)
-        (clipperBindParamsWmul (clipperVatIlksDustWord out) (clipperDogChopWord outDog))
-        (clipperWmulFunctionReturns v evmDog (clipperVatIlksDustWord out)
-          (clipperDogChopWord outDog) hmul))
-  refine ExecBlock.consNormal hwmul ?_
-  exact ExecBlock.consNormal
-    (ExecStmt.assign (clipperEvalUpchostChostNew v evmDog out outDog)
-      (clipperUpchostAssignChost v evmDog out outDog))
-    ExecBlock.nil
+          (clipperUpchostChostWord out outDog)) none) :=
+  (clipperUpchostBodyDogChopSuccessSplit v evm evmVat evmDog out outDog hwv hvatCode
+    hcallVat hdecVat hdogCode hcallDog hdecDog hloDog hmul).1
 
 theorem clipperUpchostBodyDogChopWmulRevert (v : ClipperImmutables)
     (evm evmVat evmDog : EVM.State) (out outDog : ByteArray)
@@ -3108,7 +3151,7 @@ theorem clipperUpchostDogChopSuccessBodyCore (v : ClipperImmutables) {code : Byt
     {A_vat : Substate} {out : ByteArray} {kVat CVat : ℕ}
     {σ_dog : AccountMap}
     {A_dog : Substate} {outDog : ByteArray} {kDog CDog : ℕ}
-    (hcode : I.code = code) (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg (contract v) I.calldata = some (upchostTransition v))
     (hdecode :
       decodeCalldataWithMode (config v).abiDecodeMode ((upchostTransition v).params.map Param.name)
@@ -3171,17 +3214,19 @@ theorem clipperUpchostDogChopSuccessBodyCore (v : ClipperImmutables) {code : Byt
     Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperWmulRoutine
       v hpatch rd8238 (by simpa [Nat.mul_comm] using hmul)
       (clipperJumpDest1806 v hpatch) (by simp)
-  have hret :
-      RDret code (Sat256.ofUInt256 g)
-        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (sstoreAccountMap I.codeOwner σ_dog ⟨9⟩ (clipperUpchostChostWord out outDog))
-        ByteArray.empty := by
-    exact Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperUpchostStoreChostReturn v hpatch
+  have hretSplit :
+    (I.perm = true ∧
+        RDret code (Sat256.ofUInt256 g)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (sstoreAccountMap I.codeOwner σ_dog ⟨9⟩ (clipperUpchostChostWord out outDog))
+          ByteArray.empty) ∨
+    (I.perm = false ∧ RDstatic code (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
+    exact Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperUpchostStoreChostReturnSplit v hpatch
       (by
         simpa [clipperUpchostChostWord,
           u256_mul_comm (clipperDogChopWord outDog) (clipperVatIlksDustWord out)] using
           rd1806)
-      hperm
   obtain ⟨_, _, _rd1617⟩ := RD.clipperUpchostVatIlksCallSuccessToDecode v hpatch rd1599
   have hcallVatSolmRaw := hcallVat
   let evmVatSolm : EVM.State :=
@@ -3224,18 +3269,26 @@ theorem clipperUpchostDogChopSuccessBodyCore (v : ClipperImmutables) {code : Byt
   have hdecDog :
       (config v).externalABI.decode? "chop" outDog = some (clipperDogChopValues outDog) :=
     clipperDogChopDecode_ok (v := v) hloDog
-  have hbody :
+  have hbodySplit :
       ExecTransitionBody (config v) (contract v)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (upchostTransition v).body
         (.returned { contract := contract v, locals := clipperUpchostChostLocals out outDog }
           (Solm.EVM.storageStore evmDogSolm evmDogSolm.executionEnv.codeOwner ⟨9⟩
-            (clipperUpchostChostWord out outDog)) none) := by
-    exact clipperUpchostBodyDogChopSuccess v
+            (clipperUpchostChostWord out outDog)) none) ∧
+      (evmDogSolm.executionEnv.perm = false →
+        ExecTransitionBody (config v) (contract v)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+          (upchostTransition v).body .staticViolation) := by
+    exact clipperUpchostBodyDogChopSuccessSplit v
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       evmVatSolm evmDogSolm out outDog (by simp only [initState]; exact hwv)
       hvatCodeSolm hcallVatSolm hdecVat hdogCodeSolm hcallDogSolm hdecDog hloDog hmul
-  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+  rcases hretSplit with ⟨_, hret⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+      (hbodySplit.2 (by simpa [evmDogSolm, evmVatSolm, initState] using hperm))
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
     (by
       simpa [evmDogSolm, evmVatSolm, initState, storageStore_accountMap] using
         congrArg
@@ -3522,7 +3575,7 @@ theorem clipperUpchostBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 24)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
@@ -3555,7 +3608,7 @@ theorem clipperUpchostBody (v : ClipperImmutables) {code : ByteArray}
       by_cases hdepthLt : I.depth.val < 1024
       · obtain ⟨σ_vat, zVat, outVat, A_vat, k1599, C1599,
             rd1599, hcallVatEvmRaw, houtVatSize⟩ :=
-          RD.clipperUpchostVatIlksPostCall v hpatch hreach hcodeSizeVatNE hdepthLt hperm
+          RD.clipperUpchostVatIlksPostCall v hpatch hreach hcodeSizeVatNE hdepthLt
         cases zVat
         · have hcallVatEvm :
               typedCallViaEVM (config v)
@@ -3609,7 +3662,7 @@ theorem clipperUpchostBody (v : ClipperImmutables) {code : ByteArray}
                    (σ_vat := σ_vat) (A_vat := A_vat)
                   (out := outVat) (k := k1643) (C := C1643)
                   (sel := clipperSelWord I) v hpatch rd1643Dog
-                  hloVat houtVatSize hcodeSizeDogNE hdepthLt hperm
+                  hloVat houtVatSize hcodeSizeDogNE hdepthLt
               cases zDog
               · have hcallDogEvm :
                     typedCallViaEVM (config v)
@@ -3662,7 +3715,7 @@ theorem clipperUpchostBody (v : ClipperImmutables) {code : ByteArray}
                   by_cases hmul :
                       (clipperVatIlksDustWord outVat).toNat *
                         (clipperDogChopWord outDog).toNat < UInt256.size
-                  · exact clipperUpchostDogChopSuccessBodyCore v hpatch hcode hperm hwv
+                  · exact clipperUpchostDogChopSuccessBodyCore v hpatch hcode hwv
                       hdispatch hdecode
                       (by simpa [clipperVatIlksPostCallMem] using rd1599)
                       hcallVatEvm

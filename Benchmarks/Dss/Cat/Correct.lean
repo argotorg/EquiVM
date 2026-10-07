@@ -114,42 +114,42 @@ theorem catNoSelectorMatches {I : ExecutionEnv}
   · simpa [catSelBytes, selIs] using hwards
 
 theorem catCorrect :
-    runtimeEquivalence config catBytecode contract := by
-  refine runtimeEquivalence.intro ?_
-  intro σ σ₀ g A I hcode hsize hperm
+    runtimeEquivalenceAnyPerm config catBytecode contract := by
+  refine runtimeEquivalenceAnyPerm.intro ?_
+  intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbite : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩
-    · exact catBiteBody hcode hsize hperm hwv hbite
+    · exact catBiteBody hcode hsize hwv hbite
     · by_cases hbox : selIs I ⟨#[0x75, 0x42, 0x15, 0xa1]⟩
-      · exact catBoxBody hcode hsize hperm hwv hbox
+      · exact catBoxBody hcode hsize hwv hbox
       · by_cases hcage : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩
-        · exact catCageBody hcode hsize hperm hwv hcage
+        · exact catCageBody hcode hsize hwv hcage
         · by_cases hclaw : selIs I ⟨#[0xe6, 0x6d, 0x27, 0x9b]⟩
-          · exact catClawBody hcode hsize hperm hwv hclaw
+          · exact catClawBody hcode hsize hwv hclaw
           · by_cases hdeny : selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩
-            · exact catDenyBody hcode hsize hperm hwv hdeny
+            · exact catDenyBody hcode hsize hwv hdeny
             · by_cases hfileAddress : selIs I ⟨#[0xd4, 0xe8, 0xbe, 0x83]⟩
-              · exact catFileAddressBody hcode hsize hperm hwv hfileAddress
+              · exact catFileAddressBody hcode hsize hwv hfileAddress
               · by_cases hfileIlkFlip : selIs I ⟨#[0xeb, 0xec, 0xb3, 0x9d]⟩
-                · exact catFileIlkFlipBody hcode hsize hperm hwv hfileIlkFlip
+                · exact catFileIlkFlipBody hcode hsize hwv hfileIlkFlip
                 · by_cases hfileIlkUint : selIs I ⟨#[0x1a, 0x0b, 0x28, 0x7e]⟩
-                  · exact catFileIlkUintBody hcode hsize hperm hwv hfileIlkUint
+                  · exact catFileIlkUintBody hcode hsize hwv hfileIlkUint
                   · by_cases hfileUint : selIs I ⟨#[0x29, 0xae, 0x81, 0x14]⟩
-                    · exact catFileUintBody hcode hsize hperm hwv hfileUint
+                    · exact catFileUintBody hcode hsize hwv hfileUint
                     · by_cases hilks : selIs I ⟨#[0xd9, 0x63, 0x8d, 0x36]⟩
-                      · exact catIlksBody hcode hsize hperm hwv hilks
+                      · exact catIlksBody hcode hsize hwv hilks
                       · by_cases hlitter : selIs I ⟨#[0xa4, 0xfe, 0x8c, 0xaf]⟩
-                        · exact catLitterBody hcode hsize hperm hwv hlitter
+                        · exact catLitterBody hcode hsize hwv hlitter
                         · by_cases hlive : selIs I ⟨#[0x95, 0x7a, 0xa5, 0x8c]⟩
-                          · exact catLiveBody hcode hsize hperm hwv hlive
+                          · exact catLiveBody hcode hsize hwv hlive
                           · by_cases hrely : selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩
-                            · exact catRelyBody hcode hsize hperm hwv hrely
+                            · exact catRelyBody hcode hsize hwv hrely
                             · by_cases hvat : selIs I ⟨#[0x36, 0x56, 0x9e, 0x77]⟩
-                              · exact catVatBody hcode hsize hperm hwv hvat
+                              · exact catVatBody hcode hsize hwv hvat
                               · by_cases hvow : selIs I ⟨#[0x62, 0x6c, 0xb3, 0xc5]⟩
-                                · exact catVowBody hcode hsize hperm hwv hvow
+                                · exact catVowBody hcode hsize hwv hvow
                                 · by_cases hwards : selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩
-                                  · exact catWardsBody hcode hsize hperm hwv hwards
+                                  · exact catWardsBody hcode hsize hwv hwards
                                   · exact catNoDispatch hcode hsize hwv
                                       (catNoSelectorMatches hbite hbox hcage hclaw hdeny
                                         hfileAddress hfileIlkFlip hfileIlkUint hfileUint hilks
@@ -157,7 +157,7 @@ theorem catCorrect :
   · exact catNonPayable hcode hwv
 
 theorem catContractCorrect :
-    contractEquivalence config catCreationBytecode catBytecode contract :=
-  contractEquivalence.intro catConstructorCorrect catCorrect
+    contractEquivalenceAnyPerm config catCreationBytecode catBytecode contract :=
+  contractEquivalenceAnyPerm.intro catConstructorCorrect catCorrect
 
 end Benchmarks.Dss.Cat

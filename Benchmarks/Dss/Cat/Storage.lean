@@ -30,6 +30,30 @@ end Benchmarks.Dss.Cat
 
 namespace Benchmarks.Dss.Cat.RD
 
+theorem catStoreLiveZeroSplit {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {pc ret : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (hwf : catStoreLiveZeroWf code pc)
+    (hret : (D_J code 0).contains ret = true)
+    (hov : R.length + 3 ≤ 1024) :
+    (ee.perm = true ∧
+      ∃ k' C', RD code ee g s0 ret R mem (UInt256.ofNat 3) rdata
+        (sstoreAccountMap ee.codeOwner σ ⟨2⟩ ⟨0⟩) k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
+  rcases hwf with ⟨hd0, hd1, hd3, hd5, hd6⟩
+  have rdStore := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw push1 ⟨0⟩ hd1 (by evm_ov),
+    raw push1 ⟨2⟩ hd3 (by evm_ov)]
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdStore.sstoreStatic (by simpa using hperm) hd5 (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rdOut⟩ := rdStore.sstore hperm hd5 (by evm_ov)
+  exact ⟨_, _, rdOut.jump hd6 hret (by evm_ov)⟩
+
 theorem catStoreLiveZero {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
@@ -39,14 +63,8 @@ theorem catStoreLiveZero {code : ByteArray} {g : Sat256} {s0 : State}
     (hperm : ee.perm = true)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret R mem (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨2⟩ ⟨0⟩) k' C' := by
-  rcases hwf with ⟨hd0, hd1, hd3, hd5, hd6⟩
-  have rdStore := evm_run h with [
-    raw jumpdest hd0 (by evm_ov),
-    raw push1 ⟨0⟩ hd1 (by evm_ov),
-    raw push1 ⟨2⟩ hd3 (by evm_ov)]
-  obtain ⟨_, _, rdOut⟩ := rdStore.sstore hperm hd5 (by evm_ov)
-  exact ⟨_, _, rdOut.jump hd6 hret (by evm_ov)⟩
+      (sstoreAccountMap ee.codeOwner σ ⟨2⟩ ⟨0⟩) k' C' :=
+  permSplit_true hperm (catStoreLiveZeroSplit h hwf hret hov)
 
 end Benchmarks.Dss.Cat.RD
 

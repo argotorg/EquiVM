@@ -236,6 +236,31 @@ theorem daiRelyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       (evalExpr_rely_one evm I)
       (relyAssign evm I)
 
+theorem daiRelyBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hauth :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (relyStore I) relyTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  simpa [relyTransition, nonpayable, auth] using
+    nonpayableRequireAssignStorageBlockStatic
+      (cfg := config)
+      (solm := { contract := contract, locals := relyStore I })
+      (evm := evm)
+      (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
+      (rhs := .intLit 1)
+      (ref := wardsRef (.var "guy"))
+      (value := .int 1)
+      (rest := [])
+      hwv
+      (evalExpr_rely_auth_true evm I hsrc hauth)
+      (evalExpr_rely_one evm I)
+      (relyAssign evm I)
+      hperm
+
 /-- The Solm `rely(address)` body reverts when `msg.sender` is not authorized. -/
 theorem daiRelyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -431,14 +456,16 @@ theorem daiRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem daiRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem daiRelyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (h : RD daiBytecode I g s0 ⟨2363⟩
       [relyGuyMaskedWord I, ⟨686⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret daiBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨1⟩)
-      ByteArray.empty := by
+    (I.perm = true ∧
+      RDret daiBytecode g s0
+        (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨1⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic daiBytecode g s0) := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
@@ -488,12 +515,44 @@ theorem daiRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd2390pre := evm_run rd2387 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2391raw⟩ := rd2390pre.sstore hperm (by native_decide)
+  have hstoreDec : decode daiBytecode ⟨2390⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2390pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd2391raw⟩ := rd2390pre.sstore hperm hstoreDec
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd686 := rd2391raw.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd687 := rd686.jumpdest (by native_decide) (by evm_ov)
   simpa [relyGuyStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd687 (by native_decide) (by evm_ov)
+
+theorem daiRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hperm : I.perm = true)
+    (h : RD daiBytecode I g s0 ⟨2363⟩
+      [relyGuyMaskedWord I, ⟨686⟩, sel]
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret daiBytecode g s0
+      (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨1⟩)
+      ByteArray.empty :=
+  permSplit_true hperm (daiRelyX_storeAuthorizedSplit h)
+
+theorem daiX_rely_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hreach : ∃ k C, RD daiBytecode I g
+      (initState σ σ₀ g A I) ⟨696⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
+      RDret daiBytecode g (initState σ σ₀ g A I)
+        (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨1⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic daiBytecode g (initState σ σ₀ g A I)) := by
+  obtain ⟨_, _, rd2274⟩ := daiRelyX_decoded (g := g) hsz36 hsize hreach
+  obtain ⟨_, _, rd2363⟩ := daiRelyX_authorized (I := I) hauth rd2274
+  exact daiRelyX_storeAuthorizedSplit rd2363
 
 theorem daiX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -503,10 +562,8 @@ theorem daiX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret daiBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨1⟩)
-      ByteArray.empty := by
-  obtain ⟨_, _, rd2274⟩ := daiRelyX_decoded (g := g) hsz36 hsize hreach
-  obtain ⟨_, _, rd2363⟩ := daiRelyX_authorized (I := I) hauth rd2274
-  exact daiRelyX_storeAuthorized hperm rd2363
+      ByteArray.empty :=
+  permSplit_true hperm (daiX_rely_okSplit hsz36 hsize hauth hreach)
 
 theorem daiX_rely_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -518,10 +575,10 @@ theorem daiX_rely_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, rd2274⟩ := daiRelyX_decoded (g := g) hsz36 hsize hreach
   exact daiRelyX_unauthorized (I := I) hauth rd2274
 
-theorem daiRelyBodyCoreOk
+theorem daiRelyBodyCoreStatic
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hperm : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some relyTransition)
@@ -532,6 +589,41 @@ theorem daiRelyBodyCoreOk
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨696⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
+  have hbody :
+      ExecTransitionBody config contract evmSolm (relyStore I)
+        relyTransition.body
+        .staticViolation := by
+    simpa [evmSolm, relyAuthWord, initState, Solm.EVM.storageLoad,
+      State.lookupAccount] using
+      daiRelyBodyStatic evmSolm I
+        (by simp only [evmSolm, initState]; exact hwv)
+        (by simp [evmSolm, initState])
+        hauthWord
+        (by simp only [evmSolm, initState]; exact hperm)
+  exact (permSplit_false hperm (daiX_rely_okSplit
+      (g := Sat256.ofUInt256 g) hsz36 hsize hauth hreach))
+    |>.reEquivStaticHalt hcode hdispatch hdecode hbody
+
+theorem daiRelyBodyCoreOk
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some relyTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (relyTransition.params.map Param.name)
+        (transitionSignature relyTransition).paramTypes I.calldata = some (relyStore I))
+    (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨696⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  swap
+  · exact daiRelyBodyCoreStatic hcode hsize (by simpa using hperm) hwv hsz36 hauth
+      hdispatch hdecode hreach
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
@@ -597,7 +689,7 @@ theorem daiRelyBodyCoreDecodeFailed_short
 /-- `rely(address)` body refines its Solm transition. -/
 theorem daiRelyBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 15)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -609,7 +701,7 @@ theorem daiRelyBodyCore {σ σ₀ A I} {g : UInt256}
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
-    · exact daiRelyBodyCoreOk hcode hsize hperm hwv hsz36 hauth hdispatch
+    · exact daiRelyBodyCoreOk hcode hsize hwv hsz36 hauth hdispatch
         (daiDecode_rely_ok hsz36) hreach
     · exact daiRelyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
         (daiDecode_rely_ok hsz36) hreach

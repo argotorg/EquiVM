@@ -7,6 +7,27 @@ set_option maxRecDepth 100000
 
 namespace Auction
 
+theorem renounceOwnershipBodySplit (evm : EVM.State)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv) :
+    (ExecTransitionBody auctionConfig auctionContract evm ∅ renounceOwnershipTransition.body
+      (.returned { contract := auctionContract, locals := ∅ }
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨151⟩
+          (setAddressOffset0Word
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨151⟩) ⟨0⟩)) none)) ∧
+      (evm.executionEnv.perm = false →
+        ExecTransitionBody auctionConfig auctionContract evm ∅
+          renounceOwnershipTransition.body .staticViolation) := by
+  have howner := evalOwnerEq_true evm ∅ (by simp) ho
+  have hvalue := evalZeroAddr auctionConfig { contract := auctionContract, locals := ∅ } evm
+  have hassign := assignOwner evm ∅ ⟨0⟩ (by simp) (by decide)
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (nonpayableRequireAssignStorageBlock hwv howner hvalue hassign)
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (nonpayableRequireAssignStorageBlockStatic hwv howner hvalue hassign hperm)
+
 theorem renounceOwnershipBody (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv) :
@@ -14,14 +35,12 @@ theorem renounceOwnershipBody (evm : EVM.State)
       (.returned { contract := auctionContract, locals := ∅ }
         (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨151⟩
           (setAddressOffset0Word
-            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨151⟩) ⟨0⟩)) none) := by
-  apply ExecFuncBody.execBlockOK
-  exact nonpayableRequireAssignStorageBlock hwv (evalOwnerEq_true evm ∅ (by simp) ho)
-    (evalZeroAddr _ _ _) (assignOwner evm ∅ ⟨0⟩ (by simp) (by decide))
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨151⟩) ⟨0⟩)) none) :=
+  (renounceOwnershipBodySplit evm hwv ho).1
 
 theorem renounceOwnershipBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (entryBytes 8))
+    (hsel : selIs I (entryBytes 8))
     (hreach : EntryReached 8 σ σ₀ A I g) :
     runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
@@ -38,7 +57,12 @@ theorem renounceOwnershipBodyCore {σ σ₀ A I} {g : UInt256}
     · obtain ⟨_, _, rd2071⟩ := ownerAllowed 3 rd2029 ho (by evm_ov)
       have rd3574 := evm_run rd2071 with [
         jumpdest, push2 ⟨1163⟩, push0, push2 ⟨3574⟩, jump (by jump_dest) ]
-      obtain ⟨_, _, rd1163⟩ := transferOwnerRoutine rd3574 hperm (by jump_dest) (by evm_ov)
+      rcases transferOwnerRoutineSplit rd3574 (by jump_dest) (by evm_ov) with
+        ⟨_hperm, _, _, rd1163⟩ | ⟨hperm, hstatic⟩
+      swap
+      · exact hstatic.reEquivStaticHalt hcode hd hdec
+          ((renounceOwnershipBodySplit
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv ho).2 hperm)
       obtain ⟨_, _, rd413⟩ := auctionInternalReturn rd1163 (by jump_dest) (by evm_ov)
       have hbody := renounceOwnershipBody
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv ho

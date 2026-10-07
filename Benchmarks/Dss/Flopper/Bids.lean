@@ -1113,7 +1113,6 @@ theorem flopperBidsBodyCoreDecodeFailed_short
 theorem flopperBidsBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 1)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

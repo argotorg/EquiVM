@@ -7,19 +7,38 @@ namespace Benchmarks.Dss.Clipper
 
 /-! Source-level reverts in the validation prefix of `kick`. -/
 
+private theorem clipperKickLockAssignSplit (v : ClipperImmutables) (evm : EVM.State)
+    (I : ExecutionEnv) :
+    ExecStmt (config v) { contract := contract v, locals := clipperKickStore I } evm
+      (.assign .storage lockedRef (.intLit 1))
+      (.ok { contract := contract v, locals := clipperKickStore I }
+        (clipperKickLockedState evm)) ∧
+    (evm.executionEnv.perm = false →
+      ExecStmt (config v) { contract := contract v, locals := clipperKickStore I } evm
+        (.assign .storage lockedRef (.intLit 1)) .staticViolation) := by
+  have hone : evalExpr? (config v)
+      { contract := contract v, locals := clipperKickStore I } evm (.intLit 1) =
+      .ok (.int 1) := by simp [evalExpr?, pure]
+  have hassign : assignStorageRef? (config v)
+      { contract := contract v, locals := clipperKickStore I } evm
+      .storage lockedRef (.int 1) =
+        .ok ({ contract := contract v, locals := clipperKickStore I },
+          clipperKickLockedState evm) := by
+    simpa [clipperKickLockedState] using
+      assign_clipperLocked v evm (clipperKickStore I)
+        (clipperKickStore_get_locked I) ⟨1⟩
+  constructor
+  · exact ExecStmt.assign hone hassign
+  · intro hperm
+    exact ExecStmt.assignStatic hone hassign hperm
+
 private theorem clipperKickLockAssign (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
     ExecStmt (config v) { contract := contract v, locals := clipperKickStore I } evm
       (.assign .storage lockedRef (.intLit 1))
       (.ok { contract := contract v, locals := clipperKickStore I }
-        (clipperKickLockedState evm)) := by
-  have hone : evalExpr? (config v)
-      { contract := contract v, locals := clipperKickStore I } evm (.intLit 1) =
-      .ok (.int 1) := by simp [evalExpr?, pure]
-  apply ExecStmt.assign hone
-  simpa [clipperKickLockedState] using
-    assign_clipperLocked v evm (clipperKickStore I)
-      (clipperKickStore_get_locked I) ⟨1⟩
+        (clipperKickLockedState evm)) :=
+  (clipperKickLockAssignSplit v evm I).1
 
 private theorem clipperKickIdLet (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
@@ -74,6 +93,43 @@ theorem clipperKickSourceRevertsLocked (v : ClipperImmutables)
       (ExecBlock.consNormal (ExecStmt.requireTrue hauthEval)
         (ExecBlock.consRevert (ExecStmt.requireFalse hlockedEval)))
 
+theorem clipperKickSourceRevertsStoppedSplit (v : ClipperImmutables)
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hauth : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+      (clipperRelyAuthStorageSlot I) = ⟨1⟩)
+    (hlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨13⟩ = ⟨0⟩) :
+    (1 ≤ (Solm.EVM.storageLoad (clipperKickLockedState evm)
+      (clipperKickLockedState evm).executionEnv.codeOwner ⟨14⟩).toNat →
+    ExecBlock (config v) { contract := contract v, locals := clipperKickStore I }
+      evm (kickTransition v).body .reverted) ∧
+    (evm.executionEnv.perm = false →
+      ExecBlock (config v) { contract := contract v, locals := clipperKickStore I }
+        evm (kickTransition v).body .staticViolation) := by
+  have hauthEval := evalExpr_clipperAuth_true v evm I (clipperKickStore I) hsrc
+    (clipperKickStore_get_wards I) hauth
+  have hlockedEval := evalExpr_clipperLocked_zero_true v evm (clipperKickStore I)
+    (clipperKickStore_get_locked I) hlocked
+  have hprefix {result : ExecResult}
+      (hrest : ExecBlock (config v)
+        { contract := contract v, locals := clipperKickStore I } evm
+        ((kickTransition v).body.drop 3) result) :
+      ExecBlock (config v) { contract := contract v, locals := clipperKickStore I } evm
+        (kickTransition v).body result := by
+    exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hvalue))
+      (ExecBlock.consNormal (ExecStmt.requireTrue hauthEval)
+        (ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) hrest))
+  constructor
+  · intro hstopped
+    have hstoppedEval := evalExpr_clipperStopped_lt_one_false v
+      (clipperKickLockedState evm) (clipperKickStore I)
+      (clipperKickStore_get_stopped I) hstopped
+    exact hprefix (ExecBlock.consNormal (clipperKickLockAssign v evm I)
+      (ExecBlock.consRevert (ExecStmt.requireFalse hstoppedEval)))
+  · intro hperm
+    exact hprefix (ExecBlock.consStatic ((clipperKickLockAssignSplit v evm I).2 hperm))
+
 theorem clipperKickSourceRevertsStopped (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)
     (hvalue : evm.executionEnv.weiValue = ⟨0⟩)
@@ -84,20 +140,8 @@ theorem clipperKickSourceRevertsStopped (v : ClipperImmutables)
     (hstopped : 1 ≤ (Solm.EVM.storageLoad (clipperKickLockedState evm)
       (clipperKickLockedState evm).executionEnv.codeOwner ⟨14⟩).toNat) :
     ExecBlock (config v) { contract := contract v, locals := clipperKickStore I }
-      evm (kickTransition v).body .reverted := by
-  have hauthEval := evalExpr_clipperAuth_true v evm I (clipperKickStore I) hsrc
-    (clipperKickStore_get_wards I) hauth
-  have hlockedEval := evalExpr_clipperLocked_zero_true v evm (clipperKickStore I)
-    (clipperKickStore_get_locked I) hlocked
-  have hstoppedEval := evalExpr_clipperStopped_lt_one_false v
-    (clipperKickLockedState evm) (clipperKickStore I)
-    (clipperKickStore_get_stopped I) hstopped
-  simpa [kickTransition, nonpayable, auth, lockPrefix, isStopped] using
-    ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hvalue))
-      (ExecBlock.consNormal (ExecStmt.requireTrue hauthEval)
-        (ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval)
-          (ExecBlock.consNormal (clipperKickLockAssign v evm I)
-            (ExecBlock.consRevert (ExecStmt.requireFalse hstoppedEval)))))
+      evm (kickTransition v).body .reverted :=
+  (clipperKickSourceRevertsStoppedSplit v evm I hvalue hsrc hauth hlocked).1 hstopped
 
 theorem clipperKickSourceRevertsTab (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)

@@ -485,12 +485,11 @@ theorem RD.flopperCheckedMulOverflowReverts
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.flopperAuctionDeleteTail
+theorem RD.flopperAuctionDeleteTailSplit
     {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
     {σ : AccountMap}
     {k C : ℕ} {drop0 drop1 drop2 scratch id : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    (hperm : I.perm = true)
     (hMstore0Aw : UInt256.ofNat (MachineState.M aw.toNat 0 32) = aw)
     (hMstore32Aw : UInt256.ofNat (MachineState.M aw.toNat 32 32) = aw)
     (hKeccakAw : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw)
@@ -498,13 +497,15 @@ theorem RD.flopperAuctionDeleteTail
     (h : RD flopperBytecode I g s0 ⟨1180⟩
       (drop0 :: drop1 :: drop2 :: scratch :: id :: ⟨334⟩ :: R)
       mem aw rdata σ k C) :
-    RDret flopperBytecode g s0
-      (sstoreAccountMap I.codeOwner
+    (I.perm = true ∧
+      RDret flopperBytecode g s0
         (sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σ (auctionBidSlot id) ⟨0⟩)
-          (auctionLotSlot id) ⟨0⟩)
-        (auctionPackedSlot id) ⟨0⟩)
-      ByteArray.empty := by
+          (sstoreAccountMap I.codeOwner
+            (sstoreAccountMap I.codeOwner σ (auctionBidSlot id) ⟨0⟩)
+            (auctionLotSlot id) ⟨0⟩)
+          (auctionPackedSlot id) ⟨0⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic flopperBytecode g s0) := by
   let mem1 := wordAt0Mem id mem
   let mem2 := twoWordHashMem id ⟨1⟩ mem
   let base := solcMappingSlot ⟨1⟩ id
@@ -560,7 +561,13 @@ theorem RD.flopperAuctionDeleteTail
   have rd1203pre := evm_run rd1201raw with [
     raw dup3 (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1204raw⟩ := rd1203pre.sstore hperm (by native_decide)
+  have hstoreDec : decode flopperBytecode ⟨1203⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1203pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd1204raw⟩ := rd1203pre.sstore hperm hstoreDec
     (by simp only [List.length_cons]; omega)
   have rd1209pre := evm_run rd1204raw with [
     raw swap1 (by native_decide) (by evm_ov),
@@ -582,5 +589,27 @@ theorem RD.flopperAuctionDeleteTail
   rw [hslot2] at hstop
   simpa only [base, auctionBidSlot, auctionLotSlot_eq, auctionPackedSlot_eq,
     auctionBaseSlot_eq] using hstop
+
+theorem RD.flopperAuctionDeleteTail
+    {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
+    {σ : AccountMap}
+    {k C : ℕ} {drop0 drop1 drop2 scratch id : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {aw : UInt256}
+    (hperm : I.perm = true)
+    (hMstore0Aw : UInt256.ofNat (MachineState.M aw.toNat 0 32) = aw)
+    (hMstore32Aw : UInt256.ofNat (MachineState.M aw.toNat 32 32) = aw)
+    (hKeccakAw : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw)
+    (hov : R.length + 10 ≤ 1024)
+    (h : RD flopperBytecode I g s0 ⟨1180⟩
+      (drop0 :: drop1 :: drop2 :: scratch :: id :: ⟨334⟩ :: R)
+      mem aw rdata σ k C) :
+    RDret flopperBytecode g s0
+      (sstoreAccountMap I.codeOwner
+        (sstoreAccountMap I.codeOwner
+          (sstoreAccountMap I.codeOwner σ (auctionBidSlot id) ⟨0⟩)
+          (auctionLotSlot id) ⟨0⟩)
+        (auctionPackedSlot id) ⟨0⟩)
+      ByteArray.empty :=
+  permSplit_true hperm (RD.flopperAuctionDeleteTailSplit hMstore0Aw hMstore32Aw hKeccakAw hov h)
 
 end Benchmarks.Dss.Flopper

@@ -75,13 +75,14 @@ theorem initializerBegins : ∀ i : InitializerBodySite, initializerBeginWf i :=
   unfold initializerBeginWf
   native_decide
 
-theorem initializerBegin {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite)
+theorem initializerBeginSplit {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite)
     (h : RD auctionBytecode I g s0 (initializerGuardSuccess (initializerBodyGuard i))
       R mem aw rdata σ k C)
-    (hperm : I.perm = true) (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 (initializerBodyPc i)
+    (hov : R.length + 5 ≤ 1024) :
+    (    ∃ k' C', RD auctionBytecode I g s0 (initializerBodyPc i)
       (UInt256.isZero (initializingWord σ I) :: R) mem aw rdata
-      (initializerEntered σ I) k' C' := by
+      (initializerEntered σ I) k' C') ∨
+      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13,
     h14, h15, h16, h17, h18, h19, h20, h21, h22, hp, hd⟩ := initializerBegins i
   have rdLoad := evm_run h with [
@@ -95,8 +96,7 @@ theorem initializerBegin {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite
     _ _ _ _ _ _ at rdTest
   rw [u256_land_comm ⟨255⟩] at rdTest
   by_cases hi : initializingWord σ I = ⟨0⟩
-  · rw [initializerEntered, if_pos hi]
-    have ht : UInt256.isZero (UInt256.isZero (initializingWord σ I)) = ⟨0⟩ := by
+  · have ht : UInt256.isZero (UInt256.isZero (initializingWord σ I)) = ⟨0⟩ := by
       rw [hi]; decide
     have rdStoreLoad := evm_run rdTest with [
       raw dup1 h9 (by evm_ov), raw iszero h10 (by evm_ov), raw push2 _ h11 (by evm_ov),
@@ -107,6 +107,12 @@ theorem initializerBegin {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite
       raw push2 ⟨65535⟩ h16 (by evm_ov), raw not h17 (by evm_ov),
       raw and h18 (by evm_ov), raw push2 ⟨257⟩ h19 (by evm_ov),
       raw or h20 (by evm_ov), raw swap1 h21 (by evm_ov) ]
+    by_cases hperm : I.perm = true
+    swap
+    · exact Or.inr ⟨by simpa using hperm,
+        rdStore.sstoreStatic (by simpa using hperm) h22 (by evm_ov)⟩
+    apply Or.inl
+    rw [initializerEntered, if_pos hi]
     obtain ⟨_, _, rdBody⟩ := rdStore.sstore hperm h22 (by evm_ov)
     rw [hp] at rdBody
     change RD _ _ _ _ _ _ _ _ _ (sstoreAccountMap I.codeOwner σ ⟨0⟩
@@ -114,12 +120,22 @@ theorem initializerBegin {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite
       _ _ at rdBody
     rw [u256_land_comm (UInt256.lnot ⟨65535⟩), u256_lor_comm ⟨257⟩] at rdBody
     exact ⟨_, _, rdBody⟩
-  · rw [initializerEntered, if_neg hi]
+  · apply Or.inl
+    rw [initializerEntered, if_neg hi]
     have ht : UInt256.isZero (UInt256.isZero (initializingWord σ I)) ≠ ⟨0⟩ := by
       rw [isZero_eq_zero_of_ne hi]; decide
     exact ⟨_, _, evm_run rdTest with [
       raw dup1 h9 (by evm_ov), raw iszero h10 (by evm_ov), raw push2 _ h11 (by evm_ov),
       raw jumpiT h12 ht hd (by evm_ov) ]⟩
+
+theorem initializerBegin {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite)
+    (h : RD auctionBytecode I g s0 (initializerGuardSuccess (initializerBodyGuard i))
+      R mem aw rdata σ k C)
+    (hperm : I.perm = true) (hov : R.length + 5 ≤ 1024) :
+    ∃ k' C', RD auctionBytecode I g s0 (initializerBodyPc i)
+      (UInt256.isZero (initializingWord σ I) :: R) mem aw rdata
+      (initializerEntered σ I) k' C' :=
+  (initializerBeginSplit i h hov).resolve_right (by rintro ⟨hp, _⟩; simp [hperm] at hp)
 
 theorem initializerEntered_ready_eq {σ : AccountMap} {I : ExecutionEnv}
     (hr : InitializerReady σ I) : initializerEntered σ I = σ := by
@@ -130,15 +146,27 @@ theorem initializerEntered_ready_eq {σ : AccountMap} {I : ExecutionEnv}
     · exact sstoreAccountMap_absent_same ha
     · rfl
 
+theorem initializerPrefixReadySplit {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite)
+    (h : RD auctionBytecode I g s0 (initializerPc (initializerBodyGuard i))
+      R mem aw rdata σ k C)
+    (hr : InitializerReady σ I) (hov : R.length + 5 ≤ 1024) :
+    (    ∃ k' C', RD auctionBytecode I g s0 (initializerBodyPc i)
+      (UInt256.isZero (initializingWord σ I) :: R) mem aw rdata σ k' C') ∨
+      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+  obtain ⟨_, _, rdGuard⟩ := initializerGuardReady (initializerBodyGuard i) h hr (by omega)
+  rcases initializerBeginSplit i rdGuard hov with ⟨_, _, rdBody⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact Or.inr ⟨hperm, hstatic⟩
+  apply Or.inl
+  rw [initializerEntered_ready_eq hr] at rdBody
+  exact ⟨_, _, rdBody⟩
+
 theorem initializerPrefixReady {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite)
     (h : RD auctionBytecode I g s0 (initializerPc (initializerBodyGuard i))
       R mem aw rdata σ k C)
     (hr : InitializerReady σ I) (hperm : I.perm = true) (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 (initializerBodyPc i)
-      (UInt256.isZero (initializingWord σ I) :: R) mem aw rdata σ k' C' := by
-  obtain ⟨_, _, rdGuard⟩ := initializerGuardReady (initializerBodyGuard i) h hr (by omega)
-  obtain ⟨_, _, rdBody⟩ := initializerBegin i rdGuard hperm hov
-  rw [initializerEntered_ready_eq hr] at rdBody
-  exact ⟨_, _, rdBody⟩
+      (UInt256.isZero (initializingWord σ I) :: R) mem aw rdata σ k' C' :=
+  (initializerPrefixReadySplit i h hr hov).resolve_right (by rintro ⟨hp, _⟩; simp [hperm] at hp)
 
 end Auction

@@ -34,7 +34,6 @@ theorem cureDecode_wait {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
 theorem cureWaitBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 17)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

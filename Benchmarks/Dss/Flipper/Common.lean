@@ -1514,18 +1514,19 @@ theorem RD.flipperAuthCheckRevert {g : Sat256} {s0 : State}
   ∧ decode code p27 = some (.SSTORE, .none)
   ∧ decode code p28 = some (.JUMP, .none)
 
-theorem RD.flipperMappingStoreOne {code : ByteArray} {g : Sat256} {s0 : State}
+theorem RD.flipperMappingStoreOneSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : flipperMappingStoreOneWf code pc)
     (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
     (hmem : mem.size = 96)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨1⟩) k' C' := by
+    (ee.perm = true ∧
+      ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
+        (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨1⟩) k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd12, hd13, hd14, hd15,
       hd17, hd18, hd19, hd20, hd22, hd23, hd24, hd26, hd27, hd28⟩
@@ -1567,6 +1568,11 @@ theorem RD.flipperMappingStoreOne {code : ByteArray} {g : Sat256} {s0 : State}
   have rdBeforeStore := evm_run rdSlot with [
     raw push1 ⟨1⟩ hd24 (by evm_ov),
     raw swap1 hd26 (by evm_ov)]
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdBeforeStore.sstoreStatic (by simpa using hperm) hd27 (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdOut⟩ := rdBeforeStore.sstore hperm hd27 (by evm_ov)
   exact ⟨_, _, rdOut.jump hd28 hret (by evm_ov)⟩
 
@@ -1611,18 +1617,33 @@ theorem RD.flipperMappingStoreOne {code : ByteArray} {g : Sat256} {s0 : State}
   ∧ decode code p24 = some (.SSTORE, .none)
   ∧ decode code p25 = some (.JUMP, .none)
 
-theorem RD.flipperMappingStoreZero {code : ByteArray} {g : Sat256} {s0 : State}
+theorem RD.flipperMappingStoreOne {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
-    (hwf : flipperMappingStoreZeroWf code pc)
+    (hwf : flipperMappingStoreOneWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hperm : ee.perm = true)
     (hmem : mem.size = 96)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨1⟩) k' C' :=
+  permSplit_true hperm (RD.flipperMappingStoreOneSplit h hwf hret hmem hcanonKey hov)
+
+theorem RD.flipperMappingStoreZeroSplit {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (hwf : flipperMappingStoreZeroWf code pc)
+    (hret : (D_J code 0).contains ret = true)
+    (hmem : mem.size = 96)
+    (hcanonKey : key.toNat < EVM.addressModulus)
+    (hov : R.length + 6 ≤ 1024) :
+    (ee.perm = true ∧
+      ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
+        (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd12, hd13, hd14, hd15,
       hd17, hd18, hd19, hd20, hd22, hd23, hd24, hd25⟩
@@ -1661,7 +1682,26 @@ theorem RD.flipperMappingStoreZero {code : ByteArray} {g : Sat256} {s0 : State}
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ key hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨0⟩ key)
     (UInt256.ofNat 3) hd23 mem_cost hslot (by native_decide) (by evm_ov)
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdSlot.sstoreStatic (by simpa using hperm) hd24 (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdOut⟩ := rdSlot.sstore hperm hd24 (by evm_ov)
   exact ⟨_, _, rdOut.jump hd25 hret (by evm_ov)⟩
+
+theorem RD.flipperMappingStoreZero {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (hwf : flipperMappingStoreZeroWf code pc)
+    (hret : (D_J code 0).contains ret = true)
+    (hperm : ee.perm = true)
+    (hmem : mem.size = 96)
+    (hcanonKey : key.toNat < EVM.addressModulus)
+    (hov : R.length + 6 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C' :=
+  permSplit_true hperm (RD.flipperMappingStoreZeroSplit h hwf hret hmem hcanonKey hov)
 
 end Benchmarks.Dss.Flipper

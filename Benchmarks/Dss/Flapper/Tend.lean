@@ -1986,7 +1986,7 @@ theorem assign_tendTicStorage_value_of_locals
   exact assign_tendTicStorage_of_locals evm I hid hbids
 
 set_option maxHeartbeats 1000000 in
-theorem flapperTendPaySuccessTail
+theorem flapperTendPaySuccessTailSplit
     (evm evmPay : EVM.State) (I : ExecutionEnv) (baseLocals : Store)
     (outPay : ByteArray)
     (hid : baseLocals.get? "id" = some (tendIdValue I))
@@ -2001,11 +2001,10 @@ theorem flapperTendPaySuccessTail
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
         [.address evm.executionEnv.source, .address evm.executionEnv.codeOwner,
           .int (Int.ofNat (UInt256.sub (tendBidWord I) (tendBidStoredWord evm I)).toNat)]
-        (true, evmPay, outPay) true)
-    (haddFit :
-      (tendNow48Word evmPay).toNat + (tendTtlWord (tendAfterBidStore evmPay I)).toNat <
-        2 ^ 48) :
-    ExecBlock config { contract := contract, locals := baseLocals } evm
+        (true, evmPay, outPay) true) :
+    (((tendNow48Word evmPay).toNat + (tendTtlWord (tendAfterBidStore evmPay I)).toNat <
+        2 ^ 48) →
+      ExecBlock config { contract := contract, locals := baseLocals } evm
       ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
             wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
@@ -2014,7 +2013,16 @@ theorem flapperTendPaySuccessTail
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]))
       (.ok { contract := contract, locals := tendTicLocals baseLocals evmPay I }
-        (tendPostState evmPay I)) := by
+        (tendPostState evmPay I))) ∧
+      (evm.executionEnv.perm = false →
+        ExecBlock config { contract := contract, locals := baseLocals } evm
+        ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
+            [sender, thisAddr,
+              wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            "_payRet" ++
+          [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
+          (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
+            [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])) .staticViolation) := by
   have hgemEval := evalExpr_tend_gem_storage_of_locals evm baseLocals hgem
   have hcodeLookup :
       0 < (UInt256.ofNat
@@ -2058,54 +2066,100 @@ theorem flapperTendPaySuccessTail
           evmPay (.var "bid") =
         .ok (tendBidValue I) :=
     evalExpr_tend_var_of_get evmPay hpayBid
-  have hbidAssign :
-      ExecBlock config { contract := contract, locals := tendPayRetLocals baseLocals }
-          evmPay
-        [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]
-        (.ok { contract := contract, locals := tendPayRetLocals baseLocals }
-          (tendAfterBidStore evmPay I)) := by
-    exact ExecBlock.consNormal
-      (ExecStmt.assign hbidExpr (assign_tendBidStorage_of_locals evmPay I hpayId hpayBids))
-      ExecBlock.nil
-  have hpayBidTail :
-      ExecBlock config { contract := contract, locals := baseLocals } evm
-        (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
+  have hassign := assign_tendBidStorage_of_locals evmPay I hpayId hpayBids
+  constructor
+  · intro haddFit
+    have hbidAssign :
+        ExecBlock config { contract := contract, locals := tendPayRetLocals baseLocals }
+            evmPay
+          [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]
+          (.ok { contract := contract, locals := tendPayRetLocals baseLocals }
+            (tendAfterBidStore evmPay I)) := by
+      exact ExecBlock.consNormal
+        (ExecStmt.assign hbidExpr hassign)
+        ExecBlock.nil
+    have hpayBidTail :
+        ExecBlock config { contract := contract, locals := baseLocals } evm
+          (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
+            [sender, thisAddr,
+              wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            "_payRet" ++
+            [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
+          (.ok { contract := contract, locals := tendPayRetLocals baseLocals }
+            (tendAfterBidStore evmPay I)) :=
+     execBlock_append hpayChecked hbidAssign
+    have hticExpr :
+        evalExpr? config { contract := contract, locals := tendTicLocals baseLocals evmPay I }
+            (tendAfterBidStore evmPay I) (.var "tic_") =
+          .ok (.int (Int.ofNat (tendTicPostWord evmPay I).toNat)) :=
+      evalExpr_tend_var_of_get (tendAfterBidStore evmPay I)
+        (tendTicLocals_get_tic baseLocals evmPay I)
+    have htick :
+        ExecBlock config { contract := contract, locals := tendPayRetLocals baseLocals }
+            (tendAfterBidStore evmPay I)
+          (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
+            [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])
+          (.ok { contract := contract, locals := tendTicLocals baseLocals evmPay I }
+            (tendPostState evmPay I)) := by
+      simpa [checkedAdd48Into] using
+        (ExecBlock.consNormal
+          (ExecStmt.letDecl
+            (evalExpr_tend_ticAdd_ok_of_locals evmPay I
+              (locals := tendPayRetLocals baseLocals) hpayTtl haddFit)) <|
+          ExecBlock.consNormal
+            (ExecStmt.requireTrue
+              (evalExpr_tend_tic_guard_true_of_locals evmPay I
+                (baseLocals := baseLocals) haddFit)) <|
+          ExecBlock.consNormal
+            (ExecStmt.assign hticExpr
+              (assign_tendTicStorage_value_of_locals evmPay I
+                (tendTicLocals_get_id evmPay I hid)
+                (tendTicLocals_get_bids evmPay I hbids) haddFit))
+            ExecBlock.nil)
+    exact execBlock_append hpayBidTail htick
+  · intro hperm
+    have hp : evmPay.executionEnv.perm = false := by
+      rw [typedCallViaEVM_executionEnv_eq hcall]
+      exact hperm
+    have hwrite :
+        ExecBlock config { contract := contract, locals := tendPayRetLocals baseLocals }
+          evmPay [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]
+          .staticViolation :=
+      ExecBlock.consStatic (ExecStmt.assignStatic hbidExpr hassign hp)
+    exact execBlock_append_term (execBlock_append hpayChecked hwrite)
+      (by intro _ _ h; cases h)
+
+theorem flapperTendPaySuccessTail
+    (evm evmPay : EVM.State) (I : ExecutionEnv) (baseLocals : Store)
+    (outPay : ByteArray)
+    (hid : baseLocals.get? "id" = some (tendIdValue I))
+    (hbid : baseLocals.get? "bid" = some (tendBidValue I))
+    (hbids : baseLocals.get? "bids" = none)
+    (hgem : baseLocals.get? "gem" = none)
+    (httl : baseLocals.get? "ttl" = none)
+    (hcodeSize :
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
+    (hcall :
+      typedCallViaEVM config evm
+        (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
+        [.address evm.executionEnv.source, .address evm.executionEnv.codeOwner,
+          .int (Int.ofNat (UInt256.sub (tendBidWord I) (tendBidStoredWord evm I)).toNat)]
+        (true, evmPay, outPay) true)
+    (haddFit :
+      (tendNow48Word evmPay).toNat + (tendTtlWord (tendAfterBidStore evmPay I)).toNat <
+        2 ^ 48) :
+    ExecBlock config { contract := contract, locals := baseLocals } evm
+      ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
             wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet" ++
-          [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
-        (.ok { contract := contract, locals := tendPayRetLocals baseLocals }
-          (tendAfterBidStore evmPay I)) :=
-   execBlock_append hpayChecked hbidAssign
-  have hticExpr :
-      evalExpr? config { contract := contract, locals := tendTicLocals baseLocals evmPay I }
-          (tendAfterBidStore evmPay I) (.var "tic_") =
-        .ok (.int (Int.ofNat (tendTicPostWord evmPay I).toNat)) :=
-    evalExpr_tend_var_of_get (tendAfterBidStore evmPay I)
-      (tendTicLocals_get_tic baseLocals evmPay I)
-  have htick :
-      ExecBlock config { contract := contract, locals := tendPayRetLocals baseLocals }
-          (tendAfterBidStore evmPay I)
+        [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
-          [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])
-        (.ok { contract := contract, locals := tendTicLocals baseLocals evmPay I }
-          (tendPostState evmPay I)) := by
-    simpa [checkedAdd48Into] using
-      (ExecBlock.consNormal
-        (ExecStmt.letDecl
-          (evalExpr_tend_ticAdd_ok_of_locals evmPay I
-            (locals := tendPayRetLocals baseLocals) hpayTtl haddFit)) <|
-        ExecBlock.consNormal
-          (ExecStmt.requireTrue
-            (evalExpr_tend_tic_guard_true_of_locals evmPay I
-              (baseLocals := baseLocals) haddFit)) <|
-        ExecBlock.consNormal
-          (ExecStmt.assign hticExpr
-            (assign_tendTicStorage_value_of_locals evmPay I
-              (tendTicLocals_get_id evmPay I hid)
-              (tendTicLocals_get_bids evmPay I hbids) haddFit))
-          ExecBlock.nil)
-  exact execBlock_append hpayBidTail htick
+          [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]))
+      (.ok { contract := contract, locals := tendTicLocals baseLocals evmPay I }
+        (tendPostState evmPay I)) :=
+  (flapperTendPaySuccessTailSplit evm evmPay I baseLocals outPay
+    hid hbid hbids hgem httl hcodeSize hcall).1 haddFit
 
 set_option maxHeartbeats 1000000 in
 theorem flapperTendBodyReturns_success_callerEq
@@ -2209,7 +2263,7 @@ theorem flapperTendBodyReturns_success_callerEq
       htail)
 
 set_option maxHeartbeats 1000000 in
-theorem flapperTendRefundSuccessPrefix
+theorem flapperTendRefundSuccessPrefixSplit
     (evm evmRefund : EVM.State) (I : ExecutionEnv) (outRefund : ByteArray)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ tendGuyWord evm I)
     (hrefundCodeSize :
@@ -2221,7 +2275,7 @@ theorem flapperTendRefundSuccessPrefix
           .address (AccountAddress.ofNat (tendGuyWord evm I).toNat),
           .int (Int.ofNat (tendBidStoredWord evm I).toNat)]
         (true, evmRefund, outRefund) true) :
-    ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+    (ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
       [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
             [sender, .storage (bidsF (.var "id") "guy"),
@@ -2229,7 +2283,15 @@ theorem flapperTendRefundSuccessPrefix
           [.assign .storage (bidsF (.var "id") "guy") sender])
         []]
       (.ok { contract := contract, locals := tendRefundRetLocals evm I }
-        (tendAfterGuyStore evmRefund I)) := by
+        (tendAfterGuyStore evmRefund I))) ∧
+      (evm.executionEnv.perm = false →
+        ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+        [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
+          (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
+              [sender, .storage (bidsF (.var "id") "guy"),
+                .storage (bidsF (.var "id") "bid")] "_refundRet" ++
+            [.assign .storage (bidsF (.var "id") "guy") sender])
+          []] .staticViolation) := by
   have hcallerCond :=
     evalExpr_tend_sender_ne_guy_true_begBidLocals evm I hcaller
   have hgemEval :=
@@ -2264,26 +2326,46 @@ theorem flapperTendRefundSuccessPrefix
           evmRefund sender =
         .ok (.address evmRefund.executionEnv.source) :=
     evalExpr_tend_sender evmRefund (tendRefundRetLocals evm I)
-  have hassign :
-      ExecBlock config { contract := contract, locals := tendRefundRetLocals evm I } evmRefund
-        [.assign .storage (bidsF (.var "id") "guy") sender]
-        (.ok { contract := contract, locals := tendRefundRetLocals evm I }
-          (tendAfterGuyStore evmRefund I)) := by
-    exact ExecBlock.consNormal
-      (ExecStmt.assign hsender
-        (assign_tendGuyStorage_of_locals evmRefund I
-          (tendRefundRetLocals_get_id evm I) (tendRefundRetLocals_get_bids evm I)))
-      ExecBlock.nil
-  have hbranch :
-      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+  have hassign := assign_tendGuyStorage_of_locals evmRefund I
+    (tendRefundRetLocals_get_id evm I) (tendRefundRetLocals_get_bids evm I)
+  constructor
+  · have hbranch := execBlock_append hrefundChecked
+      (ExecBlock.consNormal (ExecStmt.assign hsender hassign) ExecBlock.nil)
+    exact ExecBlock.consNormal (ExecStmt.iteTrue hcallerCond hbranch) ExecBlock.nil
+  · intro hperm
+    have hp : evmRefund.executionEnv.perm = false := by
+      rw [typedCallViaEVM_executionEnv_eq hrefundCall]
+      exact hperm
+    have hwrite : ExecBlock config { contract := contract, locals := tendRefundRetLocals evm I }
+        evmRefund [.assign .storage (bidsF (.var "id") "guy") sender]
+        .staticViolation :=
+      ExecBlock.consStatic (ExecStmt.assignStatic hsender hassign hp)
+    exact ExecBlock.consStatic
+      (ExecStmt.iteTrue hcallerCond (execBlock_append hrefundChecked hwrite))
+
+theorem flapperTendRefundSuccessPrefix
+    (evm evmRefund : EVM.State) (I : ExecutionEnv) (outRefund : ByteArray)
+    (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ tendGuyWord evm I)
+    (hrefundCodeSize :
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
+    (hrefundCall :
+      typedCallViaEVM config evm
+        (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
+        [.address evm.executionEnv.source,
+          .address (AccountAddress.ofNat (tendGuyWord evm I).toNat),
+          .int (Int.ofNat (tendBidStoredWord evm I).toNat)]
+        (true, evmRefund, outRefund) true) :
+    ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+      [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
             [sender, .storage (bidsF (.var "id") "guy"),
               .storage (bidsF (.var "id") "bid")] "_refundRet" ++
           [.assign .storage (bidsF (.var "id") "guy") sender])
-        (.ok { contract := contract, locals := tendRefundRetLocals evm I }
-          (tendAfterGuyStore evmRefund I)) :=
-   execBlock_append hrefundChecked hassign
-  exact ExecBlock.consNormal (ExecStmt.iteTrue hcallerCond hbranch) ExecBlock.nil
+        []]
+      (.ok { contract := contract, locals := tendRefundRetLocals evm I }
+        (tendAfterGuyStore evmRefund I)) :=
+  (flapperTendRefundSuccessPrefixSplit evm evmRefund I outRefund
+    hcaller hrefundCodeSize hrefundCall).1
 
 set_option maxHeartbeats 1000000 in
 theorem flapperTendBodyReturns_success_callerNe
@@ -2775,6 +2857,73 @@ theorem flapperTendPayAddOverflowTail
   exact execBlock_append hpayBidTail htickTail
 
 set_option maxHeartbeats 1000000 in
+theorem flapperTendBodyBlock_afterIncrease {result : ExecResult}
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hlive : tendLiveWord evm = ⟨1⟩)
+    (hguy : tendGuyWord evm I ≠ ⟨0⟩)
+    (hticOk :
+      (tendTimestampWord evm).toNat < (tendTicWord evm I).toNat ∨
+        tendTicWord evm I = ⟨0⟩)
+    (hendGt : (tendTimestampWord evm).toNat < (tendEndWord evm I).toNat)
+    (hlot : tendLotWord I = tendLotStoredWord evm I)
+    (hbidGt : (tendBidStoredWord evm I).toNat < (tendBidWord I).toNat)
+    (hbidOneFit : (tendBidWord I).toNat * tendOneWord.toNat < UInt256.size)
+    (hbegBidFit : (tendBegWord evm).toNat * (tendBidStoredWord evm I).toNat < UInt256.size)
+    (hsuff : (tendBegBidWord evm I).toNat ≤ (tendBidOneWord I).toNat)
+    (htail :
+      ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
+        ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
+          (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
+              [sender, .storage (bidsF (.var "id") "guy"),
+                .storage (bidsF (.var "id") "bid")] "_refundRet" ++
+            [.assign .storage (bidsF (.var "id") "guy") sender])
+          []] ++
+          ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
+              [sender, thisAddr,
+                wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+              "_payRet" ++
+            [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
+            (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
+              [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
+        result) :
+    ExecBlock config { contract := contract, locals := tendLocals I } evm
+      tendTransition.body result := by
+  have hticGuard :
+      evalExpr? config { contract := contract, locals := tendLocals I } evm
+        (.binary .or
+          (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
+          (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
+        .ok (.bool true) := by
+    cases hticOk with
+    | inl hgt => exact evalExpr_tend_tic_guard_true_gt evm I hgt
+    | inr hzero => exact evalExpr_tend_tic_guard_true_zero evm I hzero
+  simpa [tendTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append,
+    List.append_assoc] using
+    (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
+      ExecBlock.consNormal
+        (ExecStmt.requireTrue (evalExpr_tend_live_one_true evm I hlive)) <|
+      ExecBlock.consNormal
+        (ExecStmt.requireTrue (evalExpr_tend_guy_ne_zero_true evm I hguy)) <|
+      ExecBlock.consNormal (ExecStmt.requireTrue hticGuard) <|
+      ExecBlock.consNormal
+        (ExecStmt.requireTrue (evalExpr_tend_end_gt_timestamp_true evm I hendGt)) <|
+      ExecBlock.consNormal
+        (ExecStmt.requireTrue (evalExpr_tend_lot_eq_true evm I hlot)) <|
+      ExecBlock.consNormal
+        (ExecStmt.requireTrue (evalExpr_tend_bid_gt_true evm I hbidGt)) <|
+      ExecBlock.consNormal
+        (ExecStmt.letDecl (evalExpr_tend_bidOne_ok evm I hbidOneFit)) <|
+      ExecBlock.consNormal
+        (ExecStmt.requireTrue (evalExpr_tend_bidOne_mul_guard_true evm I hbidOneFit)) <|
+      ExecBlock.consNormal
+        (ExecStmt.letDecl (evalExpr_tend_begBid_ok evm I hbegBidFit)) <|
+      ExecBlock.consNormal
+        (ExecStmt.requireTrue (evalExpr_tend_begBid_mul_guard_true evm I hbegBidFit)) <|
+      ExecBlock.consNormal
+        (ExecStmt.requireTrue (evalExpr_tend_increase_true evm I hsuff)) <|
+      htail)
+
 theorem flapperTendBodyReverts_afterIncrease
     (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -2805,42 +2954,10 @@ theorem flapperTendBodyReverts_afterIncrease
             (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
               [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
         .reverted) :
-    ExecTransitionBody config contract evm (tendLocals I) tendTransition.body .reverted := by
-  have hticGuard :
-      evalExpr? config { contract := contract, locals := tendLocals I } evm
-        (.binary .or
-          (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
-          (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
-        .ok (.bool true) := by
-    cases hticOk with
-    | inl hgt => exact evalExpr_tend_tic_guard_true_gt evm I hgt
-    | inr hzero => exact evalExpr_tend_tic_guard_true_zero evm I hzero
-  refine ExecFuncBody.execBlockRevert ?_
-  simpa [tendTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append,
-    List.append_assoc] using
-    (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_tend_live_one_true evm I hlive)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_tend_guy_ne_zero_true evm I hguy)) <|
-      ExecBlock.consNormal (ExecStmt.requireTrue hticGuard) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_tend_end_gt_timestamp_true evm I hendGt)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_tend_lot_eq_true evm I hlot)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_tend_bid_gt_true evm I hbidGt)) <|
-      ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tend_bidOne_ok evm I hbidOneFit)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_tend_bidOne_mul_guard_true evm I hbidOneFit)) <|
-      ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tend_begBid_ok evm I hbegBidFit)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_tend_begBid_mul_guard_true evm I hbegBidFit)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_tend_increase_true evm I hsuff)) <|
-      htail)
+    ExecTransitionBody config contract evm (tendLocals I) tendTransition.body .reverted :=
+  ExecFuncBody.execBlockRevert
+    (flapperTendBodyBlock_afterIncrease evm I hwv hlive hguy hticOk hendGt hlot hbidGt
+      hbidOneFit hbegBidFit hsuff htail)
 
 theorem flapperTendBodyReverts_notLive (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -4943,7 +5060,6 @@ set_option maxHeartbeats 1000000 in
 theorem flapperTendX_refundCall
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {memCaller : ByteArray}
     {k C : ℕ}
-    (hperm : I.perm = true)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (solcAddressSlotWord ⟨3⟩ σ I) ≠
         ⟨0⟩)
@@ -5021,7 +5137,7 @@ theorem flapperTendX_refundCall
       addressWord_address_eq_target
       ?_ ?_
     · exact yankMoveEncode_eq src oldGuy oldBid hmemMap hsrcCanon holdGuyCanon
-    · simpa [initState, hperm] using hΘ
+    · simpa [initState] using hΘ
 
 theorem flapperTendX_refundCallDepthLimit
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {memCaller : ByteArray}
@@ -5088,10 +5204,9 @@ theorem flapperTendX_refundCallFailure
     houtSize (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem flapperTendX_refundCallSuccessToPayStart
+theorem flapperTendX_refundCallSuccessToPayStartSplit
     {σ τ σ₀ A I} {g : Sat256} {sel gem : UInt256}
     {mem out : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
     (rd2544 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2544⟩
       (⟨1⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
         gem :: tendBidWord I :: tendLotWord I :: tendIdWord I :: ⟨360⟩ :: sel :: [])
@@ -5099,9 +5214,11 @@ theorem flapperTendX_refundCallSuccessToPayStart
     let id := tendIdWord I
     let memGuy := twoWordHashMem id ⟨1⟩ mem
     let σGuy := tendRuntimeAfterGuyMap I.codeOwner τ I
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
-      [tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
-      memGuy (UInt256.ofNat 8) out σGuy k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
+        [tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
+        memGuy (UInt256.ofNat 8) out σGuy k' C') ∨
+      (I.perm = false ∧ RDstatic flapperBytecode g (initState σ σ₀ g A I)) := by
   intro id memGuy σGuy
   let memKey := wordAt0Mem id mem
   let base := solcMappingSlot ⟨1⟩ id
@@ -5184,8 +5301,14 @@ theorem flapperTendX_refundCallSuccessToPayStart
     raw caller (by native_decide) (by evm_ov),
     raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
+  have hstoreDec : decode flapperBytecode ⟨2596⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2596pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k2597, C2597, rd2597raw⟩ := rd2596pre.sstore hperm
-    (by native_decide) (by evm_ov)
+    hstoreDec (by evm_ov)
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask := by
@@ -5214,11 +5337,26 @@ theorem flapperTendX_refundCallSuccessToPayStart
   have rd2598 := rd2597.pop (by native_decide) (by evm_ov)
   exact ⟨_, _, by simpa [id] using rd2598⟩
 
+theorem flapperTendX_refundCallSuccessToPayStart
+    {σ τ σ₀ A I} {g : Sat256} {sel gem : UInt256}
+    {mem out : ByteArray} {k C : ℕ}
+    (hperm : I.perm = true)
+    (rd2544 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2544⟩
+      (⟨1⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
+        gem :: tendBidWord I :: tendLotWord I :: tendIdWord I :: ⟨360⟩ :: sel :: [])
+      mem (UInt256.ofNat 8) out τ k C) :
+    let id := tendIdWord I
+    let memGuy := twoWordHashMem id ⟨1⟩ mem
+    let σGuy := tendRuntimeAfterGuyMap I.codeOwner τ I
+    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
+      [tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
+      memGuy (UInt256.ofNat 8) out σGuy k' C' :=
+  permSplit_true hperm (flapperTendX_refundCallSuccessToPayStartSplit rd2544)
+
 set_option maxHeartbeats 1000000 in
-theorem flapperTendX_toCheckedAddStartFromTailAw8
+theorem flapperTendX_toCheckedAddStartFromTailAw8Split
     {σ τ σ₀ A I} {g : Sat256} {sel gem : UInt256}
     {memStart retData : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
     (rd2721 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2721⟩
       [yankMoveEndPtr, yankMoveSelectorWord, gem, tendBidWord I, tendLotWord I,
         tendIdWord I, ⟨360⟩, sel]
@@ -5226,10 +5364,12 @@ theorem flapperTendX_toCheckedAddStartFromTailAw8
     let id := tendIdWord I
     let memBidStore := twoWordHashMem id ⟨1⟩ memStart
     let σBid := tendRuntimeAfterBidMap I.codeOwner τ I
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4936⟩
-      [tendRuntimeTtlWord I.codeOwner τ I, UInt256.ofNat I.header.timestamp, ⟨2762⟩,
-        tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
-      memBidStore (UInt256.ofNat 8) retData σBid k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4936⟩
+        [tendRuntimeTtlWord I.codeOwner τ I, UInt256.ofNat I.header.timestamp, ⟨2762⟩,
+          tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
+        memBidStore (UInt256.ofNat 8) retData σBid k' C') ∨
+      (I.perm = false ∧ RDstatic flapperBytecode g (initState σ σ₀ g A I)) := by
   intro id memBidStore σBid
   let memKey := wordAt0Mem id memStart
   let base := solcMappingSlot ⟨1⟩ id
@@ -5279,8 +5419,14 @@ theorem flapperTendX_toCheckedAddStartFromTailAw8
   have rd2739pre := evm_run rd2737pre with [
     raw dup3 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
+  have hstoreDec : decode flapperBytecode ⟨2739⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2739pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k2740, C2740, rd2740raw⟩ := rd2739pre.sstore hperm
-    (by native_decide) (by evm_ov)
+    hstoreDec (by evm_ov)
   have rd2740 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2740⟩
       [gem, tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
       memBidStore (UInt256.ofNat 8) retData σBid k2740 C2740 := by
@@ -5314,6 +5460,23 @@ theorem flapperTendX_toCheckedAddStartFromTailAw8
   exact ⟨_, _, by
     simpa [σBid, tendRuntimeTtlWord, uint48Offset0Word, id, httlRaw] using
       rd4936⟩
+
+theorem flapperTendX_toCheckedAddStartFromTailAw8
+    {σ τ σ₀ A I} {g : Sat256} {sel gem : UInt256}
+    {memStart retData : ByteArray} {k C : ℕ}
+    (hperm : I.perm = true)
+    (rd2721 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2721⟩
+      [yankMoveEndPtr, yankMoveSelectorWord, gem, tendBidWord I, tendLotWord I,
+        tendIdWord I, ⟨360⟩, sel]
+      memStart (UInt256.ofNat 8) retData τ k C) :
+    let id := tendIdWord I
+    let memBidStore := twoWordHashMem id ⟨1⟩ memStart
+    let σBid := tendRuntimeAfterBidMap I.codeOwner τ I
+    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨4936⟩
+      [tendRuntimeTtlWord I.codeOwner τ I, UInt256.ofNat I.header.timestamp, ⟨2762⟩,
+        tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
+      memBidStore (UInt256.ofNat 8) retData σBid k' C' :=
+  permSplit_true hperm (flapperTendX_toCheckedAddStartFromTailAw8Split rd2721)
 
 set_option maxHeartbeats 1000000 in
 theorem flapperTendX_addOverflowFromCheckedAddAw8
@@ -6017,7 +6180,6 @@ set_option maxHeartbeats 1000000 in
 theorem flapperTendX_payCallAw8Mem228
     {σ τ σ₀ A A1 I} {g : Sat256} {sel : UInt256}
     {memCaller retData : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord τ (solcAddressSlotWord ⟨3⟩ τ I) ≠
         ⟨0⟩)
@@ -6108,7 +6270,7 @@ theorem flapperTendX_payCallAw8Mem228
       addressWord_address_eq_target
       ?_ ?_
     · exact yankMoveEncode_eq_228 src this amt hmemMap hsrcCanon hthisCanon
-    · simpa [initState, hperm] using hΘ
+    · simpa [initState] using hΘ
 
 set_option maxHeartbeats 1000000 in
 theorem flapperTendX_toPayExtcodesizeGuard
@@ -6353,7 +6515,6 @@ set_option maxHeartbeats 1000000 in
 theorem flapperTendX_payCall
     {σ τ σ₀ A A1 I} {g : Sat256} {sel : UInt256}
     {memCaller retData : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord τ (solcAddressSlotWord ⟨3⟩ τ I) ≠
         ⟨0⟩)
@@ -6440,7 +6601,7 @@ theorem flapperTendX_payCall
       addressWord_address_eq_target
       ?_ ?_
     · exact yankMoveEncode_eq src this amt hmemMap hsrcCanon hthisCanon
-    · simpa [initState, hperm] using hΘ
+    · simpa [initState] using hΘ
 
 theorem flapperTendX_payCallDepthLimit
     {σ τ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -7444,7 +7605,7 @@ theorem flapperTendBodyCoreBegBidOverflow
 set_option maxHeartbeats 20000000 in
 theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hcode : I.code = flapperBytecode) (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hbidOneFit : (tendBidWord I).toNat * tendOneWord.toNat < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some tendTransition)
     (hdecode :
@@ -7664,7 +7825,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
         obtain ⟨σPay, zPay, outPay, APay, k2703, C2703, rd2703,
             hpayCallRaw, houtPaySize⟩ :=
           flapperTendX_payCall (σ := σ) (τ := σ) (sel := sel)
-            hperm hpayCodeSize hdepthLt hmemCaller hread64Caller
+            hpayCodeSize hdepthLt hmemCaller hread64Caller
             (by simpa [evmEvm, id] using rd2598)
         have hpayCallSolmRaw := hpayCallRaw
         let evmPaySolm : EVM.State :=
@@ -7706,6 +7867,23 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
           obtain ⟨_, _, rd2721⟩ :=
             flapperTendX_payCallSuccessToTail
               (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) rd2703True
+          by_cases hperm : I.perm = true
+          swap
+          · have hp : I.perm = false := by simpa using hperm
+            have hstatic := permSplit_false hp
+              (flapperTendX_toCheckedAddStartFromTailAw8Split rd2721)
+            have hpayTail := (flapperTendPaySuccessTailSplit evmSolm evmPaySolm I
+              (tendBegBidLocals evmSolm I) outPay
+              (tendBegBidLocals_get_id evmSolm I) (tendBegBidLocals_get_bid evmSolm I)
+              (tendBegBidLocals_get_bids evmSolm I) (tendBegBidLocals_get_gem evmSolm I)
+              (tendBegBidLocals_get_ttl evmSolm I)
+              (by simpa [evmSolm, tendGemWord, initState] using hpayCodeSize)
+              hpayCallTrue).2 hp
+            have hsource := ExecFuncBody.execBlockStatic
+              (flapperTendBodyBlock_afterIncrease evmSolm I hwv hliveSolm hguySolm
+                hticOkSolm hendGtSolm hlotSolm hbidGtSolm hbidOneFit hbegBidFitSolm
+                hsuffSolm (execBlock_append hskipRefund hpayTail))
+            exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
           by_cases haddFit :
               (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
                   (tendRuntimeTtlWord I.codeOwner σPay I).toNat < 2 ^ 48
@@ -7927,7 +8105,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
         obtain ⟨σRefund, zRefund, outRefund, ARefund, k2544, C2544,
             rd2544, hrefundCallRaw, houtRefundSize⟩ :=
           flapperTendX_refundCall (σ := σ) (sel := sel)
-            hperm hrefundCodeSize hdepthLt hmemCaller hread64Caller
+            hrefundCodeSize hdepthLt hmemCaller hread64Caller
             (by simpa [evmEvm, id] using rd2433)
         have hrefundCallSolmRaw := hrefundCallRaw
         let evmRefundSolm : EVM.State :=
@@ -7964,8 +8142,18 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                   .int (Int.ofNat (tendBidStoredWord evmSolm I).toNat)]
                 (true, evmRefundSolm, outRefund) true := by
             simpa [hzRefund] using hrefundCallSolm
-          obtain ⟨_, _, rd2598Guy⟩ :=
-            flapperTendX_refundCallSuccessToPayStart hperm rd2544True
+          rcases flapperTendX_refundCallSuccessToPayStartSplit rd2544True with
+              ⟨hperm, _, _, rd2598Guy⟩ | ⟨hperm, hstatic⟩
+          swap
+          · have hprefix := (flapperTendRefundSuccessPrefixSplit
+              evmSolm evmRefundSolm I outRefund hcallerNeSolm
+              (by simpa [evmSolm, tendGemWord, initState] using hrefundCodeSize)
+              hrefundCallTrue).2 hperm
+            have hsource := ExecFuncBody.execBlockStatic
+              (flapperTendBodyBlock_afterIncrease evmSolm I hwv hliveSolm hguySolm
+                hticOkSolm hendGtSolm hlotSolm hbidGtSolm hbidOneFit hbegBidFitSolm
+                hsuffSolm (execBlock_append_term hprefix (by intro _ _ h; cases h)))
+            exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
           let refundMemMap := twoWordHashMem id ⟨1⟩ memCaller
           let refundCallMem :=
             yankMoveCalldataMem (UInt256.ofNat I.source.val)
@@ -8075,7 +8263,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
               flapperTendX_payCallAw8Mem228
                                 (σ := σ) (τ := σGuy) (σ₀ := σ₀) (A := A)
                 (A1 := ARefund) (I := I) (g := Sat256.ofUInt256 g) (sel := sel)
-                hperm hpayCodeSize hdepthLt hpayStartMemSize hpayStartMemRead64
+                hpayCodeSize hdepthLt hpayStartMemSize hpayStartMemRead64
                 (by simpa [evmEvm, id, σGuy, payStartMem, refundCallMem, refundMemMap,
                   packedSlot] using rd2598Guy)
             let evmGuyEvmForPay : EVM.State :=
@@ -8701,7 +8889,7 @@ set_option maxHeartbeats 20000000 in
 theorem flapperTendBodyCoreIncreaseSufficient
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flapperBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
     (hlive : solcSlotWordAt ⟨7⟩ σ I = ⟨1⟩)
     (hguy : solcAddressSlotWord (auctionPackedSlot (tendIdWord I)) σ I ≠ ⟨0⟩)
@@ -8801,7 +8989,7 @@ theorem flapperTendBodyCoreIncreaseSufficient
     exact flapperTendBodyCoreIncreaseSufficient_finishFromGuard
       (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
-      hcode hperm hwv hbidOneFit hdispatch hdecode hliveSolm hguySolm
+      hcode hwv hbidOneFit hdispatch hdecode hliveSolm hguySolm
       hticOkSolm hendGtSolm hlotSolm hbidGtSolm hbegBidFitSolm hsuffSolm hsourceWord
       hsrcAddr hthisAddr hdepthLt_of_ne hmemCaller hread64Caller rd2429
   cases hticOk with
@@ -8835,7 +9023,6 @@ theorem flapperTendBodyCoreDecodeFailed_short
 theorem flapperTendBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 14)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -8885,7 +9072,7 @@ theorem flapperTendBodyCore {σ σ₀ A I} {g : UInt256}
                     · exact flapperTendBodyCoreInsufficientIncrease hcode hsize hwv hsz100
                         hlive hguy hticOk hendGt hlot hbidGt hbegBidFit hbidOneFit
                         hinsuff hdispatch hdecode hreach
-                    · exact flapperTendBodyCoreIncreaseSufficient hcode hsize hperm hwv
+                    · exact flapperTendBodyCoreIncreaseSufficient hcode hsize hwv
                         hsz100 hlive hguy hticOk hendGt hlot hbidGt hbegBidFit
                         hbidOneFit (Nat.le_of_not_gt hinsuff) hdispatch hdecode hreach
 
@@ -8936,7 +9123,7 @@ theorem flapperTendBodyCore {σ σ₀ A I} {g : UInt256}
                       · exact flapperTendBodyCoreInsufficientIncrease hcode hsize hwv
                           hsz100 hlive hguy hticOk hendGt hlot hbidGt hbegBidFit
                           hbidOneFit hinsuff hdispatch hdecode hreach
-                      · exact flapperTendBodyCoreIncreaseSufficient hcode hsize hperm hwv
+                      · exact flapperTendBodyCoreIncreaseSufficient hcode hsize hwv
                           hsz100 hlive hguy hticOk hendGt hlot hbidGt hbegBidFit
                           hbidOneFit (Nat.le_of_not_gt hinsuff) hdispatch hdecode hreach
 

@@ -336,6 +336,34 @@ theorem flapperCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (relyAuthHashMem_read64 I)
     (by simp)
 
+theorem flapperCageX_storeLiveSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
+    (h : RD flapperBytecode I g s0 ⟨3199⟩
+      [cageRadWord I, ⟨360⟩, sel]
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
+      ∃ k' C', RD flapperBytecode I g s0 ⟨3207⟩
+        [⟨0⟩, cageRadWord I, ⟨360⟩, sel]
+        (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
+        (cageLivePostAccountMap I σ) k' C') ∨
+      (I.perm = false ∧ RDstatic flapperBytecode g s0) := by
+  have rd3206pre := evm_run h with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨7⟩ (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov)]
+  have hstoreDec : decode flapperBytecode ⟨3206⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd3206pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨k3207, C3207, rd3207raw⟩ := rd3206pre.sstore hperm
+    hstoreDec (by evm_ov)
+  exact ⟨k3207, C3207, by
+    simpa [cageLivePostAccountMap] using rd3207raw⟩
+
 theorem flapperCageX_storeLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (h : RD flapperBytecode I g s0 ⟨3199⟩
@@ -344,17 +372,8 @@ theorem flapperCageX_storeLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     ∃ k' C', RD flapperBytecode I g s0 ⟨3207⟩
       [⟨0⟩, cageRadWord I, ⟨360⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cageLivePostAccountMap I σ) k' C' := by
-  have rd3206pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨7⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨k3207, C3207, rd3207raw⟩ := rd3206pre.sstore hperm
-    (by native_decide) (by evm_ov)
-  exact ⟨k3207, C3207, by
-    simpa [cageLivePostAccountMap] using rd3207raw⟩
+      (cageLivePostAccountMap I σ) k' C' :=
+  permSplit_true hperm (flapperCageX_storeLiveSplit h)
 
 set_option maxHeartbeats 1000000 in
 theorem flapperCageX_toMoveExtcodesizeGuard
@@ -714,7 +733,7 @@ theorem evalExpr_cage_extCodeGuard_true {evm : EVM.State} {locals : Store}
       evalExpr? config { contract := contract, locals := locals } evm receiver =
         .ok (.address target))
     (hcode :
-      0 < (UInt256.ofNat ((evm.lookupAccount target).option 0 (fun acc => acc.code.size))).toNat) :
+      0 < (UInt256.ofNat ((evm.lookupAccount target).option 0 (fun acc ↦ acc.code.size))).toNat) :
     evalExpr? config { contract := contract, locals := locals } evm
       (.binary .gt (.extCodeSize receiver) (.intLit 0)) = .ok (.bool true) := by
   simp [evalExpr?, EvalResult.bind, bind, hreceiver, evalBinaryOp?, EVM.Word.ofNat, hcode]
@@ -725,7 +744,7 @@ theorem evalExpr_cage_extCodeGuard_false {evm : EVM.State} {locals : Store}
       evalExpr? config { contract := contract, locals := locals } evm receiver =
         .ok (.address target))
     (hcode :
-      (UInt256.ofNat ((evm.lookupAccount target).option 0 (fun acc => acc.code.size))).toNat =
+      (UInt256.ofNat ((evm.lookupAccount target).option 0 (fun acc ↦ acc.code.size))).toNat =
         0) :
     evalExpr? config { contract := contract, locals := locals } evm
       (.binary .gt (.extCodeSize receiver) (.intLit 0)) = .ok (.bool false) := by
@@ -792,6 +811,77 @@ theorem flapperCageBodyReverts_unauthorized (evm : EVM.State) (I : ExecutionEnv)
       (evalExpr_auth_false_of_wards_none evm I (cageLocals I)
         (cageLocals_get_wards I) hsrc hauth)
 
+theorem flapperCageBodyReverts_moveNoCodeSplit (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hauth :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩) :
+    ((Reasoning.Theory.extCodeSizeWord (cageLivePostState evm).accountMap
+        (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
+          (cageLivePostState evm).executionEnv) = ⟨0⟩) →
+      ExecTransitionBody config contract evm (cageLocals I) cageTransition.body .reverted) ∧
+      (evm.executionEnv.perm = false →
+        ExecTransitionBody config contract evm (cageLocals I)
+          cageTransition.body .staticViolation) := by
+  have hguardAuth := evalExpr_auth_true_of_wards_none evm I (cageLocals I)
+    (cageLocals_get_wards I) hsrc hauth
+  have hvalue : evalExpr? config { contract := contract, locals := cageLocals I } evm
+      (.intLit 0) = .ok (.int 0) := by simp [evalExpr?, pure]
+  have hassign := cageAssignLive evm I
+  have hprefix {result : ExecResult}
+      (hwrite : ExecBlock config { contract := contract, locals := cageLocals I } evm
+        ([.assign .storage liveRef (.intLit 0)] ++
+          checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
+            [thisAddr, sender, .var "rad"] "_moveRet") result) :
+      ExecBlock config { contract := contract, locals := cageLocals I } evm
+        cageTransition.body result := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) hwrite
+  constructor
+  · intro hnoCode
+    have hvat :
+        evalExpr? config { contract := contract, locals := cageLocals I }
+            (cageLivePostState evm) (.storage vatRef) =
+          .ok (.address (AccountAddress.ofNat
+            (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
+              (cageLivePostState evm).executionEnv).toNat)) :=
+      evalExpr_cage_vat_storage_of_locals (cageLivePostState evm) (cageLocals I)
+        (by simp [cageLocals])
+    have hnoCodeLookup :
+        (UInt256.ofNat
+          (((cageLivePostState evm).lookupAccount
+            (AccountAddress.ofNat
+              (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
+                (cageLivePostState evm).executionEnv).toNat)).option
+            0 (fun acc ↦ acc.code.size))).toNat = 0 := by
+      simpa [State.lookupAccount] using
+        Reasoning.Theory.extCodeSizeWord_zero_lookup_code_zero
+          (σ := (cageLivePostState evm).accountMap)
+          (target := solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
+            (cageLivePostState evm).executionEnv)
+          (addr := AccountAddress.ofNat
+            (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
+              (cageLivePostState evm).executionEnv).toNat)
+          (by rw [accountAddress_ofUInt256_eq_ofNat_toNat])
+          hnoCode
+    have hguard :
+        evalExpr? config { contract := contract, locals := cageLocals I }
+          (cageLivePostState evm)
+          (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) = .ok (.bool false) :=
+      evalExpr_cage_extCodeGuard_false hvat hnoCodeLookup
+    have hchecked :
+        ExecBlock config { contract := contract, locals := cageLocals I }
+          (cageLivePostState evm)
+          (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
+            [thisAddr, sender, .var "rad"] "_moveRet")
+          .reverted := by
+      exact checkedExternalCallNoCode hguard
+    exact ExecFuncBody.execBlockRevert
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign hvalue hassign) hchecked))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hvalue hassign hperm)))
+
 theorem flapperCageBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
@@ -801,55 +891,8 @@ theorem flapperCageBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
       Reasoning.Theory.extCodeSizeWord (cageLivePostState evm).accountMap
         (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
           (cageLivePostState evm).executionEnv) = ⟨0⟩) :
-    ExecTransitionBody config contract evm (cageLocals I) cageTransition.body .reverted := by
-  have hvat :
-      evalExpr? config { contract := contract, locals := cageLocals I }
-          (cageLivePostState evm) (.storage vatRef) =
-        .ok (.address (AccountAddress.ofNat
-          (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
-            (cageLivePostState evm).executionEnv).toNat)) :=
-    evalExpr_cage_vat_storage_of_locals (cageLivePostState evm) (cageLocals I)
-      (by simp [cageLocals])
-  have hnoCodeLookup :
-      (UInt256.ofNat
-        (((cageLivePostState evm).lookupAccount
-          (AccountAddress.ofNat
-            (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
-              (cageLivePostState evm).executionEnv).toNat)).option
-          0 (fun acc => acc.code.size))).toNat = 0 := by
-    simpa [State.lookupAccount] using
-      Reasoning.Theory.extCodeSizeWord_zero_lookup_code_zero
-        (σ := (cageLivePostState evm).accountMap)
-        (target := solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
-          (cageLivePostState evm).executionEnv)
-        (addr := AccountAddress.ofNat
-          (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
-            (cageLivePostState evm).executionEnv).toNat)
-        (by rw [accountAddress_ofUInt256_eq_ofNat_toNat])
-        hnoCode
-  have hguard :
-      evalExpr? config { contract := contract, locals := cageLocals I }
-        (cageLivePostState evm)
-        (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) = .ok (.bool false) :=
-    evalExpr_cage_extCodeGuard_false hvat hnoCodeLookup
-  have hchecked :
-      ExecBlock config { contract := contract, locals := cageLocals I }
-        (cageLivePostState evm)
-        (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
-          [thisAddr, sender, .var "rad"] "_moveRet")
-        .reverted := by
-    exact checkedExternalCallNoCode hguard
-  refine ExecFuncBody.execBlockRevert ?_
-  simpa [cageTransition, nonpayable, auth, checkedExternalCallStmts,
-    List.cons_append, List.nil_append] using
-    (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue
-          (evalExpr_auth_true_of_wards_none evm I (cageLocals I)
-            (cageLocals_get_wards I) hsrc hauth)) <|
-      ExecBlock.consNormal
-        (ExecStmt.assign (by simp [evalExpr?, pure]) (cageAssignLive evm I)) <|
-      hchecked)
+    ExecTransitionBody config contract evm (cageLocals I) cageTransition.body .reverted :=
+  (flapperCageBodyReverts_moveNoCodeSplit evm I hwv hsrc hauth).1 hnoCode
 
 theorem flapperCageBodyReverts_moveCallFailure
     (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
@@ -885,7 +928,7 @@ theorem flapperCageBodyReverts_moveCallFailure
           (AccountAddress.ofNat
             (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
               (cageLivePostState evm).executionEnv).toNat)).option
-          0 (fun acc => acc.code.size))).toNat := by
+          0 (fun acc ↦ acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
       Reasoning.Theory.extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := (cageLivePostState evm).accountMap)
@@ -956,7 +999,7 @@ theorem flapperCageBodyReturns_moveCallSuccess
           (AccountAddress.ofNat
             (solcAddressSlotWord ⟨2⟩ (cageLivePostState evm).accountMap
               (cageLivePostState evm).executionEnv).toNat)).option
-          0 (fun acc => acc.code.size))).toNat := by
+          0 (fun acc ↦ acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
       Reasoning.Theory.extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := (cageLivePostState evm).accountMap)
@@ -1369,7 +1412,6 @@ theorem flapperCageBodyCoreDecodeFailed_short
 theorem flapperCageBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 2)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -1383,7 +1425,19 @@ theorem flapperCageBodyCore {σ σ₀ A I} {g : UInt256}
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hdecode := flapperDecode_cage_ok (I := I) hsz36
     by_cases hauth : relyAuthWord σ I = ⟨1⟩
-    · by_cases hnoCode :
+    · by_cases hperm : I.perm = true
+      swap
+      · have hp : I.perm = false := by simpa using hperm
+        obtain ⟨_, _, rd3106⟩ :=
+          flapperCageX_decoded (g := Sat256.ofUInt256 g) hsz36 hsize hreach
+        obtain ⟨_, _, rd3199⟩ := flapperCageX_authorized (I := I) hauth rd3106
+        have hstatic := permSplit_false hp (flapperCageX_storeLiveSplit rd3199)
+        have hsource := (flapperCageBodyReverts_moveNoCodeSplit
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I hwv rfl
+          (by simpa [relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
+            State.lookupAccount] using hauth)).2 hp
+        exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
+      by_cases hnoCode :
           Reasoning.Theory.extCodeSizeWord (cageLivePostAccountMap I σ)
             (cageVatWord (cageLivePostAccountMap I σ) I) = ⟨0⟩
       · exact flapperCageBodyCoreMoveNoCode hcode hsize hperm hwv hsz36 hauth

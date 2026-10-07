@@ -967,7 +967,6 @@ theorem dogIlksBodyCore {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (dogSelBytes 11)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by

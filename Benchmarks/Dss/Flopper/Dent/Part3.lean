@@ -1331,7 +1331,7 @@ theorem flopperDentBodyReverts_kissCallFailure_moveCallerNe_ticZero
       evm evmAsh evmKiss I outAsh outKiss hkissCodeSize hkissCall)
 
 set_option maxHeartbeats 1000000 in
-theorem flopperDentBodyMoveSuccessTicNonzeroToLot
+theorem flopperDentBodyMoveSuccessTicNonzeroToLotSplit
     (evm evmMove : EVM.State) (I : ExecutionEnv) (out : ByteArray)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ dentGuyWord evm I)
     (hcodeSize :
@@ -1344,7 +1344,7 @@ theorem flopperDentBodyMoveSuccessTicNonzeroToLot
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true, evmMove, out) true)
     (hticMove : dentTicWord evmMove I ≠ ⟨0⟩) :
-    ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+    (ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
       ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
@@ -1360,7 +1360,24 @@ theorem flopperDentBodyMoveSuccessTicNonzeroToLot
           []] ++
         [.assign .storage (bidsF (.var "id") "lot") (.var "lot")])
       (.ok { contract := contract, locals := dentMoveLocals evm I }
-        (dentAfterLotStore (dentAfterGuyStore evmMove I) I)) := by
+        (dentAfterLotStore (dentAfterGuyStore evmMove I) I))) ∧
+      (evm.executionEnv.perm = false →
+        ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+        ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
+            (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
+                [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
+              [ .ite
+                  (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))
+                  (checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "Ash"
+                      (.intLit 0) [] "Ash" ++
+                    [ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ] ++
+                    checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
+                      (.intLit 0) [.var "kissAmt"] "_kissRet")
+                  [],
+                .assign .storage (bidsF (.var "id") "guy") sender ])
+            []] ++
+          [.assign .storage (bidsF (.var "id") "lot") (.var "lot")])
+   .staticViolation) := by
   let evmGuy := dentAfterGuyStore evmMove I
   let evmLot := dentAfterLotStore evmGuy I
   have hcallerCond :=
@@ -1403,43 +1420,55 @@ theorem flopperDentBodyMoveSuccessTicNonzeroToLot
       (dentMoveLocals_get_id evm I)
       (by simp [dentMoveLocals, dentLotOneLocals, dentBegLotLocals, dentLocals])
       hticMove
-  have hguyAssign :
-      ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmMove
-        [.ite (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))
-            (checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "Ash"
-                (.intLit 0) [] "Ash" ++
-              [ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ] ++
-              checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
-                (.intLit 0) [.var "kissAmt"] "_kissRet")
-            [],
-          .assign .storage (bidsF (.var "id") "guy") sender]
-        (.ok { contract := contract, locals := dentMoveLocals evm I } evmGuy) := by
-    exact ExecBlock.consNormal (ExecStmt.iteFalse hticCond ExecBlock.nil) <|
-      ExecBlock.consNormal
-        (ExecStmt.assign (evalExpr_dent_sender evmMove (dentMoveLocals evm I))
+  have hsender := evalExpr_dent_sender evmMove (dentMoveLocals evm I)
+  have hassign := assign_dentGuyStorage_of_locals evmMove I
+      (dentMoveLocals_get_id evm I) (dentMoveLocals_get_bids evm I)
+  have hprefix {result : ExecResult}
+      (hwrite : ExecBlock config { contract := contract, locals := dentMoveLocals evm I }
+        evmMove [.assign .storage (bidsF (.var "id") "guy") sender] result) :
+      ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+        ((dentTransition.body.drop 12).take 1) result := by
+    exact execBlock_singleton (ExecStmt.iteTrue hcallerCond
+      (execBlock_append hchecked (ExecBlock.consNormal
+        (ExecStmt.iteFalse hticCond ExecBlock.nil) hwrite)))
+  constructor
+  · have hite := hprefix
+      (ExecBlock.consNormal (ExecStmt.assign hsender hassign) ExecBlock.nil)
+    have hlotAssign :
+        ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmGuy
+          [.assign .storage (bidsF (.var "id") "lot") (.var "lot")]
+          (.ok { contract := contract, locals := dentMoveLocals evm I } evmLot) := by
+      exact ExecBlock.consNormal
+        (ExecStmt.assign (evalExpr_dent_lot_var_moveLocals evm evmGuy I)
           (by
-            simpa [evmGuy] using
-              assign_dentGuyStorage_of_locals evmMove I
+            simpa [evmLot] using
+              assign_dentLotStorage_of_locals evmGuy I
                 (dentMoveLocals_get_id evm I) (dentMoveLocals_get_bids evm I)))
         ExecBlock.nil
-  have hthen :
-      ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
-        (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
-            [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
-          [ .ite
-              (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))
-              (checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "Ash"
-                  (.intLit 0) [] "Ash" ++
-                [ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ] ++
-                checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
-                  (.intLit 0) [.var "kissAmt"] "_kissRet")
-              [],
-            .assign .storage (bidsF (.var "id") "guy") sender ])
-        (.ok { contract := contract, locals := dentMoveLocals evm I } evmGuy) :=
-   execBlock_append hchecked hguyAssign
-  have hite :
-      ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
-        [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
+    simpa [evmGuy, evmLot] using execBlock_append hite hlotAssign
+  · intro hperm
+    have hp : evmMove.executionEnv.perm = false := by
+      rw [typedCallViaEVM_executionEnv_eq hcall]
+      exact hperm
+    exact execBlock_append_term
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hsender hassign hp)))
+      (by intro _ _ h; cases h)
+
+theorem flopperDentBodyMoveSuccessTicNonzeroToLot
+    (evm evmMove : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ dentGuyWord evm I)
+    (hcodeSize :
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
+    (hcall :
+      typedCallViaEVM config evm
+        (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
+        [.address evm.executionEnv.source,
+          .address (AccountAddress.ofNat (dentGuyWord evm I).toNat),
+          .int (Int.ofNat (dentBidWord I).toNat)]
+        (true, evmMove, out) true)
+    (hticMove : dentTicWord evmMove I ≠ ⟨0⟩) :
+    ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+      ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
             [ .ite
@@ -1451,26 +1480,15 @@ theorem flopperDentBodyMoveSuccessTicNonzeroToLot
                     (.intLit 0) [.var "kissAmt"] "_kissRet")
                 [],
               .assign .storage (bidsF (.var "id") "guy") sender ])
-          []]
-        (.ok { contract := contract, locals := dentMoveLocals evm I } evmGuy) :=
-    ExecBlock.consNormal (ExecStmt.iteTrue hcallerCond hthen) ExecBlock.nil
-  have hlotAssign :
-      ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmGuy
-        [.assign .storage (bidsF (.var "id") "lot") (.var "lot")]
-        (.ok { contract := contract, locals := dentMoveLocals evm I } evmLot) := by
-    exact ExecBlock.consNormal
-      (ExecStmt.assign (evalExpr_dent_lot_var_moveLocals evm evmGuy I)
-        (by
-          simpa [evmLot] using
-            assign_dentLotStorage_of_locals evmGuy I
-              (dentMoveLocals_get_id evm I) (dentMoveLocals_get_bids evm I)))
-      ExecBlock.nil
-  have htail :=
-   execBlock_append hite hlotAssign
-  simpa [evmGuy, evmLot] using htail
+          []] ++
+        [.assign .storage (bidsF (.var "id") "lot") (.var "lot")])
+      (.ok { contract := contract, locals := dentMoveLocals evm I }
+        (dentAfterLotStore (dentAfterGuyStore evmMove I) I)) :=
+  (flopperDentBodyMoveSuccessTicNonzeroToLotSplit
+    evm evmMove I out hcaller hcodeSize hcall hticMove).1
 
 set_option maxHeartbeats 1000000 in
-theorem flopperDentBodyMoveAshKissSuccessTicZeroToLot
+theorem flopperDentBodyMoveAshKissSuccessTicZeroToLotSplit
     (evm evmMove evmAsh evmKiss : EVM.State) (I : ExecutionEnv)
     (outMove outAsh outKiss : ByteArray)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ dentGuyWord evm I)
@@ -1500,7 +1518,7 @@ theorem flopperDentBodyMoveAshKissSuccessTicZeroToLot
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAsh I).toNat)) "kiss" 0
         [.int (Int.ofNat (dentKissAmtWord I outAsh).toNat)]
         (true, evmKiss, outKiss) true) :
-    ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+    (ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
       ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
@@ -1516,7 +1534,24 @@ theorem flopperDentBodyMoveAshKissSuccessTicZeroToLot
           []] ++
         [.assign .storage (bidsF (.var "id") "lot") (.var "lot")])
       (.ok { contract := contract, locals := dentKissRetLocals evm I outAsh }
-        (dentAfterLotStore (dentAfterGuyStore evmKiss I) I)) := by
+        (dentAfterLotStore (dentAfterGuyStore evmKiss I) I))) ∧
+      (evm.executionEnv.perm = false →
+        ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+        ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
+            (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
+                [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
+              [ .ite
+                  (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))
+                  (checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "Ash"
+                      (.intLit 0) [] "Ash" ++
+                    [ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ] ++
+                    checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
+                      (.intLit 0) [.var "kissAmt"] "_kissRet")
+                  [],
+                .assign .storage (bidsF (.var "id") "guy") sender ])
+            []] ++
+          [.assign .storage (bidsF (.var "id") "lot") (.var "lot")])
+   .staticViolation) := by
   let evmGuy := dentAfterGuyStore evmKiss I
   let evmLot := dentAfterLotStore evmGuy I
   have hcallerCond :=
@@ -1606,44 +1641,77 @@ theorem flopperDentBodyMoveAshKissSuccessTicZeroToLot
         (.ok { contract := contract, locals := dentKissRetLocals evm I outAsh } evmKiss) := by
     simpa [List.append_assoc] using
      execBlock_append hashChecked hafterAsh
-  have hinnerGuy :
-      ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmMove
-        [.ite (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))
-            (checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "Ash"
-                (.intLit 0) [] "Ash" ++
-              [ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ] ++
-              checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
-                (.intLit 0) [.var "kissAmt"] "_kissRet")
-            [],
-          .assign .storage (bidsF (.var "id") "guy") sender]
-        (.ok { contract := contract, locals := dentKissRetLocals evm I outAsh } evmGuy) := by
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hticCond hashBranch) <|
-      ExecBlock.consNormal
-        (ExecStmt.assign (evalExpr_dent_sender evmKiss (dentKissRetLocals evm I outAsh))
+  have hsender := evalExpr_dent_sender evmKiss (dentKissRetLocals evm I outAsh)
+  have hassign := assign_dentGuyStorage_of_locals evmKiss I
+      (dentKissRetLocals_get_id evm I outAsh)
+      (dentKissRetLocals_get_bids evm I outAsh)
+  have hprefix {result : ExecResult}
+      (hwrite : ExecBlock config { contract := contract, locals := dentKissRetLocals evm I outAsh }
+        evmKiss [.assign .storage (bidsF (.var "id") "guy") sender] result) :
+      ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+        ((dentTransition.body.drop 12).take 1) result := by
+    exact execBlock_singleton (ExecStmt.iteTrue hcallerCond
+      (execBlock_append hchecked (ExecBlock.consNormal
+        (ExecStmt.iteTrue hticCond hashBranch) hwrite)))
+  constructor
+  · have hite := hprefix
+      (ExecBlock.consNormal (ExecStmt.assign hsender hassign) ExecBlock.nil)
+    have hlotAssign :
+        ExecBlock config { contract := contract, locals := dentKissRetLocals evm I outAsh }
+            evmGuy
+          [.assign .storage (bidsF (.var "id") "lot") (.var "lot")]
+          (.ok { contract := contract, locals := dentKissRetLocals evm I outAsh } evmLot) := by
+      exact ExecBlock.consNormal
+        (ExecStmt.assign (evalExpr_dent_lot_var_kissRetLocals evm evmGuy I outAsh)
           (by
-            simpa [evmGuy] using
-              assign_dentGuyStorage_of_locals evmKiss I
+            simpa [evmLot] using
+              assign_dentLotStorage_of_locals evmGuy I
                 (dentKissRetLocals_get_id evm I outAsh)
                 (dentKissRetLocals_get_bids evm I outAsh)))
         ExecBlock.nil
-  have hthen :
-      ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
-        (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
-            [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
-          [ .ite
-              (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))
-              (checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "Ash"
-                  (.intLit 0) [] "Ash" ++
-                [ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ] ++
-                checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
-                  (.intLit 0) [.var "kissAmt"] "_kissRet")
-              [],
-            .assign .storage (bidsF (.var "id") "guy") sender ])
-        (.ok { contract := contract, locals := dentKissRetLocals evm I outAsh } evmGuy) :=
-   execBlock_append hchecked hinnerGuy
-  have hite :
-      ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
-        [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
+    simpa [evmGuy, evmLot] using execBlock_append hite hlotAssign
+  · intro hperm
+    have hp : evmKiss.executionEnv.perm = false := by
+      rw [typedCallViaEVM_executionEnv_eq hkissCall,
+        typedCallViaEVM_executionEnv_eq hashCall,
+        typedCallViaEVM_executionEnv_eq hcall]
+      exact hperm
+    exact execBlock_append_term
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hsender hassign hp)))
+      (by intro _ _ h; cases h)
+
+theorem flopperDentBodyMoveAshKissSuccessTicZeroToLot
+    (evm evmMove evmAsh evmKiss : EVM.State) (I : ExecutionEnv)
+    (outMove outAsh outKiss : ByteArray)
+    (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ dentGuyWord evm I)
+    (hcodeSize :
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
+    (hcall :
+      typedCallViaEVM config evm
+        (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
+        [.address evm.executionEnv.source,
+          .address (AccountAddress.ofNat (dentGuyWord evm I).toNat),
+          .int (Int.ofNat (dentBidWord I).toNat)]
+        (true, evmMove, outMove) true)
+    (hticMove : dentTicWord evmMove I = ⟨0⟩)
+    (hashCodeSize :
+      Reasoning.Theory.extCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
+        ⟨0⟩)
+    (hashCall :
+      typedCallViaEVM config evmMove
+        (EVM.address (AccountAddress.ofNat (dentGuyWord evmMove I).toNat)) "Ash" 0 []
+        (true, evmAsh, outAsh) true)
+    (houtAsh32 : 32 ≤ outAsh.size)
+    (hkissCodeSize :
+      Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
+        ⟨0⟩)
+    (hkissCall :
+      typedCallViaEVM config evmAsh
+        (EVM.address (AccountAddress.ofNat (dentGuyWord evmAsh I).toNat)) "kiss" 0
+        [.int (Int.ofNat (dentKissAmtWord I outAsh).toNat)]
+        (true, evmKiss, outKiss) true) :
+    ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
+      ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
           (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
               [sender, .storage (bidsF (.var "id") "guy"), .var "bid"] "_moveRet" ++
             [ .ite
@@ -1655,24 +1723,12 @@ theorem flopperDentBodyMoveAshKissSuccessTicZeroToLot
                     (.intLit 0) [.var "kissAmt"] "_kissRet")
                 [],
               .assign .storage (bidsF (.var "id") "guy") sender ])
-          []]
-        (.ok { contract := contract, locals := dentKissRetLocals evm I outAsh } evmGuy) :=
-    ExecBlock.consNormal (ExecStmt.iteTrue hcallerCond hthen) ExecBlock.nil
-  have hlotAssign :
-      ExecBlock config { contract := contract, locals := dentKissRetLocals evm I outAsh }
-          evmGuy
-        [.assign .storage (bidsF (.var "id") "lot") (.var "lot")]
-        (.ok { contract := contract, locals := dentKissRetLocals evm I outAsh } evmLot) := by
-    exact ExecBlock.consNormal
-      (ExecStmt.assign (evalExpr_dent_lot_var_kissRetLocals evm evmGuy I outAsh)
-        (by
-          simpa [evmLot] using
-            assign_dentLotStorage_of_locals evmGuy I
-              (dentKissRetLocals_get_id evm I outAsh)
-              (dentKissRetLocals_get_bids evm I outAsh)))
-      ExecBlock.nil
-  have htail :=
-   execBlock_append hite hlotAssign
-  simpa [evmGuy, evmLot] using htail
+          []] ++
+        [.assign .storage (bidsF (.var "id") "lot") (.var "lot")])
+      (.ok { contract := contract, locals := dentKissRetLocals evm I outAsh }
+        (dentAfterLotStore (dentAfterGuyStore evmKiss I) I)) :=
+  (flopperDentBodyMoveAshKissSuccessTicZeroToLotSplit
+    evm evmMove evmAsh evmKiss I outMove outAsh outKiss hcaller hcodeSize
+    hcall hticMove hashCodeSize hashCall houtAsh32 hkissCodeSize hkissCall).1
 
 end Benchmarks.Dss.Flopper

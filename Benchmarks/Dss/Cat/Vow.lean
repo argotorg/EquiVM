@@ -60,7 +60,6 @@ theorem catReachVowBody {σ σ₀ A I} {g : Sat256}
 theorem catVowBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x62, 0x6c, 0xb3, 0xc5]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

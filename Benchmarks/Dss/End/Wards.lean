@@ -203,7 +203,7 @@ theorem endWardsBodyCoreDecodeFailed_short
 
 theorem endWardsBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf wardsTransition)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endWardsConcreteSelector := by

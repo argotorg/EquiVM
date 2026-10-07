@@ -337,7 +337,7 @@ theorem assign_fileIlkUintHoleStorage {v : DogImmutables} (evm : EVM.State)
     (hloc := by rfl)
     (hstore := hstore)
 
-theorem fileIlkUintChopSourceBody {v : DogImmutables} {σ σ₀ A I}
+theorem fileIlkUintChopSourceBodySplit {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
@@ -348,8 +348,10 @@ theorem fileIlkUintChopSourceBody {v : DogImmutables} {σ σ₀ A I}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner
       (fileIlkUintChopSlotFor I) (fileIlkUintData I)
-    ExecTransitionBody (config v) (contract v) evm0 locals fileIlkUintTransition.body
-      (.returned { contract := contract v, locals := locals } evm1 none) := by
+    (ExecTransitionBody (config v) (contract v) evm0 locals fileIlkUintTransition.body
+      (.returned { contract := contract v, locals := locals } evm1 none)) ∧
+      (I.perm = false → ExecTransitionBody (config v) (contract v)
+        evm0 locals fileIlkUintTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -382,21 +384,38 @@ theorem fileIlkUintChopSourceBody {v : DogImmutables} {σ σ₀ A I}
         hsz100 (fileIlkUintData I)
         (by simpa [locals] using fileIlkUintLocals_get_ilks I)
         (by simpa [locals] using fileIlkUintLocals_get_ilk I))
-  have hthen :
+  have hprefix {result : ExecResult}
+      (hwrite : ExecBlock (config v) { contract := contract v, locals := locals }
+        evm0 [.assign .storage (ilksF (.var "ilk") "chop") (.var "data")] result) :
       ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        [.require (.binary .ge (.var "data") (.intLit WAD)),
-          .assign .storage (ilksF (.var "ilk") "chop") (.var "data")]
-        (.ok { contract := contract v, locals := locals } evm1) := by
-    refine ExecBlock.consNormal (ExecStmt.requireTrue hgeExpr) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil
-  have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        fileIlkUintTransition.body (.ok { contract := contract v, locals := locals } evm1) := by
+        fileIlkUintTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
-  simpa [ExecTransitionBody, evm0, evm1, locals] using ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteTrue hcond
+      (ExecBlock.consNormal (ExecStmt.requireTrue hgeExpr) hwrite))
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
+        (by simp only [evm0, initState]; exact hperm))))
+
+theorem fileIlkUintChopSourceBody {v : DogImmutables} {σ σ₀ A I}
+    {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsz100 : 100 ≤ I.calldata.size)
+    (hauth : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩)
+    (hwhat : fileIlkUintWhat I = fileIlkUintChopBytes)
+    (hge : (1000000000000000000 : Nat) ≤ (fileIlkUintData I).toNat) :
+    let locals := fileIlkUintLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner
+      (fileIlkUintChopSlotFor I) (fileIlkUintData I)
+    ExecTransitionBody (config v) (contract v) evm0 locals fileIlkUintTransition.body
+      (.returned { contract := contract v, locals := locals } evm1 none) :=
+  (fileIlkUintChopSourceBodySplit hwv hsz100 hauth hwhat hge).1
 
 theorem fileIlkUintChopLtWadSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256}
@@ -439,7 +458,7 @@ theorem fileIlkUintChopLtWadSourceBody {v : DogImmutables} {σ σ₀ A I}
     exact ExecBlock.consRevert (ExecStmt.iteTrue hcond hthen)
   simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockRevert hblock
 
-theorem fileIlkUintHoleSourceBody {v : DogImmutables} {σ σ₀ A I}
+theorem fileIlkUintHoleSourceBodySplit {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
@@ -450,8 +469,10 @@ theorem fileIlkUintHoleSourceBody {v : DogImmutables} {σ σ₀ A I}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner
       (fileIlkUintHoleSlotFor I) (fileIlkUintData I)
-    ExecTransitionBody (config v) (contract v) evm0 locals fileIlkUintTransition.body
-      (.returned { contract := contract v, locals := locals } evm1 none) := by
+    (ExecTransitionBody (config v) (contract v) evm0 locals fileIlkUintTransition.body
+      (.returned { contract := contract v, locals := locals } evm1 none)) ∧
+      (I.perm = false → ExecTransitionBody (config v) (contract v)
+        evm0 locals fileIlkUintTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -486,27 +507,38 @@ theorem fileIlkUintHoleSourceBody {v : DogImmutables} {σ σ₀ A I}
         hsz100 (fileIlkUintData I)
         (by simpa [locals] using fileIlkUintLocals_get_ilks I)
         (by simpa [locals] using fileIlkUintLocals_get_ilk I))
-  have hholeBlock :
+  have hprefix {result : ExecResult}
+      (hwrite : ExecBlock (config v) { contract := contract v, locals := locals }
+        evm0 [.assign .storage (ilksF (.var "ilk") "hole") (.var "data")] result) :
       ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        [.assign .storage (ilksF (.var "ilk") "hole") (.var "data")]
-        (.ok { contract := contract v, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil
-  have helse :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        [.ite
-          (.binary .eq (.var "what") holeParamLit)
-          [ .assign .storage (ilksF (.var "ilk") "hole") (.var "data") ]
-          [ .require (.boolLit false) ]]
-        (.ok { contract := contract v, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hcondHole hholeBlock) ExecBlock.nil
-  have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        fileIlkUintTransition.body (.ok { contract := contract v, locals := locals } evm1) := by
+        fileIlkUintTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteFalse hcondChop helse) ExecBlock.nil
-  simpa [ExecTransitionBody, evm0, evm1, locals] using ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteFalse hcondChop
+      (execBlock_singleton (ExecStmt.iteTrue hcondHole hwrite)))
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
+        (by simp only [evm0, initState]; exact hperm))))
+
+theorem fileIlkUintHoleSourceBody {v : DogImmutables} {σ σ₀ A I}
+    {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsz100 : 100 ≤ I.calldata.size)
+    (hauth : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩)
+    (hnotChop : fileIlkUintWhat I ≠ fileIlkUintChopBytes)
+    (hwhat : fileIlkUintWhat I = fileIlkUintHoleBytes) :
+    let locals := fileIlkUintLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner
+      (fileIlkUintHoleSlotFor I) (fileIlkUintData I)
+    ExecTransitionBody (config v) (contract v) evm0 locals fileIlkUintTransition.body
+      (.returned { contract := contract v, locals := locals } evm1 none) :=
+  (fileIlkUintHoleSourceBodySplit hwv hsz100 hauth hnotChop hwhat).1
 
 theorem fileIlkUintUnrecognizedSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256}
@@ -936,7 +968,7 @@ theorem RD.dogFileIlkUintLogTail {v : DogImmutables} {code : ByteArray}
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
     hret (by evm_ov)⟩
 
-theorem RD.dogFileIlkUintStoreChopLog {v : DogImmutables} {code : ByteArray}
+theorem RD.dogFileIlkUintStoreChopLogSplit {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
@@ -946,13 +978,14 @@ theorem RD.dogFileIlkUintStoreChopLog {v : DogImmutables} {code : ByteArray}
     (hmatch : what = ABI.bytesToWord fileIlkUintChopBytes)
     (hge : (1000000000000000000 : Nat) ≤ data.toNat)
     (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (sel :: R)
-      (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 data) (UInt256.ofNat 5) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩) data) k' C' := by
+    (ee.perm = true ∧
+      ∃ k' C', RD code ee g s0 ret (sel :: R)
+        (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 data) (UInt256.ofNat 5) rdata
+        (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩) data) k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   have rd935 := h.jumpdest
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
     (by evm_ov)
@@ -1081,8 +1114,16 @@ theorem RD.dogFileIlkUintStoreChopLog {v : DogImmutables} {code : ByteArray}
     raw swap1
       (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
       (by evm_ov)]
+  have hstoreDec : decode code ⟨1054⟩ = some (.SSTORE, none) := by
+    rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
+    native_decide
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdBeforeStore.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdAfterStore⟩ := rdBeforeStore.sstore hperm
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    hstoreDec
     (by evm_ov)
   have rdPushTail := rdAfterStore.push2 ⟨1176⟩
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
@@ -1095,7 +1136,27 @@ theorem RD.dogFileIlkUintStoreChopLog {v : DogImmutables} {code : ByteArray}
     (ret := ret) (sel := sel) (R := R) hpatch
     (by simpa [hmatch, hconst] using rdTail) hret hperm hhashSize hhashRead64 hov
 
-theorem RD.dogFileIlkUintStoreHoleLog {v : DogImmutables} {code : ByteArray}
+theorem RD.dogFileIlkUintStoreChopLog {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (h : RD code ee g s0 ⟨934⟩ (data :: what :: ilk :: ret :: sel :: R) mem
+      (UInt256.ofNat 3) rdata σ k C)
+    (hmatch : what = ABI.bytesToWord fileIlkUintChopBytes)
+    (hge : (1000000000000000000 : Nat) ≤ data.toNat)
+    (hret : (D_J code 0).contains ret = true)
+    (hperm : ee.perm = true)
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : R.length + 12 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 ret (sel :: R)
+      (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 data) (UInt256.ofNat 5) rdata
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩) data) k' C' :=
+  permSplit_true hperm
+    (RD.dogFileIlkUintStoreChopLogSplit hpatch h hmatch hge hret hmem hread64 hov)
+
+theorem RD.dogFileIlkUintStoreHoleLogSplit {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
@@ -1105,13 +1166,14 @@ theorem RD.dogFileIlkUintStoreHoleLog {v : DogImmutables} {code : ByteArray}
     (hnotChop : what ≠ ABI.bytesToWord fileIlkUintChopBytes)
     (hmatch : what = ABI.bytesToWord fileIlkUintHoleBytes)
     (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (sel :: R)
-      (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 data) (UInt256.ofNat 5) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩) data) k' C' := by
+    (ee.perm = true ∧
+      ∃ k' C', RD code ee g s0 ret (sel :: R)
+        (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 data) (UInt256.ofNat 5) rdata
+        (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩) data) k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   have rd935 := h.jumpdest
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
     (by evm_ov)
@@ -1246,8 +1308,16 @@ theorem RD.dogFileIlkUintStoreHoleLog {v : DogImmutables} {code : ByteArray}
     raw swap1
       (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
       (by evm_ov)]
+  have hstoreDec : decode code ⟨1094⟩ = some (.SSTORE, none) := by
+    rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
+    native_decide
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdBeforeStore.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdAfterStore⟩ := rdBeforeStore.sstore hperm
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    hstoreDec
     (by evm_ov)
   have rdPushTail := rdAfterStore.push2 ⟨1176⟩
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
@@ -1259,6 +1329,26 @@ theorem RD.dogFileIlkUintStoreHoleLog {v : DogImmutables} {code : ByteArray}
     (v := v) (code := code) (data := data) (what := what) (ilk := ilk)
     (ret := ret) (sel := sel) (R := R) hpatch
     (by simpa [hmatch, hconstHole] using rdTail) hret hperm hhashSize hhashRead64 hov
+
+theorem RD.dogFileIlkUintStoreHoleLog {v : DogImmutables} {code : ByteArray}
+    {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (hpatch : patchRuntime dogBytecode (patches v) = some code)
+    (h : RD code ee g s0 ⟨934⟩ (data :: what :: ilk :: ret :: sel :: R) mem
+      (UInt256.ofNat 3) rdata σ k C)
+    (hnotChop : what ≠ ABI.bytesToWord fileIlkUintChopBytes)
+    (hmatch : what = ABI.bytesToWord fileIlkUintHoleBytes)
+    (hret : (D_J code 0).contains ret = true)
+    (hperm : ee.perm = true)
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : R.length + 12 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 ret (sel :: R)
+      (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 data) (UInt256.ofNat 5) rdata
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩) data) k' C' :=
+  permSplit_true hperm
+    (RD.dogFileIlkUintStoreHoleLogSplit hpatch h hnotChop hmatch hret hmem hread64 hov)
 
 theorem RD.dogFileIlkUintChopLtWadRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -1449,7 +1539,7 @@ theorem dogFileIlkUintBodyCoreOk
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true) (hsz100 : 100 ≤ I.calldata.size)
+    (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg (contract v) I.calldata = some fileIlkUintTransition)
     (hdecode :
@@ -1509,20 +1599,25 @@ theorem dogFileIlkUintBodyCoreOk
         have hslotEq : actualSlot = sourceSlot := by
           simpa [actualSlot, sourceSlot] using
             (fileIlkUintChopSlotFor_eq (I := I) hsz100).symm
-        have hbody :
-            ExecTransitionBody (config v) (contract v) evm0 locals
+        have hbodySplit :
+            (ExecTransitionBody (config v) (contract v) evm0 locals
               fileIlkUintTransition.body
-              (.returned { contract := contract v, locals := locals } evm1 none) := by
+              (.returned { contract := contract v, locals := locals } evm1 none)) ∧
+            (I.perm = false → ExecTransitionBody (config v) (contract v)
+              evm0 locals fileIlkUintTransition.body .staticViolation) := by
           simpa [evm0, evm1, locals, data, sourceSlot] using
-            (fileIlkUintChopSourceBody (v := v)
+            (fileIlkUintChopSourceBodySplit (v := v)
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               hwv hsz100 hauthSolm hwhatChop (by simpa [data] using hgeWad))
-        obtain ⟨_, _, hretPc⟩ := RD.dogFileIlkUintStoreChopLog
+        rcases RD.dogFileIlkUintStoreChopLogSplit
           (v := v) (code := code) (data := data) (what := fileIlkUintWhatWord I)
           (ilk := fileIlkUintIlkWord I) (ret := ⟨313⟩) (sel := sel) (R := [])
           hpatch hswitch hwordChop hgeWad
           (dogPatchedDJumpPrefix1405 ⟨313⟩ hpatch (by native_decide))
-          hperm hmemAuth hread64Auth (by simp)
+          hmemAuth hread64Auth (by simp) with
+            ⟨_hperm, _, _, hretPc⟩ | ⟨hperm, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
         have hretPc' := hretPc.jumpdest
           (by
             rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
@@ -1543,7 +1638,7 @@ theorem dogFileIlkUintBodyCoreOk
               evm1.accountMap := by
           simpa [evm1, evm0, initState, storageStore_accountMap, actualSlot, sourceSlot,
             hslotEq]
-        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
           haccounts henc
     · have hnotChopWord :
           fileIlkUintWhatWord I ≠ ABI.bytesToWord fileIlkUintChopBytes :=
@@ -1560,20 +1655,25 @@ theorem dogFileIlkUintBodyCoreOk
         have hslotEq : actualSlot = sourceSlot := by
           simpa [actualSlot, sourceSlot] using
             (fileIlkUintHoleSlotFor_eq (I := I) hsz100).symm
-        have hbody :
-            ExecTransitionBody (config v) (contract v) evm0 locals
+        have hbodySplit :
+            (ExecTransitionBody (config v) (contract v) evm0 locals
               fileIlkUintTransition.body
-              (.returned { contract := contract v, locals := locals } evm1 none) := by
+              (.returned { contract := contract v, locals := locals } evm1 none)) ∧
+            (I.perm = false → ExecTransitionBody (config v) (contract v)
+              evm0 locals fileIlkUintTransition.body .staticViolation) := by
           simpa [evm0, evm1, locals, data, sourceSlot] using
-            (fileIlkUintHoleSourceBody (v := v)
+            (fileIlkUintHoleSourceBodySplit (v := v)
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               hwv hsz100 hauthSolm hwhatChop hwhatHole)
-        obtain ⟨_, _, hretPc⟩ := RD.dogFileIlkUintStoreHoleLog
+        rcases RD.dogFileIlkUintStoreHoleLogSplit
           (v := v) (code := code) (data := data) (what := fileIlkUintWhatWord I)
           (ilk := fileIlkUintIlkWord I) (ret := ⟨313⟩) (sel := sel) (R := [])
           hpatch hswitch hnotChopWord hwordHole
           (dogPatchedDJumpPrefix1405 ⟨313⟩ hpatch (by native_decide))
-          hperm hmemAuth hread64Auth (by simp)
+          hmemAuth hread64Auth (by simp) with
+            ⟨_hperm, _, _, hretPc⟩ | ⟨hperm, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
         have hretPc' := hretPc.jumpdest
           (by
             rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
@@ -1594,7 +1694,7 @@ theorem dogFileIlkUintBodyCoreOk
               evm1.accountMap := by
           simpa [evm1, evm0, initState, storageStore_accountMap, actualSlot, sourceSlot,
             hslotEq]
-        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
           haccounts henc
       · have hnotHoleWord :
             fileIlkUintWhatWord I ≠ ABI.bytesToWord fileIlkUintHoleBytes :=
@@ -1691,7 +1791,6 @@ theorem dogFileIlkUintBodyCore {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (dogSelBytes 7)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
@@ -1703,7 +1802,7 @@ theorem dogFileIlkUintBodyCore {v : DogImmutables} {code : ByteArray}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
-  · exact dogFileIlkUintBodyCoreOk hpatch hcode hwv hperm hsz100 hsize hdispatch
+  · exact dogFileIlkUintBodyCoreOk hpatch hcode hwv hsz100 hsize hdispatch
       (dogDecode_fileIlkUint_ok (v := v) hsz100) hreach
   · exact dogFileIlkUintBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach

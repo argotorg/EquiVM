@@ -104,7 +104,7 @@ theorem catReachRelyBody {σ σ₀ A I} {g : Sat256}
 theorem catRelyBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some relyTransition)
     (hdecode :
@@ -141,9 +141,12 @@ theorem catRelyBodyCore
       exact hauthEvm
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (relySlotFor I) ⟨1⟩
-    have hbody :
+    have hbodySplit :
         ExecTransitionBody config contract evm0 locals relyTransition.body
-          (.returned { contract := contract, locals := locals } evm1 none) := by
+          (.returned { contract := contract, locals := locals } evm1 none) ∧
+        (I.perm = false →
+          ExecTransitionBody config contract evm0 locals relyTransition.body
+            .staticViolation) := by
       have hguard := catAuthGuardEval_true
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
@@ -171,15 +174,27 @@ theorem catRelyBodyCore
             simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
               relyEvaledRef, relySlotFor])
           (hstore := hstore)
-      have hblock := nonpayableRequireAssignStorageBlock
-        (cfg := config) (solm := { contract := contract, locals := locals })
-        (evm := evm0) (evm' := evm1)
-        (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
-        (rhs := .intLit 1) (ref := wardsRef (.var "usr")) (value := .int 1)
-        (by simp [evm0, initState]; exact hwv)
-        hguard (by simp [evalExpr?, pure]) hassign
-      simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0, evm1] using
-        ExecFuncBody.execBlockOK hblock
+      constructor
+      · have hblock := nonpayableRequireAssignStorageBlock
+          (cfg := config) (solm := { contract := contract, locals := locals })
+          (evm := evm0) (evm' := evm1)
+          (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
+          (rhs := .intLit 1) (ref := wardsRef (.var "usr")) (value := .int 1)
+          (by simp [evm0, initState]; exact hwv)
+          hguard (by simp [evalExpr?, pure]) hassign
+        simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0, evm1] using
+          ExecFuncBody.execBlockOK hblock
+      · intro hperm
+        have hblock := nonpayableRequireAssignStorageBlockStatic
+          (cfg := config) (solm := { contract := contract, locals := locals })
+          (evm := evm0)
+          (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
+          (rhs := .intLit 1) (ref := wardsRef (.var "usr")) (value := .int 1)
+          (rest := [])
+          (by simp [evm0, initState]; exact hwv)
+          hguard (by simp [evalExpr?, pure]) hassign (by simp [evm0, initState]; exact hperm)
+        simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0] using
+          ExecFuncBody.execBlockStatic hblock
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
       simpa [callerSlot, catCallerWardsSlot, solcSlotWordAt] using hauthEvm
     obtain ⟨_, _, hokPc⟩ := RD.solcAuthCheckOk
@@ -197,13 +212,16 @@ theorem catRelyBodyCore
       dsimp [key, relyKey]
       rw [u256_land_comm solcAddrMask (calldataWord I.calldata 4)]
       exact solcAddrMask_result_canonical (calldataWord I.calldata 4)
-    obtain ⟨_, _, hretPc⟩ := RD.solcMapping0StoreOne
+    have hstoreSplit := RD.solcMapping0StoreOneSplit
       (code := catBytecode) (pc := ⟨2804⟩) (key := key) (ret := ⟨302⟩) (R := [sel])
       hokPc
       (by
         unfold solcMapping0StoreOneWf
         repeat' first | apply And.intro | native_decide)
-      (by jump_dest) hperm hmemAuth hcanonKey (by simp)
+      (by jump_dest) hmemAuth hcanonKey (by simp)
+    rcases hstoreSplit with ⟨_, _, _, hretPc⟩ | ⟨hperm, hstatic⟩
+    swap
+    · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
     have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
     have hret :
         RDret catBytecode (Sat256.ofUInt256 g)
@@ -216,7 +234,7 @@ theorem catRelyBodyCore
     have henc : returnEquiv ByteArray.empty none relyTransition.returnType := by
       rw [show relyTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-    exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+    exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
       haccounts henc
   · have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := by
       exact hauthEvm
@@ -252,7 +270,7 @@ theorem catRelyBodyCore
 
 theorem catRelyShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -279,16 +297,15 @@ theorem catRelyShort {σ σ₀ A I} {g : UInt256}
 theorem catRelyBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩ (by native_decide) hsel
   by_cases hshort : I.calldata.size < 36
-  · exact catRelyShort hcode hsize hperm hwv hsz hshort hsel
+  · exact catRelyShort hcode hsize hwv hsz hshort hsel
   · have hsz36 : 36 ≤ I.calldata.size := by omega
-    exact catRelyBodyCore hcode hwv hperm hsz36 hsize (catDispatch_rely hsel)
+    exact catRelyBodyCore hcode hwv hsz36 hsize (catDispatch_rely hsel)
       (catDecode_rely_ok hsz36)
       (catReachRelyBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
 

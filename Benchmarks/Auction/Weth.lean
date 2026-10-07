@@ -41,7 +41,7 @@ theorem wethX {σ σ₀ A I} {g : UInt256}
 
 theorem wethBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (entryBytes 4))
+    (hsel : selIs I (entryBytes 4))
     (hreach : EntryReached 4 σ σ₀ A I g) :
     runtimeEquivalenceFor auctionConfig auctionContract
       σ σ₀ g A I := by

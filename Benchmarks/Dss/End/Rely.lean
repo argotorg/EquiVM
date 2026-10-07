@@ -181,6 +181,36 @@ theorem endRelyAssign (evm : EVM.State) (I : ExecutionEnv) :
   simpa [endRelyPostState] using
     storageLocStore_uint256 evm (endRelyUsrStorageSlot I) ⟨1⟩
 
+theorem endRelyBodyReturnsSplit (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hauth :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endRelyAuthStorageSlot I) =
+        ⟨1⟩) :
+    (ExecTransitionBody config contract evm (endRelyStore I) relyTransition.body
+      (.returned { contract := contract, locals := endRelyStore I }
+        (endRelyPostState evm I) none)) ∧
+      (evm.executionEnv.perm = false →
+        ExecTransitionBody config contract evm (endRelyStore I)
+          relyTransition.body .staticViolation) := by
+  have hguard := evalExpr_endRely_auth_true evm I hsrc hauth
+  have hval : evalExpr? config { contract := contract, locals := endRelyStore I } evm
+      (.intLit 1) = .ok (.int 1) := by simp [evalExpr?, pure]
+  have hassign := endRelyAssign evm I
+  have hprefix {result : ExecResult}
+      (htail : ExecBlock config { contract := contract, locals := endRelyStore I } evm
+        [.assign .storage (wardsRef (.var "usr")) (.intLit 1)] result) :
+      ExecBlock config { contract := contract, locals := endRelyStore I } evm
+        relyTransition.body result := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hguard) htail
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign hval hassign) ExecBlock.nil))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hval hassign hperm)))
+
 theorem endRelyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
@@ -189,22 +219,8 @@ theorem endRelyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
         ⟨1⟩) :
     ExecTransitionBody config contract evm (endRelyStore I) relyTransition.body
       (.returned { contract := contract, locals := endRelyStore I }
-        (endRelyPostState evm I) none) := by
-  refine ExecFuncBody.execBlockOK ?_
-  simpa [relyTransition, nonpayable, auth] using
-    nonpayableRequireAssignStorageBlock
-      (cfg := config)
-      (solm := { contract := contract, locals := endRelyStore I })
-      (evm := evm)
-      (evm' := endRelyPostState evm I)
-      (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
-      (rhs := .intLit 1)
-      (ref := wardsRef (.var "usr"))
-      (value := .int 1)
-      hwv
-      (evalExpr_endRely_auth_true evm I hsrc hauth)
-      (by simp [evalExpr?, pure])
-      (endRelyAssign evm I)
+        (endRelyPostState evm I) none) :=
+  (endRelyBodyReturnsSplit evm I hwv hsrc hauth).1
 
 theorem endRelyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -561,14 +577,16 @@ theorem endRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       repeat' first | apply And.intro | native_decide)
     hauthSolc (by simp)
 
-theorem endRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem endRelyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (h : RD endBytecode I g s0 endRelyStorePc
       [endRelyUsrMaskedWord I, endRelyReturnPc, sel]
       (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret endBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (endRelyUsrStorageSlot I) ⟨1⟩)
-      ByteArray.empty := by
+    (I.perm = true ∧
+      RDret endBytecode g s0
+        (sstoreAccountMap I.codeOwner σ (endRelyUsrStorageSlot I) ⟨1⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic endBytecode g s0) := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((endRelyStoreHashMem I).readWithPadding 0 64))) =
@@ -626,7 +644,13 @@ theorem endRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rdSstorePrefix := evm_run rdSlot with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rdStoredRaw⟩ := rdSstorePrefix.sstore hperm (by native_decide)
+  have hstoreDec : decode endBytecode ⟨5393⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdSstorePrefix.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rdStoredRaw⟩ := rdSstorePrefix.sstore hperm hstoreDec
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdStored := by
     simpa [endRelyUsrStorageSlot_eq_mapSlot_masked I] using rdStoredRaw
@@ -661,6 +685,31 @@ theorem endRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have hstop := RD.stop rdStopPc (by native_decide) (by evm_ov)
   simpa [endRelyUsrStorageSlot_eq_mapSlot_masked I] using hstop
 
+theorem endRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hperm : I.perm = true)
+    (h : RD endBytecode I g s0 endRelyStorePc
+      [endRelyUsrMaskedWord I, endRelyReturnPc, sel]
+      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret endBytecode g s0
+      (sstoreAccountMap I.codeOwner σ (endRelyUsrStorageSlot I) ⟨1⟩)
+      ByteArray.empty :=
+  permSplit_true hperm (endRelyX_storeAuthorizedSplit h)
+
+theorem endX_rely_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hauth : endRelyAuthWord σ I = ⟨1⟩)
+    (hreach : ∃ k C, RD endBytecode I g
+      (initState σ σ₀ g A I) endRelyEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
+      RDret endBytecode g (initState σ σ₀ g A I)
+        (sstoreAccountMap I.codeOwner σ (endRelyUsrStorageSlot I) ⟨1⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic endBytecode g (initState σ σ₀ g A I)) := by
+  obtain ⟨_, _, hdecoded⟩ := endRelyX_decoded (g := g) hsz36 hsize hreach
+  obtain ⟨_, _, hokPc⟩ := endRelyX_authorized (I := I) hauth hdecoded
+  exact endRelyX_storeAuthorizedSplit hokPc
+
 theorem endX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hauth : endRelyAuthWord σ I = ⟨1⟩)
@@ -669,10 +718,8 @@ theorem endX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret endBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (endRelyUsrStorageSlot I) ⟨1⟩)
-      ByteArray.empty := by
-  obtain ⟨_, _, hdecoded⟩ := endRelyX_decoded (g := g) hsz36 hsize hreach
-  obtain ⟨_, _, hokPc⟩ := endRelyX_authorized (I := I) hauth hdecoded
-  exact endRelyX_storeAuthorized hperm hokPc
+      ByteArray.empty :=
+  permSplit_true hperm (endX_rely_okSplit hsz36 hsize hauth hreach)
 
 theorem endX_rely_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -690,7 +737,7 @@ theorem endRelyBodyCoreOk
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = endBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some relyTransition)
@@ -703,19 +750,24 @@ theorem endRelyBodyCoreOk
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : endRelyAuthWord σ I = ⟨1⟩ := hauth
-  have hbody :
-      ExecTransitionBody config contract evmSolm (endRelyStore I)
+  have hbodySplit :
+      (ExecTransitionBody config contract evmSolm (endRelyStore I)
         relyTransition.body
         (.returned { contract := contract, locals := endRelyStore I }
-          (endRelyPostState evmSolm I) none) := by
+          (endRelyPostState evmSolm I) none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evmSolm (endRelyStore I)
+        relyTransition.body .staticViolation) := by
     simpa [evmSolm, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
-      endRelyBodyReturns evmSolm I
+      endRelyBodyReturnsSplit evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
         (by simp [evmSolm, initState])
         hauthWord
-  exact (endX_rely_ok (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
-    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
+  rcases endX_rely_okSplit (g := Sat256.ofUInt256 g) hsz36 hsize hauth hreach with
+    ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
       (by simp [endRelyPostState, evmSolm, initState, storageStore_accountMap])
       (by
         simpa [relyTransition] using
@@ -766,7 +818,7 @@ theorem endRelyBodyCoreDecodeFailed_short
 
 theorem endRelyBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf relyTransition)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endRelyConcreteSelector := by
@@ -780,7 +832,7 @@ theorem endRelyBody {σ σ₀ A I} {g : UInt256}
     hcode hwv hsz4 hsize hsel'
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hauth : endRelyAuthWord σ I = ⟨1⟩
-    · exact endRelyBodyCoreOk hcode hsize hperm hwv hsz36 hauth hdispatch
+    · exact endRelyBodyCoreOk hcode hsize hwv hsz36 hauth hdispatch
         (endDecode_rely_ok hsz36) hreach
     · exact endRelyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
         (endDecode_rely_ok hsz36) hreach

@@ -341,7 +341,7 @@ theorem daiNonPayable {σ σ₀ A I} {g : UInt256}
 /-- Calldata shorter than a selector reverts before runtime dispatch reaches a body. -/
 theorem daiShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
+    (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (daiX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (daiDispatch_none_short hsz)
@@ -349,7 +349,7 @@ theorem daiShortRevert {σ σ₀ A I} {g : UInt256}
 /-- No selector matches: Solm dispatch fails and the bytecode falls through to the revert stub. -/
 theorem daiNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 22 → (daiSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
@@ -360,55 +360,56 @@ theorem daiNoDispatch {σ σ₀ A I} {g : UInt256}
       (daiDispatch_none_short hshort)
 
 theorem daiCorrect :
-    runtimeEquivalence config daiBytecode contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
+    runtimeEquivalenceAnyPerm config daiBytecode contract := by
+  refine runtimeEquivalenceAnyPerm.intro ?_
+  intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases h0 : selIs I (daiSelBytes 0)
-      · exact daiAllowanceBodyCore hcode hsize hperm hwv h0
+      · exact daiAllowanceBodyCore hcode hsize hwv h0
       · by_cases h1 : selIs I (daiSelBytes 1)
-        · exact daiApproveBodyCore hcode hsize hperm hwv h1
+        · exact daiApproveBodyCore hcode hsize hwv h1
         · by_cases h2 : selIs I (daiSelBytes 2)
-          · exact daiBalanceOfBodyCore hcode hsize hperm hwv h2
+          · exact daiBalanceOfBodyCore hcode hsize hwv h2
           · by_cases h3 : selIs I (daiSelBytes 3)
-            · exact daiBurnBodyCore hcode hsize hperm hwv h3
+            · exact daiBurnBodyCore hcode hsize hwv h3
             · by_cases h4 : selIs I (daiSelBytes 4)
-              · exact daiDecimalsBodyCore hcode hsize hperm hwv h4
+              · exact daiDecimalsBodyCore hcode hsize hwv h4
               · by_cases h5 : selIs I (daiSelBytes 5)
-                · exact daiDenyBodyCore hcode hsize hperm hwv h5
+                · exact daiDenyBodyCore hcode hsize hwv h5
                 · by_cases h6 : selIs I (daiSelBytes 6)
-                  · exact daiDomainSeparatorBodyCore hcode hsize hperm hwv h6
+                  · exact daiDomainSeparatorBodyCore hcode hsize hwv h6
                   · by_cases h7 : selIs I (daiSelBytes 7)
-                    · exact daiMintBodyCore hcode hsize hperm hwv h7
+                    · exact daiMintBodyCore hcode hsize hwv h7
                     · by_cases h8 : selIs I (daiSelBytes 8)
-                      · exact daiMoveBodyCore hcode hsize hperm hwv h8
+                      · exact daiMoveBodyCore hcode hsize hwv h8
                       · by_cases h9 : selIs I (daiSelBytes 9)
-                        · exact daiNameBodyCore hcode hsize hperm hwv h9
+                        · exact daiNameBodyCore hcode hsize hwv h9
                         · by_cases h10 : selIs I (daiSelBytes 10)
-                          · exact daiNoncesBodyCore hcode hsize hperm hwv h10
+                          · exact daiNoncesBodyCore hcode hsize hwv h10
                           · by_cases h11 : selIs I (daiSelBytes 11)
-                            · exact daiPermitBodyCore hcode hsize hperm hwv h11
+                            · exact daiPermitBodyCore hcode hsize hwv h11
                             · by_cases h12 : selIs I (daiSelBytes 12)
-                              · exact daiPermitTypehashBodyCore hcode hsize hperm hwv h12
+                              · exact daiPermitTypehashBodyCore hcode hsize hwv h12
                               · by_cases h13 : selIs I (daiSelBytes 13)
-                                · exact daiPullBodyCore hcode hsize hperm hwv h13
+                                · exact daiPullBodyCore hcode hsize hwv h13
                                 · by_cases h14 : selIs I (daiSelBytes 14)
-                                  · exact daiPushBodyCore hcode hsize hperm hwv h14
+                                  · exact daiPushBodyCore hcode hsize hwv h14
                                   · by_cases h15 : selIs I (daiSelBytes 15)
-                                    · exact daiRelyBodyCore hcode hsize hperm hwv h15
+                                    · exact daiRelyBodyCore hcode hsize hwv h15
                                     · by_cases h16 : selIs I (daiSelBytes 16)
-                                      · exact daiSymbolBodyCore hcode hsize hperm hwv h16
+                                      · exact daiSymbolBodyCore hcode hsize hwv h16
                                       · by_cases h17 : selIs I (daiSelBytes 17)
-                                        · exact daiTotalSupplyBodyCore hcode hsize hperm hwv h17
+                                        · exact daiTotalSupplyBodyCore hcode hsize hwv h17
                                         · by_cases h18 : selIs I (daiSelBytes 18)
-                                          · exact daiTransferBodyCore hcode hsize hperm hwv h18
+                                          · exact daiTransferBodyCore hcode hsize hwv h18
                                           · by_cases h19 : selIs I (daiSelBytes 19)
-                                            · exact daiTransferFromBodyCore hcode hsize hperm hwv h19
+                                            · exact daiTransferFromBodyCore hcode hsize hwv h19
                                             · by_cases h20 : selIs I (daiSelBytes 20)
-                                              · exact daiVersionBodyCore hcode hsize hperm hwv h20
+                                              · exact daiVersionBodyCore hcode hsize hwv h20
                                               · by_cases h21 : selIs I (daiSelBytes 21)
-                                                · exact daiWardsBodyCore hcode hsize hperm hwv h21
-                                                · refine daiNoDispatch hcode hsize hperm hwv ?_
+                                                · exact daiWardsBodyCore hcode hsize hwv h21
+                                                · refine daiNoDispatch hcode hsize hwv ?_
                                                   intro i hi
                                                   interval_cases i
                                                   · simpa [selIs, daiSelBytes] using h0
@@ -433,11 +434,11 @@ theorem daiCorrect :
                                                   · simpa [selIs, daiSelBytes] using h19
                                                   · simpa [selIs, daiSelBytes] using h20
                                                   · simpa [selIs, daiSelBytes] using h21
-    · exact daiShortRevert hcode hsize hperm hwv (by omega)
+    · exact daiShortRevert hcode hsize hwv (by omega)
   · exact daiNonPayable hcode hwv
 
 theorem daiContractCorrect :
-    contractEquivalence config daiCreationBytecode daiBytecode contract :=
-  contractEquivalence.intro daiConstructorCorrect daiCorrect
+    contractEquivalenceAnyPerm config daiCreationBytecode daiBytecode contract :=
+  contractEquivalenceAnyPerm.intro daiConstructorCorrect daiCorrect
 
 end Benchmarks.Dss.Dai

@@ -189,7 +189,6 @@ theorem dogVowBodyCore {v : DogImmutables} {code : ByteArray}
     (_hpatch : patchRuntime dogBytecode (patches v) = some code)
     (_hcode : I.code = code)
     (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (_hwv : I.weiValue = ⟨0⟩)
     (_hsel : selIs I (dogSelBytes 15)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by

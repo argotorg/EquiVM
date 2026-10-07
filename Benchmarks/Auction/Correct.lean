@@ -34,70 +34,70 @@ end Auction
 open Auction
 
 theorem auctionCorrect :
-    runtimeEquivalence auctionConfig auctionBytecode Auction.auctionContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
+    runtimeEquivalenceAnyPerm auctionConfig auctionBytecode Auction.auctionContract := by
+  refine ⟨fun σ σ₀ g A I hcode hsize ↦ ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   swap
   · exact auctionShortRevert hcode (by omega)
   by_cases h0 : selIs I (entryBytes 0)
-  · exact durationBodyCore hcode hsize hperm h0
+  · exact durationBodyCore hcode hsize h0
       (auctionReachEntry 0 hcode hsz hsize h0)
   by_cases h1 : selIs I (entryBytes 1)
-  · exact nounsBodyCore hcode hsize hperm h1
+  · exact nounsBodyCore hcode hsize h1
       (auctionReachEntry 1 hcode hsz hsize h1)
   by_cases h2 : selIs I (entryBytes 2)
-  · exact setMinBidIncrementPercentageBodyCore hcode hsize hperm h2
+  · exact setMinBidIncrementPercentageBodyCore hcode hsize h2
       (auctionReachEntry 2 hcode hsz hsize h2)
   by_cases h3 : selIs I (entryBytes 3)
-  · exact unpauseBodyCore hcode hsize hperm h3
+  · exact unpauseBodyCore hcode hsize h3
       (auctionReachEntry 3 hcode hsz hsize h3)
   by_cases h4 : selIs I (entryBytes 4)
-  · exact wethBodyCore hcode hsize hperm h4
+  · exact wethBodyCore hcode hsize h4
       (auctionReachEntry 4 hcode hsz hsize h4)
   by_cases h5 : selIs I (entryBytes 5)
-  · exact pausedBodyCore hcode hsize hperm h5
+  · exact pausedBodyCore hcode hsize h5
       (auctionReachEntry 5 hcode hsz hsize h5)
   by_cases h6 : selIs I (entryBytes 6)
-  · exact createBidBodyCore hcode hsize hperm h6
+  · exact createBidBodyCore hcode hsize h6
       (auctionReachEntry 6 hcode hsz hsize h6)
   by_cases h7 : selIs I (entryBytes 7)
-  · exact setTimeBufferBodyCore hcode hsize hperm h7
+  · exact setTimeBufferBodyCore hcode hsize h7
       (auctionReachEntry 7 hcode hsz hsize h7)
   by_cases h8 : selIs I (entryBytes 8)
-  · exact renounceOwnershipBodyCore hcode hsize hperm h8
+  · exact renounceOwnershipBodyCore hcode hsize h8
       (auctionReachEntry 8 hcode hsz hsize h8)
   by_cases h9 : selIs I (entryBytes 9)
-  · exact auctionBodyCore hcode hsize hperm h9
+  · exact auctionBodyCore hcode hsize h9
       (auctionReachEntry 9 hcode hsz hsize h9)
   by_cases h10 : selIs I (entryBytes 10)
-  · exact pauseBodyCore hcode hsize hperm h10
+  · exact pauseBodyCore hcode hsize h10
       (auctionReachEntry 10 hcode hsz hsize h10)
   by_cases h11 : selIs I (entryBytes 11)
-  · exact initializeBodyCore hcode hsize hperm h11
+  · exact initializeBodyCore hcode hsize h11
       (auctionReachEntry 11 hcode hsz hsize h11)
   by_cases h12 : selIs I (entryBytes 12)
-  · exact ownerBodyCore hcode hsize hperm h12
+  · exact ownerBodyCore hcode hsize h12
       (auctionReachEntry 12 hcode hsz hsize h12)
   by_cases h13 : selIs I (entryBytes 13)
-  · exact settleAuctionBodyCore hcode hsize hperm h13
+  · exact settleAuctionBodyCore hcode hsize h13
       (auctionReachEntry 13 hcode hsz hsize h13)
   by_cases h14 : selIs I (entryBytes 14)
-  · exact minBidIncrementPercentageBodyCore hcode hsize hperm h14
+  · exact minBidIncrementPercentageBodyCore hcode hsize h14
       (auctionReachEntry 14 hcode hsz hsize h14)
   by_cases h15 : selIs I (entryBytes 15)
-  · exact setReservePriceBodyCore hcode hsize hperm h15
+  · exact setReservePriceBodyCore hcode hsize h15
       (auctionReachEntry 15 hcode hsz hsize h15)
   by_cases h16 : selIs I (entryBytes 16)
-  · exact reservePriceBodyCore hcode hsize hperm h16
+  · exact reservePriceBodyCore hcode hsize h16
       (auctionReachEntry 16 hcode hsz hsize h16)
   by_cases h17 : selIs I (entryBytes 17)
-  · exact timeBufferBodyCore hcode hsize hperm h17
+  · exact timeBufferBodyCore hcode hsize h17
       (auctionReachEntry 17 hcode hsz hsize h17)
   by_cases h18 : selIs I (entryBytes 18)
-  · exact settleCurrentAndCreateNewAuctionBodyCore hcode hsize hperm h18
+  · exact settleCurrentAndCreateNewAuctionBodyCore hcode hsize h18
       (auctionReachEntry 18 hcode hsz hsize h18)
   by_cases h19 : selIs I (entryBytes 19)
-  · exact transferOwnershipBodyCore hcode hsize hperm h19
+  · exact transferOwnershipBodyCore hcode hsize h19
       (auctionReachEntry 19 hcode hsz hsize h19)
   apply auctionNoDispatch hcode hsz hsize
   rintro ⟨i, hi⟩
@@ -124,6 +124,6 @@ theorem auctionCorrect :
   · exact h19
 
 theorem auctionContractCorrect :
-    contractEquivalence auctionConfig auctionCreationBytecode auctionBytecode
+    contractEquivalenceAnyPerm auctionConfig auctionCreationBytecode auctionBytecode
       Auction.auctionContract :=
-  contractEquivalence.intro auctionConstructorCorrect auctionCorrect
+  contractEquivalenceAnyPerm.intro auctionConstructorCorrect auctionCorrect

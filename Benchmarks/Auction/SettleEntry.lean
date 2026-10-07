@@ -33,14 +33,29 @@ theorem settleNotPaused {I g s0 R mem aw rdata σ k C}
   have rd2362 := evm_run rd2361 with [jumpiNT hp]
   exact pausableError 2 rd2362 (by omega)
 
+theorem settleEnterSplit {I g s0 ret R mem aw rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨2458⟩ (ret :: R) mem aw rdata σ k C)
+    (hov : R.length + 4 ≤ 1024) :
+    (I.perm = true ∧
+      ∃ k' C', RD auctionBytecode I g s0 ⟨4086⟩ (⟨2471⟩ :: ret :: R)
+        mem aw rdata (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) k' C') ∨
+      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
+  have rd2463 := evm_run h with [jumpdest, push1 ⟨2⟩, push1 ⟨101⟩]
+  have hstoreDec : decode auctionBytecode ⟨2463⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2463.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd2464⟩ := rd2463.sstore hperm hstoreDec (by evm_ov)
+  exact ⟨_, _, evm_run rd2464 with [push2 ⟨2471⟩, push2 ⟨4086⟩, jump (by jump_dest)]⟩
+
 theorem settleEnter {I g s0 ret R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨2458⟩ (ret :: R) mem aw rdata σ k C)
     (hperm : I.perm = true) (hov : R.length + 4 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨4086⟩ (⟨2471⟩ :: ret :: R)
-      mem aw rdata (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) k' C' := by
-  have rd2463 := evm_run h with [jumpdest, push1 ⟨2⟩, push1 ⟨101⟩]
-  obtain ⟨_, _, rd2464⟩ := rd2463.sstore hperm (by native_decide) (by evm_ov)
-  exact ⟨_, _, evm_run rd2464 with [push2 ⟨2471⟩, push2 ⟨4086⟩, jump (by jump_dest)]⟩
+      mem aw rdata (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩) k' C' :=
+  permSplit_true hperm (settleEnterSplit h hov)
 
 theorem settleExit {I g s0 ret R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨2471⟩ (ret :: R) mem aw rdata σ k C)

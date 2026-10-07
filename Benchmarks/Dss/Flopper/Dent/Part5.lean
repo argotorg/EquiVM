@@ -1171,7 +1171,6 @@ theorem flopperDentX_moveNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem flopperDentX_moveCall
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {memCaller : ByteArray}
     {k C : ℕ}
-    (hperm : I.perm = true)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (solcAddressSlotWord ⟨2⟩ σ I) ≠
         ⟨0⟩)
@@ -1247,7 +1246,7 @@ theorem flopperDentX_moveCall
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
       addressWord_address_eq_target
       (dentMoveEncode_eq src guy (dentBidWord I) hmemMap hsrcCanon hguyCanon) ?_
-    simpa [initState, hperm] using hΘ
+    simpa [initState] using hΘ
 
 theorem flopperDentX_moveCallDepthLimit
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {memCaller : ByteArray}
@@ -1315,11 +1314,10 @@ theorem flopperDentX_moveCallFailure
     houtSize (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem flopperDentX_moveSuccessTicNonzeroToTail
+theorem flopperDentX_moveSuccessTicNonzeroToTailSplit
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {σ' : AccountMap}
     {mem out : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
     (hticNe :
       uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I ≠ ⟨0⟩)
     (rd2545 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2545⟩
@@ -1327,11 +1325,13 @@ theorem flopperDentX_moveSuccessTicNonzeroToTail
         solcAddressSlotWord ⟨2⟩ σ I :: dentBidWord I :: dentLotWord I ::
         dentIdWord I :: ⟨334⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out σ' k C) :
-    ∃ (memGuy : ByteArray) (k' C' : ℕ),
-      RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2889⟩
-        [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
-        memGuy (UInt256.ofNat 8) out
-        (dentRuntimeAfterGuyMap I.codeOwner σ' I) k' C' := by
+    (I.perm = true ∧
+      ∃ (memGuy : ByteArray) (k' C' : ℕ),
+        RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2889⟩
+          [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
+          memGuy (UInt256.ofNat 8) out
+          (dentRuntimeAfterGuyMap I.codeOwner σ' I) k' C') ∨
+      (I.perm = false ∧ RDstatic flopperBytecode g (initState σ σ₀ g A I)) := by
   let id := dentIdWord I
   let packedSlot := auctionPackedSlot id
   let memTicKey := wordAt0Mem id mem
@@ -1493,8 +1493,14 @@ theorem flopperDentX_moveSuccessTicNonzeroToTail
     raw caller (by native_decide) (by evm_ov),
     raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
+  have hstoreDec : decode flopperBytecode ⟨2888⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2887pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k2889, C2889, rd2889raw⟩ := rd2887pre.sstore hperm
-    (by native_decide) (by evm_ov)
+    hstoreDec (by evm_ov)
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
@@ -1520,5 +1526,24 @@ theorem flopperDentX_moveSuccessTicNonzeroToTail
     simpa [σGuy, dentRuntimeAfterGuyMap, oldPacked, packedSlot, src, hmask, hstored]
       using rd2889raw
   exact ⟨memGuy, _, _, by simpa [id] using rd2889⟩
+
+theorem flopperDentX_moveSuccessTicNonzeroToTail
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {σ' : AccountMap}
+    {mem out : ByteArray} {k C : ℕ}
+    (hperm : I.perm = true)
+    (hticNe :
+      uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I ≠ ⟨0⟩)
+    (rd2545 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2545⟩
+      (⟨1⟩ :: dentMoveEndPtr :: dentMoveSelectorWord ::
+        solcAddressSlotWord ⟨2⟩ σ I :: dentBidWord I :: dentLotWord I ::
+        dentIdWord I :: ⟨334⟩ :: sel :: [])
+      mem (UInt256.ofNat 8) out σ' k C) :
+    ∃ (memGuy : ByteArray) (k' C' : ℕ),
+      RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2889⟩
+        [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
+        memGuy (UInt256.ofNat 8) out
+        (dentRuntimeAfterGuyMap I.codeOwner σ' I) k' C' :=
+  permSplit_true hperm (flopperDentX_moveSuccessTicNonzeroToTailSplit hticNe rd2545)
 
 end Benchmarks.Dss.Flopper

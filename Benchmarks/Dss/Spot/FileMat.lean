@@ -247,7 +247,7 @@ theorem assign_fileMatStorage (evm : EVM.State) (I : ExecutionEnv)
   simpa [evm'] using storageLocStore_uint256 evm (fileMatSlotFor I) (fileMatData I)
 
 set_option maxHeartbeats 1000000 in
-theorem spotFileMatSourceBody {σ σ₀ A I} {g : UInt256}
+theorem spotFileMatSourceBodySplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
@@ -256,8 +256,10 @@ theorem spotFileMatSourceBody {σ σ₀ A I} {g : UInt256}
     let locals := fileMatLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (fileMatSlotFor I) (fileMatData I)
-    ExecTransitionBody config contract evm0 locals fileMatTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) := by
+    (ExecTransitionBody config contract evm0 locals fileMatTransition.body
+      (.returned { contract := contract, locals := locals } evm1 none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evm0 locals
+        fileMatTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -292,20 +294,36 @@ theorem spotFileMatSourceBody {σ σ₀ A I} {g : UInt256}
         .storage (ilksF (.var "ilk") "mat") (.int (Int.ofNat (fileMatData I).toNat)) =
           .ok ({ contract := contract, locals := locals }, evm1) := by
     simpa [locals, evm1] using assign_fileMatStorage evm0 I hsz36
-  have hthen :
+  have hprefix {result : ExecResult}
+      (hwrite : ExecBlock config { contract := contract, locals := locals } evm0
+        [.assign .storage (ilksF (.var "ilk") "mat") (.var "data")] result) :
       ExecBlock config { contract := contract, locals := locals } evm0
-        [.assign .storage (ilksF (.var "ilk") "mat") (.var "data")]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileMatTransition.body
-        (.ok { contract := contract, locals := locals } evm1) := by
+        fileMatTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hliveGuard) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
-  simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteTrue hcond hwrite)
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
+        (by simp only [evm0, initState]; exact hperm))))
+
+theorem spotFileMatSourceBody {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hlive : spotLiveWord σ I = ⟨1⟩)
+    (hwhat : fileMatWhatBytes I = fileMatBytes) :
+    let locals := fileMatLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (fileMatSlotFor I) (fileMatData I)
+    ExecTransitionBody config contract evm0 locals fileMatTransition.body
+      (.returned { contract := contract, locals := locals } evm1 none) :=
+  (spotFileMatSourceBodySplit hwv hsz36 hauth hlive hwhat).1
 
 theorem spotFileMatSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -676,15 +694,17 @@ theorem spotFileMatX_notLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (relyAuthHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem spotFileMatX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size) (hperm : I.perm = true)
+theorem spotFileMatX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size)
     (hmatch : fileMatWhatWord I = ABI.bytesToWord fileMatBytes)
     (h : RD spotBytecode I g s0 ⟨1149⟩
       [fileMatData I, fileMatWhatWord I, fileMatIlkWord I, ⟨214⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret spotBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (fileMatSlotFor I) (fileMatData I))
-      ByteArray.empty := by
+    (I.perm = true ∧
+      RDret spotBytecode g s0
+        (sstoreAccountMap I.codeOwner σ (fileMatSlotFor I) (fileMatData I))
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic spotBytecode g s0) := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((fileMatIlkHashMem I).readWithPadding 0 64))) =
@@ -731,7 +751,14 @@ theorem spotFileMatX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have rd1181 := rd1180.add (by native_decide) (by evm_ov)
   have rd1182 := rd1181.dup2 (by native_decide) (by evm_ov)
   have rd1183 := rd1182.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1184⟩ := rd1183.sstore hperm (by native_decide) (by evm_ov)
+  have hstoreDec : decode spotBytecode ⟨1184⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1183.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd1184⟩ := rd1183.sstore hperm hstoreDec (by evm_ov)
   have rd1188 := rd1184.push2 ⟨1266⟩ (by native_decide) (by evm_ov)
   have rd1266 := rd1188.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd1267 := rd1266.jumpdest (by native_decide) (by evm_ov)
@@ -741,6 +768,17 @@ theorem spotFileMatX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have rd214 := rd1270.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd215 := rd214.jumpdest (by native_decide) (by evm_ov)
   simpa [fileMatSlotFor_eq hsz36] using RD.stop rd215 (by native_decide) (by evm_ov)
+
+theorem spotFileMatX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size) (hperm : I.perm = true)
+    (hmatch : fileMatWhatWord I = ABI.bytesToWord fileMatBytes)
+    (h : RD spotBytecode I g s0 ⟨1149⟩
+      [fileMatData I, fileMatWhatWord I, fileMatIlkWord I, ⟨214⟩, sel]
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret spotBytecode g s0
+      (sstoreAccountMap I.codeOwner σ (fileMatSlotFor I) (fileMatData I))
+      ByteArray.empty :=
+  permSplit_true hperm (spotFileMatX_storeAuthorizedSplit hsz36 hmatch h)
 
 theorem spotFileMatX_unrecognized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
@@ -798,7 +836,7 @@ theorem spotFileMatX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem spotFileMatBodyCoreOk
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = spotBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hlive : spotLiveWord σ I = ⟨1⟩)
@@ -818,11 +856,13 @@ theorem spotFileMatBodyCoreOk
   let evm1 := Solm.EVM.storageStore evm0 I.codeOwner matSlot data
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
   have hliveSolm : spotLiveWord σ I = ⟨1⟩ := hlive
-  have hbody :
-      ExecTransitionBody config contract evm0 locals fileMatTransition.body
-        (.returned { contract := contract, locals := locals } evm1 none) := by
+  have hbodySplit :
+      (ExecTransitionBody config contract evm0 locals fileMatTransition.body
+        (.returned { contract := contract, locals := locals } evm1 none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evm0 locals
+        fileMatTransition.body .staticViolation) := by
     simpa [evm0, evm1, locals, matSlot, data] using
-      (spotFileMatSourceBody (σ := σ)
+      (spotFileMatSourceBodySplit (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv (by omega) hauthSolm
         hliveSolm hwhat)
   obtain ⟨_, _, hdecoded⟩ := spotFileMatX_decoded (g := Sat256.ofUInt256 g)
@@ -831,8 +871,11 @@ theorem spotFileMatBodyCoreOk
   obtain ⟨_, _, hlivez⟩ := spotFileMatX_liveOk (I := I) hlive hauthz
   have hmatch : fileMatWhatWord I = ABI.bytesToWord fileMatBytes :=
     fileMatWhatWord_eq_of_bytes_eq (by omega) hwhat
-  have hret := spotFileMatX_storeAuthorized (I := I) (by omega) hperm hmatch hlivez
-  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+  rcases spotFileMatX_storeAuthorizedSplit (I := I) (by omega) hmatch hlivez with
+    ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
     (by simp [evm1, evm0, initState, storageStore_accountMap, matSlot, data])
     (by
       simpa [fileMatTransition] using
@@ -945,7 +988,6 @@ theorem spotFileMatBodyCoreDecodeFailed_short
 theorem spotFileMatBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = spotBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (spotSelBytes 2)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -960,7 +1002,7 @@ theorem spotFileMatBodyCore {σ σ₀ A I} {g : UInt256}
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
     · by_cases hlive : spotLiveWord σ I = ⟨1⟩
       · by_cases hwhat : fileMatWhatBytes I = fileMatBytes
-        · exact spotFileMatBodyCoreOk hcode hsize _hperm hwv hsz100 hauth hlive hwhat
+        · exact spotFileMatBodyCoreOk hcode hsize hwv hsz100 hauth hlive hwhat
             hdispatch (spotDecode_fileMat_ok hsz100) hreach
         · exact spotFileMatBodyCoreUnrecognized hcode hsize hwv hsz100 hauth hlive hwhat
             hdispatch (spotDecode_fileMat_ok hsz100) hreach

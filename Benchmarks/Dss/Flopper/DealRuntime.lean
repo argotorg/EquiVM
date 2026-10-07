@@ -408,7 +408,6 @@ theorem flopperDealX_mintNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem flopperDealX_mintCall
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hperm : I.perm = true)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (solcAddressSlotWord ⟨3⟩ σ I) ≠
         ⟨0⟩)
@@ -487,7 +486,7 @@ theorem flopperDealX_mintCall
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
       addressWord_address_eq_target
       (dealMintEncode_eq guy lot hmemMap hguyCanon) ?_
-    simpa [initState, hperm] using hΘ
+    simpa [initState] using hΘ
 
 theorem flopperDealX_mintCallDepthLimit
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -558,6 +557,32 @@ theorem flopperDealX_mintCallFailure
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     houtSize (by simp)
 
+theorem flopperDealX_mintCallSuccessDeleteSplit
+    {σ σ₀ A I} {g : Sat256} {sel status : UInt256}
+    {σ' : AccountMap}
+    {mem out : ByteArray} {k C : ℕ}
+    (hstatus : status ≠ ⟨0⟩)
+    (rd1164 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
+      (status :: dealMintEndPtr :: dealMintSelectorWord ::
+        solcAddressSlotWord ⟨3⟩ σ I :: dealIdWord I :: ⟨334⟩ :: sel :: [])
+      mem (UInt256.ofNat 7) out σ' k C) :
+    (I.perm = true ∧
+      RDret flopperBytecode g (initState σ σ₀ g A I)
+        (auctionRuntimeDeleteAccountMap I.codeOwner (dealIdWord I) σ')
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic flopperBytecode g (initState σ σ₀ g A I)) := by
+  have rd1165 := rd1164.iszero (by native_decide) (by evm_ov)
+  have rd1166 := rd1165.dup1 (by native_decide) (by evm_ov)
+  have rd1167 := rd1166.iszero (by native_decide) (by evm_ov)
+  have rd1170 := rd1167.push2 ⟨1180⟩ (by native_decide) (by evm_ov)
+  have hcond : UInt256.isZero (UInt256.isZero status) ≠ ⟨0⟩ := by
+    rw [Reasoning.Theory.isZero_eq_zero_of_ne hstatus]
+    decide
+  have rd1180 := rd1170.jumpiT (by native_decide) hcond (by jump_dest) (by evm_ov)
+  simpa [auctionRuntimeDeleteAccountMap] using
+    RD.flopperAuctionDeleteTailSplit
+      (by native_decide) (by native_decide) (by native_decide) (by simp) rd1180
+
 theorem flopperDealX_mintCallSuccessDelete
     {σ σ₀ A I} {g : Sat256} {sel status : UInt256}
     {σ' : AccountMap}
@@ -570,18 +595,8 @@ theorem flopperDealX_mintCallSuccessDelete
       mem (UInt256.ofNat 7) out σ' k C) :
     RDret flopperBytecode g (initState σ σ₀ g A I)
       (auctionRuntimeDeleteAccountMap I.codeOwner (dealIdWord I) σ')
-      ByteArray.empty := by
-  have rd1165 := rd1164.iszero (by native_decide) (by evm_ov)
-  have rd1166 := rd1165.dup1 (by native_decide) (by evm_ov)
-  have rd1167 := rd1166.iszero (by native_decide) (by evm_ov)
-  have rd1170 := rd1167.push2 ⟨1180⟩ (by native_decide) (by evm_ov)
-  have hcond : UInt256.isZero (UInt256.isZero status) ≠ ⟨0⟩ := by
-    rw [Reasoning.Theory.isZero_eq_zero_of_ne hstatus]
-    decide
-  have rd1180 := rd1170.jumpiT (by native_decide) hcond (by jump_dest) (by evm_ov)
-  simpa [auctionRuntimeDeleteAccountMap] using
-    RD.flopperAuctionDeleteTail hperm
-      (by native_decide) (by native_decide) (by native_decide) (by simp) rd1180
+      ByteArray.empty :=
+  permSplit_true hperm (flopperDealX_mintCallSuccessDeleteSplit hstatus rd1164)
 
 theorem flopperDealBodyCoreNotLive
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -929,7 +944,7 @@ theorem flopperDealBodyCoreMintCallSuccess
     {σ σ' σ₀ A A' I} {g : UInt256} {sel : UInt256}
     {mem out : ByteArray} {k C : ℕ}
     (hcode : I.code = flopperBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (_hsz36 : 36 ≤ I.calldata.size)
     (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (htic : uint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
@@ -997,29 +1012,34 @@ theorem flopperDealBodyCoreMintCallSuccess
       Reasoning.Theory.extCodeSizeWord σ
         (solcAddressSlotWord ⟨3⟩ σ I) ≠ ⟨0⟩ :=
     hcodeSize
-  have hbody :
-      ExecTransitionBody config contract evmSolm (dealLocals I)
+  have hbodySplit :
+      (ExecTransitionBody config contract evmSolm (dealLocals I)
         dealTransition.body
         (.returned { contract := contract, locals := dealMintLocals I }
-          (auctionDeletePostState (dealIdWord I) evmCallSolm) none) := by
+          (auctionDeletePostState (dealIdWord I) evmCallSolm) none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evmSolm (dealLocals I)
+        dealTransition.body .staticViolation) := by
     simpa [evmSolm, evmCallSolm, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
-      flopperDealBodyReturns_mintCallSuccess evmSolm evmCallSolm I out
+      flopperDealBodyReturns_mintCallSuccessSplit evmSolm evmCallSolm I out
         (by simp only [evmSolm, initState]; exact hwv)
         hliveSolmWord hticSolm hfinishedSolm
         (by simpa [evmSolm, initState] using hcodeSizeSolm)
         hcallSolm
-  have hret :=
-    flopperDealX_mintCallSuccessDelete
-      (g := Sat256.ofUInt256 g) (σ := σ) (sel := sel) hperm
-      (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) rd1164
+  rcases
+    flopperDealX_mintCallSuccessDeleteSplit
+      (g := Sat256.ofUInt256 g) (σ := σ) (sel := sel)
+      (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) rd1164 with
+      ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
   have hFinalAccounts :
       Eq (auctionRuntimeDeleteAccountMap I.codeOwner (dealIdWord I) σ')
         (auctionDeletePostState (dealIdWord I) evmCallSolm).accountMap := by
     simpa [evmCallSolm] using
       auctionDeletePostState_accountMapEq (dealIdWord I) evmCallSolm I.codeOwner
         (by simp [evmCallSolm, evmSolm, initState])
-  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
     (by simpa using hFinalAccounts)
     (by
       simpa [dealTransition] using
@@ -1041,7 +1061,6 @@ theorem flopperDealBodyCoreDecodeFailed_short
 theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 3)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -1091,7 +1110,7 @@ theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
                   (flopperDealX_decoded (g := Sat256.ofUInt256 g) hsz36 hsize hreach)
               obtain ⟨σ', z, out, A', memCall, k1164, C1164, rd1164, hcall,
                   houtSize⟩ :=
-                flopperDealX_mintCall (g := Sat256.ofUInt256 g) hperm hcodeSize
+                flopperDealX_mintCall (g := Sat256.ofUInt256 g) hcodeSize
                   hdepthLt htic hfinished ⟨_, _, rd3966⟩
               by_cases hz : z = true
               · have rd1164True : RD flopperBytecode I (Sat256.ofUInt256 g)
@@ -1117,7 +1136,7 @@ theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
                             accountMap := σ', substate := A' },
                         out) true := by
                   simpa [hz] using hcall
-                exact flopperDealBodyCoreMintCallSuccess hcode hsize hperm hwv hsz36
+                exact flopperDealBodyCoreMintCallSuccess hcode hsize hwv hsz36
                   hlive htic hfinished hcodeSize rd1164True hcallTrue hdispatch hdecode
               · have hzFalse : z = false := Bool.eq_false_iff.mpr hz
                 have rd1164False : RD flopperBytecode I (Sat256.ofUInt256 g)
@@ -1178,7 +1197,7 @@ theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
                     (flopperDealX_decoded (g := Sat256.ofUInt256 g) hsz36 hsize hreach)
                 obtain ⟨σ', z, out, A', memCall, k1164, C1164, rd1164, hcall,
                     houtSize⟩ :=
-                  flopperDealX_mintCall (g := Sat256.ofUInt256 g) hperm hcodeSize
+                  flopperDealX_mintCall (g := Sat256.ofUInt256 g) hcodeSize
                     hdepthLt htic hfinished ⟨_, _, rd3966⟩
                 by_cases hz : z = true
                 · have rd1164True : RD flopperBytecode I (Sat256.ofUInt256 g)
@@ -1204,7 +1223,7 @@ theorem flopperDealBody {σ σ₀ A I} {g : UInt256}
                               accountMap := σ', substate := A' },
                           out) true := by
                     simpa [hz] using hcall
-                  exact flopperDealBodyCoreMintCallSuccess hcode hsize hperm hwv hsz36
+                  exact flopperDealBodyCoreMintCallSuccess hcode hsize hwv hsz36
                     hlive htic hfinished hcodeSize rd1164True hcallTrue hdispatch hdecode
                 · have hzFalse : z = false := Bool.eq_false_iff.mpr hz
                   have rd1164False : RD flopperBytecode I (Sat256.ofUInt256 g)

@@ -2399,20 +2399,27 @@ theorem endThawX_subUnderflow {σ σ' σ₀ A I}
     raw dup1 (by native_decide) (by evm_ov),
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
-theorem endThawX_debtStoreLogReturn {σ σ' σ₀ A I}
+theorem endThawX_debtStoreLogReturnSplit {σ σ' σ₀ A I}
     {g : Sat256} {sel debtNew : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5190⟩
       (debtNew :: endThawReturnPc :: sel :: [])
       mem (UInt256.ofNat 6) rdata σ' k C) :
-    RDret endBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ' ⟨11⟩ debtNew) ByteArray.empty := by
+    (I.perm = true ∧
+      RDret endBytecode g (initState σ σ₀ g A I)
+        (sstoreAccountMap I.codeOwner σ' ⟨11⟩ debtNew) ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic endBytecode g (initState σ σ₀ g A I)) := by
   have rd5193 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rdStored⟩ := rd5193.sstore hperm (by native_decide)
+  have hstoreDec : decode endBytecode ⟨5193⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd5193.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rdStored⟩ := rd5193.sstore hperm hstoreDec
     (by simp only [List.length_cons, List.length_nil]; omega)
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -2441,6 +2448,18 @@ theorem endThawX_debtStoreLogReturn {σ σ' σ₀ A I}
   have rd563 := RD.jumpdest (pc := endThawReturnPc) (stk := [sel]) rd562
     (by native_decide) (by evm_ov)
   exact RD.stop rd563 (by native_decide) (by evm_ov)
+
+theorem endThawX_debtStoreLogReturn {σ σ' σ₀ A I}
+    {g : Sat256} {sel debtNew : UInt256} {mem rdata : ByteArray} {k C : ℕ}
+    (hperm : I.perm = true)
+    (hmem : mem.size = 164)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5190⟩
+      (debtNew :: endThawReturnPc :: sel :: [])
+      mem (UInt256.ofNat 6) rdata σ' k C) :
+    RDret endBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ' ⟨11⟩ debtNew) ByteArray.empty :=
+  permSplit_true hperm (endThawX_debtStoreLogReturnSplit hmem hread64 h)
 
 theorem endThawX_daiNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
@@ -4432,17 +4451,22 @@ theorem endThawTailSubUnderflow (evm : EVM.State) (out debtOut tellOut : ByteArr
       hargs (by rfl) hbind hbody
   exact ExecBlock.consRevert hstmt
 
-theorem endThawTailSubAssign (evm : EVM.State) (out debtOut tellOut : ByteArray)
+theorem endThawTailSubAssignSplit (evm : EVM.State) (out debtOut tellOut : ByteArray)
     (deadline : UInt256)
     (hle : (endThawReturnWord tellOut).toNat ≤ (endThawReturnWord debtOut).toNat) :
     let debtNew := UInt256.sub (endThawReturnWord debtOut) (endThawReturnWord tellOut)
     let locals := endThawStoreCureTell out debtOut tellOut deadline
     let postLocals := endThawStoreDebtNew out debtOut tellOut deadline debtNew
-    ExecBlock config { contract := contract, locals := locals } evm
+    (ExecBlock config { contract := contract, locals := locals } evm
       [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
         .assign .storage debtRef (.var "debtNew") ]
       (.ok { contract := contract, locals := postLocals }
-        (endThawPostState evm debtNew)) := by
+        (endThawPostState evm debtNew))) ∧
+      (evm.executionEnv.perm = false →
+        ExecBlock config { contract := contract, locals := locals } evm
+        [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
+          .assign .storage debtRef (.var "debtNew") ]
+        .staticViolation) := by
   intro debtNew locals postLocals
   have hvatDebt :
       evalExpr? config { contract := contract, locals := locals } evm
@@ -4516,11 +4540,28 @@ theorem endThawTailSubAssign (evm : EVM.State) (out debtOut tellOut : ByteArray)
           simp [Std.HashMap.get?_eq_getElem?, postLocals, endThawStoreDebtNew,
             endThawStoreCureTell, endThawStoreVatDebt, endThawStoreDeadlineWord,
             endThawStoreVatDai])
-  refine ExecBlock.consNormal hsubStmt ?_
-  exact ExecBlock.consNormal (ExecStmt.assign hdebtNew hassign) ExecBlock.nil
+  constructor
+  · exact ExecBlock.consNormal hsubStmt
+      (ExecBlock.consNormal (ExecStmt.assign hdebtNew hassign) ExecBlock.nil)
+  · intro hperm
+    exact ExecBlock.consNormal hsubStmt
+      (ExecBlock.consStatic (ExecStmt.assignStatic hdebtNew hassign hperm))
 
-theorem endThawBodyReturns_daiOkTail {σ σ₀ A I} {g : UInt256}
-    {fDai fPost : Frame} {evmDai evmPost : EVM.State}
+theorem endThawTailSubAssign (evm : EVM.State) (out debtOut tellOut : ByteArray)
+    (deadline : UInt256)
+    (hle : (endThawReturnWord tellOut).toNat ≤ (endThawReturnWord debtOut).toNat) :
+    let debtNew := UInt256.sub (endThawReturnWord debtOut) (endThawReturnWord tellOut)
+    let locals := endThawStoreCureTell out debtOut tellOut deadline
+    let postLocals := endThawStoreDebtNew out debtOut tellOut deadline debtNew
+    ExecBlock config { contract := contract, locals := locals } evm
+      [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
+        .assign .storage debtRef (.var "debtNew") ]
+      (.ok { contract := contract, locals := postLocals }
+        (endThawPostState evm debtNew)) :=
+  (endThawTailSubAssignSplit evm out debtOut tellOut deadline hle).1
+
+theorem endThawBodyBlock_daiOkTail {σ σ₀ A I} {g : UInt256}
+    {fDai : Frame} {evmDai : EVM.State} {result : ExecResult}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
@@ -4539,10 +4580,10 @@ theorem endThawBodyReturns_daiOkTail {σ σ₀ A I} {g : UInt256}
           (perm := false) ++
         [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
           .assign .storage debtRef (.var "debtNew") ])
-        (.ok fPost evmPost)) :
+        result) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 (∅ : Store) thawTransition.body
-      (.returned fPost evmPost none) := by
+    ExecBlock config { contract := contract, locals := (∅ : Store) } evm0
+      thawTransition.body result := by
   intro evm0
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
@@ -4612,7 +4653,7 @@ theorem endThawBodyReturns_daiOkTail {σ σ₀ A I} {g : UInt256}
             (perm := false) ++
           [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
             .assign .storage debtRef (.var "debtNew") ])
-        (.ok fPost evmPost) := by
+        result := by
     exact execBlock_append
       (s2 :=
           [ .require (.binary .eq (.var "vatDai") (.intLit 0)),
@@ -4626,14 +4667,40 @@ theorem endThawBodyReturns_daiOkTail {σ σ₀ A I} {g : UInt256}
       (by simpa [evm0] using hdaiBlock) htail
   have hblock :
       ExecBlock config { contract := contract, locals := (∅ : Store) } evm0
-        thawTransition.body (.ok fPost evmPost) := by
+        thawTransition.body result := by
     simp only [thawTransition, nonpayable, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardDebt) ?_
     simpa [checkedExternalCallStmts, List.append_assoc] using hdaiWithTail
-  simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockOK hblock
+  exact hblock
+
+theorem endThawBodyReturns_daiOkTail {σ σ₀ A I} {g : UInt256}
+    {fDai fPost : Frame} {evmDai evmPost : EVM.State}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hlive : endThawLiveWord σ I = ⟨0⟩)
+    (hdebt : endThawDebtWord σ I = ⟨0⟩)
+    (hdaiBlock :
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+      ExecBlock config { contract := contract, locals := (∅ : Store) } evm0
+        (checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [vowAddr] "vatDai"
+          (perm := false)) (.ok fDai evmDai))
+    (htail :
+      ExecBlock config fDai evmDai
+        ([ .require (.binary .eq (.var "vatDai") (.intLit 0)),
+          .internalCall "add" [.storage whenRef, .storage waitRef] "deadline",
+          .require (.binary .ge nowT (.var "deadline")) ] ++
+        checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt" ++
+        checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
+          (perm := false) ++
+        [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
+          .assign .storage debtRef (.var "debtNew") ])
+        (.ok fPost evmPost)) :
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 (∅ : Store) thawTransition.body
+      (.returned fPost evmPost none) :=
+  ExecFuncBody.execBlockOK (endThawBodyBlock_daiOkTail hwv hlive hdebt hdaiBlock htail)
 
 
 theorem endThawVatAddr_source_eq_evmWord {σ τ : AccountMap} {I : ExecutionEnv}
@@ -4665,7 +4732,7 @@ theorem endThawDebtCallMadeBridge {evmE evmS : EVM.State}
           ((endThawNoArgCalldataMem endThawDebtSelectorWord mem).readWithPadding
             endThawNoArgOutPtr.toNat endThawNoArgInSize.toNat)
           (evmE.executionEnv.depth + 1) evmE.executionEnv.header
-          evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks true)
+          evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks evmE.executionEnv.perm)
     (hState : EVMStateEquiv evmE evmS)
     (hOriginalAccounts : evmE.σ₀ = evmS.σ₀) :
     ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
@@ -4694,7 +4761,8 @@ theorem endThawDebtCallMadeBridge {evmE evmS : EVM.State}
           ((endThawNoArgCalldataMem endThawDebtSelectorWord mem).readWithPadding
             endThawNoArgOutPtr.toNat endThawNoArgInSize.toNat)
           (evmS.executionEnv.depth + 1) evmS.executionEnv.header
-          evmS.executionEnv.blobVersionedHashes evmS.executionEnv.blocks true := by
+          evmS.executionEnv.blobVersionedHashes evmS.executionEnv.blocks evmS.executionEnv.perm :=
+          by
     simpa [hState.executionEnv, hState.accountMap, hOriginalAccounts] using hΘ
   have hdepthS : evmS.executionEnv.depth ≠ 1024 := by
     intro hbad
@@ -4850,7 +4918,8 @@ theorem endThawReadyTailRevertsAfterDebt (evmDai evmDebt : EVM.State)
       evmDai (checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt")
       (.ok { contract := contract, locals := endThawStoreVatDebt out debtOut deadlineWord }
         evmDebt) →
-    ExecBlock config { contract := contract, locals := endThawStoreVatDebt out debtOut deadlineWord }
+    ExecBlock config
+      { contract := contract, locals := endThawStoreVatDebt out debtOut deadlineWord }
       evmDebt
       (checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
         (perm := false) ++
@@ -4895,6 +4964,117 @@ theorem endThawReadyTailRevertsAfterDebt (evmDai evmDebt : EVM.State)
         .assign .storage debtRef (.var "debtNew") ])
     (by simpa [whenWord, waitWord, deadlineWord] using hprefix) hafterDebt
 
+theorem endThawReadyTailReturnsAfterDebtSplit (evmDai evmDebt evmTell : EVM.State)
+    (out debtOut tellOut : ByteArray)
+    (hdai : endThawDaiWord out = ⟨0⟩)
+    (hfit :
+      (Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨9⟩).toNat +
+          (Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨10⟩).toNat <
+        UInt256.size)
+    (hready :
+      (Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨9⟩ +
+          Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨10⟩).toNat ≤
+        (endThawTimestampWord evmDai.executionEnv).toNat)
+    (hle : (endThawReturnWord tellOut).toNat ≤ (endThawReturnWord debtOut).toNat) :
+    let whenWord := Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨9⟩
+    let waitWord := Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨10⟩
+    let deadlineWord := whenWord + waitWord
+    let debtNew := UInt256.sub (endThawReturnWord debtOut) (endThawReturnWord tellOut)
+    let postLocals := endThawStoreDebtNew out debtOut tellOut deadlineWord debtNew
+    ExecBlock config { contract := contract, locals := endThawStoreDeadlineWord out deadlineWord }
+      evmDai (checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt")
+      (.ok { contract := contract, locals := endThawStoreVatDebt out debtOut deadlineWord }
+        evmDebt) →
+    ExecBlock config
+      { contract := contract, locals := endThawStoreVatDebt out debtOut deadlineWord }
+      evmDebt
+      (checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
+        (perm := false))
+      (.ok { contract := contract, locals := endThawStoreCureTell out debtOut tellOut deadlineWord }
+        evmTell) →
+    (ExecBlock config { contract := contract, locals := endThawStoreVatDai out } evmDai
+      ([ .require (.binary .eq (.var "vatDai") (.intLit 0)),
+        .internalCall "add" [.storage whenRef, .storage waitRef] "deadline",
+        .require (.binary .ge nowT (.var "deadline")) ] ++
+      checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt" ++
+      checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
+        (perm := false) ++
+      [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
+        .assign .storage debtRef (.var "debtNew") ])
+      (.ok { contract := contract, locals := postLocals }
+        (endThawPostState evmTell debtNew))) ∧
+      (evmTell.executionEnv.perm = false →
+        ExecBlock config { contract := contract, locals := endThawStoreVatDai out } evmDai
+        ([ .require (.binary .eq (.var "vatDai") (.intLit 0)),
+          .internalCall "add" [.storage whenRef, .storage waitRef] "deadline",
+          .require (.binary .ge nowT (.var "deadline")) ] ++
+        checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt" ++
+        checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
+          (perm := false) ++
+        [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
+          .assign .storage debtRef (.var "debtNew") ])
+        .staticViolation) := by
+  intro whenWord waitWord deadlineWord debtNew postLocals hdebt htell
+  have hprefix :=
+    endThawTailReadyPrefix evmDai out hdai hfit hready
+  have hfinish {result : ExecResult}
+      (hsub : ExecBlock config
+        { contract := contract, locals := endThawStoreCureTell out debtOut tellOut deadlineWord }
+        evmTell
+        [.internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
+          .assign .storage debtRef (.var "debtNew")] result) :
+      ExecBlock config { contract := contract, locals := endThawStoreVatDai out } evmDai
+        ([ .require (.binary .eq (.var "vatDai") (.intLit 0)),
+          .internalCall "add" [.storage whenRef, .storage waitRef] "deadline",
+          .require (.binary .ge nowT (.var "deadline")) ] ++
+        checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt" ++
+        checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
+          (perm := false) ++
+        [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
+          .assign .storage debtRef (.var "debtNew") ])
+        result := by
+    have hafterTell :
+        ExecBlock config
+          { contract := contract, locals := endThawStoreVatDebt out debtOut deadlineWord }
+          evmDebt
+          (checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
+            (perm := false) ++
+          [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
+            .assign .storage debtRef (.var "debtNew") ])
+          result := by
+      exact execBlock_append
+        (s2 :=
+          [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
+            .assign .storage debtRef (.var "debtNew") ])
+        htell hsub
+    have hafterDebt :
+        ExecBlock config
+          { contract := contract, locals := endThawStoreDeadlineWord out deadlineWord }
+          evmDai
+          (checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt" ++
+          checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
+            (perm := false) ++
+          [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
+            .assign .storage debtRef (.var "debtNew") ])
+          result := by
+      exact execBlock_append
+        (s2 :=
+          checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
+            (perm := false) ++
+          [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
+            .assign .storage debtRef (.var "debtNew") ])
+        hdebt hafterTell
+    exact execBlock_append
+      (s2 :=
+        checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt" ++
+        checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
+          (perm := false) ++
+        [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
+          .assign .storage debtRef (.var "debtNew") ])
+      (by simpa [whenWord, waitWord, deadlineWord] using hprefix) hafterDebt
+  have hsub := endThawTailSubAssignSplit evmTell out debtOut tellOut deadlineWord hle
+  exact ⟨hfinish hsub.1, fun hperm ↦ hfinish (hsub.2 hperm)⟩
+
 theorem endThawReadyTailReturnsAfterDebt (evmDai evmDebt evmTell : EVM.State)
     (out debtOut tellOut : ByteArray)
     (hdai : endThawDaiWord out = ⟨0⟩)
@@ -4916,7 +5096,8 @@ theorem endThawReadyTailReturnsAfterDebt (evmDai evmDebt evmTell : EVM.State)
       evmDai (checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt")
       (.ok { contract := contract, locals := endThawStoreVatDebt out debtOut deadlineWord }
         evmDebt) →
-    ExecBlock config { contract := contract, locals := endThawStoreVatDebt out debtOut deadlineWord }
+    ExecBlock config
+      { contract := contract, locals := endThawStoreVatDebt out debtOut deadlineWord }
       evmDebt
       (checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
         (perm := false))
@@ -4932,54 +5113,13 @@ theorem endThawReadyTailReturnsAfterDebt (evmDai evmDebt evmTell : EVM.State)
       [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
         .assign .storage debtRef (.var "debtNew") ])
       (.ok { contract := contract, locals := postLocals }
-        (endThawPostState evmTell debtNew)) := by
-  intro whenWord waitWord deadlineWord debtNew postLocals hdebt htell
-  have hprefix :=
-    endThawTailReadyPrefix evmDai out hdai hfit hready
-  have hsub := endThawTailSubAssign evmTell out debtOut tellOut deadlineWord hle
-  have hafterTell :
-      ExecBlock config { contract := contract, locals := endThawStoreVatDebt out debtOut deadlineWord }
-        evmDebt
-        (checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
-          (perm := false) ++
-        [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
-          .assign .storage debtRef (.var "debtNew") ])
-        (.ok { contract := contract, locals := postLocals }
-          (endThawPostState evmTell debtNew)) := by
-    exact execBlock_append
-      (s2 :=
-        [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
-          .assign .storage debtRef (.var "debtNew") ])
-      htell (by simpa [debtNew, postLocals] using hsub)
-  have hafterDebt :
-      ExecBlock config { contract := contract, locals := endThawStoreDeadlineWord out deadlineWord }
-        evmDai
-        (checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt" ++
-        checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
-          (perm := false) ++
-        [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
-          .assign .storage debtRef (.var "debtNew") ])
-        (.ok { contract := contract, locals := postLocals }
-          (endThawPostState evmTell debtNew)) := by
-    exact execBlock_append
-      (s2 :=
-        checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
-          (perm := false) ++
-        [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
-          .assign .storage debtRef (.var "debtNew") ])
-      hdebt hafterTell
-  exact execBlock_append
-    (s2 :=
-      checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt" ++
-      checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
-        (perm := false) ++
-      [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
-        .assign .storage debtRef (.var "debtNew") ])
-    (by simpa [whenWord, waitWord, deadlineWord] using hprefix) hafterDebt
+        (endThawPostState evmTell debtNew)) :=
+  fun hdebt htell ↦ (endThawReadyTailReturnsAfterDebtSplit evmDai evmDebt evmTell
+    out debtOut tellOut hdai hfit hready hle hdebt htell).1
 
 theorem endThawBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf thawTransition)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endThawConcreteSelector := by
@@ -5348,7 +5488,7 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                           (g'' := gDebt'') (callGas := callGasDebt)
                           (mem := endThawDaiPostCallMem σ I out)
                           hmemDai hdepthNeDai
-                          (by simpa [evmDaiEvm, initState, hperm] using hΘDebtEq)
+                          (by simpa [evmDaiEvm, initState] using hΘDebtEq)
                           hStateCall
                           (by simp [evmDaiEvm, evmDaiSolm, evmSolm, initState])
                       let evmDebtSolm :=
@@ -5837,10 +5977,25 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                                         UInt256.toByteArray ⟨128⟩ :=
                                     endThawNoArgPostCallMem_read64 hpostDebtSize
                                       hpostDebtRead64 htellOutSize
-                                  have hret :=
-                                    endThawX_debtStoreLogReturn
-                                      (g := Sat256.ofUInt256 g) hperm hpostTellSize
-                                      hpostTellRead64 (by simpa [debtNew] using rd5190)
+                                  rcases
+                                    endThawX_debtStoreLogReturnSplit
+                                      (g := Sat256.ofUInt256 g) hpostTellSize
+                                      hpostTellRead64 (by simpa [debtNew] using rd5190) with
+                                      ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+                                  swap
+                                  · have hbody : ExecTransitionBody config contract evmSolm
+                                        (∅ : Store) thawTransition.body .staticViolation := by
+                                      apply ExecFuncBody.execBlockStatic
+                                      apply endThawBodyBlock_daiOkTail
+                                        hwv hliveSolm hdebtSolm
+                                        (by simpa [evmSolm, evmDaiSolm] using hdaiBlock)
+                                      exact (endThawReadyTailReturnsAfterDebtSplit evmDaiSolm
+                                        evmDebtSolm evmTellSolm out debtOut tellOut hdai
+                                        hfitSolm hreadySolm hsub hdebtBlock htellBlock).2
+                                        (by simpa [evmTellSolm, evmDebtSolm, evmDaiSolm,
+                                          evmSolm, initState] using hperm)
+                                    exact hstatic.reEquivStaticHalt
+                                      hcode hdispatch hdecode hbody
                                   have htail :
                                       ExecBlock config
                                         { contract := contract,

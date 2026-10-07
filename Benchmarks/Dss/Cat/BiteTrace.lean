@@ -1921,7 +1921,7 @@ theorem RD.catBiteGrabCallGen {σ σ₀ A I} {g : UInt256} {args : List Value}
           accountMap := σx }
         (AccountAddress.ofUInt256 target) "grab" 0 args
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A' }, o') I.perm
+              accountMap := σ', substate := A' }, o') true
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd2192⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd hcodeSize
@@ -1935,7 +1935,7 @@ theorem RD.catBiteGrabCallGen {σ σ₀ A I} {g : UInt256} {args : List Value}
   rw [hpc] at rd2193raw
   refine ⟨σ', z, o, _, A', _, k', C', rd2193raw, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
-    (callPerm := I.perm) (targetWord := target)
+    (callPerm := true) (targetWord := target)
     (mem := mem) (inOff := inOff) (inSize := inSize)
     (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
     rfl hencode ?_
@@ -1967,7 +1967,7 @@ theorem RD.catBiteFessCallGen {σ σ₀ A I} {g : UInt256} {args : List Value}
           accountMap := σx }
         (AccountAddress.ofUInt256 target) "fess" 0 args
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A' }, o') I.perm
+              accountMap := σ', substate := A' }, o') true
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd2299⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd hcodeSize
@@ -1979,7 +1979,7 @@ theorem RD.catBiteFessCallGen {σ σ₀ A I} {g : UInt256} {args : List Value}
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨σ', z, o, _, A', _, k', C', rd2300, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
-    (callPerm := I.perm) (targetWord := target)
+    (callPerm := true) (targetWord := target)
     (mem := mem) (inOff := inOff) (inSize := inSize)
     (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
     rfl hencode ?_
@@ -1989,7 +1989,7 @@ theorem RD.catBiteFessCallGen {σ σ₀ A I} {g : UInt256} {args : List Value}
 `tabBase = dartRate*milkChop` (`@3720`, `milkChop` re-read from `mem[⟨32⟩+q]`), `tab = tabBase / WAD`
 (inline div), `litterNew = litter + tab` (`@3802`), and `SSTORE litter@6 := litterNew`.  Lands at pc
 `2383` (feeding the `kick` call) with `tab` on top and slot `6` updated in the account map. -/
-theorem catBiteTraceSeg7i {σ σ₀ A I} {g : UInt256}
+theorem catBiteTraceSeg7iSplit {σ σ₀ A I} {g : UInt256}
     {σ' : AccountMap}
     {q art ink iDust iSpot iRate urn ilk : UInt256}
     {dink dart milkChop dartRate tabBase tab litterNew : UInt256}
@@ -2002,7 +2002,6 @@ theorem catBiteTraceSeg7i {σ σ₀ A I} {g : UInt256}
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨32⟩ + q).toNat 32)))
         = milkChop)
     (haw : q.toNat + 64 ≤ aw.toNat * 32) (hqsz : q.toNat + 64 < UInt256.size)
-    (hperm : I.perm = true)
     (hRateFit : iRate.toNat * dart.toNat < UInt256.size)
     (hChopFit : milkChop.toNat * dartRate.toNat < UInt256.size)
     (hLitFit : (solcSlotWord σ' I ⟨6⟩).toNat + tab.toNat < UInt256.size)
@@ -2011,10 +2010,14 @@ theorem catBiteTraceSeg7i {σ σ₀ A I} {g : UInt256}
     (hTab : UInt256.div tabBase ⟨1000000000000000000⟩ = tab)
     (hLitterNew : solcSlotWord σ' I ⟨6⟩ + tab = litterNew)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
-      (tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o (sstoreAccountMap I.codeOwner σ' ⟨6⟩ litterNew) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
+        (tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate ::
+          ⟨0⟩ :: urn :: ilk :: R)
+        mem aw o (sstoreAccountMap I.codeOwner σ' ⟨6⟩ litterNew) k' C') ∨
+      (I.perm = false ∧ RDstatic catBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   have e32q : (⟨32⟩ + q).toNat = q.toNat + 32 := uadd_lit32_toNat q (by omega)
   have hChopAw : UInt256.ofNat (MachineState.M aw.toNat (⟨32⟩ + q).toNat 32) = aw :=
     awInv32 aw (by rw [e32q]; omega)
@@ -2063,8 +2066,44 @@ theorem catBiteTraceSeg7i {σ σ₀ A I} {g : UInt256}
   have rd2377 := rd2376j.push1 ⟨6⟩ (by native_decide) (by evm_ov)
   have rd2379 := rd2377.dup2 (by native_decide) (by evm_ov)
   have rd2380 := rd2379.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2381⟩ := rd2380.sstore hperm (by native_decide) (by evm_ov)
+  have hstoreDec : decode catBytecode ⟨2381⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2380.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd2381⟩ := rd2380.sstore hperm hstoreDec (by evm_ov)
   exact ⟨_, _, rd2381.pop (by native_decide) (by evm_ov)⟩
+
+theorem catBiteTraceSeg7i {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
+    {q art ink iDust iSpot iRate urn ilk : UInt256}
+    {dink dart milkChop dartRate tabBase tab litterNew : UInt256}
+    {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
+    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2321⟩
+      (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
+      mem aw o σ' k C)
+    (hChop : (if (⟨32⟩ + q).toNat ≥ mem.size then ⟨0⟩
+       else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨32⟩ + q).toNat 32)))
+        = milkChop)
+    (haw : q.toNat + 64 ≤ aw.toNat * 32) (hqsz : q.toNat + 64 < UInt256.size)
+    (hperm : I.perm = true)
+    (hRateFit : iRate.toNat * dart.toNat < UInt256.size)
+    (hChopFit : milkChop.toNat * dartRate.toNat < UInt256.size)
+    (hLitFit : (solcSlotWord σ' I ⟨6⟩).toNat + tab.toNat < UInt256.size)
+    (hDartRate : UInt256.mul dart iRate = dartRate)
+    (hTabBase : UInt256.mul dartRate milkChop = tabBase)
+    (hTab : UInt256.div tabBase ⟨1000000000000000000⟩ = tab)
+    (hLitterNew : solcSlotWord σ' I ⟨6⟩ + tab = litterNew)
+    (hov : R.length + 24 ≤ 1024) :
+    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
+      (tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
+      mem aw o (sstoreAccountMap I.codeOwner σ' ⟨6⟩ litterNew) k' C' :=
+  permSplit_true hperm (catBiteTraceSeg7iSplit rd hChop haw hqsz hRateFit
+    hChopFit hLitFit hDartRate hTabBase hTab hLitterNew hov)
 
 /-- **Seg 7f** (`2193 → 2242`): the `grab` call-success guard (`catBiteGrabCallSucceeded`, pops
 `status` + the return slot `d0`) then `dartRate = dart*rate` (`@3720`), reading `vow@4` and masking it
@@ -2401,7 +2440,7 @@ theorem catBiteTraceSeg8a {σ σ₀ A I} {g : UInt256}
         (AccountAddress.ofUInt256 (UInt256.land biteAddrMaskWord milkFlip)) "kick" 0
         (seg8KickArgs σx I urn tab dink)
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A' }, o') I.perm
+              accountMap := σ', substate := A' }, o') true
     ∧ o'.size < UInt256.size := by
   obtain ⟨_, _, rd2516⟩ := catBiteTraceSeg8aCalldata rd hFlip hFree hawq haw292 hmemsize hread64 (by omega)
   obtain ⟨gasWord, _, _, rd2531⟩ := RD.catBiteKickGuardOk rd2516 hcodeSize
@@ -2415,7 +2454,7 @@ theorem catBiteTraceSeg8a {σ σ₀ A I} {g : UInt256}
       (seg8_maskBound _)
   refine ⟨σ', z, oo, A', _, k', C', rd2532, ?_, hosz⟩
   refine callCoincides (A_in := Ain) (g'' := g'') (callGas := callGas)
-    (callPerm := I.perm) (targetWord := UInt256.land biteAddrMaskWord milkFlip)
+    (callPerm := true) (targetWord := UInt256.land biteAddrMaskWord milkFlip)
     (mem := kickCalldataMem (seg8UrnM urn) (seg8VowM σx I) tab dink mem) (inOff := ⟨128⟩) (inSize := ⟨164⟩)
     (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
     rfl hencode ?_

@@ -1835,7 +1835,6 @@ theorem dogNoDispatch {v : DogImmutables} {code : ByteArray}
     (_hpatch : patchRuntime dogBytecode (patches v) = some code)
     (_hcode : I.code = code)
     (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (_hwv : I.weiValue = ⟨0⟩)
     (_hnm : ∀ i, i < 17 → (dogSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by

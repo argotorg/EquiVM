@@ -617,7 +617,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 16)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -632,8 +632,12 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
     by_cases hlockedEvm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩
     · obtain ⟨_, _, hreachOpen⟩ := clipperRedoX_lockOpen
         (v := v) hpatch hlockedEvm hreachBody
-      obtain ⟨_, _, hreachLocked⟩ := clipperRedoX_lockStore
-        (v := v) hpatch hperm hreachOpen
+      have hfirstWrite := clipperRedoX_lockStoreSplit
+        (v := v) hpatch hreachOpen
+      rcases hfirstWrite with ⟨hperm, _, _, hreachLocked⟩ | ⟨hperm, hstatic⟩
+      swap
+      · exact hstatic.reEquivStaticHalt hcode hdispatch (clipperDecode_redo_ok v hsz68)
+          ((clipperRedoStoppedSourceRevertsSplit v hwv hlockedEvm).2 hperm)
       let σLock := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
       by_cases hstoppedLt : (solcSlotWord σLock I ⟨14⟩).toNat < 2
       · obtain ⟨_, _, _hreachStopped⟩ := clipperRedoX_stoppedOpen (v := v)

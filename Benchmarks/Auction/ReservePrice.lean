@@ -32,7 +32,7 @@ theorem reservePriceX {σ σ₀ A I} {g : UInt256}
 
 theorem reservePriceBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (entryBytes 16))
+    (hsel : selIs I (entryBytes 16))
     (hreach : EntryReached 16 σ σ₀ A I g) :
     runtimeEquivalenceFor auctionConfig auctionContract
       σ σ₀ g A I := by

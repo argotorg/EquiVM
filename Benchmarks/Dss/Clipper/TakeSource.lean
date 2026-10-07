@@ -98,14 +98,16 @@ theorem clipperTakeBodyRevertsLocked {σ σ₀ A I} {g : UInt256}
         exact ExecBlock.consRevert (ExecStmt.requireFalse hlockedEval))
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem clipperTakeStoppedSourceReverts {σ σ₀ A I} {g : UInt256}
+theorem clipperTakeStoppedSourceRevertsSplit {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
-    (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
-    (hstopped :
-      3 ≤ (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat) :
+    (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩) :
     let locals := clipperTakeStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted := by
+    (3 ≤ (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat →
+    ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted) ∧
+    (I.perm = false →
+      ExecTransitionBody (config v) (contract v) evm0 locals
+        (takeTransition v).body .staticViolation) := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hlockedEval :
@@ -123,25 +125,48 @@ theorem clipperTakeStoppedSourceReverts {σ σ₀ A I} {g : UInt256}
           .ok ({ contract := contract v, locals := locals }, evmLock) := by
     simpa [locals, evmLock] using
       assign_clipperLocked v evm0 locals (by simp [locals]) ⟨1⟩
-  have hstoppedEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
-        (.binary .lt (.storage stoppedRef) (.intLit 3)) = .ok (.bool false) := by
-    apply evalExpr_clipperTakeStopped_lt_three_false
-    · simp [locals]
-    · simpa [evmLock, evm0, initState, solcSlotWord, Solm.EVM.storageLoad,
-        State.lookupAccount, storageStore_accountMap, storageStore_executionEnv] using
-        hstopped
-  have hblock :
+  have hprefix {result : ExecResult}
+      (hrest : ExecBlock (config v) { contract := contract v, locals := locals } evm0
+        ((takeTransition v).body.drop 2) result) :
       ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        (takeTransition v).body .reverted := by
-    simpa [takeTransition, nonpayable, lockPrefix, isStopped] using
-      (by
-        refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-        · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-        refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
-        refine ExecBlock.consNormal (ExecStmt.assign hlockRhs hlockAssign) ?_
-        exact ExecBlock.consRevert (ExecStmt.requireFalse hstoppedEval))
-  simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
+        (takeTransition v).body result := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
+    exact hrest
+  constructor
+  · intro hstopped
+    have hstoppedEval :
+        evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+          (.binary .lt (.storage stoppedRef) (.intLit 3)) = .ok (.bool false) := by
+      apply evalExpr_clipperTakeStopped_lt_three_false
+      · simp [locals]
+      · simpa [evmLock, evm0, initState, solcSlotWord, Solm.EVM.storageLoad,
+          State.lookupAccount, storageStore_accountMap, storageStore_executionEnv] using
+          hstopped
+    have hblock :
+        ExecBlock (config v) { contract := contract v, locals := locals } evm0
+          (takeTransition v).body .reverted := by
+      apply hprefix
+      simpa [takeTransition, nonpayable, lockPrefix, isStopped] using
+        (by
+          refine ExecBlock.consNormal (ExecStmt.assign hlockRhs hlockAssign) ?_
+          exact ExecBlock.consRevert (ExecStmt.requireFalse hstoppedEval))
+    simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic (hprefix
+      (ExecBlock.consStatic (ExecStmt.assignStatic hlockRhs hlockAssign
+        (by simpa [evm0, initState] using hperm))))
+
+theorem clipperTakeStoppedSourceReverts {σ σ₀ A I} {g : UInt256}
+    (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
+    (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
+    (hstopped :
+      3 ≤ (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat) :
+    let locals := clipperTakeStore I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted :=
+  (clipperTakeStoppedSourceRevertsSplit v hwv hlocked).1 hstopped
 
 theorem clipperTakeInactiveSourceReverts {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)

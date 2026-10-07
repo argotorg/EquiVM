@@ -56,7 +56,6 @@ theorem flapperReachLidBody {σ σ₀ A I} {g : Sat256}
 theorem flapperLidBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 10)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

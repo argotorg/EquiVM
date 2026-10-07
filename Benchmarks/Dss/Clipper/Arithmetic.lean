@@ -1525,6 +1525,34 @@ theorem RD.clipperSubRoutineRevert {code : ByteArray} (v : ClipperImmutables)
     (by clipper_runtime_decode)
     (by evm_ov)
 
+theorem RD.clipperUpchostStoreChostReturnSplit {code : ByteArray} (v : ClipperImmutables)
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
+    {chost dust sel : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {σ : AccountMap}
+    (h : RD code ee g s0 ⟨1806⟩ (chost :: dust :: ⟨502⟩ :: sel :: []) mem aw rdata
+      σ k C) :
+    (ee.perm = true ∧
+      RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨9⟩ chost) ByteArray.empty) ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
+  have rd1809pre := evm_run h with [
+    raw jumpdest (by clipper_runtime_decode) (by evm_ov),
+    raw push1 ⟨9⟩ (by clipper_runtime_decode) (by evm_ov)]
+  have hstoreDec : decode code ⟨1809⟩ = some (.SSTORE, none) := by
+    clipper_runtime_decode
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1809pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd1810raw⟩ := rd1809pre.sstore hperm hstoreDec
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd1811 := evm_run rd1810raw with [
+    raw pop (by clipper_runtime_decode) (by evm_ov),
+    raw jump (by clipper_runtime_decode) (clipperJumpDest502 v hpatch) (by evm_ov),
+    raw jumpdest (by clipper_runtime_decode) (by evm_ov)]
+  exact RD.stop rd1811 (by clipper_runtime_decode) (by evm_ov)
+
 theorem RD.clipperUpchostStoreChostReturn {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -1533,17 +1561,8 @@ theorem RD.clipperUpchostStoreChostReturn {code : ByteArray} (v : ClipperImmutab
     (h : RD code ee g s0 ⟨1806⟩ (chost :: dust :: ⟨502⟩ :: sel :: []) mem aw rdata
       σ k C)
     (hperm : ee.perm = true) :
-    RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨9⟩ chost) ByteArray.empty := by
-  have rd1809pre := evm_run h with [
-    raw jumpdest (by clipper_runtime_decode) (by evm_ov),
-    raw push1 ⟨9⟩ (by clipper_runtime_decode) (by evm_ov)]
-  obtain ⟨_, _, rd1810raw⟩ := rd1809pre.sstore hperm (by clipper_runtime_decode)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd1811 := evm_run rd1810raw with [
-    raw pop (by clipper_runtime_decode) (by evm_ov),
-    raw jump (by clipper_runtime_decode) (clipperJumpDest502 v hpatch) (by evm_ov),
-    raw jumpdest (by clipper_runtime_decode) (by evm_ov)]
-  exact RD.stop rd1811 (by clipper_runtime_decode) (by evm_ov)
+    RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨9⟩ chost) ByteArray.empty :=
+  permSplit_true hperm (RD.clipperUpchostStoreChostReturnSplit v hpatch h)
 
 end Reasoning.Reach
 

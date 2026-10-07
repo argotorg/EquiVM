@@ -1412,11 +1412,10 @@ theorem daiJoinExitDaiMintCallSucceeded
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem daiJoinExitDaiMintSuccessTail
+theorem daiJoinExitDaiMintSuccessTailSplit
     {σ σ₀ σd A I} {g sel : UInt256}
     {mem rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
-    (hperm : I.perm = true)
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (rd1594 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
@@ -1424,8 +1423,11 @@ theorem daiJoinExitDaiMintSuccessTail
       (⟨196⟩ :: exitMintSelectorPlainWord :: daiJoinDaiTargetWord σd I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k C) :
-    RDret daiJoinBytecode (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty := by
+    (I.perm = true ∧
+      RDret daiJoinBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic daiJoinBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   have hmaskConst :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
@@ -1514,6 +1516,13 @@ theorem daiJoinExitDaiMintSuccessTail
     exact ⟨_, _, by
       simpa [exitEventSignatureWord, hpc1659] using rd1659pre⟩
   obtain ⟨_, _, rd1659⟩ := rd1659Norm
+  have hlogDec : decode daiJoinBytecode ⟨1659⟩ = some (.LOG2, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1659.log2Static (by simpa using hperm) hlogDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   have rd1660 := RD.log2
     (a := ⟨128⟩) (b := ⟨32⟩) (c := exitEventSignatureWord)
     (d := exitUsrMaskedWord I)
@@ -1522,7 +1531,7 @@ theorem daiJoinExitDaiMintSuccessTail
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 8).toNat (⟨128⟩ : UInt256).toNat
         (⟨32⟩ : UInt256).toNat))
-    rd1659 (by native_decide) hperm mem_cost (by native_decide)
+    rd1659 hlogDec hperm mem_cost (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd1661 := RD.pop (a := exitWadWord I)
     (t := [exitUsrMaskedWord I, ⟨232⟩, sel]) rd1660
@@ -1534,6 +1543,22 @@ theorem daiJoinExitDaiMintSuccessTail
   have rd232' := RD.jumpdest (pc := ⟨232⟩) (stk := [sel]) rd232
     (by native_decide) (by evm_ov)
   simpa using RD.stop rd232' (by native_decide) (by evm_ov)
+
+theorem daiJoinExitDaiMintSuccessTail
+    {σ σ₀ σd A I} {g sel : UInt256}
+    {mem rdata : ByteArray} {acc : AccountMap}
+    {k C : ℕ}
+    (hperm : I.perm = true)
+    (hmem : mem.size = 228)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (rd1594 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1594⟩
+      (⟨196⟩ :: exitMintSelectorPlainWord :: daiJoinDaiTargetWord σd I ::
+        exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
+      mem (UInt256.ofNat 8) rdata acc k C) :
+    RDret daiJoinBytecode (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty :=
+  permSplit_true hperm (daiJoinExitDaiMintSuccessTailSplit hmem hread64 rd1594)
 
 theorem daiJoinDecode_exit_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (exitTransition.params.map Param.name)

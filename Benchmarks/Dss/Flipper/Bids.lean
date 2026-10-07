@@ -950,7 +950,6 @@ theorem flipperBidsX_return {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem flipperBidsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 1)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

@@ -308,7 +308,6 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 3))
     (hsz36 : 36 ≤ I.calldata.size)
@@ -364,7 +363,7 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
     exact hdepthNe (Fin.ext hval)
   obtain ⟨σ_cat, zCat, outCat, A_cat, k5654, C5654, rd5654,
       hcallCatRaw, houtCat⟩ :=
-    flipperDealX_catPostCall hcatNe hperm hdepthLt rd5558
+    flipperDealX_catPostCall hcatNe hdepthLt rd5558
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmCat : EVM.State := { evm0 with accountMap := σ_cat, substate := A_cat }
   have hcatArgsEq :
@@ -444,7 +443,7 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
             (flipperVatAddress_eq_target σ_cat I) hvatZero
       obtain ⟨σ_vat, zVat, outVat, A_vat, k1615, C1615, rd1615,
           hcallVatRaw, houtVat⟩ :=
-        flipperDealX_vatPostCall hvatZero hperm hdepthLt rd5673
+        flipperDealX_vatPostCall hvatZero hdepthLt rd5673
       let evmVat : EVM.State :=
         { evmCat with accountMap := σ_vat, substate := A_vat }
       have hcallVat :
@@ -488,12 +487,12 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
           simpa using rd1615
         obtain ⟨k1633, C1633, rd1633⟩ :=
           flipperDealX_vatCallSuccessToDeleteStart rd1615True
-        have hret :=
-          flipperDealX_vatDeleteReturnFromPostCall
+        have hretSplit :=
+          flipperDealX_vatDeleteReturnFromPostCallSplit
             (σmem := σ) (σcall := σ_cat)
             (σ := σ_vat) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             (k := k1633) (C := C1633) (out := outVat)
-            hperm rd1633
+            rd1633
         have hcallVatTrue :
             typedCallViaEVM config evmCat
               (EVM.address (flipperVatAddress evmCat.accountMap evmCat.executionEnv))
@@ -503,22 +502,27 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
         let locals2 : Store :=
           ((dealLocals I).insert "_clawRet" (collapseReturns [])).insert "_fluxRet"
             (collapseReturns [])
-        have hbody :
-            ExecTransitionBody config contract evm0 (dealLocals I) dealTransition.body
+        have hbodySplit :
+            (ExecTransitionBody config contract evm0 (dealLocals I) dealTransition.body
               (.returned { contract := contract, locals := locals2 }
-                (bidDeletedEVM evmVat (dealId I)) none) := by
+                (bidDeletedEVM evmVat (dealId I)) none)) ∧
+            (I.perm = false → ExecTransitionBody config contract evm0
+              (dealLocals I) dealTransition.body .staticViolation) := by
           simpa [evm0, locals2] using
-            (flipperDealSourceBodySuccess
+            (flipperDealSourceBodySuccessSplit
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               (evmCat := evmCat) (evmVat := evmVat)
               (outCat := outCat) (outVat := outVat)
               hwv hfinishedSolm hcatCode hcallCatTrue hvatCodeSolm hcallVatTrue)
+        rcases hretSplit with ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
         have haccounts :
             dealBidDeleteAccountMap I σ_vat (dealId I) =
               (bidDeletedEVM evmVat (dealId I)).accountMap := by
           simpa [dealBidDeleteAccountMap, evmVat, evmCat, evm0, initState] using
             (bidDeleteCollapsedAccountMap_eq_bidDeletedEVM evmVat (dealId I))
-        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
           haccounts
           (by
             rw [show dealTransition.returnType = [] by rfl]
@@ -527,7 +531,6 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
 theorem flipperDealBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 3)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -548,7 +551,7 @@ theorem flipperDealBodyCore {σ σ₀ A I} {g : UInt256}
       by_cases hdepthEq : I.depth = 1024
       · exact flipperDealBodyCoreCatCallDepthLimit hcode hsize hwv hsel hsz36
           hfinishedEvm hcatNe hdepthEq
-      · exact flipperDealBodyCoreCatPostCall hcode hsize hperm hwv hsel hsz36
+      · exact flipperDealBodyCoreCatPostCall hcode hsize hwv hsel hsz36
           hfinishedEvm hcatNe hdepthEq
     by_cases hticEvm : bidTicWord (dealId I) σ I = ⟨0⟩
     · exact flipperDealBodyCoreTicZero hcode hsize hwv hsel hsz36 hticEvm

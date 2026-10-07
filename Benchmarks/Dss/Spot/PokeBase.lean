@@ -223,7 +223,8 @@ abbrev pokeTrueBranchStmts : List Stmt :=
 abbrev pokeAfterSpotStmts : List Stmt :=
   [ .ite (.var "has") pokeTrueBranchStmts [] ] ++
     checkedExternalCallStmts (.storage vatRef) "file" (.intLit 0)
-      [.var "ilk", spotParamLit, .var "spot"] "_fileRet"
+      [.var "ilk", spotParamLit, .var "spot"] "_fileRet" ++
+    [.emit "Poke" [.var "ilk", .var "val", .var "spot"]]
 
 abbrev spotUintBinaryLocals (x y : UInt256) : Store :=
   (((∅ : Store).insert "y" (.int (Int.ofNat y.toNat))).insert "x"

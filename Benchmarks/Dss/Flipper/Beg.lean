@@ -51,7 +51,6 @@ theorem flipperReachBegBody {σ σ₀ A I} {g : Sat256}
 theorem flipperBegBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 0)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

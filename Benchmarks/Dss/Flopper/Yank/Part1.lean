@@ -933,7 +933,7 @@ theorem flopperYankBodyReverts_suckCallFailure
         (ExecStmt.requireTrue (evalExpr_yank_guy_ne_zero_true evm I hguy)) <|
       htail)
 
-theorem flopperYankBodyReturns_suckCallSuccess
+theorem flopperYankBodyReturns_suckCallSuccessSplit
     (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlive : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩)
@@ -956,9 +956,12 @@ theorem flopperYankBodyReturns_suckCallSuccess
           (solcSlotWordAt (auctionBidSlot (yankIdWord I)) evm.accountMap
             evm.executionEnv).toNat)]
         (true, evm', out) true) :
-    ExecTransitionBody config contract evm (yankLocals I) yankTransition.body
+    (ExecTransitionBody config contract evm (yankLocals I) yankTransition.body
       (.returned { contract := contract, locals := yankSuckLocals I }
-        (yankDeletePostState evm' I) none) := by
+        (yankDeletePostState evm' I) none)) ∧
+      (evm.executionEnv.perm = false →
+        ExecTransitionBody config contract evm (yankLocals I)
+          yankTransition.body .staticViolation) := by
   have hvat := evalExpr_yank_vat_storage evm I
   have hcodeLookup :
       0 < (UInt256.ofNat
@@ -989,31 +992,65 @@ theorem flopperYankBodyReturns_suckCallSuccess
         (.ok { contract := contract, locals := yankSuckLocals I } evm') := by
     simpa [checkedExternalCallStmts, yankSuckLocals] using
       checkedExternalCallSuccess hguard hvat hargs hcall hdec
-  have hdelete :
-      ExecBlock config { contract := contract, locals := yankSuckLocals I } evm'
-        [.delete (bidRef (.var "id"))]
-        (.ok { contract := contract, locals := yankSuckLocals I }
-          (yankDeletePostState evm' I)) := by
-    exact ExecBlock.consNormal (ExecStmt.delete (deleteStorage_yankSuck_bid evm' I))
-      ExecBlock.nil
-  have htail :
+  have hdelete := deleteStorage_yankSuck_bid evm' I
+  have hprefix {result : ExecResult}
+      (hdelete : ExecBlock config { contract := contract, locals := yankSuckLocals I } evm'
+        [.delete (bidRef (.var "id"))] result) :
       ExecBlock config { contract := contract, locals := yankLocals I } evm
-        (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
-          [.storage vowRef, .storage (bidsF (.var "id") "guy"),
-            .storage (bidsF (.var "id") "bid")] "_suckRet" ++
-          [.delete (bidRef (.var "id"))])
-        (.ok { contract := contract, locals := yankSuckLocals I }
-          (yankDeletePostState evm' I)) :=
-   execBlock_append hchecked hdelete
-  refine ExecFuncBody.execBlockOK ?_
-  simpa [yankTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
-    List.nil_append] using
-    (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_yank_live_zero_true evm I hlive)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_yank_guy_ne_zero_true evm I hguy)) <|
-      htail)
+        yankTransition.body result := by
+    have htail :
+        ExecBlock config { contract := contract, locals := yankLocals I } evm
+          (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
+            [.storage vowRef, .storage (bidsF (.var "id") "guy"),
+              .storage (bidsF (.var "id") "bid")] "_suckRet" ++
+            [.delete (bidRef (.var "id"))])
+          result :=
+     execBlock_append hchecked hdelete
+    simpa [yankTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
+      List.nil_append] using
+      (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_yank_live_zero_true evm I hlive)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_yank_guy_ne_zero_true evm I hguy)) <|
+        htail)
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.delete hdelete) ExecBlock.nil))
+  · intro hperm
+    have hp : evm'.executionEnv.perm = false := by
+      rw [typedCallViaEVM_executionEnv_eq hcall]
+      exact hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.deleteStatic hdelete hp)))
+
+theorem flopperYankBodyReturns_suckCallSuccess
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hlive : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
+        evm.executionEnv ≠ ⟨0⟩)
+    (hcodeSize :
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
+        (solcAddressSlotWord ⟨2⟩ evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
+    (hcall :
+      typedCallViaEVM config evm
+        (EVM.address (AccountAddress.ofNat
+          (solcAddressSlotWord ⟨2⟩ evm.accountMap evm.executionEnv).toNat))
+        "suck" 0
+        [.address (AccountAddress.ofNat
+          (solcAddressSlotWord ⟨9⟩ evm.accountMap evm.executionEnv).toNat),
+        .address (AccountAddress.ofNat
+          (solcAddressSlotWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
+            evm.executionEnv).toNat),
+        .int (Int.ofNat
+          (solcSlotWordAt (auctionBidSlot (yankIdWord I)) evm.accountMap
+            evm.executionEnv).toNat)]
+        (true, evm', out) true) :
+    ExecTransitionBody config contract evm (yankLocals I) yankTransition.body
+      (.returned { contract := contract, locals := yankSuckLocals I }
+        (yankDeletePostState evm' I) none) :=
+  (flopperYankBodyReturns_suckCallSuccessSplit evm evm' I out hwv hlive hguy hcodeSize hcall).1
 
 theorem flopperDecode_yank_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (yankTransition.params.map Param.name)

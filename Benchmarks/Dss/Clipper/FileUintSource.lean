@@ -76,16 +76,19 @@ theorem clipperFileUintLockedSourceReverts {σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintBufSourceBody {σ σ₀ A I} {g : UInt256}
+theorem clipperFileUintBufSourceBodySplit {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
-    (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
-    (hwhat : clipperFileUintWhat I = clipperFileUintBufBytes) :
+    (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩) :
     let locals := clipperFileUintLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm2 := clipperFileUintWordPostState evm0 ⟨5⟩ (clipperFileUintData I)
+    (clipperFileUintWhat I = clipperFileUintBufBytes →
     ExecTransitionBody (config v) (contract v) evm0 locals fileUintTransition.body
-      (.returned { contract := contract v, locals := locals } evm2 none) := by
+      (.returned { contract := contract v, locals := locals } evm2 none)) ∧
+    (I.perm = false →
+      ExecTransitionBody (config v) (contract v) evm0 locals
+        fileUintTransition.body .staticViolation) := by
   intro locals evm0 evm2
   let evmLock := clipperFileUintLockedState evm0
   let evmStore :=
@@ -111,69 +114,94 @@ theorem clipperFileUintBufSourceBody {σ σ₀ A I} {g : UInt256}
           .ok ({ contract := contract v, locals := locals }, evmLock) := by
     simpa [locals, evmLock, clipperFileUintLockedState] using
       assign_clipperFileUint_locked v evm0 I ⟨1⟩
-  have hbufCond :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
-        (.binary .eq (.var "what") bufParamLit) = .ok (.bool true) := by
-    simpa [bufParamLit, clipperFileUintBufBytes, locals] using
-      evalExpr_clipperFileUint_what_eq_true (v := v) (evm := evmLock) (I := I)
-        (locals := locals) (bs := clipperFileUintBufBytes)
-        (by simpa [locals] using clipperFileUintLocals_get_what I) hwhat
-  have hdata :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock (.var "data") =
-        .ok (.int (Int.ofNat (clipperFileUintData I).toNat)) := by
-    simpa [locals] using
-      evalExpr_clipperFileUint_data (v := v) (evm := evmLock) (I := I) (locals := locals)
-        (by simp [locals])
-  have hbufAssign :
-      assignStorageRef? (config v) { contract := contract v, locals := locals } evmLock
-        .storage bufRef (.int (Int.ofNat (clipperFileUintData I).toNat)) =
-          .ok ({ contract := contract v, locals := locals }, evmStore) := by
-    simpa only [locals, evmStore] using
-      assign_clipperFileUint_buf v evmLock I (clipperFileUintData I)
-  have hthen :
-      ExecBlock (config v) { contract := contract v, locals := locals } evmLock
-        [.assign .storage bufRef (.var "data")]
-        (.ok { contract := contract v, locals := locals } evmStore) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hdata hbufAssign) ExecBlock.nil
-  have hunlockRhs :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmStore (.intLit 0) =
-        .ok (.int 0) := by
-    simp [evalExpr?, pure]
-  have hunlockAssign :
-      assignStorageRef? (config v) { contract := contract v, locals := locals } evmStore
-        .storage lockedRef (.int 0) =
-          .ok ({ contract := contract v, locals := locals }, evm2) := by
-    simpa [locals, evm2, evmStore, evmLock, clipperFileUintWordPostState,
-      storageStore_executionEnv,
-      clipperFileUintLockedState] using
-      assign_clipperFileUint_locked v evmStore I ⟨0⟩
-  have hrest :
-      ExecBlock (config v) { contract := contract v, locals := locals } evmLock
-        [.ite (.binary .eq (.var "what") bufParamLit) [.assign .storage bufRef (.var "data")]
-          [.ite (.binary .eq (.var "what") tailParamLit)
-            [.assign .storage tailRef (.var "data")]
-            [.ite (.binary .eq (.var "what") cuspParamLit)
-              [.assign .storage cuspRef (.var "data")]
-              [.ite (.binary .eq (.var "what") chipParamLit)
-                [.assign .storage chipRef (wrap64 (.var "data"))]
-                [.ite (.binary .eq (.var "what") tipParamLit)
-                  [.assign .storage tipRef (wrap192 (.var "data"))]
-                  [.ite (.binary .eq (.var "what") stoppedParamLit)
-                    [.assign .storage stoppedRef (.var "data")]
-                    [.require (.boolLit false)]]]]]],
-          .assign .storage lockedRef (.intLit 0)]
-        (.ok { contract := contract v, locals := locals } evm2) := by
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hbufCond hthen)
-      (ExecBlock.consNormal (ExecStmt.assign hunlockRhs hunlockAssign) ExecBlock.nil)
-  have hblock :
+  have hprefix {result : ExecResult}
+      (hrest : ExecBlock (config v) { contract := contract v, locals := locals } evm0
+        (fileUintTransition.body.drop 3) result) :
       ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        fileUintTransition.body (.ok { contract := contract v, locals := locals } evm2) := by
+        fileUintTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hauthEval) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign hlockRhs hlockAssign) hrest
-  simpa [ExecTransitionBody, locals, evm0, evm2] using ExecFuncBody.execBlockOK hblock
+    exact hrest
+  constructor
+  · intro hwhat
+    have hbufCond :
+        evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+          (.binary .eq (.var "what") bufParamLit) = .ok (.bool true) := by
+      simpa [bufParamLit, clipperFileUintBufBytes, locals] using
+        evalExpr_clipperFileUint_what_eq_true (v := v) (evm := evmLock) (I := I)
+          (locals := locals) (bs := clipperFileUintBufBytes)
+          (by simpa [locals] using clipperFileUintLocals_get_what I) hwhat
+    have hdata :
+        evalExpr? (config v) { contract := contract v, locals := locals } evmLock (.var "data") =
+          .ok (.int (Int.ofNat (clipperFileUintData I).toNat)) := by
+      simpa [locals] using
+        evalExpr_clipperFileUint_data (v := v) (evm := evmLock) (I := I) (locals := locals)
+          (by simp [locals])
+    have hbufAssign :
+        assignStorageRef? (config v) { contract := contract v, locals := locals } evmLock
+          .storage bufRef (.int (Int.ofNat (clipperFileUintData I).toNat)) =
+            .ok ({ contract := contract v, locals := locals }, evmStore) := by
+      simpa only [locals, evmStore] using
+        assign_clipperFileUint_buf v evmLock I (clipperFileUintData I)
+    have hthen :
+        ExecBlock (config v) { contract := contract v, locals := locals } evmLock
+          [.assign .storage bufRef (.var "data")]
+          (.ok { contract := contract v, locals := locals } evmStore) := by
+      exact ExecBlock.consNormal (ExecStmt.assign hdata hbufAssign) ExecBlock.nil
+    have hunlockRhs :
+        evalExpr? (config v) { contract := contract v, locals := locals } evmStore (.intLit 0) =
+          .ok (.int 0) := by
+      simp [evalExpr?, pure]
+    have hunlockAssign :
+        assignStorageRef? (config v) { contract := contract v, locals := locals } evmStore
+          .storage lockedRef (.int 0) =
+            .ok ({ contract := contract v, locals := locals }, evm2) := by
+      simpa [locals, evm2, evmStore, evmLock, clipperFileUintWordPostState,
+        storageStore_executionEnv,
+        clipperFileUintLockedState] using
+        assign_clipperFileUint_locked v evmStore I ⟨0⟩
+    have hrest :
+        ExecBlock (config v) { contract := contract v, locals := locals } evmLock
+          [.ite (.binary .eq (.var "what") bufParamLit) [.assign .storage bufRef (.var "data")]
+            [.ite (.binary .eq (.var "what") tailParamLit)
+              [.assign .storage tailRef (.var "data")]
+              [.ite (.binary .eq (.var "what") cuspParamLit)
+                [.assign .storage cuspRef (.var "data")]
+                [.ite (.binary .eq (.var "what") chipParamLit)
+                  [.assign .storage chipRef (wrap64 (.var "data"))]
+                  [.ite (.binary .eq (.var "what") tipParamLit)
+                    [.assign .storage tipRef (wrap192 (.var "data"))]
+                    [.ite (.binary .eq (.var "what") stoppedParamLit)
+                      [.assign .storage stoppedRef (.var "data")]
+                      [.require (.boolLit false)]]]]]],
+            .assign .storage lockedRef (.intLit 0)]
+          (.ok { contract := contract v, locals := locals } evm2) := by
+      exact ExecBlock.consNormal (ExecStmt.iteTrue hbufCond hthen)
+        (ExecBlock.consNormal (ExecStmt.assign hunlockRhs hunlockAssign) ExecBlock.nil)
+    have hblock :
+        ExecBlock (config v) { contract := contract v, locals := locals } evm0
+          fileUintTransition.body (.ok { contract := contract v, locals := locals } evm2) := by
+      apply hprefix
+      exact ExecBlock.consNormal (ExecStmt.assign hlockRhs hlockAssign) hrest
+    simpa [ExecTransitionBody, locals, evm0, evm2] using ExecFuncBody.execBlockOK hblock
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic (hprefix
+      (ExecBlock.consStatic (ExecStmt.assignStatic hlockRhs hlockAssign
+        (by simpa [evm0, initState] using hperm))))
+
+theorem clipperFileUintBufSourceBody {σ σ₀ A I} {g : UInt256}
+    (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
+    (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
+    (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
+    (hwhat : clipperFileUintWhat I = clipperFileUintBufBytes) :
+    let locals := clipperFileUintLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm2 := clipperFileUintWordPostState evm0 ⟨5⟩ (clipperFileUintData I)
+    ExecTransitionBody (config v) (contract v) evm0 locals fileUintTransition.body
+      (.returned { contract := contract v, locals := locals } evm2 none) :=
+  (clipperFileUintBufSourceBodySplit v hwv hauth hlocked).1 hwhat
 
 set_option maxHeartbeats 1000000 in
 theorem clipperFileUintTailSourceBody {σ σ₀ A I} {g : UInt256}

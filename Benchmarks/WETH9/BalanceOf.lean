@@ -219,7 +219,6 @@ theorem weth9BalanceOfBodyCoreOk {σ σ₀ A I} {g : UInt256}
 /-- `balanceOf(address)` body refines its Solm transition (handling both callvalue branches). -/
 theorem weth9BalanceOfBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hsel : selIs I (weth9SelBytes 6)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩

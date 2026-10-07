@@ -12,7 +12,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 28)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -34,7 +34,11 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
         obtain ⟨_, _, rd1912⟩ := hreachBody
         obtain ⟨_, _, rd1994⟩ := clipperYankX_authorized (v := v) hpatch hauthEvm rd1912
         obtain ⟨_, _, rd2071⟩ := clipperYankX_lockOpen (v := v) hpatch hlockedEvm rd1994
-        obtain ⟨_, _, rd2077⟩ := clipperYankX_lockStore (v := v) hpatch hperm rd2071
+        have hfirstWrite := clipperYankX_lockStoreSplit (v := v) hpatch rd2071
+        rcases hfirstWrite with ⟨hperm, _, _, rd2077⟩ | ⟨hperm, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+            ((clipperYankInactiveSourceRevertsSplit v hwv hauthEvm hlockedEvm).2 hperm)
         by_cases husrEvm : clipperYankSalesUsrWord σLocked I = ⟨0⟩
         · let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
           have hbody :

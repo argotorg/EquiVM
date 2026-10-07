@@ -497,7 +497,6 @@ set_option maxHeartbeats 2000000 in
 theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = exponentialDecreaseBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (stairstepSelBytes 3)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

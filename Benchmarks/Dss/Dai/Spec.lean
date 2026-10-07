@@ -387,9 +387,10 @@ def permitTransition : TransitionDecl :=
           (.binary .or
             (.binary .eq (.var "expiry") (.intLit 0))
             (.binary .le (.env .timestamp) (.var "expiry"))),
-        .require (.binary .eq (.var "nonce") (.storage (noncesRef (.var "holder")))),
+        .letDecl "oldNonce" (some uint256) (.storage (noncesRef (.var "holder"))),
         .assign .storage (noncesRef (.var "holder"))
-          (uncheckedAdd256 (.storage (noncesRef (.var "holder"))) (.intLit 1)),
+          (uncheckedAdd256 (.var "oldNonce") (.intLit 1)),
+        .require (.binary .eq (.var "nonce") (.var "oldNonce")),
         .letDecl "wad" (some uint256)
           (.ite (.var "allowed") (.intLit maxUint256) (.intLit 0)),
         .assign .storage (allowanceRef (.var "holder") (.var "spender")) (.var "wad") ] }

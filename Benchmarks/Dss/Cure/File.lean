@@ -240,17 +240,18 @@ theorem fileWaitShiftConst :
       ABI.bytesToWord fileWaitBytes := by
   native_decide
 
-theorem RD.cureFileWaitStorePrefix {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem RD.cureFileWaitStorePrefixSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {data what ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    (hperm : I.perm = true)
     (hmatch : what = ABI.bytesToWord fileWaitBytes)
     (h : RD cureBytecode I g s0 ⟨1188⟩
       (data :: what :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD cureBytecode I g s0 ⟨1290⟩
-      (data :: what :: ret :: R) mem aw rdata
-      (sstoreAccountMap I.codeOwner σ ⟨3⟩ data) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD cureBytecode I g s0 ⟨1290⟩
+        (data :: what :: ret :: R) mem aw rdata
+        (sstoreAccountMap I.codeOwner σ ⟨3⟩ data) k' C') ∨
+      (I.perm = false ∧ RDstatic cureBytecode g s0) := by
   have rd1189 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1190 := rd1189.dup2 (by native_decide) (by evm_ov)
   have rd1195 := rd1190.pushConst (⟨500718173⟩ : UInt256)
@@ -271,11 +272,47 @@ theorem RD.cureFileWaitStorePrefix {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1206 := rd1204.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   have rd1207 := rd1206.dup2 (by native_decide) (by evm_ov)
   have rd1208 := rd1207.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1209⟩ := rd1208.sstore hperm (by native_decide) (by evm_ov)
+  have hstoreDec : decode cureBytecode ⟨1208⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1208.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd1209⟩ := rd1208.sstore hperm hstoreDec (by evm_ov)
   have rd1212 := rd1209.push2 ⟨1290⟩ (by native_decide) (by evm_ov)
   exact ⟨_, _, by
     simpa [hmatch, fileWaitShiftConst] using
       rd1212.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+
+theorem RD.cureFileWaitStorePrefix {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {data what ret : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {aw : UInt256}
+    (hperm : I.perm = true)
+    (hmatch : what = ABI.bytesToWord fileWaitBytes)
+    (h : RD cureBytecode I g s0 ⟨1188⟩
+      (data :: what :: ret :: R) mem aw rdata σ k C)
+    (hov : R.length + 6 ≤ 1024) :
+    ∃ k' C', RD cureBytecode I g s0 ⟨1290⟩
+      (data :: what :: ret :: R) mem aw rdata
+      (sstoreAccountMap I.codeOwner σ ⟨3⟩ data) k' C' :=
+  permSplit_true hperm (RD.cureFileWaitStorePrefixSplit hmatch h hov)
+
+theorem cureFileX_storeWaitPrefixSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
+    (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileWaitBytes)
+    (h : RD cureBytecode I g s0 ⟨1188⟩
+      [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
+      (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
+      ∃ k' C', RD cureBytecode I g s0 ⟨1290⟩
+        [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
+        (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
+        (UInt256.ofNat 3) ByteArray.empty
+        (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) k' C') ∨
+      (I.perm = false ∧ RDstatic cureBytecode g s0) := by
+  exact RD.cureFileWaitStorePrefixSplit hmatch h (by simp)
 
 theorem cureFileX_storeWaitPrefix {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
@@ -289,8 +326,8 @@ theorem cureFileX_storeWaitPrefix {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) k' C' := by
-  exact RD.cureFileWaitStorePrefix hperm hmatch h (by simp)
+      (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) k' C' :=
+  permSplit_true hperm (cureFileX_storeWaitPrefixSplit hmatch h)
 
 abbrev cureFileEventTopic : UInt256 :=
   ⟨105627225169409785158710363763375725481095598661489361122320324215644262229191⟩
@@ -368,17 +405,20 @@ theorem RD.cureFileEventTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rdStop := rdRet.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rdStop (by native_decide) (by evm_ov)
 
-theorem cureFileX_storeWait {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem cureFileX_storeWaitSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
-    (hperm : I.perm = true)
     (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileWaitBytes)
     (h : RD cureBytecode I g s0 ⟨1188⟩
       [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret cureBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) ByteArray.empty := by
-  obtain ⟨_, _, h1290⟩ := cureFileX_storeWaitPrefix hperm hmatch h
+    (I.perm = true ∧
+      RDret cureBytecode g s0
+        (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic cureBytecode g s0) := by
+  refine permSplit_bind (cureFileX_storeWaitPrefixSplit hmatch h) ?_
+  intro hperm hreach
+  obtain ⟨_, _, h1290⟩ := hreach
   have hmem :
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
     twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
@@ -388,6 +428,18 @@ theorem cureFileX_storeWait {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     twoWordHashMem_read64 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
       solcFreePtrMem_read64
   exact RD.cureFileEventTail h1290 hperm hmem hread64 (by simp)
+
+theorem cureFileX_storeWait {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
+    (hperm : I.perm = true)
+    (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileWaitBytes)
+    (h : RD cureBytecode I g s0 ⟨1188⟩
+      [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
+      (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret cureBytecode g s0
+      (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) ByteArray.empty :=
+  permSplit_true hperm (cureFileX_storeWaitSplit hmatch h)
 
 abbrev cureFileUnrecognizedRawWord : UInt256 :=
   ⟨30512471488687873977596731382547105769570624897107015348524753129233065181184⟩
@@ -576,7 +628,7 @@ theorem assign_fileWaitStorage (evm : EVM.State) (I : ExecutionEnv) :
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
     (hstore := by simpa [evm'] using storageLocStore_uint256 evm ⟨3⟩ (fileData I))
 
-theorem cureFileSourceBodyOk {σ σ₀ A I} {g : UInt256}
+theorem cureFileSourceBodyOkSplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
@@ -584,8 +636,11 @@ theorem cureFileSourceBodyOk {σ σ₀ A I} {g : UInt256}
     let locals := fileLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨3⟩ (fileData I)
-    ExecTransitionBody config contract evm0 locals fileTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) := by
+    (ExecTransitionBody config contract evm0 locals fileTransition.body
+      (.returned { contract := contract, locals := locals } evm1 none)) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 locals
+        fileTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguardAuth := cureAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -611,20 +666,36 @@ theorem cureFileSourceBodyOk {σ σ₀ A I} {g : UInt256}
         .storage waitRef (.int (Int.ofNat (fileData I).toNat)) =
           .ok ({ contract := contract, locals := locals }, evm1) := by
     simpa [locals, evm1] using assign_fileWaitStorage evm0 I
-  have hthen :
+  have hprefix {result : ExecResult}
+      (hrest : ExecBlock config { contract := contract, locals := locals } evm0
+        (fileTransition.body.drop 3) result) :
       ExecBlock config { contract := contract, locals := locals } evm0
-        [.assign .storage waitRef (.var "data")]
-        (.ok { contract := contract, locals := locals } evm1) :=
-    ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileTransition.body
-        (.ok { contract := contract, locals := locals } evm1) := by
+        fileTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
-  simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockOK hblock
+    exact hrest
+  constructor
+  · exact ExecFuncBody.execBlockOK (hprefix (ExecBlock.consNormal
+      (ExecStmt.iteTrue hcond
+        (ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil)) ExecBlock.nil))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic (hprefix (ExecBlock.consStatic
+      (ExecStmt.iteTrue hcond (ExecBlock.consStatic
+        (ExecStmt.assignStatic hdata hassign (by simpa [evm0, initState] using hperm))))))
+
+theorem cureFileSourceBodyOk {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
+    (hwhat : fileWhat I = fileWaitBytes) :
+    let locals := fileLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨3⟩ (fileData I)
+    ExecTransitionBody config contract evm0 locals fileTransition.body
+      (.returned { contract := contract, locals := locals } evm1 none) :=
+  (cureFileSourceBodyOkSplit hwv hauth hlive hwhat).1
 
 theorem cureFileSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -719,7 +790,6 @@ theorem cureFileSourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
 theorem cureFileBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 4)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -772,16 +842,23 @@ theorem cureFileBodyCore {σ σ₀ A I} {g : UInt256}
         by_cases hwhat : fileWhat I = fileWaitBytes
         · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
           let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨3⟩ (fileData I)
-          have hbody :
-              ExecTransitionBody config contract evm0 locals fileTransition.body
-                (.returned { contract := contract, locals := locals } evm1 none) := by
+          have hbodySplit :
+              (ExecTransitionBody config contract evm0 locals fileTransition.body
+                (.returned { contract := contract, locals := locals } evm1 none)) ∧
+              (I.perm = false →
+                ExecTransitionBody config contract evm0 locals fileTransition.body
+                  .staticViolation) := by
             simpa [evm0, evm1, locals] using
-              (cureFileSourceBodyOk
+              (cureFileSourceBodyOkSplit
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 hwv hauthSolm hliveSolm hwhat)
           have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileWaitBytes :=
             fileWhatWord_eq_of_bytes_eq (by omega) hwhat
-          have hret := cureFileX_storeWait (I := I) hperm hmatch hafterLive
+          rcases cureFileX_storeWaitSplit (I := I) hmatch hafterLive with
+            ⟨_, hret⟩ | ⟨hperm, hstatic⟩
+          swap
+          · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+          have hbody := hbodySplit.1
           have haccounts :
               sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I) = evm1.accountMap := by
             simp [evm1, evm0, initState, storageStore_accountMap]

@@ -44,7 +44,6 @@ theorem spotReachParBody {σ σ₀ A I} {g : Sat256}
 theorem spotParBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = spotBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (spotSelBytes 7)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
