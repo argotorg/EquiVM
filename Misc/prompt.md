@@ -155,12 +155,14 @@ The proof of each function follows, roughly, four phases:
    branches early.
 
 4. EVM reachability. Thread the bytecode trace from the body entry PC
-   to `RDret` (success) or `RDrev` (revert) by chaining the provided
-   runtime block summaries (Section 9) and the routine lemmas built from them.
-   Step by hand (library `RD.*` step lemmas, or `evm_run … with [ … ]`)
-   only over instructions the generator does not summarize, chiefly
-   external calls (Section 6). Use one named `have` per block or
-   routine; never one giant chain.
+   to `RDret` (success) or `RDrev` (revert). Advance with whichever
+   proved lemma covers the next segment: a library `RD.*` lemma where
+   one exists (solc prologue and guards, dispatch, ABI decode/encode,
+   mapping hashes, external calls, …), otherwise the provided block
+   summaries (Section 9) and the routine lemmas you build from them.
+   Write single opcode steps (`evm_run … with [ … ]`) only where
+   neither applies. Use one named `have` per block or routine; never
+   one giant chain.
 
 5. Connect. `reEquivExecution` / `reEquivDecodingFailed` /
    `reEquivNoDispatch` / `reEquivElim` glue the source result, the
@@ -560,9 +562,12 @@ template with every immutable site patched with `wordsOf imms`, each immutable's
 
 ## 9. Block summaries and routine lemmas
 
-**Use the provided summaries; do not hand-write traces.** Your working directory comes with
-proved `RD` summaries of every basic block, generated from the bytecode. There are two sets,
-each split into shards of at most 20 summaries.
+**Advance the bytecode with proved lemmas, not hand-written traces.** Two sources are
+available, and they combine freely in one trace: the `Reasoning/` library's `RD.*` lemmas,
+which cover standard solc segments in one step (prefer them where they apply; Section 4), and
+the block summaries provided with your working directory, proved `RD` summaries of every basic
+block, generated from the bytecode. There are two sets of summaries, each split into shards of
+at most 20.
 
 - **Runtime summaries** (`RuntimeBlocks_NNN.lean`) run over the deployed
   runtime bytecode; for a contract with immutables, over the patched template
