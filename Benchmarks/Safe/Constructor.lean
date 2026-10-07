@@ -12,8 +12,12 @@ open Solm ABI Ethereum Ethereum.EVM
 
 namespace Benchmarks.Safe
 
-theorem safeConstructorCorrect :
+theorem safeConstructorBodyCore :
     typedConstructorRefinement config safeCreationBytecode contract (fun _ => safeBytecode) := by
   sorry
+
+theorem safeConstructorCorrect :
+    typedConstructorRefinement config safeCreationBytecode contract (fun _ => safeBytecode) :=
+  safeConstructorBodyCore
 
 end Benchmarks.Safe
