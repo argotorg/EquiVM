@@ -5,7 +5,7 @@ import Solm.SolidityLayout
 # Safe benchmark spec
 
 Source-shaped Solm spec for upstream `safe-global/safe-smart-account`
-`Benchmarks/Safe/contracts/Safe.sol`, compiled with solc 0.8.35.
+`Benchmarks/Scaffolds/Safe/contracts/Safe.sol`, compiled with upstream solc 0.7.6.
 
 Events and revert strings are intentionally omitted, since the benchmark equivalence relation
 observes successful return values, storage/world effects, and revert-vs-success behavior, but not
@@ -80,8 +80,29 @@ def u256 (x : Expr) : Expr := .inRange uint256Int x
 def add256 (x y : Expr) : Expr := u256 (addE x y)
 def sub256 (x y : Expr) : Expr := u256 (subE x y)
 def mul256 (x y : Expr) : Expr := u256 (mulE x y)
-def inc256 (x : Expr) : Expr := add256 x (.intLit 1)
-def dec256 (x : Expr) : Expr := sub256 x (.intLit 1)
+
+-- Raw Solidity 0.7.6 arithmetic wraps; the helpers above model explicit SafeMath calls.
+def addWrapping256 (x y : Expr) : Expr := .cast (addE x y) uint256St
+def subWrapping256 (x y : Expr) : Expr := .cast (subE x y) uint256St
+def inc256 (x : Expr) : Expr := addWrapping256 x (.intLit 1)
+def dec256 (x : Expr) : Expr := subWrapping256 x (.intLit 1)
+
+example (cfg : Config) (frame : Frame) (world : EVM.State) :
+    evalExpr? cfg frame world (inc256 (.intLit maxUint256)) = .ok (.int 0) := by
+  simp [inc256, addWrapping256, addE, uint256St, uint256Int, maxUint256, evalExpr?,
+    castValue?, normalizeInt, evalBinaryOp?, EVM.twoPow, EvalResult.bind, bind, pure,
+    EvalResult.ofOption]
+
+example (cfg : Config) (frame : Frame) (world : EVM.State) :
+    evalExpr? cfg frame world (dec256 (.intLit 0)) = .ok (.int maxUint256) := by
+  simp [dec256, subWrapping256, subE, uint256St, uint256Int, maxUint256, evalExpr?,
+    castValue?, normalizeInt, evalBinaryOp?, EVM.twoPow, EvalResult.bind, bind, pure,
+    EvalResult.ofOption]
+
+example (cfg : Config) (frame : Frame) (world : EVM.State) :
+    evalExpr? cfg frame world (add256 (.intLit maxUint256) (.intLit 1)) = .revert := by
+  simp [add256, u256, addE, uint256Int, maxUint256, evalExpr?, evalBinaryOp?,
+    EvalResult.bind, bind, pure]
 
 def varRef (name : Ident) : StorageRef := { base := name }
 def localIndex (name : Ident) (idx : Expr) : StorageRef :=
@@ -250,7 +271,8 @@ def checkAfterExecutionSelector : ByteArray := selectorBytes 0x93 0x27 0x13 0x68
 def checkModuleTransactionSelector : ByteArray := selectorBytes 0x72 0x8c 0x29 0x72
 def checkAfterModuleExecutionSelector : ByteArray := selectorBytes 0x2a 0xcc 0x37 0xaa
 
-def safeDecodeMode : DecodeMode := DecodeMode.modern
+-- Upstream solc 0.7.6 uses ABI coder v1 for Safe and its imported source closure.
+def safeDecodeMode : DecodeMode := DecodeMode.legacySolc05
 
 def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
   (ABI.decodeReturnValueWithMode? safeDecodeMode ty out).map (fun v => [v])
@@ -364,9 +386,9 @@ def transactionHashExpr (nonceExpr : Expr) : Expr :=
         (bytes32, transactionStructHashExpr nonceExpr) ])
 
 def requiredTransactionGasExpr : Expr :=
-  add256
+  addWrapping256
     (maxE (divE (shlE (.var "safeTxGas") (.intLit 6)) (.intLit 63))
-      (add256 (.var "safeTxGas") (.intLit 2500)))
+      (addWrapping256 (.var "safeTxGas") (.intLit 2500)))
     (.intLit 500)
 
 def signatureOffsetExpr : Expr :=
@@ -921,7 +943,7 @@ def exectransactionTransition : TransitionDecl :=
         .internalCall "execute"
           [ .var "to", .var "value", .var "data", .var "operation",
             .ite (eqE (.var "gasPrice") (.intLit 0))
-              (sub256 (.var "txGasLeft") (.intLit 2500))
+              (subWrapping256 (.var "txGasLeft") (.intLit 2500))
               (.var "safeTxGas") ] "success",
         .letGas "gasAfter",
         .internalCall "_sub" [.var "gasBefore", .var "gasAfter"] "gasUsed",

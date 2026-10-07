@@ -1,51 +1,52 @@
 # KlimaDAO KlimaToken Benchmark
 
-This benchmark uses the unmodified upstream KlimaToken source from KlimaDAO:
+Source: [`src/protocol/tokens/regular/KlimaToken.sol`](contracts/KlimaToken.sol) from
+[`KlimaDAO/klimadao-solidity`](https://github.com/KlimaDAO/klimadao-solidity/tree/0eb4770c1e9cbead8dd23ef0c23a9a27d761d029)
+commit `0eb4770c1e9cbead8dd23ef0c23a9a27d761d029`.
 
-- Repository: `KlimaDAO/klimadao-solidity`
-- Commit: `0eb4770c1e9cbead8dd23ef0c23a9a27d761d029`
-- Commit date: `2024-12-13T22:53:04Z`
-- Path: `src/protocol/tokens/regular/KlimaToken.sol`
-- Source URL:
-  `https://raw.githubusercontent.com/KlimaDAO/klimadao-solidity/0eb4770c1e9cbead8dd23ef0c23a9a27d761d029/src/protocol/tokens/regular/KlimaToken.sol`
-- Solidity pragma: `0.7.5`
+Artifacts reproduce the pinned upstream `forge build src/protocol/tokens/regular/KlimaToken.sol` build, including metadata.
+The [`foundry.toml`](https://github.com/KlimaDAO/klimadao-solidity/blob/0eb4770c1e9cbead8dd23ef0c23a9a27d761d029/foundry.toml) build uses
+Solidity 0.7.5, optimizer enabled with 800 runs, Istanbul EVM, default IPFS metadata,
+and the complete remapping set, including mappings discovered from recursively installed
+submodules at their pinned commits. This follows the README/CI Foundry build; the repository
+also contains a separate Hardhat configuration with different optimizer settings.
 
-Artifacts were generated locally with optimizer enabled and metadata hash disabled:
+Both creation and runtime bytecode were compared byte-for-byte with the actual upstream build.
+The vendored Solidity source contents are unchanged.
+
+Compiler: `0.7.5+commit.eb77ed08.Linux.g++`. Build tool versions, configuration/lockfile hashes,
+canonical source paths, complete compiler settings, and expected bytecode hashes are in
+[`build.json`](build.json). The compiler inputs retain upstream source names even where the
+vendored directory layout differs.
+
+Reproduce from the repository root with the matching solc binary:
 
 ```bash
-solc-0.7.5 --optimize --optimize-runs 200 --metadata-hash none \
-  --bin --bin-runtime --abi --storage-layout \
-  -o /tmp/klima-build --overwrite Benchmarks/Klima/contracts/KlimaToken.sol
+python3 scripts/regenerate_scaffold_artifacts.py \
+  Benchmarks/Scaffolds/Klima/build.json --solc /path/to/solc-0.7.5
 ```
 
-Compiler:
+Add `--check` to verify without writing. This replays the target's source closure through solc
+standard JSON; its creation/runtime output is required to match the recorded upstream build.
+Additional AST/storage output selection does not change the bytecode.
 
-```text
-0.7.5+commit.eb77ed08.Darwin.appleclang
-```
+Artifacts:
 
-(`solc 0.7.5` fetched from `binaries.soliditylang.org/macosx-amd64`, sha256
-`1c100ce86a3167fd4c194290aafec0d3d94fe86c7a1aa0837c1346cc93d8b6ce`.)
+- `creation.hex`: 7867 bytes, without constructor arguments.
+- `runtime.hex`: 7110 bytes.
+- `KlimaToken.abi.json`, `KlimaToken.storage.json`, and `KlimaToken.metadata.json`: compiler outputs.
+- `Bytecode.lean`: matching creation/runtime arrays and verified jump-destination tables.
+- `artifacts.sha256`: hashes of the generated files, checked from this directory with
+  `sha256sum -c artifacts.sha256`. `build.json` separately records hashes of raw bytecode bytes.
 
-Generated artifacts and scaffold files:
+`sources.sha256` records vendored Solidity checksums relative to this directory.
 
-- `contracts/KlimaToken.sol`: exact fetched upstream Solidity source (single self-contained file).
-- `creation.hex`: optimized creation bytecode (7732 bytes).
-- `runtime.hex`: optimized deployed runtime bytecode (6975 bytes).
-- `KlimaToken.abi.json`: ABI emitted by solc (30 functions + implicit constructor).
-- `KlimaToken.storage.json`: storage layout emitted by solc.
-- `Bytecode.lean`: creation/runtime bytecode as Lean `ByteArray`s plus verified `JUMPDEST` sets.
-- `StringLayout.lean`: per-contract pre-0.8 compact-string read/write hook for `_name`/`_symbol`.
-- `Spec.lean`: Solm AST benchmark spec.
-- `Constructor.lean`: top-level constructor-equivalence theorem (`sorry`).
-- `Correct.lean`: top-level runtime-equivalence theorem plus whole-contract wrapper (`sorry`).
+Block summaries are generated and type-checked with
+[`check_all_benchmark_blocks.py`](../../../scripts/check_all_benchmark_blocks.py).
+See the [benchmark build instructions](../../README.md#reproducing-upstream-scaffold-builds)
+for the complete command. Generated summaries live outside the source tree.
 
-Source and artifact hashes are recorded in `sources.sha256`. Fresh solc output is byte-identical to
-the checked-in `creation.hex`/`runtime.hex`, and the checked-in runtime is a verbatim substring of the
-creation bytecode at byte offset 757 (there are no immutables, so creation returns the runtime
-verbatim).
-
-Target theorem: `Benchmarks.Klima.klimaContractCorrect`.
+The creation bytecode contains the runtime verbatim at byte offset 757.
 
 ## Scaffold notes
 
@@ -72,7 +73,7 @@ Target theorem: `Benchmarks.Klima.klimaContractCorrect`.
   `Counter.increment` (permit nonce) is unchecked and wraps at 2^256.
 - The `_beforeTokenTransfer` hook fires on every `transfer`/`transferFrom`/`mint`/`burn`/`_burnFrom`.
   When `from` (else `to`) is in the set, it makes an external `twapOracle.updateTWAP(...)` `CALL`,
-  modeled with solc's high-level-call `EXTCODESIZE` guard (`runtime.hex` pc 6235) and its ignored
+  modeled with solc's high-level-call `EXTCODESIZE` guard (`runtime.hex` pc 6361) and its ignored
   `bool` return decoded through the legacy coder (a `returndatasize >= 32` size check, matching the
   discarded runtime decode). The `ITWAPOracle` selector is in `klimaExternalABI`.
 - `permit` is represented with the EIP-712 digest construction (`abi.encode` over word-aligned

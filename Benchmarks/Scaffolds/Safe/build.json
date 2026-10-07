@@ -1,0 +1,168 @@
+{
+  "upstream": {
+    "repository": "https://github.com/safe-global/safe-smart-account",
+    "commit": "77901a5a1ad835b74ad3b72f73a8412cfe491c57",
+    "command": "npm run build",
+    "config": "hardhat.config.ts",
+    "configSha256": "c20bc7de941edd9ab880721b2d6fdf54f822e79bfde0691d0d22381706f103a1",
+    "tools": {
+      "node": "22.20.0",
+      "hardhat": "2.27.0",
+      "npm": "10.9.3"
+    },
+    "lockfile": {
+      "path": "package-lock.json",
+      "sha256": "0c9c252a258643903bcbbe7dd88370ca331b6dbeac50004ea387c60ae8ac0476"
+    }
+  },
+  "compiler": {
+    "version": "0.7.6+commit.7338295f",
+    "binaryVersion": "0.7.6+commit.7338295f.Linux.g++",
+    "sha256": "bd69ea85427bf2f4da74cb426ad951dd78db9dfdd01d791208eccc2d4958a6bb"
+  },
+  "target": {
+    "source": "contracts/Safe.sol",
+    "contract": "Safe"
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": false,
+      "runs": 200
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  },
+  "sources": {
+    "contracts/Safe.sol": {
+      "path": "contracts/Safe.sol",
+      "sha256": "9f91d9250e18bb0710b7b1f10dcbe2417e9ef8d22eeee98dba2ef48661a060fa"
+    },
+    "contracts/base/Executor.sol": {
+      "path": "contracts/base/Executor.sol",
+      "sha256": "dcea582290abd1dc0ce89171389d78b716e89f6c788fce523c5cb562e81743e8"
+    },
+    "contracts/base/FallbackManager.sol": {
+      "path": "contracts/base/FallbackManager.sol",
+      "sha256": "da724d64eb3238f1cb3355bf8b87c459cf812fc3f6dd100f2f89290a8a169eb9"
+    },
+    "contracts/base/GuardManager.sol": {
+      "path": "contracts/base/GuardManager.sol",
+      "sha256": "e1db96b2ed4f15aa42c8ceca0d8701048e7b6fe276cb437a4f814d85f69119a9"
+    },
+    "contracts/base/ModuleManager.sol": {
+      "path": "contracts/base/ModuleManager.sol",
+      "sha256": "3b7be17091c7c9e37c9ddaba41e57464b1c4a334500d34eaddd94721f8cd83b3"
+    },
+    "contracts/base/OwnerManager.sol": {
+      "path": "contracts/base/OwnerManager.sol",
+      "sha256": "c9744122158f543336c11bafc70d376711f48c4dd310fe09f385231f264a3fc1"
+    },
+    "contracts/common/EIP7702.sol": {
+      "path": "contracts/common/EIP7702.sol",
+      "sha256": "719f239f789764c2d79150ab0d6d5b3b49af4fee4409f0e6c3303350e30aad3a"
+    },
+    "contracts/common/EIP7951.sol": {
+      "path": "contracts/common/EIP7951.sol",
+      "sha256": "445d712873ba07b5ef800edd7038d8483da9d2ae1f56ee972e18076a7ee90992"
+    },
+    "contracts/common/ErrorMessage.sol": {
+      "path": "contracts/common/ErrorMessage.sol",
+      "sha256": "7844168e46d0802b3a07a27e974e8db13ba7ff26486d9fc5a746ef272b32c2da"
+    },
+    "contracts/common/NativeCurrencyPaymentFallback.sol": {
+      "path": "contracts/common/NativeCurrencyPaymentFallback.sol",
+      "sha256": "401744eb862f9f731819c8f904d2ca5768825c0d7680d3448f1a1232cac36ef5"
+    },
+    "contracts/common/SecuredSignatureValidator.sol": {
+      "path": "contracts/common/SecuredSignatureValidator.sol",
+      "sha256": "506e766774ac7800a022d4316831a483af05cd0d42fd1561e00a6a23c48cb1d5"
+    },
+    "contracts/common/SecuredTokenTransfer.sol": {
+      "path": "contracts/common/SecuredTokenTransfer.sol",
+      "sha256": "4aaa684a44631b1a6b14ee97b894380431014abf1fec8e4e4118fd7b275c7010"
+    },
+    "contracts/common/SelfAuthorized.sol": {
+      "path": "contracts/common/SelfAuthorized.sol",
+      "sha256": "002069912ab0cb639e0e0eebd5293ceee76530aeaae17a9e0512ea4871ef868f"
+    },
+    "contracts/common/SignatureDecoder.sol": {
+      "path": "contracts/common/SignatureDecoder.sol",
+      "sha256": "784cb20d89bb46765bb8cdf6c5b6e3dada2fa4e932f8afbf1f5d7159ccd8d5c6"
+    },
+    "contracts/common/Singleton.sol": {
+      "path": "contracts/common/Singleton.sol",
+      "sha256": "8bc56aad42a49782b135011e29323cd5117dc41c3a7451470eefe748b5dfab3c"
+    },
+    "contracts/common/StorageAccessible.sol": {
+      "path": "contracts/common/StorageAccessible.sol",
+      "sha256": "d6ea29d3e65b9a72357e1433aa3798a3d48afe8d8ff1faedf335dcc225302df8"
+    },
+    "contracts/external/SafeMath.sol": {
+      "path": "contracts/external/SafeMath.sol",
+      "sha256": "f56c2b3b9f29c9b8854e6a656ef01577a1fd553e17462119960c45a412c42a9b"
+    },
+    "contracts/interfaces/Enum.sol": {
+      "path": "contracts/interfaces/Enum.sol",
+      "sha256": "320aa4eafeefda680db5d0c57ceb0823a93f8a5e85a6c2a2a01d2779f8c2b4ee"
+    },
+    "contracts/interfaces/IERC165.sol": {
+      "path": "contracts/interfaces/IERC165.sol",
+      "sha256": "423a812abe03f809ca695223a1a8ea070fb2e7fd7a7e41b3b629004bd0236b2f"
+    },
+    "contracts/interfaces/IFallbackManager.sol": {
+      "path": "contracts/interfaces/IFallbackManager.sol",
+      "sha256": "1035a4feaecda99b3263bad0af092396a820f093c52f7c95ea70e5feca486135"
+    },
+    "contracts/interfaces/IGuardManager.sol": {
+      "path": "contracts/interfaces/IGuardManager.sol",
+      "sha256": "209325b458c3a401952e6f9172cedb2f1e7b2ed5f09e044621ed2cb543432d6c"
+    },
+    "contracts/interfaces/IModuleManager.sol": {
+      "path": "contracts/interfaces/IModuleManager.sol",
+      "sha256": "9251c075d62d1a3667ccbbb77237addd4d3d014ca64ec1fb9d532e44449ddb69"
+    },
+    "contracts/interfaces/INativeCurrencyPaymentFallback.sol": {
+      "path": "contracts/interfaces/INativeCurrencyPaymentFallback.sol",
+      "sha256": "4c369916f727133f5d9084f69e541bbd7674621f047d9e8810430838817b0e28"
+    },
+    "contracts/interfaces/IOwnerManager.sol": {
+      "path": "contracts/interfaces/IOwnerManager.sol",
+      "sha256": "15e46219c43b16d649bbe4c8e21598821f572e9f5b70d76067235b45b0eda47d"
+    },
+    "contracts/interfaces/ISafe.sol": {
+      "path": "contracts/interfaces/ISafe.sol",
+      "sha256": "102d7a71f3be160a7a98536ea6c447df599693e7d4f2f195c63c47118c10d448"
+    },
+    "contracts/interfaces/ISignatureValidator.sol": {
+      "path": "contracts/interfaces/ISignatureValidator.sol",
+      "sha256": "da8e2d45e549c2e94f185cf4c8fbb2294feef389b1fa4b913d65d22466bb44d7"
+    },
+    "contracts/interfaces/IStorageAccessible.sol": {
+      "path": "contracts/interfaces/IStorageAccessible.sol",
+      "sha256": "664c8393448986b757a4cddf58e84be6a9a6d4883a49645545dc1d7450e7dc35"
+    },
+    "contracts/libraries/SafeStorage.sol": {
+      "path": "contracts/libraries/SafeStorage.sol",
+      "sha256": "642b3e3f69348c8bb715ed222fd510f71e265f6cf45b71b8d7d88b2bdff00cea"
+    }
+  },
+  "expectedBytecode": {
+    "creation": {
+      "bytes": 20909,
+      "sha256": "391e87a48c226fb7272540736815d740e781cac6241a631ffe590cd20ad5d13e"
+    },
+    "runtime": {
+      "bytes": 20869,
+      "sha256": "bfae33f6886e6f400ba8be6e559110ca3164cbe991767cab7e1a5451a1a0c56b"
+    }
+  },
+  "lean": {
+    "namespace": "Benchmarks.Safe",
+    "runtime": "safeBytecode",
+    "creation": "safeCreationBytecode",
+    "runtimeJumps": "validJumps",
+    "creationJumps": "creationValidJumps"
+  },
+  "emitAst": false
+}

@@ -27,9 +27,9 @@ variable (v : AttesterImmutables)
 
 def easExpr : Expr := Reasoning.Theory.addressLiteral v.eas
 
-/-- solc `immutableReferences` offsets, keyed by `imm_eas` (AST id 516 = `_eas`). -/
+/-- solc `immutableReferences` offsets, keyed by `imm_eas` (verified against the AST). -/
 def offsets : List (Ident × List Nat) :=
-  [("imm_eas", [722, 1465, 1598, 1939])]
+  [ ("imm_eas", [824, 1719, 1888, 2289]) ]
 
 /-- The constructor's immutable offsets as a layout for generated runtime summaries. -/
 def immutableLayout : Reasoning.Immutables.Layout :=

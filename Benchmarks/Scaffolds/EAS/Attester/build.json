@@ -1,0 +1,81 @@
+{
+  "upstream": {
+    "repository": "https://github.com/ethereum-attestation-service/eas-contracts-example",
+    "commit": "d2864b166a08f9b3f9314f8b302316d67f227462",
+    "command": "pnpm compile",
+    "config": "hardhat.config.ts",
+    "configSha256": "7616b273ddab5f227080ef4dfdfde9453a03781cc1c4da0ec80d218b690c258d",
+    "tools": {
+      "node": "22.20.0",
+      "hardhat": "2.22.13",
+      "pnpm": "9.15.9"
+    },
+    "lockfile": {
+      "path": "pnpm-lock.yaml",
+      "sha256": "ee3d29059e95391168480126030123c25b1b2b107d049f29508d476d6da7b154"
+    }
+  },
+  "compiler": {
+    "version": "0.8.26+commit.8a97fa7a",
+    "binaryVersion": "0.8.26+commit.8a97fa7a.Linux.g++",
+    "sha256": "d5f23436f443edb85d8e76906d12f0a86ce0490e7663a9e608efeb7a93f149ef"
+  },
+  "target": {
+    "source": "contracts/Attester.sol",
+    "contract": "Attester"
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 1000000
+    },
+    "metadata": {
+      "bytecodeHash": "none"
+    },
+    "evmVersion": "paris"
+  },
+  "sources": {
+    "@ethereum-attestation-service/eas-contracts/contracts/Common.sol": {
+      "path": "contracts/@ethereum-attestation-service/eas-contracts/contracts/Common.sol",
+      "sha256": "e18f291c3ec2fea1f920cdd6cdb955ea30d8b860d86f75962fb1fe10bfb97bc1"
+    },
+    "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol": {
+      "path": "contracts/@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol",
+      "sha256": "2db305cf4bcbf48c65dfa5ad89bbde51813555c2e7bba7d04d17a6b7ade297bc"
+    },
+    "@ethereum-attestation-service/eas-contracts/contracts/ISchemaRegistry.sol": {
+      "path": "contracts/@ethereum-attestation-service/eas-contracts/contracts/ISchemaRegistry.sol",
+      "sha256": "eb0fd5792c88c13abe03b228d7f38986e427c010d11321fd7623638b10ed0f05"
+    },
+    "@ethereum-attestation-service/eas-contracts/contracts/ISemver.sol": {
+      "path": "contracts/@ethereum-attestation-service/eas-contracts/contracts/ISemver.sol",
+      "sha256": "096dd4aceb1dcc1e9823ed863305aa23a5b9a30de7aa3b04d918a87c1f4443e6"
+    },
+    "@ethereum-attestation-service/eas-contracts/contracts/resolver/ISchemaResolver.sol": {
+      "path": "contracts/@ethereum-attestation-service/eas-contracts/contracts/resolver/ISchemaResolver.sol",
+      "sha256": "aa71c985397e6d315a05f1dc0a6435030aadc86c3eaf76665ce2e1bcb993ab88"
+    },
+    "contracts/Attester.sol": {
+      "path": "contracts/Attester.sol",
+      "sha256": "e91a498cc19592a769e8629b5f8e4cd389e6124b4d1fe54211f061c39dee1a61"
+    }
+  },
+  "expectedBytecode": {
+    "creation": {
+      "bytes": 4057,
+      "sha256": "4834b10609bbd79c79fd8ebb8536692a3e0273ad60ca8de6acd481cb012fe0b9"
+    },
+    "runtime": {
+      "bytes": 3865,
+      "sha256": "e2a292debd334ff78b7ec85ae48be9f89d48177df1b9c028e4e9b14bd2df9d70"
+    }
+  },
+  "lean": {
+    "namespace": "Benchmarks.EAS.Attester",
+    "runtime": "attesterBytecode",
+    "creation": "attesterCreationBytecode",
+    "runtimeJumps": "validJumps",
+    "creationJumps": "validCreationJumps"
+  },
+  "emitAst": true
+}

@@ -1,0 +1,94 @@
+{
+  "upstream": {
+    "repository": "https://github.com/Uniswap/v2-periphery",
+    "commit": "ed24991304291297c3b4a52818d02f46a17aa9a2",
+    "command": "yarn compile",
+    "config": ".waffle.json",
+    "configSha256": "ffcf16b6ad511c46e7a54df26c58ab5656e5df0bb400cb7a3ed210cbfcfda9cb",
+    "tools": {
+      "node": "22.20.0",
+      "yarn": "1.22.22",
+      "waffle": "2.5.1"
+    },
+    "lockfile": {
+      "path": "yarn.lock",
+      "sha256": "59c522d7b7a99693a212e23d7b2500c44223a8c517b544366d61fe1af204c65b"
+    }
+  },
+  "compiler": {
+    "version": "0.6.6+commit.6c089d02",
+    "binaryVersion": "0.6.6+commit.6c089d02.Linux.g++",
+    "sha256": "5d8cd4e0cc02e9946497db68c06d56326a78ff95a21c9265cfedb819a10a539d"
+  },
+  "target": {
+    "source": "contracts/UniswapV2Router02.sol",
+    "contract": "UniswapV2Router02"
+  },
+  "settings": {
+    "evmVersion": "istanbul",
+    "optimizer": {
+      "enabled": true,
+      "runs": 999999
+    }
+  },
+  "sources": {
+    "@uniswap/lib/contracts/libraries/TransferHelper.sol": {
+      "path": "@uniswap/lib/contracts/libraries/TransferHelper.sol",
+      "sha256": "22b87fd425d590e533ab7e52478cf72bdc4bde2672e0977c7eff7742e8f0737d"
+    },
+    "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol": {
+      "path": "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol",
+      "sha256": "51d056199e3f5e41cb1a9f11ce581aa3e190cc982db5771ffeef8d8d1f962a0d"
+    },
+    "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol": {
+      "path": "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol",
+      "sha256": "29c75e69ce173ff8b498584700fef76bc81498c1d98120e2877a1439f0c31b5a"
+    },
+    "contracts/UniswapV2Router02.sol": {
+      "path": "contracts/UniswapV2Router02.sol",
+      "sha256": "acabe6d6c9c275aa5c27d8ed59b3d23d21616523071043e89eea7bca474babb8"
+    },
+    "contracts/interfaces/IERC20.sol": {
+      "path": "contracts/interfaces/IERC20.sol",
+      "sha256": "2b63f199f838028184efefbcfd6cf2b9192624c3dae5dc1116ecbb15c36a67e8"
+    },
+    "contracts/interfaces/IUniswapV2Router01.sol": {
+      "path": "contracts/interfaces/IUniswapV2Router01.sol",
+      "sha256": "0439ffe0fd4a5e1f4e22d71ddbda76d63d61679947d158cba4ee0a1da60cf663"
+    },
+    "contracts/interfaces/IUniswapV2Router02.sol": {
+      "path": "contracts/interfaces/IUniswapV2Router02.sol",
+      "sha256": "a2900701961cb0b6152fc073856b972564f7c798797a4a044e83d2ab8f0e8d38"
+    },
+    "contracts/interfaces/IWETH.sol": {
+      "path": "contracts/interfaces/IWETH.sol",
+      "sha256": "60760053849b916b72386fef1126ab69c7482c2aa6b5fb836368eff42905cb30"
+    },
+    "contracts/libraries/SafeMath.sol": {
+      "path": "contracts/libraries/SafeMath.sol",
+      "sha256": "39e5b4c0bc19b72fa59c2d2177ba5ed6cfadcd76f3f804563011e579367530fb"
+    },
+    "contracts/libraries/UniswapV2Library.sol": {
+      "path": "contracts/libraries/UniswapV2Library.sol",
+      "sha256": "4f83e9334f833568fa47b36e9ceca435f6c2962760a0596b043c4e538d0fd9f2"
+    }
+  },
+  "expectedBytecode": {
+    "creation": {
+      "bytes": 22387,
+      "sha256": "92ea7a01623f1cfaebfc86d068012c1668e1b58bb7956ea0e8d3d427d7aa856c"
+    },
+    "runtime": {
+      "bytes": 21996,
+      "sha256": "51e2fb496dbe58461956213f49a611b1ec1d6bfdd21d780c383edad59c7b514f"
+    }
+  },
+  "lean": {
+    "namespace": "Benchmarks.UniswapV2Router02",
+    "runtime": "uniswapV2Router02Bytecode",
+    "creation": "uniswapV2Router02CreationBytecode",
+    "runtimeJumps": "uniswapV2Router02ValidJumps",
+    "creationJumps": "uniswapV2Router02CreationValidJumps"
+  },
+  "emitAst": true
+}

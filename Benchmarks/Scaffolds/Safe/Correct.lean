@@ -4,7 +4,7 @@ import Solm.Equiv
 /-!
 # Safe benchmark correctness stub
 
-The upstream Solidity source tree, optimized runtime bytecode, Solm AST spec, and Solm syntax spec
+The upstream Solidity source tree, runtime bytecode, Solm AST spec, and Solm syntax spec
 are present. The runtime-equivalence proof is intentionally left as the benchmark target. This file
 also exposes the whole-contract wrapper that combines the constructor and runtime targets.
 -/

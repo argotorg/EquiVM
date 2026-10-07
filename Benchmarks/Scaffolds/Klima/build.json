@@ -1,0 +1,133 @@
+{
+  "upstream": {
+    "repository": "https://github.com/KlimaDAO/klimadao-solidity",
+    "commit": "0eb4770c1e9cbead8dd23ef0c23a9a27d761d029",
+    "command": "forge build src/protocol/tokens/regular/KlimaToken.sol --use /path/to/solc-0.7.5 --build-info",
+    "config": "foundry.toml",
+    "configSha256": "44dd78daf3b23f6444ac677b813b53d9e3cc65cf0ab2faa8886bcbd9200a6da7",
+    "tools": {
+      "forge": "1.0.0 (8692e926198056d0228c1e166b1b6c34a5bed66c)"
+    },
+    "remappingsSha256": "4a5feef8bf48b073c1dc7dff3e6ea1e858972d669f0b9a1ce3f420e385e0753e",
+    "submodules": [
+      {
+        "path": "lib/forge-std",
+        "commit": "73d44ec7d124e3831bc5f832267889ffb6f9bc3f",
+        "url": "https://github.com/foundry-rs/forge-std"
+      },
+      {
+        "path": "lib/openzeppelin-contracts",
+        "commit": "0a25c1940ca220686588c4af3ec526f725fe2582",
+        "url": "https://github.com/OpenZeppelin/openzeppelin-contracts"
+      },
+      {
+        "path": "lib/openzeppelin-contracts-4-5-0",
+        "commit": "a5445b0afb8b350417b6e6ab3160554967bc151f",
+        "url": "https://github.com/OpenZeppelin/openzeppelin-contracts"
+      },
+      {
+        "path": "lib/openzeppelin-contracts-upgradeable",
+        "commit": "58fa0f81c4036f1a3b616fdffad2fd27e5d5ce21",
+        "url": "https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable"
+      },
+      {
+        "path": "lib/openzeppelin-contracts-upgradeable-4-5-1",
+        "commit": "0d96e3df453dab07e63a210d72cd22d886a1b035",
+        "url": "https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable"
+      },
+      {
+        "path": "lib/solidity-stringutils",
+        "commit": "46983c6d9462a80229cf0d5bab8ea3b3ee31066c",
+        "url": "https://github.com/Arachnid/solidity-stringutils"
+      },
+      {
+        "path": "lib/openzeppelin-contracts/lib/forge-std",
+        "commit": "c2236853aadb8e2d9909bbecdc490099519b70a4",
+        "url": "https://github.com/foundry-rs/forge-std"
+      },
+      {
+        "path": "lib/forge-std/lib/ds-test",
+        "commit": "e282159d5170298eb2455a6c05280ab5a73a4ef0",
+        "url": "https://github.com/dapphub/ds-test"
+      },
+      {
+        "path": "lib/openzeppelin-contracts-upgradeable/lib/forge-std",
+        "commit": "c2236853aadb8e2d9909bbecdc490099519b70a4",
+        "url": "https://github.com/foundry-rs/forge-std"
+      },
+      {
+        "path": "lib/solidity-stringutils/lib/ds-test",
+        "commit": "0a5da56b0d65960e6a994d2ec8245e6edd38c248",
+        "url": "https://github.com/dapphub/ds-test"
+      },
+      {
+        "path": "lib/openzeppelin-contracts/lib/forge-std/lib/ds-test",
+        "commit": "6da7dd8f7395f83e1fb6fa88a64ba9a030f85d4f",
+        "url": "https://github.com/dapphub/ds-test"
+      },
+      {
+        "path": "lib/openzeppelin-contracts-upgradeable/lib/forge-std/lib/ds-test",
+        "commit": "6da7dd8f7395f83e1fb6fa88a64ba9a030f85d4f",
+        "url": "https://github.com/dapphub/ds-test"
+      }
+    ]
+  },
+  "compiler": {
+    "version": "0.7.5+commit.eb77ed08",
+    "binaryVersion": "0.7.5+commit.eb77ed08.Linux.g++",
+    "sha256": "96fb22134c10939334c62c8c0a668b712696f8f81426e6fcf042f0e709e7aa1e"
+  },
+  "target": {
+    "source": "src/protocol/tokens/regular/KlimaToken.sol",
+    "contract": "KlimaToken"
+  },
+  "settings": {
+    "remappings": [
+      "oz/=lib/openzeppelin-contracts/contracts/",
+      "oz-4-5-0/=lib/openzeppelin-contracts-4-5-0/contracts/",
+      "ozu/=lib/openzeppelin-contracts-upgradeable/contracts/",
+      "ozu-4-5-1/=lib/openzeppelin-contracts-upgradeable-4-5-1/contracts/",
+      "ds-test/=lib/forge-std/lib/ds-test/src/",
+      "forge-std/=lib/forge-std/src/",
+      "openzeppelin-contracts-4-5-0/=lib/openzeppelin-contracts-4-5-0/",
+      "openzeppelin-contracts-upgradeable-4-5-1/=lib/openzeppelin-contracts-upgradeable-4-5-1/",
+      "openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/",
+      "openzeppelin-contracts/=lib/openzeppelin-contracts/",
+      "solidity-stringutils/=lib/solidity-stringutils/"
+    ],
+    "optimizer": {
+      "enabled": true,
+      "runs": 800
+    },
+    "metadata": {
+      "useLiteralContent": false,
+      "bytecodeHash": "ipfs"
+    },
+    "evmVersion": "istanbul",
+    "libraries": {}
+  },
+  "sources": {
+    "src/protocol/tokens/regular/KlimaToken.sol": {
+      "path": "contracts/KlimaToken.sol",
+      "sha256": "5dec18858b044e4e6519fbce7be8e096dec47374ef11b3fb155a9a2f76a3a00a"
+    }
+  },
+  "expectedBytecode": {
+    "creation": {
+      "bytes": 7867,
+      "sha256": "8211c8b1cf5964c956704a99375399db96ec9045de431c0897e670682aa9188f"
+    },
+    "runtime": {
+      "bytes": 7110,
+      "sha256": "48b042946e8cb1bb2794568c0388f946ca26eb8bd2dce84bf7c1268e0aed7fcc"
+    }
+  },
+  "lean": {
+    "namespace": "Benchmarks.Klima",
+    "runtime": "klimaBytecode",
+    "creation": "klimaCreationBytecode",
+    "runtimeJumps": "validJumps",
+    "creationJumps": "validCreationJumps"
+  },
+  "emitAst": false
+}

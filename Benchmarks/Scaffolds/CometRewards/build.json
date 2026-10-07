@@ -1,0 +1,95 @@
+{
+  "upstream": {
+    "repository": "https://github.com/compound-finance/comet",
+    "commit": "f766f51583c23acc33b2a7824654ef2029a96804",
+    "command": "yarn build",
+    "config": "hardhat.config.ts",
+    "configSha256": "d98f061d2200e20e3e9470bf3ae4bbecc31b3f95ec591bb75daf9f8b34d3d742",
+    "tools": {
+      "node": "22.20.0",
+      "hardhat": "2.26.0",
+      "yarn": "1.22.22"
+    },
+    "lockfile": {
+      "path": "yarn.lock",
+      "sha256": "ef7abe3f2b3d808a4d8476d23d5a83310cbfee6cdb1788a4a33600de7ec960fa"
+    }
+  },
+  "compiler": {
+    "version": "0.8.15+commit.e14f2714",
+    "binaryVersion": "0.8.15+commit.e14f2714.Linux.g++",
+    "sha256": "5189155ce322d57fb75e8518d9b39139627edea4fb25b5f0ebed0391c52e74cc"
+  },
+  "target": {
+    "source": "contracts/CometRewards.sol",
+    "contract": "CometRewards"
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 1,
+      "details": {
+        "yulDetails": {
+          "optimizerSteps": "dhfoDgvulfnTUtnIf [xa[r]scLM cCTUtTOntnfDIul Lcul Vcul [j] Tpeul xa[rul] xa[r]cL gvif CTUca[r]LsTOtfDnca[r]Iulc] jmul[jul] VcTOcul jmul"
+        }
+      }
+    },
+    "viaIR": true
+  },
+  "sources": {
+    "contracts/CometConfiguration.sol": {
+      "path": "../CompoundIII/contracts/CometConfiguration.sol",
+      "sha256": "e055b1588dcd7d24ba8dd79b2fec7bcb8132b1bfbf8670448ad37d7150cc75b4"
+    },
+    "contracts/CometCore.sol": {
+      "path": "../CompoundIII/contracts/CometCore.sol",
+      "sha256": "1d80f0d12c101d01c2e1f38e8662cfcf350299b1c78188f8c501bb1c51b5ec78"
+    },
+    "contracts/CometExtInterface.sol": {
+      "path": "../CompoundIII/contracts/CometExtInterface.sol",
+      "sha256": "8a8335485870edd1ceaf4a13907932a6630fb1592cba02595d8c785ee359028e"
+    },
+    "contracts/CometInterface.sol": {
+      "path": "../CompoundIII/contracts/CometInterface.sol",
+      "sha256": "71a20ad835c11bc02e8a866c0203d277f6e9f0e65d2b9a827158a3b23b0febd4"
+    },
+    "contracts/CometMainInterface.sol": {
+      "path": "../CompoundIII/contracts/CometMainInterface.sol",
+      "sha256": "8dab837c9ef1d3805413b2d5c948d8c1f5b009da4e4f9505795b2a1535ec0d1b"
+    },
+    "contracts/CometMath.sol": {
+      "path": "../CompoundIII/contracts/CometMath.sol",
+      "sha256": "b649c9c7bdc945ed7901da3454a526deb8e73400243069e36670bf8a89267a0f"
+    },
+    "contracts/CometRewards.sol": {
+      "path": "../CompoundIII/contracts/CometRewards.sol",
+      "sha256": "ba7a859d2936926943613a2add8e651da02b9a38535ac3c3440f6484cf6e9e3c"
+    },
+    "contracts/CometStorage.sol": {
+      "path": "../CompoundIII/contracts/CometStorage.sol",
+      "sha256": "7475e03d2945a35e9bbd93fa96ba8bc18d50f60cdb9ea992e6742efbc199850c"
+    },
+    "contracts/interfaces/ERC20.sol": {
+      "path": "../CompoundIII/contracts/interfaces/ERC20.sol",
+      "sha256": "069618ff93d299ce93296fa55c6cd47c8c2772c8127f25d6fac8ab6b39009d04"
+    }
+  },
+  "expectedBytecode": {
+    "creation": {
+      "bytes": 3621,
+      "sha256": "b95754393ad47f7861fb09b2328907dacb1144af97ee79e21ed83398754b2b27"
+    },
+    "runtime": {
+      "bytes": 3473,
+      "sha256": "fef22ee8eeb502c6908e8329fd81458c05ed3e2209ce42d371dcb4c6a9c63f65"
+    }
+  },
+  "lean": {
+    "namespace": "Benchmarks.CompoundIII.CometRewards",
+    "runtime": "cometRewardsBytecode",
+    "creation": "cometRewardsCreationBytecode",
+    "runtimeJumps": "validJumps",
+    "creationJumps": "creationValidJumps"
+  },
+  "emitAst": true
+}

@@ -4,7 +4,7 @@ import Solm.Equiv
 /-!
 # Safe constructor correctness stub
 
-The optimized creation bytecode, deployed runtime bytecode, and Solm constructor specification are
+The upstream creation bytecode, deployed runtime bytecode, and Solm constructor specification are
 present. The constructor-equivalence proof is intentionally left as the benchmark target.
 -/
 

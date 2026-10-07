@@ -1,41 +1,58 @@
 # Compound III CometRewards Benchmark
 
-Source: [`Benchmarks/CompoundIII/contracts/CometRewards.sol`](../contracts/CometRewards.sol) from
-`compound-finance/comet` main branch commit `f766f51583c23acc33b2a7824654ef2029a96804`.
+Source: [`contracts/CometRewards.sol`](../CompoundIII/contracts/CometRewards.sol) from
+[`compound-finance/comet`](https://github.com/compound-finance/comet/tree/f766f51583c23acc33b2a7824654ef2029a96804)
+commit `f766f51583c23acc33b2a7824654ef2029a96804`.
 
-Compiled with solc `0.8.15`, optimizer enabled, optimizer runs `1`, `via-ir`, and metadata hash
-disabled. See [`Benchmarks/CompoundIII/README.md`](../README.md) for the full source and compiler
-provenance.
+Artifacts reproduce the pinned upstream `yarn build` build, including metadata.
+The [`hardhat.config.ts`](https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/hardhat.config.ts) build uses
+Solidity 0.8.15, optimizer enabled with 1 run, via-IR, the upstream custom Yul optimizer
+sequence, London EVM, and default IPFS metadata.
+
+Both creation and runtime bytecode were compared byte-for-byte with the actual upstream build.
+The vendored Solidity source contents are unchanged.
+
+Compiler: `0.8.15+commit.e14f2714.Linux.g++`. Build tool versions, configuration/lockfile hashes,
+canonical source paths, complete compiler settings, and expected bytecode hashes are in
+[`build.json`](build.json). The compiler inputs retain upstream source names even where the
+vendored directory layout differs.
+
+Reproduce from the repository root with the matching solc binary:
+
+```bash
+python3 scripts/regenerate_scaffold_artifacts.py \
+  Benchmarks/Scaffolds/CometRewards/build.json --solc /path/to/solc-0.8.15
+```
+
+Add `--check` to verify without writing. This replays the target's source closure through solc
+standard JSON; its creation/runtime output is required to match the recorded upstream build.
+Additional AST/storage output selection does not change the bytecode.
 
 Artifacts:
 
-- `creation.hex`: optimized creation bytecode, 4207 bytes, sha256
-  `8776a8d2bfc30e32c4e762f3f4bc34f654ed6e75baa6fb36ea3cf412a9cc5206`
-- `runtime.hex`: optimized deployed runtime bytecode, 4063 bytes, sha256
-  `a96c066be24c8e2de04537bb682583475d70cfe35d8aa34a857165df7c9dfe86`
-- `CometRewards.abi.json`: ABI emitted by solc, sha256
-  `f980ef704b65f32cfea0d4568178408a3455921aad2fa07b521827e2b813eabe`
-- `CometRewards.storage.json`: storage layout emitted by solc, sha256
-  `4e8e887cde6b3244eedf3514a79d33e6d754acbf60975f3bddeff165e561112d`
-- `CometRewards.sol.ast.json`: AST JSON emitted by solc, sha256
-  `cd4926631a632aee6f5f514f4aad6631f2e9ae79f7304c31e1cc3d094df503a8`
-- `Bytecode.lean`: optimized creation/runtime bytecode as Lean `ByteArray`s plus `valid_jumps`
-  facts.
-- `Spec.lean`: Solm AST scaffold with ABI surface and solc storage layout.
-- `SpecSyntax.lean`: syntax-side wrapper checked definitionally against the AST scaffold.
-- `Constructor.lean`: constructor-equivalence target, currently `sorry`.
-- `Correct.lean`: runtime and top-level contract-equivalence targets, currently `sorry`.
+- `creation.hex`: 3621 bytes, without constructor arguments.
+- `runtime.hex`: 3473 bytes.
+- `CometRewards.abi.json`, `CometRewards.storage.json`, and `CometRewards.metadata.json`: compiler outputs.
+- `CometRewards.sol.ast.json`: Solidity compact AST JSON.
+- `Bytecode.lean`: matching creation/runtime arrays and verified jump-destination tables.
+- `artifacts.sha256`: hashes of the generated files, checked from this directory with
+  `sha256sum -c artifacts.sha256`. `build.json` separately records hashes of raw bytecode bytes.
 
-Main source sha256:
-`ba7a859d2936926943613a2add8e651da02b9a38535ac3c3440f6484cf6e9e3c`.
+The shared source closure and source checksum manifest are in
+[`../CompoundIII/`](../CompoundIII/README.md).
+
+Block summaries are generated and type-checked with
+[`check_all_benchmark_blocks.py`](../../../scripts/check_all_benchmark_blocks.py).
+See the [benchmark build instructions](../../README.md#reproducing-upstream-scaffold-builds)
+for the complete command. Generated summaries live outside the source tree.
 
 Status:
 
-- Ready for proof as of 2026-07-03. Target theorem:
+- Target theorem:
   `Benchmarks.CompoundIII.CometRewards.cometRewardsContractCorrect`.
 - Fresh solc `0.8.15` via-IR output matches the checked-in Lean creation/runtime byte arrays and
-  ABI exactly. The storage payload matches modulo regenerated source-path strings.
-- The runtime has six `STATICCALL` sites, three `CALL` sites, and two `EXTCODESIZE` guards. The
+  ABI exactly. The storage slot/type layout is unchanged; source paths and AST identifiers are regenerated.
+- The runtime has four `STATICCALL` sites, three `CALL` sites, and two `EXTCODESIZE` guards. The
   spec models the view calls with `perm := false`; the two no-return `accrueAccount` calls are
   guarded with explicit `EXTCODESIZE > 0` checks.
 - The three source events and custom-error revert payloads are intentionally not represented under

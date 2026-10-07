@@ -47,16 +47,16 @@ proof is substantially under way.
 
 | Benchmark | Upstream source | solc | Runtime bytes |
 |---|---|---|---|
-| `Scaffolds/Safe` | [`safe-global/safe-smart-account`](https://github.com/safe-global/safe-smart-account/blob/77901a5a1ad835b74ad3b72f73a8412cfe491c57/contracts/Safe.sol) | 0.8.35 | 11874 |
-| `Scaffolds/Klima` | [`KlimaDAO/klimadao-solidity`](https://github.com/KlimaDAO/klimadao-solidity/blob/0eb4770c1e9cbead8dd23ef0c23a9a27d761d029/src/protocol/tokens/regular/KlimaToken.sol) | 0.7.5 | 6975 |
+| `Scaffolds/Safe` | [`safe-global/safe-smart-account`](https://github.com/safe-global/safe-smart-account/blob/77901a5a1ad835b74ad3b72f73a8412cfe491c57/contracts/Safe.sol) | 0.7.6 | 20869 |
+| `Scaffolds/Klima` | [`KlimaDAO/klimadao-solidity`](https://github.com/KlimaDAO/klimadao-solidity/blob/0eb4770c1e9cbead8dd23ef0c23a9a27d761d029/src/protocol/tokens/regular/KlimaToken.sol) | 0.7.5 | 7110 |
 | `Scaffolds/ERC721` | Benchmark-local compact ERC721 core ([`ERC721.sol`](Scaffolds/ERC721/ERC721.sol)) | 0.8.35 | 1482 |
-| `Scaffolds/EAS/Attester` | [`ethereum-attestation-service/eas-contracts-example`](https://github.com/ethereum-attestation-service/eas-contracts-example/blob/d2864b166a08f9b3f9314f8b302316d67f227462/contracts/Attester.sol) | 0.8.26 | 3186 |
-| `Scaffolds/CometRewards` | [`compound-finance/comet`](https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/contracts/CometRewards.sol) | 0.8.15 via-IR | 4063 |
-| `Scaffolds/Comet` | [`compound-finance/comet`](https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/contracts/Comet.sol) | 0.8.15 via-IR | 18655 |
+| `Scaffolds/EAS/Attester` | [`ethereum-attestation-service/eas-contracts-example`](https://github.com/ethereum-attestation-service/eas-contracts-example/blob/d2864b166a08f9b3f9314f8b302316d67f227462/contracts/Attester.sol) | 0.8.26 | 3865 |
+| `Scaffolds/CometRewards` | [`compound-finance/comet`](https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/contracts/CometRewards.sol) | 0.8.15 via-IR | 3473 |
+| `Scaffolds/Comet` | [`compound-finance/comet`](https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/contracts/CometWithExtendedAssetList.sol) | 0.8.15 via-IR | 18599 |
 | `Scaffolds/VestingWallet` | [OpenZeppelin `VestingWallet.sol`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/finance/VestingWallet.sol) | 0.8.35 | 2277 |
 | `Scaffolds/TimelockController` | [OpenZeppelin `TimelockController.sol`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/governance/TimelockController.sol) | 0.8.35 | 6509 |
 | `Scaffolds/UniswapV3Pool` | [`Uniswap/v3-core`](https://github.com/Uniswap/v3-core/blob/d0831dc6b8a318df3872b6d68f6de135c9f3ec29/contracts/UniswapV3Pool.sol) | 0.7.6 | 22142 |
-| `Scaffolds/UniswapV2Router02` | [`Uniswap/v2-periphery`](https://github.com/Uniswap/v2-periphery/blob/ed24991304291297c3b4a52818d02f46a17aa9a2/contracts/UniswapV2Router02.sol) | 0.6.6 | 21955 |
+| `Scaffolds/UniswapV2Router02` | [`Uniswap/v2-periphery`](https://github.com/Uniswap/v2-periphery/blob/ed24991304291297c3b4a52818d02f46a17aa9a2/contracts/UniswapV2Router02.sol) | 0.6.6 | 21996 |
 
 `Scaffolds/CompoundIII/` and `Scaffolds/OpenZeppelinBench/` hold source closures shared by the
 respective scaffolds.
@@ -76,3 +76,44 @@ Each benchmark directory contains:
   (pins the upstream sources), and `contracts/` (the exact source closure used to reproduce the
   bytecode). Compiler version and flags are recorded per benchmark in its own `README.md` where
   present.
+
+## Reproducing upstream scaffold builds
+
+Comet, CometRewards, Safe, EAS Attester, Klima, and UniswapV2Router02 have pinned `build.json`
+manifests. Their creation/runtime bytecode was compared byte-for-byte with the actual builds at
+the recorded upstream commits. The manifests preserve source names, metadata settings, optimizer
+details, dependency source checksums, and build tool versions. No on-chain bytecode match is implied.
+
+| Scaffold | Upstream build | Optimizer runs | EVM | Metadata |
+|---|---|---|---|---|
+| Comet / CometRewards | `yarn build` | 1, via-IR, custom Yul sequence | London | IPFS |
+| Safe | `npm run build` | Disabled | Istanbul | IPFS, literal source content |
+| EAS Attester | `pnpm compile` | 1,000,000 | Paris (Hardhat default) | No hash |
+| Klima | Foundry `forge build` | 800 | Istanbul | IPFS, upstream remappings |
+| UniswapV2Router02 | `yarn compile` | 999,999 | Istanbul | IPFS |
+
+Replay any manifest with the matching compiler; use `--check` to verify without changing files:
+
+```bash
+python3 scripts/regenerate_scaffold_artifacts.py \
+  Benchmarks/Scaffolds/Safe/build.json --solc /path/to/solc-0.7.6 --check
+```
+
+The script verifies source hashes and both upstream bytecode hashes before regenerating hex, ABI,
+storage/metadata/AST artifacts, Lean byte arrays, jump tables, and immutable offsets. The source
+closure replay was separately checked against the upstream build, including its metadata.
+
+Generate and type-check fresh runtime block summaries with:
+
+```bash
+python3 scripts/check_all_benchmark_blocks.py \
+  --output-dir /tmp/equivm-upstream-builds/blocks --jobs 4 \
+  --contract Scaffolds/Comet --contract Scaffolds/CometRewards \
+  --contract Scaffolds/Safe --contract Scaffolds/EAS/Attester \
+  --contract Scaffolds/Klima --contract Scaffolds/UniswapV2Router02
+```
+
+Use a fresh output directory after changing bytecode or imported Lean definitions: the existing
+checker caches successful shards by generated source hash. The generator uses each contract's
+updated immutable layout and emits explicit boundaries for unsupported instructions; the summaries
+cover supported segments and do not complete the scaffold's whole-contract equivalence proof.

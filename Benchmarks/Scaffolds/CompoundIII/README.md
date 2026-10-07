@@ -1,54 +1,26 @@
 # Compound III Benchmarks
 
-This directory contains two benchmark scaffolds from Compound III Comet:
+This directory holds the shared source closure for [Comet](../Comet/README.md) and
+[CometRewards](../CometRewards/README.md), copied unchanged from
+[`compound-finance/comet`](https://github.com/compound-finance/comet/tree/f766f51583c23acc33b2a7824654ef2029a96804)
+commit `f766f51583c23acc33b2a7824654ef2029a96804`.
 
-- `CometRewards`: `contracts/CometRewards.sol`
-- `Comet`: `contracts/CometWithExtendedAssetList.sol`
-
-The sources are copied from the upstream `compound-finance/comet` main branch tarball resolved on
-2026-07-03 to commit `f766f51583c23acc33b2a7824654ef2029a96804`.
-
-The copied source closure is under `contracts/`, and `sources.sha256` records the exact file hashes.
-
-Compound's `foundry.toml` on that branch pins:
-
-- `solc_version = "0.8.15"`
-- `optimizer = true`
-- `optimizer_runs = 1`
-- `via_ir = true`
-- `evm_version = "cancun"`
-
-The bytecode here was generated with the matching compiler version and optimization settings:
-
-```bash
-/tmp/solc-0.8.15 --via-ir --optimize --optimize-runs 1 --metadata-hash none \
-  --bin --bin-runtime --abi --storage-layout --base-path . --overwrite \
-  -o /tmp/equivm-compound-main/build-via-ir \
-  contracts/CometRewards.sol contracts/CometWithExtendedAssetList.sol
-```
-
-Compiler:
+The artifacts now match the repository's recommended `yarn build` (`hardhat compile`) output
+byte-for-byte, including metadata. The upstream
+[`hardhat.config.ts`](https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/hardhat.config.ts)
+uses solc `0.8.15+commit.e14f2714`, optimizer enabled with 1 run, via-IR, and this custom sequence:
 
 ```text
-0.8.15+commit.e14f2714.Darwin.appleclang
+dhfoDgvulfnTUtnIf [xa[r]scLM cCTUtTOntnfDIul Lcul Vcul [j] Tpeul xa[rul] xa[r]cL gvif CTUca[r]LsTOtfDnca[r]Iulc] jmul[jul] VcTOcul jmul
 ```
 
-Important note: solc `0.8.15` does not support `--evm-version cancun`, so these artifacts use the
-compiler's default EVM target for `0.8.15`. Compiling without `--via-ir` fails with a stack-too-deep
-compiler error, which is consistent with Compound's `via_ir = true` setting.
+The EVM target is London (the solc 0.8.15 default), and metadata uses the default IPFS hash.
+No `OPTIMIZER_DISABLED` override is set. The build requires nonempty explorer/RPC environment
+variables to load its configuration; local dummy values suffice for compilation.
 
-AST JSON files were generated with:
-
-```bash
-/tmp/solc-0.8.15 --base-path . --ast-compact-json --overwrite \
-  -o /tmp/equivm-compound-main/ast \
-  contracts/CometRewards.sol contracts/CometWithExtendedAssetList.sol
-```
-
-Compiler warnings observed during generation:
-
-- `CometWithExtendedAssetList` has a payable fallback but no receive function.
-- `CometWithExtendedAssetList` has an unused local variable `status` at source line 197.
+Each benchmark's `build.json` records exact compiler settings, source names/checksums, build tool
+versions, and upstream configuration/lockfile checksums. Its README gives the replay command.
+`sources.sha256` contains paths relative to this shared directory.
 
 Scaffold notes:
 
