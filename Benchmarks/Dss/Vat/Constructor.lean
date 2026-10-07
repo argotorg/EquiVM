@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Vat.Common
 import Reasoning.Constructor
 import Reasoning.Initcode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Vat constructor correctness stub
@@ -445,8 +445,7 @@ theorem vatSolmCtorExecReverts_nonpayable
         (locals := vatCtorLocals) hwv
 
 theorem vatConstructorBodyCore :
-    constructorEquivalence config vatCreationBytecode contract vatBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config vatCreationBytecode contract (fun _ => vatBytecode) := by
   intro σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   have hargsLen :
@@ -467,7 +466,7 @@ theorem vatConstructorBodyCore :
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) hcode hperm hwv
         rcases hrd with hOOG | ⟨s, hX, hacc⟩
-        · exact constructorEquivalenceFor.outOfGas
+        · exact typedConstructorRefinementFor.outOfGas
             (Xi_error_of_X (g := g) (by
               rw [← hcode] at hOOG
               simpa [Sat256.ofUInt256] using hOOG))
@@ -490,7 +489,7 @@ theorem vatConstructorBodyCore :
             simp [σLive, σWards, evm2s, evm1s, evm0s, vatCtorAfterLiveState,
               vatCtorAfterWardsState, initState, storageStore_accountMap,
               storageStore_executionEnv, hslot]
-          refine constructorEquivalenceFor.execution hsuccess
+          refine typedConstructorRefinementFor.execution hsuccess
             (by
               simpa [evm0s, evm1s, evm2s] using
                 vatSolmCtorExecSuccess
@@ -503,9 +502,9 @@ theorem vatConstructorBodyCore :
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) hcode hwv
         rcases hrd.xiResult hcode with hOOG | ⟨g', out, hRev⟩
-        · exact constructorEquivalenceFor.outOfGas
+        · exact typedConstructorRefinementFor.outOfGas
             (by simpa [Sat256.ofUInt256] using hOOG)
-        · refine constructorEquivalenceFor.execution
+        · refine typedConstructorRefinementFor.execution
             (by simpa [Sat256.ofUInt256] using hRev)
             (vatSolmCtorExecReverts_nonpayable
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -516,7 +515,7 @@ theorem vatConstructorBodyCore :
       simp [contract, constructorDecl] at hargsLen
 
 theorem vatConstructorCorrect :
-    constructorEquivalence config vatCreationBytecode contract vatBytecode :=
+    typedConstructorRefinement config vatCreationBytecode contract (fun _ => vatBytecode) :=
   vatConstructorBodyCore
 
 end Benchmarks.Dss.Vat

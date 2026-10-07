@@ -1422,7 +1422,7 @@ theorem vowFlopKickNoCodeBodyCore
       let σAsh := sstoreAccountMap I.codeOwner acc ⟨6⟩ AshNew
       Reasoning.Theory.extCodeSizeWord σAsh
         (vowAddressReturnWord ⟨3⟩ σAsh I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let memDai := outDai.write 0 (vatDaiCalldataMem I mem) 128 32
   have hmemDai : memDai.size = 164 := by
     simpa [memDai] using vatDaiWrite_size I outDai 32 hmem (by omega) ho32
@@ -1542,7 +1542,7 @@ theorem vowFlopKickCallFailureBodyCore
           (Solm.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew).executionEnv.codeOwner,
           .int (Int.ofNat DumpVal.toNat), .int (Int.ofNat SumpVal.toNat)]
         (false, evmKick, outKick) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlopKickCallFailure rd1498 houtKickSize (by simp)
   have hbody := vowFlopSourceKickCallFailure
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1650,7 +1650,7 @@ theorem vowFlopKickDecodeShortBodyCore
           (Solm.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew).executionEnv.codeOwner,
           .int (Int.ofNat DumpVal.toNat), .int (Int.ofNat SumpVal.toNat)]
         (true, evmKick, outKick) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlopKickReturnDecodeShortReverts rd1516 hshort hosz hmload64
   have hdecKick : config.externalABI.decode? "kick" outKick = none :=
     flopKickDecode_none_short hshort
@@ -1762,7 +1762,7 @@ theorem vowFlopKickSuccessBodyCore
           .int (Int.ofNat DumpVal.toNat), .int (Int.ofNat SumpVal.toNat)]
         (true, evmKick, outKick) true)
     (hAccountsFinal : Eq acc evmKick.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hret := RD.vowFlopKickSuccess rd1498 hmem hread64 ho32 hosz hid
   have hdecKick :
       config.externalABI.decode? "kick" outKick =

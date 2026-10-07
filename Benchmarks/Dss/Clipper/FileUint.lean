@@ -1392,16 +1392,16 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 9)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 9) (by native_decide) hsel
-  have hdispatch := clipperDispatch_fileUint v hsel
+  have hdispatch := clipperDispatch_fileUint hsel
   have hreachEntry :=
     clipperReachFileUintBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) v hpatch hcode hwv
       hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · have hdecode := clipperDecode_fileUint_ok v (I := I) hsz68
+  · have hdecode := clipperDecode_fileUint_ok (I := I) hsz68
     have hreachBody :=
       clipperFileUintDecodedToBody (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) v hpatch hsz68
@@ -1424,9 +1424,9 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
           let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
           let evm2 := clipperFileUintWordPostState evmSolm ⟨5⟩ data
           have hbody :
-              ExecTransitionBody (config v) (contract v) evmSolm locals
+              ExecTransitionBody config contract evmSolm locals
                 fileUintTransition.body
-                (.returned { contract := contract v, locals := locals } evm2 none) := by
+                (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v) := by
             simpa [evmSolm, evm2, locals, data] using
               (clipperFileUintBufSourceBody
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
@@ -1451,9 +1451,9 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
             let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
             let evm2 := clipperFileUintWordPostState evmSolm ⟨6⟩ data
             have hbody :
-                ExecTransitionBody (config v) (contract v) evmSolm locals
+                ExecTransitionBody config contract evmSolm locals
                   fileUintTransition.body
-                  (.returned { contract := contract v, locals := locals } evm2 none) := by
+                  (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v) := by
               simpa [evmSolm, evm2, locals, data] using
                 (clipperFileUintTailSourceBody
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
@@ -1479,9 +1479,9 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
               let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
               let evm2 := clipperFileUintWordPostState evmSolm ⟨7⟩ data
               have hbody :
-                  ExecTransitionBody (config v) (contract v) evmSolm locals
+                  ExecTransitionBody config contract evmSolm locals
                     fileUintTransition.body
-                    (.returned { contract := contract v, locals := locals } evm2 none) := by
+                    (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v) := by
                 simpa [evmSolm, evm2, locals, data] using
                   (clipperFileUintCuspSourceBody
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
@@ -1507,9 +1507,9 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
                 let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                 let evm2 := clipperFileUintChipPostState evmSolm data
                 have hbody :
-                    ExecTransitionBody (config v) (contract v) evmSolm locals
+                    ExecTransitionBody config contract evmSolm locals
                       fileUintTransition.body
-                      (.returned { contract := contract v, locals := locals } evm2 none) := by
+                      (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v) := by
                   simpa [evmSolm, evm2, locals, data] using
                     (clipperFileUintChipSourceBody
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
@@ -1539,9 +1539,9 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
                   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                   let evm2 := clipperFileUintTipPostState evmSolm data
                   have hbody :
-                      ExecTransitionBody (config v) (contract v) evmSolm locals
+                      ExecTransitionBody config contract evmSolm locals
                         fileUintTransition.body
-                        (.returned { contract := contract v, locals := locals } evm2 none) := by
+                        (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v) := by
                     simpa [evmSolm, evm2, locals, data] using
                       (clipperFileUintTipSourceBody
                         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
@@ -1572,9 +1572,9 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
                     let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                     let evm2 := clipperFileUintWordPostState evmSolm ⟨14⟩ data
                     have hbody :
-                        ExecTransitionBody (config v) (contract v) evmSolm locals
+                        ExecTransitionBody config contract evmSolm locals
                           fileUintTransition.body
-                          (.returned { contract := contract v, locals := locals } evm2 none) := by
+                          (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v) := by
                       simpa [evmSolm, evm2, locals, data] using
                         (clipperFileUintStoppedSourceBody
                           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -1599,8 +1599,8 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
                         (by native_decide)
                     let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                     have hbody :
-                        ExecTransitionBody (config v) (contract v) evmSolm locals
-                          fileUintTransition.body .reverted := by
+                        ExecTransitionBody config contract evmSolm locals
+                          fileUintTransition.body .reverted (immStore v) := by
                       simpa [evmSolm, locals] using
                         (clipperFileUintUnrecognizedSourceBody
                           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -1633,8 +1633,8 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
           exact hlockedEvm (by rw [hlockWord, hsolm])
         let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
-            ExecTransitionBody (config v) (contract v) evmSolm locals
-              fileUintTransition.body .reverted := by
+            ExecTransitionBody config contract evmSolm locals
+              fileUintTransition.body .reverted (immStore v) := by
           simpa [evmSolm, locals] using
             (clipperFileUintLockedSourceReverts
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
@@ -1649,8 +1649,8 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
         exact hauthEvm (by rw [hauthWord, hsolm])
       let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
-          ExecTransitionBody (config v) (contract v) evmSolm locals
-            fileUintTransition.body .reverted := by
+          ExecTransitionBody config contract evmSolm locals
+            fileUintTransition.body .reverted (immStore v) := by
         simpa [evmSolm, locals] using
           (clipperFileUintAuthSourceReverts
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv hauthSolm)
@@ -1660,7 +1660,7 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
   · have hshort : I.calldata.size < 68 := by omega
     have hrev := clipperFileUintX_shortarg (v := v) hpatch hsz4 hsize hshort hreachEntry
     exact hrev.reEquivDecodingFailed hcode hdispatch
-      (clipperDecode_fileUint_none_short v hsz4 hshort)
+      (clipperDecode_fileUint_none_short hsz4 hshort)
 
 
 end Benchmarks.Dss.Clipper

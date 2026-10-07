@@ -2369,7 +2369,7 @@ theorem endFileAddressBodyCoreStore
           (setAddressOffset0Word (solcSlotWord σ I slot)
             (endFileAddressDataMaskedWord I)))
         ByteArray.empty) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let stored :=
     setAddressOffset0Word (solcSlotWord σ I slot) (endFileAddressDataMaskedWord I)
@@ -2393,7 +2393,7 @@ theorem endFileAddressBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf fileAddressTransition)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endFileAddressConcreteSelector := by
     simpa [endFileAddressSelectorBytes, endFileAddressConcreteSelector] using hsel
   have hsz4 : 4 ≤ I.calldata.size :=

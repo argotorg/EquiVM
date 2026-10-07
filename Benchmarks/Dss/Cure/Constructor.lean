@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Cure.Rely
 import Reasoning.Constructor
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Cure constructor correctness stub
@@ -355,8 +355,7 @@ theorem cureCtorRDretXiResult
     exact Or.inr ⟨_, _, hxi⟩
 
 theorem cureConstructorBodyCore :
-    constructorEquivalence config cureCreationBytecode contract cureBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config cureCreationBytecode contract (fun _ => cureBytecode) := by
   intro σ σ₀ g A I
       args deployedInitcode hdeploy hcode _hcalldata hperm
   obtain ⟨hargs, hdeployed⟩ := cureCtorDeployment_eq_initcode hdeploy
@@ -367,7 +366,7 @@ theorem cureConstructorBodyCore :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) hcode hperm hwv
     rcases cureCtorRDretXiResult hcode hrd with hOOG | hSuccess
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.toUInt256] using hOOG)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.toUInt256] using hOOG)
     · rcases hSuccess with ⟨g', A', hXi⟩
       have hSolm := cureCtorSolmExecOk
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -389,22 +388,22 @@ theorem cureConstructorBodyCore :
                   (Sat256.ofUInt256 g) A I))
               I).accountMap := by
         rw [hmapSolm]
-      refine constructorEquivalenceFor.execution hXi hSolm ?_
+      refine typedConstructorRefinementFor.execution hXi hSolm ?_
       exact ctorResultEquiv.success rfl rfl hmap rfl
   · have hrd := cureCtorNonpayableRDrev
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) hcode hwv
     rcases hrd.xiResult hcode with hOOG | hRev
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.toUInt256] using hOOG)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.toUInt256] using hOOG)
     · rcases hRev with ⟨g', o, hXi⟩
       have hSolm := cureCtorSolmExecReverts_nonpayable
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := g) hwv
-      refine constructorEquivalenceFor.execution hXi hSolm ?_
+      refine typedConstructorRefinementFor.execution hXi hSolm ?_
       exact ctorResultEquiv.revert rfl rfl
 
 theorem cureConstructorCorrect :
-    constructorEquivalence config cureCreationBytecode contract cureBytecode :=
+    typedConstructorRefinement config cureCreationBytecode contract (fun _ => cureBytecode) :=
   cureConstructorBodyCore
 
 end Benchmarks.Dss.Cure

@@ -8,7 +8,7 @@ import Benchmarks.Dss.DaiJoin.Live
 import Benchmarks.Dss.DaiJoin.Rely
 import Benchmarks.Dss.DaiJoin.Vat
 import Benchmarks.Dss.DaiJoin.Wards
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS DaiJoin benchmark correctness stub
@@ -25,8 +25,8 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.DaiJoin
 
 theorem daiJoinCorrect :
-    runtimeEquivalence config daiJoinBytecode contract := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement config daiJoinBytecode contract := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcage : selIs I (daiJoinSelBytes 0)
@@ -53,7 +53,7 @@ theorem daiJoinCorrect :
   · exact daiJoinNonPayable hcode hwv
 
 theorem daiJoinContractCorrect :
-    contractEquivalence config daiJoinCreationBytecode daiJoinBytecode contract :=
-  contractEquivalence.intro daiJoinConstructorCorrect daiJoinCorrect
+    contractRefinement config daiJoinCreationBytecode contract :=
+  contractRefinement.of_constant daiJoinConstructorCorrect daiJoinCorrect
 
 end Benchmarks.Dss.DaiJoin

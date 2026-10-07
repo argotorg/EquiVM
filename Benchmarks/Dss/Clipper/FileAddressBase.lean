@@ -89,9 +89,9 @@ theorem clipperFileAddressData_value_masked (I : ExecutionEnv) :
     clipperFileAddressDataWord] using
     (solcAddressValue_masked (calldataWord I.calldata 36))
 
-theorem clipperDecode_fileAddress_ok (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_fileAddress_ok {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (fileAddressTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (fileAddressTransition.params.map Param.name)
       (transitionSignature fileAddressTransition).paramTypes I.calldata =
         some (clipperFileAddressLocals I) := by
   simpa [config, fileAddressTransition, bytes32, bytes32Width, addr,
@@ -100,9 +100,9 @@ theorem clipperDecode_fileAddress_ok (v : ClipperImmutables) {I : ExecutionEnv}
     (decodeCalldata_legacyBytes32_address_ok (cd := I.calldata) (x := "what")
       (y := "data") hsz68)
 
-theorem clipperDecode_fileAddress_none_short (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_fileAddress_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68) :
-    decodeCalldataWithMode (config v).abiDecodeMode (fileAddressTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (fileAddressTransition.params.map Param.name)
       (transitionSignature fileAddressTransition).paramTypes I.calldata = none := by
   simpa [config, fileAddressTransition, bytes32, bytes32Width, addr, abiBytes32,
     abiBytes32Width, abiAddress] using
@@ -116,18 +116,18 @@ theorem clipperFileAddressSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldat
     solcSelectorWord_eq_of_beq I hsz 0xd4 0xe8 0xbe 0x83 (clipperSelNat 10)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_fileAddress (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_fileAddress {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 10)) :
-    dispatchMsg (contract v) I.calldata = some fileAddressTransition := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some fileAddressTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre :=
       [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
         countTransition, cuspTransition, denyTransition, dogTransition, fileUintTransition])
     (post :=
-      [getStatusTransition, ilkTransition v, kickTransition v, kicksTransition, listTransition,
-        redoTransition v, relyTransition, salesTransition, spotterTransition, stoppedTransition,
-        tailTransition, takeTransition v, tipTransition, upchostTransition v, vatTransition v,
-        vowTransition, wardsTransition, yankTransition v])
+      [getStatusTransition, ilkTransition, kickTransition, kicksTransition, listTransition,
+        redoTransition, relyTransition, salesTransition, spotterTransition, stoppedTransition,
+        tailTransition, takeTransition, tipTransition, upchostTransition, vatTransition,
+        vowTransition, wardsTransition, yankTransition])
     (ti := fileAddressTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
@@ -312,7 +312,7 @@ theorem clipperFileAddressLocals_get_base_none (I : ExecutionEnv)
 theorem evalExpr_clipperFileAddress_data {v : ClipperImmutables} {evm : EVM.State}
     {I : ExecutionEnv} {locals : Store}
     (h : locals.get? "data" = some (.address (clipperFileAddressData I))) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "data") =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "data") =
       .ok (.address (clipperFileAddressData I)) := by
   rw [evalExpr?]
   change EvalResult.ofOption EvalError.unboundVariable (locals.get? "data") =
@@ -324,10 +324,10 @@ theorem evalExpr_clipperFileAddress_what_eq_true {v : ClipperImmutables}
     {evm : EVM.State} {I : ExecutionEnv} {locals : Store} {bs : List UInt8}
     (hget : locals.get? "what" = some (.fixedBytes bytes32Width (clipperFileAddressWhat I)))
     (hwhat : clipperFileAddressWhat I = bs) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.binary .eq (.var "what") (.fixedBytesLit bytes32Width bs)) = .ok (.bool true) := by
   have hvar :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "what") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "what") =
         .ok (.fixedBytes bytes32Width (clipperFileAddressWhat I)) := by
     rw [evalExpr?]
     change EvalResult.ofOption EvalError.unboundVariable (locals.get? "what") =
@@ -343,10 +343,10 @@ theorem evalExpr_clipperFileAddress_what_eq_false {v : ClipperImmutables}
     {evm : EVM.State} {I : ExecutionEnv} {locals : Store} {bs : List UInt8}
     (hget : locals.get? "what" = some (.fixedBytes bytes32Width (clipperFileAddressWhat I)))
     (hwhat : clipperFileAddressWhat I ≠ bs) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.binary .eq (.var "what") (.fixedBytesLit bytes32Width bs)) = .ok (.bool false) := by
   have hvar :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "what") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "what") =
         .ok (.fixedBytes bytes32Width (clipperFileAddressWhat I)) := by
     rw [evalExpr?]
     change EvalResult.ofOption EvalError.unboundVariable (locals.get? "what") =
@@ -360,7 +360,7 @@ theorem evalExpr_clipperFileAddress_what_eq_false {v : ClipperImmutables}
 
 theorem evalStorageRef_clipperFileAddress_auth (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (hsrc : evm.executionEnv.source = I.source) :
-    evalStorageRef (config v) { contract := contract v, locals := clipperFileAddressLocals I }
+    evalStorageRef config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }
       evm (wardsRef sender) = .ok (clipperRelyAuthEvaledRef I) := by
   simp [evalStorageRef, evalStorageRefStep, wardsRef, sender, envValue,
     clipperRelyAuthEvaledRef, clipperRelyAuthKey, hsrc, valueToKey?, EvalResult.bind,
@@ -371,14 +371,14 @@ theorem evalExpr_clipperFileAddress_auth_true (v : ClipperImmutables) (evm : EVM
     (hload :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperRelyAuthStorageSlot I) = ⟨1⟩) :
-    evalExpr? (config v) { contract := contract v, locals := clipperFileAddressLocals I } evm
+    evalExpr? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v } evm
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
   have hstorage :
-      evalExpr? (config v) { contract := contract v, locals := clipperFileAddressLocals I }
+      evalExpr? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }
         evm (.storage (wardsRef sender)) = .ok (.int 1) := by
     rw [evalExpr_storage_scalar_value
-      (cfg := config v)
-      (solm := { contract := contract v, locals := clipperFileAddressLocals I })
+      (cfg := config)
+      (solm := { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v })
       (slot := wardsRef sender)
       (er := clipperRelyAuthEvaledRef I)
       (t := .int uint256Int)
@@ -400,17 +400,17 @@ theorem evalExpr_clipperFileAddress_auth_false (v : ClipperImmutables) (evm : EV
     (hload :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperRelyAuthStorageSlot I) ≠ ⟨1⟩) :
-    evalExpr? (config v) { contract := contract v, locals := clipperFileAddressLocals I } evm
+    evalExpr? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v } evm
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool false) := by
   have hstorage :
-      evalExpr? (config v) { contract := contract v, locals := clipperFileAddressLocals I }
+      evalExpr? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }
         evm (.storage (wardsRef sender)) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (clipperRelyAuthStorageSlot I)).toNat)) := by
     exact evalExpr_storage_scalar_value
-      (cfg := config v)
-      (solm := { contract := contract v, locals := clipperFileAddressLocals I })
+      (cfg := config)
+      (solm := { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v })
       (slot := wardsRef sender)
       (er := clipperRelyAuthEvaledRef I)
       (t := .int uint256Int)
@@ -446,21 +446,21 @@ theorem evalExpr_clipperFileAddress_auth_false (v : ClipperImmutables) (evm : EV
 
 theorem evalStorageRef_clipperFileAddress_locked (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
-    evalStorageRef (config v) { contract := contract v, locals := clipperFileAddressLocals I }
+    evalStorageRef config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }
       evm lockedRef = .ok { base := "locked", steps := [] } := by
   simp [lockedRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
 
 theorem evalExpr_clipperFileAddress_locked_zero_true (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨13⟩ = ⟨0⟩) :
-    evalExpr? (config v) { contract := contract v, locals := clipperFileAddressLocals I } evm
+    evalExpr? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v } evm
       (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool true) := by
   have hstorage :
-      evalExpr? (config v) { contract := contract v, locals := clipperFileAddressLocals I }
+      evalExpr? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }
         evm (.storage lockedRef) = .ok (.int 0) := by
     rw [evalExpr_storage_scalar_value
-      (cfg := config v)
-      (solm := { contract := contract v, locals := clipperFileAddressLocals I })
+      (cfg := config)
+      (solm := { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v })
       (slot := lockedRef)
       (er := { base := "locked", steps := [] })
       (t := .int uint256Int)
@@ -478,16 +478,16 @@ theorem evalExpr_clipperFileAddress_locked_zero_true (v : ClipperImmutables)
 theorem evalExpr_clipperFileAddress_locked_zero_false (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨13⟩ ≠ ⟨0⟩) :
-    evalExpr? (config v) { contract := contract v, locals := clipperFileAddressLocals I } evm
+    evalExpr? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v } evm
       (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool false) := by
   have hstorage :
-      evalExpr? (config v) { contract := contract v, locals := clipperFileAddressLocals I }
+      evalExpr? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }
         evm (.storage lockedRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨13⟩).toNat)) := by
     exact evalExpr_storage_scalar_value
-      (cfg := config v)
-      (solm := { contract := contract v, locals := clipperFileAddressLocals I })
+      (cfg := config)
+      (solm := { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v })
       (slot := lockedRef)
       (er := { base := "locked", steps := [] })
       (t := .int uint256Int)
@@ -521,9 +521,9 @@ theorem evalExpr_clipperFileAddress_locked_zero_false (v : ClipperImmutables)
 
 theorem assign_clipperFileAddress_locked (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (value : UInt256) :
-    assignStorageRef? (config v) { contract := contract v, locals := clipperFileAddressLocals I }
+    assignStorageRef? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }
       evm .storage lockedRef (.int (Int.ofNat value.toNat)) =
-        .ok ({ contract := contract v, locals := clipperFileAddressLocals I },
+        .ok ({ contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨13⟩ value) := by
   apply assignStorageRef_storage_scalar
       (ty := uint256St)
@@ -540,9 +540,9 @@ theorem assign_clipperFileAddress_spotter (v : ClipperImmutables) (evm : EVM.Sta
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨3⟩
       (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩)
         (clipperFileAddressDataMaskedWord I))
-    assignStorageRef? (config v) { contract := contract v, locals := clipperFileAddressLocals I }
+    assignStorageRef? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }
       evm .storage spotterRef (.address (clipperFileAddressData I)) =
-        .ok ({ contract := contract v, locals := clipperFileAddressLocals I }, evm') := by
+        .ok ({ contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }, evm') := by
   intro evm'
   rw [clipperFileAddressData_value_masked I]
   apply assignStorageRef_storage_scalar_value
@@ -565,9 +565,9 @@ theorem assign_clipperFileAddress_dog (v : ClipperImmutables) (evm : EVM.State)
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨1⟩
       (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩)
         (clipperFileAddressDataMaskedWord I))
-    assignStorageRef? (config v) { contract := contract v, locals := clipperFileAddressLocals I }
+    assignStorageRef? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }
       evm .storage dogRef (.address (clipperFileAddressData I)) =
-        .ok ({ contract := contract v, locals := clipperFileAddressLocals I }, evm') := by
+        .ok ({ contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }, evm') := by
   intro evm'
   rw [clipperFileAddressData_value_masked I]
   apply assignStorageRef_storage_scalar_value
@@ -589,9 +589,9 @@ theorem assign_clipperFileAddress_vow (v : ClipperImmutables) (evm : EVM.State)
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨2⟩
       (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)
         (clipperFileAddressDataMaskedWord I))
-    assignStorageRef? (config v) { contract := contract v, locals := clipperFileAddressLocals I }
+    assignStorageRef? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }
       evm .storage vowRef (.address (clipperFileAddressData I)) =
-        .ok ({ contract := contract v, locals := clipperFileAddressLocals I }, evm') := by
+        .ok ({ contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }, evm') := by
   intro evm'
   rw [clipperFileAddressData_value_masked I]
   apply assignStorageRef_storage_scalar_value
@@ -613,9 +613,9 @@ theorem assign_clipperFileAddress_calc (v : ClipperImmutables) (evm : EVM.State)
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨4⟩
       (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨4⟩)
         (clipperFileAddressDataMaskedWord I))
-    assignStorageRef? (config v) { contract := contract v, locals := clipperFileAddressLocals I }
+    assignStorageRef? config { contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }
       evm .storage calcRef (.address (clipperFileAddressData I)) =
-        .ok ({ contract := contract v, locals := clipperFileAddressLocals I }, evm') := by
+        .ok ({ contract := contract, locals := clipperFileAddressLocals I, immutables := immStore v }, evm') := by
   intro evm'
   rw [clipperFileAddressData_value_masked I]
   apply assignStorageRef_storage_scalar_value

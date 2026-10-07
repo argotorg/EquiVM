@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Clipper.ConstructorSource
 import Benchmarks.Dss.Clipper.ConstructorTrace
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Clipper constructor correctness
@@ -80,12 +80,33 @@ private theorem clipperCtorStateEquiv
       (show (⟨1⟩ : UInt256) = ⟨1⟩ by rfl)
 
 set_option maxHeartbeats 3000000 in
-theorem clipperConstructorBodyCore (v : ClipperImmutables) :
-    constructorEquivalenceWith (config v) clipperCreationBytecode (contract v)
-      (runtimeCodeOf clipperBytecode) := by
-  refine constructorEquivalenceWith.intro ?_
+/-- The runtime code deployed for an immutables store: solc's template patched with its `vat` and
+    `ilk`. -/
+def deployedRuntime (imms : Store) : ByteArray :=
+  match imms.get? "vat", imms.get? "ilk" with
+  | some (.address vat), some (.fixedBytes _ ilk) => clipperCtorPatchedRuntime vat ilk
+  | _, _ => clipperBytecode
+
+theorem clipperCtorFinalImms_get_vat (vat : AccountAddress) (ilk : List UInt8) :
+    (clipperCtorFinalImms vat ilk).get? "vat" = some (.address vat) := by
+  simp only [clipperCtorFinalImms, initialImmutables, contract, List.foldl]; grind
+
+theorem clipperCtorFinalImms_get_ilk (vat : AccountAddress) (ilk : List UInt8) :
+    (clipperCtorFinalImms vat ilk).get? "ilk" = some (.fixedBytes bytes32Width ilk) := by
+  simp [clipperCtorFinalImms]
+
+theorem clipperCtorFinalImms_fit (vat : AccountAddress) (ilk : List UInt8)
+    (hilk : ilk.length = 32) : immutablesFit contract (clipperCtorFinalImms vat ilk) := by
+  intro d hd
+  simp only [contract, List.mem_cons, List.not_mem_nil, or_false] at hd
+  rcases hd with rfl | rfl
+  · exact ⟨_, clipperCtorFinalImms_get_vat vat ilk, rfl⟩
+  · exact ⟨_, clipperCtorFinalImms_get_ilk vat ilk, by simp [elemValueFits, bytes32Width, hilk]⟩
+
+theorem clipperConstructorCorrect :
+    typedConstructorRefinement config clipperCreationBytecode contract deployedRuntime := by
   intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
-  rcases clipperCtorDeployment_shape v hdeploy with
+  rcases clipperCtorDeployment_shape hdeploy with
     ⟨vat, spotter, dog, ilk, hilk, hargs, hdeployed⟩
   subst args
   have hcodeCtor : I.code = clipperCtorCode vat spotter dog ilk := by
@@ -97,7 +118,7 @@ theorem clipperConstructorBodyCore (v : ClipperImmutables) :
     rcases clipperRDretXiResultAccountMap (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) (code := clipperCtorCode vat spotter dog ilk)
       (o := clipperCtorPatchedRuntime vat ilk) hcodeCtor hrd with hOOG | ⟨g', A', hsuccess⟩
-    · exact constructorEquivalenceForWith.outOfGas
+    · exact .outOfGas
         (by simpa [Sat256.ofUInt256] using hOOG)
     · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm1 := clipperCtorAfterStoppedState evm0
@@ -137,39 +158,30 @@ theorem clipperConstructorBodyCore (v : ClipperImmutables) :
           storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount,
           Account.lookupStorage, solcSlotWord, clipperCtorCallerWardsSlot_eq] using
           hstate.accountMap
-      have hrt :
-          runtimeCodeOf clipperBytecode (clipperCtorFinalLocals vat spotter dog ilk) =
-            some (clipperCtorPatchedRuntime vat ilk) := by
-        rw [clipperCtorRuntimeCodeOf vat spotter dog ilk hilk,
-          clipperPatchRuntime_eq_ctorPatchedRuntime vat ilk hilk]
-      refine constructorEquivalenceForWith.execution
+      refine .execution
         (by simpa [Sat256.ofUInt256, σFinal] using hsuccess)
         (by
           simpa [evm0, evm1, evm2, evm3, evm4, evm5] using
             clipperSolmCtorExecSuccess
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-              v vat spotter dog ilk hwv)
-        ?_
-      exact ctorResultEquivWith.success rfl rfl hMapFinal hrt
+              vat spotter dog ilk hilk hwv)
+        ?_ ?_
+      · refine ctorResultEquiv.success rfl rfl hMapFinal ?_
+        simp only [deployedRuntime, clipperCtorFinalImms_get_vat, clipperCtorFinalImms_get_ilk]
+      · exact clipperCtorFinalImms_fit vat ilk hilk
   · have hrd := clipperInitcodeNonpayableRevert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       vat spotter dog ilk hcodeCtor hperm hwv
     rcases RDrev.xiResult (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) (code := clipperCtorCode vat spotter dog ilk)
       hcodeCtor hrd with hOOG | ⟨g', out, hrev⟩
-    · exact constructorEquivalenceForWith.outOfGas
+    · exact .outOfGas
         (by simpa [Sat256.ofUInt256] using hOOG)
-    · refine constructorEquivalenceForWith.execution
+    · exact .execution
         (by simpa [Sat256.ofUInt256] using hrev)
         (clipperSolmCtorExecReverts_nonpayable
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-          v vat spotter dog ilk hwv)
-        ?_
-      exact ctorResultEquivWith.revert rfl rfl
-
-theorem clipperConstructorCorrect (v : ClipperImmutables) :
-    constructorEquivalenceWith (config v) clipperCreationBytecode (contract v)
-      (runtimeCodeOf clipperBytecode) :=
-  clipperConstructorBodyCore v
+          vat spotter dog ilk hwv)
+        (ctorResultEquiv.revert rfl rfl) trivial
 
 end Benchmarks.Dss.Clipper

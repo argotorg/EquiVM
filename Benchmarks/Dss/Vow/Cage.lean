@@ -1509,7 +1509,7 @@ theorem vowCageAuthRevert {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩)
     (hauthEvm : vowSlotWord (vowCallerWardsSlot I) σ I ≠ ⟨1⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let callerSlot := vowCallerWardsSlot I
   let locals : Store := ∅
   have hsz : 4 ≤ I.calldata.size :=
@@ -1567,7 +1567,7 @@ theorem vowCageLiveRevert {σ σ₀ A I} {g : UInt256}
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩)
     (hauthEvm : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hliveEvm : vowSlotWord ⟨12⟩ σ I ≠ ⟨1⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let callerSlot := vowCallerWardsSlot I
   let locals : Store := ∅
   have hsz : 4 ≤ I.calldata.size :=

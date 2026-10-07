@@ -1083,7 +1083,7 @@ theorem vowCageFirstDaiNoCodeBodyCore {σ σ₀ A I} {g : UInt256}
         (vowCageClearedAccountMap I.codeOwner σ)
         (kissDaiTargetWord (vowCageClearedAccountMap I.codeOwner σ) I) =
           ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let σClearedEvm := vowCageClearedAccountMap I.codeOwner σ
   let σClearedSolm := vowCageClearedAccountMap I.codeOwner σ
   have hsz : 4 ≤ I.calldata.size :=
@@ -1192,7 +1192,7 @@ theorem vowCageFirstDaiCallFailureBodyCore
       typedCallViaEVM config evmAsh (EVM.address (cageVatAddressOf evmAsh))
         "dai" 0 [.address (flapFlapperAddressOf evmAsh)] (false, evmDai, outDai)
         false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageFirstDaiCallFailure rd2754 hrdataSize (by simpa using hov)
@@ -1240,7 +1240,7 @@ theorem vowCageFirstDaiDecodeShortBodyCore
       typedCallViaEVM config evmAsh (EVM.address (cageVatAddressOf evmAsh))
         "dai" 0 [.address (flapFlapperAddressOf evmAsh)] (true, evmDai, outDai)
         false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hmin :
       (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai.size)).toNat = outDai.size :=
     kissDaiMin32_toNat_of_lt hshort
@@ -1318,7 +1318,7 @@ theorem vowCageFlapperCageNoCodeBodyCore
       (UInt256.ofNat
         ((evmDai.lookupAccount (flapFlapperAddressOf evmDai)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageFlapperCageNoCode rd2795 hmem hread64 hcodeSize (by simp; omega)
@@ -1373,7 +1373,7 @@ theorem vowCageFlapperCageCallFailureBodyCore
       typedCallViaEVM config evmDai (EVM.address (flapFlapperAddressOf evmDai))
         "cage" 0 [.int (Int.ofNat flapperDai.toNat)] (false, evmFlap, outFlap)
         true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageFlapperCageCallFailure rd2860 hrdataSize (by simp; omega)
@@ -1436,7 +1436,7 @@ theorem vowCageFlopperCageNoCodeBodyCore
       (UInt256.ofNat
         ((evmFlap.lookupAccount (flopFlopperAddressOf evmFlap)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageFlopperCageNoCode rd2881 hmem hread64 hcodeSize hov
@@ -1500,7 +1500,7 @@ theorem vowCageFlopperCageCallFailureBodyCore
     (hcallFlop :
       typedCallViaEVM config evmFlap (EVM.address (flopFlopperAddressOf evmFlap))
         "cage" 0 [] (false, evmFlop, outFlop) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageFlopperCageCallFailure rd2964 hrdataSize (by simp; omega)

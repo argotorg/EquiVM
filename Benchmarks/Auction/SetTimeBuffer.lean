@@ -24,7 +24,7 @@ theorem setTimeBufferBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I (entryBytes 7))
     (hreach : EntryReached 7 σ σ₀ A I g) :
-    runtimeEquivalenceFor auctionConfig auctionContract
+    runtimeRefinementFor auctionConfig auctionContract
       σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 7 hsel

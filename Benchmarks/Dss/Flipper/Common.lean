@@ -8,7 +8,7 @@ import Reasoning.Storage
 import Reasoning.Dispatch
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Flipper shared proof foundation
@@ -786,7 +786,7 @@ theorem flipperAddressGetterBodyCore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
             (flipperAddressReturnWord slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (flipperAddressReturnWord slot σ I))
         (some [(.address (AccountAddress.ofNat (flipperAddressReturnWord slot σ I).toNat))])
@@ -829,7 +829,7 @@ theorem flipperBytes32GetterBodyCore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.fixedBytes bytes32Width
             (EVM.Word.toBytesBE (flipperSlotWord slot σ I)))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (flipperSlotWord slot σ I))
         (some [(.fixedBytes bytes32Width (EVM.Word.toBytesBE (flipperSlotWord slot σ I)))])
@@ -870,7 +870,7 @@ theorem flipperUint256GetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (flipperSlotWord slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (flipperSlotWord slot σ I))
         (some [(.int (Int.ofNat (flipperSlotWord slot σ I).toNat))])
@@ -1174,7 +1174,7 @@ theorem flipperUint48Offset0GetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (flipperUint48Offset0Word slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (flipperUint48Offset0Word slot σ I))
         (some [(.int (Int.ofNat (flipperUint48Offset0Word slot σ I).toNat))])
@@ -1215,7 +1215,7 @@ theorem flipperUint48Offset6GetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (flipperUint48Offset6Word slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (flipperUint48Offset6Word slot σ I))
         (some [(.int (Int.ofNat (flipperUint48Offset6Word slot σ I).toNat))])

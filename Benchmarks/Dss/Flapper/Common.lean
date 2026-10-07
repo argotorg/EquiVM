@@ -269,7 +269,7 @@ theorem flapperUint256GetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (flapperSlotWord slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hword : flapperSlotWord slot σ I = flapperSlotWord slot σ I :=
     rfl
   have hval :
@@ -606,7 +606,7 @@ theorem flapperUint48Offset0GetterBodyCore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int
             (Int.ofNat (flapperUint48Offset0Word slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hslot : flapperSlotWord slot σ I = flapperSlotWord slot σ I :=
     rfl
   have hslot' : solcSlotWord σ I slot = solcSlotWord σ I slot := by
@@ -657,7 +657,7 @@ theorem flapperUint48Offset6GetterBodyCore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int
             (Int.ofNat (flapperUint48Offset6Word slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hslot : flapperSlotWord slot σ I = flapperSlotWord slot σ I :=
     rfl
   have hslot' : solcSlotWord σ I slot = solcSlotWord σ I slot := by
@@ -714,7 +714,7 @@ theorem flapperAddressGetterBodyCore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
             (flapperAddressReturnWord slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hword : flapperSlotWord slot σ I = flapperSlotWord slot σ I :=
     rfl
   have hval :

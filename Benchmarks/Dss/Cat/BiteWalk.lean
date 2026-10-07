@@ -110,7 +110,7 @@ theorem catBiteRevertUrnsDecode {σ σ₀ A I} {g : UInt256}
         UInt256.land biteAddrMaskWord (calldataWord I.calldata 36) :: biteIlkWord I ::
         ⟨419⟩ :: catSelWord I :: [])
       (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨9⟩ ou σu ku Cu) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   obtain ⟨σs, As, σus, Aus, hIlksSolm, hUrnsSolm, _hAmEq, hvatCodeIlkS⟩ :=
     catBiteMapUrns hdepthNe hUrnsVatCode hIlksCall hUrnsCall
@@ -140,7 +140,7 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩ rfl hsel
   by_cases hshort : I.calldata.size < 68

@@ -528,7 +528,7 @@ theorem vowFlapVatSin0NoCodeBodyCore
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapVatSin0NoCode hreach hcodeSize
   have haddr :
       kissVatAddress σ I =
@@ -570,7 +570,7 @@ theorem vowFlapSin0CallFailureBodyCore
       typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (false, evmSin, outSin) false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapSin0CallFailure rd937 hrdataSize (by simp)
   have hbody := vowFlapSourceVatSin0CallFailure
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -607,7 +607,7 @@ theorem vowFlapSin0DecodeShortBodyCore
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat outSin.size)).toNat = outSin.size :=
     kissDaiMin32_toNat_of_lt hshort
   have rd937' := rd937

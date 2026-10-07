@@ -1647,7 +1647,7 @@ theorem vowFileUintBodyCore
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨414⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let data := fileUintData I
   let callerSlot := vowCallerWardsSlot I
   let locals := fileUintLocals I
@@ -1800,7 +1800,7 @@ theorem vowFileUintBody {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0x29, 0xae, 0x81, 0x14]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size := by omega
   exact vowFileUintBodyCore (sel := vowSelWord I) hcode hwv hperm hsz68 hsize
     (vowDispatch_fileUint hsel)
@@ -1812,7 +1812,7 @@ theorem vowFileUintShort {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hsel : selIs I ⟨#[0x29, 0xae, 0x81, 0x14]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hreach :=
     vowReachFileUintBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)

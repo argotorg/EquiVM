@@ -44,18 +44,18 @@ theorem clipperWardsSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size
     solcSelectorWord_eq_of_beq I hsz 0xbf 0x35 0x3d 0xbb (clipperSelNat 27)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_wards (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_wards {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 27)) :
-    dispatchMsg (contract v) I.calldata = some wardsTransition := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some wardsTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre :=
       [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
         countTransition, cuspTransition, denyTransition, dogTransition, fileUintTransition,
-        fileAddressTransition, getStatusTransition, ilkTransition v, kickTransition v,
-        kicksTransition, listTransition, redoTransition v, relyTransition, salesTransition,
-        spotterTransition, stoppedTransition, tailTransition, takeTransition v, tipTransition,
-        upchostTransition v, vatTransition v, vowTransition])
-    (post := [yankTransition v])
+        fileAddressTransition, getStatusTransition, ilkTransition, kickTransition,
+        kicksTransition, listTransition, redoTransition, relyTransition, salesTransition,
+        spotterTransition, stoppedTransition, tailTransition, takeTransition, tipTransition,
+        upchostTransition, vatTransition, vowTransition])
+    (post := [yankTransition])
     (ti := wardsTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
@@ -87,15 +87,15 @@ theorem clipperDispatch_wards (v : ClipperImmutables) {I : ExecutionEnv}
       native_decide
     · rw [selectorOf, getStatusSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, ilkSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, ilkSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, kickSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, kickSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, kicksSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, listSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, redoSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, redoSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, relySelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
@@ -107,13 +107,13 @@ theorem clipperDispatch_wards (v : ClipperImmutables) {I : ExecutionEnv}
       native_decide
     · rw [selectorOf, tailSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, takeSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, takeSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, tipSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, upchostSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, upchostSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, vatSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, vatSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, vowSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
@@ -121,38 +121,38 @@ theorem clipperDispatch_wards (v : ClipperImmutables) {I : ExecutionEnv}
   · rw [selectorOf, wardsSelectorBytes]
     simpa [clipperSelBytes] using hsel
 
-theorem clipperDecode_wards_ok (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_wards_ok {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (wardsTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (wardsTransition.params.map Param.name)
       (transitionSignature wardsTransition).paramTypes I.calldata =
         some (clipperWardsStore I) := by
-  show decodeCalldataWithMode (config v).abiDecodeMode ["arg0"] [addr] I.calldata = _
+  show decodeCalldataWithMode config.abiDecodeMode ["arg0"] [addr] I.calldata = _
   simpa [config, clipperWardsStore, clipperWardsArgValue, clipperWardsArgWord,
     calldataWord] using
       decodeCalldata_legacyAddress_ok (cd := I.calldata) (x := "arg0") hsz36
 
-theorem clipperDecode_wards_none_short (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_wards_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
-    decodeCalldataWithMode (config v).abiDecodeMode (wardsTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (wardsTransition.params.map Param.name)
       (transitionSignature wardsTransition).paramTypes I.calldata = none := by
-  show decodeCalldataWithMode (config v).abiDecodeMode ["arg0"] [addr] I.calldata = none
+  show decodeCalldataWithMode config.abiDecodeMode ["arg0"] [addr] I.calldata = none
   simpa [config] using
     decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort
 
 /-- The Solm `wards(address)` body returns `wards[arg0]`. -/
 theorem clipperWardsBodyReturns (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody (config v) (contract v) evm (clipperWardsStore I)
+    ExecTransitionBody config contract evm (clipperWardsStore I)
       wardsTransition.body
-      (.returned { contract := contract v, locals := clipperWardsStore I } evm
+      (.returned { contract := contract, locals := clipperWardsStore I, immutables := immStore v } evm
         (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-            (clipperWardsStorageSlot I)).toNat))])) := by
+            (clipperWardsStorageSlot I)).toNat))])) (immStore v) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       rw [evalExpr_storage_scalar_value
-        (cfg := config v)
-        (solm := { contract := contract v, locals := clipperWardsStore I })
+        (cfg := config)
+        (solm := { contract := contract, locals := clipperWardsStore I, immutables := immStore v })
         (slot := wardsRef (.var "arg0"))
         (er := ({ base := "wards", steps := [.mindex (clipperWardsArgKey I)] } :
           EvaledStorageRef))
@@ -482,23 +482,23 @@ theorem clipperWardsBodyCoreOk
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some wardsTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some wardsTransition)
     (hdecode :
-      decodeCalldataWithMode (config v).abiDecodeMode (wardsTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (wardsTransition.params.map Param.name)
         (transitionSignature wardsTransition).paramTypes I.calldata =
           some (clipperWardsStore I))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨1303⟩ : UInt256)
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperWardsStore I)
         wardsTransition.body
-        (.returned { contract := contract v, locals := clipperWardsStore I }
+        (.returned { contract := contract, locals := clipperWardsStore I, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (clipperWardsWord σ I).toNat))])) := by
+          (some [(.int (Int.ofNat (clipperWardsWord σ I).toNat))])) (immStore v) := by
     simpa [clipperWardsWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       clipperWardsBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
@@ -514,12 +514,12 @@ theorem clipperWardsBodyCoreDecodeFailed_short
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some wardsTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some wardsTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨1303⟩ : UInt256)
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
-  have hdec := clipperDecode_wards_none_short v (I := I) hsz4 hshort
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+  have hdec := clipperDecode_wards_none_short (I := I) hsz4 hshort
   exact (clipperWardsX_shortarg (v := v) (g := Sat256.ofUInt256 g) hpatch hsz4
     hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
@@ -531,17 +531,17 @@ theorem clipperWardsBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 27)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 27) (by native_decide) hsel
-  have hdispatch : dispatchMsg (contract v) I.calldata = some wardsTransition :=
-    clipperDispatch_wards v hsel
+  have hdispatch : dispatchMsg contract I.calldata = some wardsTransition :=
+    clipperDispatch_wards hsel
   have hreach := clipperReachWardsBody
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact clipperWardsBodyCoreOk (v := v) hpatch hcode hsize hwv hsz36 hdispatch
-      (clipperDecode_wards_ok v hsz36) hreach
+      (clipperDecode_wards_ok hsz36) hreach
   · exact clipperWardsBodyCoreDecodeFailed_short (v := v) hpatch hcode hsize hsz4
       (by omega) hdispatch hreach
 

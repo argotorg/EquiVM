@@ -1143,7 +1143,7 @@ theorem vowFlopDai1CallFailureBodyCore
     (hcallDai :
       typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (false, evmDai, outDai) false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlopDai1CallFailure rd3832 houtDaiSize (by simp)
   have hbody := vowFlopSourceDai1CallFailure
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1201,7 +1201,7 @@ theorem vowFlopDai1NoCodeBodyCore
       (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hEnoughSolm : SumpVal.toNat ≤ flopDebt.toNat := by
     simpa [hSumpEvm] using henough
   have hrev := RD.vowFlopDai1NoCode rd3675 henough hmem hread64 hcodeSize
@@ -1266,7 +1266,7 @@ theorem vowFlopDai1DecodeShortBodyCore
     (hcallDai :
       typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (true, evmDai, outDai) false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai.size)).toNat =
       outDai.size :=
     kissDaiMin32_toNat_of_lt hshort
@@ -1357,7 +1357,7 @@ theorem vowFlopDai1SurplusNotZeroBodyCore
     (hcallDai :
       typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (true, evmDai, outDai) false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai.size)).toNat = 32 :=
     kissDaiMin32_toNat_of_ge ho32 hosz
   have rd3832' := rd3832

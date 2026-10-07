@@ -21,6 +21,7 @@ import Benchmarks.Dss.Dai.Transfer
 import Benchmarks.Dss.Dai.TransferFrom
 import Benchmarks.Dss.Dai.Version
 import Benchmarks.Dss.Dai.Wards
+import Solm.Refine
 
 /-!
 # MakerDAO DSS Dai benchmark correctness scaffold
@@ -319,7 +320,7 @@ theorem daiX_noMatch {σ σ₀ A I} {g : Sat256}
 /-- `callvalue != 0` reverts on both sides for every Dai transition. -/
 theorem daiNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (daiX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -342,7 +343,7 @@ theorem daiNonPayable {σ σ₀ A I} {g : UInt256}
 theorem daiShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (daiX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (daiDispatch_none_short hsz)
 
@@ -351,7 +352,7 @@ theorem daiNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 22 → (daiSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (daiX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (daiDispatch_none_nomatch hnm)
@@ -360,7 +361,7 @@ theorem daiNoDispatch {σ σ₀ A I} {g : UInt256}
       (daiDispatch_none_short hshort)
 
 theorem daiCorrect :
-    runtimeEquivalence config daiBytecode contract := by
+    runtimeRefinement config daiBytecode contract := by
   refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
@@ -437,7 +438,7 @@ theorem daiCorrect :
   · exact daiNonPayable hcode hwv
 
 theorem daiContractCorrect :
-    contractEquivalence config daiCreationBytecode daiBytecode contract :=
-  contractEquivalence.intro daiConstructorCorrect daiCorrect
+    contractRefinement config daiCreationBytecode contract :=
+  contractRefinement.of_constant daiConstructorCorrect daiCorrect
 
 end Benchmarks.Dss.Dai

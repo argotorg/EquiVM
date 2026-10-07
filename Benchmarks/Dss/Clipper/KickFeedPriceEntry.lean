@@ -68,7 +68,7 @@ theorem clipperKickSpotterIlksCalldataMem_read128_36 (ilk : UInt256)
 
 theorem clipperKickSpotterIlksEncode_eq (v : ClipperImmutables) {mem : ByteArray}
     (hmem : mem.size = 96) :
-    (config v).externalABI.encode? "spotterIlks" [v.ilk] =
+    config.externalABI.encode? "spotterIlks" [v.ilk] =
       some ((clipperSpotterIlksCalldataMem (clipperIlkWord v) mem).readWithPadding
         128 36) := by
   rcases v.ilk_wf with ⟨bs, hilk, hlen⟩
@@ -77,7 +77,7 @@ theorem clipperKickSpotterIlksEncode_eq (v : ClipperImmutables) {mem : ByteArray
       clipperIlkWord v = EVM.Word.ofNat (fromBytesBigEndian bs) := by
     simp [clipperIlkWord, hilk]
   rw [hilkWord]
-  change (config v).externalABI.encode? "spotterIlks" [.fixedBytes ⟨31, by decide⟩ bs] =
+  change config.externalABI.encode? "spotterIlks" [.fixedBytes ⟨31, by decide⟩ bs] =
     some ((clipperSpotterIlksCalldataMem (EVM.Word.ofNat (fromBytesBigEndian bs))
       mem).readWithPadding 128 36)
   rw [clipperKickSpotterIlksCalldataMem_read128_36 _ hmem]
@@ -264,7 +264,7 @@ theorem RD.clipperKickGetFeedPriceSpotterIlksPostCall {code : ByteArray}
           clipperSpotterTarget sigma I :: ⟨0⟩ :: ⟨0⟩ :: ret :: scratch :: lot :: tab :: R)
         (clipperSpotterIlksPostCallMem v mem o) (UInt256.ofNat 6) o
         sigma' k' C'
-    ∧ typedCallViaEVM (config v)
+    ∧ typedCallViaEVM config
         {s0 with accountMap := sigma, executionEnv := I}
         (EVM.address (AccountAddress.ofUInt256 (clipperSpotterTarget sigma I)))
         "spotterIlks" 0 [v.ilk]
@@ -292,7 +292,7 @@ theorem RD.clipperKickGetFeedPriceSpotterIlksPostCall {code : ByteArray}
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           128 36) 128 64) = UInt256.ofNat 6 := by native_decide
     simpa [clipperSpotterIlksPostCallMem, clipperIlkWord] using haw ▸ rd8840raw
-  · refine callCoincides (cfg := config v)
+  · refine callCoincides (cfg := config)
       (evm := {s0 with accountMap := sigma, executionEnv := I})
       (name := "spotterIlks") (args := [v.ilk])
       (tgt := EVM.address (AccountAddress.ofUInt256 (clipperSpotterTarget sigma I)))

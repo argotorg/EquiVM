@@ -5,8 +5,8 @@ open Benchmarks.Dss.Dog.Immutables
 
 namespace Benchmarks.Dss.Dog
 
-theorem dogDecode_vow {v : DogImmutables} {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (vowTransition.params.map Param.name)
+theorem dogDecode_vow {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
+    decodeCalldataWithMode config.abiDecodeMode (vowTransition.params.map Param.name)
       (transitionSignature vowTransition).paramTypes I.calldata = some ∅ := by
   show decodeCalldataWithMode DecodeMode.legacySolc05 [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
@@ -192,16 +192,16 @@ theorem dogVowBodyCore {v : DogImmutables} {code : ByteArray}
     (_hperm : I.perm = true)
     (_hwv : I.weiValue = ⟨0⟩)
     (_hsel : selIs I (dogSelBytes 15)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 15) rfl _hsel
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ vowTransition.body
-        (.returned { contract := contract v, locals := ∅ }
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (dogAddressReturnWord ⟨2⟩ σ I).toNat))])) := by
+            (dogAddressReturnWord ⟨2⟩ σ I).toNat))])) (immStore v) := by
     simpa [vowTransition, dogAddressReturnWord, dogSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       dogAddressGetterBodyReturns v
@@ -213,7 +213,7 @@ theorem dogVowBodyCore {v : DogImmutables} {code : ByteArray}
         (by simp [storageTypeAt?, contract, storageDecls, addrSt]) (by rfl)
   exact dogAddressGetterBodyCore (entry := ⟨386⟩) (returnPc := ⟨358⟩)
     (routine := ⟨1439⟩) (slot := ⟨2⟩)
-    _hcode (dogDispatchVow _hsel) (dogDecode_vow (v := v) hsz)
+    _hcode (dogDispatchVow _hsel) (dogDecode_vow hsz)
     (dogReachVowBody (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv hsz _hsize _hsel)
     (by
       unfold solcGetterEntryWf

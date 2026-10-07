@@ -65,7 +65,7 @@ abbrev VatBodyTheorem (i : ℕ) : Prop :=
     I.perm = true →
     I.weiValue = ⟨0⟩ →
     selIs I (vatSelBytes i) →
-    runtimeEquivalenceFor config contract σ σ₀ g A I
+    runtimeRefinementFor config contract σ σ₀ g A I
 
 def vatSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   solcSlotWord σ I slot
@@ -568,7 +568,7 @@ theorem vatUint256GetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (vatSlotWord slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (vatSlotWord slot σ I))
         (some [(.int (Int.ofNat (vatSlotWord slot σ I).toNat))])

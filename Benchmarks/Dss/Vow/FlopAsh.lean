@@ -912,7 +912,7 @@ theorem vowFlopAshAddOverflowBodyCore
     (hAshEvm : AshValDai = vowSlotWord ⟨6⟩ acc I)
     (hSumpEvm : SumpValDai = vowSlotWord ⟨9⟩ acc I)
     (hover : UInt256.size ≤ AshValDai.toNat + SumpValDai.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai.size)).toNat = 32 :=
     kissDaiMin32_toNat_of_ge ho32 hosz
   have rd3832' := rd3832

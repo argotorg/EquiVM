@@ -454,7 +454,7 @@ theorem flopperDentBodyCoreMoveNoCode
       memStart (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmemStart : memStart.size = 96)
     (hread64Start : memStart.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let packedSlot := auctionPackedSlot (dentIdWord I)
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
@@ -578,7 +578,7 @@ theorem flopperDentBodyCoreMoveCallFailure
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let σ'_solm := σ'
   let A'_solm := A'
@@ -697,7 +697,7 @@ theorem flopperDentBodyCoreMoveCallDepthLimit
       memStart (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmemStart : memStart.size = 96)
     (hread64Start : memStart.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := dentIdWord I
   let memCaller := twoWordHashMem id ⟨1⟩ memStart
@@ -811,7 +811,7 @@ theorem flopperDentBodyCoreAshNoCodeMoveCallerNeTicZero
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let σ'_solm := σ'
   let A'_solm := A'
@@ -977,7 +977,7 @@ theorem flopperDentBodyCoreAshCallFailureMoveCallerNeTicZero
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let σ'_solm := σ'
   let A'_solm := A'
@@ -1170,7 +1170,7 @@ theorem flopperDentBodyCoreAshDecodeShortMoveCallerNeTicZero
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let σ'_solm := σ'
   let A'_solm := A'
@@ -1368,7 +1368,7 @@ theorem flopperDentBodyCoreKissNoCodeMoveCallerNeTicZero
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let σ'_solm := σ'
   let A'_solm := A'

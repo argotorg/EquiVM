@@ -1465,7 +1465,7 @@ theorem vowKissDaiSuccessInsufficientSurplusBodyCore
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hinsuff :
       (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))).toNat < (kissRad I).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let vatDai : UInt256 := UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 32 :=
     kissDaiMin32_toNat_of_ge ho32 hosz
@@ -1533,7 +1533,7 @@ theorem vowKissNoVatCodeBodyCore
     (hashEnough : (kissRad I).toNat ≤ (vowSlotWord ⟨6⟩ σ I).toNat)
     (hnoCode :
       Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hashEnoughSolm : (kissRad I).toNat ≤ (vowSlotWord ⟨6⟩ σ I).toNat :=
     hashEnough
   have hTarget : kissDaiTargetWord σ I = kissDaiTargetWord σ I := by
@@ -1596,7 +1596,7 @@ theorem vowKissDaiCallFailureBodyCore
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowKissDaiCallFailure rd1704 hosz (by simp)
   have hashEnoughSolm : (kissRad I).toNat ≤ (vowSlotWord ⟨6⟩ σ I).toNat :=
     hashEnough
@@ -1640,7 +1640,7 @@ theorem vowKissDaiDecodeShortBodyCore
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = o.size :=
     kissDaiMin32_toNat_of_lt hshort
   have rd1704' := rd1704
@@ -1687,7 +1687,7 @@ theorem vowKissNotEnoughAshBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨383⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hnotEnough : (vowSlotWord ⟨6⟩ σ I).toNat < (kissRad I).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hnotEnoughSolm : (vowSlotWord ⟨6⟩ σ I).toNat < (kissRad I).toNat :=
     hnotEnough
   have hbody := vowKissSourceNotEnoughAsh
@@ -1700,7 +1700,7 @@ theorem vowKissShort {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0x25, 0x06, 0x85, 0x5a]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hreach :=
     vowReachKissBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)

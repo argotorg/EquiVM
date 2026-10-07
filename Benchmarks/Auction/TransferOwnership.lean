@@ -115,7 +115,7 @@ theorem transferOwnershipBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I (entryBytes 19))
     (hreach : EntryReached 19 σ σ₀ A I g) :
-    runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
+    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 19 hsel
     have hsz := calldata_size_ge_of_selIs I (entryBytes 19) (entryBytes_size 19) hsel

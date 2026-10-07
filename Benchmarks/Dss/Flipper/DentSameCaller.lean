@@ -62,7 +62,7 @@ theorem flipperDentBodyFrom4733SameCaller
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4733⟩
       [dentBid I, dentLot I, dentId I, ⟨323⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd4927⟩ :=
     flipperDentX_skipRefund hmemSize hcallerEvm h
   let memFlux := twoWordHashMem (dentId I) ⟨1⟩ mem

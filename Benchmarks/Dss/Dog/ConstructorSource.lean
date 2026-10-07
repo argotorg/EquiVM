@@ -14,8 +14,9 @@ set_option maxRecDepth 2000000
 abbrev dogCtorLocals (vat : AccountAddress) : Store :=
   (∅ : Store).insert "vat_" (.address vat)
 
-abbrev dogCtorFinalLocals (vat : AccountAddress) : Store :=
-  (dogCtorLocals vat).insert "imm_vat" (.address vat)
+/-- The constructor's final immutables: `vat` set to the argument. -/
+abbrev dogCtorFinalImms (vat : AccountAddress) : Store :=
+  (initialImmutables contract).insert "vat" (.address vat)
 
 abbrev dogCtorAfterLiveState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨3⟩ ⟨1⟩
@@ -24,33 +25,21 @@ abbrev dogCtorAfterWardsState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner
     (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
 
-theorem dogCtorFinalLocals_get_imm_vat (vat : AccountAddress) :
-    (dogCtorFinalLocals vat).get? "imm_vat" = some (.address vat) := by
-  rw [dogCtorFinalLocals, store_get_self]
-
-theorem dogCtorRuntimeCodeOf (v : DogImmutables) :
-    runtimeCodeOf dogBytecode (dogCtorFinalLocals v.vat) =
-      patchRuntime dogBytecode (patches v) := by
-  unfold runtimeCodeOf patchesFrom patches immValues
-  simp only [offsets, List.foldrM_cons, List.foldrM_nil, pure, bind]
-  rw [dogCtorFinalLocals_get_imm_vat v.vat]
-  rfl
-
-theorem evalExpr_dogCtorLocalVat {v : DogImmutables} {evm : EVM.State}
+theorem evalExpr_dogCtorLocalVat {imms : Store} {evm : EVM.State}
     (vat : AccountAddress) :
-    evalExpr? (config v) { contract := contract v, locals := dogCtorLocals vat } evm
+    evalExpr? config { contract := contract, locals := dogCtorLocals vat, immutables := imms } evm
       (.var "vat_") = .ok (.address vat) := by
   simp [evalExpr?, dogCtorLocals, EvalResult.ofOption]
 
-theorem assign_dogCtorLiveStorage {v : DogImmutables} (evm : EVM.State)
+theorem assign_dogCtorLiveStorage {imms : Store} (evm : EVM.State)
     {locals : Store} (hbase : locals.get? "live" = none) :
     let evm' := dogCtorAfterLiveState evm
-    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+    assignStorageRef? config { contract := contract, locals := locals, immutables := imms } evm
       .storage liveRef (.int 1) =
-        .ok ({ contract := contract v, locals := locals }, evm') := by
+        .ok ({ contract := contract, locals := locals, immutables := imms }, evm') := by
   intro evm'
   have her :
-      evalStorageRef (config v) { contract := contract v, locals := locals } evm liveRef =
+      evalStorageRef config { contract := contract, locals := locals, immutables := imms } evm liveRef =
         .ok { base := "live", steps := [] } := by
     simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
   have hstore :
@@ -66,15 +55,15 @@ theorem assign_dogCtorLiveStorage {v : DogImmutables} (evm : EVM.State)
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
     (hstore := hstore)
 
-theorem assign_dogCtorWardsCaller {v : DogImmutables} (evm : EVM.State)
+theorem assign_dogCtorWardsCaller {imms : Store} (evm : EVM.State)
     {locals : Store} (hbase : locals.get? "wards" = none) :
     let evm' := dogCtorAfterWardsState evm
-    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+    assignStorageRef? config { contract := contract, locals := locals, immutables := imms } evm
       .storage (wardsRef sender) (.int 1) =
-        .ok ({ contract := contract v, locals := locals }, evm') := by
+        .ok ({ contract := contract, locals := locals, immutables := imms }, evm') := by
   intro evm'
   have her :
-      evalStorageRef (config v) { contract := contract v, locals := locals } evm
+      evalStorageRef config { contract := contract, locals := locals, immutables := imms } evm
         (wardsRef sender) =
           .ok { base := "wards", steps := [.mindex (.address evm.executionEnv.source)] } := by
     simp [wardsRef, sender, evalStorageRef, evalStorageRefSteps, evalStorageRefStep,
@@ -101,47 +90,49 @@ theorem dogCtorCallerWardsSlot_eq (I : ExecutionEnv) :
 
 theorem dogCtorBodySuccess
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
-    {g : UInt256} (v : DogImmutables) (vat : AccountAddress)
+    {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩) :
     let locals := dogCtorLocals vat
-    let finalLocals := dogCtorFinalLocals vat
     let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := dogCtorAfterLiveState evm0
     let evm2 := dogCtorAfterWardsState evm1
-    ExecBlock (config v) { contract := contract v, locals := locals }
-      evm0 constructorDecl.body (.ok { contract := contract v, locals := finalLocals }
+    ExecBlock config
+      { contract := contract, locals := locals, immutables := initialImmutables contract }
+      evm0 constructorDecl.body
+      (.ok { contract := contract, locals := locals, immutables := dogCtorFinalImms vat }
         evm2) := by
-  intro locals finalLocals evm0 evm1 evm2
+  intro locals evm0 evm1 evm2
   have hassignLive :
-      assignStorageRef? (config v)
-          { contract := contract v, locals := finalLocals } evm0
+      assignStorageRef? config
+          { contract := contract, locals := locals, immutables := dogCtorFinalImms vat } evm0
         .storage liveRef (.int 1) =
-          .ok ({ contract := contract v, locals := finalLocals }, evm1) := by
-    simpa [evm1, dogCtorAfterLiveState, finalLocals, dogCtorFinalLocals] using
-      assign_dogCtorLiveStorage (v := v) evm0 (locals := finalLocals)
+          .ok ({ contract := contract, locals := locals, immutables := dogCtorFinalImms vat },
+            evm1) := by
+    simpa [evm1, dogCtorAfterLiveState] using
+      assign_dogCtorLiveStorage (imms := dogCtorFinalImms vat) evm0 (locals := locals)
         (by
-          change (dogCtorFinalLocals vat).get? "live" = none
-          rw [dogCtorFinalLocals, dogCtorLocals]
-          rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]
+          change (dogCtorLocals vat).get? "live" = none
+          rw [dogCtorLocals, store_get_ne _ _ (by decide)]
           simp)
   have hassignWards :
-      assignStorageRef? (config v)
-          { contract := contract v, locals := finalLocals } evm1
+      assignStorageRef? config
+          { contract := contract, locals := locals, immutables := dogCtorFinalImms vat } evm1
         .storage (wardsRef sender) (.int 1) =
-          .ok ({ contract := contract v, locals := finalLocals }, evm2) := by
-    simpa [evm2, dogCtorAfterWardsState, finalLocals, dogCtorFinalLocals] using
-      assign_dogCtorWardsCaller (v := v) evm1 (locals := finalLocals)
+          .ok ({ contract := contract, locals := locals, immutables := dogCtorFinalImms vat },
+            evm2) := by
+    simpa [evm2, dogCtorAfterWardsState] using
+      assign_dogCtorWardsCaller (imms := dogCtorFinalImms vat) evm1 (locals := locals)
         (by
-          change (dogCtorFinalLocals vat).get? "wards" = none
-          rw [dogCtorFinalLocals, dogCtorLocals]
-          rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]
+          change (dogCtorLocals vat).get? "wards" = none
+          rw [dogCtorLocals, store_get_ne _ _ (by decide)]
           simp)
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.letDecl (value := .address vat) ?_) ?_
-  · simpa [locals] using evalExpr_dogCtorLocalVat (v := v) (evm := evm0) vat
+  refine ExecBlock.consNormal
+    (ExecStmt.setImmutable (value := .address vat) (ty := .address) ?_ rfl rfl) ?_
+  · simpa [locals] using evalExpr_dogCtorLocalVat (evm := evm0) vat
   refine ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassignLive) ?_
   exact ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassignWards)
     ExecBlock.nil
@@ -149,10 +140,11 @@ theorem dogCtorBodySuccess
 set_option maxHeartbeats 1000000 in
 theorem dogSolmCtorExecSuccess
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
-    {g : UInt256} (v : DogImmutables) (vat : AccountAddress)
+    {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩) :
-    solmCtorExec (config v) (contract v) [.address vat] σ σ₀ g A I
-      (.returned { contract := contract v, locals := dogCtorFinalLocals vat }
+    solmCtorExec config contract [.address vat] σ σ₀ g A I
+      (.returned
+        { contract := contract, locals := dogCtorLocals vat, immutables := dogCtorFinalImms vat }
         (dogCtorAfterWardsState
           (dogCtorAfterLiveState
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
@@ -163,24 +155,23 @@ theorem dogSolmCtorExecSuccess
     (argsStore := dogCtorLocals vat) ?_ rfl ?_ ?_
   · rfl
   · rfl
-  · simpa [ExecTransitionBody, contract, constructorDecl] using
-      ExecFuncBody.execBlockOK
-        (dogCtorBodySuccess
-          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v vat hwv)
+  · exact ExecFuncBody.execBlockOK
+      (dogCtorBodySuccess (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) vat hwv)
 
 theorem dogSolmCtorExecReverts_nonpayable
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
-    {g : UInt256} (v : DogImmutables) (vat : AccountAddress)
+    {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    solmCtorExec (config v) (contract v) [.address vat] σ σ₀ g A I .reverted := by
+    solmCtorExec config contract [.address vat] σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
     (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := dogCtorLocals vat) ?_ rfl ?_ ?_
   · rfl
   · rfl
-  · simpa [ExecTransitionBody, contract, constructorDecl, nonpayable] using
-      bodyReverts_nonPayable (cfg := config v) (contract := contract v)
+  · simpa [contract, constructorDecl, nonpayable] using
+      bodyReverts_nonPayable (cfg := config) (contract := contract)
+        (imms := initialImmutables contract)
         (evm := initState σ σ₀
           (Sat256.ofUInt256 g) A I)
         (locals := dogCtorLocals vat) hwv

@@ -3876,75 +3876,9 @@ end Benchmarks.Dss.End
 
 namespace Reasoning.Theory
 
-theorem swap9_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg hh ii jj : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.SWAP9, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
-    (hov : t.length + 10 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok
-        (stSwap s (jj :: b :: c :: d :: e :: f :: gg :: hh :: ii :: a :: t), .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP9, .none) := by
-    rw [hcode, hpc]; exact hdec
-  rw [← hcode, step_swap9 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t).length - 10 + 10 >
-        1024) := by
-    simp only [List.length_cons]; omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
-theorem dup12_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP12, .none))
-    (hstk : s.machineState.stack =
-      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-    (hov : t.length + 13 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok
-        (stSwap s
-          (ll :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t),
-          .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP12, .none) := by
-    rw [hcode, hpc]; exact hdec
-  rw [← hcode, step_dup12 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t).length -
-          12 + 13 > 1024) := by
-    simp only [List.length_cons]; omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
 end Reasoning.Theory
 
 namespace Reasoning.Reach
-
-theorem RD.swap9 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.SWAP9, .none)) (hov : t.length + 10 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (jj :: b :: c :: d :: e :: f :: gg :: hh :: ii :: a :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  rd.stepSwap (fun _ hc hp hs => Reasoning.Theory.swap9_xstep hc hp hdec hs hov)
-
-theorem RD.dup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
-      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DUP12, .none)) (hov : t.length + 13 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (ll :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepSwap (fun _ hc hp hs => Reasoning.Theory.dup12_xstep hc hp hdec hs hov)
 
 end Reasoning.Reach
 
@@ -8884,7 +8818,7 @@ theorem endSnipBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) endSnipEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (endSnipX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (endDecode_snip_none_short hsz4 hshort)
 
@@ -8892,7 +8826,7 @@ theorem endSnipBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf snipTransition)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endSnipConcreteSelector := by
     simpa [endSnipSelectorBytes, endSnipConcreteSelector] using hsel
   have hsz4 : 4 ≤ I.calldata.size :=

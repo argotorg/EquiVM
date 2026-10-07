@@ -92,7 +92,7 @@ theorem RD.clipperStatusPricePostStaticcallFromCurrent {code : ByteArray}
           calcAddr :: ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
         (clipperStatusPricePostCallMem top age mem o)
         (UInt256.ofNat 7) o σ' k' C'
-    ∧ typedCallViaEVM (config v)
+    ∧ typedCallViaEVM config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofUInt256 calcAddr)) "price" 0
         [.int (Int.ofNat top.toNat), .int (Int.ofNat age.toNat)]
@@ -121,7 +121,7 @@ theorem RD.clipperStatusPricePostStaticcallFromCurrent {code : ByteArray}
           UInt256.ofNat 7 := by
       native_decide
     simpa [clipperStatusPricePostCallMem] using haw ▸ rd8565raw
-  · refine callCoincides (cfg := config v)
+  · refine callCoincides (cfg := config)
       (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (name := "price")
       (args := [.int (Int.ofNat top.toNat), .int (Int.ofNat age.toNat)])
@@ -138,7 +138,7 @@ theorem RD.clipperStatusPricePostStaticcallFromCurrent {code : ByteArray}
       exact Nat.mod_eq_of_lt (by simp [EVM.twoPow, AccountAddress.size])
     · simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
         show (⟨68⟩ : UInt256).toNat = 68 from by decide] using
-        clipperStatusPriceEncode_eq v top age hmem
+        clipperStatusPriceEncode_eq top age hmem
     · simpa [initState, hs0Sigma0] using hΘ
 
 -- GENERALIZES `RD.clipperStatusPriceCallDepthLimit` for the same lock-store reason.

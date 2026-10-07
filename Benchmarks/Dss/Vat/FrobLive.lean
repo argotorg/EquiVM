@@ -1181,7 +1181,7 @@ theorem vatFrobBodyCoreLiveRateZeroRevert
           solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
     (hrateZeroEvm : solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -3608,7 +3608,7 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
     (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
     (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
     (hAddFail : ¬ frobLiveAddArithmeticGuards σ I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -4113,7 +4113,7 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
     (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
     (hAdd : frobLiveAddArithmeticGuards σ I)
     (hMulFail : ¬ frobLiveMulArithmeticGuards σ I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -4470,7 +4470,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
     (hDebtSafety : frobLiveDebtCeilingSafetyGuards σ I)
     (hWishAuthDust : frobLiveWishAuthDustGuards σ I)
     (hFinalArithmeticFail : ¬ frobLiveFinalArithmeticGuards σ I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   classical
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
@@ -5293,7 +5293,7 @@ theorem vatFrobBodyCoreLiveArithmeticOverflowReverts
     (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
     (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
     (hArithmeticFail : ¬ frobLiveArithmeticPrefixGuards σ I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   classical
   by_cases hAdd : frobLiveAddArithmeticGuards σ I
   · by_cases hMul : frobLiveMulArithmeticGuards σ I
@@ -5333,7 +5333,7 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
     (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
     (hArithmetic : frobLiveArithmeticPrefixGuards σ I)
     (hDebtSafetyFail : ¬ frobLiveDebtCeilingSafetyGuards σ I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   classical
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
@@ -5940,7 +5940,7 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
     (hArithmetic : frobLiveArithmeticPrefixGuards σ I)
     (hDebtSafety : frobLiveDebtCeilingSafetyGuards σ I)
     (hWishAuthDustFail : ¬ frobLiveWishAuthDustGuards σ I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   classical
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
@@ -6769,7 +6769,7 @@ theorem vatFrobBodyCoreLive
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
           solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   classical
   by_cases hrateZeroEvm : solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩
   · exact vatFrobBodyCoreLiveRateZeroRevert

@@ -270,7 +270,7 @@ theorem flopperAddressGetterBodyCore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
             (flopperAddressReturnWord slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (flopperAddressReturnWord slot σ I))
         (some [(.address (AccountAddress.ofNat (flopperAddressReturnWord slot σ I).toNat))])
@@ -602,7 +602,7 @@ theorem flopperUint48Offset0GetterBodyCore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int
             (Int.ofNat (flopperUint48Offset0Word slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (flopperUint48Offset0Word slot σ I))
         (some [(.int (Int.ofNat (flopperUint48Offset0Word slot σ I).toNat))])
@@ -642,7 +642,7 @@ theorem flopperUint48Offset6GetterBodyCore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int
             (Int.ofNat (flopperUint48Offset6Word slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (flopperUint48Offset6Word slot σ I))
         (some [(.int (Int.ofNat (flopperUint48Offset6Word slot σ I).toNat))])
@@ -687,7 +687,7 @@ theorem flopperUint256GetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (flopperSlotWord slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (flopperSlotWord slot σ I))
         (some [(.int (Int.ofNat (flopperSlotWord slot σ I).toNat))])

@@ -53,9 +53,9 @@ abbrev uintBinaryLocals (x y : UInt256) : Store :=
 abbrev uintBinaryLocalsZ (x y z : UInt256) : Store :=
   (uintBinaryLocals x y).insert "z" (.int (Int.ofNat z.toNat))
 
-theorem dogDecode_digs_ok {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDecode_digs_ok {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (digsTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (digsTransition.params.map Param.name)
       (transitionSignature digsTransition).paramTypes I.calldata =
         some (digsLocals I) := by
   simpa [config, digsTransition, bytes32, bytes32Width, uint256, uint256Int,
@@ -64,9 +64,9 @@ theorem dogDecode_digs_ok {v : DogImmutables} {I : ExecutionEnv}
     dogDecodeCalldataWithMode_legacyBytes32_uint256_ok (cd := I.calldata) (x := "ilk")
       (y := "rad") hsz68
 
-theorem dogDecode_digs_none_short {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDecode_digs_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68) :
-    decodeCalldataWithMode (config v).abiDecodeMode (digsTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (digsTransition.params.map Param.name)
       (transitionSignature digsTransition).paramTypes I.calldata = none := by
   simpa [config, digsTransition, bytes32, bytes32Width, uint256, uint256Int,
     abiBytes32, abiBytes32Width, abiUInt256] using
@@ -163,7 +163,7 @@ theorem uintBinaryLocalsZ_get_z (x y z : UInt256) :
 theorem evalExpr_varUInt256 {v : DogImmutables} {evm : EVM.State} {locals : Store}
     {name : Ident} {value : UInt256}
     (h : locals.get? name = some (.int (Int.ofNat value.toNat))) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (.var name) =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var name) =
       .ok (.int (Int.ofNat value.toNat)) := by
   rw [evalExpr?]
   change EvalResult.ofOption EvalError.unboundVariable (locals.get? name) =
@@ -173,13 +173,13 @@ theorem evalExpr_varUInt256 {v : DogImmutables} {evm : EVM.State} {locals : Stor
 
 theorem evalExpr_dogSub256_ok {v : DogImmutables} {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b diff : UInt256}
-    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
+    (hx : evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm x =
       .ok (.int (Int.ofNat a.toNat)))
-    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
+    (hy : evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm y =
       .ok (.int (Int.ofNat b.toNat)))
     (hdiff : diff = UInt256.sub a b)
     (hle : b.toNat ≤ a.toNat) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (sub256 x y) =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (sub256 x y) =
       .ok (.int (Int.ofNat diff.toNat)) := by
   have hdiffNat : diff.toNat = a.toNat - b.toNat := by
     rw [hdiff, usub_toNat hle]
@@ -203,12 +203,12 @@ theorem evalExpr_dogSub256_ok {v : DogImmutables} {evm : EVM.State} {locals : St
 
 theorem evalExpr_dogSub256_revert {v : DogImmutables} {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
-    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
+    (hx : evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm x =
       .ok (.int (Int.ofNat a.toNat)))
-    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
+    (hy : evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm y =
       .ok (.int (Int.ofNat b.toNat)))
     (hlt : a.toNat < b.toNat) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (sub256 x y) =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (sub256 x y) =
       .revert := by
   have hneg : (a.toNat : Int) - (b.toNat : Int) < 0 := by
     omega
@@ -218,56 +218,56 @@ theorem evalExpr_dogSub256_revert {v : DogImmutables} {evm : EVM.State} {locals 
 theorem execSubFunctionReturn {v : DogImmutables} (evm : EVM.State)
     {x y diff : UInt256}
     (hdiff : diff = UInt256.sub x y) (hle : y.toNat ≤ x.toNat) :
-    ExecFuncBody (config v) { contract := contract v, locals := uintBinaryLocals x y } evm
+    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y, immutables := immStore v } evm
       subFunction.body
-      (.returned { contract := contract v, locals := uintBinaryLocalsZ x y diff } evm
+      (.returned { contract := contract, locals := uintBinaryLocalsZ x y diff, immutables := immStore v } evm
         (some [.int (Int.ofNat diff.toNat)])) := by
   let locals := uintBinaryLocals x y
   let localsZ := uintBinaryLocalsZ x y diff
   have hx :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "x") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "x") =
         .ok (.int (Int.ofNat x.toNat)) := by
     simpa [locals] using
       evalExpr_varUInt256 (v := v) (evm := evm)
         (locals := locals) (name := "x") (value := x) (uintBinaryLocals_get_x x y)
   have hy :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "y") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "y") =
         .ok (.int (Int.ofNat y.toNat)) := by
     simpa [locals] using
       evalExpr_varUInt256 (v := v) (evm := evm)
         (locals := locals) (name := "y") (value := y) (uintBinaryLocals_get_y x y)
   have hzExpr :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
         (sub256 (.var "x") (.var "y")) = .ok (.int (Int.ofNat diff.toNat)) :=
     evalExpr_dogSub256_ok hx hy hdiff hle
   have hz :
-      evalExpr? (config v) { contract := contract v, locals := localsZ } evm (.var "z") =
+      evalExpr? config { contract := contract, locals := localsZ, immutables := immStore v } evm (.var "z") =
         .ok (.int (Int.ofNat diff.toNat)) := by
     simpa [localsZ] using
       evalExpr_varUInt256 (v := v) (evm := evm)
         (locals := localsZ) (name := "z") (value := diff)
         (uintBinaryLocalsZ_get_z x y diff)
   have hxZ :
-      evalExpr? (config v) { contract := contract v, locals := localsZ } evm (.var "x") =
+      evalExpr? config { contract := contract, locals := localsZ, immutables := immStore v } evm (.var "x") =
         .ok (.int (Int.ofNat x.toNat)) := by
     simpa [localsZ] using
       evalExpr_varUInt256 (v := v) (evm := evm)
         (locals := localsZ) (name := "x") (value := x)
         (uintBinaryLocalsZ_get_x x y diff)
   have hreq :
-      evalExpr? (config v) { contract := contract v, locals := localsZ } evm
+      evalExpr? config { contract := contract, locals := localsZ, immutables := immStore v } evm
         (.binary .le (.var "z") (.var "x")) = .ok (.bool true) := by
     simp [evalExpr?, EvalResult.bind, bind, hz, hxZ, evalBinaryOp?]
     rw [hdiff, usub_toNat hle]
     exact_mod_cast Nat.sub_le x.toNat y.toNat
   have hret :
-      evalExprs? (config v) { contract := contract v, locals := localsZ } evm
+      evalExprs? config { contract := contract, locals := localsZ, immutables := immStore v } evm
         [.var "z"] = .ok [.int (Int.ofNat diff.toNat)] := by
     simp [evalExprs?, hz, EvalResult.bind, bind, pure]
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm
         subFunction.body
-        (.returned { contract := contract v, locals := localsZ } evm
+        (.returned { contract := contract, locals := localsZ, immutables := immStore v } evm
           (some [.int (Int.ofNat diff.toNat)])) := by
     refine ExecBlock.consNormal (ExecStmt.letDecl hzExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
@@ -276,27 +276,27 @@ theorem execSubFunctionReturn {v : DogImmutables} (evm : EVM.State)
 
 theorem execSubFunctionRevert {v : DogImmutables} (evm : EVM.State)
     {x y : UInt256} (hlt : x.toNat < y.toNat) :
-    ExecFuncBody (config v) { contract := contract v, locals := uintBinaryLocals x y } evm
+    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y, immutables := immStore v } evm
       subFunction.body .reverted := by
   let locals := uintBinaryLocals x y
   have hx :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "x") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "x") =
         .ok (.int (Int.ofNat x.toNat)) := by
     simpa [locals] using
       evalExpr_varUInt256 (v := v) (evm := evm)
         (locals := locals) (name := "x") (value := x) (uintBinaryLocals_get_x x y)
   have hy :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "y") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "y") =
         .ok (.int (Int.ofNat y.toNat)) := by
     simpa [locals] using
       evalExpr_varUInt256 (v := v) (evm := evm)
         (locals := locals) (name := "y") (value := y) (uintBinaryLocals_get_y x y)
   have hsub :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
         (sub256 (.var "x") (.var "y")) = .revert :=
     evalExpr_dogSub256_revert hx hy hlt
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm
         subFunction.body .reverted := by
     simpa [subFunction, checkedSubUintInto, locals] using
       ExecBlock.consRevert (ExecStmt.letDeclRevert (ty := some uint256) hsub)
@@ -305,18 +305,18 @@ theorem execSubFunctionRevert {v : DogImmutables} (evm : EVM.State)
 theorem evalExpr_digsRad {v : DogImmutables} {evm : EVM.State}
     {I : ExecutionEnv} {locals : Store}
     (h : locals.get? "rad" = some (.int (Int.ofNat (digsRad I).toNat))) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "rad") =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "rad") =
       .ok (.int (Int.ofNat (digsRad I).toNat)) :=
   evalExpr_varUInt256 (v := v) (evm := evm) h
 
 theorem evalExpr_digsDirtStorage {v : DogImmutables} {evm : EVM.State}
     {locals : Store}
     (hbase : locals.get? "Dirt" = none) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.storage DirtRef) =
         .ok (.int (Int.ofNat (dogSlotWord ⟨5⟩ evm.accountMap evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value
-    (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
+    (cfg := config) (solm := { contract := contract, locals := locals, immutables := immStore v }) (evm := evm)
     (slot := DirtRef) (er := ({ base := "Dirt", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨5⟩)
     (value := .int (Int.ofNat (dogSlotWord ⟨5⟩ evm.accountMap evm.executionEnv).toNat))
@@ -331,14 +331,14 @@ theorem evalExpr_digsIlkDirtStorage {v : DogImmutables} {evm : EVM.State}
     (hsz68 : 68 ≤ I.calldata.size)
     (hbase : locals.get? "ilks" = none)
     (hilk : locals.get? "ilk" = some (digsIlkValue I)) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.storage (ilksF (.var "ilk") "dirt")) =
         .ok (.int (Int.ofNat
           (dogSlotWord (digsDirtSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
   have hkeyLen : (digsIlkBytes I).length = bytes32Width.val + 1 :=
     digsIlkBytes_len hsz68
   have hvar :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "ilk") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "ilk") =
         .ok (digsIlkValue I) := by
     rw [evalExpr?]
     change EvalResult.ofOption EvalError.unboundVariable (locals.get? "ilk") =
@@ -346,7 +346,7 @@ theorem evalExpr_digsIlkDirtStorage {v : DogImmutables} {evm : EVM.State}
     rw [hilk]
     rfl
   exact evalExpr_storage_scalar_value
-    (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
+    (cfg := config) (solm := { contract := contract, locals := locals, immutables := immStore v }) (evm := evm)
     (slot := ilksF (.var "ilk") "dirt") (er := digsDirtEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (digsDirtSlotFor I))
     (value := .int (Int.ofNat
@@ -361,12 +361,12 @@ theorem evalExpr_digsIlkDirtStorage {v : DogImmutables} {evm : EVM.State}
     (by rfl)
     (by simpa [dogSlotWord] using dogStorageLocLoad_uint256 evm (digsDirtSlotFor I))
 
-theorem assign_digsDirtStorage {v : DogImmutables} (evm : EVM.State)
+theorem assign_digsDirtStorage (evm : EVM.State)
     {locals : Store} (dirtNew : UInt256) (hbase : locals.get? "Dirt" = none) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨5⟩ dirtNew
-    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+    assignStorageRef? config { contract := contract, locals := locals, immutables := immStore v } evm
       .storage DirtRef (.int (Int.ofNat dirtNew.toNat)) =
-        .ok ({ contract := contract v, locals := locals }, evm') := by
+        .ok ({ contract := contract, locals := locals, immutables := immStore v }, evm') := by
   intro evm'
   have hstore :
       storageLocStore evm (wordLoc ⟨5⟩) (.int (Int.ofNat dirtNew.toNat)) =
@@ -381,21 +381,21 @@ theorem assign_digsDirtStorage {v : DogImmutables} (evm : EVM.State)
     (hloc := by rfl)
     (hstore := hstore)
 
-theorem assign_digsIlkDirtStorage {v : DogImmutables} (evm : EVM.State)
+theorem assign_digsIlkDirtStorage (evm : EVM.State)
     {I : ExecutionEnv} {locals : Store} (hsz68 : 68 ≤ I.calldata.size)
     (ilkDirtNew : UInt256)
     (hbase : locals.get? "ilks" = none)
     (hilk : locals.get? "ilk" = some (digsIlkValue I)) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
       (digsDirtSlotFor I) ilkDirtNew
-    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+    assignStorageRef? config { contract := contract, locals := locals, immutables := immStore v } evm
       .storage (ilksF (.var "ilk") "dirt") (.int (Int.ofNat ilkDirtNew.toNat)) =
-        .ok ({ contract := contract v, locals := locals }, evm') := by
+        .ok ({ contract := contract, locals := locals, immutables := immStore v }, evm') := by
   intro evm'
   have hkeyLen : (digsIlkBytes I).length = bytes32Width.val + 1 :=
     digsIlkBytes_len hsz68
   have hvar :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "ilk") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "ilk") =
         .ok (digsIlkValue I) := by
     rw [evalExpr?]
     change EvalResult.ofOption EvalError.unboundVariable (locals.get? "ilk") =
@@ -419,7 +419,7 @@ theorem assign_digsIlkDirtStorage {v : DogImmutables} (evm : EVM.State)
     (hloc := by rfl)
     (hstore := hstore)
 
-theorem digsSuccessSourceBody {v : DogImmutables} {σ σ₀ A I} {g : UInt256}
+theorem digsSuccessSourceBody {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
@@ -437,28 +437,28 @@ theorem digsSuccessSourceBody {v : DogImmutables} {σ σ₀ A I} {g : UInt256}
     let ilkDirt0 := dogSlotWord (digsDirtSlotFor I) evm1.accountMap evm1.executionEnv
     let ilkDirtNew := UInt256.sub ilkDirt0 (digsRad I)
     let evm2 := Solm.EVM.storageStore evm1 I.codeOwner (digsDirtSlotFor I) ilkDirtNew
-    ExecTransitionBody (config v) (contract v) evm0 locals digsTransition.body
+    ExecTransitionBody config contract evm0 locals digsTransition.body
       (.returned
-        (Frame.mk (contract v) (digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew))
-        evm2 none) := by
+        (Frame.mk contract (digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew) (immStore v))
+        evm2 none) (immStore v) := by
   intro locals evm0 dirt0 dirtNew evm1 ilkDirt0 ilkDirtNew evm2
   have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, digsLocals]) hauth
   have hDirtExpr :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.storage DirtRef) = .ok (.int (Int.ofNat dirt0.toNat)) := by
     simpa [evm0, initState, dirt0, dogSlotWord] using
       (evalExpr_digsDirtStorage (v := v) (evm := evm0) (locals := locals)
         (by simp [locals, digsLocals]))
   have hrad :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.var "rad") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.var "rad") =
         .ok (.int (Int.ofNat (digsRad I).toNat)) := by
     simpa [locals] using
       evalExpr_digsRad (v := v) (evm := evm0) (I := I) (locals := locals)
         (digsLocals_get_rad I)
   have hargs1 :
-      evalExprs? (config v) { contract := contract v, locals := locals } evm0
+      evalExprs? config { contract := contract, locals := locals, immutables := immStore v } evm0
         [.storage DirtRef, .var "rad"] =
           .ok [.int (Int.ofNat dirt0.toNat), .int (Int.ofNat (digsRad I).toNat)] := by
     simp [evalExprs?, hDirtExpr, hrad, EvalResult.bind, bind, pure]
@@ -468,47 +468,47 @@ theorem digsSuccessSourceBody {v : DogImmutables} {σ σ₀ A I} {g : UInt256}
         some (uintBinaryLocals dirt0 (digsRad I)) := by
     simp [subFunction, uint256, bindParams?, uintBinaryLocals]
   have hcall1 :
-      ExecStmt (config v) { contract := contract v, locals := locals } evm0
+      ExecStmt config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.internalCall "sub" [.storage DirtRef, .var "rad"] "DirtNew")
-        (.ok { contract := contract v, locals := digsLocalsDirtNew I dirtNew } evm0) := by
+        (.ok { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v } evm0) := by
     have hbody := execSubFunctionReturn (v := v) evm0 (x := dirt0) (y := digsRad I)
       (diff := dirtNew) (by simp [dirtNew]) (by simpa [dirt0] using hDirtLe)
     simpa [locals, digsLocalsDirtNew, resumeAfterInternalCall] using
       (internalCallFunctionReturn
-        (cfg := config v) (caller := { contract := contract v, locals := locals })
+        (cfg := config) (caller := { contract := contract, locals := locals, immutables := immStore v })
         (evm := evm0) (calleeEvm := evm0) (name := "sub") (retVar := "DirtNew")
         (args := [.storage DirtRef, .var "rad"])
         (argVals := [.int (Int.ofNat dirt0.toNat), .int (Int.ofNat (digsRad I).toNat)])
         (callee := subFunction) (locals := uintBinaryLocals dirt0 (digsRad I))
         (calleeSolm :=
-          { contract := contract v, locals := uintBinaryLocalsZ dirt0 (digsRad I) dirtNew })
+          { contract := contract, locals := uintBinaryLocalsZ dirt0 (digsRad I) dirtNew, immutables := immStore v })
         (value := some [.int (Int.ofNat dirtNew.toNat)])
         hargs1 (by rfl) hbind1 hbody)
   have hDirtNew :
-      evalExpr? (config v)
-          { contract := contract v, locals := digsLocalsDirtNew I dirtNew } evm0
+      evalExpr? config
+          { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v } evm0
           (.var "DirtNew") = .ok (.int (Int.ofNat dirtNew.toNat)) := by
     exact evalExpr_varUInt256 (v := v) (evm := evm0)
       (digsLocalsDirtNew_get_DirtNew I dirtNew)
   have hassign1 :
-      assignStorageRef? (config v)
-          { contract := contract v, locals := digsLocalsDirtNew I dirtNew } evm0
+      assignStorageRef? config
+          { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v } evm0
           .storage DirtRef (.int (Int.ofNat dirtNew.toNat)) =
-        .ok ({ contract := contract v, locals := digsLocalsDirtNew I dirtNew }, evm1) := by
+        .ok ({ contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v }, evm1) := by
     simpa [evm1] using
-      assign_digsDirtStorage (v := v) evm0 (locals := digsLocalsDirtNew I dirtNew)
+      assign_digsDirtStorage evm0 (locals := digsLocalsDirtNew I dirtNew)
         dirtNew (by simp [digsLocalsDirtNew, digsLocals])
   have hassignStmt1 :
-      ExecStmt (config v) { contract := contract v, locals := digsLocalsDirtNew I dirtNew }
+      ExecStmt config { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v }
         evm0 (.assign .storage DirtRef (.var "DirtNew"))
-        (.ok { contract := contract v, locals := digsLocalsDirtNew I dirtNew } evm1) :=
+        (.ok { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v } evm1) :=
     ExecStmt.assign hDirtNew hassign1
   have hilk1 :
       (digsLocalsDirtNew I dirtNew).get? "ilk" = some (digsIlkValue I) :=
     digsLocalsDirtNew_get_ilk I dirtNew
   have hIlkDirtExpr :
-      evalExpr? (config v)
-          { contract := contract v, locals := digsLocalsDirtNew I dirtNew } evm1
+      evalExpr? config
+          { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v } evm1
           (.storage (ilksF (.var "ilk") "dirt")) =
         .ok (.int (Int.ofNat ilkDirt0.toNat)) := by
     simpa [ilkDirt0] using
@@ -516,14 +516,14 @@ theorem digsSuccessSourceBody {v : DogImmutables} {σ σ₀ A I} {g : UInt256}
         (locals := digsLocalsDirtNew I dirtNew) hsz68
         (by simp [digsLocalsDirtNew, digsLocals]) hilk1)
   have hrad1 :
-      evalExpr? (config v)
-          { contract := contract v, locals := digsLocalsDirtNew I dirtNew } evm1
+      evalExpr? config
+          { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v } evm1
           (.var "rad") = .ok (.int (Int.ofNat (digsRad I).toNat)) := by
     exact evalExpr_digsRad (v := v) (evm := evm1) (I := I)
       (locals := digsLocalsDirtNew I dirtNew) (digsLocalsDirtNew_get_rad I dirtNew)
   have hargs2 :
-      evalExprs? (config v)
-          { contract := contract v, locals := digsLocalsDirtNew I dirtNew } evm1
+      evalExprs? config
+          { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v } evm1
           [.storage (ilksF (.var "ilk") "dirt"), .var "rad"] =
         .ok [.int (Int.ofNat ilkDirt0.toNat), .int (Int.ofNat (digsRad I).toNat)] := by
     simp [evalExprs?, hIlkDirtExpr, hrad1, EvalResult.bind, bind, pure]
@@ -541,75 +541,75 @@ theorem digsSuccessSourceBody {v : DogImmutables} {σ σ₀ A I} {g : UInt256}
         storageStore_executionEnv evm0 I.codeOwner ⟨5⟩ dirtNew
     simpa [ilkDirt0, dogSlotWord, hmap, henv, dirtNew, dirt0] using hIlkLe
   have hcall2 :
-      ExecStmt (config v) { contract := contract v, locals := digsLocalsDirtNew I dirtNew }
+      ExecStmt config { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v }
         evm1 (.internalCall "sub" [.storage (ilksF (.var "ilk") "dirt"), .var "rad"]
           "ilkDirtNew")
-        (.ok (Frame.mk (contract v) (digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew))
+        (.ok (Frame.mk contract (digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew) (immStore v))
           evm1) := by
     have hbody := execSubFunctionReturn (v := v) evm1 (x := ilkDirt0) (y := digsRad I)
       (diff := ilkDirtNew) (by simp [ilkDirtNew]) hIlkLe'
     simpa [digsLocalsDirtNewIlkDirtNew, resumeAfterInternalCall] using
       (internalCallFunctionReturn
-        (cfg := config v)
-        (caller := { contract := contract v, locals := digsLocalsDirtNew I dirtNew })
+        (cfg := config)
+        (caller := { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v })
         (evm := evm1) (calleeEvm := evm1) (name := "sub") (retVar := "ilkDirtNew")
         (args := [.storage (ilksF (.var "ilk") "dirt"), .var "rad"])
         (argVals := [.int (Int.ofNat ilkDirt0.toNat),
           .int (Int.ofNat (digsRad I).toNat)])
         (callee := subFunction) (locals := uintBinaryLocals ilkDirt0 (digsRad I))
         (calleeSolm :=
-          { contract := contract v,
-            locals := uintBinaryLocalsZ ilkDirt0 (digsRad I) ilkDirtNew })
+          { contract := contract,
+            locals := uintBinaryLocalsZ ilkDirt0 (digsRad I) ilkDirtNew, immutables := immStore v })
         (value := some [.int (Int.ofNat ilkDirtNew.toNat)])
         hargs2 (by rfl) hbind2 hbody)
   have hIlkDirtNew :
-      evalExpr? (config v)
-          { contract := contract v,
-            locals := digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew } evm1
+      evalExpr? config
+          { contract := contract,
+            locals := digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew, immutables := immStore v } evm1
           (.var "ilkDirtNew") = .ok (.int (Int.ofNat ilkDirtNew.toNat)) := by
     exact evalExpr_varUInt256 (v := v) (evm := evm1)
       (digsLocalsDirtNewIlkDirtNew_get_ilkDirtNew I dirtNew ilkDirtNew)
   have hassign2 :
-      assignStorageRef? (config v)
-          { contract := contract v,
-            locals := digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew } evm1
+      assignStorageRef? config
+          { contract := contract,
+            locals := digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew, immutables := immStore v } evm1
           .storage (ilksF (.var "ilk") "dirt") (.int (Int.ofNat ilkDirtNew.toNat)) =
         .ok
-          (Frame.mk (contract v) (digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew), evm2) := by
+          (Frame.mk contract (digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew) (immStore v), evm2) := by
     simpa [evm2, evm1, evm0, initState, storageStore_executionEnv] using
-      assign_digsIlkDirtStorage (v := v) evm1 (I := I)
+      assign_digsIlkDirtStorage evm1 (I := I)
         (locals := digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew) hsz68 ilkDirtNew
         (by simp [digsLocalsDirtNewIlkDirtNew, digsLocalsDirtNew, digsLocals])
         (digsLocalsDirtNewIlkDirtNew_get_ilk I dirtNew ilkDirtNew)
   have hassignStmt2 :
-      ExecStmt (config v)
-          { contract := contract v,
-            locals := digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew } evm1
+      ExecStmt config
+          { contract := contract,
+            locals := digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew, immutables := immStore v } evm1
           (.assign .storage (ilksF (.var "ilk") "dirt") (.var "ilkDirtNew"))
           (.ok
-            { contract := contract v,
-              locals := digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew } evm2) :=
+            { contract := contract,
+              locals := digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew, immutables := immStore v } evm2) :=
     ExecStmt.assign hIlkDirtNew hassign2
   have htail :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         [ .internalCall "sub" [.storage DirtRef, .var "rad"] "DirtNew",
           .assign .storage DirtRef (.var "DirtNew"),
           .internalCall "sub" [.storage (ilksF (.var "ilk") "dirt"), .var "rad"]
             "ilkDirtNew",
           .assign .storage (ilksF (.var "ilk") "dirt") (.var "ilkDirtNew") ]
         (.ok
-          { contract := contract v,
-            locals := digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew } evm2) := by
+          { contract := contract,
+            locals := digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew, immutables := immStore v } evm2) := by
     exact ExecBlock.consNormal hcall1 <|
       ExecBlock.consNormal hassignStmt1 <|
         ExecBlock.consNormal hcall2 <|
           ExecBlock.consNormal hassignStmt2 ExecBlock.nil
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         digsTransition.body
         (.ok
-          { contract := contract v,
-            locals := digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew } evm2) := by
+          { contract := contract,
+            locals := digsLocalsDirtNewIlkDirtNew I dirtNew ilkDirtNew, immutables := immStore v } evm2) := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
@@ -617,33 +617,33 @@ theorem digsSuccessSourceBody {v : DogImmutables} {σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, digsTransition, nonpayable, auth, evm0, evm1, evm2, locals,
     dirt0, dirtNew, ilkDirt0, ilkDirtNew] using ExecFuncBody.execBlockOK hblock
 
-theorem digsFirstSubUnderflowSourceBody {v : DogImmutables}
+theorem digsFirstSubUnderflowSourceBody
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
     (hDirtLt : (dogSlotWord ⟨5⟩ σ I).toNat < (digsRad I).toNat) :
     let locals := digsLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals digsTransition.body .reverted := by
+    ExecTransitionBody config contract evm0 locals digsTransition.body .reverted (immStore v) := by
   intro locals evm0
   let dirt0 := dogSlotWord ⟨5⟩ σ I
   have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, digsLocals]) hauth
   have hDirtExpr :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.storage DirtRef) = .ok (.int (Int.ofNat dirt0.toNat)) := by
     simpa [evm0, initState, dirt0, dogSlotWord] using
       (evalExpr_digsDirtStorage (v := v) (evm := evm0) (locals := locals)
         (by simp [locals, digsLocals]))
   have hrad :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.var "rad") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.var "rad") =
         .ok (.int (Int.ofNat (digsRad I).toNat)) := by
     simpa [locals] using
       evalExpr_digsRad (v := v) (evm := evm0) (I := I) (locals := locals)
         (digsLocals_get_rad I)
   have hargs :
-      evalExprs? (config v) { contract := contract v, locals := locals } evm0
+      evalExprs? config { contract := contract, locals := locals, immutables := immStore v } evm0
         [.storage DirtRef, .var "rad"] =
           .ok [.int (Int.ofNat dirt0.toNat), .int (Int.ofNat (digsRad I).toNat)] := by
     simp [evalExprs?, hDirtExpr, hrad, EvalResult.bind, bind, pure]
@@ -653,19 +653,19 @@ theorem digsFirstSubUnderflowSourceBody {v : DogImmutables}
         some (uintBinaryLocals dirt0 (digsRad I)) := by
     simp [subFunction, uint256, bindParams?, uintBinaryLocals]
   have hcall :
-      ExecStmt (config v) { contract := contract v, locals := locals } evm0
+      ExecStmt config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.internalCall "sub" [.storage DirtRef, .var "rad"] "DirtNew") .reverted := by
     have hbody := execSubFunctionRevert (v := v) evm0 (x := dirt0) (y := digsRad I)
       (by simpa [dirt0] using hDirtLt)
     exact internalCallFunctionRevert
-      (cfg := config v) (caller := { contract := contract v, locals := locals })
+      (cfg := config) (caller := { contract := contract, locals := locals, immutables := immStore v })
       (evm := evm0) (name := "sub") (retVar := "DirtNew")
       (args := [.storage DirtRef, .var "rad"])
       (argVals := [.int (Int.ofNat dirt0.toNat), .int (Int.ofNat (digsRad I).toNat)])
       (callee := subFunction) (locals := uintBinaryLocals dirt0 (digsRad I))
       hargs (by rfl) hbind hbody
   have htail :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         [ .internalCall "sub" [.storage DirtRef, .var "rad"] "DirtNew",
           .assign .storage DirtRef (.var "DirtNew"),
           .internalCall "sub" [.storage (ilksF (.var "ilk") "dirt"), .var "rad"]
@@ -674,7 +674,7 @@ theorem digsFirstSubUnderflowSourceBody {v : DogImmutables}
         .reverted :=
     ExecBlock.consRevert hcall
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         digsTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -683,7 +683,7 @@ theorem digsFirstSubUnderflowSourceBody {v : DogImmutables}
   simpa [ExecTransitionBody, digsTransition, nonpayable, auth, evm0, locals] using
     ExecFuncBody.execBlockRevert hblock
 
-theorem digsSecondSubUnderflowSourceBody {v : DogImmutables}
+theorem digsSecondSubUnderflowSourceBody
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
@@ -696,7 +696,7 @@ theorem digsSecondSubUnderflowSourceBody {v : DogImmutables}
     (digsRad I).toNat) :
     let locals := digsLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals digsTransition.body .reverted := by
+    ExecTransitionBody config contract evm0 locals digsTransition.body .reverted (immStore v) := by
   intro locals evm0
   let dirt0 := dogSlotWord ⟨5⟩ σ I
   let dirtNew := UInt256.sub dirt0 (digsRad I)
@@ -706,19 +706,19 @@ theorem digsSecondSubUnderflowSourceBody {v : DogImmutables}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, digsLocals]) hauth
   have hDirtExpr :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.storage DirtRef) = .ok (.int (Int.ofNat dirt0.toNat)) := by
     simpa [evm0, initState, dirt0, dogSlotWord] using
       (evalExpr_digsDirtStorage (v := v) (evm := evm0) (locals := locals)
         (by simp [locals, digsLocals]))
   have hrad :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.var "rad") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.var "rad") =
         .ok (.int (Int.ofNat (digsRad I).toNat)) := by
     simpa [locals] using
       evalExpr_digsRad (v := v) (evm := evm0) (I := I) (locals := locals)
         (digsLocals_get_rad I)
   have hargs1 :
-      evalExprs? (config v) { contract := contract v, locals := locals } evm0
+      evalExprs? config { contract := contract, locals := locals, immutables := immStore v } evm0
         [.storage DirtRef, .var "rad"] =
           .ok [.int (Int.ofNat dirt0.toNat), .int (Int.ofNat (digsRad I).toNat)] := by
     simp [evalExprs?, hDirtExpr, hrad, EvalResult.bind, bind, pure]
@@ -728,47 +728,47 @@ theorem digsSecondSubUnderflowSourceBody {v : DogImmutables}
         some (uintBinaryLocals dirt0 (digsRad I)) := by
     simp [subFunction, uint256, bindParams?, uintBinaryLocals]
   have hcall1 :
-      ExecStmt (config v) { contract := contract v, locals := locals } evm0
+      ExecStmt config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.internalCall "sub" [.storage DirtRef, .var "rad"] "DirtNew")
-        (.ok { contract := contract v, locals := digsLocalsDirtNew I dirtNew } evm0) := by
+        (.ok { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v } evm0) := by
     have hbody := execSubFunctionReturn (v := v) evm0 (x := dirt0) (y := digsRad I)
       (diff := dirtNew) (by simp [dirtNew]) (by simpa [dirt0] using hDirtLe)
     simpa [locals, digsLocalsDirtNew, resumeAfterInternalCall] using
       (internalCallFunctionReturn
-        (cfg := config v) (caller := { contract := contract v, locals := locals })
+        (cfg := config) (caller := { contract := contract, locals := locals, immutables := immStore v })
         (evm := evm0) (calleeEvm := evm0) (name := "sub") (retVar := "DirtNew")
         (args := [.storage DirtRef, .var "rad"])
         (argVals := [.int (Int.ofNat dirt0.toNat), .int (Int.ofNat (digsRad I).toNat)])
         (callee := subFunction) (locals := uintBinaryLocals dirt0 (digsRad I))
         (calleeSolm :=
-          { contract := contract v, locals := uintBinaryLocalsZ dirt0 (digsRad I) dirtNew })
+          { contract := contract, locals := uintBinaryLocalsZ dirt0 (digsRad I) dirtNew, immutables := immStore v })
         (value := some [.int (Int.ofNat dirtNew.toNat)])
         hargs1 (by rfl) hbind1 hbody)
   have hDirtNew :
-      evalExpr? (config v)
-          { contract := contract v, locals := digsLocalsDirtNew I dirtNew } evm0
+      evalExpr? config
+          { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v } evm0
           (.var "DirtNew") = .ok (.int (Int.ofNat dirtNew.toNat)) := by
     exact evalExpr_varUInt256 (v := v) (evm := evm0)
       (digsLocalsDirtNew_get_DirtNew I dirtNew)
   have hassign1 :
-      assignStorageRef? (config v)
-          { contract := contract v, locals := digsLocalsDirtNew I dirtNew } evm0
+      assignStorageRef? config
+          { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v } evm0
           .storage DirtRef (.int (Int.ofNat dirtNew.toNat)) =
-        .ok ({ contract := contract v, locals := digsLocalsDirtNew I dirtNew }, evm1) := by
+        .ok ({ contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v }, evm1) := by
     simpa [evm1] using
-      assign_digsDirtStorage (v := v) evm0 (locals := digsLocalsDirtNew I dirtNew)
+      assign_digsDirtStorage evm0 (locals := digsLocalsDirtNew I dirtNew)
         dirtNew (by simp [digsLocalsDirtNew, digsLocals])
   have hassignStmt1 :
-      ExecStmt (config v) { contract := contract v, locals := digsLocalsDirtNew I dirtNew }
+      ExecStmt config { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v }
         evm0 (.assign .storage DirtRef (.var "DirtNew"))
-        (.ok { contract := contract v, locals := digsLocalsDirtNew I dirtNew } evm1) :=
+        (.ok { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v } evm1) :=
     ExecStmt.assign hDirtNew hassign1
   have hilk1 :
       (digsLocalsDirtNew I dirtNew).get? "ilk" = some (digsIlkValue I) :=
     digsLocalsDirtNew_get_ilk I dirtNew
   have hIlkDirtExpr :
-      evalExpr? (config v)
-          { contract := contract v, locals := digsLocalsDirtNew I dirtNew } evm1
+      evalExpr? config
+          { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v } evm1
           (.storage (ilksF (.var "ilk") "dirt")) =
         .ok (.int (Int.ofNat ilkDirt0.toNat)) := by
     simpa [ilkDirt0] using
@@ -776,14 +776,14 @@ theorem digsSecondSubUnderflowSourceBody {v : DogImmutables}
         (locals := digsLocalsDirtNew I dirtNew) hsz68
         (by simp [digsLocalsDirtNew, digsLocals]) hilk1)
   have hrad1 :
-      evalExpr? (config v)
-          { contract := contract v, locals := digsLocalsDirtNew I dirtNew } evm1
+      evalExpr? config
+          { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v } evm1
           (.var "rad") = .ok (.int (Int.ofNat (digsRad I).toNat)) := by
     exact evalExpr_digsRad (v := v) (evm := evm1) (I := I)
       (locals := digsLocalsDirtNew I dirtNew) (digsLocalsDirtNew_get_rad I dirtNew)
   have hargs2 :
-      evalExprs? (config v)
-          { contract := contract v, locals := digsLocalsDirtNew I dirtNew } evm1
+      evalExprs? config
+          { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v } evm1
           [.storage (ilksF (.var "ilk") "dirt"), .var "rad"] =
         .ok [.int (Int.ofNat ilkDirt0.toNat), .int (Int.ofNat (digsRad I).toNat)] := by
     simp [evalExprs?, hIlkDirtExpr, hrad1, EvalResult.bind, bind, pure]
@@ -801,14 +801,14 @@ theorem digsSecondSubUnderflowSourceBody {v : DogImmutables}
         storageStore_executionEnv evm0 I.codeOwner ⟨5⟩ dirtNew
     simpa [ilkDirt0, dogSlotWord, hmap, henv, dirtNew, dirt0] using hIlkLt
   have hcall2 :
-      ExecStmt (config v) { contract := contract v, locals := digsLocalsDirtNew I dirtNew }
+      ExecStmt config { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v }
         evm1 (.internalCall "sub" [.storage (ilksF (.var "ilk") "dirt"), .var "rad"]
           "ilkDirtNew") .reverted := by
     have hbody := execSubFunctionRevert (v := v) evm1 (x := ilkDirt0) (y := digsRad I)
       hIlkLt'
     exact internalCallFunctionRevert
-      (cfg := config v)
-      (caller := { contract := contract v, locals := digsLocalsDirtNew I dirtNew })
+      (cfg := config)
+      (caller := { contract := contract, locals := digsLocalsDirtNew I dirtNew, immutables := immStore v })
       (evm := evm1) (name := "sub") (retVar := "ilkDirtNew")
       (args := [.storage (ilksF (.var "ilk") "dirt"), .var "rad"])
       (argVals := [.int (Int.ofNat ilkDirt0.toNat),
@@ -816,7 +816,7 @@ theorem digsSecondSubUnderflowSourceBody {v : DogImmutables}
       (callee := subFunction) (locals := uintBinaryLocals ilkDirt0 (digsRad I))
       hargs2 (by rfl) hbind2 hbody
   have htail :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         [ .internalCall "sub" [.storage DirtRef, .var "rad"] "DirtNew",
           .assign .storage DirtRef (.var "DirtNew"),
           .internalCall "sub" [.storage (ilksF (.var "ilk") "dirt"), .var "rad"]
@@ -827,7 +827,7 @@ theorem digsSecondSubUnderflowSourceBody {v : DogImmutables}
       ExecBlock.consNormal hassignStmt1 <|
         ExecBlock.consRevert hcall2
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         digsTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -1864,10 +1864,10 @@ theorem dogDigsBodyCore {v : DogImmutables} {code : ByteArray}
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (dogSelBytes 6)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 6) rfl hsel
-  have hdispatch : dispatchMsg (contract v) I.calldata = some digsTransition :=
+  have hdispatch : dispatchMsg contract I.calldata = some digsTransition :=
     dogDispatchDigs hsel
   have hreach := dogReachDigsBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -1879,11 +1879,11 @@ theorem dogDigsBodyCore {v : DogImmutables} {code : ByteArray}
     let sourceSlot := digsDirtSlotFor I
     let locals := digsLocals I
     have hdecode :
-        decodeCalldataWithMode (config v).abiDecodeMode
+        decodeCalldataWithMode config.abiDecodeMode
           (digsTransition.params.map Param.name)
           (transitionSignature digsTransition).paramTypes I.calldata =
             some locals := by
-      simpa [locals] using dogDecode_digs_ok (v := v) hsz68
+      simpa [locals] using dogDecode_digs_ok hsz68
     have hslotEq : actualSlot = sourceSlot := by
       simp [actualSlot, sourceSlot, digsDirtSlotFor_eq hsz68, u256_add_comm]
     have hcallerWord :
@@ -1908,10 +1908,10 @@ theorem dogDigsBodyCore {v : DogImmutables} {code : ByteArray}
           exact hDirtLtEvm
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
-            ExecTransitionBody (config v) (contract v) evm0 locals digsTransition.body
-              .reverted := by
+            ExecTransitionBody config contract evm0 locals digsTransition.body
+              .reverted (immStore v) := by
           simpa [evm0, locals, rad] using
-            (digsFirstSubUnderflowSourceBody (v := v)
+            (digsFirstSubUnderflowSourceBody
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               hwv hauthSolm hDirtLtSolm)
         have hrev := RD.dogDigsFirstSubUnderflowRevert
@@ -1935,10 +1935,10 @@ theorem dogDigsBodyCore {v : DogImmutables} {code : ByteArray}
             exact hIlkLtEvm
           let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
           have hbody :
-              ExecTransitionBody (config v) (contract v) evm0 locals digsTransition.body
-                .reverted := by
+              ExecTransitionBody config contract evm0 locals digsTransition.body
+                .reverted (immStore v) := by
             simpa [evm0, locals, rad, sourceSlot, σ1_solm, dirtNewSolm] using
-              (digsSecondSubUnderflowSourceBody (v := v)
+              (digsSecondSubUnderflowSourceBody
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 hwv hsz68 hauthSolm (by simpa [rad] using hDirtLeSolm)
                 (by simpa [rad, sourceSlot, σ1_solm, dirtNewSolm] using hIlkLtSolm))
@@ -1958,14 +1958,14 @@ theorem dogDigsBodyCore {v : DogImmutables} {code : ByteArray}
           let ilkDirtNewSolm := UInt256.sub ilkDirt0Solm rad
           let evm2 := Solm.EVM.storageStore evm1 I.codeOwner sourceSlot ilkDirtNewSolm
           have hbody :
-              ExecTransitionBody (config v) (contract v) evm0 locals digsTransition.body
+              ExecTransitionBody config contract evm0 locals digsTransition.body
                 (.returned
-                  (Frame.mk (contract v)
-                    (digsLocalsDirtNewIlkDirtNew I dirtNewSolm ilkDirtNewSolm))
-                  evm2 none) := by
+                  (Frame.mk contract
+                    (digsLocalsDirtNewIlkDirtNew I dirtNewSolm ilkDirtNewSolm) (immStore v))
+                  evm2 none) (immStore v) := by
             simpa [evm0, evm1, evm2, locals, rad, sourceSlot, dirtNewSolm,
               ilkDirt0Solm, ilkDirtNewSolm] using
-              (digsSuccessSourceBody (v := v)
+              (digsSuccessSourceBody
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 hwv hsz68 hauthSolm (by simpa [rad] using hDirtLeSolm)
                 (by simpa [rad, sourceSlot, σ1_solm, dirtNewSolm] using hIlkLeSolm))
@@ -1999,14 +1999,14 @@ theorem dogDigsBodyCore {v : DogImmutables} {code : ByteArray}
         exact hauthEvm (by rw [hcallerWord, hsolm])
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
-          ExecTransitionBody (config v) (contract v) evm0 locals digsTransition.body
-            .reverted := by
+          ExecTransitionBody config contract evm0 locals digsTransition.body
+            .reverted (immStore v) := by
         have hguard := dogAuthGuardEval_false (v := v)
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := locals)
           (by simp [locals, digsLocals]) hauthSolm
         have hblock := nonpayableSecondRequireReverts
-          (cfg := config v) (solm := { contract := contract v, locals := locals })
+          (cfg := config) (solm := { contract := contract, locals := locals, immutables := immStore v })
           (evm := evm0)
           (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
           (rest := [
@@ -2051,6 +2051,6 @@ theorem dogDigsBodyCore {v : DogImmutables} {code : ByteArray}
       (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
       hlt
     exact hrev.reEquivDecodingFailed hcode hdispatch
-      (dogDecode_digs_none_short (v := v) hsz4 hshort)
+      (dogDecode_digs_none_short hsz4 hshort)
 
 end Benchmarks.Dss.Dog

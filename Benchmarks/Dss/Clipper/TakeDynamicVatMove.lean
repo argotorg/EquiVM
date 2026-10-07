@@ -195,7 +195,7 @@ theorem RD.clipperTakeVatMovePostCallWF {σ₀ σStart σ I}
           tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
         (clipperTakeVatMoveCalldataMem σ I owe baseMem) aw outVat
         σ_vat k' C' ∧
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address v.vat) "move" 0
@@ -259,7 +259,7 @@ theorem RD.clipperTakeVatMovePostCallWF {σ₀ σStart σ I}
   · let evmVat : EVM.State :=
       { initState σStart σ₀ g A I with
         accountMap := σ }
-    refine callCoincides (cfg := config v) (evm := evmVat) (name := "move")
+    refine callCoincides (cfg := config) (evm := evmVat) (name := "move")
       (args :=
         [.address I.source,
           .address (AccountAddress.ofNat (clipperTakeVowTarget σ I).toNat),
@@ -276,7 +276,7 @@ theorem RD.clipperTakeVatMovePostCallWF {σ₀ σStart σ I}
         decide)) ?_ ?_ ?_
     · rw [clipperTakeVatTargetAddress v]
       exact clipperTakeEVMAddressAccountAddress v.vat
-    · simpa using clipperTakeVatMoveEncode_eq_ge v σ I owe hsize
+    · simpa using clipperTakeVatMoveEncode_eq_ge σ I owe hsize
     · simpa [evmVat, initState, hperm] using hΘ
 
 end Benchmarks.Dss.Clipper

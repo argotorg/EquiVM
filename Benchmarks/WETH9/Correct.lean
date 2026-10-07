@@ -10,6 +10,7 @@ import Benchmarks.WETH9.Symbol
 import Benchmarks.WETH9.Transfer
 import Benchmarks.WETH9.Deposit
 import Benchmarks.WETH9.Allowance
+import Solm.Refine
 
 /-!
 # WETH9 benchmark correctness
@@ -27,7 +28,7 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.WETH9
 
 theorem weth9Correct :
-    runtimeEquivalence config weth9Bytecode contract := by
+    runtimeRefinement config weth9Bytecode contract := by
   refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   · by_cases h0 : selIs I (weth9SelBytes 0)
@@ -69,7 +70,7 @@ theorem weth9Correct :
   · exact weth9ShortFallbackBodyCore hcode hsize hperm (by omega)
 
 theorem weth9ContractCorrect :
-    contractEquivalence config weth9CreationBytecode weth9Bytecode contract :=
-  contractEquivalence.intro weth9ConstructorCorrect weth9Correct
+    contractRefinement config weth9CreationBytecode contract :=
+  contractRefinement.of_constant weth9ConstructorCorrect weth9Correct
 
 end Benchmarks.WETH9

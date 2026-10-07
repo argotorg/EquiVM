@@ -14,20 +14,20 @@ theorem clipperIlkSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
     solcSelectorWord_eq_of_beq I hsz 0xc5 0xce 0x28 0x1e (clipperSelNat 12)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_ilk (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_ilk {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 12)) :
-    dispatchMsg (contract v) I.calldata = some (ilkTransition v) := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some ilkTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre :=
       [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
         countTransition, cuspTransition, denyTransition, dogTransition, fileUintTransition,
         fileAddressTransition, getStatusTransition])
     (post :=
-      [kickTransition v, kicksTransition, listTransition, redoTransition v, relyTransition,
-        salesTransition, spotterTransition, stoppedTransition, tailTransition, takeTransition v,
-        tipTransition, upchostTransition v, vatTransition v, vowTransition, wardsTransition,
-        yankTransition v])
-    (ti := ilkTransition v) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
+      [kickTransition, kicksTransition, listTransition, redoTransition, relyTransition,
+        salesTransition, spotterTransition, stoppedTransition, tailTransition, takeTransition,
+        tipTransition, upchostTransition, vatTransition, vowTransition, wardsTransition,
+        yankTransition])
+    (ti := ilkTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
     simp only [List.mem_cons, List.mem_nil_iff] at ht
@@ -61,22 +61,23 @@ theorem clipperDispatch_ilk (v : ClipperImmutables) {I : ExecutionEnv}
   · rw [selectorOf, ilkSelectorBytes]
     simpa [clipperSelBytes] using hsel
 
-theorem clipperDecode_ilk (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_ilk {I : ExecutionEnv}
     (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode ((ilkTransition v).params.map Param.name)
-      (transitionSignature (ilkTransition v)).paramTypes I.calldata = some ∅ := by
-  show decodeCalldataWithMode (config v).abiDecodeMode [] [] I.calldata = some ∅
+    decodeCalldataWithMode config.abiDecodeMode (ilkTransition.params.map Param.name)
+      (transitionSignature ilkTransition).paramTypes I.calldata = some ∅ := by
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldataWithMode_empty_ok hsz
 
 theorem clipperIlkBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     {bs : List UInt8} (hilk : v.ilk = .fixedBytes ⟨31, by decide⟩ bs)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody (config v) (contract v) evm locals (ilkTransition v).body
-      (.returned { contract := contract v, locals := locals } evm
-        (some [(.fixedBytes ⟨31, by decide⟩ bs)])) := by
-  simpa [ilkTransition, ilkExpr, hilk] using
-    nonpayableFixedBytesLiteralBodyReturns (cfg := config v) (contract := contract v)
-      evm locals ⟨31, by decide⟩ bs h
+    ExecTransitionBody config contract evm locals ilkTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm
+        (some [(.fixedBytes ⟨31, by decide⟩ bs)])) (immStore v) := by
+  simpa [ilkTransition] using
+    nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) (imms := immStore v)
+      (evm := evm) (locals := locals) (expr := ilkExpr) h
+      (by rw [evalExpr_ilkExpr, hilk]; rfl)
 
 set_option maxHeartbeats 1000000 in
 theorem clipperReachIlkBody {σ σ₀ A I} {g : Sat256}
@@ -313,7 +314,7 @@ theorem clipperIlkBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 12)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   rcases v.ilk_wf with ⟨ilkBs, hilk, hlen⟩
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 12) (by native_decide) hsel
@@ -322,12 +323,12 @@ theorem clipperIlkBody (v : ClipperImmutables) {code : ByteArray}
     simpa [ABI.bytesToWord, fromByteArrayBigEndian, byteArray_toList_eq] using
       toBytesBE_bytesToWord_of_length hlen
   have hbody :
-      ExecTransitionBody (config v) (contract v)
-        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ (ilkTransition v).body
-        (.returned { contract := contract v, locals := ∅ }
+      ExecTransitionBody config contract
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ ilkTransition.body
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.fixedBytes ⟨31, by decide⟩
-            (EVM.Word.toBytesBE (EVM.Word.ofNat (fromBytesBigEndian ilkBs))))])) := by
+            (EVM.Word.toBytesBE (EVM.Word.ofNat (fromBytesBigEndian ilkBs))))])) (immStore v) := by
     simpa [htoBytes] using
       clipperIlkBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ hilk
@@ -339,11 +340,11 @@ theorem clipperIlkBody (v : ClipperImmutables) {code : ByteArray}
     exact clipperJumpDest6798 v hpatch
   exact clipperBytes32ConstGetterBodyCore (v := v) (code := code)
     (σ := σ) (σ₀ := σ₀)
-    (A := A) (I := I) (g := g) (sel := clipperSelWord I) (transition := ilkTransition v)
+    (A := A) (I := I) (g := g) (sel := clipperSelWord I) (transition := ilkTransition)
     (entry := (⟨1349⟩ : UInt256)) (routine := (⟨6798⟩ : UInt256))
     (returnPc := (⟨476⟩ : UInt256))
     (val := EVM.Word.ofNat (fromBytesBigEndian ilkBs)) (width := 32) (op := .PUSH32)
-    hcode (clipperDispatch_ilk v hsel) (clipperDecode_ilk v hsz) hreach
+    hcode (clipperDispatch_ilk hsel) (clipperDecode_ilk hsz) hreach
     (clipperIlkGetterEntryWf v hpatch) (clipperIlkConstGetterWf v hpatch hilk hlen)
     hroutine
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨476⟩ : UInt256) (by native_decide))

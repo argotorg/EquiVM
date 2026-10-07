@@ -127,9 +127,9 @@ theorem clipperJumpFallbackRevert {code : ByteArray} {ee : ExecutionEnv} {g : Sa
   exact clipperFallbackRevertAt v hpatch h463 hov
 
 theorem clipperBodyReverts_nonPayable (v : ClipperImmutables) (t : TransitionDecl)
-    (ht : t ∈ (contract v).transitions) (evm : EVM.State) (locals : Store)
+    (ht : t ∈ contract.transitions) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody (config v) (contract v) evm locals t.body .reverted := by
+    ExecTransitionBody config contract evm locals t.body .reverted (immStore v) := by
   simp [contract, transitions] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
@@ -1092,16 +1092,16 @@ theorem clipperNonPayable (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   exact (clipperX_callvalue_ne (g := Sat256.ofUInt256 g) v hpatch hcode hwv).reEquivElim
     hcode fun _ _ hrev => by
-      by_cases hdisp : dispatchMsg (contract v) I.calldata = none
+      by_cases hdisp : dispatchMsg contract I.calldata = none
       · exact reEquiv_noDispatch hdisp hrev
       · obtain ⟨t, ht⟩ := Option.ne_none_iff_exists'.mp hdisp
-        have htmem : t ∈ (contract v).transitions := by
-          rw [dispatchMsg_eq_dispatchList (contract v) I.calldata (by rfl)] at ht
+        have htmem : t ∈ contract.transitions := by
+          rw [dispatchMsg_eq_dispatchList contract I.calldata (by rfl)] at ht
           exact dispatchList_some_mem ht
-        by_cases hdec : decodeCalldataWithMode (config v).abiDecodeMode (t.params.map Param.name)
+        by_cases hdec : decodeCalldataWithMode config.abiDecodeMode (t.params.map Param.name)
             (transitionSignature t).paramTypes I.calldata = none
         · exact reEquiv_decodingFailed ht hdec hrev
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
@@ -1118,7 +1118,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 29 → (clipperSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   by_cases hsz : 4 ≤ I.calldata.size
   · have hzero : ∀ i, i < 29 →
         UInt256.eq (clipperSelNat i) (clipperSelWord I) = ⟨0⟩ := by
@@ -1531,9 +1531,9 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
                   clipper_decode)
               (by simp)
             exact clipperNoMatchGroupHRevert v hpatch hzero h430
-    exact hrev.reEquivNoDispatch hcode (clipperDispatch_none_nomatch v hnm)
+    exact hrev.reEquivNoDispatch hcode (clipperDispatch_none_nomatch hnm)
   · have hshort : I.calldata.size < 4 := by omega
     exact (clipperX_short (g := Sat256.ofUInt256 g) v hpatch hcode hwv hshort)
-      |>.reEquivNoDispatch hcode (clipperDispatch_none_short v hshort)
+      |>.reEquivNoDispatch hcode (clipperDispatch_none_short hshort)
 
 end Benchmarks.Dss.Clipper

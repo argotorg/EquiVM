@@ -79,7 +79,7 @@ theorem weth9TotalSupplyBodyCoreOk {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (weth9SelBytes 2)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 2) (by native_decide) hsel
   exact weth9ReEquivExecGen hcode
@@ -92,7 +92,7 @@ theorem weth9TotalSupplyBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hsel : selIs I (weth9SelBytes 2)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact weth9TotalSupplyBodyCoreOk hcode hsize hwv hsel
   · have hsz4 : 4 ≤ I.calldata.size :=

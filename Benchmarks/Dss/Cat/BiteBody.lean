@@ -95,7 +95,7 @@ theorem catBiteBodyIlksNoCode {σ σ₀ A I} {g : UInt256}
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hvatCode :
       Reasoning.Theory.extCodeSizeWord σ (catBiteVatTargetWord σ I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨k, C, rd1163⟩ := catReachBiteRoutine (g := Sat256.ofUInt256 g)
     hcode hwv hsz68 hsize hsel
   obtain ⟨k', C', rd1233⟩ := RD.catBiteIlksToStaticcallGuard (hR := by simp) rd1163
@@ -140,7 +140,7 @@ theorem catBiteBodyIlksFailCore {σ σ₀ A I} {g : UInt256}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
       (⟨0⟩ :: R) mem awi oi σi ki Ci)
     (hosz : oi.size < UInt256.size) (hov : R.length + 5 ≤ 1024) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨σs, As, hIlksSolm, _hEq⟩ := catBiteMapIlksCall hIlksFailCall
   have htw : catBiteVatTargetWord σ I = catBiteVatTargetWord σ I := rfl
   have htgt : (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I))

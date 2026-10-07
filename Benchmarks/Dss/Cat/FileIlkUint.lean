@@ -1036,7 +1036,7 @@ theorem catFileIlkUintBodyCore
     (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨261⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let callerSlot := catCallerWardsSlot I
   let locals := fileIlkUintLocals I
   have hcallerWord : catSlotWord callerSlot σ I = catSlotWord callerSlot σ I :=
@@ -1110,7 +1110,7 @@ theorem catFileIlkUintShort {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hsel : selIs I ⟨#[0x1a, 0x0b, 0x28, 0x7e]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hreach :=
     catReachFileIlkUintBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -1137,7 +1137,7 @@ theorem catFileIlkUintBody {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x1a, 0x0b, 0x28, 0x7e]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x1a, 0x0b, 0x28, 0x7e]⟩ (by native_decide) hsel
   by_cases hshort : I.calldata.size < 100

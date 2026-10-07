@@ -2131,7 +2131,7 @@ theorem vatFluxAuthorizedPath
       [fluxWadWord I, fluxDstMaskedWord I, fluxSrcMaskedWord I, fluxIlkWord I, ⟨524⟩,
         vatSelWord I]
       memWish (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let srcOld := vatSlotWord (fluxSrcGemSlot I) σ I
   let srcGemNew := UInt256.sub srcOld (fluxWadWord I)

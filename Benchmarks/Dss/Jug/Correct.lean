@@ -11,7 +11,7 @@ import Benchmarks.Dss.Jug.Rely
 import Benchmarks.Dss.Jug.Vat
 import Benchmarks.Dss.Jug.Vow
 import Benchmarks.Dss.Jug.Wards
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Jug benchmark correctness stub
@@ -30,7 +30,7 @@ namespace Benchmarks.Dss.Jug
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem jugNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (jugX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -56,7 +56,7 @@ theorem jugNoDispatch {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 12 → (jugSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (jugX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (jugDispatch_none_nomatch hnm)
@@ -94,8 +94,8 @@ theorem jugNoSelectorMatches {I : ExecutionEnv}
   · simpa [selIs, jugSelBytes] using hwards
 
 theorem jugCorrect :
-    runtimeEquivalence config jugBytecode contract := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement config jugBytecode contract := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbase : selIs I (jugSelBytes 0)
@@ -129,7 +129,7 @@ theorem jugCorrect :
   · exact jugNonPayable hcode hwv
 
 theorem jugContractCorrect :
-    contractEquivalence config jugCreationBytecode jugBytecode contract :=
-  contractEquivalence.intro jugConstructorCorrect jugCorrect
+    contractRefinement config jugCreationBytecode contract :=
+  contractRefinement.of_constant jugConstructorCorrect jugCorrect
 
 end Benchmarks.Dss.Jug

@@ -419,8 +419,8 @@ def int56Wrap (e : Expr) : Expr :=
 def blockTimestamp32 : Expr :=
   uint32Wrap (.env .timestamp)
 
-def noDelegateCall (v : PoolImmutables) : List Stmt :=
-  [ .require (eqE (.env .this) (addrLit v.original)) ]
+def noDelegateCall : List Stmt :=
+  [ .require (eqE (.env .this) (.immutable "original")) ]
 
 def lockPrefix : List Stmt :=
   [ .require (.storage (slot0F "unlocked")),
@@ -429,9 +429,9 @@ def lockPrefix : List Stmt :=
 def lockSuffix : List Stmt :=
   [ .assign .storage (slot0F "unlocked") (.boolLit true) ]
 
-def onlyFactoryOwner (v : PoolImmutables) : List Stmt :=
-  [ .require (.binary .gt (.extCodeSize (addrLit v.factory)) (.intLit 0)),
-    .externalCall (addrLit v.factory) "owner" (.intLit 0) [] "_factoryOwner" (perm := false),
+def onlyFactoryOwner : List Stmt :=
+  [ .require (.binary .gt (.extCodeSize (.immutable "factory")) (.intLit 0)),
+    .externalCall (.immutable "factory") "owner" (.intLit 0) [] "_factoryOwner" (perm := false),
     .require (eqE (.env .caller) (.var "_factoryOwner")) ]
 
 def safeTransfer (token recipient amount : Expr) (tag : Ident) : List Stmt :=
@@ -1120,13 +1120,13 @@ def getAmount1DeltaSignedFunction : FunctionDecl :=
               "amount1Unsigned",
             .return [.var "amount1Unsigned"] ] ] }
 
-def modifyPositionFunction (v : PoolImmutables) : FunctionDecl :=
+def modifyPositionFunction : FunctionDecl :=
   { name := "modifyPosition"
     params :=
       [ { name := "owner", ty := addr }, { name := "tickLower", ty := int24 },
         { name := "tickUpper", ty := int24 }, { name := "liquidityDelta", ty := int128 } ]
     returnType := [bytes32, int256, int256]
-    body := noDelegateCall v ++
+    body := noDelegateCall ++
       checkTicksBody (.var "tickLower") (.var "tickUpper") ++
       [ .letDecl "_slot0sqrtPriceX96" (some uint160) (.storage (slot0F "sqrtPriceX96")),
         .letDecl "_slot0tick" (some int24) (.storage (slot0F "tick")),
@@ -1152,22 +1152,22 @@ def modifyPositionFunction (v : PoolImmutables) : FunctionDecl :=
               [ .var "tickLower", .var "_slot0tick", .var "liquidityDelta",
                 .var "_feeGrowthGlobal0X128", .var "_feeGrowthGlobal1X128",
                 tuple1 (.var "observedForUpdate"), tuple0 (.var "observedForUpdate"),
-                .var "time", .boolLit false, .intLit v.maxLiquidityPerTick ]
+                .var "time", .boolLit false, .immutable "maxLiquidityPerTick" ]
               "flippedLowerCall",
             .assign .localVar (varRef "flippedLower") (.var "flippedLowerCall"),
             .internalCall "tickUpdate"
               [ .var "tickUpper", .var "_slot0tick", .var "liquidityDelta",
                 .var "_feeGrowthGlobal0X128", .var "_feeGrowthGlobal1X128",
                 tuple1 (.var "observedForUpdate"), tuple0 (.var "observedForUpdate"),
-                .var "time", .boolLit true, .intLit v.maxLiquidityPerTick ]
+                .var "time", .boolLit true, .immutable "maxLiquidityPerTick" ]
               "flippedUpperCall",
             .assign .localVar (varRef "flippedUpper") (.var "flippedUpperCall"),
             Stmt.ite (.var "flippedLower")
-              [ .internalCall "tickBitmapFlip" [.var "tickLower", .intLit v.tickSpacing]
+              [ .internalCall "tickBitmapFlip" [.var "tickLower", .immutable "tickSpacing"]
                   "_flipLower" ]
               [],
             Stmt.ite (.var "flippedUpper")
-              [ .internalCall "tickBitmapFlip" [.var "tickUpper", .intLit v.tickSpacing]
+              [ .internalCall "tickBitmapFlip" [.var "tickUpper", .immutable "tickSpacing"]
                   "_flipUpper" ]
               [] ]
           [],
@@ -1563,7 +1563,7 @@ def computeSwapStepFunction : FunctionDecl :=
             [ .assign .localVar (varRef "feeAmount") (.var "feeAmountComputed") ]),
         .return [.var "sqrtRatioNextX96", .var "amountIn", .var "amountOut", .var "feeAmount"] ] }
 
-def functions (v : PoolImmutables) : List FunctionDecl :=
+def functions : List FunctionDecl :=
   [ getSqrtRatioAtTickFunction,
     getTickAtSqrtRatioFunction,
     oracleLteFunction,
@@ -1582,7 +1582,7 @@ def functions (v : PoolImmutables) : List FunctionDecl :=
     getAmount1DeltaUnsignedFunction,
     getAmount0DeltaSignedFunction,
     getAmount1DeltaSignedFunction,
-    modifyPositionFunction v,
+    modifyPositionFunction,
     mostSignificantBitFunction,
     leastSignificantBitFunction,
     tickBitmapNextInitializedTickWithinOneWordFunction,
@@ -1600,21 +1600,21 @@ def functions (v : PoolImmutables) : List FunctionDecl :=
 -- `maxLiquidityPerTick := Tick.tickSpacingToMaxLiquidityPerTick(tickSpacing)`.  That formula's only
 -- signed division `(-887272 / ts)` (ts > 0) equals `-(887272 / ts)`, so the whole thing reduces to
 -- `(2^128-1) / (2*(887272 / ts) + 1)` over positive operands — where Solm's `/` (Euclidean) already
--- matches EVM truncating division.  Each immutable is bound to `imm_<name>` for `runtimeCodeOf`.
+-- matches EVM truncating division.
 def constructorDecl : ConstructorDecl :=
   { params := []
     body := nonpayable ++
       [ .externalCall (.env .caller) "parameters" (.intLit 0) [] "r" (perm := false),
-        .letDecl "imm_factory" none (.tupleGet (.var "r") 0),
-        .letDecl "imm_token0" none (.tupleGet (.var "r") 1),
-        .letDecl "imm_token1" none (.tupleGet (.var "r") 2),
-        .letDecl "imm_fee" none (.tupleGet (.var "r") 3),
-        .letDecl "imm_tickSpacing" none (.tupleGet (.var "r") 4),
-        .letDecl "imm_original" none (.env .this),
-        .letDecl "imm_maxLiquidityPerTick" none
+        .setImmutable "factory" (.tupleGet (.var "r") 0),
+        .setImmutable "token0" (.tupleGet (.var "r") 1),
+        .setImmutable "token1" (.tupleGet (.var "r") 2),
+        .setImmutable "fee" (.tupleGet (.var "r") 3),
+        .setImmutable "tickSpacing" (.tupleGet (.var "r") 4),
+        .setImmutable "original" (.env .this),
+        .setImmutable "maxLiquidityPerTick"
           (.binary .div (.intLit (2 ^ 128 - 1))
             (.binary .add
-              (.binary .mul (.intLit 2) (.binary .div (.intLit 887272) (.var "imm_tickSpacing")))
+              (.binary .mul (.intLit 2) (.binary .div (.intLit 887272) (.immutable "tickSpacing")))
               (.intLit 1))) ] }
 
 /-! ## Public ABI surface -/
@@ -1643,7 +1643,7 @@ def burnTransition : TransitionDecl :=
       lockSuffix ++
       [ .return [.var "amount0", .var "amount1"] ] }
 
-def collectTransition (v : PoolImmutables) : TransitionDecl :=
+def collectTransition : TransitionDecl :=
   { name := "collect"
     params := [ { name := "recipient", ty := addr }, { name := "tickLower", ty := int24 }, { name := "tickUpper", ty := int24 }, { name := "amount0Requested", ty := uint128 }, { name := "amount1Requested", ty := uint128 } ]
     returnType := [uint128, uint128]
@@ -1663,21 +1663,21 @@ def collectTransition (v : PoolImmutables) : TransitionDecl :=
         Stmt.ite (gtE (.var "amount0") (.intLit 0))
           ([ .assign .storage (positionsF (.var "positionKey") "tokensOwed0")
               (subE (.storage (positionsF (.var "positionKey") "tokensOwed0")) (.var "amount0")) ] ++
-            safeTransfer (addrLit v.token0) (.var "recipient") (.var "amount0") "collect0")
+            safeTransfer (.immutable "token0") (.var "recipient") (.var "amount0") "collect0")
           [],
         Stmt.ite (gtE (.var "amount1") (.intLit 0))
           ([ .assign .storage (positionsF (.var "positionKey") "tokensOwed1")
               (subE (.storage (positionsF (.var "positionKey") "tokensOwed1")) (.var "amount1")) ] ++
-            safeTransfer (addrLit v.token1) (.var "recipient") (.var "amount1") "collect1")
+            safeTransfer (.immutable "token1") (.var "recipient") (.var "amount1") "collect1")
           [] ] ++
       lockSuffix ++
       [ .return [(.var "amount0"), (.var "amount1")] ] }
 
-def collectprotocolTransition (v : PoolImmutables) : TransitionDecl :=
+def collectprotocolTransition : TransitionDecl :=
   { name := "collectProtocol"
     params := [ { name := "recipient", ty := addr }, { name := "amount0Requested", ty := uint128 }, { name := "amount1Requested", ty := uint128 } ]
     returnType := [uint128, uint128]
-    body := nonpayable ++ lockPrefix ++ onlyFactoryOwner v ++
+    body := nonpayable ++ lockPrefix ++ onlyFactoryOwner ++
       [ .letDecl "amount0" (some uint128)
           (.ite (gtE (.var "amount0Requested") (.storage (protocolFeesF "token0")))
             (.storage (protocolFeesF "token0"))
@@ -1692,7 +1692,7 @@ def collectprotocolTransition (v : PoolImmutables) : TransitionDecl :=
               [],
             .assign .storage (protocolFeesF "token0")
               (subE (.storage (protocolFeesF "token0")) (.var "amount0")) ] ++
-            safeTransfer (addrLit v.token0) (.var "recipient") (.var "amount0") "collectProtocol0")
+            safeTransfer (.immutable "token0") (.var "recipient") (.var "amount0") "collectProtocol0")
           [],
         Stmt.ite (gtE (.var "amount1") (.intLit 0))
           ([ Stmt.ite (eqE (.var "amount1") (.storage (protocolFeesF "token1")))
@@ -1700,22 +1700,22 @@ def collectprotocolTransition (v : PoolImmutables) : TransitionDecl :=
               [],
             .assign .storage (protocolFeesF "token1")
               (subE (.storage (protocolFeesF "token1")) (.var "amount1")) ] ++
-            safeTransfer (addrLit v.token1) (.var "recipient") (.var "amount1") "collectProtocol1")
+            safeTransfer (.immutable "token1") (.var "recipient") (.var "amount1") "collectProtocol1")
           [] ] ++
       lockSuffix ++
       [ .return [(.var "amount0"), (.var "amount1")] ] }
 
-def factoryTransition (v : PoolImmutables) : TransitionDecl :=
+def factoryTransition : TransitionDecl :=
   { name := "factory"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [addrLit v.factory] ] }
+    body := nonpayable ++ [ .return [.immutable "factory"] ] }
 
-def feeTransition (v : PoolImmutables) : TransitionDecl :=
+def feeTransition : TransitionDecl :=
   { name := "fee"
     params := []
     returnType := [uint24]
-    body := nonpayable ++ [ .return [.intLit v.fee] ] }
+    body := nonpayable ++ [ .return [.immutable "fee"] ] }
 
 def feegrowthglobal0X128Transition : TransitionDecl :=
   { name := "feeGrowthGlobal0X128"
@@ -1729,27 +1729,27 @@ def feegrowthglobal1X128Transition : TransitionDecl :=
     returnType := [uint256]
     body := nonpayable ++ [ .return [.storage feeGrowthGlobal1X128Ref] ] }
 
-def flashTransition (v : PoolImmutables) : TransitionDecl :=
+def flashTransition : TransitionDecl :=
   { name := "flash"
     params := [ { name := "recipient", ty := addr }, { name := "amount0", ty := uint256 }, { name := "amount1", ty := uint256 }, { name := "data", ty := bytesTy } ]
     returnType := []
-    body := nonpayable ++ lockPrefix ++ noDelegateCall v ++
+    body := nonpayable ++ lockPrefix ++ noDelegateCall ++
       [ .letDecl "_liquidity" (some uint128) (.storage liquidityRef),
         .require (gtE (.var "_liquidity") (.intLit 0)) ] ++
-      mulDivRoundingUpLet "fee0" (.var "amount0") (.intLit v.fee) feeDenominator ++
-      mulDivRoundingUpLet "fee1" (.var "amount1") (.intLit v.fee) feeDenominator ++
-      balanceOfInto (addrLit v.token0) "balance0Before" "flashBalance0Before" ++
-      balanceOfInto (addrLit v.token1) "balance1Before" "flashBalance1Before" ++
+      mulDivRoundingUpLet "fee0" (.var "amount0") (.immutable "fee") feeDenominator ++
+      mulDivRoundingUpLet "fee1" (.var "amount1") (.immutable "fee") feeDenominator ++
+      balanceOfInto (.immutable "token0") "balance0Before" "flashBalance0Before" ++
+      balanceOfInto (.immutable "token1") "balance1Before" "flashBalance1Before" ++
       [ Stmt.ite (gtE (.var "amount0") (.intLit 0))
-          (safeTransfer (addrLit v.token0) (.var "recipient") (.var "amount0") "flashTransfer0")
+          (safeTransfer (.immutable "token0") (.var "recipient") (.var "amount0") "flashTransfer0")
           [],
         Stmt.ite (gtE (.var "amount1") (.intLit 0))
-          (safeTransfer (addrLit v.token1) (.var "recipient") (.var "amount1") "flashTransfer1")
+          (safeTransfer (.immutable "token1") (.var "recipient") (.var "amount1") "flashTransfer1")
           [],
         .externalCall (.env .caller) "uniswapV3FlashCallback" (.intLit 0)
           [.var "fee0", .var "fee1", .var "data"] "_flashCallback" ] ++
-      balanceOfInto (addrLit v.token0) "balance0After" "flashBalance0After" ++
-      balanceOfInto (addrLit v.token1) "balance1After" "flashBalance1After" ++
+      balanceOfInto (.immutable "token0") "balance0After" "flashBalance0After" ++
+      balanceOfInto (.immutable "token1") "balance1After" "flashBalance1After" ++
       checkedWordAddLe (.var "balance0Before") (.var "fee0") (.var "balance0After") ++
       checkedWordAddLe (.var "balance1Before") (.var "fee1") (.var "balance1After") ++
       [ .letDecl "paid0" (some uint256)
@@ -1792,11 +1792,11 @@ def flashTransition (v : PoolImmutables) : TransitionDecl :=
           [] ] ++
       lockSuffix }
 
-def increaseobservationcardinalitynextTransition (v : PoolImmutables) : TransitionDecl :=
+def increaseobservationcardinalitynextTransition : TransitionDecl :=
   { name := "increaseObservationCardinalityNext"
     params := [ { name := "observationCardinalityNext", ty := uint16 } ]
     returnType := []
-    body := nonpayable ++ lockPrefix ++ noDelegateCall v ++
+    body := nonpayable ++ lockPrefix ++ noDelegateCall ++
       [ .letDecl "observationCardinalityNextOld" (some uint16)
           (.storage (slot0F "observationCardinalityNext")),
         .letDecl "observationCardinalityNextNew" (some uint16)
@@ -1840,13 +1840,13 @@ def liquidityTransition : TransitionDecl :=
     returnType := [uint128]
     body := nonpayable ++ [ .return [.storage liquidityRef] ] }
 
-def maxliquiditypertickTransition (v : PoolImmutables) : TransitionDecl :=
+def maxliquiditypertickTransition : TransitionDecl :=
   { name := "maxLiquidityPerTick"
     params := []
     returnType := [uint128]
-    body := nonpayable ++ [ .return [.intLit v.maxLiquidityPerTick] ] }
+    body := nonpayable ++ [ .return [.immutable "maxLiquidityPerTick"] ] }
 
-def mintTransition (v : PoolImmutables) : TransitionDecl :=
+def mintTransition : TransitionDecl :=
   { name := "mint"
     params :=
       [ { name := "recipient", ty := addr }, { name := "tickLower", ty := int24 },
@@ -1862,19 +1862,19 @@ def mintTransition (v : PoolImmutables) : TransitionDecl :=
         .letDecl "amount0" (some uint256) (uint256Wrap (tuple1 (.var "modified"))),
         .letDecl "amount1" (some uint256) (uint256Wrap (tuple2 (.var "modified"))),
         Stmt.ite (gtE (.var "amount0") (.intLit 0))
-          (balanceOfInto (addrLit v.token0) "balance0Before" "mintBalance0Before")
+          (balanceOfInto (.immutable "token0") "balance0Before" "mintBalance0Before")
           [],
         Stmt.ite (gtE (.var "amount1") (.intLit 0))
-          (balanceOfInto (addrLit v.token1) "balance1Before" "mintBalance1Before")
+          (balanceOfInto (.immutable "token1") "balance1Before" "mintBalance1Before")
           [],
         .externalCall (.env .caller) "uniswapV3MintCallback" (.intLit 0)
           [.var "amount0", .var "amount1", .var "data"] "_mintCallback",
         Stmt.ite (gtE (.var "amount0") (.intLit 0))
-          (balanceOfInto (addrLit v.token0) "balance0After" "mintBalance0After" ++
+          (balanceOfInto (.immutable "token0") "balance0After" "mintBalance0After" ++
             checkedWordAddLe (.var "balance0Before") (.var "amount0") (.var "balance0After"))
           [],
         Stmt.ite (gtE (.var "amount1") (.intLit 0))
-          (balanceOfInto (addrLit v.token1) "balance1After" "mintBalance1After" ++
+          (balanceOfInto (.immutable "token1") "balance1After" "mintBalance1After" ++
             checkedWordAddLe (.var "balance1Before") (.var "amount1") (.var "balance1After"))
           [] ] ++
       lockSuffix ++
@@ -1892,11 +1892,11 @@ def observationsTransition : TransitionDecl :=
             .storage (observationsRawF (.var "arg0") "secondsPerLiquidityCumulativeX128"),
             .storage (observationsRawF (.var "arg0") "initialized") ] ] }
 
-def observeTransition (v : PoolImmutables) : TransitionDecl :=
+def observeTransition : TransitionDecl :=
   { name := "observe"
     params := [ { name := "secondsAgos", ty := (.dynamicArray uint32) } ]
     returnType := [(.dynamicArray int56), (.dynamicArray uint160)]
-    body := nonpayable ++ noDelegateCall v ++
+    body := nonpayable ++ noDelegateCall ++
       [ .internalCall "observeBody"
           [ blockTimestamp32, .var "secondsAgos", .storage (slot0F "tick"),
             .storage (slot0F "observationIndex"), .storage liquidityRef,
@@ -1916,11 +1916,11 @@ def protocolfeesTransition : TransitionDecl :=
     returnType := [uint128, uint128]
     body := nonpayable ++ [ .return [(.storage (protocolFeesF "token0")), (.storage (protocolFeesF "token1"))] ] }
 
-def setfeeprotocolTransition (v : PoolImmutables) : TransitionDecl :=
+def setfeeprotocolTransition : TransitionDecl :=
   { name := "setFeeProtocol"
     params := [ { name := "feeProtocol0", ty := uint8 }, { name := "feeProtocol1", ty := uint8 } ]
     returnType := []
-    body := nonpayable ++ lockPrefix ++ onlyFactoryOwner v ++
+    body := nonpayable ++ lockPrefix ++ onlyFactoryOwner ++
       [ .require
           (andE (feeProtocolEnabled (.var "feeProtocol0"))
             (feeProtocolEnabled (.var "feeProtocol1"))),
@@ -1935,11 +1935,11 @@ def slot0Transition : TransitionDecl :=
     returnType := [uint160, int24, uint16, uint16, uint16, uint8, boolTy]
     body := nonpayable ++ [ .return [(.storage (slot0F "sqrtPriceX96")), (.storage (slot0F "tick")), (.storage (slot0F "observationIndex")), (.storage (slot0F "observationCardinality")), (.storage (slot0F "observationCardinalityNext")), (.storage (slot0F "feeProtocol")), (.storage (slot0F "unlocked"))] ] }
 
-def snapshotcumulativesinsideTransition (v : PoolImmutables) : TransitionDecl :=
+def snapshotcumulativesinsideTransition : TransitionDecl :=
   { name := "snapshotCumulativesInside"
     params := [ { name := "tickLower", ty := int24 }, { name := "tickUpper", ty := int24 } ]
     returnType := [int56, uint160, uint32]
-    body := nonpayable ++ noDelegateCall v ++
+    body := nonpayable ++ noDelegateCall ++
       checkTicksBody (.var "tickLower") (.var "tickUpper") ++
       [ .letStorage "lower" (ticksRef (.var "tickLower")),
         .letStorage "upper" (ticksRef (.var "tickUpper")),
@@ -1987,14 +1987,14 @@ def snapshotcumulativesinsideTransition (v : PoolImmutables) : TransitionDecl :=
                   (subE (.field (.var "upper") "secondsOutside")
                     (.field (.var "lower") "secondsOutside")) ] ] ] }
 
-def swapTransition (v : PoolImmutables) : TransitionDecl :=
+def swapTransition : TransitionDecl :=
   { name := "swap"
     params :=
       [ { name := "recipient", ty := addr }, { name := "zeroForOne", ty := boolTy },
         { name := "amountSpecified", ty := int256 },
         { name := "sqrtPriceLimitX96", ty := uint160 }, { name := "data", ty := bytesTy } ]
     returnType := [int256, int256]
-    body := nonpayable ++ noDelegateCall v ++
+    body := nonpayable ++ noDelegateCall ++
       [ .require (neE (.var "amountSpecified") (.intLit 0)),
         .letDecl "slot0StartSqrtPriceX96" (some uint160) (.storage (slot0F "sqrtPriceX96")),
         .letDecl "slot0StartTick" (some int24) (.storage (slot0F "tick")),
@@ -2038,7 +2038,7 @@ def swapTransition (v : PoolImmutables) : TransitionDecl :=
             (neE (.var "stateSqrtPriceX96") (.var "sqrtPriceLimitX96")))
           [ .letDecl "stepSqrtPriceStartX96" (some uint160) (.var "stateSqrtPriceX96"),
             .internalCall "tickBitmapNextInitializedTickWithinOneWord"
-              [.var "stateTick", .intLit v.tickSpacing, .var "zeroForOne"]
+              [.var "stateTick", .immutable "tickSpacing", .var "zeroForOne"]
               "nextTick",
             .letDecl "stepTickNext" (some int24) (tuple0 (.var "nextTick")),
             .letDecl "stepInitialized" (some boolTy) (tuple1 (.var "nextTick")),
@@ -2059,7 +2059,7 @@ def swapTransition (v : PoolImmutables) : TransitionDecl :=
             .internalCall "computeSwapStep"
               [ .var "stateSqrtPriceX96", .var "stepTargetSqrtPriceX96",
                 .var "stateLiquidity", .var "stateAmountSpecifiedRemaining",
-                .intLit v.fee ]
+                .immutable "fee" ]
               "stepResult",
             .assign .localVar (varRef "stateSqrtPriceX96") (tuple0 (.var "stepResult")),
             .letDecl "stepAmountIn" (some uint256) (tuple1 (.var "stepResult")),
@@ -2180,23 +2180,23 @@ def swapTransition (v : PoolImmutables) : TransitionDecl :=
                 (subE (.var "amountSpecified") (.var "stateAmountSpecifiedRemaining"))) ],
         Stmt.ite (.var "zeroForOne")
           ([ Stmt.ite (ltE (.var "amount1") (.intLit 0))
-              (safeTransfer (addrLit v.token1) (.var "recipient")
+              (safeTransfer (.immutable "token1") (.var "recipient")
                 (uint256Wrap (subE (.intLit 0) (.var "amount1"))) "swapTransfer1")
               [] ] ++
-            balanceOfInto (addrLit v.token0) "balance0Before" "swapBalance0Before" ++
+            balanceOfInto (.immutable "token0") "balance0Before" "swapBalance0Before" ++
             [ .externalCall (.env .caller) "uniswapV3SwapCallback" (.intLit 0)
                 [.var "amount0", .var "amount1", .var "data"] "_swapCallback" ] ++
-            balanceOfInto (addrLit v.token0) "balance0After" "swapBalance0After" ++
+            balanceOfInto (.immutable "token0") "balance0After" "swapBalance0After" ++
             checkedWordAddLe (.var "balance0Before") (uint256Wrap (.var "amount0"))
               (.var "balance0After"))
           ([ Stmt.ite (ltE (.var "amount0") (.intLit 0))
-              (safeTransfer (addrLit v.token0) (.var "recipient")
+              (safeTransfer (.immutable "token0") (.var "recipient")
                 (uint256Wrap (subE (.intLit 0) (.var "amount0"))) "swapTransfer0")
               [] ] ++
-            balanceOfInto (addrLit v.token1) "balance1Before" "swapBalance1Before" ++
+            balanceOfInto (.immutable "token1") "balance1Before" "swapBalance1Before" ++
             [ .externalCall (.env .caller) "uniswapV3SwapCallback" (.intLit 0)
                 [.var "amount0", .var "amount1", .var "data"] "_swapCallback" ] ++
-            balanceOfInto (addrLit v.token1) "balance1After" "swapBalance1After" ++
+            balanceOfInto (.immutable "token1") "balance1After" "swapBalance1After" ++
             checkedWordAddLe (.var "balance1Before") (uint256Wrap (.var "amount1"))
               (.var "balance1After")) ] ++
       lockSuffix ++
@@ -2208,11 +2208,11 @@ def tickbitmapTransition : TransitionDecl :=
     returnType := [uint256]
     body := nonpayable ++ [ .return [.storage (tickBitmapRef (.var "arg0"))] ] }
 
-def tickspacingTransition (v : PoolImmutables) : TransitionDecl :=
+def tickspacingTransition : TransitionDecl :=
   { name := "tickSpacing"
     params := []
     returnType := [int24]
-    body := nonpayable ++ [ .return [.intLit v.tickSpacing] ] }
+    body := nonpayable ++ [ .return [.immutable "tickSpacing"] ] }
 
 def ticksTransition : TransitionDecl :=
   { name := "ticks"
@@ -2220,59 +2220,60 @@ def ticksTransition : TransitionDecl :=
     returnType := [uint128, int128, uint256, uint256, int56, uint160, uint32, boolTy]
     body := nonpayable ++ [ .return [(.storage (ticksF (.var "arg0") "liquidityGross")), (.storage (ticksF (.var "arg0") "liquidityNet")), (.storage (ticksF (.var "arg0") "feeGrowthOutside0X128")), (.storage (ticksF (.var "arg0") "feeGrowthOutside1X128")), (.storage (ticksF (.var "arg0") "tickCumulativeOutside")), (.storage (ticksF (.var "arg0") "secondsPerLiquidityOutsideX128")), (.storage (ticksF (.var "arg0") "secondsOutside")), (.storage (ticksF (.var "arg0") "initialized"))] ] }
 
-def token0Transition (v : PoolImmutables) : TransitionDecl :=
+def token0Transition : TransitionDecl :=
   { name := "token0"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [addrLit v.token0] ] }
+    body := nonpayable ++ [ .return [.immutable "token0"] ] }
 
-def token1Transition (v : PoolImmutables) : TransitionDecl :=
+def token1Transition : TransitionDecl :=
   { name := "token1"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [addrLit v.token1] ] }
+    body := nonpayable ++ [ .return [.immutable "token1"] ] }
 
-def transitions (v : PoolImmutables) : List TransitionDecl :=
+def transitions : List TransitionDecl :=
   [
         burnTransition,
-        collectTransition v,
-        collectprotocolTransition v,
-        factoryTransition v,
-        feeTransition v,
+        collectTransition,
+        collectprotocolTransition,
+        factoryTransition,
+        feeTransition,
         feegrowthglobal0X128Transition,
         feegrowthglobal1X128Transition,
-        flashTransition v,
-        increaseobservationcardinalitynextTransition v,
+        flashTransition,
+        increaseobservationcardinalitynextTransition,
         initializeTransition,
         liquidityTransition,
-        maxliquiditypertickTransition v,
-        mintTransition v,
+        maxliquiditypertickTransition,
+        mintTransition,
         observationsTransition,
-        observeTransition v,
+        observeTransition,
         positionsTransition,
         protocolfeesTransition,
-        setfeeprotocolTransition v,
+        setfeeprotocolTransition,
         slot0Transition,
-        snapshotcumulativesinsideTransition v,
-        swapTransition v,
+        snapshotcumulativesinsideTransition,
+        swapTransition,
         tickbitmapTransition,
-        tickspacingTransition v,
+        tickspacingTransition,
         ticksTransition,
-        token0Transition v,
-        token1Transition v ]
+        token0Transition,
+        token1Transition ]
 
-def contract (v : PoolImmutables) : ContractDecl :=
+def contract : ContractDecl :=
   { name := "UniswapV3Pool"
     storage := storageDecls
+    immutables := [⟨"factory", .address⟩, ⟨"token0", .address⟩, ⟨"token1", .address⟩, ⟨"fee", .int (.uint ⟨24, by decide⟩)⟩, ⟨"tickSpacing", .int (.sint ⟨24, by decide⟩)⟩, ⟨"maxLiquidityPerTick", .int (.uint ⟨128, by decide⟩)⟩, ⟨"original", .address⟩]
     ctor := constructorDecl
     structs := structs
-    functions := functions v
-    transitions := transitions v }
+    functions := functions
+    transitions := transitions }
 
-def config (v : PoolImmutables) : Config :=
+def config : Config :=
   { storage := storageLayout
     externalABI := poolExternalABI
     abiDecodeMode := DecodeMode.legacySolc05
-    selfDeployment := genSolidityConstructorDeployment (contract v).ctor.params }
+    selfDeployment := genSolidityConstructorDeployment (contract).ctor.params }
 
 end Benchmarks.UniswapV3Pool

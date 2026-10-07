@@ -1055,7 +1055,7 @@ theorem endFileUintBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf fileUintTransition)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endFileUintConcreteSelector := by
     simpa [endFileUintSelectorBytes, endFileUintConcreteSelector] using hsel
   have hsz4 : 4 ≤ I.calldata.size :=

@@ -11,12 +11,12 @@ theorem clipperTakeVatMoveNoCodeBlockAtDogLoaded (v : ClipperImmutables)
     (hnoCode :
       (UInt256.ofNat ((evmVat.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat = 0) :
-    ExecBlock (config v)
-      (Frame.mk (contract v)
+    ExecBlock config
+      (Frame.mk contract
         (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
-          slice' tabNew lotNew))
+          slice' tabNew lotNew) (immStore v))
       evmVat
-      (checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+      (checkedExternalCallStmts vatExpr "move" (.intLit 0)
         [sender, .storage vowRef, .var "owe"] "_moveRet")
       .reverted := by
   simpa [checkedExternalCallStmts] using
@@ -30,22 +30,22 @@ theorem clipperTakeVatMoveCallFailureBlockAtDogLoaded (v : ClipperImmutables)
     (hcode :
       0 < (UInt256.ofNat ((evmVat.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM (config v) evmVat (EVM.address v.vat) "move" 0
+    (hcall : typedCallViaEVM config evmVat (EVM.address v.vat) "move" 0
       [.address evmVat.executionEnv.source,
         .address (AccountAddress.ofNat (clipperTakeVowEVMWord evmVat).toNat),
         .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
       (false, evmMove, outMove) true) :
-    ExecBlock (config v)
-      (Frame.mk (contract v)
+    ExecBlock config
+      (Frame.mk contract
         (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
-          slice' tabNew lotNew))
+          slice' tabNew lotNew) (immStore v))
       evmVat
-      (checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+      (checkedExternalCallStmts vatExpr "move" (.intLit 0)
         [sender, .storage vowRef, .var "owe"] "_moveRet")
       .reverted := by
-  let dogFrame := Frame.mk (contract v)
+  let dogFrame := Frame.mk contract
     (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
-      slice' tabNew lotNew)
+      slice' tabNew lotNew) (immStore v)
   have hargs := clipperEvalTakeVatMoveArgs v evmLoc evmRead evmVat I price slice
     owe0 owe slice' tabNew lotNew
   simpa [checkedExternalCallStmts, dogFrame] using
@@ -63,26 +63,26 @@ theorem clipperTakeVatMoveCallSuccessBlockAtDogLoaded (v : ClipperImmutables)
     (hcode :
       0 < (UInt256.ofNat ((evmVat.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat)
-    (hcall : typedCallViaEVM (config v) evmVat (EVM.address v.vat) "move" 0
+    (hcall : typedCallViaEVM config evmVat (EVM.address v.vat) "move" 0
       [.address evmVat.executionEnv.source,
         .address (AccountAddress.ofNat (clipperTakeVowEVMWord evmVat).toNat),
         .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
       (true, evmMove, outMove) true) :
-    ExecBlock (config v)
-      (Frame.mk (contract v)
+    ExecBlock config
+      (Frame.mk contract
         (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
-          slice' tabNew lotNew))
+          slice' tabNew lotNew) (immStore v))
       evmVat
-      (checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+      (checkedExternalCallStmts vatExpr "move" (.intLit 0)
         [sender, .storage vowRef, .var "owe"] "_moveRet")
       (.ok
-        (Frame.mk (contract v)
+        (Frame.mk contract
           (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe
-            slice' tabNew lotNew))
+            slice' tabNew lotNew) (immStore v))
         evmMove) := by
-  let dogFrame := Frame.mk (contract v)
+  let dogFrame := Frame.mk contract
     (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe
-      slice' tabNew lotNew)
+      slice' tabNew lotNew) (immStore v)
   have hargs := clipperEvalTakeVatMoveArgs v evmLoc evmRead evmVat I price slice
     owe0 owe slice' tabNew lotNew
   simpa [checkedExternalCallStmts, dogFrame, clipperTakeLocalsMoveRet,
@@ -94,7 +94,7 @@ theorem clipperTakeVatMoveCallSuccessBlockAtDogLoaded (v : ClipperImmutables)
         (ExecStmt.externalCallSuccess
           (clipperEvalVat v evmVat dogFrame.locals)
           (by simp [evalExpr?, pure]) (by simpa [dogFrame] using hargs) hcall
-          (clipperTakeDecodeMoveVoid v outMove))
+          (clipperTakeDecodeMoveVoid outMove))
         ExecBlock.nil)
 
 end Benchmarks.Dss.Clipper

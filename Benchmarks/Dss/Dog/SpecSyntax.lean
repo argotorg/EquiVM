@@ -5,10 +5,10 @@ import Solm.Notation
 # Dog spec in the Solidity-faithful Solm frontend
 
 The whole `dog.sol` spec written with `solidity%` and proven definitionally equal to the AST
-spec in `Spec.lean`, quantified over the immutable `vat` address.  Calls through the immutable
-`vat` (`vatExpr v`, a cast literal) cannot head a surface call, so those sites splice the
-guarded require/externalCall statement pair and reference the returned tuple binders via `${…}`
-escapes.  Transition order matches `(contract v).transitions` (selector order).
+spec in `Spec.lean`.  The immutable `vat` is declared and assigned as in Solidity.  Calls through
+it (`vatExpr`) cannot head a surface call, so those sites splice the guarded require/externalCall
+statement pair and reference the returned tuple binders via `${…}` escapes.  Transition order
+matches `contract.transitions` (selector order).
 -/
 
 open Solm Solm.Notation
@@ -16,7 +16,7 @@ open Benchmarks.Dss.Dog.Immutables
 
 namespace Benchmarks.Dss.Dog.Syntax
 
-def contractSyntax (v : DogImmutables) : ContractDecl := solidity% contract Dog {
+def contractSyntax : ContractDecl := solidity% contract Dog {
   mapping(address => uint256) wards;
   mapping(bytes32 => Ilk) ilks;
   address vow;
@@ -31,8 +31,10 @@ def contractSyntax (v : DogImmutables) : ContractDecl := solidity% contract Dog 
     uint256 dirt;
   }
 
+  address immutable vat;
+
   constructor(address vat_) {
-    address imm_vat = vat_;
+    vat = vat_;
     live = 1;
     wards[msg.sender] = 1;
   }
@@ -73,8 +75,8 @@ def contractSyntax (v : DogImmutables) : ContractDecl := solidity% contract Dog 
 
   function bark(bytes32 ilk, address urn, address kpr) external returns (uint256) {
     require(live == 1);
-    ${[Stmt.require (.binary .gt (.extCodeSize (vatExpr v)) (.intLit 0)),
-       Stmt.externalCall (vatExpr v) "urns" (.intLit 0)
+    ${[Stmt.require (.binary .gt (.extCodeSize vatExpr) (.intLit 0)),
+       Stmt.externalCall vatExpr "urns" (.intLit 0)
          [.var "ilk", .var "urn"] "vatUrn" (perm := false)]}
     uint256 ink = ${Expr.var "vatUrn"}.0;
     uint256 art = ${Expr.var "vatUrn"}.1;
@@ -82,8 +84,8 @@ def contractSyntax (v : DogImmutables) : ContractDecl := solidity% contract Dog 
     uint256 milkChop = ilks[ilk].chop;
     uint256 milkHole = ilks[ilk].hole;
     uint256 milkDirt = ilks[ilk].dirt;
-    ${[Stmt.require (.binary .gt (.extCodeSize (vatExpr v)) (.intLit 0)),
-       Stmt.externalCall (vatExpr v) "ilks" (.intLit 0)
+    ${[Stmt.require (.binary .gt (.extCodeSize vatExpr) (.intLit 0)),
+       Stmt.externalCall vatExpr "ilks" (.intLit 0)
          [.var "ilk"] "vatIlk" (perm := false)]}
     uint256 rate = ${Expr.var "vatIlk"}.1;
     uint256 spot = ${Expr.var "vatIlk"}.2;
@@ -122,8 +124,8 @@ def contractSyntax (v : DogImmutables) : ContractDecl := solidity% contract Dog 
     uint256 dink = inkDart / art;
     require(dink > 0);
     require(dart <= #int256Limit && dink <= #int256Limit);
-    ${[Stmt.require (.binary .gt (.extCodeSize (vatExpr v)) (.intLit 0)),
-       Stmt.externalCall (vatExpr v) "grab" (.intLit 0)
+    ${[Stmt.require (.binary .gt (.extCodeSize vatExpr) (.intLit 0)),
+       Stmt.externalCall vatExpr "grab" (.intLit 0)
          [.var "ilk", .var "urn", .var "milkClip", vowAddr,
            asInt256 (.unary .neg (asInt256 (.var "dink"))),
            asInt256 (.unary .neg (asInt256 (.var "dart")))] "_grabRet"]}
@@ -223,7 +225,7 @@ def contractSyntax (v : DogImmutables) : ContractDecl := solidity% contract Dog 
   }
 
   function vat() external returns (address) {
-    return ${vatExpr v};
+    return vat;
   }
 
   function vow() external returns (address) {
@@ -235,12 +237,10 @@ def contractSyntax (v : DogImmutables) : ContractDecl := solidity% contract Dog 
   }
 }
 
-/-- Definitional equality with the AST spec.  A bare `rfl` diverges here: `bark` mentions the
-immutable `vatExpr v` six times, and the elaborator's defeq cache is disabled on terms with free
-variables, so the lazy pairwise comparison blows up.  `simp only` first rewrites both sides to the
-same cons-normal form (no defeq search); the closing `rfl` then only crosses closed leaves. -/
-theorem contractSyntax_eq (v : DogImmutables) :
-    contractSyntax v = Benchmarks.Dss.Dog.contract v := by
+/-- Definitional equality with the AST spec.  `simp only` first rewrites both sides to the same
+cons-normal form (no defeq search); the closing `rfl` then only crosses closed leaves. -/
+theorem contractSyntax_eq :
+    contractSyntax = Benchmarks.Dss.Dog.contract := by
   simp only [contractSyntax, Benchmarks.Dss.Dog.contract, Benchmarks.Dss.Dog.transitions,
     Benchmarks.Dss.Dog.barkTransition, Benchmarks.Dss.Dog.barkBodyRest,
     Benchmarks.Dss.Dog.vatTransition, Benchmarks.Dss.Dog.nonpayable,

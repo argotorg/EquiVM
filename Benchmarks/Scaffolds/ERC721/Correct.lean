@@ -8,11 +8,12 @@ import Reasoning.Solc
 import Reasoning.Dispatch
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
+import Solm.Refine
 
 /-!
 # ERC721 — top-level correctness **scaffold**
 
-Routing skeleton for `erc721Correct : runtimeEquivalence …`, mirroring
+Routing skeleton for `erc721Correct : runtimeRefinement …`, mirroring
 `Examples/ERC20/Correct.lean` / `Examples/Ballot/Correct.lean`: `by_cases` on `callvalue = 0`,
 `size ≥ 4`, then each of the seven selectors, dispatching to that function's body obligation, with
 the shared revert paths.
@@ -72,7 +73,7 @@ def erc721SelBytes : ℕ → ByteArray
 theorem erc721ApproveBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩) :
-    runtimeEquivalenceFor erc721Config erc721Contract
+    runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
   sorry
 
@@ -80,7 +81,7 @@ theorem erc721ApproveBody {σ σ₀ A I} {g : UInt256}
 theorem erc721BalanceOfBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩) :
-    runtimeEquivalenceFor erc721Config erc721Contract
+    runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
   sorry
 
@@ -88,7 +89,7 @@ theorem erc721BalanceOfBody {σ σ₀ A I} {g : UInt256}
 theorem erc721GetApprovedBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x08, 0x18, 0x12, 0xfc]⟩) :
-    runtimeEquivalenceFor erc721Config erc721Contract
+    runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
   sorry
 
@@ -96,7 +97,7 @@ theorem erc721GetApprovedBody {σ σ₀ A I} {g : UInt256}
 theorem erc721IsApprovedForAllBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xe9, 0x85, 0xe9, 0xc5]⟩) :
-    runtimeEquivalenceFor erc721Config erc721Contract
+    runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
   sorry
 
@@ -104,7 +105,7 @@ theorem erc721IsApprovedForAllBody {σ σ₀ A I} {g : UInt256}
 theorem erc721OwnerOfBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x63, 0x52, 0x21, 0x1e]⟩) :
-    runtimeEquivalenceFor erc721Config erc721Contract
+    runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
   sorry
 
@@ -112,7 +113,7 @@ theorem erc721OwnerOfBody {σ σ₀ A I} {g : UInt256}
 theorem erc721SetApprovalForAllBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xa2, 0x2c, 0xb4, 0x65]⟩) :
-    runtimeEquivalenceFor erc721Config erc721Contract
+    runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
   sorry
 
@@ -120,7 +121,7 @@ theorem erc721SetApprovalForAllBody {σ σ₀ A I} {g : UInt256}
 theorem erc721TransferFromBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩) :
-    runtimeEquivalenceFor erc721Config erc721Contract
+    runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
   sorry
 
@@ -129,7 +130,7 @@ theorem erc721TransferFromBody {σ σ₀ A I} {g : UInt256}
 /-- `callvalue ≠ 0` ⇒ both sides revert (non-payable global guard). -/
 theorem erc721NonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc721Bytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor erc721Config erc721Contract
+    runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
   sorry
 
@@ -137,7 +138,7 @@ theorem erc721NonPayable {σ σ₀ A I} {g : UInt256}
 theorem erc721ShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor erc721Config erc721Contract
+    runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
   sorry
 
@@ -146,14 +147,14 @@ theorem erc721NoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc721Bytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 7 → (erc721SelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor erc721Config erc721Contract
+    runtimeRefinementFor erc721Config erc721Contract
       σ σ₀ g A I := by
   sorry
 
 /-! ## Top-level theorem — drive the dispatcher, route each body to its correctness -/
 
 /-- The deployed ERC721 runtime bytecode refines the Solm specification, for every initial state. -/
-theorem erc721Correct : runtimeEquivalence erc721Config erc721Bytecode erc721Contract := by
+theorem erc721Correct : runtimeRefinement erc721Config erc721Bytecode erc721Contract := by
   refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
@@ -186,7 +187,7 @@ theorem erc721Correct : runtimeEquivalence erc721Config erc721Bytecode erc721Con
   · exact erc721NonPayable hcode hwv
 
 theorem erc721ContractCorrect :
-    contractEquivalence erc721Config erc721CreationBytecode erc721Bytecode erc721Contract :=
-  contractEquivalence.intro erc721ConstructorCorrect erc721Correct
+    contractRefinement erc721Config erc721CreationBytecode erc721Contract :=
+  contractRefinement.of_constant erc721ConstructorCorrect erc721Correct
 
 end ERC721

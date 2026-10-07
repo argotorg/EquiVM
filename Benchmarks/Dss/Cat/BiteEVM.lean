@@ -1,5 +1,5 @@
 import Benchmarks.Dss.Cat.Common
-import Solm.Equiv
+import Solm.Refine
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

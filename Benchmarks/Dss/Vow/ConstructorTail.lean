@@ -3,7 +3,7 @@ import Reasoning.ExternalCall
 import Reasoning.Initcode
 import Reasoning.Memory
 import Reasoning.Solc
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Vow constructor tail
@@ -404,8 +404,7 @@ private theorem vowCtorStorageStore_sigma0 (evm : EVM.State) (addr : AccountAddr
 
 set_option maxHeartbeats 0 in
 theorem vowConstructorCorrect :
-    constructorEquivalence config vowCreationBytecode contract vowBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config vowCreationBytecode contract (fun _ => vowBytecode) := by
   intro σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   rcases vowCtorDeployment_shape hdeploy with ⟨vat, flapper, flopper, hargs, hdeployed⟩
@@ -462,7 +461,7 @@ theorem vowConstructorCorrect :
         (by simpa [σFlopper, targetWord] using rd201)
         (by simpa [targetWord] using hcodeSize)
       rcases hrev.xiResult hcodeTail with hOOG | ⟨g', out, hRev⟩
-      · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+      · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
       · have hcodeSizeSolm : extCodeSizeWord evm4s.accountMap targetWord = ⟨0⟩ := by
           simpa [hAccounts4] using hcodeSize
         have haddr : vat = AccountAddress.ofUInt256 targetWord := by
@@ -473,7 +472,7 @@ theorem vowConstructorCorrect :
           simpa [evm4s, State.lookupAccount] using
             ctorExtCodeSize_zero_lookup_code_zero (σ := evm4s.accountMap)
               (target := targetWord) (addr := vat) haddr hcodeSizeSolm
-        refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+        refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
           (vowCtorSolmExecReverts_noCode
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             vat flapper flopper hwv (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using hvatNoCode))
@@ -588,8 +587,8 @@ theorem vowConstructorCorrect :
         · have hrev := vowCtorHopeCallFailure vat flapper flopper (by simpa using rd217) hout
             (by simp only [List.length_cons, List.length_nil]; omega)
           rcases hrev.xiResult hcodeTail with hOOG | ⟨g', outRev, hRev⟩
-          · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-          · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+          · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+          · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
               (vowCtorSolmExecReverts_callFailure
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 (evmHope := evmHopeSolm) (out := out)
@@ -602,7 +601,7 @@ theorem vowConstructorCorrect :
             vowCtorHopeCallSuccessToReturnStart vat flapper flopper (by simpa using rd217) hperm
           have hret := vowCtorReturnRuntime vat flapper flopper rd246
           rcases RDret.xiResultAcc hcodeTail hret with hOOG | ⟨g', A', hSuccess⟩
-          · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+          · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
           · have hAccountsLive :
                 Eq (sstoreAccountMap I.codeOwner σCall ⟨12⟩ ⟨1⟩)
                   (vowCtorAfterLiveState evmHopeSolm).accountMap := by
@@ -613,7 +612,7 @@ theorem vowConstructorCorrect :
                 storageStore_accountMap, storageStore_executionEnv, vowCtorAfterFlopperState,
                 vowCtorAfterFlapperState, vowCtorAfterVatState, vowCtorAfterWardsState, initState]
                 using hbase
-            refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hSuccess)
+            refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hSuccess)
               (vowCtorSolmExecSuccess
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 (evmHope := evmHopeSolm) (out := out) vat flapper flopper hwv
@@ -631,7 +630,7 @@ theorem vowConstructorCorrect :
           (by native_decide)
           (by simp only [List.length_cons, List.length_nil]; omega)
         rcases hrev.xiResult hcodeTail with hOOG | ⟨g', outRev, hRev⟩
-        · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+        · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
         · let A_hope := (evm4s.addAccessedAccount (EVM.address vat)).substate
           have hcallDepth :
               typedCallViaEVM config evm4s (EVM.address vat) "hope" 0 [.address flapper]
@@ -652,7 +651,7 @@ theorem vowConstructorCorrect :
                   simpa [evm4s, evm3s, evm2s, evm1s, evm0s, storageStore_executionEnv,
                     vowCtorAfterFlopperState, vowCtorAfterFlapperState, vowCtorAfterVatState,
                     vowCtorAfterWardsState, initState] using hdepthEq))
-          refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+          refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
             (vowCtorSolmExecReverts_callFailure
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               (evmHope := { evm4s with substate := A_hope }) (out := ByteArray.empty)
@@ -665,8 +664,8 @@ theorem vowConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat flapper flopper hcodeTail hwv
     rcases hrd.xiResult hcodeTail with hOOG | ⟨g', out, hRev⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-    · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
         (vowCtorSolmExecReverts_nonpayable
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           vat flapper flopper hwv)

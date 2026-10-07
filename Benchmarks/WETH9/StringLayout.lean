@@ -1,4 +1,5 @@
 import Solm.SolidityLayout
+import Solm.Refine
 
 /-!
 # WETH9 per-contract `bytes`/`string` storage read hook (solc 0.5.16 total header decode)
@@ -76,7 +77,7 @@ def weth9ReadValue?
     `ceil(oldLen/32)` keccak-data words **unconditionally** — solc 0.5.16 has no ≥0.8 "old value was
     packed, skip the clear" guard (creation-bytecode clear loop: `creation.hex` pc 254–273, count from
     the old length at pc 152–161).  The old length is read via the **total** decode.  Since
-    `constructorEquivalence` quantifies over arbitrary σ (not fresh storage), an old short nonempty
+    `typedConstructorRefinement` quantifies over (fun _ => arbitrary) σ (not fresh storage), an old short nonempty
     header with a nonzero `keccak(slot)` word is a legal input where the guarded (≥0.8) default would
     leave that word intact while the runtime zeroes it.  The long-value branch is unexercised by WETH9
     (both `name`/`symbol` are short) and mirrors the Solidity default. -/

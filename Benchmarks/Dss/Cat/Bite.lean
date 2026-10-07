@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Cat.Common
 import Benchmarks.Dss.Cat.BiteEVM
 import Benchmarks.Dss.Cat.BiteWalk
-import Solm.Equiv
+import Solm.Refine
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -15,7 +15,7 @@ theorem catBiteBody {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor config contract σ σ₀ g A I :=
   catBiteBodyImpl hcode hsize hperm hwv hsel
 
 end Benchmarks.Dss.Cat

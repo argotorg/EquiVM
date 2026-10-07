@@ -608,7 +608,7 @@ theorem clipperTakeWhoAddressWord (who : UInt256) :
 
 theorem clipperTakeVatFluxEncode_eq (v : ClipperImmutables) (I : ExecutionEnv)
     (who slice : UInt256) {mem : ByteArray} (hmem : mem.size = 196) :
-    (config v).externalABI.encode? "flux"
+    config.externalABI.encode? "flux"
       [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
         .int (Int.ofNat slice.toNat)] =
       some ((clipperTakeVatFluxCalldataMem v I who slice mem).readWithPadding 128 132) := by
@@ -1668,7 +1668,7 @@ theorem RD.clipperTakeVatFluxPostCall {σ₀ σStart σ I}
             (⟨128⟩ : UInt256).toNat (⟨132⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outVat σ_vat k' C' ∧
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address v.vat) "flux" 0
@@ -1700,7 +1700,7 @@ theorem RD.clipperTakeVatFluxPostCall {σ₀ σStart σ I}
   · let evmVat : EVM.State :=
       { initState σStart σ₀ g A I with
         accountMap := σ }
-    refine callCoincides (cfg := config v)
+    refine callCoincides (cfg := config)
       (evm := evmVat)
       (name := "flux")
       (args := [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),

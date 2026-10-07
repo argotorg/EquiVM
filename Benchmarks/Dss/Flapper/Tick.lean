@@ -1508,7 +1508,7 @@ theorem flapperTickBodyCoreEndNotExpired
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendGeSolm :
       (tickTimestampWord evmSolm).toNat ≤ (tickEndWord evmSolm I).toNat := by
@@ -1536,7 +1536,7 @@ theorem flapperTickBodyCoreTicNonzero
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtSolm :
       (tickEndWord evmSolm I).toNat < (tickTimestampWord evmSolm).toNat := by
@@ -1572,7 +1572,7 @@ theorem flapperTickBodyCoreAddOverflow
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtSolm :
       (tickEndWord evmSolm I).toNat < (tickTimestampWord evmSolm).toNat := by
@@ -1614,7 +1614,7 @@ theorem flapperTickBodyCoreSuccess
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtSolm :
       (tickEndWord evmSolm I).toNat < (tickTimestampWord evmSolm).toNat := by
@@ -1653,7 +1653,7 @@ theorem flapperTickBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨855⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (flapperTickX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch
       (flapperDecode_tick_none_short hsz4 hshort)
@@ -1664,7 +1664,7 @@ theorem flapperTickBodyCore {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 15)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flapperSelBytes 15) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some tickTransition :=

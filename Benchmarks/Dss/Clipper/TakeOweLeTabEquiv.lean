@@ -23,10 +23,10 @@ theorem clipperTakeOweLeTabEquiv
     {baseMem rdata : ByteArray} {k C : ℕ}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some (takeTransition v))
-    (hdec : decodeCalldataWithMode (config v).abiDecodeMode
-      (List.map Param.name (takeTransition v).params)
-      (transitionSignature (takeTransition v)).paramTypes I.calldata =
+    (hdispatch : dispatchMsg contract I.calldata = some takeTransition)
+    (hdec : decodeCalldataWithMode config.abiDecodeMode
+      (List.map Param.name takeTransition.params)
+      (transitionSignature takeTransition).paramTypes I.calldata =
         some (clipperTakeStore I))
     (rd8686 : RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8686⟩
@@ -65,12 +65,12 @@ theorem clipperTakeOweLeTabEquiv
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt (config v) (Frame.mk (contract v) (clipperTakeLocalsTic evmLock I))
+      ExecStmt config (Frame.mk contract (clipperTakeLocalsTic evmLock I) (immStore v))
         evmLock (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
-        (.ok (Frame.mk (contract v) (clipperTakeLocalsSt evmLock I false price)) evmPrice))
+        (.ok (Frame.mk contract (clipperTakeLocalsSt evmLock I false price) (immStore v)) evmPrice))
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true) :
-    runtimeEquivalenceFor (config v) (contract v)
-      σ σ₀ g A I := by
+    runtimeRefinementFor config contract
+      σ σ₀ g A I (immStore v) := by
   obtain ⟨_, _, rd4057⟩ := RD.clipperTakeOwe0MulSuccess v hpatch rd8686 hmul (by simp)
   have hsliceLe : slice.toNat ≤ lot.toNat := by
     simpa [hslice, hlot, clipperMinWord_comm] using
@@ -197,11 +197,11 @@ theorem clipperTakeOweLeTabEquiv
     have hprefix := execBlockAppendOk hpref
       (ExecBlock.consRevert (stmts := []) hadjust)
     have htail := execBlockAppendReverted
-      (suff := clipperTakePostOweFluxStmts v ++ clipperTakeAfterFluxStmts v ++
-        clipperTakeAfterMoveStmts v) hprefix
-    have hbody : ExecTransitionBody (config v) (contract v)
+      (suff := clipperTakePostOweFluxStmts ++ clipperTakeAfterFluxStmts ++
+        clipperTakeAfterMoveStmts) hprefix
+    have hbody : ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (clipperTakeStore I) (takeTransition v).body .reverted := by
+        (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
       apply clipperTakeSourceRevertsOfAfterSlice
         (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) (evmPrice := evmPrice)

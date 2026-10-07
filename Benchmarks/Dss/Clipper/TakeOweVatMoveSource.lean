@@ -20,7 +20,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessVatMoveNoCodeTailBlockOfCallbackFalse
       0 <
         (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM (config v) evmRead (EVM.address v.vat) "flux" 0
+      typedCallViaEVM config evmRead (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmRead.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -33,46 +33,46 @@ theorem clipperTakeOweGtTabVatFluxSuccessVatMoveNoCodeTailBlockOfCallbackFalse
       let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I)
         (clipperTakeSalesTabEVMWord evmRead I)
       let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice'
-      ExecStmt (config v)
-        (Frame.mk (contract v)
+      ExecStmt config
+        (Frame.mk contract
           (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe0
-            slice' tabNew lotNew))
+            slice' tabNew lotNew) (immStore v))
         evmVat
         (.ite
           (.binary .and
             (.binary .gt (bytesLength "data") (.intLit 0))
             (.binary .and
-              (.binary .ne (.var "who") (vatExpr v))
+              (.binary .ne (.var "who") vatExpr)
               (.binary .ne (.var "who") (.var "dog_"))))
           (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
             [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
           [])
         (.ok
-          (Frame.mk (contract v)
+          (Frame.mk contract
             (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe0
-              slice' tabNew lotNew))
+              slice' tabNew lotNew) (immStore v))
           evmVat))
     (hnoVatCode :
       (UInt256.ofNat ((evmVat.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperTakeLocalsSlice evmLoc evmRead I false price slice))
+    ExecBlock config
+      (Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
       evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
         [ .letDecl "owe" (some uint256) (.var "owe0"),
           clipperTakeOweAdjustmentStmt ] ++
-        clipperTakePostOweFluxStmts v ++
+        clipperTakePostOweFluxStmts ++
         ([ .letDecl "dog_" (some addr) (.storage dogRef),
           .ite
             (.binary .and
               (.binary .gt (bytesLength "data") (.intLit 0))
               (.binary .and
-                (.binary .ne (.var "who") (vatExpr v))
+                (.binary .ne (.var "who") vatExpr)
                 (.binary .ne (.var "who") (.var "dog_"))))
             (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
               [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
             [] ] ++
-          checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+          checkedExternalCallStmts vatExpr "move" (.intLit 0)
             [sender, .storage vowRef, .var "owe"] "_moveRet"))
       .reverted := by
   let owe0 := UInt256.mul slice price
@@ -81,34 +81,34 @@ theorem clipperTakeOweGtTabVatFluxSuccessVatMoveNoCodeTailBlockOfCallbackFalse
     (clipperTakeSalesTabEVMWord evmRead I)
   let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice'
   let sliceFrame : Frame :=
-    Frame.mk (contract v) (clipperTakeLocalsSlice evmLoc evmRead I false price slice)
+    Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v)
   let fluxFrame : Frame :=
-    Frame.mk (contract v)
+    Frame.mk contract
       (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 slice'
-        tabNew lotNew)
+        tabNew lotNew) (immStore v)
   have hflux :
-      ExecBlock (config v) sliceFrame evmRead
+      ExecBlock config sliceFrame evmRead
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [ .letDecl "owe" (some uint256) (.var "owe0"),
             clipperTakeOweAdjustmentStmt ] ++
-          clipperTakePostOweFluxStmts v)
+          clipperTakePostOweFluxStmts)
         (.ok fluxFrame evmVat) := by
     simpa [sliceFrame, fluxFrame, owe0, slice', tabNew, lotNew] using
       clipperTakeOweGtTabVatFluxCallSuccessTailBlock v evmLoc evmRead evmVat I price
         slice hmul hgt hsliceLot hvatCode hcallVat
   have hmove :
-      ExecBlock (config v) fluxFrame evmVat
+      ExecBlock config fluxFrame evmVat
         ([ .letDecl "dog_" (some addr) (.storage dogRef),
           .ite
             (.binary .and
               (.binary .gt (bytesLength "data") (.intLit 0))
               (.binary .and
-                (.binary .ne (.var "who") (vatExpr v))
+                (.binary .ne (.var "who") vatExpr)
                 (.binary .ne (.var "who") (.var "dog_"))))
             (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
               [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
             [] ] ++
-          checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+          checkedExternalCallStmts vatExpr "move" (.intLit 0)
             [sender, .storage vowRef, .var "owe"] "_moveRet")
         .reverted := by
     simpa [fluxFrame, owe0, slice', tabNew, lotNew] using
@@ -131,7 +131,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessVatMoveCallFailureTailBlockOfCallbackFa
       0 <
         (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM (config v) evmRead (EVM.address v.vat) "flux" 0
+      typedCallViaEVM config evmRead (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmRead.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -144,52 +144,52 @@ theorem clipperTakeOweGtTabVatFluxSuccessVatMoveCallFailureTailBlockOfCallbackFa
       let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I)
         (clipperTakeSalesTabEVMWord evmRead I)
       let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice'
-      ExecStmt (config v)
-        (Frame.mk (contract v)
+      ExecStmt config
+        (Frame.mk contract
           (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe0
-            slice' tabNew lotNew))
+            slice' tabNew lotNew) (immStore v))
         evmVat
         (.ite
           (.binary .and
             (.binary .gt (bytesLength "data") (.intLit 0))
             (.binary .and
-              (.binary .ne (.var "who") (vatExpr v))
+              (.binary .ne (.var "who") vatExpr)
               (.binary .ne (.var "who") (.var "dog_"))))
           (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
             [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
           [])
         (.ok
-          (Frame.mk (contract v)
+          (Frame.mk contract
             (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe0
-              slice' tabNew lotNew))
+              slice' tabNew lotNew) (immStore v))
           evmVat))
     (hvatMoveCode :
       0 <
         (UInt256.ofNat ((evmVat.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallMove :
-      typedCallViaEVM (config v) evmVat (EVM.address v.vat) "move" 0
+      typedCallViaEVM config evmVat (EVM.address v.vat) "move" 0
         [.address evmVat.executionEnv.source,
           .address (AccountAddress.ofNat (clipperTakeVowEVMWord evmVat).toNat),
           .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
         (false, evmMove, outMove) true) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperTakeLocalsSlice evmLoc evmRead I false price slice))
+    ExecBlock config
+      (Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v))
       evmRead
       (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
         [ .letDecl "owe" (some uint256) (.var "owe0"),
           clipperTakeOweAdjustmentStmt ] ++
-        clipperTakePostOweFluxStmts v ++
+        clipperTakePostOweFluxStmts ++
         ([ .letDecl "dog_" (some addr) (.storage dogRef),
           .ite
             (.binary .and
               (.binary .gt (bytesLength "data") (.intLit 0))
               (.binary .and
-                (.binary .ne (.var "who") (vatExpr v))
+                (.binary .ne (.var "who") vatExpr)
                 (.binary .ne (.var "who") (.var "dog_"))))
             (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
               [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
             [] ] ++
-          checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+          checkedExternalCallStmts vatExpr "move" (.intLit 0)
             [sender, .storage vowRef, .var "owe"] "_moveRet"))
       .reverted := by
   let owe0 := UInt256.mul slice price
@@ -198,34 +198,34 @@ theorem clipperTakeOweGtTabVatFluxSuccessVatMoveCallFailureTailBlockOfCallbackFa
     (clipperTakeSalesTabEVMWord evmRead I)
   let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice'
   let sliceFrame : Frame :=
-    Frame.mk (contract v) (clipperTakeLocalsSlice evmLoc evmRead I false price slice)
+    Frame.mk contract (clipperTakeLocalsSlice evmLoc evmRead I false price slice) (immStore v)
   let fluxFrame : Frame :=
-    Frame.mk (contract v)
+    Frame.mk contract
       (clipperTakeLocalsFluxBuyerRet evmLoc evmRead I price slice owe0 owe0 slice'
-        tabNew lotNew)
+        tabNew lotNew) (immStore v)
   have hflux :
-      ExecBlock (config v) sliceFrame evmRead
+      ExecBlock config sliceFrame evmRead
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [ .letDecl "owe" (some uint256) (.var "owe0"),
             clipperTakeOweAdjustmentStmt ] ++
-          clipperTakePostOweFluxStmts v)
+          clipperTakePostOweFluxStmts)
         (.ok fluxFrame evmVat) := by
     simpa [sliceFrame, fluxFrame, owe0, slice', tabNew, lotNew] using
       clipperTakeOweGtTabVatFluxCallSuccessTailBlock v evmLoc evmRead evmVat I price
         slice hmul hgt hsliceLot hvatCode hcallVat
   have hmove :
-      ExecBlock (config v) fluxFrame evmVat
+      ExecBlock config fluxFrame evmVat
         ([ .letDecl "dog_" (some addr) (.storage dogRef),
           .ite
             (.binary .and
               (.binary .gt (bytesLength "data") (.intLit 0))
               (.binary .and
-                (.binary .ne (.var "who") (vatExpr v))
+                (.binary .ne (.var "who") vatExpr)
                 (.binary .ne (.var "who") (.var "dog_"))))
             (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
               [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
             [] ] ++
-          checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+          checkedExternalCallStmts vatExpr "move" (.intLit 0)
             [sender, .storage vowRef, .var "owe"] "_moveRet")
         .reverted := by
     simpa [fluxFrame, owe0, slice', tabNew, lotNew] using
@@ -248,73 +248,73 @@ theorem clipperTakeOweGtTabVatFluxSuccessTailSourceReverts
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       let lot := clipperTakeSalesLotEVMWord evmPrice I
       let slice := clipperMinWord lot (clipperTakeAmtWord I)
-      ExecBlock (config v)
-        (Frame.mk (contract v)
-          (clipperTakeLocalsSlice evmLock evmPrice I false price slice))
+      ExecBlock config
+        (Frame.mk contract
+          (clipperTakeLocalsSlice evmLock evmPrice I false price slice) (immStore v))
         evmPrice
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [ .letDecl "owe" (some uint256) (.var "owe0"),
             clipperTakeOweAdjustmentStmt ] ++
-          clipperTakePostOweFluxStmts v ++
+          clipperTakePostOweFluxStmts ++
           ([ .letDecl "dog_" (some addr) (.storage dogRef),
             .ite
               (.binary .and
                 (.binary .gt (bytesLength "data") (.intLit 0))
                 (.binary .and
-                  (.binary .ne (.var "who") (vatExpr v))
+                  (.binary .ne (.var "who") vatExpr)
                   (.binary .ne (.var "who") (.var "dog_"))))
               (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
                 [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
               [] ] ++
-            checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+            checkedExternalCallStmts vatExpr "move" (.intLit 0)
               [sender, .storage vowRef, .var "owe"] "_moveRet"))
         .reverted)
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
+      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
-        (.ok { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
+        (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPrice)) :
     let locals := clipperTakeStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body
-      .reverted := by
+    ExecTransitionBody config contract evm0 locals takeTransition.body
+      .reverted (immStore v) := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   let lot := clipperTakeSalesLotEVMWord evmPrice I
   let tab := clipperTakeSalesTabEVMWord evmPrice I
   let slice := clipperMinWord lot (clipperTakeAmtWord I)
-  let startFrame : Frame := { contract := contract v, locals := locals }
-  let usrFrame : Frame := { contract := contract v, locals := clipperTakeLocalsUsr evmLock I }
-  let ticFrame : Frame := { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
-  let stFrame : Frame := { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
-  let doneFrame : Frame := { contract := contract v, locals := clipperTakeLocalsDone evmLock I false price }
-  let priceFrame : Frame := { contract := contract v, locals := clipperTakeLocalsPrice evmLock I false price }
+  let startFrame : Frame := { contract := contract, locals := locals, immutables := immStore v }
+  let usrFrame : Frame := { contract := contract, locals := clipperTakeLocalsUsr evmLock I, immutables := immStore v }
+  let ticFrame : Frame := { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
+  let stFrame : Frame := { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
+  let doneFrame : Frame := { contract := contract, locals := clipperTakeLocalsDone evmLock I false price, immutables := immStore v }
+  let priceFrame : Frame := { contract := contract, locals := clipperTakeLocalsPrice evmLock I false price, immutables := immStore v }
   let lotFrame : Frame :=
-    { contract := contract v, locals := clipperTakeLocalsLot evmLock evmPrice I false price }
+    { contract := contract, locals := clipperTakeLocalsLot evmLock evmPrice I false price, immutables := immStore v }
   let tabFrame : Frame :=
-    { contract := contract v, locals := clipperTakeLocalsTab evmLock evmPrice I false price }
+    { contract := contract, locals := clipperTakeLocalsTab evmLock evmPrice I false price, immutables := immStore v }
   let sliceFrame : Frame :=
-    { contract := contract v,
-      locals := clipperTakeLocalsSlice evmLock evmPrice I false price slice }
+    { contract := contract,
+      locals := clipperTakeLocalsSlice evmLock evmPrice I false price slice, immutables := immStore v }
   have hlockedEval :
-      evalExpr? (config v) startFrame evm0
+      evalExpr? config startFrame evm0
         (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool true) := by
     simpa [startFrame, locals, evm0, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_clipperLocked_zero_true v evm0 locals (by simp [locals]) hlocked
   have hlockRhs :
-      evalExpr? (config v) startFrame evm0 (.intLit 1) = .ok (.int 1) := by
+      evalExpr? config startFrame evm0 (.intLit 1) = .ok (.int 1) := by
     simp [startFrame, evalExpr?, pure]
   have hlockAssign :
-      assignStorageRef? (config v) startFrame evm0 .storage lockedRef (.int 1) =
+      assignStorageRef? config startFrame evm0 .storage lockedRef (.int 1) =
         .ok (startFrame, evmLock) := by
     simpa [startFrame, locals, evmLock] using
       assign_clipperLocked v evm0 locals (by simp [locals]) ⟨1⟩
   have hstoppedEval :
-      evalExpr? (config v) startFrame evmLock
+      evalExpr? config startFrame evmLock
         (.binary .lt (.storage stoppedRef) (.intLit 3)) = .ok (.bool true) := by
     apply evalExpr_clipperTakeStopped_lt_three_true
     · simp [locals]
@@ -325,93 +325,93 @@ theorem clipperTakeOweGtTabVatFluxSuccessTailSourceReverts
       evm0, initState, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
       storageStore_accountMap, storageStore_executionEnv] using husr
   have hletUsr :
-      ExecStmt (config v) startFrame evmLock
+      ExecStmt config startFrame evmLock
         (.letDecl "usr" (some addr) (.storage (salesF (.var "id") "usr")))
         (.ok usrFrame evmLock) := by
     simpa [startFrame, usrFrame, locals, clipperTakeLocalsUsr] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
+        (cfg := config) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLock I).toNat))
         (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I))
   have hletTic :
-      ExecStmt (config v) usrFrame evmLock
+      ExecStmt config usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
         (.ok ticFrame evmLock) := by
     simpa [usrFrame, ticFrame, clipperTakeLocalsTic] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
+        (cfg := config) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperTakeSalesTicEVMWord evmLock I).toNat))
         (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I))
   have husrEval :
-      evalExpr? (config v) ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
+      evalExpr? config ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by
     simpa [ticFrame] using clipperEvalTakeUsrNeZeroAfterTic_true v evmLock I husrLoad
   have hstatus' :
-      ExecStmt (config v) ticFrame evmLock
+      ExecStmt config ticFrame evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok stFrame evmPrice) := by
     simpa [ticFrame, stFrame, evmLock, evm0] using hstatus
   have hletDone :
-      ExecStmt (config v) stFrame evmPrice
+      ExecStmt config stFrame evmPrice
         (.letDecl "done" (some boolTy) (tuple0 (.var "st")))
         (.ok doneFrame evmPrice) := by
     simpa [stFrame, doneFrame, clipperTakeLocalsDone] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := stFrame) (evm := evmPrice) (name := "done")
+        (cfg := config) (solm := stFrame) (evm := evmPrice) (name := "done")
         (ty := some boolTy) (expr := tuple0 (.var "st")) (value := .bool false)
         (by simpa [stFrame] using
           clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price))
   have hletPrice :
-      ExecStmt (config v) doneFrame evmPrice
+      ExecStmt config doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
         (.ok priceFrame evmPrice) := by
     simpa [doneFrame, priceFrame, clipperTakeLocalsPrice] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := doneFrame) (evm := evmPrice) (name := "price")
+        (cfg := config) (solm := doneFrame) (evm := evmPrice) (name := "price")
         (ty := some uint256) (expr := tuple1 (.var "st"))
         (value := .int (Int.ofNat price.toNat))
         (by simpa [doneFrame] using
           clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price))
   have hdoneEval :
-      evalExpr? (config v) priceFrame evmPrice (.unary .not (.var "done")) =
+      evalExpr? config priceFrame evmPrice (.unary .not (.var "done")) =
         .ok (.bool true) := by
     simpa [priceFrame] using clipperEvalTakeNotDone_true v evmLock evmPrice I price
   have hmaxEval :
-      evalExpr? (config v) priceFrame evmPrice
+      evalExpr? config priceFrame evmPrice
         (.binary .ge (.var "max") (.var "price")) = .ok (.bool true) := by
     simpa [priceFrame] using clipperEvalTakeMaxGePrice_true v evmLock evmPrice I price hmax
   have hletLot :
-      ExecStmt (config v) priceFrame evmPrice
+      ExecStmt config priceFrame evmPrice
         (.letDecl "lot" (some uint256) (.storage (salesF (.var "id") "lot")))
         (.ok lotFrame evmPrice) := by
     simpa [priceFrame, lotFrame, lot, clipperTakeLocalsLot] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := priceFrame) (evm := evmPrice) (name := "lot")
+        (cfg := config) (solm := priceFrame) (evm := evmPrice) (name := "lot")
         (ty := some uint256) (expr := .storage (salesF (.var "id") "lot"))
         (value := .int (Int.ofNat lot.toNat))
         (by simpa [priceFrame, lot] using
           clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price))
   have hletTab :
-      ExecStmt (config v) lotFrame evmPrice
+      ExecStmt config lotFrame evmPrice
         (.letDecl "tab" (some uint256) (.storage (salesF (.var "id") "tab")))
         (.ok tabFrame evmPrice) := by
     simpa [lotFrame, tabFrame, tab, clipperTakeLocalsTab] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := lotFrame) (evm := evmPrice) (name := "tab")
+        (cfg := config) (solm := lotFrame) (evm := evmPrice) (name := "tab")
         (ty := some uint256) (expr := .storage (salesF (.var "id") "tab"))
         (value := .int (Int.ofNat tab.toNat))
         (by simpa [lotFrame, tab] using
           clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price))
   have hminCall :
-      ExecStmt (config v) tabFrame evmPrice
+      ExecStmt config tabFrame evmPrice
         (.internalCall "min" [.var "lot", .var "amt"] "slice")
         (.ok sliceFrame evmPrice) := by
     simpa [tabFrame, sliceFrame, slice, lot, resumeAfterInternalCall,
       clipperTakeLocalsSlice] using
       (internalCallFunctionReturn
-        (cfg := config v) (caller := tabFrame) (evm := evmPrice) (calleeEvm := evmPrice)
+        (cfg := config) (caller := tabFrame) (evm := evmPrice) (calleeEvm := evmPrice)
         (name := "min") (retVar := "slice")
         (args := [.var "lot", .var "amt"])
         (argVals := [.int (Int.ofNat lot.toNat),
@@ -419,36 +419,36 @@ theorem clipperTakeOweGtTabVatFluxSuccessTailSourceReverts
         (callee := minFunction)
         (locals := clipperUintBinaryLocals lot (clipperTakeAmtWord I))
         (calleeSolm :=
-          { contract := contract v, locals := clipperUintBinaryLocals lot (clipperTakeAmtWord I) })
+          { contract := contract, locals := clipperUintBinaryLocals lot (clipperTakeAmtWord I), immutables := immStore v })
         (value := some [.int (Int.ofNat (clipperMinWord lot (clipperTakeAmtWord I)).toNat)])
         (by simpa [tabFrame, lot] using
           clipperEvalTakeMinArgsAtTab v evmLock evmPrice I false price)
-        (clipperLookupMinFunction v)
+        (clipperLookupMinFunction)
         (clipperBindParamsMin lot (clipperTakeAmtWord I))
         (by simpa [tabFrame] using
           clipperMinFunctionReturns v evmPrice lot (clipperTakeAmtWord I)))
   have htail' :
-      ExecBlock (config v) sliceFrame evmPrice
+      ExecBlock config sliceFrame evmPrice
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [ .letDecl "owe" (some uint256) (.var "owe0"),
             clipperTakeOweAdjustmentStmt ] ++
-          clipperTakePostOweFluxStmts v ++
+          clipperTakePostOweFluxStmts ++
           ([ .letDecl "dog_" (some addr) (.storage dogRef),
             .ite
               (.binary .and
                 (.binary .gt (bytesLength "data") (.intLit 0))
                 (.binary .and
-                  (.binary .ne (.var "who") (vatExpr v))
+                  (.binary .ne (.var "who") vatExpr)
                   (.binary .ne (.var "who") (.var "dog_"))))
               (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
                 [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
               [] ] ++
-            checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+            checkedExternalCallStmts vatExpr "move" (.intLit 0)
               [sender, .storage vowRef, .var "owe"] "_moveRet"))
         .reverted := by
     simpa [evm0, evmLock, lot, slice, sliceFrame] using htail
   have hblock :
-      ExecBlock (config v) startFrame evm0 (takeTransition v).body .reverted := by
+      ExecBlock config startFrame evm0 takeTransition.body .reverted := by
     simpa [takeTransition, nonpayable, lockPrefix, isStopped, startFrame,
       checkedMulUintInto, clipperTakePostOweFluxStmts, List.append_assoc] using
       (by
@@ -498,7 +498,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeSourceReverts
       0 <
         (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM (config v) evmPrice (EVM.address v.vat) "flux" 0
+      typedCallViaEVM config evmPrice (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPrice.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -512,48 +512,48 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeSourceReverts
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
+      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
-        (.ok { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
+        (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPrice)) :
     let locals := clipperTakeStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted := by
+    ExecTransitionBody config contract evm0 locals takeTransition.body .reverted (immStore v) := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   let lot := clipperTakeSalesLotEVMWord evmPrice I
   let tab := clipperTakeSalesTabEVMWord evmPrice I
   let slice := clipperMinWord lot (clipperTakeAmtWord I)
-  let startFrame : Frame := { contract := contract v, locals := locals }
-  let usrFrame : Frame := { contract := contract v, locals := clipperTakeLocalsUsr evmLock I }
-  let ticFrame : Frame := { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
-  let stFrame : Frame := { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
-  let doneFrame : Frame := { contract := contract v, locals := clipperTakeLocalsDone evmLock I false price }
-  let priceFrame : Frame := { contract := contract v, locals := clipperTakeLocalsPrice evmLock I false price }
+  let startFrame : Frame := { contract := contract, locals := locals, immutables := immStore v }
+  let usrFrame : Frame := { contract := contract, locals := clipperTakeLocalsUsr evmLock I, immutables := immStore v }
+  let ticFrame : Frame := { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
+  let stFrame : Frame := { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
+  let doneFrame : Frame := { contract := contract, locals := clipperTakeLocalsDone evmLock I false price, immutables := immStore v }
+  let priceFrame : Frame := { contract := contract, locals := clipperTakeLocalsPrice evmLock I false price, immutables := immStore v }
   let lotFrame : Frame :=
-    { contract := contract v, locals := clipperTakeLocalsLot evmLock evmPrice I false price }
+    { contract := contract, locals := clipperTakeLocalsLot evmLock evmPrice I false price, immutables := immStore v }
   let tabFrame : Frame :=
-    { contract := contract v, locals := clipperTakeLocalsTab evmLock evmPrice I false price }
+    { contract := contract, locals := clipperTakeLocalsTab evmLock evmPrice I false price, immutables := immStore v }
   let sliceFrame : Frame :=
-    { contract := contract v,
-      locals := clipperTakeLocalsSlice evmLock evmPrice I false price slice }
+    { contract := contract,
+      locals := clipperTakeLocalsSlice evmLock evmPrice I false price slice, immutables := immStore v }
   have hlockedEval :
-      evalExpr? (config v) startFrame evm0
+      evalExpr? config startFrame evm0
         (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool true) := by
     simpa [startFrame, locals, evm0, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_clipperLocked_zero_true v evm0 locals (by simp [locals]) hlocked
   have hlockRhs :
-      evalExpr? (config v) startFrame evm0 (.intLit 1) = .ok (.int 1) := by
+      evalExpr? config startFrame evm0 (.intLit 1) = .ok (.int 1) := by
     simp [startFrame, evalExpr?, pure]
   have hlockAssign :
-      assignStorageRef? (config v) startFrame evm0 .storage lockedRef (.int 1) =
+      assignStorageRef? config startFrame evm0 .storage lockedRef (.int 1) =
         .ok (startFrame, evmLock) := by
     simpa [startFrame, locals, evmLock] using
       assign_clipperLocked v evm0 locals (by simp [locals]) ⟨1⟩
   have hstoppedEval :
-      evalExpr? (config v) startFrame evmLock
+      evalExpr? config startFrame evmLock
         (.binary .lt (.storage stoppedRef) (.intLit 3)) = .ok (.bool true) := by
     apply evalExpr_clipperTakeStopped_lt_three_true
     · simp [locals]
@@ -564,93 +564,93 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeSourceReverts
       evm0, initState, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
       storageStore_accountMap, storageStore_executionEnv] using husr
   have hletUsr :
-      ExecStmt (config v) startFrame evmLock
+      ExecStmt config startFrame evmLock
         (.letDecl "usr" (some addr) (.storage (salesF (.var "id") "usr")))
         (.ok usrFrame evmLock) := by
     simpa [startFrame, usrFrame, locals, clipperTakeLocalsUsr] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
+        (cfg := config) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLock I).toNat))
         (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I))
   have hletTic :
-      ExecStmt (config v) usrFrame evmLock
+      ExecStmt config usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
         (.ok ticFrame evmLock) := by
     simpa [usrFrame, ticFrame, clipperTakeLocalsTic] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
+        (cfg := config) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperTakeSalesTicEVMWord evmLock I).toNat))
         (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I))
   have husrEval :
-      evalExpr? (config v) ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
+      evalExpr? config ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by
     simpa [ticFrame] using clipperEvalTakeUsrNeZeroAfterTic_true v evmLock I husrLoad
   have hstatus' :
-      ExecStmt (config v) ticFrame evmLock
+      ExecStmt config ticFrame evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok stFrame evmPrice) := by
     simpa [ticFrame, stFrame, evmLock, evm0] using hstatus
   have hletDone :
-      ExecStmt (config v) stFrame evmPrice
+      ExecStmt config stFrame evmPrice
         (.letDecl "done" (some boolTy) (tuple0 (.var "st")))
         (.ok doneFrame evmPrice) := by
     simpa [stFrame, doneFrame, clipperTakeLocalsDone] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := stFrame) (evm := evmPrice) (name := "done")
+        (cfg := config) (solm := stFrame) (evm := evmPrice) (name := "done")
         (ty := some boolTy) (expr := tuple0 (.var "st")) (value := .bool false)
         (by simpa [stFrame] using
           clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price))
   have hletPrice :
-      ExecStmt (config v) doneFrame evmPrice
+      ExecStmt config doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
         (.ok priceFrame evmPrice) := by
     simpa [doneFrame, priceFrame, clipperTakeLocalsPrice] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := doneFrame) (evm := evmPrice) (name := "price")
+        (cfg := config) (solm := doneFrame) (evm := evmPrice) (name := "price")
         (ty := some uint256) (expr := tuple1 (.var "st"))
         (value := .int (Int.ofNat price.toNat))
         (by simpa [doneFrame] using
           clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price))
   have hdoneEval :
-      evalExpr? (config v) priceFrame evmPrice (.unary .not (.var "done")) =
+      evalExpr? config priceFrame evmPrice (.unary .not (.var "done")) =
         .ok (.bool true) := by
     simpa [priceFrame] using clipperEvalTakeNotDone_true v evmLock evmPrice I price
   have hmaxEval :
-      evalExpr? (config v) priceFrame evmPrice
+      evalExpr? config priceFrame evmPrice
         (.binary .ge (.var "max") (.var "price")) = .ok (.bool true) := by
     simpa [priceFrame] using clipperEvalTakeMaxGePrice_true v evmLock evmPrice I price hmax
   have hletLot :
-      ExecStmt (config v) priceFrame evmPrice
+      ExecStmt config priceFrame evmPrice
         (.letDecl "lot" (some uint256) (.storage (salesF (.var "id") "lot")))
         (.ok lotFrame evmPrice) := by
     simpa [priceFrame, lotFrame, lot, clipperTakeLocalsLot] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := priceFrame) (evm := evmPrice) (name := "lot")
+        (cfg := config) (solm := priceFrame) (evm := evmPrice) (name := "lot")
         (ty := some uint256) (expr := .storage (salesF (.var "id") "lot"))
         (value := .int (Int.ofNat lot.toNat))
         (by simpa [priceFrame, lot] using
           clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price))
   have hletTab :
-      ExecStmt (config v) lotFrame evmPrice
+      ExecStmt config lotFrame evmPrice
         (.letDecl "tab" (some uint256) (.storage (salesF (.var "id") "tab")))
         (.ok tabFrame evmPrice) := by
     simpa [lotFrame, tabFrame, tab, clipperTakeLocalsTab] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := lotFrame) (evm := evmPrice) (name := "tab")
+        (cfg := config) (solm := lotFrame) (evm := evmPrice) (name := "tab")
         (ty := some uint256) (expr := .storage (salesF (.var "id") "tab"))
         (value := .int (Int.ofNat tab.toNat))
         (by simpa [lotFrame, tab] using
           clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price))
   have hminCall :
-      ExecStmt (config v) tabFrame evmPrice
+      ExecStmt config tabFrame evmPrice
         (.internalCall "min" [.var "lot", .var "amt"] "slice")
         (.ok sliceFrame evmPrice) := by
     simpa [tabFrame, sliceFrame, slice, lot, resumeAfterInternalCall,
       clipperTakeLocalsSlice] using
       (internalCallFunctionReturn
-        (cfg := config v) (caller := tabFrame) (evm := evmPrice) (calleeEvm := evmPrice)
+        (cfg := config) (caller := tabFrame) (evm := evmPrice) (calleeEvm := evmPrice)
         (name := "min") (retVar := "slice")
         (args := [.var "lot", .var "amt"])
         (argVals := [.int (Int.ofNat lot.toNat),
@@ -658,31 +658,31 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeSourceReverts
         (callee := minFunction)
         (locals := clipperUintBinaryLocals lot (clipperTakeAmtWord I))
         (calleeSolm :=
-          { contract := contract v, locals := clipperUintBinaryLocals lot (clipperTakeAmtWord I) })
+          { contract := contract, locals := clipperUintBinaryLocals lot (clipperTakeAmtWord I), immutables := immStore v })
         (value := some [.int (Int.ofNat (clipperMinWord lot (clipperTakeAmtWord I)).toNat)])
         (by simpa [tabFrame, lot] using
           clipperEvalTakeMinArgsAtTab v evmLock evmPrice I false price)
-        (clipperLookupMinFunction v)
+        (clipperLookupMinFunction)
         (clipperBindParamsMin lot (clipperTakeAmtWord I))
         (by simpa [tabFrame] using
           clipperMinFunctionReturns v evmPrice lot (clipperTakeAmtWord I)))
   have htail :
-      ExecBlock (config v) sliceFrame evmPrice
+      ExecBlock config sliceFrame evmPrice
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [ .letDecl "owe" (some uint256) (.var "owe0"),
             clipperTakeOweAdjustmentStmt ] ++
-          clipperTakePostOweFluxStmts v ++
+          clipperTakePostOweFluxStmts ++
           ([ .letDecl "dog_" (some addr) (.storage dogRef),
             .ite
               (.binary .and
                 (.binary .gt (bytesLength "data") (.intLit 0))
                 (.binary .and
-                  (.binary .ne (.var "who") (vatExpr v))
+                  (.binary .ne (.var "who") vatExpr)
                   (.binary .ne (.var "who") (.var "dog_"))))
               (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
                 [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
               [] ] ++
-            checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+            checkedExternalCallStmts vatExpr "move" (.intLit 0)
               [sender, .storage vowRef, .var "owe"] "_moveRet"))
         .reverted := by
     simpa [sliceFrame, slice, lot] using
@@ -690,7 +690,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeSourceReverts
         evmPrice evmVat I price slice hmul hgt hsliceLot hvatCode hcallVat hdataLen
         hnoVatCode
   have hblock :
-      ExecBlock (config v) startFrame evm0 (takeTransition v).body .reverted := by
+      ExecBlock config startFrame evm0 takeTransition.body .reverted := by
     simpa [takeTransition, nonpayable, lockPrefix, isStopped, startFrame,
       checkedMulUintInto, clipperTakePostOweFluxStmts, List.append_assoc] using
       (by
@@ -741,7 +741,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureSourceRevert
       0 <
         (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM (config v) evmPrice (EVM.address v.vat) "flux" 0
+      typedCallViaEVM config evmPrice (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPrice.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -753,7 +753,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureSourceRevert
       0 <
         (UInt256.ofNat ((evmVat.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallMove :
-      typedCallViaEVM (config v) evmVat (EVM.address v.vat) "move" 0
+      typedCallViaEVM config evmVat (EVM.address v.vat) "move" 0
         [.address evmVat.executionEnv.source,
           .address (AccountAddress.ofNat (clipperTakeVowEVMWord evmVat).toNat),
           .int (Int.ofNat (clipperTakeSalesTabEVMWord evmPrice I).toNat)]
@@ -761,49 +761,49 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureSourceRevert
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
+      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
-        (.ok { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
+        (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPrice)) :
     let locals := clipperTakeStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body
-      .reverted := by
+    ExecTransitionBody config contract evm0 locals takeTransition.body
+      .reverted (immStore v) := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   let lot := clipperTakeSalesLotEVMWord evmPrice I
   let tab := clipperTakeSalesTabEVMWord evmPrice I
   let slice := clipperMinWord lot (clipperTakeAmtWord I)
-  let startFrame : Frame := { contract := contract v, locals := locals }
-  let usrFrame : Frame := { contract := contract v, locals := clipperTakeLocalsUsr evmLock I }
-  let ticFrame : Frame := { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
-  let stFrame : Frame := { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
-  let doneFrame : Frame := { contract := contract v, locals := clipperTakeLocalsDone evmLock I false price }
-  let priceFrame : Frame := { contract := contract v, locals := clipperTakeLocalsPrice evmLock I false price }
+  let startFrame : Frame := { contract := contract, locals := locals, immutables := immStore v }
+  let usrFrame : Frame := { contract := contract, locals := clipperTakeLocalsUsr evmLock I, immutables := immStore v }
+  let ticFrame : Frame := { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
+  let stFrame : Frame := { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
+  let doneFrame : Frame := { contract := contract, locals := clipperTakeLocalsDone evmLock I false price, immutables := immStore v }
+  let priceFrame : Frame := { contract := contract, locals := clipperTakeLocalsPrice evmLock I false price, immutables := immStore v }
   let lotFrame : Frame :=
-    { contract := contract v, locals := clipperTakeLocalsLot evmLock evmPrice I false price }
+    { contract := contract, locals := clipperTakeLocalsLot evmLock evmPrice I false price, immutables := immStore v }
   let tabFrame : Frame :=
-    { contract := contract v, locals := clipperTakeLocalsTab evmLock evmPrice I false price }
+    { contract := contract, locals := clipperTakeLocalsTab evmLock evmPrice I false price, immutables := immStore v }
   let sliceFrame : Frame :=
-    { contract := contract v,
-      locals := clipperTakeLocalsSlice evmLock evmPrice I false price slice }
+    { contract := contract,
+      locals := clipperTakeLocalsSlice evmLock evmPrice I false price slice, immutables := immStore v }
   have hlockedEval :
-      evalExpr? (config v) startFrame evm0
+      evalExpr? config startFrame evm0
         (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool true) := by
     simpa [startFrame, locals, evm0, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_clipperLocked_zero_true v evm0 locals (by simp [locals]) hlocked
   have hlockRhs :
-      evalExpr? (config v) startFrame evm0 (.intLit 1) = .ok (.int 1) := by
+      evalExpr? config startFrame evm0 (.intLit 1) = .ok (.int 1) := by
     simp [startFrame, evalExpr?, pure]
   have hlockAssign :
-      assignStorageRef? (config v) startFrame evm0 .storage lockedRef (.int 1) =
+      assignStorageRef? config startFrame evm0 .storage lockedRef (.int 1) =
         .ok (startFrame, evmLock) := by
     simpa [startFrame, locals, evmLock] using
       assign_clipperLocked v evm0 locals (by simp [locals]) ⟨1⟩
   have hstoppedEval :
-      evalExpr? (config v) startFrame evmLock
+      evalExpr? config startFrame evmLock
         (.binary .lt (.storage stoppedRef) (.intLit 3)) = .ok (.bool true) := by
     apply evalExpr_clipperTakeStopped_lt_three_true
     · simp [locals]
@@ -814,93 +814,93 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureSourceRevert
       evm0, initState, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
       storageStore_accountMap, storageStore_executionEnv] using husr
   have hletUsr :
-      ExecStmt (config v) startFrame evmLock
+      ExecStmt config startFrame evmLock
         (.letDecl "usr" (some addr) (.storage (salesF (.var "id") "usr")))
         (.ok usrFrame evmLock) := by
     simpa [startFrame, usrFrame, locals, clipperTakeLocalsUsr] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
+        (cfg := config) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLock I).toNat))
         (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I))
   have hletTic :
-      ExecStmt (config v) usrFrame evmLock
+      ExecStmt config usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
         (.ok ticFrame evmLock) := by
     simpa [usrFrame, ticFrame, clipperTakeLocalsTic] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
+        (cfg := config) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperTakeSalesTicEVMWord evmLock I).toNat))
         (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I))
   have husrEval :
-      evalExpr? (config v) ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
+      evalExpr? config ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by
     simpa [ticFrame] using clipperEvalTakeUsrNeZeroAfterTic_true v evmLock I husrLoad
   have hstatus' :
-      ExecStmt (config v) ticFrame evmLock
+      ExecStmt config ticFrame evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok stFrame evmPrice) := by
     simpa [ticFrame, stFrame, evmLock, evm0] using hstatus
   have hletDone :
-      ExecStmt (config v) stFrame evmPrice
+      ExecStmt config stFrame evmPrice
         (.letDecl "done" (some boolTy) (tuple0 (.var "st")))
         (.ok doneFrame evmPrice) := by
     simpa [stFrame, doneFrame, clipperTakeLocalsDone] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := stFrame) (evm := evmPrice) (name := "done")
+        (cfg := config) (solm := stFrame) (evm := evmPrice) (name := "done")
         (ty := some boolTy) (expr := tuple0 (.var "st")) (value := .bool false)
         (by simpa [stFrame] using
           clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price))
   have hletPrice :
-      ExecStmt (config v) doneFrame evmPrice
+      ExecStmt config doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
         (.ok priceFrame evmPrice) := by
     simpa [doneFrame, priceFrame, clipperTakeLocalsPrice] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := doneFrame) (evm := evmPrice) (name := "price")
+        (cfg := config) (solm := doneFrame) (evm := evmPrice) (name := "price")
         (ty := some uint256) (expr := tuple1 (.var "st"))
         (value := .int (Int.ofNat price.toNat))
         (by simpa [doneFrame] using
           clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price))
   have hdoneEval :
-      evalExpr? (config v) priceFrame evmPrice (.unary .not (.var "done")) =
+      evalExpr? config priceFrame evmPrice (.unary .not (.var "done")) =
         .ok (.bool true) := by
     simpa [priceFrame] using clipperEvalTakeNotDone_true v evmLock evmPrice I price
   have hmaxEval :
-      evalExpr? (config v) priceFrame evmPrice
+      evalExpr? config priceFrame evmPrice
         (.binary .ge (.var "max") (.var "price")) = .ok (.bool true) := by
     simpa [priceFrame] using clipperEvalTakeMaxGePrice_true v evmLock evmPrice I price hmax
   have hletLot :
-      ExecStmt (config v) priceFrame evmPrice
+      ExecStmt config priceFrame evmPrice
         (.letDecl "lot" (some uint256) (.storage (salesF (.var "id") "lot")))
         (.ok lotFrame evmPrice) := by
     simpa [priceFrame, lotFrame, lot, clipperTakeLocalsLot] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := priceFrame) (evm := evmPrice) (name := "lot")
+        (cfg := config) (solm := priceFrame) (evm := evmPrice) (name := "lot")
         (ty := some uint256) (expr := .storage (salesF (.var "id") "lot"))
         (value := .int (Int.ofNat lot.toNat))
         (by simpa [priceFrame, lot] using
           clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price))
   have hletTab :
-      ExecStmt (config v) lotFrame evmPrice
+      ExecStmt config lotFrame evmPrice
         (.letDecl "tab" (some uint256) (.storage (salesF (.var "id") "tab")))
         (.ok tabFrame evmPrice) := by
     simpa [lotFrame, tabFrame, tab, clipperTakeLocalsTab] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := lotFrame) (evm := evmPrice) (name := "tab")
+        (cfg := config) (solm := lotFrame) (evm := evmPrice) (name := "tab")
         (ty := some uint256) (expr := .storage (salesF (.var "id") "tab"))
         (value := .int (Int.ofNat tab.toNat))
         (by simpa [lotFrame, tab] using
           clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price))
   have hminCall :
-      ExecStmt (config v) tabFrame evmPrice
+      ExecStmt config tabFrame evmPrice
         (.internalCall "min" [.var "lot", .var "amt"] "slice")
         (.ok sliceFrame evmPrice) := by
     simpa [tabFrame, sliceFrame, slice, lot, resumeAfterInternalCall,
       clipperTakeLocalsSlice] using
       (internalCallFunctionReturn
-        (cfg := config v) (caller := tabFrame) (evm := evmPrice) (calleeEvm := evmPrice)
+        (cfg := config) (caller := tabFrame) (evm := evmPrice) (calleeEvm := evmPrice)
         (name := "min") (retVar := "slice")
         (args := [.var "lot", .var "amt"])
         (argVals := [.int (Int.ofNat lot.toNat),
@@ -908,31 +908,31 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureSourceRevert
         (callee := minFunction)
         (locals := clipperUintBinaryLocals lot (clipperTakeAmtWord I))
         (calleeSolm :=
-          { contract := contract v, locals := clipperUintBinaryLocals lot (clipperTakeAmtWord I) })
+          { contract := contract, locals := clipperUintBinaryLocals lot (clipperTakeAmtWord I), immutables := immStore v })
         (value := some [.int (Int.ofNat (clipperMinWord lot (clipperTakeAmtWord I)).toNat)])
         (by simpa [tabFrame, lot] using
           clipperEvalTakeMinArgsAtTab v evmLock evmPrice I false price)
-        (clipperLookupMinFunction v)
+        (clipperLookupMinFunction)
         (clipperBindParamsMin lot (clipperTakeAmtWord I))
         (by simpa [tabFrame] using
           clipperMinFunctionReturns v evmPrice lot (clipperTakeAmtWord I)))
   have htail :
-      ExecBlock (config v) sliceFrame evmPrice
+      ExecBlock config sliceFrame evmPrice
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [ .letDecl "owe" (some uint256) (.var "owe0"),
             clipperTakeOweAdjustmentStmt ] ++
-          clipperTakePostOweFluxStmts v ++
+          clipperTakePostOweFluxStmts ++
           ([ .letDecl "dog_" (some addr) (.storage dogRef),
             .ite
               (.binary .and
                 (.binary .gt (bytesLength "data") (.intLit 0))
                 (.binary .and
-                  (.binary .ne (.var "who") (vatExpr v))
+                  (.binary .ne (.var "who") vatExpr)
                   (.binary .ne (.var "who") (.var "dog_"))))
               (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
                 [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
               [] ] ++
-            checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+            checkedExternalCallStmts vatExpr "move" (.intLit 0)
               [sender, .storage vowRef, .var "owe"] "_moveRet"))
         .reverted := by
     simpa [sliceFrame, slice, lot] using
@@ -940,7 +940,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureSourceRevert
         evmLock evmPrice evmVat evmMove I price slice hmul hgt hsliceLot hvatCode
         hcallVat hdataLen hvatMoveCode hcallMove
   have hblock :
-      ExecBlock (config v) startFrame evm0 (takeTransition v).body .reverted := by
+      ExecBlock config startFrame evm0 takeTransition.body .reverted := by
     simpa [takeTransition, nonpayable, lockPrefix, isStopped, startFrame,
       checkedMulUintInto, clipperTakePostOweFluxStmts, List.append_assoc] using
       (by
@@ -968,11 +968,11 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeRevertEquivFromPo
     (v : ClipperImmutables) {code : ByteArray}
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some (takeTransition v))
+    (hdispatch : dispatchMsg contract I.calldata = some takeTransition)
     (hdec :
-      decodeCalldataWithMode (config v).abiDecodeMode
-        (List.map Param.name (takeTransition v).params)
-        (transitionSignature (takeTransition v)).paramTypes I.calldata =
+      decodeCalldataWithMode config.abiDecodeMode
+        (List.map Param.name takeTransition.params)
+        (transitionSignature takeTransition).paramTypes I.calldata =
       some (clipperTakeStore I))
     (hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstoppedSolmLt :
@@ -993,7 +993,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeRevertEquivFromPo
         (UInt256.ofNat
           ((evmPriceSolm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM (config v) evmPriceSolm (EVM.address v.vat) "flux" 0
+      typedCallViaEVM config evmPriceSolm (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPriceSolm.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -1007,12 +1007,12 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeRevertEquivFromPo
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
+      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
-        (.ok { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
+        (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPriceSolm)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsrcMul :
       (clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I)
           (clipperTakeAmtWord I)).toNat * price.toNat < UInt256.size :=
@@ -1032,9 +1032,9 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeRevertEquivFromPo
     clipperTakeOweGtTabSourceDivLeLot_of_post_words (I := I) (evmPrice := evmPriceSolm)
       (price := price) (tab := tab) (lot := lot) htab hlot hmul hgt
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (clipperTakeStore I) (takeTransition v).body .reverted := by
+        (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
     simpa using
       (clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeSourceReverts
         (σ := σ) (σ₀ := σ₀) (A := A)
@@ -1052,11 +1052,11 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeRevertEquivFromPo
     {R : List UInt256} {mem outVat : ByteArray} {aw : UInt256} {k C : ℕ}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some (takeTransition v))
+    (hdispatch : dispatchMsg contract I.calldata = some takeTransition)
     (hdec :
-      decodeCalldataWithMode (config v).abiDecodeMode
-        (List.map Param.name (takeTransition v).params)
-        (transitionSignature (takeTransition v)).paramTypes I.calldata =
+      decodeCalldataWithMode config.abiDecodeMode
+        (List.map Param.name takeTransition.params)
+        (transitionSignature takeTransition).paramTypes I.calldata =
       some (clipperTakeStore I))
     (hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstoppedSolmLt :
@@ -1072,7 +1072,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeRevertEquivFromPo
               dataStart :: who :: max :: amt :: id :: R)
         mem aw outVat σVat k C)
     (hcallVatEvm :
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σPost }
         (EVM.address v.vat) "flux" 0
@@ -1106,12 +1106,12 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeRevertEquivFromPo
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
+      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
-        (.ok { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
+        (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPriceSolm)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   subst zVat
   subst aw
   have hrev :
@@ -1147,7 +1147,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeRevertEquivFromPo
       substate := AVatSolm
        }
   have hcallVatSolm :
-      typedCallViaEVM (config v) evmPriceSolm (EVM.address v.vat) "flux" 0
+      typedCallViaEVM config evmPriceSolm (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPriceSolm.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -1184,11 +1184,11 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
     {R : List UInt256} {mem outVat : ByteArray} {aw : UInt256} {k C : ℕ}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some (takeTransition v))
+    (hdispatch : dispatchMsg contract I.calldata = some takeTransition)
     (hdec :
-      decodeCalldataWithMode (config v).abiDecodeMode
-        (List.map Param.name (takeTransition v).params)
-        (transitionSignature (takeTransition v)).paramTypes I.calldata =
+      decodeCalldataWithMode config.abiDecodeMode
+        (List.map Param.name takeTransition.params)
+        (transitionSignature takeTransition).paramTypes I.calldata =
       some (clipperTakeStore I))
     (hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstoppedSolmLt :
@@ -1204,7 +1204,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
               dataStart :: who :: max :: amt :: id :: R)
         mem aw outVat σVat k C)
     (hcallVatEvm :
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σPost }
         (EVM.address v.vat) "flux" 0
@@ -1231,7 +1231,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outMove σMove kMove CMove)
     (hcallMoveEvm :
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σVat }
         (EVM.address v.vat) "move" 0
@@ -1264,12 +1264,12 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
+      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
-        (.ok { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
+        (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPriceSolm)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   subst zVat
   subst aw
   exact by
@@ -1305,7 +1305,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
         substate := AVatSolm
          }
     have hcallVatSolm :
-        typedCallViaEVM (config v) evmPriceSolm (EVM.address v.vat) "flux" 0
+        typedCallViaEVM config evmPriceSolm (EVM.address v.vat) "flux" 0
           [v.ilk, .address evmPriceSolm.executionEnv.codeOwner,
             .address (AccountAddress.ofNat
               (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -1345,7 +1345,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
         substate := AMoveSolm
          }
     have hcallMoveSolm :
-        typedCallViaEVM (config v) evmVatSolm (EVM.address v.vat) "move" 0
+        typedCallViaEVM config evmVatSolm (EVM.address v.vat) "move" 0
           [.address evmVatSolm.executionEnv.source,
             .address (AccountAddress.ofNat (clipperTakeVowEVMWord evmVatSolm).toNat),
             .int (Int.ofNat (clipperTakeSalesTabEVMWord evmPriceSolm I).toNat)]
@@ -1371,9 +1371,9 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
       clipperTakeOweGtTabSourceDivLeLot_of_post_words (I := I) (evmPrice := evmPriceSolm)
         (price := price) (tab := tab) (lot := lot) htab hlot hmul hgt
     have hbody :
-        ExecTransitionBody (config v) (contract v)
+        ExecTransitionBody config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (clipperTakeStore I) (takeTransition v).body .reverted := by
+          (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
       simpa using
         (clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureSourceReverts
           (σ := σ) (σ₀ := σ₀) (A := A)
@@ -1387,11 +1387,11 @@ theorem clipperTakeOweGtTabVatFluxSuccessCallbackFalseVatMoveNoCodeRevertEquivFr
     (v : ClipperImmutables) {code : ByteArray}
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some (takeTransition v))
+    (hdispatch : dispatchMsg contract I.calldata = some takeTransition)
     (hdec :
-      decodeCalldataWithMode (config v).abiDecodeMode
-        (List.map Param.name (takeTransition v).params)
-        (transitionSignature (takeTransition v)).paramTypes I.calldata =
+      decodeCalldataWithMode config.abiDecodeMode
+        (List.map Param.name takeTransition.params)
+        (transitionSignature takeTransition).paramTypes I.calldata =
       some (clipperTakeStore I))
     (hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstoppedSolmLt :
@@ -1412,7 +1412,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessCallbackFalseVatMoveNoCodeRevertEquivFr
         (UInt256.ofNat
           ((evmPriceSolm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM (config v) evmPriceSolm (EVM.address v.vat) "flux" 0
+      typedCallViaEVM config evmPriceSolm (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPriceSolm.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -1429,24 +1429,24 @@ theorem clipperTakeOweGtTabVatFluxSuccessCallbackFalseVatMoveNoCodeRevertEquivFr
       let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmPriceSolm I)
         (clipperTakeSalesTabEVMWord evmPriceSolm I)
       let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmPriceSolm I) slice'
-      ExecStmt (config v)
-        (Frame.mk (contract v)
+      ExecStmt config
+        (Frame.mk contract
           (clipperTakeLocalsDogLoaded evmLock evmPriceSolm evmVatSolm I price slice
-            owe0 owe0 slice' tabNew lotNew))
+            owe0 owe0 slice' tabNew lotNew) (immStore v))
         evmVatSolm
         (.ite
           (.binary .and
             (.binary .gt (bytesLength "data") (.intLit 0))
             (.binary .and
-              (.binary .ne (.var "who") (vatExpr v))
+              (.binary .ne (.var "who") vatExpr)
               (.binary .ne (.var "who") (.var "dog_"))))
           (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
             [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
           [])
         (.ok
-          (Frame.mk (contract v)
+          (Frame.mk contract
             (clipperTakeLocalsDogLoaded evmLock evmPriceSolm evmVatSolm I price slice
-              owe0 owe0 slice' tabNew lotNew))
+              owe0 owe0 slice' tabNew lotNew) (immStore v))
           evmVatSolm))
     (hnoVatCode :
       (UInt256.ofNat
@@ -1454,12 +1454,12 @@ theorem clipperTakeOweGtTabVatFluxSuccessCallbackFalseVatMoveNoCodeRevertEquivFr
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
+      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
-        (.ok { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
+        (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPriceSolm)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsrcMul :
       (clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I)
           (clipperTakeAmtWord I)).toNat * price.toNat < UInt256.size :=
@@ -1483,25 +1483,25 @@ theorem clipperTakeOweGtTabVatFluxSuccessCallbackFalseVatMoveNoCodeRevertEquivFr
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       let lot := clipperTakeSalesLotEVMWord evmPriceSolm I
       let slice := clipperMinWord lot (clipperTakeAmtWord I)
-      ExecBlock (config v)
-        (Frame.mk (contract v)
-          (clipperTakeLocalsSlice evmLock evmPriceSolm I false price slice))
+      ExecBlock config
+        (Frame.mk contract
+          (clipperTakeLocalsSlice evmLock evmPriceSolm I false price slice) (immStore v))
         evmPriceSolm
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [ .letDecl "owe" (some uint256) (.var "owe0"),
             clipperTakeOweAdjustmentStmt ] ++
-          clipperTakePostOweFluxStmts v ++
+          clipperTakePostOweFluxStmts ++
           ([ .letDecl "dog_" (some addr) (.storage dogRef),
             .ite
               (.binary .and
                 (.binary .gt (bytesLength "data") (.intLit 0))
                 (.binary .and
-                  (.binary .ne (.var "who") (vatExpr v))
+                  (.binary .ne (.var "who") vatExpr)
                   (.binary .ne (.var "who") (.var "dog_"))))
               (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
                 [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
               [] ] ++
-            checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+            checkedExternalCallStmts vatExpr "move" (.intLit 0)
               [sender, .storage vowRef, .var "owe"] "_moveRet"))
         .reverted := by
     dsimp only
@@ -1515,9 +1515,9 @@ theorem clipperTakeOweGtTabVatFluxSuccessCallbackFalseVatMoveNoCodeRevertEquivFr
         (clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I) (clipperTakeAmtWord I))
         hsrcMul hsrcGt hsliceLot hvatCode hcallVat hcallback hnoVatCode
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (clipperTakeStore I) (takeTransition v).body .reverted := by
+        (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
     simpa using
       (clipperTakeOweGtTabVatFluxSuccessTailSourceReverts
         (σ := σ) (σ₀ := σ₀) (A := A)
@@ -1529,11 +1529,11 @@ theorem clipperTakeOweGtTabVatFluxSuccessCallbackFalseVatMoveCallFailureRevertEq
     (v : ClipperImmutables) {code : ByteArray}
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some (takeTransition v))
+    (hdispatch : dispatchMsg contract I.calldata = some takeTransition)
     (hdec :
-      decodeCalldataWithMode (config v).abiDecodeMode
-        (List.map Param.name (takeTransition v).params)
-        (transitionSignature (takeTransition v)).paramTypes I.calldata =
+      decodeCalldataWithMode config.abiDecodeMode
+        (List.map Param.name takeTransition.params)
+        (transitionSignature takeTransition).paramTypes I.calldata =
       some (clipperTakeStore I))
     (hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstoppedSolmLt :
@@ -1554,7 +1554,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessCallbackFalseVatMoveCallFailureRevertEq
         (UInt256.ofNat
           ((evmPriceSolm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM (config v) evmPriceSolm (EVM.address v.vat) "flux" 0
+      typedCallViaEVM config evmPriceSolm (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPriceSolm.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -1571,31 +1571,31 @@ theorem clipperTakeOweGtTabVatFluxSuccessCallbackFalseVatMoveCallFailureRevertEq
       let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmPriceSolm I)
         (clipperTakeSalesTabEVMWord evmPriceSolm I)
       let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmPriceSolm I) slice'
-      ExecStmt (config v)
-        (Frame.mk (contract v)
+      ExecStmt config
+        (Frame.mk contract
           (clipperTakeLocalsDogLoaded evmLock evmPriceSolm evmVatSolm I price slice
-            owe0 owe0 slice' tabNew lotNew))
+            owe0 owe0 slice' tabNew lotNew) (immStore v))
         evmVatSolm
         (.ite
           (.binary .and
             (.binary .gt (bytesLength "data") (.intLit 0))
             (.binary .and
-              (.binary .ne (.var "who") (vatExpr v))
+              (.binary .ne (.var "who") vatExpr)
               (.binary .ne (.var "who") (.var "dog_"))))
           (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
             [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
           [])
         (.ok
-          (Frame.mk (contract v)
+          (Frame.mk contract
             (clipperTakeLocalsDogLoaded evmLock evmPriceSolm evmVatSolm I price slice
-              owe0 owe0 slice' tabNew lotNew))
+              owe0 owe0 slice' tabNew lotNew) (immStore v))
           evmVatSolm))
     (hvatMoveCode :
       0 <
         (UInt256.ofNat
           ((evmVatSolm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallMove :
-      typedCallViaEVM (config v) evmVatSolm (EVM.address v.vat) "move" 0
+      typedCallViaEVM config evmVatSolm (EVM.address v.vat) "move" 0
         [.address evmVatSolm.executionEnv.source,
           .address (AccountAddress.ofNat (clipperTakeVowEVMWord evmVatSolm).toNat),
           .int (Int.ofNat (clipperTakeSalesTabEVMWord evmPriceSolm I).toNat)]
@@ -1603,12 +1603,12 @@ theorem clipperTakeOweGtTabVatFluxSuccessCallbackFalseVatMoveCallFailureRevertEq
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
+      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
-        (.ok { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
+        (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPriceSolm)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsrcMul :
       (clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I)
           (clipperTakeAmtWord I)).toNat * price.toNat < UInt256.size :=
@@ -1632,25 +1632,25 @@ theorem clipperTakeOweGtTabVatFluxSuccessCallbackFalseVatMoveCallFailureRevertEq
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       let lot := clipperTakeSalesLotEVMWord evmPriceSolm I
       let slice := clipperMinWord lot (clipperTakeAmtWord I)
-      ExecBlock (config v)
-        (Frame.mk (contract v)
-          (clipperTakeLocalsSlice evmLock evmPriceSolm I false price slice))
+      ExecBlock config
+        (Frame.mk contract
+          (clipperTakeLocalsSlice evmLock evmPriceSolm I false price slice) (immStore v))
         evmPriceSolm
         (checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
           [ .letDecl "owe" (some uint256) (.var "owe0"),
             clipperTakeOweAdjustmentStmt ] ++
-          clipperTakePostOweFluxStmts v ++
+          clipperTakePostOweFluxStmts ++
           ([ .letDecl "dog_" (some addr) (.storage dogRef),
             .ite
               (.binary .and
                 (.binary .gt (bytesLength "data") (.intLit 0))
                 (.binary .and
-                  (.binary .ne (.var "who") (vatExpr v))
+                  (.binary .ne (.var "who") vatExpr)
                   (.binary .ne (.var "who") (.var "dog_"))))
               (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
                 [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
               [] ] ++
-            checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+            checkedExternalCallStmts vatExpr "move" (.intLit 0)
               [sender, .storage vowRef, .var "owe"] "_moveRet"))
         .reverted := by
     dsimp only
@@ -1664,9 +1664,9 @@ theorem clipperTakeOweGtTabVatFluxSuccessCallbackFalseVatMoveCallFailureRevertEq
         (clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I) (clipperTakeAmtWord I))
         hsrcMul hsrcGt hsliceLot hvatCode hcallVat hcallback hvatMoveCode hcallMove
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (clipperTakeStore I) (takeTransition v).body .reverted := by
+        (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
     simpa using
       (clipperTakeOweGtTabVatFluxSuccessTailSourceReverts
         (σ := σ) (σ₀ := σ₀) (A := A)
@@ -1678,11 +1678,11 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
     (v : ClipperImmutables) {code : ByteArray}
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some (takeTransition v))
+    (hdispatch : dispatchMsg contract I.calldata = some takeTransition)
     (hdec :
-      decodeCalldataWithMode (config v).abiDecodeMode
-        (List.map Param.name (takeTransition v).params)
-        (transitionSignature (takeTransition v)).paramTypes I.calldata =
+      decodeCalldataWithMode config.abiDecodeMode
+        (List.map Param.name takeTransition.params)
+        (transitionSignature takeTransition).paramTypes I.calldata =
       some (clipperTakeStore I))
     (hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstoppedSolmLt :
@@ -1703,7 +1703,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
         (UInt256.ofNat
           ((evmPriceSolm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM (config v) evmPriceSolm (EVM.address v.vat) "flux" 0
+      typedCallViaEVM config evmPriceSolm (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPriceSolm.executionEnv.codeOwner,
           .address (AccountAddress.ofNat
             (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
@@ -1716,7 +1716,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
         (UInt256.ofNat
           ((evmVatSolm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcallMove :
-      typedCallViaEVM (config v) evmVatSolm (EVM.address v.vat) "move" 0
+      typedCallViaEVM config evmVatSolm (EVM.address v.vat) "move" 0
         [.address evmVatSolm.executionEnv.source,
           .address (AccountAddress.ofNat (clipperTakeVowEVMWord evmVatSolm).toNat),
           .int (Int.ofNat (clipperTakeSalesTabEVMWord evmPriceSolm I).toNat)]
@@ -1724,12 +1724,12 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
+      ExecStmt config { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
-        (.ok { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
+        (.ok { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
           evmPriceSolm)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsrcMul :
       (clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I)
           (clipperTakeAmtWord I)).toNat * price.toNat < UInt256.size :=
@@ -1749,9 +1749,9 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
     clipperTakeOweGtTabSourceDivLeLot_of_post_words (I := I) (evmPrice := evmPriceSolm)
       (price := price) (tab := tab) (lot := lot) htab hlot hmul hgt
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (clipperTakeStore I) (takeTransition v).body .reverted := by
+        (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
     simpa using
       (clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureSourceReverts
         (σ := σ) (σ₀ := σ₀) (A := A)
@@ -1761,47 +1761,47 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
         hvatCode hcallVat hdataLen hvatMoveCode hcallMove hstatus)
   exact hrev.reEquivExecutionRevert hcode hdispatch hdec hbody
 
-abbrev clipperTakeAfterFluxStmts (v : ClipperImmutables) : List Stmt :=
+abbrev clipperTakeAfterFluxStmts : List Stmt :=
   [ .letDecl "dog_" (some addr) (.storage dogRef),
     .ite
       (.binary .and
         (.binary .gt (bytesLength "data") (.intLit 0))
         (.binary .and
-          (.binary .ne (.var "who") (vatExpr v))
+          (.binary .ne (.var "who") vatExpr)
           (.binary .ne (.var "who") (.var "dog_"))))
       (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
         [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
       [] ] ++
-    checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+    checkedExternalCallStmts vatExpr "move" (.intLit 0)
       [sender, .storage vowRef, .var "owe"] "_moveRet"
 
-abbrev clipperTakeAfterMoveStmts (v : ClipperImmutables) : List Stmt :=
+abbrev clipperTakeAfterMoveStmts : List Stmt :=
   [ .ite
       (.binary .eq (.var "lot") (.intLit 0))
       (wrappingAddInto "digsAmt" (.var "tab") (.var "owe") ++
         checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
-          [ilkExpr v, .var "digsAmt"] "_digsRet")
+          [ilkExpr, .var "digsAmt"] "_digsRet")
       (checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
-        [ilkExpr v, .var "owe"] "_digsRet"),
+        [ilkExpr, .var "owe"] "_digsRet"),
     .ite
       (.binary .eq (.var "lot") (.intLit 0))
       [ .internalCall "_remove" [.var "id"] "_removeRet" ]
       [ .ite
           (.binary .eq (.var "tab") (.intLit 0))
-          (checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
-            [ilkExpr v, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
+          (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
+            [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
             [ .internalCall "_remove" [.var "id"] "_removeRet2" ])
           [ .assign .storage (salesF (.var "id") "tab") (.var "tab"),
             .assign .storage (salesF (.var "id") "lot") (.var "lot") ] ],
     .assign .storage lockedRef (.intLit 0) ]
 
-abbrev clipperTakeAfterSliceStmts (v : ClipperImmutables) : List Stmt :=
+abbrev clipperTakeAfterSliceStmts : List Stmt :=
   checkedMulUintInto "owe0" (.var "slice") (.var "price") ++
     [ .letDecl "owe" (some uint256) (.var "owe0"),
       clipperTakeOweAdjustmentStmt ] ++
-    clipperTakePostOweFluxStmts v ++
-    clipperTakeAfterFluxStmts v ++
-    clipperTakeAfterMoveStmts v
+    clipperTakePostOweFluxStmts ++
+    clipperTakeAfterFluxStmts ++
+    clipperTakeAfterMoveStmts
 
 theorem clipperTakeSourcePrefixToSlice
     {σ σ₀ A I} {g : UInt256} {evmPrice : EVM.State}
@@ -1816,65 +1816,65 @@ theorem clipperTakeSourcePrefixToSlice
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
+      ExecStmt config
+        { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
-        (.ok { contract := contract v,
-               locals := clipperTakeLocalsSt evmLock I false price } evmPrice))
+        (.ok { contract := contract,
+               locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v } evmPrice))
     (htail :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       let lot := clipperTakeSalesLotEVMWord evmPrice I
       let slice := clipperMinWord lot (clipperTakeAmtWord I)
-      ExecBlock (config v)
-        { contract := contract v,
-          locals := clipperTakeLocalsSlice evmLock evmPrice I false price slice }
-        evmPrice (clipperTakeAfterSliceStmts v) result) :
+      ExecBlock config
+        { contract := contract,
+          locals := clipperTakeLocalsSlice evmLock evmPrice I false price slice, immutables := immStore v }
+        evmPrice (clipperTakeAfterSliceStmts) result) :
     let locals := clipperTakeStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecBlock (config v) { contract := contract v, locals := locals } evm0
-      (takeTransition v).body result := by
+    ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      takeTransition.body result := by
   intro locals evm0
   let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   let lot := clipperTakeSalesLotEVMWord evmPrice I
   let slice := clipperMinWord lot (clipperTakeAmtWord I)
-  let startFrame : Frame := { contract := contract v, locals := locals }
+  let startFrame : Frame := { contract := contract, locals := locals, immutables := immStore v }
   let usrFrame : Frame :=
-    { contract := contract v, locals := clipperTakeLocalsUsr evmLock I }
+    { contract := contract, locals := clipperTakeLocalsUsr evmLock I, immutables := immStore v }
   let ticFrame : Frame :=
-    { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
+    { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
   let stFrame : Frame :=
-    { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
+    { contract := contract, locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v }
   let doneFrame : Frame :=
-    { contract := contract v, locals := clipperTakeLocalsDone evmLock I false price }
+    { contract := contract, locals := clipperTakeLocalsDone evmLock I false price, immutables := immStore v }
   let priceFrame : Frame :=
-    { contract := contract v, locals := clipperTakeLocalsPrice evmLock I false price }
+    { contract := contract, locals := clipperTakeLocalsPrice evmLock I false price, immutables := immStore v }
   let lotFrame : Frame :=
-    { contract := contract v,
-      locals := clipperTakeLocalsLot evmLock evmPrice I false price }
+    { contract := contract,
+      locals := clipperTakeLocalsLot evmLock evmPrice I false price, immutables := immStore v }
   let tabFrame : Frame :=
-    { contract := contract v,
-      locals := clipperTakeLocalsTab evmLock evmPrice I false price }
+    { contract := contract,
+      locals := clipperTakeLocalsTab evmLock evmPrice I false price, immutables := immStore v }
   let sliceFrame : Frame :=
-    { contract := contract v,
-      locals := clipperTakeLocalsSlice evmLock evmPrice I false price slice }
+    { contract := contract,
+      locals := clipperTakeLocalsSlice evmLock evmPrice I false price slice, immutables := immStore v }
   have hlockedEval :
-      evalExpr? (config v) startFrame evm0
+      evalExpr? config startFrame evm0
         (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool true) := by
     simpa [startFrame, locals, evm0, solcSlotWord, initState, EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_clipperLocked_zero_true v evm0 locals (by simp [locals]) hlocked
   have hlockRhs :
-      evalExpr? (config v) startFrame evm0 (.intLit 1) = .ok (.int 1) := by
+      evalExpr? config startFrame evm0 (.intLit 1) = .ok (.int 1) := by
     simp [startFrame, evalExpr?, pure]
   have hlockAssign :
-      assignStorageRef? (config v) startFrame evm0 .storage lockedRef (.int 1) =
+      assignStorageRef? config startFrame evm0 .storage lockedRef (.int 1) =
         .ok (startFrame, evmLock) := by
     simpa [startFrame, locals, evmLock] using
       assign_clipperLocked v evm0 locals (by simp [locals]) ⟨1⟩
   have hstoppedEval :
-      evalExpr? (config v) startFrame evmLock
+      evalExpr? config startFrame evmLock
         (.binary .lt (.storage stoppedRef) (.intLit 3)) = .ok (.bool true) := by
     apply evalExpr_clipperTakeStopped_lt_three_true
     · simp [locals]
@@ -1885,95 +1885,95 @@ theorem clipperTakeSourcePrefixToSlice
       evm0, initState, solcSlotWord, EVM.storageLoad, State.lookupAccount,
       storageStore_accountMap, storageStore_executionEnv] using husr
   have hletUsr :
-      ExecStmt (config v) startFrame evmLock
+      ExecStmt config startFrame evmLock
         (.letDecl "usr" (some addr) (.storage (salesF (.var "id") "usr")))
         (.ok usrFrame evmLock) := by
     simpa [startFrame, usrFrame, locals, clipperTakeLocalsUsr] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
+        (cfg := config) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address
           (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLock I).toNat))
         (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I))
   have hletTic :
-      ExecStmt (config v) usrFrame evmLock
+      ExecStmt config usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
         (.ok ticFrame evmLock) := by
     simpa [usrFrame, ticFrame, clipperTakeLocalsTic] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
+        (cfg := config) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperTakeSalesTicEVMWord evmLock I).toNat))
         (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I))
   have husrEval :
-      evalExpr? (config v) ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
+      evalExpr? config ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by
     simpa [ticFrame] using clipperEvalTakeUsrNeZeroAfterTic_true v evmLock I husrLoad
   have hstatus' :
-      ExecStmt (config v) ticFrame evmLock
+      ExecStmt config ticFrame evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok stFrame evmPrice) := by
     simpa [ticFrame, stFrame, evmLock, evm0] using hstatus
   have hletDone :
-      ExecStmt (config v) stFrame evmPrice
+      ExecStmt config stFrame evmPrice
         (.letDecl "done" (some boolTy) (tuple0 (.var "st")))
         (.ok doneFrame evmPrice) := by
     simpa [stFrame, doneFrame, clipperTakeLocalsDone] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := stFrame) (evm := evmPrice) (name := "done")
+        (cfg := config) (solm := stFrame) (evm := evmPrice) (name := "done")
         (ty := some boolTy) (expr := tuple0 (.var "st")) (value := .bool false)
         (by simpa [stFrame] using
           clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price))
   have hletPrice :
-      ExecStmt (config v) doneFrame evmPrice
+      ExecStmt config doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
         (.ok priceFrame evmPrice) := by
     simpa [doneFrame, priceFrame, clipperTakeLocalsPrice] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := doneFrame) (evm := evmPrice) (name := "price")
+        (cfg := config) (solm := doneFrame) (evm := evmPrice) (name := "price")
         (ty := some uint256) (expr := tuple1 (.var "st"))
         (value := .int (Int.ofNat price.toNat))
         (by simpa [doneFrame] using
           clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price))
   have hdoneEval :
-      evalExpr? (config v) priceFrame evmPrice (.unary .not (.var "done")) =
+      evalExpr? config priceFrame evmPrice (.unary .not (.var "done")) =
         .ok (.bool true) := by
     simpa [priceFrame] using clipperEvalTakeNotDone_true v evmLock evmPrice I price
   have hmaxEval :
-      evalExpr? (config v) priceFrame evmPrice
+      evalExpr? config priceFrame evmPrice
         (.binary .ge (.var "max") (.var "price")) = .ok (.bool true) := by
     simpa [priceFrame] using
       clipperEvalTakeMaxGePrice_true v evmLock evmPrice I price hmax
   have hletLot :
-      ExecStmt (config v) priceFrame evmPrice
+      ExecStmt config priceFrame evmPrice
         (.letDecl "lot" (some uint256) (.storage (salesF (.var "id") "lot")))
         (.ok lotFrame evmPrice) := by
     simpa [priceFrame, lotFrame, lot, clipperTakeLocalsLot] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := priceFrame) (evm := evmPrice) (name := "lot")
+        (cfg := config) (solm := priceFrame) (evm := evmPrice) (name := "lot")
         (ty := some uint256) (expr := .storage (salesF (.var "id") "lot"))
         (value := .int (Int.ofNat lot.toNat))
         (by simpa [priceFrame, lot] using
           clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price))
   have hletTab :
-      ExecStmt (config v) lotFrame evmPrice
+      ExecStmt config lotFrame evmPrice
         (.letDecl "tab" (some uint256) (.storage (salesF (.var "id") "tab")))
         (.ok tabFrame evmPrice) := by
     simpa [lotFrame, tabFrame, clipperTakeSalesTabEVMWord, clipperTakeLocalsTab] using
       (ExecStmt.letDecl
-        (cfg := config v) (solm := lotFrame) (evm := evmPrice) (name := "tab")
+        (cfg := config) (solm := lotFrame) (evm := evmPrice) (name := "tab")
         (ty := some uint256) (expr := .storage (salesF (.var "id") "tab"))
         (value := .int (Int.ofNat (clipperTakeSalesTabEVMWord evmPrice I).toNat))
         (by simpa [lotFrame] using
           clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price))
   have hminCall :
-      ExecStmt (config v) tabFrame evmPrice
+      ExecStmt config tabFrame evmPrice
         (.internalCall "min" [.var "lot", .var "amt"] "slice")
         (.ok sliceFrame evmPrice) := by
     simpa [tabFrame, sliceFrame, slice, lot, resumeAfterInternalCall,
       clipperTakeLocalsSlice] using
       (internalCallFunctionReturn
-        (cfg := config v) (caller := tabFrame) (evm := evmPrice)
+        (cfg := config) (caller := tabFrame) (evm := evmPrice)
         (calleeEvm := evmPrice) (name := "min") (retVar := "slice")
         (args := [.var "lot", .var "amt"])
         (argVals := [.int (Int.ofNat lot.toNat),
@@ -1981,18 +1981,18 @@ theorem clipperTakeSourcePrefixToSlice
         (callee := minFunction)
         (locals := clipperUintBinaryLocals lot (clipperTakeAmtWord I))
         (calleeSolm :=
-          { contract := contract v,
-            locals := clipperUintBinaryLocals lot (clipperTakeAmtWord I) })
+          { contract := contract,
+            locals := clipperUintBinaryLocals lot (clipperTakeAmtWord I), immutables := immStore v })
         (value := some
           [.int (Int.ofNat (clipperMinWord lot (clipperTakeAmtWord I)).toNat)])
         (by simpa [tabFrame, lot] using
           clipperEvalTakeMinArgsAtTab v evmLock evmPrice I false price)
-        (clipperLookupMinFunction v)
+        (clipperLookupMinFunction)
         (clipperBindParamsMin lot (clipperTakeAmtWord I))
         (by simpa [tabFrame] using
           clipperMinFunctionReturns v evmPrice lot (clipperTakeAmtWord I)))
   have htail' :
-      ExecBlock (config v) sliceFrame evmPrice (clipperTakeAfterSliceStmts v)
+      ExecBlock config sliceFrame evmPrice (clipperTakeAfterSliceStmts)
         result := by
     simpa [evm0, evmLock, lot, slice, sliceFrame] using htail
   simpa [takeTransition, nonpayable, lockPrefix, isStopped, startFrame,
@@ -2031,24 +2031,24 @@ theorem clipperTakeSourceRevertsOfAfterSlice
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
+      ExecStmt config
+        { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
-        (.ok { contract := contract v,
-               locals := clipperTakeLocalsSt evmLock I false price } evmPrice))
+        (.ok { contract := contract,
+               locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v } evmPrice))
     (htail :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       let lot := clipperTakeSalesLotEVMWord evmPrice I
       let slice := clipperMinWord lot (clipperTakeAmtWord I)
-      ExecBlock (config v)
-        { contract := contract v,
-          locals := clipperTakeLocalsSlice evmLock evmPrice I false price slice }
-        evmPrice (clipperTakeAfterSliceStmts v) .reverted) :
-    ExecTransitionBody (config v) (contract v)
+      ExecBlock config
+        { contract := contract,
+          locals := clipperTakeLocalsSlice evmLock evmPrice I false price slice, immutables := immStore v }
+        evmPrice (clipperTakeAfterSliceStmts) .reverted) :
+    ExecTransitionBody config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-      (clipperTakeStore I) (takeTransition v).body .reverted := by
+      (clipperTakeStore I) takeTransition.body .reverted (immStore v) := by
   have hblock := clipperTakeSourcePrefixToSlice
     (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := g) (evmPrice := evmPrice) (result := .reverted)
@@ -2069,25 +2069,25 @@ theorem clipperTakeSourceOkOfAfterSlice
     (hstatus :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
+      ExecStmt config
+        { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
-        (.ok { contract := contract v,
-               locals := clipperTakeLocalsSt evmLock I false price } evmPrice))
+        (.ok { contract := contract,
+               locals := clipperTakeLocalsSt evmLock I false price, immutables := immStore v } evmPrice))
     (htail :
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       let lot := clipperTakeSalesLotEVMWord evmPrice I
       let slice := clipperMinWord lot (clipperTakeAmtWord I)
-      ExecBlock (config v)
-        { contract := contract v,
-          locals := clipperTakeLocalsSlice evmLock evmPrice I false price slice }
-        evmPrice (clipperTakeAfterSliceStmts v) (.ok finalFrame evmFinal)) :
-    ExecTransitionBody (config v) (contract v)
+      ExecBlock config
+        { contract := contract,
+          locals := clipperTakeLocalsSlice evmLock evmPrice I false price slice, immutables := immStore v }
+        evmPrice (clipperTakeAfterSliceStmts) (.ok finalFrame evmFinal)) :
+    ExecTransitionBody config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-      (clipperTakeStore I) (takeTransition v).body
-      (.returned finalFrame evmFinal none) := by
+      (clipperTakeStore I) takeTransition.body
+      (.returned finalFrame evmFinal none) (immStore v) := by
   have hblock := clipperTakeSourcePrefixToSlice
     (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := g) (evmPrice := evmPrice)

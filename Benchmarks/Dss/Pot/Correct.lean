@@ -16,7 +16,7 @@ import Benchmarks.Dss.Pot.Rho
 import Benchmarks.Dss.Pot.Vat
 import Benchmarks.Dss.Pot.Vow
 import Benchmarks.Dss.Pot.Wards
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Pot benchmark correctness
@@ -35,7 +35,7 @@ namespace Benchmarks.Dss.Pot
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem potNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (potX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -60,7 +60,7 @@ theorem potNoDispatch {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 17 → (potSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (potX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (potDispatch_none_nomatch hnm)
@@ -100,8 +100,8 @@ theorem potNoSelectorMatches {I : ExecutionEnv}
   · simpa [selIs] using h16
 
 theorem potCorrect :
-    runtimeEquivalence config potBytecode contract := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement config potBytecode contract := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases h0 : selIs I (potSelBytes 0)
@@ -145,7 +145,7 @@ theorem potCorrect :
   · exact potNonPayable hcode hwv
 
 theorem potContractCorrect :
-    contractEquivalence config potCreationBytecode potBytecode contract :=
-  contractEquivalence.intro potConstructorCorrect potCorrect
+    contractRefinement config potCreationBytecode contract :=
+  contractRefinement.of_constant potConstructorCorrect potCorrect
 
 end Benchmarks.Dss.Pot

@@ -1452,7 +1452,7 @@ theorem vatFrobLiveSuccessFinish
       UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt (frobDaiNew σ I)
           (solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
   let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
   let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
@@ -1584,7 +1584,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hSuccess : frobLiveSuccessGuards σ I)
     (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)

@@ -16,14 +16,13 @@ import Benchmarks.Dss.Dog.Rely
 import Benchmarks.Dss.Dog.Vat
 import Benchmarks.Dss.Dog.Vow
 import Benchmarks.Dss.Dog.Wards
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Dog benchmark correctness stub
 
-The upstream Solidity source, optimized runtime bytecode, Solm AST spec, and Solm syntax companion
-are present. The runtime-equivalence proof is intentionally left as the benchmark target. This file
-also exposes the whole-contract wrapper that combines the constructor and runtime targets.
+The runtime proof (`dogCorrect`) holds for every deployed `vat`; with the constructor proof it
+gives `dogContractCorrect`, the immutable-aware contract refinement.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -74,8 +73,8 @@ theorem dogNoSelectorMatches {I : ExecutionEnv}
 
 theorem dogCorrect (v : DogImmutables) {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
-    runtimeEquivalence (config v) code (contract v) := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement config code contract (immStore v) := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hDirt : selIs I (dogSelBytes 0)
@@ -123,12 +122,23 @@ theorem dogCorrect (v : DogImmutables) {code : ByteArray}
                                           hVat hVow hWards)
   · exact dogNonPayable hpatch hcode hwv
 
-theorem dogContractCorrect (v : DogImmutables) {code : ByteArray}
-    (hcode : patchRuntime dogBytecode (patches v) = some code) :
-    contractEquivalenceWith (config v) dogCreationBytecode code (contract v)
-      (runtimeCodeOf dogBytecode) :=
-  contractEquivalenceWith.intro
-    (dogConstructorCorrect v)
-    (dogCorrect v hcode)
+/-- A well-typed immutables store runs as the store of the valuation it holds. -/
+theorem restrictImmutables_of_fit {imms : Store} (h : immutablesFit contract imms) :
+    restrictImmutables contract imms = immStore (immsOf imms) := by
+  obtain ⟨vo, hvo, hfo⟩ := h ⟨"vat", .address⟩ (by simp [contract])
+  simp only at hvo
+  cases vo <;> simp [elemValueFits] at hfo
+  rw [Std.HashMap.get?_eq_getElem?] at hvo
+  simp [restrictImmutables, contract, immStore, immsOf, hvo]
+
+theorem dogRuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
+    runtimeRefinement config (deployedRuntime imms) contract
+      (restrictImmutables contract imms) := by
+  rw [restrictImmutables_of_fit hfit]
+  exact dogCorrect (immsOf imms) (dogPatchRuntime_eq_ctorPatchedRuntime (immsOf imms).vat)
+
+theorem dogContractCorrect :
+    contractRefinement config dogCreationBytecode contract :=
+  .of_runtime dogConstructorCorrect dogRuntimeCorrect
 
 end Benchmarks.Dss.Dog

@@ -1,7 +1,7 @@
 import Benchmarks.WETH9.ConstructorClear
 import Reasoning.SolmBody
 import Reasoning.Constructor
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # WETH9 constructor — Solm side

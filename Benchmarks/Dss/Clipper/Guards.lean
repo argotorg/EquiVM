@@ -15,7 +15,7 @@ parameterized by `locals` so ABI-specific files do not need near-identical copie
 -- LIBRARY CANDIDATE: generic storage-ref evaluation for `wards[msg.sender]` auth guards.
 theorem evalStorageRef_clipperAuth (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (locals : Store) (hsrc : evm.executionEnv.source = I.source) :
-    evalStorageRef (config v) { contract := contract v, locals := locals } evm
+    evalStorageRef config { contract := contract, locals := locals, immutables := immStore v } evm
       (wardsRef sender) = .ok (clipperRelyAuthEvaledRef I) := by
   simp [evalStorageRef, evalStorageRefStep, wardsRef, sender, envValue,
     clipperRelyAuthEvaledRef, clipperRelyAuthKey, hsrc, valueToKey?, EvalResult.bind,
@@ -28,14 +28,14 @@ theorem evalExpr_clipperAuth_true (v : ClipperImmutables) (evm : EVM.State)
     (hload :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperRelyAuthStorageSlot I) = ⟨1⟩) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
   have hstorage :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
     rw [evalExpr_storage_scalar_value
-      (cfg := config v)
-      (solm := { contract := contract v, locals := locals })
+      (cfg := config)
+      (solm := { contract := contract, locals := locals, immutables := immStore v })
       (slot := wardsRef sender)
       (er := clipperRelyAuthEvaledRef I)
       (t := .int uint256Int)
@@ -58,17 +58,17 @@ theorem evalExpr_clipperAuth_false (v : ClipperImmutables) (evm : EVM.State)
     (hload :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperRelyAuthStorageSlot I) ≠ ⟨1⟩) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool false) := by
   have hstorage :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
         (.storage (wardsRef sender)) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (clipperRelyAuthStorageSlot I)).toNat)) := by
     exact evalExpr_storage_scalar_value
-      (cfg := config v)
-      (solm := { contract := contract v, locals := locals })
+      (cfg := config)
+      (solm := { contract := contract, locals := locals, immutables := immStore v })
       (slot := wardsRef sender)
       (er := clipperRelyAuthEvaledRef I)
       (t := .int uint256Int)
@@ -104,7 +104,7 @@ theorem evalExpr_clipperAuth_false (v : ClipperImmutables) (evm : EVM.State)
 -- LIBRARY CANDIDATE: generic storage-ref evaluation for the `locked` guard slot.
 theorem evalStorageRef_clipperLocked (v : ClipperImmutables) (evm : EVM.State)
     (locals : Store) :
-    evalStorageRef (config v) { contract := contract v, locals := locals } evm
+    evalStorageRef config { contract := contract, locals := locals, immutables := immStore v } evm
       lockedRef = .ok { base := "locked", steps := [] } := by
   simp [lockedRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
 
@@ -112,14 +112,14 @@ theorem evalStorageRef_clipperLocked (v : ClipperImmutables) (evm : EVM.State)
 theorem evalExpr_clipperLocked_zero_true (v : ClipperImmutables) (evm : EVM.State)
     (locals : Store) (hbase : locals.get? "locked" = none)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨13⟩ = ⟨0⟩) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool true) := by
   have hstorage :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
         (.storage lockedRef) = .ok (.int 0) := by
     rw [evalExpr_storage_scalar_value
-      (cfg := config v)
-      (solm := { contract := contract v, locals := locals })
+      (cfg := config)
+      (solm := { contract := contract, locals := locals, immutables := immStore v })
       (slot := lockedRef)
       (er := { base := "locked", steps := [] })
       (t := .int uint256Int)
@@ -137,16 +137,16 @@ theorem evalExpr_clipperLocked_zero_true (v : ClipperImmutables) (evm : EVM.Stat
 theorem evalExpr_clipperLocked_zero_false (v : ClipperImmutables) (evm : EVM.State)
     (locals : Store) (hbase : locals.get? "locked" = none)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨13⟩ ≠ ⟨0⟩) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool false) := by
   have hstorage :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
         (.storage lockedRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨13⟩).toNat)) := by
     exact evalExpr_storage_scalar_value
-      (cfg := config v)
-      (solm := { contract := contract v, locals := locals })
+      (cfg := config)
+      (solm := { contract := contract, locals := locals, immutables := immStore v })
       (slot := lockedRef)
       (er := { base := "locked", steps := [] })
       (t := .int uint256Int)
@@ -180,9 +180,9 @@ theorem evalExpr_clipperLocked_zero_false (v : ClipperImmutables) (evm : EVM.Sta
 -- LIBRARY CANDIDATE: generic source assignment for `locked := value`.
 theorem assign_clipperLocked (v : ClipperImmutables) (evm : EVM.State)
     (locals : Store) (hbase : locals.get? "locked" = none) (value : UInt256) :
-    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+    assignStorageRef? config { contract := contract, locals := locals, immutables := immStore v } evm
       .storage lockedRef (.int (Int.ofNat value.toNat)) =
-        .ok ({ contract := contract v, locals := locals },
+        .ok ({ contract := contract, locals := locals, immutables := immStore v },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨13⟩ value) := by
   apply assignStorageRef_storage_scalar
       (ty := uint256St)

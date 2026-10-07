@@ -21,9 +21,9 @@ def dogCtorArgsTail (vat : AccountAddress) : ByteArray :=
 def dogCtorCode (vat : AccountAddress) : ByteArray :=
   dogCreationBytecode ++ dogCtorArgsTail vat
 
-theorem dogCtorDeployment_shape (v : DogImmutables) {args : List Value}
+theorem dogCtorDeployment_shape {args : List Value}
     {deployedInitcode : ByteArray}
-    (hdeploy : (config v).selfDeployment dogCreationBytecode args = some deployedInitcode) :
+    (hdeploy : config.selfDeployment dogCreationBytecode args = some deployedInitcode) :
     ∃ vat : AccountAddress,
       args = [.address vat] ∧ deployedInitcode = dogCtorCode vat := by
   simp [config, constructorDecl, Solm.genSolidityConstructorDeployment] at hdeploy

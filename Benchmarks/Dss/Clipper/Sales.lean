@@ -62,20 +62,20 @@ def clipperSalesPackedTicWord (w : UInt256) : UInt256 :=
   UInt256.land (UInt256.div w (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
     (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨96⟩) ⟨1⟩)
 
-theorem clipperDecode_sales_ok (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_sales_ok {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (salesTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (salesTransition.params.map Param.name)
       (transitionSignature salesTransition).paramTypes I.calldata =
         some (clipperSalesStore I) := by
-  show decodeCalldataWithMode (config v).abiDecodeMode ["arg0"] [uint256] I.calldata = _
+  show decodeCalldataWithMode config.abiDecodeMode ["arg0"] [uint256] I.calldata = _
   simpa [config, clipperSalesStore, clipperSalesArgValue, clipperSalesArgWord] using
     decodeCalldataWithMode_legacyUint256_ok (cd := I.calldata) (x := "arg0") hsz36
 
-theorem clipperDecode_sales_none_short (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_sales_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
-    decodeCalldataWithMode (config v).abiDecodeMode (salesTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (salesTransition.params.map Param.name)
       (transitionSignature salesTransition).paramTypes I.calldata = none := by
-  show decodeCalldataWithMode (config v).abiDecodeMode ["arg0"] [uint256] I.calldata = none
+  show decodeCalldataWithMode config.abiDecodeMode ["arg0"] [uint256] I.calldata = none
   simpa [config] using
     decodeCalldataWithMode_legacyUint256_none_short (cd := I.calldata) (x := "arg0")
       hsz4 hshort
@@ -104,18 +104,18 @@ theorem clipperSalesSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size
     solcSelectorWord_eq_of_beq I hsz 0xb5 0xf5 0x22 0xf7 (clipperSelNat 18)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_sales (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_sales {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 18)) :
-    dispatchMsg (contract v) I.calldata = some salesTransition := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some salesTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre :=
       [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
         countTransition, cuspTransition, denyTransition, dogTransition, fileUintTransition,
-        fileAddressTransition, getStatusTransition, ilkTransition v, kickTransition v,
-        kicksTransition, listTransition, redoTransition v, relyTransition])
+        fileAddressTransition, getStatusTransition, ilkTransition, kickTransition,
+        kicksTransition, listTransition, redoTransition, relyTransition])
     (post :=
-      [spotterTransition, stoppedTransition, tailTransition, takeTransition v, tipTransition,
-        upchostTransition v, vatTransition v, vowTransition, wardsTransition, yankTransition v])
+      [spotterTransition, stoppedTransition, tailTransition, takeTransition, tipTransition,
+        upchostTransition, vatTransition, vowTransition, wardsTransition, yankTransition])
     (ti := salesTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
@@ -146,15 +146,15 @@ theorem clipperDispatch_sales (v : ClipperImmutables) {I : ExecutionEnv}
       native_decide
     · rw [selectorOf, getStatusSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, ilkSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, ilkSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, kickSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, kickSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, kicksSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, listSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, redoSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, redoSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, relySelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
@@ -164,9 +164,9 @@ theorem clipperDispatch_sales (v : ClipperImmutables) {I : ExecutionEnv}
 
 theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (h : evm.executionEnv.weiValue = ⟨0⟩) :
-    ExecTransitionBody (config v) (contract v) evm (clipperSalesStore I)
+    ExecTransitionBody config contract evm (clipperSalesStore I)
       salesTransition.body
-      (.returned { contract := contract v, locals := clipperSalesStore I } evm
+      (.returned { contract := contract, locals := clipperSalesStore I, immutables := immStore v } evm
         (some [
           .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
             (clipperSalesPosSlot I)).toNat),
@@ -181,13 +181,13 @@ theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (clipperSalesPackedSlot I))).toNat),
           .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-            (clipperSalesTopSlot I)).toNat)])) := by
-  let frame : Frame := { contract := contract v, locals := clipperSalesStore I }
-  have hpos : evalExpr? (config v) frame evm (.storage (salesF (.var "arg0") "pos")) =
+            (clipperSalesTopSlot I)).toNat)])) (immStore v) := by
+  let frame : Frame := { contract := contract, locals := clipperSalesStore I, immutables := immStore v }
+  have hpos : evalExpr? config frame evm (.storage (salesF (.var "arg0") "pos")) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperSalesPosSlot I)).toNat)) := by
     exact evalExpr_storage_scalar_value
-      (cfg := config v) (solm := frame) (evm := evm)
+      (cfg := config) (solm := frame) (evm := evm)
       (slot := salesF (.var "arg0") "pos") (er := clipperSalesPosRef I)
       (t := .int uint256Int) (loc := wordLoc (clipperSalesPosSlot I))
       (value := .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -203,11 +203,11 @@ theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
       (by rfl)
       (by simpa [clipperSalesPosSlot, clipperSalesBaseSlot, wordLoc, uint256Loc] using
         clipperStorageLocLoad_uint256 evm (clipperSalesPosSlot I))
-  have htab : evalExpr? (config v) frame evm (.storage (salesF (.var "arg0") "tab")) =
+  have htab : evalExpr? config frame evm (.storage (salesF (.var "arg0") "tab")) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperSalesTabSlot I)).toNat)) := by
     exact evalExpr_storage_scalar_value
-      (cfg := config v) (solm := frame) (evm := evm)
+      (cfg := config) (solm := frame) (evm := evm)
       (slot := salesF (.var "arg0") "tab") (er := clipperSalesTabRef I)
       (t := .int uint256Int) (loc := wordLoc (clipperSalesTabSlot I))
       (value := .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -223,11 +223,11 @@ theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
       (by rfl)
       (by simpa [clipperSalesTabSlot, clipperSalesBaseSlot, wordLoc, uint256Loc] using
         clipperStorageLocLoad_uint256 evm (clipperSalesTabSlot I))
-  have hlot : evalExpr? (config v) frame evm (.storage (salesF (.var "arg0") "lot")) =
+  have hlot : evalExpr? config frame evm (.storage (salesF (.var "arg0") "lot")) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperSalesLotSlot I)).toNat)) := by
     exact evalExpr_storage_scalar_value
-      (cfg := config v) (solm := frame) (evm := evm)
+      (cfg := config) (solm := frame) (evm := evm)
       (slot := salesF (.var "arg0") "lot") (er := clipperSalesLotRef I)
       (t := .int uint256Int) (loc := wordLoc (clipperSalesLotSlot I))
       (value := .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -243,12 +243,12 @@ theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
       (by rfl)
       (by simpa [clipperSalesLotSlot, clipperSalesBaseSlot, wordLoc, uint256Loc] using
         clipperStorageLocLoad_uint256 evm (clipperSalesLotSlot I))
-  have husr : evalExpr? (config v) frame evm (.storage (salesF (.var "arg0") "usr")) =
+  have husr : evalExpr? config frame evm (.storage (salesF (.var "arg0") "usr")) =
       .ok (.address (AccountAddress.ofNat (UInt256.land
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (clipperSalesPackedSlot I))
         solcAddrMask).toNat)) := by
     exact evalExpr_storage_scalar_value
-      (cfg := config v) (solm := frame) (evm := evm)
+      (cfg := config) (solm := frame) (evm := evm)
       (slot := salesF (.var "arg0") "usr") (er := clipperSalesUsrRef I)
       (t := .address) (loc := addrLoc (clipperSalesPackedSlot I))
       (value := .address (AccountAddress.ofNat (UInt256.land
@@ -265,12 +265,12 @@ theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
       (by rfl)
       (by simpa [clipperSalesPackedSlot, clipperSalesBaseSlot] using
         clipperStorageLocLoad_address evm (clipperSalesPackedSlot I))
-  have htic : evalExpr? (config v) frame evm (.storage (salesF (.var "arg0") "tic")) =
+  have htic : evalExpr? config frame evm (.storage (salesF (.var "arg0") "tic")) =
       .ok (.int (Int.ofNat (clipperSalesPackedTicWord
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperSalesPackedSlot I))).toNat)) := by
     exact evalExpr_storage_scalar_value
-      (cfg := config v) (solm := frame) (evm := evm)
+      (cfg := config) (solm := frame) (evm := evm)
       (slot := salesF (.var "arg0") "tic") (er := clipperSalesTicRef I)
       (t := .int uint96Int)
       (loc := uint96Loc (clipperSalesPackedSlot I) ⟨20, by decide⟩ (by decide))
@@ -288,11 +288,11 @@ theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
       (by rfl)
       (by simpa [clipperSalesPackedTicWord, clipperSalesPackedSlot, clipperSalesBaseSlot] using
         clipperStorageLocLoad_uint96 evm (clipperSalesPackedSlot I))
-  have htop : evalExpr? (config v) frame evm (.storage (salesF (.var "arg0") "top")) =
+  have htop : evalExpr? config frame evm (.storage (salesF (.var "arg0") "top")) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperSalesTopSlot I)).toNat)) := by
     exact evalExpr_storage_scalar_value
-      (cfg := config v) (solm := frame) (evm := evm)
+      (cfg := config) (solm := frame) (evm := evm)
       (slot := salesF (.var "arg0") "top") (er := clipperSalesTopRef I)
       (t := .int uint256Int) (loc := wordLoc (clipperSalesTopSlot I))
       (value := .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -308,7 +308,7 @@ theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
       (by rfl)
       (by simpa [clipperSalesTopSlot, clipperSalesBaseSlot, wordLoc, uint256Loc] using
         clipperStorageLocLoad_uint256 evm (clipperSalesTopSlot I))
-  have hreturns : evalExprs? (config v) frame evm
+  have hreturns : evalExprs? config frame evm
       [ .storage (salesF (.var "arg0") "pos"), .storage (salesF (.var "arg0") "tab"),
         .storage (salesF (.var "arg0") "lot"), .storage (salesF (.var "arg0") "usr"),
         .storage (salesF (.var "arg0") "tic"), .storage (salesF (.var "arg0") "top") ] =
@@ -1308,12 +1308,12 @@ theorem clipperSalesBodyCoreDecodeFailed_short
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some salesTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some salesTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨1161⟩ : UInt256)
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
-  have hdec := clipperDecode_sales_none_short v (I := I) hsz4 hshort
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+  have hdec := clipperDecode_sales_none_short (I := I) hsz4 hshort
   exact (clipperSalesX_shortarg (v := v) (g := Sat256.ofUInt256 g) hpatch hsz4 hsize
     hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
@@ -1324,11 +1324,11 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 18)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 18) (by native_decide) hsel
-  have hdispatch : dispatchMsg (contract v) I.calldata = some salesTransition :=
-    clipperDispatch_sales v hsel
+  have hdispatch : dispatchMsg contract I.calldata = some salesTransition :=
+    clipperDispatch_sales hsel
   have hreach := clipperReachSalesBody (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -1380,12 +1380,12 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
           (clipperSalesReturnBytes posE tabE lotE packedE ticE topE) := by
       simpa [clipperSalesReturnBytes, usrE, husrClean, hticClean] using hretRaw
-    have hdec := clipperDecode_sales_ok v (I := I) hsz36
+    have hdec := clipperDecode_sales_ok (I := I) hsz36
     have hbody :
-        ExecTransitionBody (config v) (contract v)
+        ExecTransitionBody config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (clipperSalesStore I) salesTransition.body
-          (.returned { contract := contract v, locals := clipperSalesStore I }
+          (.returned { contract := contract, locals := clipperSalesStore I, immutables := immStore v }
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (some [
               .int (Int.ofNat (solcSlotWord σ I base).toNat),
@@ -1395,7 +1395,7 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
                 (UInt256.land (solcSlotWord σ I (base + ⟨3⟩)) solcAddrMask).toNat),
               .int (Int.ofNat
                 (clipperSalesPackedTicWord (solcSlotWord σ I (base + ⟨3⟩))).toNat),
-              .int (Int.ofNat (solcSlotWord σ I (base + ⟨4⟩)).toNat)])) := by
+              .int (Int.ofNat (solcSlotWord σ I (base + ⟨4⟩)).toNat)])) (immStore v) := by
       simpa [key, base, clipperSalesPosSlot, clipperSalesTabSlot, clipperSalesLotSlot,
         clipperSalesPackedSlot, clipperSalesTopSlot, clipperSalesBaseSlot_eq I,
         solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using

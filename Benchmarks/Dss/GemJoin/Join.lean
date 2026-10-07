@@ -3039,7 +3039,7 @@ theorem gemJoinJoinBodyCoreNotLive
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveSolm : gemJoinSlotWord ⟨5⟩ σ I ≠ ⟨1⟩ := by
     have hword : gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
@@ -3069,7 +3069,7 @@ theorem gemJoinJoinBodyCoreOverflow
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveSolm : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩ := by
     have hword : gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
@@ -3102,7 +3102,7 @@ theorem gemJoinJoinBodyCoreVatNoCode
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hLiveSlot :
       gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
@@ -3170,7 +3170,7 @@ theorem gemJoinJoinBodyCoreSlipCallDepthLimit
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hLiveSlot :
       gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
@@ -3268,7 +3268,7 @@ theorem gemJoinJoinBodyCoreSlipCallFailure
             accountMap := σ_slip, substate := A_slip }),
           outSlip) true)
     (houtSlipSize : outSlip.size < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hrev := RD.gemJoinSlipCallFailure rd733 houtSlipSize
@@ -3390,7 +3390,7 @@ theorem gemJoinJoinBodyCoreGemNoCode
         (true, ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ_slip, substate := A_slip }),
           outSlip) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
@@ -3560,7 +3560,7 @@ theorem gemJoinJoinBodyCoreTransferCallFailure
             accountMap := σ_transfer, substate := A_transfer },
           outTransfer) true)
     (houtTransferSize : outTransfer.size < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
@@ -3761,7 +3761,7 @@ theorem gemJoinJoinBodyCoreTransferDecodeShort
             accountMap := σ_transfer, substate := A_transfer },
           outTransfer) true)
     (houtTransferSize : outTransfer.size < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
@@ -4005,7 +4005,7 @@ theorem gemJoinJoinBodyCoreTransferReturnTrueSmall
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ_transfer, substate := A_transfer },
           outTransfer) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
@@ -4214,7 +4214,7 @@ theorem gemJoinJoinBodyCoreTransferReturnFalseSmall
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ_transfer, substate := A_transfer },
           outTransfer) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
@@ -4416,7 +4416,7 @@ theorem gemJoinJoinBodyCoreTransferReturnFalseHuge
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ_transfer, substate := A_transfer },
           outTransfer) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
@@ -4574,7 +4574,7 @@ theorem gemJoinJoinBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (gemJoinJoinX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (gemJoinDecode_join_none_short hsz4 hshort)
 
@@ -4584,7 +4584,7 @@ theorem gemJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (gemJoinSelBytes 6)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (gemJoinSelBytes 6) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some joinTransition :=

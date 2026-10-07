@@ -2,7 +2,7 @@ import Benchmarks.Dss.Vow.Common
 import Reasoning.ExternalCall
 import Reasoning.Initcode
 import Reasoning.Memory
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Vow constructor correctness

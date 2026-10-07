@@ -169,9 +169,9 @@ theorem clipperStatusPriceCalldataMem_read128_68 (top age : UInt256)
     clipperStatusPriceCalldataMem_read132_32 top age hmem,
     clipperStatusPriceCalldataMem_read164_32 top age hmem, ByteArray.append_assoc]
 
-theorem clipperStatusPriceEncode_eq (v : ClipperImmutables) (top age : UInt256)
+theorem clipperStatusPriceEncode_eq (top age : UInt256)
     {mem : ByteArray} (hmem : mem.size = 96) :
-    (config v).externalABI.encode? "price"
+    config.externalABI.encode? "price"
         [.int (Int.ofNat top.toNat), .int (Int.ofNat age.toNat)] =
       some ((clipperStatusPriceCalldataMem top age mem).readWithPadding 128 68) := by
   rw [clipperStatusPriceCalldataMem_read128_68 top age hmem]
@@ -191,15 +191,15 @@ theorem clipperStatusPriceEncode_eq (v : ClipperImmutables) (top age : UInt256)
     htopLt, hageLt, htopWord, hageWord, word_toBytesBE_toByteArray_eq_toByteArray]
   rw [ByteArray.append_assoc]
 
-theorem clipperStatusPriceDecode_none_short {v : ClipperImmutables} {out : ByteArray}
+theorem clipperStatusPriceDecode_none_short {out : ByteArray}
     (hshort : out.size < 32) :
-    (config v).externalABI.decode? "price" out = none := by
+    config.externalABI.decode? "price" out = none := by
   simpa [config, externalABI, decodeReturn?, uint256, uint256Int, abiUInt256] using
     (decodeReturnValueWithMode_legacy_uint256_none_short (returndata := out) hshort)
 
-theorem clipperStatusPriceDecode_ok {v : ClipperImmutables} {out : ByteArray}
+theorem clipperStatusPriceDecode_ok {out : ByteArray}
     (hlo : 32 ≤ out.size) :
-    (config v).externalABI.decode? "price" out =
+    config.externalABI.decode? "price" out =
       some (clipperStatusPriceValues out) := by
   have hword :
       (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))).toNat =
@@ -826,18 +826,6 @@ theorem swap9_xstep {s : State} {code : ByteArray}
     omega
   simp only [if_neg hov', GasConstants.Gverylow, stSwap]
 
-theorem RD.swap9
-    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.SWAP9, .none)) (hov : t.length + 10 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (jj :: b :: c :: d :: e :: f :: gg :: hh :: ii :: a :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepSwap (fun _ hc hp hs => swap9_xstep hc hp hdec hs hov)
-
 end Reasoning.Reach
 
 namespace Benchmarks.Dss.Clipper
@@ -1096,7 +1084,7 @@ theorem RD.clipperStatusPricePostStaticcall {code : ByteArray} (v : ClipperImmut
           calcAddr :: ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
         (clipperStatusPricePostCallMem top age mem o)
         (UInt256.ofNat 7) o σ' k' C'
-    ∧ typedCallViaEVM (config v)
+    ∧ typedCallViaEVM config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofUInt256 calcAddr)) "price" 0
         [.int (Int.ofNat top.toNat), .int (Int.ofNat age.toNat)]
@@ -1125,7 +1113,7 @@ theorem RD.clipperStatusPricePostStaticcall {code : ByteArray} (v : ClipperImmut
           UInt256.ofNat 7 := by
       native_decide
     simpa [clipperStatusPricePostCallMem] using haw ▸ rd8565raw
-  · refine callCoincides (cfg := config v)
+  · refine callCoincides (cfg := config)
       (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (name := "price")
       (args := [.int (Int.ofNat top.toNat), .int (Int.ofNat age.toNat)])
@@ -1141,7 +1129,7 @@ theorem RD.clipperStatusPricePostStaticcall {code : ByteArray} (v : ClipperImmut
       exact Nat.mod_eq_of_lt (by simp [EVM.twoPow, AccountAddress.size])
     · simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
         show (⟨68⟩ : UInt256).toNat = 68 from by decide] using
-        clipperStatusPriceEncode_eq v top age hmem
+        clipperStatusPriceEncode_eq top age hmem
     · simpa [initState] using hΘ
 
 theorem RD.clipperStatusPriceCallFailure

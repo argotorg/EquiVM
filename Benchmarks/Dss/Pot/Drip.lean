@@ -1310,7 +1310,7 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1926⟩
       (pow :: ⟨1934⟩ :: ⟨0⟩ :: ⟨341⟩ :: [sel]) solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hchi : dripChiWord σ I = dripChiWord σ I := rfl
   have hPie : dripPieWord σ I = dripPieWord σ I := rfl
   have hVat : potSlotWord ⟨5⟩ σ I = potSlotWord ⟨5⟩ σ I := rfl
@@ -1505,7 +1505,7 @@ theorem potDripBody {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 4)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (potSelBytes 4) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dripTransition := potDispatchDrip hsel
   have hdecode : decodeCalldataWithMode config.abiDecodeMode (dripTransition.params.map Param.name)

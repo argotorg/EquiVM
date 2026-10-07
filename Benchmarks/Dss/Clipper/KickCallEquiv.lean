@@ -15,12 +15,12 @@ structure ClipperKickCallAligned (s0 : EVM.State) (σ : AccountMap)
   originalAccounts : s0.σ₀ = evm.σ₀
   executionEnv : evm.executionEnv = I
 
-theorem clipperKickCallAligned_transport {v : ClipperImmutables}
+theorem clipperKickCallAligned_transport
     {s0 evm : EVM.State} {σ σ' : AccountMap} {I : ExecutionEnv} {tgt : EVM.Address}
     {name : Ident} {value : ℤ} {args : List Value} {z : Bool}
     {out : ByteArray} {A' : Substate} {callPerm : Bool}
     (halign : ClipperKickCallAligned s0 σ I evm)
-    (hcall : typedCallViaEVM (config v)
+    (hcall : typedCallViaEVM config
       {s0 with accountMap := σ, executionEnv := I}
       tgt name value args
       (z, { {s0 with accountMap := σ, executionEnv := I} with
@@ -28,7 +28,7 @@ theorem clipperKickCallAligned_transport {v : ClipperImmutables}
       callPerm) :
     ∃ (σSolm : AccountMap) (ASolm : Substate) (evm' : EVM.State),
       evm' = { evm with accountMap := σSolm, substate := ASolm } ∧
-      typedCallViaEVM (config v) evm tgt name value args (z, evm', out) callPerm ∧
+      typedCallViaEVM config evm tgt name value args (z, evm', out) callPerm ∧
       ClipperKickCallAligned s0 σ' I evm' := by
   have hInputAccounts : ({s0 with accountMap := σ, executionEnv := I} : EVM.State).accountMap =
       evm.accountMap := by simpa using halign.accounts

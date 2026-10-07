@@ -1,7 +1,7 @@
 import Benchmarks.Dss.DaiJoin.Common
 import Reasoning.Initcode
 import Reasoning.ExternalCall
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS DaiJoin constructor Solm source semantics

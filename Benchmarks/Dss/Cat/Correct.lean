@@ -15,7 +15,7 @@ import Benchmarks.Dss.Cat.Rely
 import Benchmarks.Dss.Cat.Vat
 import Benchmarks.Dss.Cat.Vow
 import Benchmarks.Dss.Cat.Wards
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Cat benchmark correctness
@@ -34,7 +34,7 @@ namespace Benchmarks.Dss.Cat
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem catNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (catX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -57,7 +57,7 @@ theorem catNonPayable {σ σ₀ A I} {g : UInt256}
 /-- Calldata shorter than a selector (`size < 4`) reverts before Solm dispatch. -/
 theorem catShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (catX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (catDispatch_none_short hsz)
@@ -67,7 +67,7 @@ theorem catNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 16 → (catSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (catX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
@@ -114,8 +114,8 @@ theorem catNoSelectorMatches {I : ExecutionEnv}
   · simpa [catSelBytes, selIs] using hwards
 
 theorem catCorrect :
-    runtimeEquivalence config catBytecode contract := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement config catBytecode contract := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbite : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩
@@ -157,7 +157,7 @@ theorem catCorrect :
   · exact catNonPayable hcode hwv
 
 theorem catContractCorrect :
-    contractEquivalence config catCreationBytecode catBytecode contract :=
-  contractEquivalence.intro catConstructorCorrect catCorrect
+    contractRefinement config catCreationBytecode contract :=
+  contractRefinement.of_constant catConstructorCorrect catCorrect
 
 end Benchmarks.Dss.Cat

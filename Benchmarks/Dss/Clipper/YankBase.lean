@@ -96,20 +96,20 @@ theorem clipperYankSalesBaseSlot_eq (I : ExecutionEnv) :
   unfold clipperYankSalesBaseSlot salesBase mapSlot solcMappingSlot clipperYankArgKey
   rw [keyValueToWord_uint256]
 
-theorem clipperDecode_yank_ok (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_yank_ok {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode ((yankTransition v).params.map Param.name)
-      (transitionSignature (yankTransition v)).paramTypes I.calldata =
+    decodeCalldataWithMode config.abiDecodeMode (yankTransition.params.map Param.name)
+      (transitionSignature yankTransition).paramTypes I.calldata =
         some (clipperYankStore I) := by
-  show decodeCalldataWithMode (config v).abiDecodeMode ["id"] [uint256] I.calldata = _
+  show decodeCalldataWithMode config.abiDecodeMode ["id"] [uint256] I.calldata = _
   simpa [config, clipperYankStore, clipperYankArgValue, clipperYankArgWord] using
     decodeCalldataWithMode_legacyUint256_ok (cd := I.calldata) (x := "id") hsz36
 
-theorem clipperDecode_yank_none_short (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_yank_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
-    decodeCalldataWithMode (config v).abiDecodeMode ((yankTransition v).params.map Param.name)
-      (transitionSignature (yankTransition v)).paramTypes I.calldata = none := by
-  show decodeCalldataWithMode (config v).abiDecodeMode ["id"] [uint256] I.calldata = none
+    decodeCalldataWithMode config.abiDecodeMode (yankTransition.params.map Param.name)
+      (transitionSignature yankTransition).paramTypes I.calldata = none := by
+  show decodeCalldataWithMode config.abiDecodeMode ["id"] [uint256] I.calldata = none
   simpa [config] using
     decodeCalldataWithMode_legacyUint256_none_short (cd := I.calldata) (x := "id") hsz4
       hshort
@@ -121,19 +121,19 @@ theorem clipperYankSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
     solcSelectorWord_eq_of_beq I hsz 0x26 0xe0 0x27 0xf1 (clipperSelNat 28)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_yank (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_yank {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 28)) :
-    dispatchMsg (contract v) I.calldata = some (yankTransition v) := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some yankTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre :=
       [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
         countTransition, cuspTransition, denyTransition, dogTransition, fileUintTransition,
-        fileAddressTransition, getStatusTransition, ilkTransition v, kickTransition v,
-        kicksTransition, listTransition, redoTransition v, relyTransition, salesTransition,
-        spotterTransition, stoppedTransition, tailTransition, takeTransition v, tipTransition,
-        upchostTransition v, vatTransition v, vowTransition, wardsTransition])
+        fileAddressTransition, getStatusTransition, ilkTransition, kickTransition,
+        kicksTransition, listTransition, redoTransition, relyTransition, salesTransition,
+        spotterTransition, stoppedTransition, tailTransition, takeTransition, tipTransition,
+        upchostTransition, vatTransition, vowTransition, wardsTransition])
     (post := [])
-    (ti := yankTransition v) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
+    (ti := yankTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
     simp only [List.mem_cons, List.mem_nil_iff] at ht
@@ -164,15 +164,15 @@ theorem clipperDispatch_yank (v : ClipperImmutables) {I : ExecutionEnv}
       native_decide
     · rw [selectorOf, getStatusSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, ilkSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, ilkSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, kickSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, kickSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, kicksSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, listSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, redoSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, redoSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, relySelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
@@ -184,20 +184,20 @@ theorem clipperDispatch_yank (v : ClipperImmutables) {I : ExecutionEnv}
       native_decide
     · rw [selectorOf, tailSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, takeSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, takeSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, tipSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, upchostSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, upchostSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, vatSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, vatSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, vowSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, wardsSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · cases hfalse
-  · rw [selectorOf, yankSelectorBytes v]
+  · rw [selectorOf, yankSelectorBytes]
     simpa [clipperSelBytes] using hsel
 
 set_option maxHeartbeats 1000000 in

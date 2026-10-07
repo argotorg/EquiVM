@@ -22,47 +22,47 @@ private theorem clipperKickConnectOutcome
     {g : UInt256} {I : ExecutionEnv} {evmLock sourceInit : EVM.State}
     {id : UInt256}
     (hcode : I.code = code)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some (kickTransition v))
-    (hdecode : decodeCalldataWithMode (config v).abiDecodeMode
-      ((kickTransition v).params.map Param.name)
-      (transitionSignature (kickTransition v)).paramTypes I.calldata =
+    (hdispatch : dispatchMsg contract I.calldata = some kickTransition)
+    (hdecode : decodeCalldataWithMode config.abiDecodeMode
+      (kickTransition.params.map Param.name)
+      (transitionSignature kickTransition).paramTypes I.calldata =
         some (clipperKickStore I))
     (hprefix : ∀ {result : ExecResult},
-      ExecBlock (config v)
-          (Frame.mk (contract v) (clipperKickLocalsActivePos evmLock I))
-          sourceInit (clipperKickAfterInitializationBody v) result →
-        ExecBlock (config v) (Frame.mk (contract v) (clipperKickStore I))
+      ExecBlock config
+          (Frame.mk contract (clipperKickLocalsActivePos evmLock I) (immStore v))
+          sourceInit (clipperKickAfterInitializationBody) result →
+        ExecBlock config (Frame.mk contract (clipperKickStore I) (immStore v))
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (kickTransition v).body result)
+          kickTransition.body result)
     (hid : clipperKickSourceIdWord evmLock = id)
     (houtcome : ClipperKickTailOutcome v code g
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
       evmLock sourceInit id) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   cases houtcome with
   | reverted hsource hevm =>
-      have hbody : ExecTransitionBody (config v) (contract v)
+      have hbody : ExecTransitionBody config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (clipperKickStore I) (kickTransition v).body .reverted :=
+          (clipperKickStore I) kickTransition.body .reverted (immStore v) :=
         ExecFuncBody.execBlockRevert (hprefix hsource)
       exact hevm.reEquivExecutionRevert hcode hdispatch hdecode hbody
   | invalid hsource hevm =>
-      have hbody : ExecTransitionBody (config v) (contract v)
+      have hbody : ExecTransitionBody config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (clipperKickStore I) (kickTransition v).body .reverted :=
+          (clipperKickStore I) kickTransition.body .reverted (immStore v) :=
         ExecFuncBody.execBlockRevert (hprefix hsource)
       exact RDinvalid.reEquivExecutionInvalid hcode hevm hdispatch hdecode hbody
   | returned σFinal sourceAfter frame hsource hevm haccounts =>
-      have hbody : ExecTransitionBody (config v) (contract v)
+      have hbody : ExecTransitionBody config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (clipperKickStore I) (kickTransition v).body
+          (clipperKickStore I) kickTransition.body
           (.returned frame sourceAfter
-            (some [.int (Int.ofNat id.toNat)])) := by
+            (some [.int (Int.ofNat id.toNat)])) (immStore v) := by
         apply ExecFuncBody.execBlockRet
         simpa [hid] using hprefix hsource
       have henc : returnEquiv id.toByteArray
-          (some [.int (Int.ofNat id.toNat)]) (kickTransition v).returnType := by
-        rw [show (kickTransition v).returnType = [uint256] from rfl]
+          (some [.int (Int.ofNat id.toNat)]) kickTransition.returnType := by
+        rw [show kickTransition.returnType = [uint256] from rfl]
         exact returnEquiv_of_encode
           (by simpa [uint256] using uint256ReturnEncoding id)
       exact hevm.reEquivExecutionGen hcode hdispatch hdecode
@@ -101,16 +101,16 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 13))
     (hStorageWF : clipperStorageWF σ I) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 13) (by native_decide) hsel
-  have hdispatch : dispatchMsg (contract v) I.calldata = some (kickTransition v) :=
-    clipperDispatch_kick v hsel
+  have hdispatch : dispatchMsg contract I.calldata = some kickTransition :=
+    clipperDispatch_kick hsel
   have hreachEntry := clipperReachKickEntry
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) v hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz132 : 132 ≤ I.calldata.size
-  · have hdecode := clipperDecode_kick_ok v (I := I) hsz132
+  · have hdecode := clipperDecode_kick_ok (I := I) hsz132
     obtain ⟨_, _, rd5361⟩ := clipperKickX_decoded
       (v := v) (g := Sat256.ofUInt256 g) hpatch hsz132 hsize hreachEntry
     let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -128,15 +128,15 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
           (clipperRelyAuthStorageSlot I) (by simp [evmSolm, initState])
           hInitialAccounts
     have connectRevert
-        (hsource : ExecBlock (config v)
-          (Frame.mk (contract v) (clipperKickStore I)) evmSolm
-          (kickTransition v).body .reverted)
+        (hsource : ExecBlock config
+          (Frame.mk contract (clipperKickStore I) (immStore v)) evmSolm
+          kickTransition.body .reverted)
         (hevm : RDrev code (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
-        runtimeEquivalenceFor (config v) (contract v)
-          σ σ₀ g A I := by
-      have hbody : ExecTransitionBody (config v) (contract v) evmSolm
-          (clipperKickStore I) (kickTransition v).body .reverted :=
+        runtimeRefinementFor config contract
+          σ σ₀ g A I (immStore v) := by
+      have hbody : ExecTransitionBody config contract evmSolm
+          (clipperKickStore I) kickTransition.body .reverted (immStore v) :=
         ExecFuncBody.execBlockRevert hsource
       simpa [evmSolm] using
         hevm.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -280,12 +280,12 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
                     simpa [clipperKickTopSlot] using congrArg (fun slot => slot + ⟨4⟩)
                       (clipperKickSalesBaseSlot_eq evmLock σLock I hidEq)
                   have hprefix : ∀ {result : ExecResult},
-                      ExecBlock (config v)
-                          (Frame.mk (contract v)
-                            (clipperKickLocalsActivePos evmLock I))
-                          sourceInit (clipperKickAfterInitializationBody v) result →
-                        ExecBlock (config v) (Frame.mk (contract v) (clipperKickStore I))
-                          evmSolm (kickTransition v).body result := by
+                      ExecBlock config
+                          (Frame.mk contract
+                            (clipperKickLocalsActivePos evmLock I) (immStore v))
+                          sourceInit (clipperKickAfterInitializationBody) result →
+                        ExecBlock config (Frame.mk contract (clipperKickStore I) (immStore v))
+                          evmSolm kickTransition.body result := by
                     intro result hafter
                     exact clipperKickSourcePrefix v evmSolm I hvalue hsrc hauthSource
                       hlockedSource hstoppedSource htab hlot husr
@@ -382,6 +382,6 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
   · have hshort : I.calldata.size < 132 := by omega
     exact (clipperKickX_shortarg (v := v) (g := Sat256.ofUInt256 g)
       hpatch hsz4 hsize hshort hreachEntry).reEquivDecodingFailed
-        hcode hdispatch (clipperDecode_kick_none_short v hsz4 hshort)
+        hcode hdispatch (clipperDecode_kick_none_short hsz4 hshort)
 
 end Benchmarks.Dss.Clipper

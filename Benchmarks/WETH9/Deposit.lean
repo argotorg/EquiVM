@@ -233,7 +233,7 @@ theorem weth9DepositBody_accountMap {σ σ₀ A I} {g : Sat256} :
 theorem weth9DepositBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 9)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 9) (by native_decide) hsel
   obtain ⟨_, _, h156⟩ := weth9ReachDepositEntry (σ := σ)
@@ -270,7 +270,7 @@ theorem weth9ReEquivFallbackGen {cfg : Config} {contract : ContractDecl} {t : Tr
               (.returned cs evm'' retVal))
     (hAccountMap : acc = evm''.accountMap)
     (hRetData : returnDataEquiv o retVal returnConv) :
-    runtimeEquivalenceFor cfg contract σ σ₀ g.toUInt256 A I := by
+    runtimeRefinementFor cfg contract σ σ₀ g.toUInt256 A I := by
   rcases h with hoog | ⟨s, hX, hsacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g.toUInt256) (by
       rw [← hcode] at hoog
@@ -283,7 +283,7 @@ theorem weth9ReEquivFallbackGen {cfg : Config} {contract : ContractDecl} {t : Tr
           (initState σ σ₀ (Sat256.ofUInt256 g.toUInt256) A I)
           callargs t.body (.returned cs evm'' retVal) := by
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hbody
-    refine runtimeEquivalenceFor.execution rfl
+    refine runtimeRefinementFor.execution rfl
       (solmExec.fallback hnosel hnorecv hfb hargs hret rfl hbody') ?_
     rw [hxi]
     have haccounts : s.accountMap = evm''.accountMap := hsacc.trans hAccountMap
@@ -339,7 +339,7 @@ theorem weth9FallbackConnect {σ σ₀ A I} {g : UInt256}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (sstoreAccountMap I.codeOwner σ (callerBalSlot I)
         (I.weiValue + solcSlotWord σ I (callerBalSlot I))) ByteArray.empty) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hvaleq : I.weiValue + solcSlotWord σ I (callerBalSlot I)
       = UInt256.add (solcSlotWord σ I (callerBalSlot I)) I.weiValue := by
     exact u256_add_comm _ _
@@ -432,7 +432,7 @@ theorem weth9FallbackBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsz4 : 4 ≤ I.calldata.size)
     (hnm : ∀ i, i < 11 → (weth9SelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, h156⟩ := weth9ReachNoMatch156 (g := Sat256.ofUInt256 g) hcode hsz4 hsize hnm
   exact weth9FallbackConnect hcode (weth9SelDispatch_none_nomatch hnm)
     (weth9DepositX (g := Sat256.ofUInt256 g) hperm (by simp) h156)
@@ -441,7 +441,7 @@ theorem weth9FallbackBodyCore {σ σ₀ A I} {g : UInt256}
 theorem weth9ShortFallbackBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hshort : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, h156⟩ := weth9ReachShort156 (g := Sat256.ofUInt256 g) hcode hshort
   exact weth9FallbackConnect hcode (weth9SelDispatch_none_short hshort)
     (weth9DepositX (g := Sat256.ofUInt256 g) hperm (by simp) h156)

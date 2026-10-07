@@ -1621,7 +1621,7 @@ theorem vatMoveAuthorizedPath
       [moveRadWord I, moveDstMaskedWord I, moveSrcMaskedWord I, ⟨524⟩,
         vatSelWord I]
       memWish (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let srcOld := vatSlotWord (moveSrcDaiSlot I) σ I
   let srcDaiNew := UInt256.sub srcOld (moveRadWord I)
@@ -1859,7 +1859,7 @@ theorem vatMoveBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1303⟩ [vatSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (vatMoveX_shortarg (g := Sat256.ofUInt256 g) hsz4 hshort hsize hreach)
     |>.reEquivDecodingFailed hcode (vatDispatchMove hsel)
       (vatDecode_move_none_short hsz4 hshort)

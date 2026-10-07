@@ -1,5 +1,6 @@
 import Benchmarks.Dss.GemJoin.ConstructorSource
 import Benchmarks.Dss.GemJoin.ConstructorTrace
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS GemJoin constructor correctness
@@ -151,8 +152,7 @@ theorem gemJoinCtorPrefixAccountMapEquiv
     gemJoinCtorVatStored, hslot] using hmap
 
 theorem gemJoinConstructorCorrect :
-    constructorEquivalence config gemJoinCreationBytecode contract gemJoinBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config gemJoinCreationBytecode contract (fun _ => gemJoinBytecode) := by
   intro σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   rcases gemJoinCtorDeployment_shape hdeploy with ⟨vat, ilk, gem, hargs, hdeployed⟩
@@ -202,7 +202,7 @@ theorem gemJoinConstructorCorrect :
     by_cases hcodeSize : Reasoning.Theory.extCodeSizeWord σGem gemTarget = ⟨0⟩
     · have hrev := gemJoinCtorDecimalsNoCodeReverts vat ilk gem gemTarget hcodeSize rd184
       rcases hrev.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩
-      · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+      · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
       · have hcodeSizeSolm : extCodeSizeWord evm5s.accountMap gemTarget = ⟨0⟩ := by
           simpa [hAccounts5] using hcodeSize
         have hgemNoCode :
@@ -211,7 +211,7 @@ theorem gemJoinConstructorCorrect :
           simpa [evm5s, State.lookupAccount] using
             ctorExtCodeSize_zero_lookup_code_zero (σ := evm5s.accountMap)
               (target := gemTarget) (addr := gem) htargetAddr hcodeSizeSolm
-        refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+        refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
           (gemJoinSolmCtorExecReverts_noCode
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             vat ilk gem hwv
@@ -299,8 +299,8 @@ theorem gemJoinConstructorCorrect :
         cases hz : z
         · have hrev := gemJoinCtorDecimalsStatusFailReverts vat ilk gem gemTarget hz hout rd200
           rcases hrev.xiResult hcodeCtor with hOOG | ⟨g', outRev, hRev⟩
-          · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-          · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+          · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+          · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
               (gemJoinSolmCtorExecReverts_decimalsFailure
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 (evmDecimals := evmDecimalsSolm) (outDecimals := out)
@@ -375,7 +375,7 @@ theorem gemJoinConstructorCorrect :
             have hret := gemJoinCtorReturnTrace vat ilk retWord gem hperm hmload64
               (by simpa [memRet] using rd241)
             rcases RDret.xiResultAcc hcodeCtor hret with hOOG | ⟨g', A', hSuccess⟩
-            · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+            · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
             · have hdec :
                   config.externalABI.decode? "decimals" out =
                     some [.int (Int.ofNat retWord.toNat)] := by
@@ -395,7 +395,7 @@ theorem gemJoinConstructorCorrect :
                     gemJoinCtorAfterWardsState, storageStore_executionEnv,
                     initState]
                 rw [howner]
-              refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hSuccess)
+              refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hSuccess)
                 (gemJoinSolmCtorExecSuccess
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                   (evmDecimals := evmDecimalsSolm) (outDecimals := out) (dec := retWord)
@@ -440,11 +440,11 @@ theorem gemJoinConstructorCorrect :
                   (by rw [hmemRetSize]; decide) hread64)
               rd218
             rcases hrev.xiResult hcodeCtor with hOOG | ⟨g', outRev, hRev⟩
-            · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+            · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
             · have hdec : config.externalABI.decode? "decimals" out = none := by
                 simp [config, externalABI, decodeReturn?]
                 exact decodeReturnValueWithMode_legacy_uint256_none_short hshort
-              refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+              refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
                 (gemJoinSolmCtorExecReverts_decimalsDecode
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                   (evmDecimals := evmDecimalsSolm) (outDecimals := out)
@@ -468,7 +468,7 @@ theorem gemJoinConstructorCorrect :
         have hrev := gemJoinCtorDecimalsStatusFailReverts vat ilk gem gemTarget
           (z := false) rfl houtEmpty rd200
         rcases hrev.xiResult hcodeCtor with hOOG | ⟨g', outRev, hRev⟩
-        · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+        · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
         · let A_dec := (evm5s.addAccessedAccount (EVM.address gem)).substate
           have hcallDepth :
               typedCallViaEVM config evm5s (EVM.address gem) "decimals" 0 []
@@ -485,7 +485,7 @@ theorem gemJoinConstructorCorrect :
                   simpa [evm5s, evm4s, evm3s, evm2s, evm1s, evm0s, storageStore_executionEnv,
                     gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState, gemJoinCtorAfterVatState,
                     gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState, initState] using hdepthEq))
-          refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+          refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
             (gemJoinSolmCtorExecReverts_decimalsFailure
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               (evmDecimals := { evm5s with substate := A_dec }) (outDecimals := ByteArray.empty)
@@ -502,8 +502,8 @@ theorem gemJoinConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat ilk gem hcodeCtor hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-    · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
         (gemJoinSolmCtorExecReverts_nonpayable
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           vat ilk gem hwv)

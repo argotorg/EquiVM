@@ -19,7 +19,7 @@ import Benchmarks.Dss.Cure.Tell
 import Benchmarks.Dss.Cure.Wait
 import Benchmarks.Dss.Cure.Wards
 import Benchmarks.Dss.Cure.When
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Cure benchmark correctness scaffold
@@ -35,8 +35,8 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.Cure
 
 theorem cureCorrect :
-    runtimeEquivalenceWithWF cureStorageWF config cureBytecode contract := by
-  refine runtimeEquivalenceWithWF.intro ?_
+    runtimeRefinementWithWF cureStorageWF config cureBytecode contract := by
+  refine runtimeRefinementWithWF.intro ?_
   intro σ σ₀ g A I hcode hsize hperm hStorageWF
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hamt : selIs I (cureSelBytes 0)
@@ -87,7 +87,7 @@ theorem cureCorrect :
   · exact cureNonPayable hcode hwv
 
 theorem cureContractCorrect :
-    contractEquivalenceWF cureStorageWF config cureCreationBytecode cureBytecode contract :=
-  contractEquivalenceWF.intro cureConstructorCorrect cureCorrect
+    contractRefinementWF cureStorageWF config cureCreationBytecode contract :=
+  contractRefinementWF.of_constant cureConstructorCorrect cureCorrect
 
 end Benchmarks.Dss.Cure

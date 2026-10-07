@@ -23,7 +23,7 @@ theorem clipperEvalTakeGenericDataLength
     {v : ClipperImmutables} {locals : Store} {evm : EVM.State}
     {I : ExecutionEnv}
     (hdata : locals.get? "data" = some (clipperTakeDataValue I)) :
-    evalExpr? (config v) (Frame.mk (contract v) locals) evm (bytesLength "data") =
+    evalExpr? config (Frame.mk contract locals (immStore v)) evm (bytesLength "data") =
       .ok (.int (Int.ofNat (clipperTakeDataBytes I).length)) := by
   simp only [bytesLength, localRef, evalExpr?, readLocalPath?, EvalResult.bind, bind,
     pure]
@@ -41,7 +41,7 @@ theorem clipperEvalTakeGenericDataGtZero
     {I : ExecutionEnv}
     (hdata : locals.get? "data" = some (clipperTakeDataValue I))
     (hpos : 0 < (clipperTakeDataBytes I).length) :
-    evalExpr? (config v) (Frame.mk (contract v) locals) evm
+    evalExpr? config (Frame.mk contract locals (immStore v)) evm
       (.binary .gt (bytesLength "data") (.intLit 0)) = .ok (.bool true) := by
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
@@ -59,7 +59,7 @@ theorem clipperEvalTakeGenericDataGtZero_false
     {I : ExecutionEnv}
     (hdata : locals.get? "data" = some (clipperTakeDataValue I))
     (hempty : clipperTakeDataLenWord I = ⟨0⟩) :
-    evalExpr? (config v) (Frame.mk (contract v) locals) evm
+    evalExpr? config (Frame.mk contract locals (immStore v)) evm
       (.binary .gt (bytesLength "data") (.intLit 0)) = .ok (.bool false) := by
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
@@ -79,8 +79,8 @@ theorem clipperEvalTakeGenericWhoNeVat
     {who : AccountAddress} {b : Bool}
     (hwho : locals.get? "who" = some (.address who))
     (hb : (who != v.vat) = b) :
-    evalExpr? (config v) (Frame.mk (contract v) locals) evm
-      (.binary .ne (.var "who") (vatExpr v)) = .ok (.bool b) := by
+    evalExpr? config (Frame.mk contract locals (immStore v)) evm
+      (.binary .ne (.var "who") vatExpr) = .ok (.bool b) := by
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
   rw [clipperEvalTakeGenericVar hwho, clipperEvalVat]
@@ -95,7 +95,7 @@ theorem clipperEvalTakeGenericWhoNeDog
     (hwho : locals.get? "who" = some (.address who))
     (hdog : locals.get? "dog_" = some (.address dog))
     (hb : (who != dog) = b) :
-    evalExpr? (config v) (Frame.mk (contract v) locals) evm
+    evalExpr? config (Frame.mk contract locals (immStore v)) evm
       (.binary .ne (.var "who") (.var "dog_")) = .ok (.bool b) := by
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
@@ -108,17 +108,17 @@ theorem clipperEvalTakeGenericWhoNeDog
 theorem clipperEvalTakeGenericCallbackGuardOfParts
     {v : ClipperImmutables} {locals : Store} {evm : EVM.State}
     {bData bVat bDog : Bool}
-    (hdata : evalExpr? (config v) (Frame.mk (contract v) locals) evm
+    (hdata : evalExpr? config (Frame.mk contract locals (immStore v)) evm
       (.binary .gt (bytesLength "data") (.intLit 0)) = .ok (.bool bData))
-    (hvat : evalExpr? (config v) (Frame.mk (contract v) locals) evm
-      (.binary .ne (.var "who") (vatExpr v)) = .ok (.bool bVat))
-    (hdog : evalExpr? (config v) (Frame.mk (contract v) locals) evm
+    (hvat : evalExpr? config (Frame.mk contract locals (immStore v)) evm
+      (.binary .ne (.var "who") vatExpr) = .ok (.bool bVat))
+    (hdog : evalExpr? config (Frame.mk contract locals (immStore v)) evm
       (.binary .ne (.var "who") (.var "dog_")) = .ok (.bool bDog)) :
-    evalExpr? (config v) (Frame.mk (contract v) locals) evm
+    evalExpr? config (Frame.mk contract locals (immStore v)) evm
       (.binary .and
         (.binary .gt (bytesLength "data") (.intLit 0))
         (.binary .and
-          (.binary .ne (.var "who") (vatExpr v))
+          (.binary .ne (.var "who") vatExpr)
           (.binary .ne (.var "who") (.var "dog_")))) =
       .ok (.bool (bData && (bVat && bDog))) := by
   rw [evalExpr?]
@@ -136,11 +136,11 @@ theorem clipperTakeGenericCallbackGuardTrue
     (hdog : locals.get? "dog_" = some (.address dog))
     (hpos : 0 < (clipperTakeDataBytes I).length)
     (hwhoVat : who ≠ v.vat) (hwhoDog : who ≠ dog) :
-    evalExpr? (config v) (Frame.mk (contract v) locals) evm
+    evalExpr? config (Frame.mk contract locals (immStore v)) evm
       (.binary .and
         (.binary .gt (bytesLength "data") (.intLit 0))
         (.binary .and
-          (.binary .ne (.var "who") (vatExpr v))
+          (.binary .ne (.var "who") vatExpr)
           (.binary .ne (.var "who") (.var "dog_")))) = .ok (.bool true) := by
   simpa [hwhoVat, hwhoDog] using
     (clipperEvalTakeGenericCallbackGuardOfParts
@@ -157,11 +157,11 @@ theorem clipperTakeGenericCallbackGuardFalseWhoVat
     (hdog : locals.get? "dog_" = some (.address dog))
     (hpos : 0 < (clipperTakeDataBytes I).length)
     (hwhoVat : who = v.vat) :
-    evalExpr? (config v) (Frame.mk (contract v) locals) evm
+    evalExpr? config (Frame.mk contract locals (immStore v)) evm
       (.binary .and
         (.binary .gt (bytesLength "data") (.intLit 0))
         (.binary .and
-          (.binary .ne (.var "who") (vatExpr v))
+          (.binary .ne (.var "who") vatExpr)
           (.binary .ne (.var "who") (.var "dog_")))) = .ok (.bool false) := by
   simpa [hwhoVat] using
     (clipperEvalTakeGenericCallbackGuardOfParts
@@ -178,11 +178,11 @@ theorem clipperTakeGenericCallbackGuardFalseWhoDog
     (hdog : locals.get? "dog_" = some (.address dog))
     (hpos : 0 < (clipperTakeDataBytes I).length)
     (hwhoDog : who = dog) :
-    evalExpr? (config v) (Frame.mk (contract v) locals) evm
+    evalExpr? config (Frame.mk contract locals (immStore v)) evm
       (.binary .and
         (.binary .gt (bytesLength "data") (.intLit 0))
         (.binary .and
-          (.binary .ne (.var "who") (vatExpr v))
+          (.binary .ne (.var "who") vatExpr)
           (.binary .ne (.var "who") (.var "dog_")))) = .ok (.bool false) := by
   simpa [hwhoDog] using
     (clipperEvalTakeGenericCallbackGuardOfParts
@@ -198,11 +198,11 @@ theorem clipperTakeGenericCallbackGuardFalseDataEmpty
     (hwho : locals.get? "who" = some (.address who))
     (hdog : locals.get? "dog_" = some (.address dog))
     (hempty : clipperTakeDataLenWord I = ⟨0⟩) :
-    evalExpr? (config v) (Frame.mk (contract v) locals) evm
+    evalExpr? config (Frame.mk contract locals (immStore v)) evm
       (.binary .and
         (.binary .gt (bytesLength "data") (.intLit 0))
         (.binary .and
-          (.binary .ne (.var "who") (vatExpr v))
+          (.binary .ne (.var "who") vatExpr)
           (.binary .ne (.var "who") (.var "dog_")))) = .ok (.bool false) := by
   simpa using
     (clipperEvalTakeGenericCallbackGuardOfParts

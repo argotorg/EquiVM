@@ -471,7 +471,7 @@ theorem gemJoinAddressGetterBodyCore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
             (gemJoinAddressReturnWord slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hval :
       some [Value.address (AccountAddress.ofNat (gemJoinAddressReturnWord slot σ I).toNat)] =
         some [Value.address (AccountAddress.ofNat (gemJoinAddressReturnWord slot σ I).toNat)] := rfl
@@ -516,7 +516,7 @@ theorem gemJoinUint256GetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (gemJoinSlotWord slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hval :
       some [Value.int (Int.ofNat (gemJoinSlotWord slot σ I).toNat)] =
         some [Value.int (Int.ofNat (gemJoinSlotWord slot σ I).toNat)] := by
@@ -562,7 +562,7 @@ theorem gemJoinBytes32GetterBodyCore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.fixedBytes bytes32Width
             (EVM.Word.toBytesBE (gemJoinSlotWord slot σ I)))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hval :
       some [Value.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord slot σ I))] =
         some [Value.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord slot σ I))] := by

@@ -19,7 +19,7 @@ import Benchmarks.Dss.Flopper.Vat
 import Benchmarks.Dss.Flopper.Vow
 import Benchmarks.Dss.Flopper.Wards
 import Benchmarks.Dss.Flopper.Yank
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Flopper benchmark correctness stub
@@ -34,8 +34,8 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Dss.Flopper
 
 theorem flopperCorrect :
-    runtimeEquivalence config flopperBytecode contract := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement config flopperBytecode contract := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbeg : selIs I (flopperSelBytes 0)
@@ -85,7 +85,7 @@ theorem flopperCorrect :
   · exact flopperNonPayable hcode hwv
 
 theorem flopperContractCorrect :
-    contractEquivalence config flopperCreationBytecode flopperBytecode contract :=
-  contractEquivalence.intro flopperConstructorCorrect flopperCorrect
+    contractRefinement config flopperCreationBytecode contract :=
+  contractRefinement.of_constant flopperConstructorCorrect flopperCorrect
 
 end Benchmarks.Dss.Flopper

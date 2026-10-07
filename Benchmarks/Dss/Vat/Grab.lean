@@ -6549,7 +6549,7 @@ theorem vatGrabBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨973⟩ [vatSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (vatGrabX_shortarg (g := Sat256.ofUInt256 g) hsz4 hshort hsize hreach)
     |>.reEquivDecodingFailed hcode (vatDispatchGrab hsel)
       (vatDecode_grab_none_short hsz4 hshort)
@@ -6566,7 +6566,7 @@ theorem vatGrabBodyCoreUnauthorized
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨973⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := grabStore I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthSolm : vatSlotWord (vatCallerWardsSlot I) σ I ≠ ⟨1⟩ := hauth
@@ -8432,7 +8432,7 @@ theorem vatGrabSuccessEquivFromFinalState
         grabStoreViceNew I urnInkNew urnArtNew ilkArtNew dtab gemNew sinNew viceNew
       ExecTransitionBody config contract evm0 (grabStore I) grabTransition.body
         (.returned { contract := contract, locals := finalLocals } evm6 none)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
     (grabUrnInkSourceSlot I) urnInkNew
@@ -8540,7 +8540,7 @@ theorem vatGrabSuccessEquivFromSourceBodyAndRuntimeGuards
         grabStoreViceNew I urnInkNew urnArtNew ilkArtNew dtab gemNew sinNew viceNew
       ExecTransitionBody config contract evm0 (grabStore I) grabTransition.body
         (.returned { contract := contract, locals := finalLocals } evm6 none)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterAuth⟩ := hafterAuth
   have hret : RDret vatBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)

@@ -194,7 +194,7 @@ theorem vowFlapFreeSinUnderflowBodyCore
     (hSinLoad :
       Solm.EVM.storageLoad evmSin1 evmSin1.executionEnv.codeOwner ⟨5⟩ =
         vowSlotWord ⟨5⟩ acc I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapFreeSinSubUnderflow rd1318 hunder
   let locals := (∅ : Store)
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -476,7 +476,7 @@ theorem vowFlapDebtUnderflowBodyCore
     (hAshLoad :
       Solm.EVM.storageLoad evmSin1 evmSin1.executionEnv.codeOwner ⟨6⟩ =
         vowSlotWord ⟨6⟩ acc I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapDebtSubUnderflow rd1325 hunder
   let locals := (∅ : Store)
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -793,7 +793,7 @@ theorem vowFlapDebtNotZeroBodyCore
         vowSlotWord ⟨6⟩ acc I)
     (hdebt : debt = UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc I))
     (hdebtOk : (vowSlotWord ⟨6⟩ acc I).toNat ≤ freeSin.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapDebtNotZero rd1333 hdebtNe hmem hread64
   let locals := (∅ : Store)
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I

@@ -261,7 +261,7 @@ theorem vatFoldFinishSuccess
     (hretPc : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       mem (UInt256.ofNat 3) ByteArray.empty acc k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)

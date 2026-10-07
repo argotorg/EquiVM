@@ -22,17 +22,17 @@ theorem wardsMappingSlotFor_eq (I : ExecutionEnv) :
   unfold wardsMappingSlotFor wardsMappingArg wardsMappingKey wardsSlot mapSlot solcMappingSlot
   rw [keyValueToWord_address_ofNat_mask]
 
-theorem dogDecode_wards_ok {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDecode_wards_ok {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (wardsTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (wardsTransition.params.map Param.name)
       (transitionSignature wardsTransition).paramTypes I.calldata =
         some ((∅ : Store).insert "arg0" (.address (wardsMappingArg I))) := by
   simpa [config, wardsTransition, wardsMappingArg] using
     (decodeCalldata_legacyAddress_ok (cd := I.calldata) (x := "arg0") hsz36)
 
-theorem dogDecode_wards_none_short {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDecode_wards_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
-    decodeCalldataWithMode (config v).abiDecodeMode (wardsTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (wardsTransition.params.map Param.name)
       (transitionSignature wardsTransition).paramTypes I.calldata = none := by
   simpa [config, wardsTransition] using
     (decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "arg0") hsz4
@@ -158,28 +158,28 @@ theorem dogWardsBodyCoreOk
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some wardsTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some wardsTransition)
     (hdecode :
-      decodeCalldataWithMode (config v).abiDecodeMode (wardsTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (wardsTransition.params.map Param.name)
         (transitionSignature wardsTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (.address (wardsMappingArg I))))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨512⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   let key := wardsMappingKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let locals : Store := (∅ : Store).insert "arg0" (.address (wardsMappingArg I))
   have hslot : wardsMappingSlotFor I = slot := by
     simp [slot, key, wardsMappingSlotFor_eq]
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         wardsTransition.body
-        (.returned { contract := contract v, locals := locals }
+        (.returned { contract := contract, locals := locals, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat
-            (dogSlotWord (wardsMappingSlotFor I) σ I).toNat))])) := by
+            (dogSlotWord (wardsMappingSlotFor I) σ I).toNat))])) (immStore v) := by
     simpa [wardsTransition, wardsMappingSlotFor, dogSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, locals, key] using
       dogUint256GetterBodyReturns v
@@ -276,11 +276,11 @@ theorem dogWardsBodyCoreDecodeFailed_short
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some wardsTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some wardsTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨512⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -307,7 +307,7 @@ theorem dogWardsBodyCoreDecodeFailed_short
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
     hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
-    (dogDecode_wards_none_short (v := v) hsz4 hshort)
+    (dogDecode_wards_none_short hsz4 hshort)
 
 theorem dogWardsBodyCore {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : UInt256}
@@ -317,17 +317,17 @@ theorem dogWardsBodyCore {v : DogImmutables} {code : ByteArray}
     (_hperm : I.perm = true)
     (_hwv : I.weiValue = ⟨0⟩)
     (_hsel : selIs I (dogSelBytes 16)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 16) rfl _hsel
-  have hdispatch : dispatchMsg (contract v) I.calldata = some wardsTransition :=
+  have hdispatch : dispatchMsg contract I.calldata = some wardsTransition :=
     dogDispatchWards _hsel
   have hreach := dogReachWardsBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     _hpatch _hcode _hwv hsz4 _hsize _hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact dogWardsBodyCoreOk _hpatch _hcode _hwv hsz36 _hsize hdispatch
-      (dogDecode_wards_ok (v := v) hsz36) hreach
+      (dogDecode_wards_ok hsz36) hreach
   · exact dogWardsBodyCoreDecodeFailed_short _hpatch _hcode _hsize hsz4 (by omega)
       hdispatch hreach
 

@@ -1046,7 +1046,7 @@ theorem stairstepPriceSourceReturns {evm : EVM.State} {σ : AccountMap}
         (.ok { contract := contract, locals := priceLocalsScaled σ I } evm) := by
     have h := internalCallFunctionReturn
       (cfg := config)
-      (caller := Frame.mk contract (priceLocalsLeft σ I))
+      (caller := Frame.mk contract (priceLocalsLeft σ I) ∅)
       (evm := evm) (name := "mul") (retVar := "scaled")
       (args := [.var "left", .intLit RAY])
       (argVals := [.int (Int.ofNat (priceLeft σ I).toNat),
@@ -1100,7 +1100,7 @@ theorem stairstepPriceSourceReturns {evm : EVM.State} {σ : AccountMap}
         (.ok { contract := contract, locals := priceLocalsOut σ I } evm) := by
     have h := internalCallFunctionReturn
       (cfg := config)
-      (caller := Frame.mk contract (priceLocalsRatio σ I))
+      (caller := Frame.mk contract (priceLocalsRatio σ I) ∅)
       (evm := evm) (name := "rmul") (retVar := "out")
       (args := [.var "top", .var "ratio"])
       (argVals := [.int (Int.ofNat (priceTop I).toNat),
@@ -1187,7 +1187,7 @@ theorem stairstepPriceSourceMulRayOverflowReverts {evm : EVM.State} {σ : Accoun
         (.internalCall "mul" [.var "left", .intLit RAY] "scaled") .reverted :=
     internalCallFunctionRevert
       (cfg := config)
-      (caller := Frame.mk contract (priceLocalsLeft σ I))
+      (caller := Frame.mk contract (priceLocalsLeft σ I) ∅)
       (evm := evm) (name := "mul") (retVar := "scaled")
       (args := [.var "left", .intLit RAY])
       (argVals := [.int (Int.ofNat (priceLeft σ I).toNat),
@@ -1269,7 +1269,7 @@ theorem stairstepPriceSourceRmulOverflowReverts {evm : EVM.State} {σ : AccountM
         (.ok { contract := contract, locals := priceLocalsScaled σ I } evm) := by
     have h := internalCallFunctionReturn
       (cfg := config)
-      (caller := Frame.mk contract (priceLocalsLeft σ I))
+      (caller := Frame.mk contract (priceLocalsLeft σ I) ∅)
       (evm := evm) (name := "mul") (retVar := "scaled")
       (args := [.var "left", .intLit RAY])
       (argVals := [.int (Int.ofNat (priceLeft σ I).toNat),
@@ -1316,7 +1316,7 @@ theorem stairstepPriceSourceRmulOverflowReverts {evm : EVM.State} {σ : AccountM
         (.internalCall "rmul" [.var "top", .var "ratio"] "out") .reverted :=
     internalCallFunctionRevert
       (cfg := config)
-      (caller := Frame.mk contract (priceLocalsRatio σ I))
+      (caller := Frame.mk contract (priceLocalsRatio σ I) ∅)
       (evm := evm) (name := "rmul") (retVar := "out")
       (args := [.var "top", .var "ratio"])
       (argVals := [.int (Int.ofNat (priceTop I).toNat),
@@ -1775,7 +1775,7 @@ theorem stairstepPriceBodyCoreZero
       [priceDur I, priceTop I, ⟨175⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hlt : UInt256.lt (priceDur I) (priceTauWord σ I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd552⟩ := hreach
   have hbody :
       ExecTransitionBody config contract
@@ -1806,7 +1806,7 @@ theorem stairstepPriceBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD linearDecreaseBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) stairstepPriceEntryPc
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (stairstepPriceX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (stairstepDecode_price_none_short hsz4 hshort)
 
@@ -1817,7 +1817,7 @@ theorem stairstepPriceBody {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (stairstepSelBytes 2)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (stairstepSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some priceTransition :=

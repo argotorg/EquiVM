@@ -170,7 +170,7 @@ theorem RD.clipperTakeDogDigsPostCallWithArgWF
           packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
         (clipperDogDigsCalldataMem v digsAmt baseMem) aw outDog
         σ_dog k' C' ∧
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address (AccountAddress.ofUInt256 target)) "digs" 0
@@ -224,7 +224,7 @@ theorem RD.clipperTakeDogDigsPostCallWithArgWF
     simpa using rd4980raw
   · let evmDog : EVM.State :=
       { initState σStart σ₀ g A I with accountMap := σ }
-    refine callCoincides (cfg := config v) (evm := evmDog) (name := "digs")
+    refine callCoincides (cfg := config) (evm := evmDog) (name := "digs")
       (args := [v.ilk, .int (Int.ofNat digsAmt.toNat)])
       (tgt := EVM.address (AccountAddress.ofUInt256 target)) (targetWord := target)
       (σ' := σ_dog) (A' := A_dog) (A_in := A_in)

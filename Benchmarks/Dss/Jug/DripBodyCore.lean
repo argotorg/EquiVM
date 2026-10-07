@@ -12,7 +12,7 @@ theorem jugDripBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨328⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -44,7 +44,7 @@ theorem jugDripBodyCoreInvalidNow
     (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨328⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := dripLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
@@ -74,7 +74,7 @@ theorem jugDripBodyCoreVatIlksNoCode
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := dripLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hvatNoCodeSolm :
@@ -128,7 +128,7 @@ theorem jugDripBodyCoreVatIlksCallFailed
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
     (hout : out.size < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := dripLocals I
   let evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hvatCodeSolm :
@@ -201,7 +201,7 @@ theorem jugDripBodyCoreVatIlksCallDepthLimit
         sel :: [])
       (dripVatIlksCalldataMem I (dripIlkHashMem I)) (UInt256.ofNat 6)
       ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := dripLocals I
   let evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hvatCodeSolm :
@@ -272,7 +272,7 @@ theorem jugDripBodyCoreVatIlksReturnDecodeShort
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
     (hshort : out.size < 64)
     (hout : out.size < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := dripLocals I
   let evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hvatCodeSolm :
@@ -364,7 +364,7 @@ theorem jugDripBodyCoreVatIlksAddOverflow
     (haddOverflow :
       UInt256.size ≤ (jugSlotWord ⟨4⟩ σ' I).toNat +
         (jugSlotWord (fileDutyDutySlotFor I) σ' I).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := dripLocals I
   let evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hvatCodeSolm :

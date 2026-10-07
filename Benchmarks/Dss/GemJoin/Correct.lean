@@ -10,6 +10,7 @@ import Benchmarks.Dss.GemJoin.Live
 import Benchmarks.Dss.GemJoin.Rely
 import Benchmarks.Dss.GemJoin.Vat
 import Benchmarks.Dss.GemJoin.Wards
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS GemJoin benchmark correctness
@@ -23,8 +24,8 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Dss.GemJoin
 
 theorem gemJoinCorrect :
-    runtimeEquivalence config gemJoinBytecode contract := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement config gemJoinBytecode contract := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcage : selIs I (gemJoinSelBytes 0)
@@ -55,7 +56,7 @@ theorem gemJoinCorrect :
   · exact gemJoinNonPayable hcode hwv
 
 theorem gemJoinContractCorrect :
-    contractEquivalence config gemJoinCreationBytecode gemJoinBytecode contract :=
-  contractEquivalence.intro gemJoinConstructorCorrect gemJoinCorrect
+    contractRefinement config gemJoinCreationBytecode contract :=
+  contractRefinement.of_constant gemJoinConstructorCorrect gemJoinCorrect
 
 end Benchmarks.Dss.GemJoin

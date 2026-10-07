@@ -1393,7 +1393,7 @@ theorem vowFileAddressFlapperNopeNoCodeBodyCore
     (hcodeSizeNope :
       Reasoning.Theory.extCodeSizeWord σ
         (fileAddressVatTargetWord σ I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := fileAddressLocals I
   let callerSlot := vowCallerWardsSlot I
   have hauthSolm : vowSlotWord callerSlot σ I = ⟨1⟩ := hauthEvm
@@ -1472,7 +1472,7 @@ theorem vowFileAddressFlapperNopeCallFailureBodyCore
           (fileAddressVatAddressOf
             (initState σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
             (fun acc => acc.code.size))).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := fileAddressLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
@@ -1524,7 +1524,7 @@ theorem vowFileAddressFlapperHopeNoCodeBodyCore
         (((fileAddressSetFlapperEVM evmNope I).lookupAccount
           (fileAddressVatAddressOf (fileAddressSetFlapperEVM evmNope I))).option 0
             (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := fileAddressLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
@@ -1577,7 +1577,7 @@ theorem vowFileAddressFlapperHopeCallFailureBodyCore
         (((fileAddressSetFlapperEVM evmNope I).lookupAccount
           (fileAddressVatAddressOf (fileAddressSetFlapperEVM evmNope I))).option 0
             (fun acc => acc.code.size))).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := fileAddressLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
@@ -1632,7 +1632,7 @@ theorem vowFileAddressFlapperHopeSuccessBodyCore
           (fileAddressVatAddressOf (fileAddressSetFlapperEVM evmNope I))).option 0
             (fun acc => acc.code.size))).toNat)
     (hfinal : acc = evmHope.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := fileAddressLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :

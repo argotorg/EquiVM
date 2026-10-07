@@ -5,9 +5,8 @@ import Solm.Notation
 # UniswapV2Router02 spec in the Solidity-faithful Solm frontend
 
 The whole Router02 benchmark spec, written with `solidity%` and proven definitionally equal to
-the AST spec in `Spec.lean`.  The contract is parameterized by its two immutables
-(`factory`, `WETH`); immutable reads are `${factory v}` / `${WETH v}` escapes, and external
-calls whose receiver is an immutable (or a `path[…]` element) are `${[Stmt.externalCall …]}`
+the AST spec in `Spec.lean`.  The immutables `factory` and `WETH` are declared and assigned as in
+Solidity and read by name; external calls whose receiver is an immutable (or a `path[…]` element) are `${[Stmt.externalCall …]}`
 splices, with splice-bound binders read back via `${Expr.var …}`.  `abi.encodePacked`
 fixed-bytes pairs use the `T(T(e))` double annotation; the create2 init-code hash is the spec's
 own `initCodeHashLit`.  Transition order matches `contract.transitions` (selector order).
@@ -18,14 +17,16 @@ open Benchmarks.UniswapV2Router02.Immutables
 
 namespace Benchmarks.UniswapV2Router02.Syntax
 
-def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract UniswapV2Router02 {
+def contractSyntax : ContractDecl := solidity% contract UniswapV2Router02 {
+  address immutable factory;
+  address immutable WETH;
   constructor(address _factory, address _WETH) {
-    address imm_factory = _factory;
-    address imm_WETH = _WETH;
+    factory = _factory;
+    WETH = _WETH;
   }
 
   receive() external payable {
-    require(msg.sender == ${WETH v});
+    require(msg.sender == WETH);
     return;
   }
 
@@ -62,12 +63,12 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
   function pairFor(address factory_, address tokenA, address tokenB) internal returns (address) {
     var tokens = sortTokens(tokenA, tokenB);
     bytes32 salt = keccak256(abi.encodePacked(address(tokens.0), address(tokens.1)));
-    bytes32 raw = keccak256(abi.encodePacked(
+    bytes32 «raw» = keccak256(abi.encodePacked(
       bytes1(bytes1(0xff)),
       address(factory_),
       bytes32(salt),
       bytes32(${initCodeHashLit})));
-    return address(uint256(raw));
+    return address(uint256(«raw»));
   }
 
   function quoteBody(uint256 amountA, uint256 reserveA, uint256 reserveB) internal returns (uint256) {
@@ -271,20 +272,20 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
   }
 
   function factory() external returns (address) {
-    return ${factory v};
+    return factory;
   }
 
   function WETH() external returns (address) {
-    return ${WETH v};
+    return WETH;
   }
 
   function addLiquidity(address tokenA, address tokenB, uint256 amountADesired,
       uint256 amountBDesired, uint256 amountAMin, uint256 amountBMin, address «to»,
       uint256 deadline) external returns (uint256, uint256, uint256) {
     require(deadline >= block.timestamp);
-    var amounts = addLiquidityBody(${factory v}, tokenA, tokenB, amountADesired,
+    var amounts = addLiquidityBody(factory, tokenA, tokenB, amountADesired,
       amountBDesired, amountAMin, amountBMin);
-    var pair = pairFor(${factory v}, tokenA, tokenB);
+    var pair = pairFor(factory, tokenA, tokenB);
     var _a = safeTransferFrom(tokenA, msg.sender, pair, amounts.0);
     var _b = safeTransferFrom(tokenB, msg.sender, pair, amounts.1);
     var liquidity = pair.mint(«to»);
@@ -295,12 +296,12 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
       uint256 amountETHMin, address «to», uint256 deadline) external payable
       returns (uint256, uint256, uint256) {
     require(deadline >= block.timestamp);
-    var amounts = addLiquidityBody(${factory v}, token, ${WETH v}, amountTokenDesired,
+    var amounts = addLiquidityBody(factory, token, WETH, amountTokenDesired,
       msg.value, amountTokenMin, amountETHMin);
-    var pair = pairFor(${factory v}, token, ${WETH v});
+    var pair = pairFor(factory, token, WETH);
     var _t = safeTransferFrom(token, msg.sender, pair, amounts.0);
-    ${[Stmt.externalCall (WETH v) "deposit" (tuple1 (.var "amounts")) [] "_d",
-       Stmt.externalCall (WETH v) "transfer" (.intLit 0)
+    ${[Stmt.externalCall WETH "deposit" (tuple1 (.var "amounts")) [] "_d",
+       Stmt.externalCall WETH "transfer" (.intLit 0)
          [.var "pair", tuple1 (.var "amounts")] "wethTransferOk",
        Stmt.require (.var "wethTransferOk")]}
     var liquidity = pair.mint(«to»);
@@ -313,14 +314,14 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
   function removeLiquidity(address tokenA, address tokenB, uint256 liquidity,
       uint256 amountAMin, uint256 amountBMin, address «to», uint256 deadline)
       external returns (uint256, uint256) {
-    var amounts = removeLiquidityBody(${factory v}, tokenA, tokenB, liquidity,
+    var amounts = removeLiquidityBody(factory, tokenA, tokenB, liquidity,
       amountAMin, amountBMin, «to», deadline);
     return (amounts.0, amounts.1);
   }
 
   function removeLiquidityETH(address token, uint256 liquidity, uint256 amountTokenMin,
       uint256 amountETHMin, address «to», uint256 deadline) external returns (uint256, uint256) {
-    var amounts = removeLiquidityETHBody(${factory v}, ${WETH v}, token, liquidity,
+    var amounts = removeLiquidityETHBody(factory, WETH, token, liquidity,
       amountTokenMin, amountETHMin, «to», deadline);
     return (amounts.0, amounts.1);
   }
@@ -328,10 +329,10 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
   function removeLiquidityWithPermit(address tokenA, address tokenB, uint256 liquidity,
       uint256 amountAMin, uint256 amountBMin, address «to», uint256 deadline, bool approveMax,
       uint8 v, bytes32 r, bytes32 s) external returns (uint256, uint256) {
-    var pair = pairFor(${factory v}, tokenA, tokenB);
+    var pair = pairFor(factory, tokenA, tokenB);
     var _permit = pair.permit(msg.sender, address(this),
       approveMax ? type(uint256).max : liquidity, deadline, v, r, s);
-    var amounts = removeLiquidityBody(${factory v}, tokenA, tokenB, liquidity,
+    var amounts = removeLiquidityBody(factory, tokenA, tokenB, liquidity,
       amountAMin, amountBMin, «to», deadline);
     return (amounts.0, amounts.1);
   }
@@ -339,10 +340,10 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
   function removeLiquidityETHWithPermit(address token, uint256 liquidity,
       uint256 amountTokenMin, uint256 amountETHMin, address «to», uint256 deadline,
       bool approveMax, uint8 v, bytes32 r, bytes32 s) external returns (uint256, uint256) {
-    var pair = pairFor(${factory v}, token, ${WETH v});
+    var pair = pairFor(factory, token, WETH);
     var _permit = pair.permit(msg.sender, address(this),
       approveMax ? type(uint256).max : liquidity, deadline, v, r, s);
-    var amounts = removeLiquidityETHBody(${factory v}, ${WETH v}, token, liquidity,
+    var amounts = removeLiquidityETHBody(factory, WETH, token, liquidity,
       amountTokenMin, amountETHMin, «to», deadline);
     return (amounts.0, amounts.1);
   }
@@ -350,7 +351,7 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
   function removeLiquidityETHSupportingFeeOnTransferTokens(address token, uint256 liquidity,
       uint256 amountTokenMin, uint256 amountETHMin, address «to», uint256 deadline)
       external returns (uint256) {
-    var amountETH = removeLiquidityETHSupportingFeeBody(${factory v}, ${WETH v}, token,
+    var amountETH = removeLiquidityETHSupportingFeeBody(factory, WETH, token,
       liquidity, amountTokenMin, amountETHMin, «to», deadline);
     return amountETH;
   }
@@ -359,10 +360,10 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
       uint256 liquidity, uint256 amountTokenMin, uint256 amountETHMin, address «to»,
       uint256 deadline, bool approveMax, uint8 v, bytes32 r, bytes32 s)
       external returns (uint256) {
-    var pair = pairFor(${factory v}, token, ${WETH v});
+    var pair = pairFor(factory, token, WETH);
     var _permit = pair.permit(msg.sender, address(this),
       approveMax ? type(uint256).max : liquidity, deadline, v, r, s);
-    var amountETH = removeLiquidityETHSupportingFeeBody(${factory v}, ${WETH v}, token,
+    var amountETH = removeLiquidityETHSupportingFeeBody(factory, WETH, token,
       liquidity, amountTokenMin, amountETHMin, «to», deadline);
     return amountETH;
   }
@@ -370,50 +371,50 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
   function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] path,
       address «to», uint256 deadline) external returns (uint256[]) {
     require(deadline >= block.timestamp);
-    var amounts = getAmountsOutBody(${factory v}, amountIn, path);
+    var amounts = getAmountsOutBody(factory, amountIn, path);
     require(amounts[amounts.length - 1] >= amountOutMin);
-    var firstPair = pairFor(${factory v}, path[0], path[1]);
+    var firstPair = pairFor(factory, path[0], path[1]);
     var _t = safeTransferFrom(path[0], msg.sender, firstPair, amounts[0]);
-    var _swap = swapBody(${factory v}, amounts, path, «to»);
+    var _swap = swapBody(factory, amounts, path, «to»);
     return amounts;
   }
 
   function swapTokensForExactTokens(uint256 amountOut, uint256 amountInMax, address[] path,
       address «to», uint256 deadline) external returns (uint256[]) {
     require(deadline >= block.timestamp);
-    var amounts = getAmountsInBody(${factory v}, amountOut, path);
+    var amounts = getAmountsInBody(factory, amountOut, path);
     require(amounts[0] <= amountInMax);
-    var firstPair = pairFor(${factory v}, path[0], path[1]);
+    var firstPair = pairFor(factory, path[0], path[1]);
     var _t = safeTransferFrom(path[0], msg.sender, firstPair, amounts[0]);
-    var _swap = swapBody(${factory v}, amounts, path, «to»);
+    var _swap = swapBody(factory, amounts, path, «to»);
     return amounts;
   }
 
   function swapExactETHForTokens(uint256 amountOutMin, address[] path, address «to»,
       uint256 deadline) external payable returns (uint256[]) {
     require(deadline >= block.timestamp);
-    require(path[0] == ${WETH v});
-    var amounts = getAmountsOutBody(${factory v}, msg.value, path);
+    require(path[0] == WETH);
+    var amounts = getAmountsOutBody(factory, msg.value, path);
     require(amounts[amounts.length - 1] >= amountOutMin);
-    ${[Stmt.externalCall (WETH v) "deposit" (arrGet "amounts" (.intLit 0)) [] "_d"]}
-    var firstPair = pairFor(${factory v}, path[0], path[1]);
-    ${[Stmt.externalCall (WETH v) "transfer" (.intLit 0)
+    ${[Stmt.externalCall WETH "deposit" (arrGet "amounts" (.intLit 0)) [] "_d"]}
+    var firstPair = pairFor(factory, path[0], path[1]);
+    ${[Stmt.externalCall WETH "transfer" (.intLit 0)
          [.var "firstPair", arrGet "amounts" (.intLit 0)] "wethTransferOk",
        Stmt.require (.var "wethTransferOk")]}
-    var _swap = swapBody(${factory v}, amounts, path, «to»);
+    var _swap = swapBody(factory, amounts, path, «to»);
     return amounts;
   }
 
   function swapTokensForExactETH(uint256 amountOut, uint256 amountInMax, address[] path,
       address «to», uint256 deadline) external returns (uint256[]) {
     require(deadline >= block.timestamp);
-    require(path[path.length - 1] == ${WETH v});
-    var amounts = getAmountsInBody(${factory v}, amountOut, path);
+    require(path[path.length - 1] == WETH);
+    var amounts = getAmountsInBody(factory, amountOut, path);
     require(amounts[0] <= amountInMax);
-    var firstPair = pairFor(${factory v}, path[0], path[1]);
+    var firstPair = pairFor(factory, path[0], path[1]);
     var _t = safeTransferFrom(path[0], msg.sender, firstPair, amounts[0]);
-    var _swap = swapBody(${factory v}, amounts, path, address(this));
-    ${[Stmt.externalCall (WETH v) "withdraw" (.intLit 0)
+    var _swap = swapBody(factory, amounts, path, address(this));
+    ${[Stmt.externalCall WETH "withdraw" (.intLit 0)
          [arrGet "amounts" (lastIndex "amounts")] "_w"]}
     var _eth = safeTransferETH(«to», amounts[amounts.length - 1]);
     return amounts;
@@ -422,13 +423,13 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
   function swapExactTokensForETH(uint256 amountIn, uint256 amountOutMin, address[] path,
       address «to», uint256 deadline) external returns (uint256[]) {
     require(deadline >= block.timestamp);
-    require(path[path.length - 1] == ${WETH v});
-    var amounts = getAmountsOutBody(${factory v}, amountIn, path);
+    require(path[path.length - 1] == WETH);
+    var amounts = getAmountsOutBody(factory, amountIn, path);
     require(amounts[amounts.length - 1] >= amountOutMin);
-    var firstPair = pairFor(${factory v}, path[0], path[1]);
+    var firstPair = pairFor(factory, path[0], path[1]);
     var _t = safeTransferFrom(path[0], msg.sender, firstPair, amounts[0]);
-    var _swap = swapBody(${factory v}, amounts, path, address(this));
-    ${[Stmt.externalCall (WETH v) "withdraw" (.intLit 0)
+    var _swap = swapBody(factory, amounts, path, address(this));
+    ${[Stmt.externalCall WETH "withdraw" (.intLit 0)
          [arrGet "amounts" (lastIndex "amounts")] "_w"]}
     var _eth = safeTransferETH(«to», amounts[amounts.length - 1]);
     return amounts;
@@ -437,15 +438,15 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
   function swapETHForExactTokens(uint256 amountOut, address[] path, address «to»,
       uint256 deadline) external payable returns (uint256[]) {
     require(deadline >= block.timestamp);
-    require(path[0] == ${WETH v});
-    var amounts = getAmountsInBody(${factory v}, amountOut, path);
+    require(path[0] == WETH);
+    var amounts = getAmountsInBody(factory, amountOut, path);
     require(amounts[0] <= msg.value);
-    ${[Stmt.externalCall (WETH v) "deposit" (arrGet "amounts" (.intLit 0)) [] "_d"]}
-    var firstPair = pairFor(${factory v}, path[0], path[1]);
-    ${[Stmt.externalCall (WETH v) "transfer" (.intLit 0)
+    ${[Stmt.externalCall WETH "deposit" (arrGet "amounts" (.intLit 0)) [] "_d"]}
+    var firstPair = pairFor(factory, path[0], path[1]);
+    ${[Stmt.externalCall WETH "transfer" (.intLit 0)
          [.var "firstPair", arrGet "amounts" (.intLit 0)] "wethTransferOk",
        Stmt.require (.var "wethTransferOk")]}
-    var _swap = swapBody(${factory v}, amounts, path, «to»);
+    var _swap = swapBody(factory, amounts, path, «to»);
     if (msg.value > amounts[0]) {
       var _refund = safeTransferETH(msg.sender, (msg.value - amounts[0]) as uint256);
     }
@@ -455,11 +456,11 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
   function swapExactTokensForTokensSupportingFeeOnTransferTokens(uint256 amountIn,
       uint256 amountOutMin, address[] path, address «to», uint256 deadline) external {
     require(deadline >= block.timestamp);
-    var firstPair = pairFor(${factory v}, path[0], path[1]);
+    var firstPair = pairFor(factory, path[0], path[1]);
     var _t = safeTransferFrom(path[0], msg.sender, firstPair, amountIn);
     ${[Stmt.externalCall (arrGet "path" (lastIndex "path")) "balanceOf" (.intLit 0)
          [.var "to"] "balanceBefore" false]}
-    var _swap = swapSupportingFeeBody(${factory v}, path, «to»);
+    var _swap = swapSupportingFeeBody(factory, path, «to»);
     ${[Stmt.externalCall (arrGet "path" (lastIndex "path")) "balanceOf" (.intLit 0)
          [.var "to"] "balanceAfter" false]}
     var delta = safeSub(${Expr.var "balanceAfter"}, ${Expr.var "balanceBefore"});
@@ -470,16 +471,16 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
   function swapExactETHForTokensSupportingFeeOnTransferTokens(uint256 amountOutMin,
       address[] path, address «to», uint256 deadline) external payable {
     require(deadline >= block.timestamp);
-    require(path[0] == ${WETH v});
+    require(path[0] == WETH);
     uint256 amountIn = msg.value;
-    ${[Stmt.externalCall (WETH v) "deposit" (.var "amountIn") [] "_d"]}
-    var firstPair = pairFor(${factory v}, path[0], path[1]);
-    ${[Stmt.externalCall (WETH v) "transfer" (.intLit 0)
+    ${[Stmt.externalCall WETH "deposit" (.var "amountIn") [] "_d"]}
+    var firstPair = pairFor(factory, path[0], path[1]);
+    ${[Stmt.externalCall WETH "transfer" (.intLit 0)
          [.var "firstPair", .var "amountIn"] "wethTransferOk",
        Stmt.require (.var "wethTransferOk"),
        Stmt.externalCall (arrGet "path" (lastIndex "path")) "balanceOf" (.intLit 0)
          [.var "to"] "balanceBefore" false]}
-    var _swap = swapSupportingFeeBody(${factory v}, path, «to»);
+    var _swap = swapSupportingFeeBody(factory, path, «to»);
     ${[Stmt.externalCall (arrGet "path" (lastIndex "path")) "balanceOf" (.intLit 0)
          [.var "to"] "balanceAfter" false]}
     var delta = safeSub(${Expr.var "balanceAfter"}, ${Expr.var "balanceBefore"});
@@ -490,13 +491,13 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
   function swapExactTokensForETHSupportingFeeOnTransferTokens(uint256 amountIn,
       uint256 amountOutMin, address[] path, address «to», uint256 deadline) external {
     require(deadline >= block.timestamp);
-    require(path[path.length - 1] == ${WETH v});
-    var firstPair = pairFor(${factory v}, path[0], path[1]);
+    require(path[path.length - 1] == WETH);
+    var firstPair = pairFor(factory, path[0], path[1]);
     var _t = safeTransferFrom(path[0], msg.sender, firstPair, amountIn);
-    var _swap = swapSupportingFeeBody(${factory v}, path, address(this));
-    ${[Stmt.externalCall (WETH v) "balanceOf" (.intLit 0) [thisAddr] "amountOut" false]}
+    var _swap = swapSupportingFeeBody(factory, path, address(this));
+    ${[Stmt.externalCall WETH "balanceOf" (.intLit 0) [thisAddr] "amountOut" false]}
     require(${Expr.var "amountOut"} >= amountOutMin);
-    ${[Stmt.externalCall (WETH v) "withdraw" (.intLit 0) [.var "amountOut"] "_w"]}
+    ${[Stmt.externalCall WETH "withdraw" (.intLit 0) [.var "amountOut"] "_w"]}
     var _eth = safeTransferETH(«to», ${Expr.var "amountOut"});
     return;
   }
@@ -519,17 +520,17 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
   }
 
   function getAmountsOut(uint256 amountIn, address[] path) external returns (uint256[]) {
-    var amounts = getAmountsOutBody(${factory v}, amountIn, path);
+    var amounts = getAmountsOutBody(factory, amountIn, path);
     return amounts;
   }
 
   function getAmountsIn(uint256 amountOut, address[] path) external returns (uint256[]) {
-    var amounts = getAmountsInBody(${factory v}, amountOut, path);
+    var amounts = getAmountsInBody(factory, amountOut, path);
     return amounts;
   }
 }
 
-theorem contractSyntax_eq (v : RouterImmutables) :
-    contractSyntax v = Benchmarks.UniswapV2Router02.contract v := by rfl
+theorem contractSyntax_eq :
+    contractSyntax = Benchmarks.UniswapV2Router02.contract := by rfl
 
 end Benchmarks.UniswapV2Router02.Syntax

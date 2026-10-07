@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Flopper.Common
 import Reasoning.Initcode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Flopper constructor shared helpers

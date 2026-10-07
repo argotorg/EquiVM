@@ -1150,7 +1150,7 @@ theorem vowFlogBodyCore
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨781⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hfitWait :
       (flogEra I).toNat + (vowSlotWord ⟨7⟩ σ I).toNat < UInt256.size
   · by_cases hready : (flogEra I + vowSlotWord ⟨7⟩ σ I).toNat ≤
@@ -1224,7 +1224,7 @@ theorem vowFlogBody {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0xd7, 0xee, 0x67, 0x4b]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size := by omega
   exact vowFlogBodyCore hcode hwv hperm hsz36 hsize (vowDispatch_flog hsel)
     (by simpa [flogLocals] using vowDecode_flog_ok (I := I) hsz36)
@@ -1237,7 +1237,7 @@ theorem vowFlogShort {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xd7, 0xee, 0x67, 0x4b]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hreach :=
     vowReachFlogBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)

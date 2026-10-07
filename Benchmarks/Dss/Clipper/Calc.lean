@@ -14,18 +14,18 @@ theorem clipperCalcSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
     solcSelectorWord_eq_of_beq I hsz 0x96 0xf1 0xb6 0xbe (clipperSelNat 2)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_calc (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_calc {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 2)) :
-    dispatchMsg (contract v) I.calldata = some calcTransition := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some calcTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre := [activeTransition, bufTransition])
     (post :=
       [chipTransition, chostTransition, countTransition, cuspTransition, denyTransition,
         dogTransition, fileUintTransition, fileAddressTransition, getStatusTransition,
-        ilkTransition v, kickTransition v, kicksTransition, listTransition, redoTransition v,
+        ilkTransition, kickTransition, kicksTransition, listTransition, redoTransition,
         relyTransition, salesTransition, spotterTransition, stoppedTransition, tailTransition,
-        takeTransition v, tipTransition, upchostTransition v, vatTransition v, vowTransition,
-        wardsTransition, yankTransition v])
+        takeTransition, tipTransition, upchostTransition, vatTransition, vowTransition,
+        wardsTransition, yankTransition])
     (ti := calcTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
@@ -39,29 +39,29 @@ theorem clipperDispatch_calc (v : ClipperImmutables) {I : ExecutionEnv}
   · rw [selectorOf, calcSelectorBytes]
     simpa [clipperSelBytes] using hsel
 
-theorem clipperDecode_calc (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_calc {I : ExecutionEnv}
     (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (calcTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (calcTransition.params.map Param.name)
       (transitionSignature calcTransition).paramTypes I.calldata = some ∅ := by
-  show decodeCalldataWithMode (config v).abiDecodeMode [] [] I.calldata = some ∅
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldataWithMode_empty_ok hsz
 
 theorem clipperEvalCalc (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "calc" = none) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.storage calcRef) =
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨4⟩)
           solcAddrMask).toNat)) := by
   let er : EvaledStorageRef := { base := "calc", steps := [] }
-  have her : evalStorageRef (config v)
-      { contract := contract v, locals := locals } evm calcRef = .ok er := by
+  have her : evalStorageRef config
+      { contract := contract, locals := locals, immutables := immStore v } evm calcRef = .ok er := by
     unfold evalStorageRef calcRef
     simp only [evalStorageRefSteps]
     rfl
-  have hty : storageTypeAt? (contract v).storage er = some (.elem .address) := by
+  have hty : storageTypeAt? contract.storage er = some (.elem .address) := by
     simp [er, storageTypeAt?, contract, storageDecls, addrSt]
-  have hloc : (config v).storage.layout er = fun _ => some (addrLoc ⟨4⟩) := by
+  have hloc : config.storage.layout er = fun _ => some (addrLoc ⟨4⟩) := by
     funext evm'
     rfl
   exact evalExpr_storage_scalar_value hbase her hty hloc
@@ -69,13 +69,13 @@ theorem clipperEvalCalc (v : ClipperImmutables) (evm : EVM.State) (locals : Stor
 
 theorem clipperCalcBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "calc" = none) :
-    ExecTransitionBody (config v) (contract v) evm locals calcTransition.body
-      (.returned { contract := contract v, locals := locals } evm
+    ExecTransitionBody config contract evm locals calcTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨4⟩)
-            solcAddrMask).toNat))])) := by
+            solcAddrMask).toNat))])) (immStore v) := by
   simpa [calcTransition] using
-    nonpayableReturnExprBodyReturns (cfg := config v) (contract := contract v) h
+    nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h
       (clipperEvalCalc v evm locals hbase)
 
 set_option maxHeartbeats 1000000 in
@@ -272,16 +272,16 @@ theorem clipperCalcBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 2)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 2) (by native_decide) hsel
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ calcTransition.body
-        (.returned { contract := contract v, locals := ∅ }
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (UInt256.land (solcSlotWord σ I ⟨4⟩) solcAddrMask).toNat))])) := by
+            (UInt256.land (solcSlotWord σ I ⟨4⟩) solcAddrMask).toNat))])) (immStore v) := by
     simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       clipperCalcBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -296,7 +296,7 @@ theorem clipperCalcBody (v : ClipperImmutables) {code : ByteArray}
     (g := g) (sel := clipperSelWord I) (transition := calcTransition)
     (entry := (⟨1115⟩ : UInt256)) (routine := (⟨6503⟩ : UInt256))
     (slot := (⟨4⟩ : UInt256)) (returnPc := (⟨716⟩ : UInt256))
-    hcode (clipperDispatch_calc v hsel) (clipperDecode_calc v hsz) hreach
+    hcode (clipperDispatch_calc hsel) (clipperDecode_calc hsz) hreach
     (clipperCalcGetterEntryWf v hpatch) (clipperCalcSlotGetterWf v hpatch) hroutine
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨716⟩ : UInt256) (by native_decide))
     (clipperReturnAddress716Wf v hpatch) (by rfl) hbody

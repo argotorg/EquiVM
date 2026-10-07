@@ -640,7 +640,7 @@ theorem cureRelyBodyCore {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 12)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let sel := cureSelWord I
   let key := relyKey I
   let slot := solcMappingSlot ⟨0⟩ key

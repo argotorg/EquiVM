@@ -20,6 +20,7 @@ import Benchmarks.Auction.SettleCurrentAndCreateNewAuction
 import Benchmarks.Auction.TransferOwnership
 import Benchmarks.Auction.Constructor
 import Benchmarks.Auction.Dispatcher
+import Solm.Refine
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -34,7 +35,7 @@ end Auction
 open Auction
 
 theorem auctionCorrect :
-    runtimeEquivalence auctionConfig auctionBytecode Auction.auctionContract := by
+    runtimeRefinement auctionConfig auctionBytecode Auction.auctionContract := by
   refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   swap
@@ -124,6 +125,6 @@ theorem auctionCorrect :
   · exact h19
 
 theorem auctionContractCorrect :
-    contractEquivalence auctionConfig auctionCreationBytecode auctionBytecode
+    contractRefinement auctionConfig auctionCreationBytecode
       Auction.auctionContract :=
-  contractEquivalence.intro auctionConstructorCorrect auctionCorrect
+  contractRefinement.of_constant auctionConstructorCorrect auctionCorrect

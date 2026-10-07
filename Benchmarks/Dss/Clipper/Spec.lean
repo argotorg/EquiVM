@@ -309,8 +309,8 @@ def constructorDecl : ConstructorDecl :=
         { name := "dog_", ty := addr }, { name := "ilk_", ty := bytes32 } ]
     body :=
       [ .assign .storage stoppedRef (.intLit 0) ] ++ nonpayable ++
-      [ .letDecl "imm_vat" (some addr) (.var "vat_"),
-        .letDecl "imm_ilk" (some bytes32) (.var "ilk_"),
+      [ .setImmutable "vat" (.var "vat_"),
+        .setImmutable "ilk" (.var "ilk_"),
         .assign .storage spotterRef (.var "spotter_"),
         .assign .storage dogRef (.var "dog_"),
         .assign .storage bufRef (.intLit RAY),
@@ -345,13 +345,13 @@ def rdivFunction : FunctionDecl :=
     returnType := [uint256],
     body := [ .internalCall "mul" [.var "x", .intLit RAY] "xray", .return [.binary .div (.var "xray") (.var "y")] ] }
 
-def getFeedPriceFunction (v : ClipperImmutables) : FunctionDecl :=
+def getFeedPriceFunction : FunctionDecl :=
   { name := "getFeedPrice"
     params := []
     returnType := [uint256]
     body :=
       checkedExternalCallStmts (.storage spotterRef) "spotterIlks" (.intLit 0)
-        [ilkExpr v] "spotterIlk" ++
+        [ilkExpr] "spotterIlk" ++
       [ .letDecl "pip" (some addr) (tuple0 (.var "spotterIlk")) ] ++
       checkedExternalCallStmts (.var "pip") "peek" (.intLit 0) [] "peekRet" ++
       [ .letDecl "val" (some bytes32) (tuple0 (.var "peekRet")),
@@ -398,9 +398,9 @@ def removeFunction : FunctionDecl :=
         .pop activeRef,
         .delete (saleRef (.var "id")) ] }
 
-def functions (v : ClipperImmutables) : List FunctionDecl :=
+def functions : List FunctionDecl :=
   [minFunction, addFunction, subFunction, mulFunction, wmulFunction, rmulFunction, rdivFunction,
-   getFeedPriceFunction v, statusFunction, removeFunction]
+   getFeedPriceFunction, statusFunction, removeFunction]
 
 /-! ## Getters and views -/
 
@@ -420,8 +420,8 @@ def chostTransition : TransitionDecl := { name := "chost", params := [], returnT
 def kicksTransition : TransitionDecl := { name := "kicks", params := [], returnType := [uint256], body := nonpayable ++ [ .return [.storage kicksRef] ] }
 def stoppedTransition : TransitionDecl := { name := "stopped", params := [], returnType := [uint256], body := nonpayable ++ [ .return [.storage stoppedRef] ] }
 def activeTransition : TransitionDecl := { name := "active", params := [{ name := "arg0", ty := uint256 }], returnType := [uint256], body := nonpayable ++ [ .return [.storage (activeElemRef (.var "arg0"))] ] }
-def vatTransition (v : ClipperImmutables) : TransitionDecl := { name := "vat", params := [], returnType := [addr], body := nonpayable ++ [ .return [vatExpr v] ] }
-def ilkTransition (v : ClipperImmutables) : TransitionDecl := { name := "ilk", params := [], returnType := [bytes32], body := nonpayable ++ [ .return [ilkExpr v] ] }
+def vatTransition : TransitionDecl := { name := "vat", params := [], returnType := [addr], body := nonpayable ++ [ .return [vatExpr] ] }
+def ilkTransition : TransitionDecl := { name := "ilk", params := [], returnType := [bytes32], body := nonpayable ++ [ .return [ilkExpr] ] }
 def countTransition : TransitionDecl := { name := "count", params := [], returnType := [uint256], body := nonpayable ++ [ .return [.arrayLength .storage activeRef] ] }
 def listTransition : TransitionDecl := { name := "list", params := [], returnType := [uint256Array], body := nonpayable ++ [ .return [.storage activeRef] ] }
 
@@ -489,7 +489,7 @@ def fileAddressTransition : TransitionDecl :=
               [ .require (.boolLit false) ] ] ] ],
         .assign .storage lockedRef (.intLit 0) ] }
 
-def kickTransition (v : ClipperImmutables) : TransitionDecl :=
+def kickTransition : TransitionDecl :=
   { name := "kick"
     params :=
       [ { name := "tab", ty := uint256 }, { name := "lot", ty := uint256 },
@@ -521,13 +521,13 @@ def kickTransition (v : ClipperImmutables) : TransitionDecl :=
           ([ .internalCall "wmul" [.var "tab", .var "_chip"] "chipCoin" ] ++
             checkedAddUintInto "coinNew" (.var "_tip") (.var "chipCoin") ++
             [ .assign .localVar (varRef "coin") (.var "coinNew") ] ++
-            checkedExternalCallStmts (vatExpr v) "suck" (.intLit 0)
+            checkedExternalCallStmts (vatExpr) "suck" (.intLit 0)
               [.storage vowRef, .var "kpr", .var "coin"] "_suckRet")
           [],
         .assign .storage lockedRef (.intLit 0),
         .return [.var "id"] ] }
 
-def redoTransition (v : ClipperImmutables) : TransitionDecl :=
+def redoTransition : TransitionDecl :=
   { name := "redo"
     params := [{ name := "id", ty := uint256 }, { name := "kpr", ty := addr }]
     returnType := []
@@ -559,14 +559,14 @@ def redoTransition (v : ClipperImmutables) : TransitionDecl :=
                     (.binary .ge (.var "lotFeed") (.var "_chost"))
                     ([ .internalCall "wmul" [.var "tab", .var "_chip"] "chipCoin" ] ++
                       checkedAddUintInto "coin" (.var "_tip") (.var "chipCoin") ++
-                      checkedExternalCallStmts (vatExpr v) "suck" (.intLit 0)
+                      checkedExternalCallStmts (vatExpr) "suck" (.intLit 0)
                         [.storage vowRef, .var "kpr", .var "coin"] "_suckRet")
                     [] ])
               [] ]
           [],
         .assign .storage lockedRef (.intLit 0) ] }
 
-def takeTransition (v : ClipperImmutables) : TransitionDecl :=
+def takeTransition : TransitionDecl :=
   { name := "take"
     params :=
       [ { name := "id", ty := uint256 }, { name := "amt", ty := uint256 },
@@ -607,83 +607,84 @@ def takeTransition (v : ClipperImmutables) : TransitionDecl :=
       wrappingSubInto "lotNew" (.var "lot") (.var "slice") ++
       [ .assign .localVar (varRef "tab") (.var "tabNew"),
         .assign .localVar (varRef "lot") (.var "lotNew") ] ++
-      checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
-        [ilkExpr v, thisAddr, .var "who", .var "slice"] "_fluxBuyerRet" ++
+      checkedExternalCallStmts (vatExpr) "flux" (.intLit 0)
+        [ilkExpr, thisAddr, .var "who", .var "slice"] "_fluxBuyerRet" ++
       [ .letDecl "dog_" (some addr) (.storage dogRef),
         .ite
           (.binary .and
             (.binary .gt (bytesLength "data") (.intLit 0))
             (.binary .and
-              (.binary .ne (.var "who") (vatExpr v))
+              (.binary .ne (.var "who") (vatExpr))
               (.binary .ne (.var "who") (.var "dog_"))))
           (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
             [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet")
           [] ] ++
-      checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+      checkedExternalCallStmts (vatExpr) "move" (.intLit 0)
         [sender, .storage vowRef, .var "owe"] "_moveRet" ++
       [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
           (wrappingAddInto "digsAmt" (.var "tab") (.var "owe") ++
             checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
-              [ilkExpr v, .var "digsAmt"] "_digsRet")
+              [ilkExpr, .var "digsAmt"] "_digsRet")
           (checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
-            [ilkExpr v, .var "owe"] "_digsRet"),
+            [ilkExpr, .var "owe"] "_digsRet"),
         .ite
           (.binary .eq (.var "lot") (.intLit 0))
           [ .internalCall "_remove" [.var "id"] "_removeRet" ]
           [ .ite
               (.binary .eq (.var "tab") (.intLit 0))
-              (checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
-                [ilkExpr v, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
+              (checkedExternalCallStmts (vatExpr) "flux" (.intLit 0)
+                [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
                 [ .internalCall "_remove" [.var "id"] "_removeRet2" ])
               [ .assign .storage (salesF (.var "id") "tab") (.var "tab"),
                 .assign .storage (salesF (.var "id") "lot") (.var "lot") ] ],
         .assign .storage lockedRef (.intLit 0) ] }
 
-def upchostTransition (v : ClipperImmutables) : TransitionDecl :=
+def upchostTransition : TransitionDecl :=
   { name := "upchost"
     params := []
     returnType := []
     body := nonpayable ++
-      checkedExternalCallStmts (vatExpr v) "vatIlks" (.intLit 0) [ilkExpr v] "vatIlk" ++
+      checkedExternalCallStmts (vatExpr) "vatIlks" (.intLit 0) [ilkExpr] "vatIlk" ++
       [ .letDecl "_dust" (some uint256) (.tupleGet (.var "vatIlk") 4) ] ++
-      checkedExternalCallStmts (.storage dogRef) "chop" (.intLit 0) [ilkExpr v] "chop" ++
+      checkedExternalCallStmts (.storage dogRef) "chop" (.intLit 0) [ilkExpr] "chop" ++
       [ .internalCall "wmul" [.var "_dust", .var "chop"] "chostNew",
         .assign .storage chostRef (.var "chostNew") ] }
 
-def yankTransition (v : ClipperImmutables) : TransitionDecl :=
+def yankTransition : TransitionDecl :=
   { name := "yank"
     params := [{ name := "id", ty := uint256 }]
     returnType := []
     body := nonpayable ++ auth ++ lockPrefix ++
       [ .require (.binary .ne (.storage (salesF (.var "id") "usr")) zeroAddr) ] ++
       checkedExternalCallStmts (.storage dogRef) "digs" (.intLit 0)
-        [ilkExpr v, .storage (salesF (.var "id") "tab")] "_digsRet" ++
-      checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
-        [ilkExpr v, thisAddr, sender, .storage (salesF (.var "id") "lot")] "_fluxRet" ++
+        [ilkExpr, .storage (salesF (.var "id") "tab")] "_digsRet" ++
+      checkedExternalCallStmts (vatExpr) "flux" (.intLit 0)
+        [ilkExpr, thisAddr, sender, .storage (salesF (.var "id") "lot")] "_fluxRet" ++
       [ .internalCall "_remove" [.var "id"] "_removeRet",
         .assign .storage lockedRef (.intLit 0) ] }
 
-def transitions (v : ClipperImmutables) : List TransitionDecl :=
+def transitions : List TransitionDecl :=
   [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
    countTransition, cuspTransition, denyTransition, dogTransition, fileUintTransition,
-   fileAddressTransition, getStatusTransition, ilkTransition v, kickTransition v,
-   kicksTransition, listTransition, redoTransition v, relyTransition, salesTransition,
-   spotterTransition, stoppedTransition, tailTransition, takeTransition v, tipTransition,
-   upchostTransition v, vatTransition v, vowTransition, wardsTransition, yankTransition v]
+   fileAddressTransition, getStatusTransition, ilkTransition, kickTransition,
+   kicksTransition, listTransition, redoTransition, relyTransition, salesTransition,
+   spotterTransition, stoppedTransition, tailTransition, takeTransition, tipTransition,
+   upchostTransition, vatTransition, vowTransition, wardsTransition, yankTransition]
 
-def contract (v : ClipperImmutables) : ContractDecl :=
+def contract : ContractDecl :=
   { name := "Clipper"
     storage := storageDecls
+    immutables := [⟨"vat", .address⟩, ⟨"ilk", .bytes ⟨31, by decide⟩⟩]
     ctor := constructorDecl
     structs := structs
-    functions := functions v
-    transitions := transitions v }
+    functions := functions
+    transitions := transitions }
 
-def config (v : ClipperImmutables) : Config :=
+def config : Config :=
   { storage := storageLayout
     externalABI := externalABI
     abiDecodeMode := DecodeMode.legacySolc05
-    selfDeployment := genSolidityConstructorDeployment (contract v).ctor.params }
+    selfDeployment := genSolidityConstructorDeployment (contract).ctor.params }
 
 end Benchmarks.Dss.Clipper

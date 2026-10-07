@@ -1901,7 +1901,7 @@ theorem flapperDealBodyReverts_fillSubUnderflow
         (.internalCall "sub" [.storage fillRef, .var "lot"] "fillNew") .reverted :=
     internalCallFunctionRevert
       (cfg := config)
-      (caller := Frame.mk contract (dealBurnLocals evm I))
+      (caller := Frame.mk contract (dealBurnLocals evm I) ∅)
       (evm := evmDelete) (name := "sub") (retVar := "fillNew")
       (args := [.storage fillRef, .var "lot"])
       (argVals := [.int (Int.ofNat (dealFillWord evmDelete).toNat),
@@ -2008,7 +2008,7 @@ theorem flapperDealBodyReturns_success
           evmDelete) := by
     have h := internalCallFunctionReturn
       (cfg := config)
-      (caller := Frame.mk contract (dealBurnLocals evm I))
+      (caller := Frame.mk contract (dealBurnLocals evm I) ∅)
       (evm := evmDelete) (name := "sub") (retVar := "fillNew")
       (args := [.storage fillRef, .var "lot"])
       (argVals := [.int (Int.ofNat (dealFillWord evmDelete).toNat),
@@ -3920,7 +3920,7 @@ theorem flapperDealBodyCoreNotLive
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨767⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveSolmWord : flapperSlotWord ⟨7⟩ σ I ≠ ⟨1⟩ := hlive
   have hbody :
@@ -3949,7 +3949,7 @@ theorem flapperDealBodyCoreTicZero
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨767⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveSolmWord : flapperSlotWord ⟨7⟩ σ I = ⟨1⟩ := hlive
   have hticSolm : dealTicWord evmSolm I = ⟨0⟩ := by
@@ -3989,7 +3989,7 @@ theorem flapperDealBodyCoreNotFinished
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨767⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveSolmWord : flapperSlotWord ⟨7⟩ σ I = ⟨1⟩ := hlive
   have hticSolm : dealTicWord evmSolm I ≠ ⟨0⟩ := by
@@ -4036,7 +4036,7 @@ theorem flapperDealBodyCoreMoveNoCode
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨767⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveSolmWord : flapperSlotWord ⟨7⟩ σ I = ⟨1⟩ := hlive
   have hticSolm : dealTicWord evmSolm I ≠ ⟨0⟩ := by
@@ -4116,7 +4116,7 @@ theorem flapperDealBodyCoreMoveCallFailure
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dealTransition.params.map Param.name)
         (transitionSignature dealTransition).paramTypes I.calldata = some (dealLocals I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmCallSolm : EVM.State :=
     { evmSolm with accountMap := σ', substate := A' }
@@ -4186,7 +4186,7 @@ theorem flapperDealBodyCoreMoveCallDepthLimit
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨767⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := dealIdWord I
   let memMap := twoWordHashMem id ⟨1⟩ solcFreePtrMem
@@ -4313,7 +4313,7 @@ theorem flapperDealBodyCoreBurnNoCode
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dealTransition.params.map Param.name)
         (transitionSignature dealTransition).paramTypes I.calldata = some (dealLocals I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmMoveSolm : EVM.State :=
     { evmSolm with accountMap := σMove, substate := AMove }
@@ -4411,7 +4411,7 @@ theorem flapperDealBodyCoreMoveCallSuccess
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dealTransition.params.map Param.name)
         (transitionSignature dealTransition).paramTypes I.calldata = some (dealLocals I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmMoveSolm : EVM.State :=
     { evmSolm with accountMap := σMove, substate := AMove }
@@ -4635,7 +4635,7 @@ theorem flapperDealBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨767⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (flapperDealX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (flapperDecode_deal_none_short hsz4 hshort)
 
@@ -4646,7 +4646,7 @@ theorem flapperDealBodyCore {σ σ₀ A I} {g : UInt256}
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 3)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flapperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
@@ -4670,7 +4670,7 @@ theorem flapperDealBodyCore {σ σ₀ A I} {g : UInt256}
                 (UInt256.ofNat I.header.timestamp).toNat ∨
               (flapperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
                 (UInt256.ofNat I.header.timestamp).toNat) :
-            runtimeEquivalenceFor config contract σ σ₀ g A I := by
+            runtimeRefinementFor config contract σ σ₀ g A I := by
           by_cases hmoveNoCode :
               Reasoning.Theory.extCodeSizeWord σ
                 (flapperAddressReturnWord ⟨2⟩ σ I) = ⟨0⟩

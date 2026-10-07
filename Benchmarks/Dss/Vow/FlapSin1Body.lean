@@ -260,7 +260,7 @@ theorem vowFlapSin1NoCodeBodyCore
       (UInt256.ofNat
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapSin1NoCode rd1190 hmem hread64 hcodeSize
   let locals := (∅ : Store)
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -357,7 +357,7 @@ theorem vowFlapSin1CallFailureBodyCore
     (hcallSin1 :
       typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (false, evmSin1, outSin1) false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapSin1CallFailure rd1277 houtSinSize (by simp)
   let locals := (∅ : Store)
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -460,7 +460,7 @@ theorem vowFlapSin1DecodeShortBodyCore
     (hcallSin1 :
       typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin1, outSin1) false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat outSin1.size)).toNat =
       outSin1.size :=
     kissDaiMin32_toNat_of_lt hshort

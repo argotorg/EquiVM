@@ -14,19 +14,19 @@ theorem clipperCuspSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
     solcSelectorWord_eq_of_beq I hsz 0x49 0xed 0x59 0x31 (clipperSelNat 6)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_cusp (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_cusp {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 6)) :
-    dispatchMsg (contract v) I.calldata = some cuspTransition := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some cuspTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre :=
       [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
         countTransition])
     (post :=
       [denyTransition, dogTransition, fileUintTransition, fileAddressTransition,
-        getStatusTransition, ilkTransition v, kickTransition v, kicksTransition, listTransition,
-        redoTransition v, relyTransition, salesTransition, spotterTransition, stoppedTransition,
-        tailTransition, takeTransition v, tipTransition, upchostTransition v, vatTransition v,
-        vowTransition, wardsTransition, yankTransition v])
+        getStatusTransition, ilkTransition, kickTransition, kicksTransition, listTransition,
+        redoTransition, relyTransition, salesTransition, spotterTransition, stoppedTransition,
+        tailTransition, takeTransition, tipTransition, upchostTransition, vatTransition,
+        vowTransition, wardsTransition, yankTransition])
     (ti := cuspTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
@@ -48,27 +48,27 @@ theorem clipperDispatch_cusp (v : ClipperImmutables) {I : ExecutionEnv}
   · rw [selectorOf, cuspSelectorBytes]
     simpa [clipperSelBytes] using hsel
 
-theorem clipperDecode_cusp (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_cusp {I : ExecutionEnv}
     (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (cuspTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (cuspTransition.params.map Param.name)
       (transitionSignature cuspTransition).paramTypes I.calldata = some ∅ := by
-  show decodeCalldataWithMode (config v).abiDecodeMode [] [] I.calldata = some ∅
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldataWithMode_empty_ok hsz
 
 theorem clipperEvalCusp (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "cusp" = none) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.storage cuspRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨7⟩).toNat)) := by
   let er : EvaledStorageRef := { base := "cusp", steps := [] }
-  have her : evalStorageRef (config v)
-      { contract := contract v, locals := locals } evm cuspRef = .ok er := by
+  have her : evalStorageRef config
+      { contract := contract, locals := locals, immutables := immStore v } evm cuspRef = .ok er := by
     unfold evalStorageRef cuspRef
     simp only [evalStorageRefSteps]
     rfl
-  have hty : storageTypeAt? (contract v).storage er = some (.elem (.int uint256Int)) := by
+  have hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)) := by
     simp [er, storageTypeAt?, contract, storageDecls, uint256St]
-  have hloc : (config v).storage.layout er = fun _ => some (wordLoc ⟨7⟩) := by
+  have hloc : config.storage.layout er = fun _ => some (wordLoc ⟨7⟩) := by
     funext evm'
     rfl
   exact evalExpr_storage_scalar_value hbase her hty hloc
@@ -76,12 +76,12 @@ theorem clipperEvalCusp (v : ClipperImmutables) (evm : EVM.State) (locals : Stor
 
 theorem clipperCuspBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "cusp" = none) :
-    ExecTransitionBody (config v) (contract v) evm locals cuspTransition.body
-      (.returned { contract := contract v, locals := locals } evm
+    ExecTransitionBody config contract evm locals cuspTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.int (Int.ofNat
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨7⟩).toNat))])) := by
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨7⟩).toNat))])) (immStore v) := by
   simpa [cuspTransition] using
-    nonpayableReturnExprBodyReturns (cfg := config v) (contract := contract v) h
+    nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h
       (clipperEvalCusp v evm locals hbase)
 
 set_option maxHeartbeats 1000000 in
@@ -251,15 +251,15 @@ theorem clipperCuspBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 6)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 6) (by native_decide) hsel
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ cuspTransition.body
-        (.returned { contract := contract v, locals := ∅ }
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (solcSlotWord σ I ⟨7⟩).toNat))])) := by
+          (some [(.int (Int.ofNat (solcSlotWord σ I ⟨7⟩).toNat))])) (immStore v) := by
     simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       clipperCuspBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -274,7 +274,7 @@ theorem clipperCuspBody (v : ClipperImmutables) {code : ByteArray}
     (g := g) (sel := clipperSelWord I) (transition := cuspTransition)
     (entry := (⟨752⟩ : UInt256)) (routine := (⟨3179⟩ : UInt256))
     (slot := (⟨7⟩ : UInt256)) (returnPc := (⟨476⟩ : UInt256))
-    hcode (clipperDispatch_cusp v hsel) (clipperDecode_cusp v hsz) hreach
+    hcode (clipperDispatch_cusp hsel) (clipperDecode_cusp hsz) hreach
     (clipperCuspGetterEntryWf v hpatch) (clipperCuspSlotGetterWf v hpatch) hroutine
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨476⟩ : UInt256) (by native_decide))
     (clipperReturnWord476Wf v hpatch) (by rfl) hbody

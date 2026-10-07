@@ -239,9 +239,9 @@ theorem clipperTakeVatMoveCalldataMem_read128_100_ge (σ : AccountMap)
     clipperTakeVatMoveCalldataMem_read196_32_ge σ I owe hmem]
   simp [ByteArray.append_assoc]
 
-theorem clipperTakeVatMoveEncode_eq_ge (v : ClipperImmutables) (σ : AccountMap)
+theorem clipperTakeVatMoveEncode_eq_ge (σ : AccountMap)
     (I : ExecutionEnv) (owe : UInt256) {mem : ByteArray} (hmem : 260 ≤ mem.size) :
-    (config v).externalABI.encode? "move"
+    config.externalABI.encode? "move"
       [.address I.source,
         .address (AccountAddress.ofNat (clipperTakeVowTarget σ I).toNat),
         .int (Int.ofNat owe.toNat)] =
@@ -249,7 +249,7 @@ theorem clipperTakeVatMoveEncode_eq_ge (v : ClipperImmutables) (σ : AccountMap)
   rw [clipperTakeVatMoveCalldataMem_read128_100_ge σ I owe hmem]
   let base := ByteArray.zeroes 260
   have hbase : base.size = 260 := zeroes_ofNat_size 260 (by norm_num)
-  have h := clipperTakeVatMoveEncode_eq v σ I owe hbase
+  have h := clipperTakeVatMoveEncode_eq σ I owe hbase
   rw [clipperTakeVatMoveCalldataMem_read128_100 σ I owe hbase] at h
   exact h
 
@@ -371,7 +371,7 @@ theorem clipperTakeDogDigsCalldataMem_read128_68_ge (v : ClipperImmutables)
 
 theorem clipperTakeDogDigsEncode_eq_ge (v : ClipperImmutables) (tab : UInt256)
     {mem : ByteArray} (hmem : 260 ≤ mem.size) :
-    (config v).externalABI.encode? "digs" [v.ilk, .int (Int.ofNat tab.toNat)] =
+    config.externalABI.encode? "digs" [v.ilk, .int (Int.ofNat tab.toNat)] =
       some ((clipperDogDigsCalldataMem v tab mem).readWithPadding 128 68) := by
   rw [clipperTakeDogDigsCalldataMem_read128_68_ge v tab hmem]
   let base := ByteArray.zeroes 260
@@ -592,7 +592,7 @@ theorem clipperTakeVatFluxCalldataMem_read128_132_ge (v : ClipperImmutables)
 
 theorem clipperTakeVatFluxEncode_eq_ge (v : ClipperImmutables) (I : ExecutionEnv)
     (who slice : UInt256) {mem : ByteArray} (hmem : 260 ≤ mem.size) :
-    (config v).externalABI.encode? "flux"
+    config.externalABI.encode? "flux"
       [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
         .int (Int.ofNat slice.toNat)] =
       some ((clipperTakeVatFluxCalldataMem v I who slice mem).readWithPadding 128 132) := by

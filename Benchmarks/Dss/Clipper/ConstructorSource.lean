@@ -17,11 +17,9 @@ abbrev clipperCtorLocals (vat spotter dog : AccountAddress) (ilk : List UInt8) :
   ((((∅ : Store).insert "vat_" (.address vat)).insert "spotter_" (.address spotter)).insert
     "dog_" (.address dog)).insert "ilk_" (.fixedBytes bytes32Width ilk)
 
-abbrev clipperCtorVatLocals (vat spotter dog : AccountAddress) (ilk : List UInt8) : Store :=
-  (clipperCtorLocals vat spotter dog ilk).insert "imm_vat" (.address vat)
-
-abbrev clipperCtorFinalLocals (vat spotter dog : AccountAddress) (ilk : List UInt8) : Store :=
-  (clipperCtorVatLocals vat spotter dog ilk).insert "imm_ilk"
+/-- The constructor's final immutables: `vat` then `ilk` set to the arguments. -/
+abbrev clipperCtorFinalImms (vat : AccountAddress) (ilk : List UInt8) : Store :=
+  ((initialImmutables contract).insert "vat" (.address vat)).insert "ilk"
     (.fixedBytes bytes32Width ilk)
 
 abbrev clipperCtorAfterStoppedState (evm : EVM.State) : EVM.State :=
@@ -49,97 +47,67 @@ private theorem accountAddress_of_word_val (a : AccountAddress) :
   rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
   exact accountAddress_roundtrip a
 
-theorem evalExpr_clipperCtorLocalVat {v : ClipperImmutables} {evm : EVM.State}
+theorem evalExpr_clipperCtorLocalVat {imms : Store} {evm : EVM.State}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) :
-    evalExpr? (config v) { contract := contract v, locals := clipperCtorLocals vat spotter dog ilk }
+    evalExpr? config { contract := contract, locals := clipperCtorLocals vat spotter dog ilk, immutables := imms }
       evm (.var "vat_") =
       .ok (.address vat) := by
   simp only [evalExpr?, EvalResult.ofOption]
   rw [clipperCtorLocals, store_get_ne _ _ (by decide),
     store_get_ne _ _ (by decide), store_get_ne _ _ (by decide), store_get_self]
 
-theorem evalExpr_clipperCtorLocalSpotter {v : ClipperImmutables} {evm : EVM.State}
+theorem evalExpr_clipperCtorLocalSpotter {imms : Store} {evm : EVM.State}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) :
-    evalExpr? (config v) { contract := contract v, locals := clipperCtorLocals vat spotter dog ilk }
+    evalExpr? config { contract := contract, locals := clipperCtorLocals vat spotter dog ilk, immutables := imms }
       evm (.var "spotter_") =
       .ok (.address spotter) := by
   simp only [evalExpr?, EvalResult.ofOption]
   rw [clipperCtorLocals, store_get_ne _ _ (by decide),
     store_get_ne _ _ (by decide), store_get_self]
 
-theorem evalExpr_clipperCtorLocalDog {v : ClipperImmutables} {evm : EVM.State}
+theorem evalExpr_clipperCtorLocalDog {imms : Store} {evm : EVM.State}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) :
-    evalExpr? (config v) { contract := contract v, locals := clipperCtorLocals vat spotter dog ilk }
+    evalExpr? config { contract := contract, locals := clipperCtorLocals vat spotter dog ilk, immutables := imms }
       evm (.var "dog_") =
       .ok (.address dog) := by
   simp only [evalExpr?, EvalResult.ofOption]
   rw [clipperCtorLocals, store_get_ne _ _ (by decide), store_get_self]
 
-theorem evalExpr_clipperCtorLocalIlk {v : ClipperImmutables} {evm : EVM.State}
+theorem evalExpr_clipperCtorLocalIlk {imms : Store} {evm : EVM.State}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) :
-    evalExpr? (config v) { contract := contract v, locals := clipperCtorLocals vat spotter dog ilk }
+    evalExpr? config { contract := contract, locals := clipperCtorLocals vat spotter dog ilk, immutables := imms }
       evm (.var "ilk_") =
       .ok (.fixedBytes bytes32Width ilk) := by
   simp only [evalExpr?, EvalResult.ofOption]
   rw [clipperCtorLocals, store_get_self]
 
-theorem evalExpr_clipperCtorVatLocalIlk {v : ClipperImmutables} {evm : EVM.State}
-    (vat spotter dog : AccountAddress) (ilk : List UInt8) :
-    evalExpr? (config v) { contract := contract v, locals := clipperCtorVatLocals vat spotter dog ilk }
-      evm (.var "ilk_") =
-      .ok (.fixedBytes bytes32Width ilk) := by
-  simp only [evalExpr?, EvalResult.ofOption]
-  rw [clipperCtorVatLocals, store_get_ne _ _ (by decide),
-    clipperCtorLocals, store_get_self]
-
-theorem evalExpr_clipperCtorFinalLocalSpotter {v : ClipperImmutables} {evm : EVM.State}
-    (vat spotter dog : AccountAddress) (ilk : List UInt8) :
-    evalExpr? (config v) { contract := contract v, locals := clipperCtorFinalLocals vat spotter dog ilk }
-      evm (.var "spotter_") =
-      .ok (.address spotter) := by
-  simp only [evalExpr?, EvalResult.ofOption]
-  rw [clipperCtorFinalLocals, store_get_ne _ _ (by decide),
-    clipperCtorVatLocals, store_get_ne _ _ (by decide),
-    clipperCtorLocals, store_get_ne _ _ (by decide),
-    store_get_ne _ _ (by decide), store_get_self]
-
-theorem evalExpr_clipperCtorFinalLocalDog {v : ClipperImmutables} {evm : EVM.State}
-    (vat spotter dog : AccountAddress) (ilk : List UInt8) :
-    evalExpr? (config v) { contract := contract v, locals := clipperCtorFinalLocals vat spotter dog ilk }
-      evm (.var "dog_") =
-      .ok (.address dog) := by
-  simp only [evalExpr?, EvalResult.ofOption]
-  rw [clipperCtorFinalLocals, store_get_ne _ _ (by decide),
-    clipperCtorVatLocals, store_get_ne _ _ (by decide),
-    clipperCtorLocals, store_get_ne _ _ (by decide), store_get_self]
-
-private theorem assign_clipperCtorUint256Storage {v : ClipperImmutables}
+private theorem assign_clipperCtorUint256Storage {imms : Store}
     (evm : EVM.State) (locals : Store) (ref : StorageRef) (er : EvaledStorageRef)
     (slot value : UInt256) (hbase : locals.get? ref.base = none)
-    (her : evalStorageRef (config v) { contract := contract v, locals := locals } evm ref = .ok er)
-    (hty : storageTypeAt? (contract v).storage er = some uint256St)
-    (hloc : (config v).storage.layout er = fun _ => some (wordLoc slot)) :
+    (her : evalStorageRef config { contract := contract, locals := locals, immutables := imms } evm ref = .ok er)
+    (hty : storageTypeAt? contract.storage er = some uint256St)
+    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot value
-    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+    assignStorageRef? config { contract := contract, locals := locals, immutables := imms } evm
       .storage ref (.int (Int.ofNat value.toNat)) =
-        .ok ({ contract := contract v, locals := locals }, evm') := by
+        .ok ({ contract := contract, locals := locals, immutables := imms }, evm') := by
   intro evm'
   apply assignStorageRef_storage_scalar (ty := uint256St) (er := er) (loc := wordLoc slot)
     (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)
   simpa [evm'] using storageLocStore_uint256 evm slot value
 
-private theorem assign_clipperCtorAddressStorage {v : ClipperImmutables}
+private theorem assign_clipperCtorAddressStorage {imms : Store}
     (evm : EVM.State) (locals : Store) (ref : StorageRef) (er : EvaledStorageRef)
     (slot : UInt256) (addrValue : AccountAddress) (hbase : locals.get? ref.base = none)
-    (her : evalStorageRef (config v) { contract := contract v, locals := locals } evm ref = .ok er)
-    (hty : storageTypeAt? (contract v).storage er = some addrSt)
-    (hloc : (config v).storage.layout er = fun _ => some (addrLoc slot)) :
+    (her : evalStorageRef config { contract := contract, locals := locals, immutables := imms } evm ref = .ok er)
+    (hty : storageTypeAt? contract.storage er = some addrSt)
+    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
       (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
         (EVM.word addrValue.val))
-    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+    assignStorageRef? config { contract := contract, locals := locals, immutables := imms } evm
       .storage ref (.address addrValue) =
-        .ok ({ contract := contract v, locals := locals }, evm') := by
+        .ok ({ contract := contract, locals := locals, immutables := imms }, evm') := by
   intro evm'
   have hvalue : (.address addrValue : Value) =
       .address (AccountAddress.ofNat (EVM.word addrValue.val).toNat) := by
@@ -154,11 +122,11 @@ private theorem assign_clipperCtorAddressStorage {v : ClipperImmutables}
     (ty := addrSt) (loc := addrLoc slot) (hbase := hbase) (her := her) (hty := hty)
     (hloc := hloc) (hscalar := by trivial) (hstore := hstore)
 
-theorem assign_clipperCtorStoppedStorage {v : ClipperImmutables}
+theorem assign_clipperCtorStoppedStorage {imms : Store}
     (evm : EVM.State) (locals : Store) (hbase : locals.get? "stopped" = none) :
-    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+    assignStorageRef? config { contract := contract, locals := locals, immutables := imms } evm
       .storage stoppedRef (.int 0) =
-        .ok ({ contract := contract v, locals := locals }, clipperCtorAfterStoppedState evm) := by
+        .ok ({ contract := contract, locals := locals, immutables := imms }, clipperCtorAfterStoppedState evm) := by
   simpa [clipperCtorAfterStoppedState] using
     assign_clipperCtorUint256Storage evm locals stoppedRef { base := "stopped", steps := [] }
       ⟨14⟩ ⟨0⟩ (by simpa [stoppedRef] using hbase)
@@ -166,12 +134,12 @@ theorem assign_clipperCtorStoppedStorage {v : ClipperImmutables}
       (by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (by funext evm; simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
 
-theorem assign_clipperCtorSpotterStorage {v : ClipperImmutables}
+theorem assign_clipperCtorSpotterStorage {imms : Store}
     (evm : EVM.State) (locals : Store) (spotter : AccountAddress)
     (hbase : locals.get? "spotter" = none) :
-    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+    assignStorageRef? config { contract := contract, locals := locals, immutables := imms } evm
       .storage spotterRef (.address spotter) =
-        .ok ({ contract := contract v, locals := locals },
+        .ok ({ contract := contract, locals := locals, immutables := imms },
           clipperCtorAfterSpotterState evm spotter) := by
   exact assign_clipperCtorAddressStorage evm locals spotterRef
     { base := "spotter", steps := [] } ⟨3⟩ spotter
@@ -180,23 +148,23 @@ theorem assign_clipperCtorSpotterStorage {v : ClipperImmutables}
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by funext evm; simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
 
-theorem assign_clipperCtorDogStorage {v : ClipperImmutables}
+theorem assign_clipperCtorDogStorage {imms : Store}
     (evm : EVM.State) (locals : Store) (dog : AccountAddress)
     (hbase : locals.get? "dog" = none) :
-    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+    assignStorageRef? config { contract := contract, locals := locals, immutables := imms } evm
       .storage dogRef (.address dog) =
-        .ok ({ contract := contract v, locals := locals }, clipperCtorAfterDogState evm dog) := by
+        .ok ({ contract := contract, locals := locals, immutables := imms }, clipperCtorAfterDogState evm dog) := by
   exact assign_clipperCtorAddressStorage evm locals dogRef { base := "dog", steps := [] }
     ⟨1⟩ dog (by simpa [dogRef] using hbase)
     (by simp [dogRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by funext evm; simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
 
-theorem assign_clipperCtorBufStorage {v : ClipperImmutables}
+theorem assign_clipperCtorBufStorage {imms : Store}
     (evm : EVM.State) (locals : Store) (hbase : locals.get? "buf" = none) :
-    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+    assignStorageRef? config { contract := contract, locals := locals, immutables := imms } evm
       .storage bufRef (.int RAY) =
-        .ok ({ contract := contract v, locals := locals }, clipperCtorAfterBufState evm) := by
+        .ok ({ contract := contract, locals := locals, immutables := imms }, clipperCtorAfterBufState evm) := by
   have hray : RAY = Int.ofNat clipperCtorRayWord.toNat := by native_decide
   rw [hray]
   simpa [clipperCtorAfterBufState] using
@@ -206,12 +174,12 @@ theorem assign_clipperCtorBufStorage {v : ClipperImmutables}
       (by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (by funext evm; simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
 
-theorem assign_clipperCtorWardsCaller {v : ClipperImmutables}
+theorem assign_clipperCtorWardsCaller {imms : Store}
     (evm : EVM.State) {locals : Store} (hbase : locals.get? "wards" = none) :
-    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+    assignStorageRef? config { contract := contract, locals := locals, immutables := imms } evm
       .storage (wardsRef sender) (.int 1) =
-        .ok ({ contract := contract v, locals := locals }, clipperCtorAfterWardsState evm) := by
-  have her : evalStorageRef (config v) { contract := contract v, locals := locals } evm
+        .ok ({ contract := contract, locals := locals, immutables := imms }, clipperCtorAfterWardsState evm) := by
+  have her : evalStorageRef config { contract := contract, locals := locals, immutables := imms } evm
       (wardsRef sender) =
         .ok { base := "wards", steps := [.mindex (.address evm.executionEnv.source)] } := by
     simp [wardsRef, sender, evalStorageRef, evalStorageRefSteps, evalStorageRefStep,
@@ -241,34 +209,11 @@ private theorem clipperCtor_storageStore_executionEnv (evm : EVM.State)
   unfold Solm.EVM.storageStore
   cases State.lookupAccount evm addr <;> rfl
 
-theorem clipperCtorFinalLocals_get_imm_vat (vat spotter dog : AccountAddress)
-    (ilk : List UInt8) :
-    (clipperCtorFinalLocals vat spotter dog ilk).get? "imm_vat" = some (.address vat) := by
-  rw [clipperCtorFinalLocals, store_get_ne _ _ (by decide),
-    clipperCtorVatLocals, store_get_self]
-
-theorem clipperCtorFinalLocals_get_imm_ilk (vat spotter dog : AccountAddress)
-    (ilk : List UInt8) :
-    (clipperCtorFinalLocals vat spotter dog ilk).get? "imm_ilk" =
-      some (.fixedBytes bytes32Width ilk) := by
-  simp [clipperCtorFinalLocals]
-
-theorem clipperCtorRuntimeCodeOf (vat spotter dog : AccountAddress)
-    (ilk : List UInt8) (hilk : ilk.length = 32) :
-    runtimeCodeOf clipperBytecode (clipperCtorFinalLocals vat spotter dog ilk) =
-      patchRuntime clipperBytecode (patches (clipperCtorImmutables vat ilk hilk)) := by
-  unfold runtimeCodeOf patches patchesFrom immValues
-  simp only [offsets, List.foldrM_cons, List.foldrM_nil, pure, bind]
-  rw [clipperCtorFinalLocals_get_imm_ilk, clipperCtorFinalLocals_get_imm_vat]
-  simp [clipperCtorImmutables, List.lookup_cons, wordBytes?, valueToWord,
-    bytes32Width, hilk]
-
 theorem clipperCtorBodySuccess
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
-    (v : ClipperImmutables) (vat spotter dog : AccountAddress) (ilk : List UInt8)
+    (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     (hwv : I.weiValue = ⟨0⟩) :
     let locals := clipperCtorLocals vat spotter dog ilk
-    let finalLocals := clipperCtorFinalLocals vat spotter dog ilk
     let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := clipperCtorAfterStoppedState evm0
@@ -276,51 +221,59 @@ theorem clipperCtorBodySuccess
     let evm3 := clipperCtorAfterDogState evm2 dog
     let evm4 := clipperCtorAfterBufState evm3
     let evm5 := clipperCtorAfterWardsState evm4
-    ExecBlock (config v) { contract := contract v, locals := locals } evm0 constructorDecl.body
-      (.ok { contract := contract v, locals := finalLocals } evm5) := by
-  intro locals finalLocals evm0 evm1 evm2 evm3 evm4 evm5
-  have hstopped := assign_clipperCtorStoppedStorage (v := v) evm0 locals
-    (by simp [locals, clipperCtorLocals])
-  have hspotter := assign_clipperCtorSpotterStorage (v := v) evm1 finalLocals spotter
-    (by simp [finalLocals, clipperCtorFinalLocals, clipperCtorVatLocals, clipperCtorLocals])
-  have hdog := assign_clipperCtorDogStorage (v := v) evm2 finalLocals dog
-    (by simp [finalLocals, clipperCtorFinalLocals, clipperCtorVatLocals, clipperCtorLocals])
-  have hbuf := assign_clipperCtorBufStorage (v := v) evm3 finalLocals
-    (by simp [finalLocals, clipperCtorFinalLocals, clipperCtorVatLocals, clipperCtorLocals])
-  have hwards := assign_clipperCtorWardsCaller (v := v) evm4 (locals := finalLocals)
-    (by simp [finalLocals, clipperCtorFinalLocals, clipperCtorVatLocals, clipperCtorLocals])
+    ExecBlock config
+      { contract := contract, locals := locals, immutables := initialImmutables contract }
+      evm0 constructorDecl.body
+      (.ok { contract := contract, locals := locals, immutables := clipperCtorFinalImms vat ilk }
+        evm5) := by
+  intro locals evm0 evm1 evm2 evm3 evm4 evm5
+  have hbase : ∀ n, n ∉ ["vat_", "spotter_", "dog_", "ilk_"] → locals.get? n = none := by
+    intro n hn
+    simp only [List.mem_cons, List.not_mem_nil, or_false, not_or] at hn
+    simp [locals, clipperCtorLocals, hn.1, hn.2.1, hn.2.2.1, hn.2.2.2,
+      Ne.symm hn.1, Ne.symm hn.2.1, Ne.symm hn.2.2.1, Ne.symm hn.2.2.2]
+  have hstopped := assign_clipperCtorStoppedStorage (imms := initialImmutables contract) evm0
+    locals (hbase "stopped" (by decide))
+  have hspotter := assign_clipperCtorSpotterStorage (imms := clipperCtorFinalImms vat ilk) evm1
+    locals spotter (hbase "spotter" (by decide))
+  have hdog := assign_clipperCtorDogStorage (imms := clipperCtorFinalImms vat ilk) evm2 locals dog
+    (hbase "dog" (by decide))
+  have hbuf := assign_clipperCtorBufStorage (imms := clipperCtorFinalImms vat ilk) evm3 locals
+    (hbase "buf" (by decide))
+  have hwards := assign_clipperCtorWardsCaller (imms := clipperCtorFinalImms vat ilk) evm4
+    (locals := locals) (hbase "wards" (by decide))
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hstopped) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by
       rw [clipperCtorAfterStoppedState, clipperCtor_storageStore_executionEnv]
       simpa [evm0, initState] using hwv)
-  refine ExecBlock.consNormal (ExecStmt.letDecl (value := .address vat) ?_) ?_
-  · simpa [locals] using evalExpr_clipperCtorLocalVat (v := v) (evm := evm1)
-      vat spotter dog ilk
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (value := .fixedBytes bytes32Width ilk) ?_) ?_
-  · exact evalExpr_clipperCtorVatLocalIlk (v := v) (evm := evm1)
-      vat spotter dog ilk
+    (ExecStmt.setImmutable (value := .address vat) (ty := .address) ?_ rfl rfl) ?_
+  · exact evalExpr_clipperCtorLocalVat (evm := evm1) vat spotter dog ilk
+  refine ExecBlock.consNormal
+    (ExecStmt.setImmutable (value := .fixedBytes bytes32Width ilk)
+      (ty := .bytes ⟨31, by decide⟩) ?_ rfl ?_) ?_
+  · exact evalExpr_clipperCtorLocalIlk (evm := evm1) vat spotter dog ilk
+  · simp [elemValueFits, bytes32Width, hilk]
   refine ExecBlock.consNormal (ExecStmt.assign ?_ hspotter) ?_
-  · exact evalExpr_clipperCtorFinalLocalSpotter (v := v) (evm := evm1)
-      vat spotter dog ilk
+  · exact evalExpr_clipperCtorLocalSpotter (evm := evm1) vat spotter dog ilk
   refine ExecBlock.consNormal (ExecStmt.assign ?_ hdog) ?_
-  · exact evalExpr_clipperCtorFinalLocalDog (v := v) (evm := evm2)
-      vat spotter dog ilk
+  · exact evalExpr_clipperCtorLocalDog (evm := evm2) vat spotter dog ilk
   refine ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure, RAY]) hbuf) ?_
   exact ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hwards)
     ExecBlock.nil
 
 theorem clipperSolmCtorExecSuccess
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
-    (v : ClipperImmutables) (vat spotter dog : AccountAddress) (ilk : List UInt8)
+    (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     (hwv : I.weiValue = ⟨0⟩) :
-    solmCtorExec (config v) (contract v)
+    solmCtorExec config contract
       [.address vat, .address spotter, .address dog, .fixedBytes bytes32Width ilk]
       σ σ₀ g A I
-      (.returned { contract := contract v, locals :=
-          clipperCtorFinalLocals vat spotter dog ilk }
+      (.returned
+        { contract := contract, locals := clipperCtorLocals vat spotter dog ilk,
+          immutables := clipperCtorFinalImms vat ilk }
         (clipperCtorAfterWardsState
           (clipperCtorAfterBufState
             (clipperCtorAfterDogState
@@ -334,26 +287,24 @@ theorem clipperSolmCtorExecSuccess
     (argsStore := clipperCtorLocals vat spotter dog ilk) ?_ rfl ?_ ?_
   · rfl
   · rfl
-  · simpa [ExecTransitionBody, contract, constructorDecl] using
-      ExecFuncBody.execBlockOK (clipperCtorBodySuccess
-        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-        v vat spotter dog ilk hwv)
+  · exact ExecFuncBody.execBlockOK (clipperCtorBodySuccess
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) vat spotter dog ilk hilk hwv)
 
 theorem clipperSolmCtorExecReverts_nonpayable
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
-    (v : ClipperImmutables) (vat spotter dog : AccountAddress) (ilk : List UInt8)
+    (vat spotter dog : AccountAddress) (ilk : List UInt8)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    solmCtorExec (config v) (contract v)
+    solmCtorExec config contract
       [.address vat, .address spotter, .address dog, .fixedBytes bytes32Width ilk]
       σ σ₀ g A I .reverted := by
   let evm0 := initState σ σ₀
     (Sat256.ofUInt256 g) A I
-  let evm1 := clipperCtorAfterStoppedState evm0
-  have hstopped := assign_clipperCtorStoppedStorage (v := v) evm0
+  have hstopped := assign_clipperCtorStoppedStorage (imms := initialImmutables contract) evm0
     (clipperCtorLocals vat spotter dog ilk)
     (by simp [clipperCtorLocals])
-  have hbody : ExecBlock (config v)
-      { contract := contract v, locals := clipperCtorLocals vat spotter dog ilk } evm0
+  have hbody : ExecBlock config
+      { contract := contract, locals := clipperCtorLocals vat spotter dog ilk,
+        immutables := initialImmutables contract } evm0
       constructorDecl.body .reverted := by
     simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
     refine ExecBlock.consNormal
@@ -365,7 +316,6 @@ theorem clipperSolmCtorExecReverts_nonpayable
     (argsStore := clipperCtorLocals vat spotter dog ilk) ?_ rfl ?_ ?_
   · rfl
   · rfl
-  · simpa [ExecTransitionBody, contract, constructorDecl] using
-      ExecFuncBody.execBlockRevert hbody
+  · exact ExecFuncBody.execBlockRevert hbody
 
 end Benchmarks.Dss.Clipper

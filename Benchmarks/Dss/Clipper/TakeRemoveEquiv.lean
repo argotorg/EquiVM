@@ -19,10 +19,10 @@ theorem clipperTakeRemoveEquiv
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some (takeTransition v))
-    (hdec : decodeCalldataWithMode (config v).abiDecodeMode
-      (List.map Param.name (takeTransition v).params)
-      (transitionSignature (takeTransition v)).paramTypes I.calldata =
+    (hdispatch : dispatchMsg contract I.calldata = some takeTransition)
+    (hdec : decodeCalldataWithMode config.abiDecodeMode
+      (List.map Param.name takeTransition.params)
+      (transitionSignature takeTransition).paramTypes I.calldata =
         some (clipperTakeStore I))
     (rd8274 : RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8274⟩
@@ -34,25 +34,25 @@ theorem clipperTakeRemoveEquiv
     (hAccounts : Eq σCont evmCont.accountMap)
     (hevmEnv : evmCont.executionEnv = I)
     (hsourceReverted :
-      ExecFuncBody (config v)
-          { contract := contract v, locals := clipperYankRemoveStore I }
+      ExecFuncBody config
+          { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
           evmCont removeFunction.body .reverted →
-        ExecTransitionBody (config v) (contract v)
+        ExecTransitionBody config contract
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (clipperTakeStore I) (takeTransition v).body .reverted)
+          (clipperTakeStore I) takeTransition.body .reverted (immStore v))
     (hsourceReturned : ∀ {callee : Frame} {evmRemove : EVM.State},
-      ExecFuncBody (config v)
-          { contract := contract v, locals := clipperYankRemoveStore I }
+      ExecFuncBody config
+          { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
           evmCont removeFunction.body (.returned callee evmRemove none) →
         ∃ finalFrame : Frame,
-          ExecTransitionBody (config v) (contract v)
+          ExecTransitionBody config contract
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-            (clipperTakeStore I) (takeTransition v).body
+            (clipperTakeStore I) takeTransition.body
             (.returned finalFrame
               (Solm.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner
-                ⟨13⟩ ⟨0⟩) none)) :
-    runtimeEquivalenceFor (config v) (contract v)
-      σ σ₀ g A I := by
+                ⟨13⟩ ⟨0⟩) none) (immStore v)) :
+    runtimeRefinementFor config contract
+      σ σ₀ g A I (immStore v) := by
   have howner : evmCont.executionEnv.codeOwner = I.codeOwner := by rw [hevmEnv]
   have hstorage (slot : UInt256) :
       solcSlotWord σCont I slot =
@@ -102,12 +102,12 @@ theorem clipperTakeRemoveEquiv
     let evmRemove := clipperYankDeleteSaleState
       (clipperYankRemovePopState evmCont sourceLastIndex) I
     let calleeFrame : Frame :=
-      { contract := contract v,
+      { contract := contract,
         locals := clipperYankRemoveMoveStore I sourceLastIndex
           (Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner
-            (clipperYankActiveSlot sourceLastIndex)) }
-    have hremove : ExecFuncBody (config v)
-        { contract := contract v, locals := clipperYankRemoveStore I }
+            (clipperYankActiveSlot sourceLastIndex)), immutables := immStore v }
+    have hremove : ExecFuncBody config
+        { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
         evmCont removeFunction.body (.returned calleeFrame evmRemove none) := by
       simpa [sourceLastIndex, evmRemove, calleeFrame] using
         clipperYankRemoveIdEqMoveSource v evmCont I hacc hlenSolm hidEqSolm
@@ -266,16 +266,16 @@ theorem clipperTakeRemoveEquiv
     let evmRemove := clipperYankDeleteSaleState
       (clipperYankRemovePopState evmMovePos popLastIndex) I
     let calleeFrame : Frame :=
-      { contract := contract v,
+      { contract := contract,
         locals := clipperYankRemoveIndexStore I
           (UInt256.sub
             (Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner ⟨11⟩) ⟨1⟩)
-          move idx }
+          move idx, immutables := immStore v }
     have hremoveRaw := clipperYankRemoveIdNeMoveSource
       v evmCont I hacc hlenSolm hidNeSolm hidxBoundSolm
     dsimp only at hremoveRaw
-    have hremove : ExecFuncBody (config v)
-        { contract := contract v, locals := clipperYankRemoveStore I }
+    have hremove : ExecFuncBody config
+        { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
         evmCont removeFunction.body (.returned calleeFrame evmRemove none) := by
       have hremoveSource := hremoveRaw (by
         simpa only [hmoveSolm, hidxSolm, evmIndex, evmMovePos] using hlenAfterSolm)

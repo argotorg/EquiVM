@@ -761,7 +761,7 @@ theorem vatHealFinishSuccess
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
           (healDaiSlot I) daiNew)
         healViceSlot viceNew) k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hret := RD.vatHealStoreDebtReturn
     (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := g) (sel := sel) (rad := healRad I) (sinNew := sinNew)
@@ -850,7 +850,7 @@ theorem vatHealAllSuccess
           (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
           (healDaiSlot I) daiNew)
         healViceSlot viceNew) k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evm0Solm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSinSolm := Solm.EVM.storageStore evm0Solm evm0Solm.executionEnv.codeOwner
     (healSinSlot I) sinNew
@@ -1113,7 +1113,7 @@ theorem vatHealShort {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I (vatSelBytes 14)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hreach :=
     vatReachHealBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -1145,7 +1145,7 @@ theorem vatHealBodyCoreOk
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1597⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hroutine⟩ := RD.vatHealDecodeToRoutine hreach hsz36 hsize
   by_cases hsinEvm : (vatSlotWord (healSinSlot I) σ I).toNat < (healRad I).toNat
   · have hsinSolm :

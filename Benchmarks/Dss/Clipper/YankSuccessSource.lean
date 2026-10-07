@@ -9,7 +9,7 @@ set_option linter.unusedTactic false
 
 theorem clipperYankFluxRetStore_removeArgs (I : ExecutionEnv) (v : ClipperImmutables)
     (evm : EVM.State) :
-    evalExprs? (config v) { contract := (contract v), locals := clipperYankFluxRetStore I }
+    evalExprs? config { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v }
         evm [.var "id"] =
       .ok [clipperYankArgValue I] := by
   have hgetId :
@@ -69,14 +69,14 @@ theorem clipperYankRemoveIndexStore_get_id (I : ExecutionEnv)
 
 theorem clipperEvalYankRemoveSalesPos_moveStore (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv) (lastIndex move : UInt256) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+    evalExpr? config
+      { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
       (.storage (salesF (.var "id") "pos")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperYankSalesPosSlot I)).toNat)) := by
   let frame : Frame :=
-    { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move }
+    { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
   have hgetIdElem :
       ((clipperYankRemoveMoveStore I lastIndex move)["id"]?) =
         some (clipperYankArgValue I) := by
@@ -96,7 +96,7 @@ theorem clipperEvalYankRemoveSalesPos_moveStore (v : ClipperImmutables)
     injection hsome with hval
     exact hval.symm
   exact evalExpr_storage_scalar_value
-    (cfg := config v) (solm := frame) (evm := evm)
+    (cfg := config) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "pos") (er := clipperYankSalesPosRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperYankSalesPosSlot I))
     (value := .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -115,8 +115,8 @@ theorem clipperEvalYankRemoveSalesPos_moveStore (v : ClipperImmutables)
 
 theorem clipperEvalYankRemoveMove_indexStore (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv) (lastIndex move idx : UInt256) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx } evm
+    evalExpr? config
+      { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v } evm
       (.var "_move") = .ok (.int (Int.ofNat move.toNat)) := by
   rw [evalExpr?]
   change EvalResult.ofOption .unboundVariable
@@ -127,8 +127,8 @@ theorem clipperEvalYankRemoveMove_indexStore (v : ClipperImmutables)
 
 theorem clipperEvalYankRemoveIndex_indexStore (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv) (lastIndex move idx : UInt256) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx } evm
+    evalExpr? config
+      { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v } evm
       (.var "_index") = .ok (.int (Int.ofNat idx.toNat)) := by
   rw [evalExpr?]
   change EvalResult.ofOption .unboundVariable
@@ -141,8 +141,8 @@ theorem clipperYankRemoveAssignActiveRevert (v : ClipperImmutables) (evm : EVM.S
     (I : ExecutionEnv) (lastIndex move idx : UInt256)
     (hbound :
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat ≤ idx.toNat) :
-    assignStorageRef? (config v)
-      { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx } evm
+    assignStorageRef? config
+      { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v } evm
       .storage (activeElemRef (.var "_index")) (.int (Int.ofNat move.toNat)) =
       .revert := by
   have hnot :
@@ -160,11 +160,11 @@ theorem clipperYankRemovePopActiveRevert (v : ClipperImmutables) (evm : EVM.Stat
     (locals : Store)
     (hactive : locals.get? "active" = none)
     (hlen : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩) :
-    popArray? (config v) { contract := contract v, locals := locals } evm activeRef =
+    popArray? config { contract := contract, locals := locals, immutables := immStore v } evm activeRef =
       .revert := by
   have hresolve :
-      resolveStorageRef? (config v)
-        { contract := contract v, locals := locals }
+      resolveStorageRef? config
+        { contract := contract, locals := locals, immutables := immStore v }
         evm activeRef =
         .ok (({ base := "active", steps := [] } : EvaledStorageRef), .dynamicArray uint256St) := by
     have hactiveElem : locals["active"]? = none := by
@@ -181,7 +181,7 @@ theorem clipperYankRemovePopActiveRevert (v : ClipperImmutables) (evm : EVM.Stat
       storageLocLoad evm (wordLoc ⟨11⟩) = .int 0 := by
     simpa [hlen] using clipperStorageLocLoad_uint256 evm ⟨11⟩
   have hlenLoc :
-      (config v).storage.layout ({ base := "active", steps := [.length] } :
+      config.storage.layout ({ base := "active", steps := [.length] } :
         EvaledStorageRef) evm = some (wordLoc ⟨11⟩) := by
     rfl
   unfold popArray?
@@ -218,9 +218,9 @@ theorem clipperYankRemoveIdNeMoveSource (v : ClipperImmutables) (evm : EVM.State
     let popLastIndex :=
       UInt256.sub (Solm.EVM.storageLoad evmMovePos evmMovePos.executionEnv.codeOwner ⟨11⟩) ⟨1⟩
     Solm.EVM.storageLoad evmMovePos evmMovePos.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩ →
-    ExecFuncBody (config v)
-      { contract := contract v, locals := clipperYankRemoveStore I } evm removeFunction.body
-      (.returned { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+    ExecFuncBody config
+      { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm removeFunction.body
+      (.returned { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
         (clipperYankDeleteSaleState (clipperYankRemovePopState evmMovePos popLastIndex) I)
         none) := by
   intro lastIndex move idx evmIndex evmMovePos popLastIndex hlenAfter
@@ -242,90 +242,90 @@ theorem clipperYankRemoveIdNeMoveSource (v : ClipperImmutables) (evm : EVM.State
     rw [hlastNat]
     omega
   have hlastStmt :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveStore I } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm
         (.letDecl "lastIndex" (some uint256)
           (sub256 (.arrayLength .storage activeRef) (.intLit 1)))
-        (.ok { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex }
+        (.ok { contract := contract, locals := clipperYankRemoveLastIndexStore I lastIndex, immutables := immStore v }
           evm) := by
     exact ExecStmt.letDecl (clipperEvalYankRemoveLastIndex v evm I hlen)
   have hmoveStmt :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveLastIndexStore I lastIndex, immutables := immStore v } evm
         (.letDecl "_move" (some uint256) (.storage (activeElemRef (.var "lastIndex"))))
-        (.ok { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move }
+        (.ok { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
           evm) := by
     exact ExecStmt.letDecl (clipperEvalYankRemoveActiveElem v evm I lastIndex hlastBound)
   have hcond :
-      evalExpr? (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      evalExpr? config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         (.binary .ne (.var "id") (.var "_move")) = .ok (.bool true) := by
     exact clipperEvalYankRemoveIdNeMove_true v evm I lastIndex move (by simpa [move] using hne)
   have hindexStmt :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         (.letDecl "_index" (some uint256) (.storage (salesF (.var "id") "pos")))
-        (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+        (.ok { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
           evm) := by
     exact ExecStmt.letDecl
       (by simpa [idx] using clipperEvalYankRemoveSalesPos_moveStore v evm I lastIndex move)
   have hmoveEval :
-      evalExpr? (config v)
-        { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+      evalExpr? config
+        { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
         evm (.var "_move") = .ok (.int (Int.ofNat move.toNat)) :=
     clipperEvalYankRemoveMove_indexStore v evm I lastIndex move idx
   have hassignActive :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
         evm
         (.assign .storage (activeElemRef (.var "_index")) (.var "_move"))
-        (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+        (.ok { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
           evmIndex) := by
     exact ExecStmt.assign hmoveEval
       (by
         simpa [evmIndex] using
           clipperYankRemoveAssignActive v evm I lastIndex move idx hidxBound)
   have hindexEval :
-      evalExpr? (config v)
-        { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+      evalExpr? config
+        { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
         evmIndex (.var "_index") = .ok (.int (Int.ofNat idx.toNat)) := by
     simpa using clipperEvalYankRemoveIndex_indexStore v evmIndex I lastIndex move idx
   have hassignMovePos :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
         evmIndex
         (.assign .storage (salesF (.var "_move") "pos") (.var "_index"))
-        (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+        (.ok { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
           evmMovePos) := by
     exact ExecStmt.assign hindexEval
       (by
         simpa [evmMovePos] using
           clipperYankRemoveAssignMovePos v evmIndex I lastIndex move idx)
   have hiteBlock :
-      ExecBlock (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      ExecBlock config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         [.letDecl "_index" (some uint256) (.storage (salesF (.var "id") "pos")),
           .assign .storage (activeElemRef (.var "_index")) (.var "_move"),
           .assign .storage (salesF (.var "_move") "pos") (.var "_index")]
-        (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+        (.ok { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
           evmMovePos) := by
     exact ExecBlock.consNormal hindexStmt <|
       ExecBlock.consNormal hassignActive <|
         ExecBlock.consNormal hassignMovePos ExecBlock.nil
   have hite :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         (.ite (.binary .ne (.var "id") (.var "_move"))
           [.letDecl "_index" (some uint256) (.storage (salesF (.var "id") "pos")),
             .assign .storage (activeElemRef (.var "_index")) (.var "_move"),
             .assign .storage (salesF (.var "_move") "pos") (.var "_index")]
           [])
-        (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+        (.ok { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
           evmMovePos) := by
     exact ExecStmt.iteTrue hcond hiteBlock
   have hpopArray :
-      popArray? (config v)
-          { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+      popArray? config
+          { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
           evmMovePos activeRef =
         .ok (clipperYankRemovePopState evmMovePos popLastIndex) := by
     have hraw :=
@@ -335,11 +335,11 @@ theorem clipperYankRemoveIdNeMoveSource (v : ClipperImmutables) (evm : EVM.State
         hlenAfter
     simpa [popLastIndex] using hraw
   have hpop :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
         evmMovePos
         (.pop activeRef)
-        (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+        (.ok { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
           (clipperYankRemovePopState evmMovePos popLastIndex)) := by
     exact ExecStmt.pop hpopArray
   have haccPop :
@@ -354,11 +354,11 @@ theorem clipperYankRemoveIdNeMoveSource (v : ClipperImmutables) (evm : EVM.State
       Std.ExtTreeMap.getElem?_insert_self]
   obtain ⟨accPop, haccPop⟩ := haccPop
   have hdelete :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
         (clipperYankRemovePopState evmMovePos popLastIndex)
         (.delete (saleRef (.var "id")))
-        (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+        (.ok { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
           (clipperYankDeleteSaleState (clipperYankRemovePopState evmMovePos popLastIndex) I)) := by
     exact ExecStmt.delete
       (clipperYankDeleteSale v (clipperYankRemovePopState evmMovePos popLastIndex) I
@@ -386,8 +386,8 @@ theorem clipperYankRemoveIdNeMoveIndexOobSourceReverts (v : ClipperImmutables)
     (hidxBound :
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat ≤
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (clipperYankSalesPosSlot I)).toNat) :
-    ExecFuncBody (config v)
-      { contract := contract v, locals := clipperYankRemoveStore I } evm removeFunction.body
+    ExecFuncBody config
+      { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm removeFunction.body
       .reverted := by
   let lastIndex :=
     UInt256.sub (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩) ⟨1⟩
@@ -412,41 +412,41 @@ theorem clipperYankRemoveIdNeMoveIndexOobSourceReverts (v : ClipperImmutables)
     rw [hlastNat]
     omega
   have hlastStmt :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveStore I } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm
         (.letDecl "lastIndex" (some uint256)
           (sub256 (.arrayLength .storage activeRef) (.intLit 1)))
-        (.ok { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex }
+        (.ok { contract := contract, locals := clipperYankRemoveLastIndexStore I lastIndex, immutables := immStore v }
           evm) := by
     exact ExecStmt.letDecl (clipperEvalYankRemoveLastIndex v evm I hlen)
   have hmoveStmt :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveLastIndexStore I lastIndex, immutables := immStore v } evm
         (.letDecl "_move" (some uint256) (.storage (activeElemRef (.var "lastIndex"))))
-        (.ok { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move }
+        (.ok { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
           evm) := by
     exact ExecStmt.letDecl (clipperEvalYankRemoveActiveElem v evm I lastIndex hlastBound)
   have hcond :
-      evalExpr? (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      evalExpr? config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         (.binary .ne (.var "id") (.var "_move")) = .ok (.bool true) := by
     exact clipperEvalYankRemoveIdNeMove_true v evm I lastIndex move (by simpa [move] using hne)
   have hindexStmt :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         (.letDecl "_index" (some uint256) (.storage (salesF (.var "id") "pos")))
-        (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+        (.ok { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
           evm) := by
     exact ExecStmt.letDecl
       (by simpa [idx] using clipperEvalYankRemoveSalesPos_moveStore v evm I lastIndex move)
   have hmoveEval :
-      evalExpr? (config v)
-        { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+      evalExpr? config
+        { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
         evm (.var "_move") = .ok (.int (Int.ofNat move.toNat)) :=
     clipperEvalYankRemoveMove_indexStore v evm I lastIndex move idx
   have hassignActive :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
         evm
         (.assign .storage (activeElemRef (.var "_index")) (.var "_move"))
         .reverted := by
@@ -455,16 +455,16 @@ theorem clipperYankRemoveIdNeMoveIndexOobSourceReverts (v : ClipperImmutables)
         simpa [idx] using
           clipperYankRemoveAssignActiveRevert v evm I lastIndex move idx hidxBound)
   have hiteBlock :
-      ExecBlock (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      ExecBlock config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         [.letDecl "_index" (some uint256) (.storage (salesF (.var "id") "pos")),
           .assign .storage (activeElemRef (.var "_index")) (.var "_move"),
           .assign .storage (salesF (.var "_move") "pos") (.var "_index")]
         .reverted := by
     exact ExecBlock.consNormal hindexStmt (ExecBlock.consRevert hassignActive)
   have hite :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         (.ite (.binary .ne (.var "id") (.var "_move"))
           [.letDecl "_index" (some uint256) (.storage (salesF (.var "id") "pos")),
             .assign .storage (activeElemRef (.var "_index")) (.var "_move"),
@@ -502,8 +502,8 @@ theorem clipperYankRemoveIdNeMovePopEmptySourceReverts (v : ClipperImmutables)
     let evmMovePos := Solm.EVM.storageStore evmIndex evmIndex.executionEnv.codeOwner
       (clipperYankSalesMovePosSlot move) idx
     Solm.EVM.storageLoad evmMovePos evmMovePos.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩ →
-    ExecFuncBody (config v)
-      { contract := contract v, locals := clipperYankRemoveStore I } evm removeFunction.body
+    ExecFuncBody config
+      { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm removeFunction.body
       .reverted := by
   intro lastIndex move idx evmIndex evmMovePos hlenAfter
   have hpos : 0 < (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat := by
@@ -524,90 +524,90 @@ theorem clipperYankRemoveIdNeMovePopEmptySourceReverts (v : ClipperImmutables)
     rw [hlastNat]
     omega
   have hlastStmt :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveStore I } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm
         (.letDecl "lastIndex" (some uint256)
           (sub256 (.arrayLength .storage activeRef) (.intLit 1)))
-        (.ok { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex }
+        (.ok { contract := contract, locals := clipperYankRemoveLastIndexStore I lastIndex, immutables := immStore v }
           evm) := by
     exact ExecStmt.letDecl (clipperEvalYankRemoveLastIndex v evm I hlen)
   have hmoveStmt :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveLastIndexStore I lastIndex, immutables := immStore v } evm
         (.letDecl "_move" (some uint256) (.storage (activeElemRef (.var "lastIndex"))))
-        (.ok { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move }
+        (.ok { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
           evm) := by
     exact ExecStmt.letDecl (clipperEvalYankRemoveActiveElem v evm I lastIndex hlastBound)
   have hcond :
-      evalExpr? (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      evalExpr? config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         (.binary .ne (.var "id") (.var "_move")) = .ok (.bool true) := by
     exact clipperEvalYankRemoveIdNeMove_true v evm I lastIndex move (by simpa [move] using hne)
   have hindexStmt :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         (.letDecl "_index" (some uint256) (.storage (salesF (.var "id") "pos")))
-        (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+        (.ok { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
           evm) := by
     exact ExecStmt.letDecl
       (by simpa [idx] using clipperEvalYankRemoveSalesPos_moveStore v evm I lastIndex move)
   have hmoveEval :
-      evalExpr? (config v)
-        { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+      evalExpr? config
+        { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
         evm (.var "_move") = .ok (.int (Int.ofNat move.toNat)) :=
     clipperEvalYankRemoveMove_indexStore v evm I lastIndex move idx
   have hassignActive :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
         evm
         (.assign .storage (activeElemRef (.var "_index")) (.var "_move"))
-        (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+        (.ok { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
           evmIndex) := by
     exact ExecStmt.assign hmoveEval
       (by
         simpa [evmIndex] using
           clipperYankRemoveAssignActive v evm I lastIndex move idx hidxBound)
   have hindexEval :
-      evalExpr? (config v)
-        { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+      evalExpr? config
+        { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
         evmIndex (.var "_index") = .ok (.int (Int.ofNat idx.toNat)) := by
     simpa using clipperEvalYankRemoveIndex_indexStore v evmIndex I lastIndex move idx
   have hassignMovePos :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
         evmIndex
         (.assign .storage (salesF (.var "_move") "pos") (.var "_index"))
-        (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+        (.ok { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
           evmMovePos) := by
     exact ExecStmt.assign hindexEval
       (by
         simpa [evmMovePos] using
           clipperYankRemoveAssignMovePos v evmIndex I lastIndex move idx)
   have hiteBlock :
-      ExecBlock (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      ExecBlock config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         [.letDecl "_index" (some uint256) (.storage (salesF (.var "id") "pos")),
           .assign .storage (activeElemRef (.var "_index")) (.var "_move"),
           .assign .storage (salesF (.var "_move") "pos") (.var "_index")]
-        (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+        (.ok { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
           evmMovePos) := by
     exact ExecBlock.consNormal hindexStmt <|
       ExecBlock.consNormal hassignActive <|
         ExecBlock.consNormal hassignMovePos ExecBlock.nil
   have hite :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         (.ite (.binary .ne (.var "id") (.var "_move"))
           [.letDecl "_index" (some uint256) (.storage (salesF (.var "id") "pos")),
             .assign .storage (activeElemRef (.var "_index")) (.var "_move"),
             .assign .storage (salesF (.var "_move") "pos") (.var "_index")]
           [])
-        (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+        (.ok { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
           evmMovePos) := by
     exact ExecStmt.iteTrue hcond hiteBlock
   have hpop :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
         evmMovePos
         (.pop activeRef)
         .reverted := by
@@ -640,31 +640,31 @@ theorem clipperYankAfterVatRemoveIdEqMoveSourceOk (v : ClipperImmutables)
         (clipperYankActiveSlot lastIndex)
     let evmRemove := clipperYankDeleteSaleState (clipperYankRemovePopState evmVat lastIndex) I
     let frameRemoveRet : Frame :=
-      { contract := (contract v), locals := (clipperYankFluxRetStore I).insert "_removeRet" .unit }
-    ExecBlock (config v)
-      { contract := (contract v), locals := clipperYankFluxRetStore I } evmVat
+      { contract := contract, locals := (clipperYankFluxRetStore I).insert "_removeRet" .unit, immutables := immStore v }
+    ExecBlock config
+      { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v } evmVat
       [.internalCall "_remove" [.var "id"] "_removeRet",
         .assign .storage lockedRef (.intLit 0)]
       (.ok frameRemoveRet
         (Solm.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by
   intro lastIndex move evmRemove frameRemoveRet
   have hremoveBody :
-      ExecFuncBody (config v)
-        { contract := (contract v), locals := clipperYankRemoveStore I } evmVat
+      ExecFuncBody config
+        { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evmVat
         removeFunction.body
-        (.returned { contract := (contract v), locals := clipperYankRemoveMoveStore I lastIndex move }
+        (.returned { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
           evmRemove none) := by
     simpa [lastIndex, move, evmRemove] using
       clipperYankRemoveIdEqMoveSource v evmVat I hacc hlen heq
   have hremove :
-      ExecStmt (config v)
-        { contract := (contract v), locals := clipperYankFluxRetStore I } evmVat
+      ExecStmt config
+        { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v } evmVat
         (.internalCall "_remove" [.var "id"] "_removeRet")
         (.ok frameRemoveRet evmRemove) := by
     simpa [resumeAfterInternalCall] using
       (internalCallFunctionReturn
-        (cfg := config v)
-        (caller := { contract := (contract v), locals := clipperYankFluxRetStore I })
+        (cfg := config)
+        (caller := { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v })
         (evm := evmVat)
         (name := "_remove") (retVar := "_removeRet")
         (args := [.var "id"])
@@ -672,20 +672,20 @@ theorem clipperYankAfterVatRemoveIdEqMoveSourceOk (v : ClipperImmutables)
         (callee := removeFunction)
         (locals := clipperYankRemoveStore I)
         (calleeSolm :=
-          { contract := (contract v), locals := clipperYankRemoveMoveStore I lastIndex move })
+          { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v })
         (calleeEvm := evmRemove)
         (value := none)
         (clipperYankFluxRetStore_removeArgs I v evmVat)
-        (clipperYankRemoveLookup v)
+        (clipperYankRemoveLookup)
         (clipperYankRemoveBind I)
         hremoveBody)
   have hzero :
-      evalExpr? (config v)
+      evalExpr? config
         frameRemoveRet evmRemove
         (.intLit 0) = .ok (.int 0) := by
     simp [evalExpr?, pure, frameRemoveRet]
   have hassign :
-      assignStorageRef? (config v)
+      assignStorageRef? config
         frameRemoveRet evmRemove
         .storage lockedRef (.int 0) =
         .ok (frameRemoveRet,
@@ -695,7 +695,7 @@ theorem clipperYankAfterVatRemoveIdEqMoveSourceOk (v : ClipperImmutables)
         ((clipperYankFluxRetStore I).insert "_removeRet" .unit)
         (clipperYankFluxRetStore_removeRet_locked I) ⟨0⟩
   have hunlock :
-      ExecStmt (config v)
+      ExecStmt config
         frameRemoveRet evmRemove
         (.assign .storage lockedRef (.intLit 0))
         (.ok frameRemoveRet
@@ -735,32 +735,32 @@ theorem clipperYankAfterVatRemoveIdNeMoveSourceOk (v : ClipperImmutables)
     let evmRemove :=
       clipperYankDeleteSaleState (clipperYankRemovePopState evmMovePos popLastIndex) I
     let frameRemoveRet : Frame :=
-      { contract := (contract v), locals := (clipperYankFluxRetStore I).insert "_removeRet" .unit }
-    ExecBlock (config v)
-      { contract := (contract v), locals := clipperYankFluxRetStore I } evmVat
+      { contract := contract, locals := (clipperYankFluxRetStore I).insert "_removeRet" .unit, immutables := immStore v }
+    ExecBlock config
+      { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v } evmVat
       [.internalCall "_remove" [.var "id"] "_removeRet",
         .assign .storage lockedRef (.intLit 0)]
       (.ok frameRemoveRet
         (Solm.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by
   intro lastIndex move idx evmIndex evmMovePos popLastIndex hlenAfter evmRemove frameRemoveRet
   let calleeFrame : Frame :=
-    { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
+    { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v }
   have hremoveBody :
-      ExecFuncBody (config v)
-        { contract := (contract v), locals := clipperYankRemoveStore I } evmVat
+      ExecFuncBody config
+        { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evmVat
         removeFunction.body
         (.returned calleeFrame evmRemove none) := by
     simpa [lastIndex, move, idx, evmIndex, evmMovePos, popLastIndex, evmRemove] using
       clipperYankRemoveIdNeMoveSource v evmVat I hacc hlen hne hidxBound hlenAfter
   have hremove :
-      ExecStmt (config v)
-        { contract := (contract v), locals := clipperYankFluxRetStore I } evmVat
+      ExecStmt config
+        { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v } evmVat
         (.internalCall "_remove" [.var "id"] "_removeRet")
         (.ok frameRemoveRet evmRemove) := by
     simpa [resumeAfterInternalCall] using
       (internalCallFunctionReturn
-        (cfg := config v)
-        (caller := { contract := (contract v), locals := clipperYankFluxRetStore I })
+        (cfg := config)
+        (caller := { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v })
         (evm := evmVat)
         (name := "_remove") (retVar := "_removeRet")
         (args := [.var "id"])
@@ -771,16 +771,16 @@ theorem clipperYankAfterVatRemoveIdNeMoveSourceOk (v : ClipperImmutables)
         (calleeEvm := evmRemove)
         (value := none)
         (clipperYankFluxRetStore_removeArgs I v evmVat)
-        (clipperYankRemoveLookup v)
+        (clipperYankRemoveLookup)
         (clipperYankRemoveBind I)
         hremoveBody)
   have hzero :
-      evalExpr? (config v)
+      evalExpr? config
         frameRemoveRet evmRemove
         (.intLit 0) = .ok (.int 0) := by
     simp [evalExpr?, pure, frameRemoveRet]
   have hassign :
-      assignStorageRef? (config v)
+      assignStorageRef? config
         frameRemoveRet evmRemove
         .storage lockedRef (.int 0) =
         .ok (frameRemoveRet,
@@ -790,7 +790,7 @@ theorem clipperYankAfterVatRemoveIdNeMoveSourceOk (v : ClipperImmutables)
         ((clipperYankFluxRetStore I).insert "_removeRet" .unit)
         (clipperYankFluxRetStore_removeRet_locked I) ⟨0⟩
   have hunlock :
-      ExecStmt (config v)
+      ExecStmt config
         frameRemoveRet evmRemove
         (.assign .storage lockedRef (.intLit 0))
         (.ok frameRemoveRet
@@ -815,7 +815,7 @@ theorem clipperYankAfterVatSourceBlock {σ σ₀ A I} {g : UInt256}
               (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I))).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         (Solm.EVM.storageStore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
@@ -831,44 +831,44 @@ theorem clipperYankAfterVatSourceBlock {σ σ₀ A I} {g : UInt256}
       0 < (UInt256.ofNat ((evmDog.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM (config v) evmDog (EVM.address v.vat) "flux" 0
+      typedCallViaEVM config evmDog (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmDog.executionEnv.codeOwner, .address evmDog.executionEnv.source,
           .int (Int.ofNat
             (Solm.EVM.storageLoad evmDog evmDog.executionEnv.codeOwner
               (clipperYankSalesLotSlot I)).toNat)]
         (true, evmVat, outVat) true)
     (hafter :
-      ExecBlock (config v) { contract := contract v, locals := clipperYankFluxRetStore I } evmVat
+      ExecBlock config { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v } evmVat
         [.internalCall "_remove" [.var "id"] "_removeRet",
           .assign .storage lockedRef (.intLit 0)]
         result) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecBlock (config v) { contract := contract v, locals := locals } evm0
-      (yankTransition v).body result := by
+    ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+      yankTransition.body result := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hauthEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     simpa [locals, evm0, clipperRelyAuthWord, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_clipperAuth_true v evm0 I locals (by simp [evm0, initState])
         (by simp [locals]) hauth
   have hlockedEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool true) := by
     simpa [locals, evm0, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_clipperLocked_zero_true v evm0 locals
         (by simp [locals]) hlocked
   have hlockRhs :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.intLit 1) =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.intLit 1) =
         .ok (.int 1) := by
     simp [evalExpr?, pure]
   have hlockAssign :
-      assignStorageRef? (config v) { contract := contract v, locals := locals } evm0
+      assignStorageRef? config { contract := contract, locals := locals, immutables := immStore v } evm0
         .storage lockedRef (.int 1) =
-          .ok ({ contract := contract v, locals := locals }, evmLock) := by
+          .ok ({ contract := contract, locals := locals, immutables := immStore v }, evmLock) := by
     simpa [locals, evmLock] using assign_clipperLocked v evm0 locals
       (by simp [locals]) ⟨1⟩
   have husrLoad :
@@ -879,19 +879,19 @@ theorem clipperYankAfterVatSourceBlock {σ σ₀ A I} {g : UInt256}
       storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
       State.lookupAccount] using husr
   have husrEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evmLock
         (.binary .ne (.storage (salesF (.var "id") "usr")) zeroAddr) = .ok (.bool true) := by
     simpa [locals] using clipperEvalYankSalesUsrNeZero_true v evmLock I husrLoad
   have hdogEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evmLock
         (.binary .gt (.extCodeSize (.storage dogRef)) (.intLit 0)) = .ok (.bool true) := by
     exact clipperEvalYankDogCodeGuard_true v evmLock locals (by simp [locals])
       (by
         simpa [evmLock, evm0, initState, storageStore_accountMap,
           storageStore_executionEnv, State.lookupAccount] using hdogCode)
   have hdogArgs :
-      evalExprs? (config v) { contract := contract v, locals := locals } evmLock
-          [ilkExpr v, .storage (salesF (.var "id") "tab")] =
+      evalExprs? config { contract := contract, locals := locals, immutables := immStore v } evmLock
+          [ilkExpr, .storage (salesF (.var "id") "tab")] =
         .ok
           [v.ilk,
             .int (Int.ofNat
@@ -906,7 +906,7 @@ theorem clipperYankAfterVatSourceBlock {σ σ₀ A I} {g : UInt256}
       cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
-      typedCallViaEVM (config v) evmLock
+      typedCallViaEVM config evmLock
         (EVM.address (AccountAddress.ofUInt256
           (clipperYankDogTarget evmLock.accountMap evmLock.executionEnv)))
         "digs" 0
@@ -917,15 +917,15 @@ theorem clipperYankAfterVatSourceBlock {σ σ₀ A I} {g : UInt256}
     simpa [evmLock, evm0, initState, storageStore_accountMap,
       storageStore_executionEnv] using hcallDog
   have hvatEval :
-      evalExpr? (config v)
-        { contract := contract v, locals := clipperYankDogRetStore I } evmDog
-        (.binary .gt (.extCodeSize (vatExpr v)) (.intLit 0)) = .ok (.bool true) := by
+      evalExpr? config
+        { contract := contract, locals := clipperYankDogRetStore I, immutables := immStore v } evmDog
+        (.binary .gt (.extCodeSize vatExpr) (.intLit 0)) = .ok (.bool true) := by
     exact clipperEvalYankVatCodeGuard_true v evmDog (clipperYankDogRetStore I)
       hvatCode
   have hvatArgs :
-      evalExprs? (config v)
-        { contract := contract v, locals := clipperYankDogRetStore I } evmDog
-        [ilkExpr v, thisAddr, sender, .storage (salesF (.var "id") "lot")] =
+      evalExprs? config
+        { contract := contract, locals := clipperYankDogRetStore I, immutables := immStore v } evmDog
+        [ilkExpr, thisAddr, sender, .storage (salesF (.var "id") "lot")] =
       .ok
         [v.ilk, .address evmDog.executionEnv.codeOwner, .address evmDog.executionEnv.source,
           .int (Int.ofNat
@@ -946,13 +946,13 @@ theorem clipperYankAfterVatSourceBlock {σ σ₀ A I} {g : UInt256}
         (ExecStmt.externalCallSuccess
           (clipperEvalYankDogTarget v evmLock locals (by simp [locals]))
           (by simp [evalExpr?, pure]) hdogArgs hcallDog'
-          (clipperYankDecodeDigsVoid v outDog)) ?_
+          (clipperYankDecodeDigsVoid outDog)) ?_
       refine ExecBlock.consNormal (ExecStmt.requireTrue hvatEval) ?_
       refine ExecBlock.consNormal
         (ExecStmt.externalCallSuccess
           (clipperEvalVat v evmDog (clipperYankDogRetStore I))
           (by simp [evalExpr?, pure]) hvatArgs hcallVat
-          (clipperYankDecodeFluxVoid v outVat)) ?_
+          (clipperYankDecodeFluxVoid outVat)) ?_
       exact hafter)
 
 theorem clipperYankAfterVatSourceOk {σ σ₀ A I} {g : UInt256}
@@ -973,7 +973,7 @@ theorem clipperYankAfterVatSourceOk {σ σ₀ A I} {g : UInt256}
               (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I))).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         (Solm.EVM.storageStore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
@@ -989,21 +989,21 @@ theorem clipperYankAfterVatSourceOk {σ σ₀ A I} {g : UInt256}
       0 < (UInt256.ofNat ((evmDog.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM (config v) evmDog (EVM.address v.vat) "flux" 0
+      typedCallViaEVM config evmDog (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmDog.executionEnv.codeOwner, .address evmDog.executionEnv.source,
           .int (Int.ofNat
             (Solm.EVM.storageLoad evmDog evmDog.executionEnv.codeOwner
               (clipperYankSalesLotSlot I)).toNat)]
         (true, evmVat, outVat) true)
     (hafter :
-      ExecBlock (config v) { contract := contract v, locals := clipperYankFluxRetStore I } evmVat
+      ExecBlock config { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v } evmVat
         [.internalCall "_remove" [.var "id"] "_removeRet",
           .assign .storage lockedRef (.intLit 0)]
         (.ok frame evmFinal)) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body
-      (.returned frame evmFinal none) := by
+    ExecTransitionBody config contract evm0 locals yankTransition.body
+      (.returned frame evmFinal none) (immStore v) := by
   intro locals evm0
   have hblock :=
     clipperYankAfterVatSourceBlock
@@ -1031,7 +1031,7 @@ theorem clipperYankAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
               (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I))).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         (Solm.EVM.storageStore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
@@ -1047,21 +1047,21 @@ theorem clipperYankAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
       0 < (UInt256.ofNat ((evmDog.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM (config v) evmDog (EVM.address v.vat) "flux" 0
+      typedCallViaEVM config evmDog (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmDog.executionEnv.codeOwner, .address evmDog.executionEnv.source,
           .int (Int.ofNat
             (Solm.EVM.storageLoad evmDog evmDog.executionEnv.codeOwner
               (clipperYankSalesLotSlot I)).toNat)]
         (true, evmVat, outVat) true)
     (hafter :
-      ExecBlock (config v) { contract := contract v, locals := clipperYankFluxRetStore I } evmVat
+      ExecBlock config { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v } evmVat
         [.internalCall "_remove" [.var "id"] "_removeRet",
           .assign .storage lockedRef (.intLit 0)]
         .reverted) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body
-      .reverted := by
+    ExecTransitionBody config contract evm0 locals yankTransition.body
+      .reverted (immStore v) := by
   intro locals evm0
   have hblock :=
     clipperYankAfterVatSourceBlock

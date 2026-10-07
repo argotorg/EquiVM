@@ -11,7 +11,7 @@ import Benchmarks.Dss.Spot.Poke
 import Benchmarks.Dss.Spot.Rely
 import Benchmarks.Dss.Spot.Vat
 import Benchmarks.Dss.Spot.Wards
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Spotter benchmark correctness stub
@@ -28,8 +28,8 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.Spot
 
 theorem spotCorrect :
-    runtimeEquivalence config spotBytecode contract := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement config spotBytecode contract := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcage : selIs I (spotSelBytes 0)
@@ -62,7 +62,7 @@ theorem spotCorrect :
   · exact spotNonPayable hcode hwv
 
 theorem spotContractCorrect :
-    contractEquivalence config spotCreationBytecode spotBytecode contract :=
-  contractEquivalence.intro spotConstructorCorrect spotCorrect
+    contractRefinement config spotCreationBytecode contract :=
+  contractRefinement.of_constant spotConstructorCorrect spotCorrect
 
 end Benchmarks.Dss.Spot

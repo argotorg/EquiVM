@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Spot.Common
 import Reasoning.ExternalCall
 import Reasoning.Initcode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Spotter constructor shared helpers

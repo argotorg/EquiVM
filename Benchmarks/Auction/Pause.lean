@@ -32,7 +32,7 @@ theorem pauseBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I (entryBytes 10))
     (hreach : EntryReached 10 σ σ₀ A I g) :
-    runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
+    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 10 hsel
     have hsz := calldata_size_ge_of_selIs I (entryBytes 10) (entryBytes_size 10) hsel

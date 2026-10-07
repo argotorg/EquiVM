@@ -66,7 +66,7 @@ theorem flipperTendBodyFrom3486SameCaller
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3486⟩
       [tendBid I, tendLot I, tendId I, ⟨323⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd3686⟩ :=
     flipperTendX_skipRefund hmemSize hcallerEvm h
   let memPay := twoWordHashMem (tendId I) ⟨1⟩ mem

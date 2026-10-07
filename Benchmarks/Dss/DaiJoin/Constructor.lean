@@ -1,5 +1,6 @@
 import Benchmarks.Dss.DaiJoin.ConstructorSource
 import Benchmarks.Dss.DaiJoin.ConstructorTraceReturn
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS DaiJoin constructor correctness
@@ -16,8 +17,7 @@ set_option maxRecDepth 2000000
 
 set_option maxHeartbeats 1000000 in
 theorem daiJoinConstructorCorrect :
-    constructorEquivalence config daiJoinCreationBytecode contract daiJoinBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config daiJoinCreationBytecode contract (fun _ => daiJoinBytecode) := by
   intro σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   rcases daiJoinCtorDeployment_shape hdeploy with ⟨vat, dai, hargs, hdeployed⟩
@@ -29,7 +29,7 @@ theorem daiJoinConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat dai hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
-    · exact constructorEquivalenceFor.outOfGas
+    · exact typedConstructorRefinementFor.outOfGas
         (Xi_error_of_X (g := g) (by
           rw [← hcodeCtor] at hOOG
           simpa [Sat256.ofUInt256] using hOOG))
@@ -58,7 +58,7 @@ theorem daiJoinConstructorCorrect :
           storageStore_accountMap, storageStore_executionEnv, initState,
           Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
           solcSlotWord, hslot]
-      refine constructorEquivalenceFor.execution hsuccess
+      refine typedConstructorRefinementFor.execution hsuccess
         (by
           simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using
             daiJoinSolmCtorExecSuccess
@@ -71,8 +71,8 @@ theorem daiJoinConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat dai hcodeCtor hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-    · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
         (daiJoinSolmCtorExecReverts_nonpayable
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := g) vat dai hwv)

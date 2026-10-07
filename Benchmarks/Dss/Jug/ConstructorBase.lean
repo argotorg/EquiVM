@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Jug.Common
 import Reasoning.ExternalCall
 import Reasoning.Initcode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Jug constructor shared helpers

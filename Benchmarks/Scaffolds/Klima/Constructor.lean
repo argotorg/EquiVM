@@ -1,5 +1,5 @@
 import Benchmarks.Scaffolds.Klima.Bytecode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # KlimaDAO KlimaToken constructor correctness stub
@@ -15,7 +15,7 @@ open Solm ABI Ethereum Ethereum.EVM
 namespace Benchmarks.Klima
 
 theorem klimaConstructorCorrect :
-    constructorEquivalence config klimaCreationBytecode contract klimaBytecode := by
+    typedConstructorRefinement config klimaCreationBytecode contract (fun _ => klimaBytecode) := by
   sorry
 
 end Benchmarks.Klima
