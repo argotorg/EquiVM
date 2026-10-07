@@ -25,7 +25,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 /-- The word `TLOAD` of slot 0 pushes for `owner`. -/
 def flagWord (σ : AccountMap) (owner : AccountAddress) : UInt256 :=
-  σ.find? owner |>.option ⟨0⟩ (fun ac => ac.tstorage.findD ⟨0⟩ ⟨0⟩)
+  σ.get? owner |>.option ⟨0⟩ (fun ac => ac.tstorage.getD ⟨0⟩ ⟨0⟩)
 
 /-- The Solm value of that word. -/
 def flagValue (σ : AccountMap) (owner : AccountAddress) : Value :=
@@ -61,12 +61,7 @@ theorem flagLoc_uint256 : TransientFlag.flagLoc = uint256Loc ⟨0⟩ := by
 theorem swap_executionEnv (evm : EVM.State) :
     (Solm.EVM.swapCodeOwnerMaps evm).executionEnv = evm.executionEnv := by
   simp only [Solm.EVM.swapCodeOwnerMaps, State.lookupAccount, State.setAccount]
-  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option]
-
-theorem swap_createdAccounts (evm : EVM.State) :
-    (Solm.EVM.swapCodeOwnerMaps evm).createdAccounts = evm.createdAccounts := by
-  simp only [Solm.EVM.swapCodeOwnerMaps, State.lookupAccount, State.setAccount]
-  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option]
+  cases evm.accountMap.get? evm.executionEnv.codeOwner <;> simp [Option.option]
 
 theorem swap_codeOwner (evm : EVM.State) :
     (Solm.EVM.swapCodeOwnerMaps evm).executionEnv.codeOwner = evm.executionEnv.codeOwner := by
@@ -77,21 +72,17 @@ theorem flagAfterSet_executionEnv (evm : EVM.State) (val : UInt256) :
   unfold flagAfterSet
   rw [swap_executionEnv, storageStore_executionEnv, swap_executionEnv]
 
-theorem flagAfterSet_createdAccounts (evm : EVM.State) (val : UInt256) :
-    (flagAfterSet evm val).createdAccounts = evm.createdAccounts := by
-  unfold flagAfterSet
-  rw [swap_createdAccounts, storageStore_createdAccounts, swap_createdAccounts]
-
 /-- Reading persistent storage of the swapped code owner is the transient load. -/
 theorem storageLoad_swap_eq_flagWord (evm : EVM.State) :
     Solm.EVM.storageLoad (Solm.EVM.swapCodeOwnerMaps evm) evm.executionEnv.codeOwner ⟨0⟩ =
       flagWord evm.accountMap evm.executionEnv.codeOwner := by
   unfold Solm.EVM.storageLoad Solm.EVM.swapCodeOwnerMaps flagWord State.lookupAccount
     Account.lookupStorage
-  cases h : evm.accountMap.find? evm.executionEnv.codeOwner with
-  | none => simp [h, Option.option]
+  cases h : evm.accountMap.get? evm.executionEnv.codeOwner with
+  | none => simp [-Std.ExtTreeMap.get?_eq_getElem?, h, Option.option]
   | some acc =>
-      simp only [h, Option.option, State.setAccount, accountMap_find_insert_self]
+      simp only [h, Option.option, State.setAccount, Std.ExtTreeMap.get?_eq_getElem?,
+        Std.ExtTreeMap.getElem?_insert_self]
 
 theorem transientLocLoad_flag (evm : EVM.State) :
     transientLocLoad evm TransientFlag.flagLoc =
@@ -108,18 +99,14 @@ theorem transientLocStore_flag (evm : EVM.State) (val : UInt256) :
   rw [storageLocStore_uint256, swap_codeOwner]
   rfl
 
-/-- Swapping, storing the word, and swapping back agrees with `TSTORE` on every account lookup. -/
+/-- Swapping, storing the word, and swapping back is the `TSTORE` account map. -/
 theorem flagAfterSet_accountMap (evm : EVM.State) (val : UInt256) :
-    accountMapEquiv (flagAfterSet evm val).accountMap
-      (tstoreAccountMap evm.executionEnv.codeOwner evm.accountMap ⟨0⟩ val) := by
-  intro addr
-  cases hσ : evm.accountMap.find? evm.executionEnv.codeOwner with
+    (flagAfterSet evm val).accountMap =
+      tstoreAccountMap evm.executionEnv.codeOwner evm.accountMap ⟨0⟩ val := by
+  cases hσ : evm.accountMap.get? evm.executionEnv.codeOwner with
   | none =>
-      have hflag : flagAfterSet evm val = evm := by
-        simp [flagAfterSet, Solm.EVM.swapCodeOwnerMaps, Solm.EVM.storageStore,
-          State.lookupAccount, hσ, Option.option]
-      simp [hflag, tstoreAccountMap, hσ, Option.option]
-      exact accountMapEquiv.refl evm.accountMap addr
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, flagAfterSet, tstoreAccountMap,
+        Solm.EVM.swapCodeOwnerMaps, Solm.EVM.storageStore, State.lookupAccount, hσ, Option.option]
   | some acc =>
       set owner := evm.executionEnv.codeOwner
       simp only [owner] at hσ
@@ -133,19 +120,21 @@ theorem flagAfterSet_accountMap (evm : EVM.State) (val : UInt256) :
           evm.accountMap.insert owner swapped := by
         simp only [Solm.EVM.swapCodeOwnerMaps, State.lookupAccount, State.setAccount, hσ,
           Option.option, swapped, owner]
-      have hstore : (Solm.EVM.storageStore (Solm.EVM.swapCodeOwnerMaps evm) owner ⟨0⟩ val).accountMap =
-          (evm.accountMap.insert owner swapped).insert owner written := by
-        have hs : (Solm.EVM.swapCodeOwnerMaps evm).accountMap.find? owner = some swapped := by
-          rw [hswap1, accountMap_find_insert_self]
+      have hstore :
+          (Solm.EVM.storageStore (Solm.EVM.swapCodeOwnerMaps evm) owner ⟨0⟩ val).accountMap =
+            (evm.accountMap.insert owner swapped).insert owner written := by
+        have hs : (Solm.EVM.swapCodeOwnerMaps evm).accountMap.get? owner = some swapped := by
+          rw [hswap1]
+          simp [Std.ExtTreeMap.get?_eq_getElem?]
         simp only [Solm.EVM.storageStore, State.lookupAccount, hs, Option.option, State.setAccount]
         simp only [Account.updateStorage, written, hswap1, owner]
-      have hwritten : ((evm.accountMap.insert owner swapped).insert owner written).find? owner =
-          some written := accountMap_find_insert_self _ _ _
       have hswap2 : (flagAfterSet evm val).accountMap =
           ((evm.accountMap.insert owner swapped).insert owner written).insert owner restored := by
-        have hs2 : (Solm.EVM.storageStore (Solm.EVM.swapCodeOwnerMaps evm) owner ⟨0⟩ val).accountMap.find?
-            owner = some written := by
-          rw [hstore, hwritten]
+        have hs2 :
+            (Solm.EVM.storageStore (Solm.EVM.swapCodeOwnerMaps evm) owner ⟨0⟩ val).accountMap.get?
+              owner = some written := by
+          rw [hstore]
+          simp [Std.ExtTreeMap.get?_eq_getElem?]
         have hco :
             (Solm.EVM.storageStore (Solm.EVM.swapCodeOwnerMaps evm) owner ⟨0⟩ val).executionEnv.codeOwner
               = owner := by
@@ -153,42 +142,8 @@ theorem flagAfterSet_accountMap (evm : EVM.State) (val : UInt256) :
         unfold flagAfterSet
         rw [Solm.EVM.swapCodeOwnerMaps, State.lookupAccount, hco, hs2]
         simp only [Option.option, State.setAccount, hstore, restored, owner]
-      rw [hswap2]
-      by_cases haddr : addr = owner
-      · subst haddr
-        rw [accountMap_find_insert_self]
-        simp only [tstoreAccountMap, hσ, Option.option, owner, accountMap_find_insert_self]
-        unfold Account.updateTransientStorage at hrest
-        rw [← hrest]
-        exact accountEquiv.refl _
-      · rw [accountMap_find?_insert_ne _ addr owner _ haddr,
-          accountMap_find?_insert_ne _ addr owner _ haddr,
-          accountMap_find?_insert_ne _ addr owner _ haddr]
-        simp only [tstoreAccountMap, hσ, Option.option, owner]
-        rw [accountMap_find?_insert_ne _ addr owner _ haddr]
-        exact accountMapEquiv.refl evm.accountMap addr
-
-theorem accountEquiv_tstorage_findD {acc₁ acc₂ : Account} (slot default : UInt256)
-    (hacc : accountEquiv acc₁ acc₂) :
-    acc₁.tstorage.findD slot default = acc₂.tstorage.findD slot default := by
-  unfold Batteries.RBMap.findD
-  rw [hacc.2.2.2.2 slot]
-
-theorem accountMapEquiv_tstorage_findD {σ τ : AccountMap}
-    (hστ : accountMapEquiv σ τ) (addr : AccountAddress) (slot default : UInt256) :
-    ((σ.find? addr).option default (fun acc => acc.tstorage.findD slot default)) =
-      ((τ.find? addr).option default (fun acc => acc.tstorage.findD slot default)) := by
-  specialize hστ addr
-  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;> simp [hσ, hτ, Option.option] at hστ ⊢
-  exact accountEquiv_tstorage_findD slot default hστ
-
-theorem flagWord_equiv {σ τ : AccountMap} (hστ : accountMapEquiv σ τ) (owner : AccountAddress) :
-    flagWord σ owner = flagWord τ owner := by
-  simpa [flagWord] using accountMapEquiv_tstorage_findD hστ owner ⟨0⟩ ⟨0⟩
-
-theorem flagValue_equiv {σ τ : AccountMap} (hστ : accountMapEquiv σ τ) (owner : AccountAddress) :
-    flagValue σ owner = flagValue τ owner := by
-  simp [flagValue, flagWord_equiv hστ]
+      rw [hswap2, extTreeMap_insert_insert_self, extTreeMap_insert_insert_self, hrest]
+      simp only [tstoreAccountMap, hσ, Option.option, owner, Account.updateTransientStorage]
 
 /-! ## Dispatcher -/
 
@@ -236,7 +191,7 @@ theorem flagMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 2) (hsz : 4 ≤ I.cal
   · rw [flagArmEq I hsz i hi, hci]
     interval_cases i <;> decide
 
-theorem flagReachBody {cA gh bl σ σ₀ A I} {g : Sat256} (i : ℕ) (hi1 : i ≤ 1)
+theorem flagReachBody {σ σ₀ A I} {g : Sat256} (i : ℕ) (hi1 : i ≤ 1)
     (bodyPC : UInt256)
     (hcode : I.code = flagBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -247,8 +202,8 @@ theorem flagReachBody {cA gh bl σ σ₀ A I} {g : Sat256} (i : ℕ) (hi1 : i �
         (solcSelectorWord I) ≠ ⟨0⟩)
     (hjd : (D_J flagBytecode 0).contains bodyPC = true)
     (hbody : armTgt flagBytecode (nthArmPc flagBytecode flagFirstArmPc i) = bodyPC) :
-    ∃ k C, RD flagBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD flagBytecode I g (initState σ σ₀ g A I) bodyPC
+        [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   exact solcDispatchReachBody
     (firstArmPc := flagFirstArmPc) (bodyPC := bodyPC) (i := i)
     hcode hwv hsz hsize (by solc_dispatch_prefix) (by jump_dest)
@@ -305,9 +260,9 @@ theorem flagBodyReverts_nonPayable (t : TransitionDecl)
 
 /-! ## Bytecode traces -/
 
-theorem flagX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flagX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flagBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev flagBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev flagBytecode g (initState σ σ₀ g A I) := by
   exact solcGuardCallvalueNonzeroRevert
     (ctgt := solcGuardTgt flagBytecode) (opC := solcGuardTgtOp flagBytecode)
     (wC := solcGuardTgtWidth flagBytecode)
@@ -315,10 +270,10 @@ theorem flagX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by decide))
     hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
 
-theorem flagX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flagX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flagBytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    RDrev flagBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev flagBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt flagBytecode) (opC := solcGuardTgtOp flagBytecode)
@@ -332,18 +287,18 @@ theorem flagX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     h1 hsz (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
     (by decide) (by jump_dest) (by decide) (by decide) (by decide)
 
-theorem flagX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flagX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flagBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 2 → (flagSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev flagBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev flagBytecode g (initState σ σ₀ g A I) := by
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat flagBytecode (nthArmPc flagBytecode flagFirstArmPc j))
         (solcSelectorWord I) = ⟨0⟩ := by
     intro j hj
     rw [flagArmEq I hsz j hj, hnm j hj]
     rfl
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt flagBytecode) (opC := solcGuardTgtOp flagBytecode)
@@ -356,15 +311,15 @@ theorem flagX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (wR := solcCalldataRevertTgtWidth flagBytecode)
     h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
-  have h4 : RD flagBytecode I g (initState cA gh bl σ σ₀ g A I) flagFirstArmPc
-      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3 C3 := by
+  have h4 : RD flagBytecode I g (initState σ σ₀ g A I) flagFirstArmPc
+      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k3 C3 := by
     simpa [flagFirstArmPc, solcSelectorWord, solcFirstArmPcFromPrefix, solcSelectorLoadPc,
       solcCalldataJumpiPc, solcCalldataRevertPushPc, solcDispatchBodyPc] using h3
   have h5 := h4
     |>.selectorArmNotTakenAuto (flagArmsWellFormed 0 (by omega)) (heq0 0 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (flagArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
-  have h48 : ∃ k C, RD flagBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨48⟩
-      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have h48 : ∃ k C, RD flagBytecode I g (initState σ σ₀ g A I) ⟨48⟩
+      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     refine ⟨k3 + 5 + 5, C3 + 22 + 22, ?_⟩
     simpa [flagFirstArmPc, nthArmPc, selArmNextPc, armTgtWidth, selArmJumpiPc,
       selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using h5
@@ -373,13 +328,13 @@ theorem flagX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 /-- `setFlag` from its body entry when the argument word is present. -/
-theorem flagX_set_success {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flagX_set_success {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flagBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hmatch : (flagSelBytes 0 == I.calldata.extract 0 4) = true) :
-    RDret flagBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, tstoreAccountMap I.codeOwner σ ⟨0⟩ (flagArg I)) ByteArray.empty := by
+    RDret flagBytecode g (initState σ σ₀ g A I)
+      (tstoreAccountMap I.codeOwner σ ⟨0⟩ (flagArg I)) ByteArray.empty := by
   obtain ⟨heq0, htake⟩ := flagMatches 0 (by omega) (by omega : 4 ≤ I.calldata.size) hmatch
   have hsz4 : 4 ≤ I.calldata.size := by omega
   obtain ⟨_, _, hreach⟩ := flagReachBody 0 (by omega) ⟨52⟩ hcode hwv hsz4 hsize heq0 htake
@@ -396,12 +351,12 @@ theorem flagX_set_success {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, dup1, dup1, push0, tstore hperm, pop, pop, jump (by jump_dest),
     jumpdest, stop ]
 
-theorem flagX_set_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flagX_set_shortarg {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flagBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hmatch : (flagSelBytes 0 == I.calldata.extract 0 4) = true) :
-    RDrev flagBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev flagBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨heq0, htake⟩ := flagMatches 0 (by omega) hsz4 hmatch
   obtain ⟨_, _, hreach⟩ := flagReachBody 0 (by omega) ⟨52⟩ hcode hwv hsz4 hsize heq0 htake
     (by jump_dest) (by decide)
@@ -414,12 +369,12 @@ theorem flagX_set_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpiNT (by rw [hslt]; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem flagX_set_hugearg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flagX_set_hugearg {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flagBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
     (hmatch : (flagSelBytes 0 == I.calldata.extract 0 4) = true) :
-    RDrev flagBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev flagBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨heq0, htake⟩ := flagMatches 0 (by omega) hsz4 hmatch
   obtain ⟨_, _, hreach⟩ := flagReachBody 0 (by omega) ⟨52⟩ hcode hwv hsz4 hsize heq0 htake
     (by jump_dest) (by decide)
@@ -433,11 +388,11 @@ theorem flagX_set_hugearg {cA gh bl σ σ₀ A I} {g : Sat256}
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 /-- `getFlag` returns the transient word at slot 0. -/
-theorem flagX_get_success {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flagX_get_success {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flagBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size)     (hsize : I.calldata.size < UInt256.size)
     (hg : (flagSelBytes 1 == I.calldata.extract 0 4) = true) :
-    RDret flagBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    RDret flagBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (flagWord σ I.codeOwner)) := by
   obtain ⟨heq0, htake⟩ := flagMatches 1 (by omega) hsz hg
   obtain ⟨_, _, hreach⟩ := flagReachBody 1 (by omega) ⟨69⟩ hcode hwv hsz hsize heq0 htake
@@ -550,12 +505,11 @@ theorem flagGetReturnEncoding (σ : AccountMap) (owner : AccountAddress) :
 
 /-! ## Coupling -/
 
-theorem flagNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flagNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flagBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 2 → (flagSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor flagConfig TransientFlag.flagContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor flagConfig TransientFlag.flagContract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (flagX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm).reEquivNoDispatch
       hcode (flagDispatch_none_nomatch hnm)
@@ -563,10 +517,9 @@ theorem flagNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     exact (flagX_short (g := Sat256.ofUInt256 g) hcode hwv hshort).reEquivNoDispatch hcode
       (flagDispatch_none_short hshort)
 
-theorem flagNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flagNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flagBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor flagConfig TransientFlag.flagContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor flagConfig TransientFlag.flagContract σ σ₀ g A I := by
   exact (flagX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg TransientFlag.flagContract I.calldata = none
@@ -581,16 +534,14 @@ theorem flagNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (flagBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) callargs
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs
               (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
-theorem flagReEquiv_callvalueZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flagReEquiv_callvalueZero {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flagBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor flagConfig TransientFlag.flagContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) :
+    runtimeEquivalenceFor flagConfig TransientFlag.flagContract σ σ₀ g A I := by
   by_cases hselShort : I.calldata.size < 4
   · exact (flagX_short (g := Sat256.ofUInt256 g) hcode hwv hselShort).reEquivNoDispatch
       hcode (flagDispatch_none_short hselShort)
@@ -601,20 +552,14 @@ theorem flagReEquiv_callvalueZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
       · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
         · have hdec := flagDecode_set_ok (I := I) hsz36 hbig
           have hbody := setFlagBody
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)
-          have hpost : accountMapEquiv
-              (tstoreAccountMap I.codeOwner σ_evm ⟨0⟩ (flagArg I))
-              (flagAfterSet (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                (flagArg I)).accountMap :=
-            accountMapEquiv.trans
-              (accountMapEquiv_tstoreAccountMap I.codeOwner ⟨0⟩ (flagArg I) hAccounts)
-              (accountMapEquiv.symm (flagAfterSet_accountMap
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (flagArg I)))
           exact (flagX_set_success (g := Sat256.ofUInt256 g) hcode hwv hsz36 hbig hsize hperm
-              hf).reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-            (by rw [flagAfterSet_createdAccounts]; simp [initState])
-            hpost
+              hf).reEquivExecutionGen hcode hd hdec hbody
+            (by
+              symm
+              simpa [initState] using
+                flagAfterSet_accountMap (initState σ σ₀ (Sat256.ofUInt256 g) A I) (flagArg I))
             (returnEquiv.fallthrough rfl rfl (by native_decide))
         · have hbigge : 2 ^ 255 + 4 ≤ I.calldata.size := by omega
           have hdec := flagDecode_set_none_huge (I := I) hbigge
@@ -629,16 +574,12 @@ theorem flagReEquiv_callvalueZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
       · have hd := flagDispatch_get (cd := I.calldata) hf hg
         have hdec := flagDecode_get_ok (I := I) hsz4
         have hbody := getFlagBody
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
             (by simp only [initState]; exact hwv)
-        have hval :
-            some [flagValue σ_solm I.codeOwner] = some [flagValue σ_evm I.codeOwner] := by
-          simp [flagValue_equiv hAccounts]
         exact (flagX_get_success (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize
             hg).reEquivExecutionTransport hcode hd hdec hbody
-          (by simpa [initState] using hval)
-          hAccounts
-          (returnEquiv_of_encode (flagGetReturnEncoding σ_evm I.codeOwner))
+          (by simp [initState])
+          (returnEquiv_of_encode (flagGetReturnEncoding σ I.codeOwner))
       · rw [Bool.not_eq_true] at hg
         have hnm : ∀ i, i < 2 → (flagSelBytes i == I.calldata.extract 0 4) = false := by
           intro i hi
@@ -649,7 +590,7 @@ theorem flagReEquiv_callvalueZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
 
 /-- **Correctness of `TransientFlag`.** -/
 theorem transientFlagCorrect : runtimeEquivalence flagConfig flagBytecode TransientFlag.flagContract := by
-  refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hσ => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
-  · exact flagReEquiv_callvalueZero hcode hsize hperm hwv hσ
+  · exact flagReEquiv_callvalueZero hcode hsize hperm hwv
   · exact flagNonPayable hcode hwv
