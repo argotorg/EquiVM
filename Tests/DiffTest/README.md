@@ -76,6 +76,12 @@ deployed code with `runtimeCodeOf` of the final immutables.
 
 ## Adding a target
 
+For a contract built with the scaffold pipeline, `scripts/scaffold.py difftest --dir <Dir>
+--module <Module>` writes `<Dir>/DiffTarget.lean` and regenerates `Tests/DiffTest/Generated.lean`,
+the registry `allTargets` appends (targets whose name a hand-written entry already uses are
+skipped). Delete the `DiffTarget.lean` and rerun the script to unregister. Hand-written targets
+go into `Targets.lean`:
+
 ```lean
 def foo : Target :=
   { name := "Foo", contract := Foo.contract, config := Foo.config,
