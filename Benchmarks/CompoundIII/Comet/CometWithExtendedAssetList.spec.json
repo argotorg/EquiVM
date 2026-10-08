@@ -1,0 +1,125 @@
+{
+  "contract": "CometWithExtendedAssetList",
+  "externalCalls": [
+    {
+      "name": "getAssetInfo",
+      "params": [
+        "uint8"
+      ],
+      "returns": [
+        "AssetInfo"
+      ],
+      "view": true
+    },
+    {
+      "name": "latestRoundData",
+      "params": [],
+      "returns": [
+        "uint80",
+        "int256",
+        "uint256",
+        "uint256",
+        "uint80"
+      ],
+      "view": true
+    },
+    {
+      "name": "balanceOf",
+      "params": [
+        "address"
+      ],
+      "returns": [
+        "uint256"
+      ],
+      "view": true
+    },
+    {
+      "name": "approve",
+      "params": [
+        "address",
+        "uint256"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "decimals",
+      "params": [],
+      "returns": [
+        "uint8"
+      ],
+      "view": true
+    },
+    {
+      "name": "assetListFactory",
+      "params": [],
+      "returns": [
+        "address"
+      ],
+      "view": true
+    },
+    {
+      "name": "createAssetList",
+      "params": [
+        "AssetConfig"
+      ],
+      "returns": [
+        "address"
+      ],
+      "view": false
+    },
+    {
+      "name": "transferFrom",
+      "params": [
+        "address",
+        "address",
+        "uint256"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "transfer",
+      "params": [
+        "address",
+        "uint256"
+      ],
+      "returns": [],
+      "view": false
+    }
+  ],
+  "holes": [
+    "builtin gasleft() @41231",
+    "builtin gasleft() @41434",
+    "inline assembly block @7658",
+    "inline assembly block @7817",
+    "inline assembly block @26256",
+    "inline assembly block @27446",
+    "inline assembly block @8094",
+    "inline assembly block @51286"
+  ],
+  "notes": [
+    "constant BASE_INDEX_SCALE = 1000000000000000 inlined",
+    "`basic` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 11474:43:5",
+    "constant FACTOR_SCALE = 1000000000000000000 inlined",
+    "constant PAUSE_SUPPLY_OFFSET = 0 inlined",
+    "constant PAUSE_TRANSFER_OFFSET = 1 inlined",
+    "constant PAUSE_WITHDRAW_OFFSET = 2 inlined",
+    "constant PAUSE_ABSORB_OFFSET = 3 inlined",
+    "constant PAUSE_BUY_OFFSET = 4 inlined",
+    "`points` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 41802:59:5",
+    "constant MAX_BASE_DECIMALS = 18 inlined",
+    "constant MAX_ASSETS_FOR_ASSET_LIST = 24 inlined",
+    "constant PRICE_FEED_DECIMALS = 8 inlined",
+    "constant BASE_ACCRUAL_SCALE = 1000000 inlined",
+    "constant SECONDS_PER_YEAR = 31536000 inlined",
+    "`accountUser` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 42298:49:5",
+    "constant REENTRANCY_GUARD_FLAG_SLOT = bytes32(keccak256(\"comet.reentrancy.guard\")) inlined",
+    "constant REENTRANCY_GUARD_ENTERED = 1 inlined",
+    "`dstUser` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 30282:41:5",
+    "`totals` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 31268:56:5",
+    "`srcUser` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 34465:41:5",
+    "`dstUser` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 34516:41:5",
+    "`srcUser` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 39083:41:5"
+  ]
+}

@@ -1,4 +1,5 @@
 import Solm.DiffTest.Harness
+import Benchmarks.CompoundIII.Comet.DiffTarget
 import Tests.DiffTest.Fixtures.Factory.DiffTarget
 import Tests.Pipeline.Vault.DiffTarget
 
@@ -10,7 +11,8 @@ repository.  Do not edit; rerun the script after adding or removing a target.
 namespace Tests.DiffTest
 
 def generatedTargets : List Solm.DiffTest.Target :=
-  [ Tests.DiffTest.Fixtures.Factory.diffTarget,
+  [ Benchmarks.CompoundIII.Comet.diffTarget,
+    Tests.DiffTest.Fixtures.Factory.diffTarget,
     Tests.Pipeline.Vault.diffTarget ]
 
 end Tests.DiffTest
