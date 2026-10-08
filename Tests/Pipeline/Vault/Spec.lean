@@ -66,6 +66,7 @@ def externalABI : ExternalCallABI where
 def config : Config :=
   { storageBackend := storageBackend
     externalABI := externalABI
+    transientBackend := solidityTransientStorage! [contract.structs] [contract.transient]
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 
 end Tests.Pipeline.Vault

@@ -26,7 +26,7 @@ theorem vaultCreation_block_0_taken {tail : ByteArray} {ee : ExecutionEnv} {g : 
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
     : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15) (vaultCreation_block_0_taken_stack (ee := ee) (R := R)) (vaultCreation_block_0_taken_memory (mem := mem)) (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((30) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 192) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 64) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := RD.genMstore r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -63,7 +63,7 @@ theorem vaultCreation_block_0_fallthrough {tail : ByteArray} {ee : ExecutionEnv}
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 0) R mem aw rdata σ k C)
     : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12) (vaultCreation_block_0_fallthrough_stack (ee := ee) (R := R)) (vaultCreation_block_0_fallthrough_memory (mem := mem)) (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((30) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 192) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 64) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := RD.genMstore r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -90,36 +90,36 @@ theorem vaultCreation_block_12 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat25
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12) R mem aw rdata σ k C)
     : RDrev (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) g s0 := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   exact RD.genRev r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
 
 /-- Final stack for bytecode block summary `vaultCreation_block_15`. -/
 def vaultCreation_block_15_stack {tail : ByteArray} {mem : ByteArray} {R : List UInt256} : List UInt256 :=
-  ((memLoad (UInt256.ofNat 64) mem) :: ((memLoad (UInt256.ofNat 64) mem) + (UInt256.sub (UInt256.ofNat (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).size) (UInt256.ofNat 2464))) :: (UInt256.ofNat 46) :: R)
+  ((memLoad (UInt256.ofNat 64) mem) :: ((memLoad (UInt256.ofNat 64) mem) + (UInt256.sub (UInt256.ofNat (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).size) (UInt256.ofNat 2673))) :: (UInt256.ofNat 46) :: R)
 
 /-- Final memory for bytecode block summary `vaultCreation_block_15`. -/
 def vaultCreation_block_15_memory {tail : ByteArray} {mem : ByteArray} : ByteArray :=
-  (((memLoad (UInt256.ofNat 64) mem) + (UInt256.sub (UInt256.ofNat (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).size) (UInt256.ofNat 2464))).toByteArray.write 0 ((Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).write (UInt256.ofNat 2464).toNat mem (memLoad (UInt256.ofNat 64) mem).toNat (UInt256.sub (UInt256.ofNat (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).size) (UInt256.ofNat 2464)).toNat) (UInt256.ofNat 64).toNat 32)
+  (((memLoad (UInt256.ofNat 64) mem) + (UInt256.sub (UInt256.ofNat (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).size) (UInt256.ofNat 2673))).toByteArray.write 0 ((Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).write (UInt256.ofNat 2673).toNat mem (memLoad (UInt256.ofNat 64) mem).toNat (UInt256.sub (UInt256.ofNat (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).size) (UInt256.ofNat 2673)).toNat) (UInt256.ofNat 64).toNat 32)
 
 /-- Automatically generated RD summary for bytecode block at pc 15. -/
 theorem vaultCreation_block_15 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hvalid : (D_J Tests.Pipeline.Vault.vaultCreationBytecode 0).contains (UInt256.ofNat 149) = true)
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15) (x0 :: R) mem aw rdata σ k C)
-    : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 149) (vaultCreation_block_15_stack (tail := tail) (mem := mem) (R := R)) (vaultCreation_block_15_memory (tail := tail) (mem := mem)) (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (UInt256.sub (UInt256.ofNat (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).size) (UInt256.ofNat 2464))) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 21) (C + ((61) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (UInt256.sub (UInt256.ofNat (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).size) (UInt256.ofNat 2464))) + (3 + 3 * (((UInt256.sub (UInt256.ofNat (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).size) (UInt256.ofNat 2464)).toNat + 31) / 32)) + (memExpansionCost (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (UInt256.sub (UInt256.ofNat (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).size) (UInt256.ofNat 2464))) (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
+    : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 149) (vaultCreation_block_15_stack (tail := tail) (mem := mem) (R := R)) (vaultCreation_block_15_memory (tail := tail) (mem := mem)) (M (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (UInt256.sub (UInt256.ofNat (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).size) (UInt256.ofNat 2673))) (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 21) (C + ((61) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (UInt256.sub (UInt256.ofNat (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).size) (UInt256.ofNat 2673))) + (3 + 3 * (((UInt256.sub (UInt256.ofNat (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).size) (UInt256.ofNat 2673)).toNat + 31) / 32)) + (memExpansionCost (M (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) (memLoad (UInt256.ofNat 64) mem) (UInt256.sub (UInt256.ofNat (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).size) (UInt256.ofNat 2673))) (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.pop (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := r2.push1 (UInt256.ofNat 64) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r4 := RD.genMload r3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r5 := r4.push2 (UInt256.ofNat 2464) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r5 := r4.push2 (UInt256.ofNat 2673) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r6 := r5.codesize (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r7 := r6.sub (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r8 := r7.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r9 := r8.push2 (UInt256.ofNat 2464) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r9 := r8.push2 (UInt256.ofNat 2673) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r10 := r9.dup4 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r11 := RD.genCodecopy r10 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r12 := r11.dup2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -152,7 +152,7 @@ theorem vaultCreation_block_46_taken {tail : ByteArray} {ee : ExecutionEnv} {g :
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 46) (x0 :: R) mem aw rdata σ k C)
     : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 106) (x0 :: R) mem aw rdata σ (k + 7) (C + ((26))) := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 10000) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := r2.dup2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -180,7 +180,7 @@ theorem vaultCreation_block_46_fallthrough {tail : ByteArray} {ee : ExecutionEnv
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 46) (x0 :: R) mem aw rdata σ k C)
     : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 57) (x0 :: R) mem aw rdata σ (k + 7) (C + ((26))) := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 10000) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := r2.dup2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -206,7 +206,7 @@ theorem vaultCreation_block_57 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat25
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 57) R mem aw rdata σ k C)
     : RDrev (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) g s0 := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 64) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := RD.genMload r1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := r2.pushConst (UInt256.ofNat 4594637) (width := 3) (op := .PUSH3) (by decide) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -257,7 +257,7 @@ theorem vaultCreation_block_106 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat2
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 106) (x0 :: x1 :: R) mem aw rdata σ k C)
     : ∃ (k' C' : ℕ), RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 204) (vaultCreation_block_106_stack (R := R)) (vaultCreation_block_106_memory (ee := ee) (mem := mem) (x0 := x0)) (M (M aw (UInt256.ofNat 128) (⟨32⟩ : UInt256)) (UInt256.ofNat 160) (⟨32⟩ : UInt256)) rdata (sstoreAccountMap ee.codeOwner σ (⟨0⟩ : UInt256) (UInt256.lor (UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) x1) (UInt256.land (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1))) (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)))))) k' C' := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.caller (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := r2.push1 (UInt256.ofNat 128) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -317,7 +317,7 @@ theorem vaultCreation_block_149_taken {tail : ByteArray} {ee : ExecutionEnv} {g 
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 149) (x0 :: x1 :: R) mem aw rdata σ k C)
     : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 166) (vaultCreation_block_149_taken_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 11) (C + ((36))) := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := r2.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -353,7 +353,7 @@ theorem vaultCreation_block_149_fallthrough {tail : ByteArray} {ee : ExecutionEn
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 149) (x0 :: x1 :: R) mem aw rdata σ k C)
     : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 163) (vaultCreation_block_149_fallthrough_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 11) (C + ((36))) := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := r2.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -383,7 +383,7 @@ theorem vaultCreation_block_163 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat2
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 163) R mem aw rdata σ k C)
     : RDrev (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) g s0 := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   exact RD.genRev r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -400,7 +400,7 @@ theorem vaultCreation_block_166_taken {tail : ByteArray} {ee : ExecutionEnv} {g 
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 166) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
     : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 188) (vaultCreation_block_166_taken_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem (M aw x2 (⟨32⟩ : UInt256)) rdata σ (k + 14) (C + ((47) + (memExpansionCost aw x2 (⟨32⟩ : UInt256)))) := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := RD.genMload r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -439,7 +439,7 @@ theorem vaultCreation_block_166_fallthrough {tail : ByteArray} {ee : ExecutionEn
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 166) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
     : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 185) (vaultCreation_block_166_fallthrough_stack (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem (M aw x2 (⟨32⟩ : UInt256)) rdata σ (k + 14) (C + ((47) + (memExpansionCost aw x2 (⟨32⟩ : UInt256)))) := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := RD.genMload r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -472,7 +472,7 @@ theorem vaultCreation_block_185 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat2
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 185) R mem aw rdata σ k C)
     : RDrev (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) g s0 := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   exact RD.genRev r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -488,7 +488,7 @@ theorem vaultCreation_block_188 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat2
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 188) (x0 :: x1 :: x2 :: x3 :: x4 :: x5 :: R) mem aw rdata σ k C)
     : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 x5 (vaultCreation_block_188_stack (mem := mem) (x0 := x0) (x3 := x3) (R := R)) mem (M aw ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)) rdata σ (k + 15) (C + ((45) + (memExpansionCost aw ((UInt256.ofNat 32) + x3) (⟨32⟩ : UInt256)))) := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 32) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := r2.swap4 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -519,15 +519,15 @@ theorem vaultCreation_block_188_packed {tail : ByteArray} {ee : ExecutionEnv} {g
 theorem vaultCreation_block_204 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 6 ≤ 1024)
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 204) R mem aw rdata σ k C)
-    : RDret (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) g s0 σ (((memLoad (UInt256.ofNat 128) mem).toByteArray.write 0 ((memLoad (UInt256.ofNat 128) mem).toByteArray.write 0 ((memLoad (UInt256.ofNat 128) mem).toByteArray.write 0 ((memLoad (UInt256.ofNat 160) mem).toByteArray.write 0 ((memLoad (UInt256.ofNat 160) mem).toByteArray.write 0 ((Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).write (UInt256.ofNat 257).toNat mem (⟨0⟩ : UInt256).toNat (UInt256.ofNat 2207).toNat) ((UInt256.ofNat 219) + (⟨0⟩ : UInt256)).toNat 32) ((UInt256.ofNat 1591) + (⟨0⟩ : UInt256)).toNat 32) ((UInt256.ofNat 325) + (⟨0⟩ : UInt256)).toNat 32) ((UInt256.ofNat 450) + (⟨0⟩ : UInt256)).toNat 32) ((UInt256.ofNat 1239) + (⟨0⟩ : UInt256)).toNat 32).readWithPadding (⟨0⟩ : UInt256).toNat (UInt256.ofNat 2207).toNat) := by
+    : RDret (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) g s0 σ (((memLoad (UInt256.ofNat 128) mem).toByteArray.write 0 ((memLoad (UInt256.ofNat 128) mem).toByteArray.write 0 ((memLoad (UInt256.ofNat 128) mem).toByteArray.write 0 ((memLoad (UInt256.ofNat 160) mem).toByteArray.write 0 ((memLoad (UInt256.ofNat 160) mem).toByteArray.write 0 ((Tests.Pipeline.Vault.vaultCreationBytecode ++ tail).write (UInt256.ofNat 257).toNat mem (⟨0⟩ : UInt256).toNat (UInt256.ofNat 2416).toNat) ((UInt256.ofNat 219) + (⟨0⟩ : UInt256)).toNat 32) ((UInt256.ofNat 1755) + (⟨0⟩ : UInt256)).toNat 32) ((UInt256.ofNat 325) + (⟨0⟩ : UInt256)).toNat 32) ((UInt256.ofNat 450) + (⟨0⟩ : UInt256)).toNat 32) ((UInt256.ofNat 1355) + (⟨0⟩ : UInt256)).toNat 32).readWithPadding (⟨0⟩ : UInt256).toNat (UInt256.ofNat 2416).toNat) := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 128) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := RD.genMload r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r4 := r3.push1 (UInt256.ofNat 160) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r5 := RD.genMload r4 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r6 := r5.push2 (UInt256.ofNat 2207) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r6 := r5.push2 (UInt256.ofNat 2416) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r7 := r6.push2 (UInt256.ofNat 257) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r8 := r7.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r9 := RD.genCodecopy r8 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -537,7 +537,7 @@ theorem vaultCreation_block_204 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat2
   have r13 := r12.push1 (UInt256.ofNat 219) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r14 := r13.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r15 := RD.genMstore r14 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r16 := r15.push2 (UInt256.ofNat 1591) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r16 := r15.push2 (UInt256.ofNat 1755) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r17 := r16.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r18 := RD.genMstore r17 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r19 := r18.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -551,10 +551,10 @@ theorem vaultCreation_block_204 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat2
   have r27 := r26.push2 (UInt256.ofNat 450) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r28 := r27.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r29 := RD.genMstore r28 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r30 := r29.push2 (UInt256.ofNat 1239) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r30 := r29.push2 (UInt256.ofNat 1355) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r31 := r30.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r32 := RD.genMstore r31 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r33 := r32.push2 (UInt256.ofNat 2207) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r33 := r32.push2 (UInt256.ofNat 2416) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r34 := r33.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   exact RD.genRet r34 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
 
@@ -563,7 +563,7 @@ theorem vaultCreation_block_256 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat2
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 256) R mem aw rdata σ k C)
     : RDinvalid (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) g s0 := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   exact RD.invalid r0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide))
 
 /-- Final stack for bytecode block summary `vaultCreation_block_257_taken`. -/
@@ -582,7 +582,7 @@ theorem vaultCreation_block_257_taken {tail : ByteArray} {ee : ExecutionEnv} {g 
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 257) R mem aw rdata σ k C)
     : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15) (vaultCreation_block_257_taken_stack (ee := ee) (R := R)) (vaultCreation_block_257_taken_memory (mem := mem)) (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((30) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 128) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 64) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := RD.genMstore r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -619,7 +619,7 @@ theorem vaultCreation_block_257_fallthrough {tail : ByteArray} {ee : ExecutionEn
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 257) R mem aw rdata σ k C)
     : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 269) (vaultCreation_block_257_fallthrough_stack (ee := ee) (R := R)) (vaultCreation_block_257_fallthrough_memory (mem := mem)) (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((30) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 128) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 64) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := RD.genMstore r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -646,7 +646,7 @@ theorem vaultCreation_block_269 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat2
     (h : RD (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) ee g s0 (UInt256.ofNat 269) R mem aw rdata σ k C)
     : RDrev (Tests.Pipeline.Vault.vaultCreationBytecode ++ tail) g s0 := by
   let r0 := h
-  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2464 := by native_decide
+  have hcreationCodeSize : Tests.Pipeline.Vault.vaultCreationBytecode.size = 2673 := by native_decide
   have r1 := r0.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   exact RD.genRev r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)

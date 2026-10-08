@@ -22,7 +22,7 @@ structure VaultImmutables where
 /-- solc `immutableReferences`: each immutable's Solm name and patch offsets, in the order the
     constructor writes them. -/
 def immutableReferences : List (Ident × List Nat) :=
-  [ ("feeBps", [219, 1591]),
-    ("owner", [325, 450, 1239]) ]
+  [ ("feeBps", [219, 1755]),
+    ("owner", [325, 450, 1355]) ]
 
 end Tests.Pipeline.Vault.Immutables

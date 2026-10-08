@@ -23,6 +23,7 @@ def contractSyntax : ContractDecl := solidity% contract Vault {
   mapping(address => uint256) balances;
   address[] depositors;
   uint256 total;
+  bool transient locked;
 
   event Deposit(address indexed «from», uint256 amount);
   event Withdraw(address indexed «to», uint256 amount);
@@ -36,10 +37,13 @@ def contractSyntax : ContractDecl := solidity% contract Vault {
 
   function sweep(address «to») external {
     require(msg.sender == owner);
+    require(!(locked));
+    locked = true;
     var held = token.balanceOf{view}(address(this));
     require(held > total);
     var __c1 = token.transfer(«to», ((held - total) as uint256));
     require(__c1);
+    locked = false;
   }
 
   function count() external returns (uint256) {
@@ -59,12 +63,15 @@ def contractSyntax : ContractDecl := solidity% contract Vault {
   }
 
   function withdraw(uint256 amount) external {
+    require(!(locked));
+    locked = true;
     require(balances[msg.sender] >= amount);
     balances[msg.sender] = ((balances[msg.sender] - amount) as uint256);
     total = ((total - amount) as uint256);
     var __c0 = token.transfer(msg.sender, amount);
     require(__c0);
     emit Withdraw(msg.sender, amount);
+    locked = false;
   }
 
   function dropLast() external {
@@ -77,6 +84,8 @@ def contractSyntax : ContractDecl := solidity% contract Vault {
   }
 
   function deposit(uint256 amount) external {
+    require(!(locked));
+    locked = true;
     require(amount > 0);
     var __c0 = token.transferFrom(msg.sender, address(this), amount);
     require(__c0);
@@ -87,6 +96,7 @@ def contractSyntax : ContractDecl := solidity% contract Vault {
     balances[msg.sender] = ((balances[msg.sender] + net) as uint256);
     total = ((total + net) as uint256);
     emit Deposit(msg.sender, net);
+    locked = false;
   }
 
   function depositors(uint256 arg0) external returns (address) {

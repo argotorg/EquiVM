@@ -29,7 +29,7 @@ namespace Tests.Pipeline.Vault
 
 set_option maxRecDepth 2000000
 
-@[simp] theorem vaultBytecode_size : vaultBytecode.size = 2207 := by
+@[simp] theorem vaultBytecode_size : vaultBytecode.size = 2416 := by
   native_decide +revert
 
 /-- The transition list as its handles. -/

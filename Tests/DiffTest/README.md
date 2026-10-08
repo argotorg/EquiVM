@@ -55,8 +55,9 @@ All cases are derived from the seed. For every transition: random valid argument
 boundaries, to the literals the contract mentions, and to the words the storage pre-state holds;
 with and without call value (payable functions are detected by the absence of the compiler's
 `require(msg.value == 0)` guard); in both permission modes; random block time and number. The
-storage pre-state is written through the specification's own backend and keyed by the case's
-actors (the caller and the addresses among the arguments). Calldata is mutated in a fifth of the
+storage pre-state is written through the specification's own backends, persistent and
+transient (a nonzero transient pre-state stands for earlier calls of the same transaction), and
+keyed by the case's actors (the caller and the addresses among the arguments). Calldata is mutated in a fifth of the
 cases (truncation, dirty words, appended bytes, corrupted selector, selector only). Calldata that
 selects nothing exercises `fallback`/`receive`. Sequences continue from the EVM's post-state within
 one block. Constructor cases run the creation code with random arguments and compare the
