@@ -31,6 +31,15 @@ globs = ["Proofs.+"]
 name = "Benchmarks"
 globs = ["Benchmarks.+"]
 
+[[lean_lib]]
+name = "Tests"
+globs = ["Tests.+"]
+
+# Differential tests of Solm specifications against their compiled bytecode (`Tests/DiffTest/README.md`).
+[[lean_exe]]
+name = "solm-difftest"
+root = "Tests.DiffTest.Main"
+
 # [[lean_exe]]
 # name = "equivm"
 # root = "EquiVM"

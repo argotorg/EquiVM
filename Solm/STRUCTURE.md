@@ -34,6 +34,22 @@ compiler embeds those values in the deployed code is not part of the semantics; 
 refinement relation (`Refine.lean`) quantifies over the map from immutable values to
 deployed code.
 
+Transient state is declared with `uint256 transient flag;` and stored separately in
+`ContractDecl.transient`. Configure it with
+`solidityTransientStorage! [contract.structs] [contract.transient]` in
+`Config.transientBackend`; persistent state still uses `Config.storageBackend`.
+The two layouts each start at slot zero and use the current Solidity packing rules.
+The transient backend implements the same encoding and aggregate operations directly
+against the executing account's `tstorage` map.
+
+Reads and assignments resolve the declared storage kind. `delete`, `push`, and `pop`
+also select the appropriate backend; local persistent-storage aliases take precedence.
+Transient writes halt in static mode, while reads remain available. External calls use
+the existing EVM call semantics, including account ownership and rollback; transient
+state is cleared by the EVM transaction boundary, not between message calls. Solm also
+supports transient aggregates as a specification extension. This does not imply Solidity
+compiler support for transient arrays, mappings, or structs, or for local transient aliases.
+
 Currently, Sol⁻ does not currently model events, error payloads, or gas.
 ```
 Solm/
@@ -53,6 +69,10 @@ Solm/
 │                          layout implements
 ├── SolidityLayout.lean    solc's storage layout (slots, packing, keccak-derived
 │                          mapping/array locations, bytes/string representation)
+├── SolidityStorage.lean   operations on Solidity storage through StorageBackend
+├── TransientStorage.lean  Solidity encoding over the executing account's transient map
+├── MetaSolidityLayout.lean generated layouts and persistent/transient backend macros
+├── TransientTests.lean    transient packing, isolation, aggregate, and resolution regressions
 ├── VyperLayout.lean       Vyper's storage layout
 ├── Semantics.lean         umbrella for Semantics/
 ├── Semantics/
@@ -67,10 +87,18 @@ Solm/
 │   │                      EVM's Θ/Λ (relational)
 │   └── Exec.lean          statement and transaction execution relations
 │                          (ExecStmt … solmExec, solmCtorExec)
-└── Refine.lean            the refinement relation: result equivalences, runtime
-                           refinement (runtimeRefinement), and the top-level
-                           contractRefinement linking constructor and runtime
-                           through the deployed immutables
+├── Refine.lean            the refinement relation: result equivalences, runtime
+│                          refinement (runtimeRefinement), and the top-level
+│                          contractRefinement linking constructor and runtime
+│                          through the deployed immutables
+├── Interp.lean            executable semantics: a fuel-indexed interpreter of the
+│                          statement relations, one arm per rule, with an Oracle for
+│                          the call/creation/gas existentials
+└── DiffTest/              differential tests against evmlean (Tests/DiffTest/README.md)
+    ├── Trace.lean         EVM run recording call boundaries and GAS words; replay oracle
+    ├── Compare.lean       the result equivalences and refinement cases, decided
+    ├── Gen.lean           input generators and storage pre-states
+    └── Harness.lean       targets, case families, summaries
 ```
 
 Dependency order (each layer imports the previous):
@@ -80,6 +108,7 @@ Syntax → Notation
 Syntax → Value → Storage → {SolidityLayout, VyperLayout}
 Semantics: Types → ValueOps → StorageOps → Eval → Exec   (Calls, Dispatch join at Exec)
 Equiv: on top of Semantics
+Interp: on top of Semantics;  DiffTest: on top of Interp and Refine
 ```
 
 Everything is in `namespace Solm`.

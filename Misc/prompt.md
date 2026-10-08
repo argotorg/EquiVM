@@ -66,6 +66,21 @@ outside of it.
 
 ### Phase 0: Evaluate the spec and bytecode
 
+Run the differential suite first:
+
+```
+lake exe solm-difftest --only <Name> --count 50
+```
+
+(`Tests/DiffTest/README.md`; the target comes from `scripts/scaffold.py difftest`). It runs
+the bytecode and the Solm spec on generated calls and compares them with the refinement
+relation. Every `DISAGREE` or `spec stuck` must be understood and, when it is a spec error,
+fixed before any proof work; an inconclusive case (out of gas, out of fuel, allocation cap)
+imposes nothing. The `successful/cases` line shows which transitions the cases reach on a
+successful path; a transition at `0/N` has only been tested on its revert paths, so raise the
+count or add the words its guards need to `DiffTarget.lean`. The suite complements the audit
+below, it does not replace it: it cannot see paths the generator never reaches.
+
 Do a thorough read of the Solm spec and the bytecode. Check that the
 Solm spec matches the bytecode's storage reads/writes, arithmetic, and
 control flow. If you find a mismatch, report it immediately. After
@@ -268,7 +283,7 @@ The proof of a contract `<Name>` goes in a directory `<Name>/`:
 `Reasoning/` is a library of abstractions, lemmas, and tactics for
 proving EVM bytecode correct against its Solm spec. Useful reads:
 
-- `Reasoning/GUIDE.md` — the library map: where every kind of fact
+- `Reasoning/STRUCTURE.md` — the library map: where every kind of fact
   lives, import layering, and the gotchas (native_decide for decode,
   `RD.foo rd` not `rd.foo`, heartbeat budgets, etc.).
 

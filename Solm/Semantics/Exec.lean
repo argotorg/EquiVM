@@ -100,22 +100,59 @@ def resumeAfterInternalCall (caller : Frame) (retVar : Ident) (value : Option (L
     | some vs => collapseReturns vs
   { caller with locals := caller.locals.insert retVar valueToWrite }
 
+/-- Unqualified mutation targets prefer persistent declarations and local persistent aliases.
+    Explicit `.transient` expressions and assignments do not consult local aliases. -/
+@[simp] def usesTransientStorage (solm : Frame) (ref : StorageRef) : Bool :=
+  !(solm.contract.storage.find? (fun decl ↦ decl.name == ref.base)).isSome &&
+    solm.contract.transient.any (fun decl ↦ decl.name == ref.base) &&
+    match solm.locals.get? ref.base with
+    | some (.storageRef _ _) => false
+    | _ => true
+
+/-- A successfully resolved persistent reference keeps selecting the persistent backend. -/
+theorem usesTransientStorage_of_resolveStorageRef
+    (h : resolveStorageRef? cfg solm evm ref = .ok (er, ty)) :
+    usesTransientStorage solm ref = false := by
+  unfold resolveStorageRef? at h
+  split at h
+  · rename_i hlocal
+    simp only [usesTransientStorage, hlocal, Bool.and_false]
+  · cases hbase : solm.contract.storage.find? (fun decl ↦ decl.name == ref.base) with
+    | some decl => simp [usesTransientStorage, hbase]
+    | none =>
+      unfold evalStorageRef at h
+      cases hsteps : evalStorageRefSteps cfg solm evm ref.base [] ref.steps <;>
+        simp [hsteps, storageTypeAt?, hbase, EvalResult.ofOption, EvalResult.bind, bind,
+          pure] at h
+
 /-- Grow a dynamic storage value through the selected backend. -/
 def pushArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
-    (value : Option Value) : EvalResult EVM.State := do
-  let (er, ty) <- resolveStorageRef? cfg solm evm ref
-  cfg.storageBackend.push er ty value evm
+    (value : Option Value) : EvalResult EVM.State :=
+  if usesTransientStorage solm ref then do
+    let (er, ty) ← resolveTransientStorageRef? cfg solm evm ref
+    cfg.transientBackend.push er ty value evm
+  else do
+    let (er, ty) ← resolveStorageRef? cfg solm evm ref
+    cfg.storageBackend.push er ty value evm
 
 def popArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef) :
-    EvalResult EVM.State := do
-  let (er, ty) <- resolveStorageRef? cfg solm evm ref
-  cfg.storageBackend.pop er ty evm
+    EvalResult EVM.State :=
+  if usesTransientStorage solm ref then do
+    let (er, ty) ← resolveTransientStorageRef? cfg solm evm ref
+    cfg.transientBackend.pop er ty evm
+  else do
+    let (er, ty) ← resolveStorageRef? cfg solm evm ref
+    cfg.storageBackend.pop er ty evm
 
 /-- `delete x`: reset the storage at `ref` through the configured backend. -/
 def deleteStorage? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
-    : EvalResult EVM.State := do
-  let (er, ty) <- resolveStorageRef? cfg solm evm ref
-  cfg.storageBackend.clear er ty evm
+    : EvalResult EVM.State :=
+  if usesTransientStorage solm ref then do
+    let (er, ty) ← resolveTransientStorageRef? cfg solm evm ref
+    cfg.transientBackend.clear er ty evm
+  else do
+    let (er, ty) ← resolveStorageRef? cfg solm evm ref
+    cfg.storageBackend.clear er ty evm
 
 /-- Evaluate a `new`'s optional salt: `none` ⇒ CREATE; `some e` must be a `bytes32` ⇒ CREATE2. -/
 def evalSalt? (cfg : Config) (solm : Frame) (evm : EVM.State) :
@@ -167,6 +204,12 @@ inductive ExecStmt (cfg : Config) :
       assignStorageRef? cfg solm evm .storage slot value = .ok (solm', evm') ->
       evm.executionEnv.perm = false ->
       ExecStmt cfg solm evm (.assign .storage slot expr) .staticViolation
+  /-- `TSTORE` is forbidden in static mode, just like a persistent storage write. -/
+  | assignTransientStatic :
+      evalExpr? cfg solm evm expr = .ok value →
+      assignStorageRef? cfg solm evm .transient slot value = .ok (solm', evm') →
+      evm.executionEnv.perm = false →
+      ExecStmt cfg solm evm (.assign .transient slot expr) .staticViolation
   | pushVal :
       evalExpr? cfg solm evm expr = .ok value ->
       pushArray? cfg solm evm ref (some value) = .ok evm' ->

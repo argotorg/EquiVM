@@ -24,6 +24,7 @@ mutual
     | .var _ => 1
     | .env _ => 1
     | .storage slot => slotEvalSize slot + 1
+    | .transient slot => slotEvalSize slot + 1
     | .arrayLength _ slot => slotEvalSize slot + 1
     | .field base _ => exprEvalSize base + 1
     | .cast expr _ => exprEvalSize expr + 1
@@ -255,6 +256,60 @@ def resolveStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
     all_goals simp [slotEvalSize]
     all_goals omega
 
+def evalTransientStorageRefStep (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (base : Ident) (pre : List EvaledStorageRefStep) (step : StorageRefStep) :
+    EvalResult EvaledStorageRefStep :=
+  match step with
+  | .field name => pure (.field name)
+  | .mindex expr => do
+      let index ← evalExpr? cfg solm evm expr
+      let indexKey ← EvalResult.ofOption .typeError (valueToKey? index)
+      pure (.mindex indexKey)
+  | .aindex expr => do
+      let index ← evalExpr? cfg solm evm expr
+      let indexKey ← EvalResult.ofOption .typeError (valueToKey? index)
+      let _ ← arrayIndexInBounds? { cfg with storageBackend := cfg.transientBackend }
+        evm solm.contract.transient base pre indexKey
+      pure (.aindex indexKey)
+  termination_by (slotStepEvalSize step, 0)
+  decreasing_by
+    all_goals simp [slotStepEvalSize]
+    all_goals omega
+
+def evalTransientStorageRefSteps (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (base : Ident) (pre : List EvaledStorageRefStep) :
+    List StorageRefStep → EvalResult (List EvaledStorageRefStep)
+  | [] => pure []
+  | step :: rest => do
+      let estep ← evalTransientStorageRefStep cfg solm evm base pre step
+      let erest ← evalTransientStorageRefSteps cfg solm evm base (pre ++ [estep]) rest
+      pure (estep :: erest)
+  termination_by steps => (slotStepsEvalSize steps, 0)
+  decreasing_by
+    all_goals simp [slotStepsEvalSize]
+    all_goals omega
+
+def evalTransientStorageRef (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (slot : StorageRef) : EvalResult EvaledStorageRef := do
+  let steps ← evalTransientStorageRefSteps cfg solm evm slot.base [] slot.steps
+  pure { base := slot.base, steps := steps }
+  termination_by (slotEvalSize slot, 0)
+  decreasing_by
+    simp [slotEvalSize]
+    apply Prod.Lex.left
+    omega
+
+/-- Resolve an explicitly transient reference independently of persistent-storage aliases. -/
+def resolveTransientStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (slot : StorageRef) : EvalResult (EvaledStorageRef × StorageType) := do
+  let er ← evalTransientStorageRef cfg solm evm slot
+  let ty ← EvalResult.ofOption .storageError (storageTypeAt? solm.contract.transient er)
+  pure (er, ty)
+  termination_by (slotEvalSize slot, 1)
+  decreasing_by
+    all_goals simp [slotEvalSize]
+    all_goals omega
+
 def resolveDynamicArrayRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
     (ref : StorageRef) : EvalResult (EvaledStorageRef × StorageType) := do
   let (er, ty) <- resolveStorageRef? cfg solm evm ref
@@ -345,6 +400,10 @@ def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
     let (evaledStorageRef, ty) <- resolveStorageRef? cfg solm evm slot
     let evm' <- cfg.storageBackend.write evaledStorageRef ty value evm
     pure (solm, evm')
+  | .transient => do
+    let (er, ty) ← resolveTransientStorageRef? cfg solm evm slot
+    let evm' ← cfg.transientBackend.write er ty value evm
+    pure (solm, evm')
 
 def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
     Expr -> EvalResult Value
@@ -387,11 +446,17 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | .storage slot => do
       let (evaledStorageRef, ty) <- resolveStorageRef? cfg solm evm slot
       cfg.storageBackend.read evaledStorageRef ty evm
+  | .transient slot => do
+      let (er, ty) ← resolveTransientStorageRef? cfg solm evm slot
+      cfg.transientBackend.read er ty evm
   | .arrayLength origin slot => do
       match origin with
       | .storage => do
           let (er, ty) <- resolveStorageRef? cfg solm evm slot
           pure (.int (← cfg.storageBackend.length er ty evm))
+      | .transient => do
+          let (er, ty) ← resolveTransientStorageRef? cfg solm evm slot
+          pure (.int (← cfg.transientBackend.length er ty evm))
       | .localVar =>
           match solm.locals.get? slot.base with
           | some root => do
