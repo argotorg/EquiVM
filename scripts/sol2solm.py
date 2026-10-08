@@ -3,7 +3,7 @@
 
 Input is the compact AST solc emits (the ``ast`` map of ``<Name>.build.json`` written by
 ``scaffold.py compile``, or a single ``<Name>.sol.ast.json``).  Output is a ``SpecSyntax.lean``
-draft: storage, structs, constants, immutables, events, the constructor (base constructors and
+draft: storage (persistent and transient), structs, constants, immutables, events, the constructor (base constructors and
 state-variable initialisers inlined, in linearisation order), every external function (modifiers
 inlined, public state-variable getters generated), and the internal functions they reach
 (inherited and library functions included, virtual dispatch resolved to the most derived
@@ -1602,6 +1602,8 @@ class Translator:
                 continue   # inlined at each use (see NOTES); the surface grammar has no constant item
             elif v.get("mutability") == "immutable":
                 items.append(f"  {t} immutable {ident(v['name'])};")
+            elif v.get("storageLocation") == "transient":
+                items.append(f"  {t} transient {ident(v['name'])};")   # EIP-1153, solc >= 0.8.28
             else:
                 items.append(f"  {t} {ident(v['name'])};")
         items.append("")

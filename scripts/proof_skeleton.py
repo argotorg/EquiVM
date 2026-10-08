@@ -97,6 +97,7 @@ class Contract:
     version: tuple[int, int, int]
     external_calls: list[dict]
     runtime: bytes
+    has_transient: bool = False
 
     @property
     def code_term(self) -> str:
@@ -145,7 +146,9 @@ def load_contract(directory: Path, module: str | None, namespace: str | None, pr
     spec_path = directory / "SpecSyntax.lean"
     if not spec_path.exists():
         raise SystemExit("SpecSyntax.lean is required (write it, or draft it with sol2solm.py)")
-    payable, has_fallback, has_receive = spec_syntax_info(spec_path.read_text(encoding="utf-8"))
+    spec_text = spec_path.read_text(encoding="utf-8")
+    payable, has_fallback, has_receive = spec_syntax_info(spec_text)
+    has_transient = re.search(r"\btransient\s+«?[A-Za-z_]", re.sub(r"--[^\n]*", "", spec_text)) is not None
     selectors_path = directory / "Selectors.lean"
     if not selectors_path.exists():
         raise SystemExit("Selectors.lean is required (scaffold.py lean)")
@@ -162,7 +165,7 @@ def load_contract(directory: Path, module: str | None, namespace: str | None, pr
     external_calls = load_json(spec_json).get("externalCalls", []) if spec_json.exists() else []
     runtime = read_bytecode(directory / "runtime.hex")
     return Contract(directory, name, module, namespace, prefix, transitions, has_fallback, has_receive,
-                    immutables, version, external_calls, runtime)
+                    immutables, version, external_calls, runtime, has_transient)
 
 
 # --------------------------------------------------------------------------------------------
@@ -256,8 +259,10 @@ def render_spec(c: Contract) -> str:
     else:
         abi_name = "defaultExternalCallABI"
     decode_mode = "" if c.version >= (0, 8, 0) else "\n    abiDecodeMode := DecodeMode.legacySolc05"
+    transient = ("\n    transientBackend := solidityTransientStorage! [contract.structs] [contract.transient]"
+                 if c.has_transient else "")
     out += ["/-! ## Config -/", "", "def config : Config :=",
-            f"  {{ storageBackend := storageBackend\n    externalABI := {abi_name}{decode_mode}\n"
+            f"  {{ storageBackend := storageBackend\n    externalABI := {abi_name}{decode_mode}{transient}\n"
             f"    selfDeployment := genSolidityConstructorDeployment contract.ctor.params }}", "",
             f"end {c.namespace}", ""]
     return "\n".join(out)
