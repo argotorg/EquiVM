@@ -160,16 +160,8 @@ theorem cureStorageWF_returnDst_lt {σ : AccountMap} {I : ExecutionEnv}
 
 theorem cureStorageWF_returnEnd_lt {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    224 + 64 * (solcSlotWordAt ⟨2⟩ σ I).toNat < UInt256.size := by
-  have h64 : 224 + 64 * (solcSlotWordAt ⟨2⟩ σ I).toNat < 2 ^ 64 := by
-    exact cureStorageWF_returnBound hwf
-  have h64u : (2 : Nat) ^ 64 < UInt256.size := by norm_num [UInt256.size]
-  omega
-
-theorem cureStorageWF_returnEnd_lt_u64 {σ : AccountMap} {I : ExecutionEnv}
-    (hwf : cureStorageWF σ I) :
-    224 + 64 * (solcSlotWordAt ⟨2⟩ σ I).toNat < 2 ^ 64 := by
-  exact cureStorageWF_returnBound hwf
+    224 + 64 * (solcSlotWordAt ⟨2⟩ σ I).toNat < UInt256.size :=
+  cureStorageWF_returnBound hwf
 
 theorem listArrayAllocSize_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
@@ -633,13 +625,13 @@ theorem wordConcat_congr (f g : Nat → UInt256) :
         simpa [Nat.add_assoc, Nat.add_comm 1 k] using this)]
 
 theorem readWithPadding_wordConcat (mem : ByteArray) (f : Nat → UInt256) (base : Nat) :
-    ∀ (n idx : Nat), 32 * n < 2 ^ 64 → base + 32 * idx + 32 * n ≤ mem.size →
+    ∀ (n idx : Nat), base + 32 * idx + 32 * n ≤ mem.size →
       (∀ k, k < n → mem.readWithPadding (base + 32 * (idx + k)) 32 =
         (f (idx + k)).toByteArray) →
       mem.readWithPadding (base + 32 * idx) (32 * n) = wordConcat f idx n
-  | 0, idx, _, _, _ => by
+  | 0, idx, _, _ => by
       rw [Nat.mul_zero, byteArray_readWithPadding_zero, wordConcat_zero]
-  | n + 1, idx, hlt, hin, hread => by
+  | n + 1, idx, hin, hread => by
       have hsplit :
           mem.readWithPadding (base + 32 * idx) (32 + 32 * n) =
             mem.readWithPadding (base + 32 * idx) 32 ++
@@ -647,8 +639,8 @@ theorem readWithPadding_wordConcat (mem : ByteArray) (f : Nat → UInt256) (base
         rcases Nat.eq_zero_or_pos n with hn | hn
         · subst hn
           rw [Nat.mul_zero, Nat.add_zero, byteArray_readWithPadding_zero, ByteArray.append_empty]
-        · exact byteArray_readWithPadding_split mem (base + 32 * idx) 32 (32 * n)
-            (by norm_num) (by omega) (by norm_num) (by omega) (by omega)
+        · exact byteArray_readWithPadding_split_unbounded mem (base + 32 * idx) 32 (32 * n)
+            (by norm_num) (by omega)
             (by rw [Nat.mul_succ] at hin; omega)
       rw [Nat.mul_succ, Nat.add_comm (32 * n) 32, hsplit, wordConcat_succ]
       have hw0 : mem.readWithPadding (base + 32 * idx) 32 = (f idx).toByteArray := by
@@ -660,7 +652,6 @@ theorem readWithPadding_wordConcat (mem : ByteArray) (f : Nat → UInt256) (base
         have hbase' : base + 32 * idx + 32 = base + 32 * (idx + 1) := by ring
         rw [hbase']
         exact readWithPadding_wordConcat mem f base n (idx + 1)
-          (by rw [Nat.mul_succ] at hlt; omega)
           (by
             rw [Nat.mul_succ] at hin
             rw [show base + 32 * (idx + 1) = base + 32 * idx + 32 from by ring]

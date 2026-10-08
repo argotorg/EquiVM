@@ -8,10 +8,11 @@ namespace Benchmarks.Dss.Clipper
 
 set_option linter.unusedTactic false
 
-theorem clipperStorageWF_returnSize_lt_u64 {σ : AccountMap} {I : ExecutionEnv}
+theorem clipperStorageWF_returnSize_lt_uint256 {σ : AccountMap} {I : ExecutionEnv}
     (hwf : clipperStorageWF σ I) :
-    64 + 32 * (solcSlotWord σ I ⟨11⟩).toNat < 2 ^ 64 := by
-  simpa [clipperStorageWF] using hwf.2.1
+    64 + 32 * (solcSlotWord σ I ⟨11⟩).toNat < UInt256.size := by
+  have h := hwf.1
+  omega
 
 
 theorem clipperListArraySlot_eq_activeSlot_of_lt :
@@ -308,9 +309,9 @@ theorem clipperListReturnBaseMem_returnBytes_of_wf {σ : AccountMap} {I : Execut
         (clipperListArrayFreePtr (solcSlotWord σ I ⟨11⟩)).toNat 64 =
       UInt256.toByteArray (⟨32⟩ : UInt256) ++
         UInt256.toByteArray (solcSlotWord σ I ⟨11⟩) := by
-  rw [byteArray_readWithPadding_split (clipperListReturnBaseMem σ I)
+  rw [byteArray_readWithPadding_split_unbounded (clipperListReturnBaseMem σ I)
     (clipperListArrayFreePtr (solcSlotWord σ I ⟨11⟩)).toNat 32 32
-    (by omega) (by omega) (by norm_num) (by norm_num) (by norm_num)
+    (by omega) (by omega)
     (by
       rw [clipperListReturnBaseMem_size hwf, clipperListArrayFreePtr_toNat_of_wf hwf]
       omega)]
@@ -338,24 +339,17 @@ theorem clipperListReturnCopiedMem_returnBytes_of_wf {σ : AccountMap} {I : Exec
   | n + 1, hn => by
       have hn' : n ≤ (solcSlotWord σ I ⟨11⟩).toNat := by omega
       rw [show 64 + 32 * (n + 1) = (64 + 32 * n) + 32 by omega]
-      rw [byteArray_readWithPadding_split
+      rw [byteArray_readWithPadding_split_unbounded
         (clipperListReturnCopiedMem σ I (n + 1))
         (clipperListArrayFreePtr (solcSlotWord σ I ⟨11⟩)).toNat
         (64 + 32 * n) 32
         (by omega) (by omega)
         (by
-          have h := clipperStorageWF_returnSize_lt_u64 hwf
-          omega)
-        (by norm_num)
-        (by
-          have h := clipperStorageWF_returnSize_lt_u64 hwf
-          omega)
-        (by
           rw [clipperListReturnCopiedMem_size hwf (n + 1) hn,
             clipperListArrayFreePtr_toNat_of_wf hwf]
           omega)]
       rw [clipperListReturnCopiedMem]
-      rw [toByteArray_write_read_below_len_of_gap
+      rw [toByteArray_write_read_below_len_of_gap_unbounded
         (solcSlotWord σ I (clipperListArraySlot n))
         (clipperListReturnCopiedMem σ I n)
         (224 + 32 * (solcSlotWord σ I ⟨11⟩).toNat + 32 * n)
@@ -369,9 +363,6 @@ theorem clipperListReturnCopiedMem_returnBytes_of_wf {σ : AccountMap} {I : Exec
           rw [clipperListArrayFreePtr_toNat_of_wf hwf]
           omega)
         (by omega)
-        (by
-          have h := clipperStorageWF_returnSize_lt_u64 hwf
-          omega)
         (by
           rw [clipperListReturnCopiedMem_size hwf n hn']
           have hU : 0 < USize.size := by native_decide

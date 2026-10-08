@@ -31,8 +31,7 @@ legacy-solc signed-size domain.
 
 The constant covers the largest pointer/length expression used by the generated getter and ABI
 return code: a 128-byte base, 32-byte array length word, 64-byte ABI prefix, and two `32 * len`
-byte spans. The second conjunct is model-specific: `ByteArray.readWithPadding` handles return
-reads only below `2^64`, so the returned ABI byte length is bounded separately. The calldata
+byte spans. This also bounds the returned ABI byte length below `UInt256.size`. The calldata
 bound explains the apparent ABI mismatch: Clipper's solc 0.6.12 decoder emits a signed `SLT`
 size guard, whereas the older solc 0.5 wrapper bytecode used elsewhere in this development has
 only the ordinary unsigned head and v1 dynamic-offset/length checks. They differ only on enormous
@@ -40,12 +39,11 @@ lengths admitted by the unbounded model, not on concrete EVM calldata; this boun
 that model-only region. -/
 def clipperStorageWF (σ : AccountMap) (I : ExecutionEnv) : Prop :=
   224 + 64 * (solcSlotWord σ I ⟨11⟩).toNat < UInt256.size ∧
-    64 + 32 * (solcSlotWord σ I ⟨11⟩).toNat < 2 ^ 64 ∧
-      I.calldata.size < 2 ^ 255
+    I.calldata.size < 2 ^ 255
 theorem clipperStorageWF_calldata_lt_sign {σ : AccountMap} {I : ExecutionEnv}
     (hwf : clipperStorageWF σ I) :
     I.calldata.size < 2 ^ 255 := by
-  simpa [clipperStorageWF] using hwf.2.2
+  exact hwf.2
 
 
 /-- The 4-byte selector word computed by `CALLDATALOAD(0); SHR 224`. -/

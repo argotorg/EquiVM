@@ -1247,7 +1247,8 @@ theorem uniswapSkimBodyDecoded
                             (by simpa [evm0E, safeData0, safeValue0, hperm] using hΘsafeEq)
                             (by
                               exact Ethereum.EVM.ByteArray.readWithPadding_size_le_maxReturnDataSizeByGas
-                                _ _ _)
+                                _ _ _ (by norm_num [Ethereum.EVM.maxReturnDataSizeByGas,
+                                  Ethereum.EVM.maxReturnDataWordsByGas]))
                         by_cases htoken1NoCode :
                             extCodeSizeWord σ1
                               (UInt256.land token1CleanE solcAddrMask) = ⟨0⟩
@@ -1532,7 +1533,8 @@ theorem uniswapSkimBodyDecoded
                                     (by
                                       exact
                                         Ethereum.EVM.ByteArray.readWithPadding_size_le_maxReturnDataSizeByGas
-                                          _ _ _)
+                                          _ _ _ (by norm_num [Ethereum.EVM.maxReturnDataSizeByGas,
+                                            Ethereum.EVM.maxReturnDataWordsByGas]))
                                 have hcallE1 : callViaEVM evm2E
                                     (AccountAddress.ofUInt256
                                       (UInt256.land token1CleanE solcAddrMask))
