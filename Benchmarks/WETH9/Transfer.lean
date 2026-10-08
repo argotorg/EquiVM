@@ -44,7 +44,7 @@ abbrev transferCallStore (I : ExecutionEnv) : Store :=
     (.address I.source)
 
 theorem transferCallStore_bind (I : ExecutionEnv) :
-    bindParams? transferFromTransition.params
+    bindParams? (transferFromTransition.params.map Param.toFunctionParam)
         [.address I.source, xferDstVal I, xferWadVal I] = some (transferCallStore I) := by
   rfl
 

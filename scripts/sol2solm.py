@@ -19,6 +19,8 @@ What the draft encodes mechanically:
     ``address.transfer``/``send`` as low-level value calls, with solc's EXTCODESIZE guard where the
     compiler version emits one;
   * calls in expression position hoisted into ``var __cN = …`` bindings before the statement.
+  * internal storage parameters/returns preserved as typed references, including library
+    receivers, named reference returns, and references to mappings inside structs.
 
 What it cannot know goes into HOLES (inline assembly, library calls it cannot inline, ``abi.encode``,
 array literals, ``new C()``, function types, …).  Each hole is a ``${hole "…"}`` splice, which fails
@@ -164,6 +166,18 @@ class Translator:
         self.state_vars = [v for c in self.base_first for v in c["nodes"]
                            if v.get("nodeType") == "VariableDeclaration"]
         self.struct_defs = {n["id"]: n for n in self.nodes.values() if n.get("nodeType") == "StructDefinition"}
+        # Library structs share the output contract's namespace (e.g. Pool.State and
+        # Position.State). Keep source names where unambiguous and qualify clashes.
+        self.struct_names: dict[int, str] = {}
+        reserved = {s["name"] for s in self.struct_defs.values()}
+        for sid, s in self.struct_defs.items():
+            name = s["name"]
+            if sum(t["name"] == name for t in self.struct_defs.values()) > 1:
+                name = s.get("canonicalName", name).replace(".", "_")
+                if name in reserved or name in self.struct_names.values():
+                    name = f"{name}_{sid}"
+            self.struct_names[sid] = name
+        self.used_structs: set[int] = set()
         self.enum_defs = {n["id"]: n for n in self.nodes.values() if n.get("nodeType") == "EnumDefinition"}
         self.udvt_defs = {n["id"]: n for n in self.nodes.values()
                           if n.get("nodeType") == "UserDefinedValueTypeDefinition"}
@@ -251,6 +265,13 @@ class Translator:
 
     # ---------------------------------------------------------------- types
 
+    def struct_name(self, struct: dict) -> str:
+        self.used_structs.add(struct["id"])
+        return self.struct_names[struct["id"]]
+
+    def struct_for_type(self, name: str) -> dict | None:
+        return next((s for sid, s in self.struct_defs.items() if self.struct_names[sid] == name), None)
+
     def stype(self, type_name: dict) -> str:
         """Surface type for a TypeName node."""
         kind = type_name.get("nodeType")
@@ -272,7 +293,7 @@ class Translator:
             if ref is None:
                 raise Hole(f"unresolved type {type_name.get('pathNode', {}).get('name')}")
             if ref["nodeType"] == "StructDefinition":
-                return ref["name"]
+                return self.struct_name(ref)
             if ref["nodeType"] == "EnumDefinition":
                 return "uint8"
             if ref["nodeType"] == "ContractDefinition":
@@ -299,12 +320,20 @@ class Translator:
         for suffix in (" storage ref", " storage pointer", " memory", " calldata", " payable", " ref"):
             if ts.endswith(suffix):
                 ts = ts[:-len(suffix)].strip()
+        m = re.fullmatch(r"(.+?)\[(\d*)\]", ts)
+        if m:
+            return f"{self.stype_of_string(m.group(1))}[{m.group(2)}]"
         if ts.startswith("contract ") or ts.startswith("address"):
             return "address"
         if ts.startswith("enum "):
             return "uint8"
         if ts.startswith("struct "):
-            return ts.split()[1].split(".")[-1]
+            canonical = ts.split()[1]
+            struct = next((s for s in self.struct_defs.values()
+                           if s.get("canonicalName", s["name"]) == canonical), None)
+            if struct is not None:
+                return self.struct_name(struct)
+            raise Hole(f"unresolved struct {canonical}")
         if ts == "uint":
             return "uint256"
         if ts == "int":
@@ -315,9 +344,6 @@ class Translator:
             return "string"
         if ts.startswith("user-defined"):
             raise Hole(f"typeString {ts}")
-        m = re.fullmatch(r"(.+?)\[(\d*)\]", ts)
-        if m:
-            return f"{self.stype_of_string(m.group(1))}[{m.group(2)}]"
         return ts
 
     def int_type(self, ts: str) -> str | None:
@@ -445,6 +471,9 @@ class Translator:
         return f"({c} ? {a} : {b})"
 
     def expr_UnaryOperation(self, node: dict, ctx: FnCtx, pre: Stmts) -> str:
+        constant = re.fullmatch(r"int_const (-?\d+)", node["typeDescriptions"]["typeString"])
+        if constant:
+            return constant.group(1)
         op = node["operator"]
         sub = node["subExpression"]
         if op in ("++", "--"):
@@ -637,7 +666,7 @@ class Translator:
             args = node.get("arguments", [])
             names = node.get("names") or [m["name"] for m in ref["members"]]
             fields = ", ".join(f"{ident(n)}: {self.expr(a, ctx, pre)}" for n, a in zip(names, args))
-            return f"{ref['name']}({{{fields}}})"
+            return f"{self.struct_name(ref)}({{{fields}}})"
         # builtins by name
         if callee.get("nodeType") == "Identifier":
             name = callee["name"]
@@ -758,7 +787,12 @@ class Translator:
             if target["id"] in self.fn_names:
                 del self.fn_names[target["id"]]
         name = self.require_internal(target)
-        args = [self.expr(a, ctx, pre) for a in self.call_args(node, target)]
+        arg_nodes = self.call_args(node, target)
+        callee_type = callee.get("typeDescriptions", {}).get("typeIdentifier", "")
+        if callee.get("nodeType") == "MemberAccess" and "attached_to" in callee_type:
+            # `using L for T`: solc omits the receiver from the explicit arguments.
+            arg_nodes = [callee["expression"], *arg_nodes]
+        args = [self.expr(a, ctx, pre) for a in arg_nodes]
         tmp = f"__c{ctx.tmp}"
         ctx.tmp += 1
         pre.add(f"var {tmp} = {name}({', '.join(args)});", ctx.depth)
@@ -986,6 +1020,12 @@ class Translator:
             target = self.expr(lhs, ctx, pre)
             value = self.expr(rhs, ctx, pre)
             if op == "=":
+                decl = self.nodes.get(lhs.get("referencedDeclaration"), {})
+                if lhs.get("nodeType") == "Identifier" and decl.get("storageLocation") == "storage" \
+                        and " storage" in rhs.get("typeDescriptions", {}).get("typeString", ""):
+                    # Assignment to a local storage pointer rebinds it, including named
+                    # storage returns. No default aggregate value exists for a mapping.
+                    return f"{self.stype(decl['typeName'])} storage {target} = {unparen(value)};"
                 return f"{target} = {unparen(value)};"
             bop = op[:-1]
             ts = e["typeDescriptions"]["typeString"]
@@ -1001,6 +1041,14 @@ class Translator:
                 return f"{target} = ({target} {bop}[{t}] {value});" if t else f"{target} = ({target} {bop} {value});"
             raise Hole(f"compound assignment {op}")
         self.with_pre(ctx, out, build)
+
+    def reference_assignment(self, lhs: dict, value: str, ctx: FnCtx, pre: Stmts) -> str:
+        """Assign a reference-valued tuple component to a local storage pointer."""
+        target = self.expr(lhs, ctx, pre)
+        decl = self.nodes.get(lhs.get("referencedDeclaration"), {})
+        if lhs.get("nodeType") == "Identifier" and decl.get("storageLocation") == "storage":
+            return f"{self.stype(decl['typeName'])} storage {target} = {value};"
+        return f"{target} = {value};"
 
     def tuple_assignment(self, e: dict, ctx: FnCtx, out: Stmts) -> None:
         lhs = e["leftHandSide"]
@@ -1021,9 +1069,15 @@ class Translator:
                     return
             def build(pre: Stmts) -> None:
                 tmp = self.expr(rhs, ctx, pre)
+                fn = self.callee_function(rhs)
+                rets = fn.get("returnParameters", {}).get("parameters", []) if fn else []
                 for i, c in enumerate(comps):
                     if c is not None:
-                        pre.add(f"{self.expr(c, ctx, pre)} = {tmp}.{i};", ctx.depth)
+                        if i < len(rets) and rets[i].get("storageLocation") == "storage":
+                            text = self.reference_assignment(c, f"{tmp}.{i}", ctx, pre)
+                        else:
+                            text = f"{self.expr(c, ctx, pre)} = {tmp}.{i};"
+                        pre.add(text, ctx.depth)
                 return None
             self.with_pre(ctx, out, build)
             return
@@ -1031,15 +1085,21 @@ class Translator:
             def build_pairs(pre: Stmts) -> None:
                 # evaluate every right-hand component first (swap idiom), then assign
                 temps = []
-                for r in rhs["components"]:
+                for c, r in zip(comps, rhs["components"]):
                     value = self.expr(r, ctx, pre)
                     name = f"__t{ctx.tmp}"
                     ctx.tmp += 1
-                    pre.add(f"var {name} = {unparen(value)};", ctx.depth)
-                    temps.append(name)
-                for c, name in zip(comps, temps):
+                    decl = self.nodes.get(c.get("referencedDeclaration"), {}) if c else {}
+                    reference = decl.get("storageLocation") == "storage" and \
+                        " storage" in r.get("typeDescriptions", {}).get("typeString", "")
+                    ty = f"{self.stype(decl['typeName'])} storage" if reference else "var"
+                    pre.add(f"{ty} {name} = {unparen(value)};", ctx.depth)
+                    temps.append((name, reference))
+                for c, (name, reference) in zip(comps, temps):
                     if c is not None:
-                        pre.add(f"{self.expr(c, ctx, pre)} = {name};", ctx.depth)
+                        text = self.reference_assignment(c, name, ctx, pre) if reference \
+                            else f"{self.expr(c, ctx, pre)} = {name};"
+                        pre.add(text, ctx.depth)
                 return None
             self.with_pre(ctx, out, build_pairs)
             return
@@ -1069,6 +1129,9 @@ class Translator:
         ctx.locals[decl["name"]] = t
         loc = decl.get("storageLocation", "default")
         if init is None:
+            if loc == "storage":
+                # solc checks definite assignment; its later binding supplies the alias.
+                return
             zero = default_value(t)
             if zero is None:
                 raise Hole(f"uninitialised local of type {t}")
@@ -1118,7 +1181,8 @@ class Translator:
                     if d is not None:
                         t = self.stype(d["typeName"])
                         ctx.locals[d["name"]] = t
-                        pre.add(f"{t} {ident(d['name'])} = {unparen(value)};", ctx.depth)
+                        loc = " storage" if d.get("storageLocation") == "storage" else ""
+                        pre.add(f"{t}{loc} {ident(d['name'])} = {unparen(value)};", ctx.depth)
                 return None
             self.with_pre(ctx, out, build_pairs)
             return
@@ -1128,7 +1192,8 @@ class Translator:
                 if d is not None:
                     t = self.stype(d["typeName"])
                     ctx.locals[d["name"]] = t
-                    pre.add(f"{t} {ident(d['name'])} = {tmp}.{i};", ctx.depth)
+                    loc = " storage" if d.get("storageLocation") == "storage" else ""
+                    pre.add(f"{t}{loc} {ident(d['name'])} = {tmp}.{i};", ctx.depth)
             return None
         self.with_pre(ctx, out, build)
 
@@ -1276,6 +1341,9 @@ class Translator:
                     and len(ctx.returns) == 1 and ctx.returns[0][1].startswith("("):
                 parts = [self.expr(a, ctx, pre) for a in e.get("arguments", [])]
                 return f"return tuple({', '.join(parts)});"
+            if e.get("nodeType") == "FunctionCall" and len(ctx.returns) > 1:
+                value = self.expr(e, ctx, pre)
+                return "return (" + ", ".join(f"{value}.{i}" for i in range(len(ctx.returns))) + ");"
             return f"return {unparen(self.expr(e, ctx, pre))};"
         self.with_pre(ctx, out, build)
 
@@ -1347,22 +1415,23 @@ class Translator:
             name = p.get("name") or f"arg{i}"
             t = self.stype(p["typeName"])
             loc = p.get("storageLocation", "default")
-            loc_text = f" {loc}" if loc in ("memory", "calldata") and (t in ("bytes", "string") or "[" in t or t[0].isupper()) else ""
+            loc_text = f" {loc}" if loc == "storage" or (loc in ("memory", "calldata") and
+                (t in ("bytes", "string") or "[" in t or self.struct_for_type(t))) else ""
             parts.append(f"{t}{loc_text} {ident(name)}")
         return ", ".join(parts)
 
-    def returns_text(self, rets: list[dict]) -> str:
+    def returns_text(self, rets: list[dict], external: bool = True) -> str:
         types = []
         for p in rets:
             t = self.stype(p["typeName"])
-            if t[0].isupper():   # struct → ABI tuple
-                struct = next((s for s in self.struct_defs.values() if s["name"] == t), None)
-                if struct is None:
-                    raise Hole(f"return type {t}")
+            struct = self.struct_for_type(t)
+            if external and struct is not None:   # external struct → ABI tuple
                 members = [self.stype(m["typeName"]) for m in struct["members"]]
                 if len(members) < 2:
                     raise Hole(f"struct {t} with fewer than two members as a return type")
                 t = f"({', '.join(members)})"
+            if not external and p.get("storageLocation") == "storage":
+                t += " storage"
             types.append(t)
         return ", ".join(types)
 
@@ -1391,6 +1460,8 @@ class Translator:
             if p.get("name"):
                 t = self.stype(p["typeName"])
                 ctx.locals[p["name"]] = t
+                if p.get("storageLocation") == "storage":
+                    continue
                 zero = default_value(t)
                 if zero is None:
                     out.add(self.hole(f"named return of type {t} needs a default", p), ctx.depth)
@@ -1425,7 +1496,8 @@ class Translator:
             ctx.locals[local] = t
             ctx.renames[p["id"]] = ident(local)
             value = self.expr(a, ctx, pre)
-            pre.add(f"{t} {ident(local)} = {unparen(value)};", ctx.depth)
+            loc = " storage" if p.get("storageLocation") == "storage" else ""
+            pre.add(f"{t}{loc} {ident(local)} = {unparen(value)};", ctx.depth)
         out.lines.extend(pre.lines)
         body = mod.get("body")
         if body is None:
@@ -1451,8 +1523,7 @@ class Translator:
         rets = fn.get("returnParameters", {}).get("parameters", [])
         fname = name or self.surface_name(fn) if not external else (name or fn["name"])
         owner = self.owner_contract(fn["id"]) or self.contract
-        ctx = FnCtx(fn, owner, [(p.get("name", ""), self.stype(p["typeName"]) if not self.stype(p["typeName"])[0].isupper()
-                                else self.returns_text([p])) for p in rets])
+        ctx = FnCtx(fn, owner, [(p.get("name", ""), self.returns_text([p], external)) for p in rets])
         for p in params:
             if p.get("name"):
                 ctx.locals[p["name"]] = self.stype(p["typeName"])
@@ -1462,7 +1533,7 @@ class Translator:
             mods.append("payable")
         head = f"function {ident(fname)}({self.params_text(params)}) {' '.join(mods)}"
         try:
-            ret_text = self.returns_text(rets)
+            ret_text = self.returns_text(rets, external)
         except Hole as hole:
             ret_text = ""
             self.holes.append(str(hole))
@@ -1507,8 +1578,8 @@ class Translator:
                 break
         ret_t = self.stype(t)
         body: list[str]
-        if ret_t[0].isupper():
-            struct = next((s for s in self.struct_defs.values() if s["name"] == ret_t), None)
+        struct = self.struct_for_type(ret_t)
+        if struct is not None:
             members = [m for m in struct["members"] if m["typeName"]["nodeType"] not in ("Mapping", "ArrayTypeName")]
             types = [self.stype(m["typeName"]) for m in members]
             ret_text = ", ".join(types)
@@ -1554,10 +1625,9 @@ class Translator:
 
     def abi_type_of_string(self, ts: str) -> str:
         t = self.stype_of_string(ts)
-        if t[0].isupper():
-            struct = next((s for s in self.struct_defs.values() if s["name"] == t), None)
-            if struct:
-                return "(" + ",".join(self.abi_type_of_string(m["typeDescriptions"]["typeString"]) for m in struct["members"]) + ")"
+        struct = self.struct_for_type(t)
+        if struct is not None:
+            return "(" + ",".join(self.abi_type_of_string(m["typeDescriptions"]["typeString"]) for m in struct["members"]) + ")"
         m = re.fullmatch(r"(.+?)(\[\d*\])$", t)
         if m:
             return self.abi_type_of_string(m.group(1)) + m.group(2)
@@ -1580,17 +1650,12 @@ class Translator:
     def render(self, namespace: str, order: str) -> str:
         name = self.contract["name"]
         items: list[str] = []
-        # structs
+        # Include source-owned structs, plus the transitive closure of referenced
+        # library structs discovered while translating declarations and bodies.
         for c in self.base_first:
             for s in c["nodes"]:
                 if s.get("nodeType") == "StructDefinition":
-                    items.append(f"  struct {s['name']} {{")
-                    for m in s["members"]:
-                        try:
-                            items.append(f"    {self.stype(m['typeName'])} {ident(m['name'])};")
-                        except Hole as hole:
-                            items.append("    " + self.hole(str(hole), m))
-                    items += ["  }", ""]
+                    self.used_structs.add(s["id"])
         # storage, constants, immutables
         for v in self.state_vars:
             try:
@@ -1656,6 +1721,19 @@ class Translator:
                 if f.get("nodeType") == "FunctionDefinition" and f.get("kind") in ("receive", "fallback") \
                         and f.get("body") is not None and f["kind"] not in [s.split("(")[0].strip() for s in special]:
                     special += self.render_special(f)
+        struct_lines: list[str] = []
+        emitted: set[int] = set()
+        while pending := sorted(self.used_structs - emitted):
+            for sid in pending:
+                emitted.add(sid)
+                s = self.struct_defs[sid]
+                struct_lines.append(f"  struct {self.struct_names[sid]} {{")
+                for m in s["members"]:
+                    try:
+                        struct_lines.append(f"    {self.stype(m['typeName'])} {ident(m['name'])};")
+                    except Hole as hole:
+                        struct_lines.append("    " + self.hole(str(hole), m))
+                struct_lines += ["  }", ""]
         header = [f"/-!", f"# {name} spec draft (generated by `scripts/sol2solm.py`)", ""]
         header.append(f"Source contract `{name}`, solc {'.'.join(str(v) for v in self.version)}"
                       f"{', via-IR' if self.via_ir else ''}; linearisation: "
@@ -1671,7 +1749,7 @@ class Translator:
                 header.append(f"  - {call['name']}({', '.join(call['params'])})"
                               f"{' view' if call['view'] else ''} returns ({', '.join(call['returns'])})")
         header.append("-/")
-        body = [*items, *ctor_lines, *internal_lines]
+        body = [*struct_lines, *items, *ctor_lines, *internal_lines]
         for _, lines in entries:
             body += lines
         body += special

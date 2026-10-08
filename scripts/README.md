@@ -69,6 +69,9 @@ files unless `--force` is given.
   item). Enums are `uint8`. Interface casts are dropped (receivers are addresses).
 - A public function that is also called internally is split into `<f>_body` (internal) plus the
   external wrapper, so the internal call does not pass through the entry guards.
+- Internal `storage` parameters and returns keep their source types, including mappings and
+  library structs. Named storage returns and local pointer assignments bind aliases. Library
+  extension calls include their receiver; colliding struct names are qualified by their owner.
 - Contracts with a `fallback`/`receive` get `sorry` stubs for the Solm dispatch facts: the
   unmatched-selector path then runs the fallback instead of reverting.
 

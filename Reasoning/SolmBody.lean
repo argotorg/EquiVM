@@ -201,7 +201,7 @@ theorem internalCallTransitionReturn {cfg : Config} {caller : Frame} {evm callee
     {callee : TransitionDecl} {locals : Store} {calleeSolm : Frame} {value : Value}
     (hargs : evalExprs? cfg caller evm args = .ok argVals)
     (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
-    (hbind : bindParams? callee.params argVals = some locals)
+    (hbind : bindParams? callee.toCallable.params argVals = some locals)
     (hbody : ExecTransitionBody cfg caller.contract evm locals callee.body
       (.returned calleeSolm calleeEvm (some [value])) caller.immutables) :
     ExecStmt cfg caller evm (.internalCall name args retVar)
@@ -219,7 +219,7 @@ theorem internalCallTransitionRevert {cfg : Config} {caller : Frame} {evm : EVM.
     {callee : TransitionDecl} {locals : Store}
     (hargs : evalExprs? cfg caller evm args = .ok argVals)
     (hlookup : lookupCallable? caller.contract name = some callee.toCallable)
-    (hbind : bindParams? callee.params argVals = some locals)
+    (hbind : bindParams? callee.toCallable.params argVals = some locals)
     (hbody : ExecTransitionBody cfg caller.contract evm locals callee.body .reverted
       caller.immutables) :
     ExecStmt cfg caller evm (.internalCall name args retVar) .reverted := by

@@ -41,6 +41,11 @@ def contractGen : ContractDecl := solidity% contract WETH9 {
   `.aindex`) is decided by walking the declared storage type.
 * **Dotted names arrive as single ident tokens** (`msg.sender`, `ilks.rate`); they are split into
   components at expansion time.  `a[i].f` parses via a postfix production.
+* **Internal storage references.** Internal parameters and returns use `StorageType`.
+  The frontend uses Solidity's `storage` annotation to pass aliases with `letStorage` and
+  `Expr.var`, and to resolve the callee's storage paths. Reference returns (including components
+  of multiple returns) keep their aliases. These annotations are frontend information;
+  the core binder passes `Value`s unchanged, with no passing-mode field or memory model.
 * **Payability is implicit, as in Solidity.**  Transitions, constructors, and fallbacks that are
   not marked `payable` get the leading `require(msg.value == 0)` guard solc compiles in;
   `receive` and internal functions never do.
@@ -78,6 +83,10 @@ private structure Env where
   structs : List (String × List (String × STy)) := []
   /-- internal function names -/
   fns : List String := []
+  /-- Source storage annotations are used only while elaborating calls and bodies. -/
+  fnRefs : List (String × (Array (Option STy) × Array (Option STy))) := []
+  returnRefs : Array (Option STy) := #[]
+  refTuples : List (String × Array (Option STy)) := []
   /-- declared `immutable` and `constant` names -/
   immutables : List String := []
   constants : List String := []
@@ -145,7 +154,8 @@ private partial def storageTypeTerm (env : Env) (stx : Syntax) : STy → MacroM 
       let terms ← ts.mapM (storageTypeTerm env stx)
       `(Solm.StorageType.tuple [$(terms.toArray),*])
 
-/-- `ABI.ABIType` for an `STy` (param and return types).  Structs become ABI tuples. -/
+/-- `ABI.ABIType` for an `STy` at an ABI boundary or a value annotation.
+Structs become ABI tuples; mappings cannot be represented by value. -/
 private partial def abiTypeTerm (env : Env) (stx : Syntax) : STy → MacroM Term
   | .named "bytes" => `(ABI.ABIType.bytes)
   | .named "string" => `(ABI.ABIType.string)
@@ -265,6 +275,10 @@ declare_syntax_cat solParam
 syntax solTy ident : solParam
 syntax solTy ident ident : solParam                                   -- bytes memory data
 
+declare_syntax_cat solReturn
+syntax solTy : solReturn
+syntax solTy ident : solReturn                                        -- T storage / T memory
+
 declare_syntax_cat solItem
 syntax solTy ident ";" : solItem                                      -- storage decl
 syntax solTy ident ident ";" : solItem                                -- with visibility / immutable
@@ -276,7 +290,7 @@ syntax (name := solItemCtorRets)                                      -- fallbac
   ident "(" solParam,* ")" ident* "(" solTy,* ")" "{" solStmt* "}" : solItem
 syntax ident ident "(" solParam,* ")" ident* "{" solStmt* "}" : solItem
 syntax (name := solItemFnRets)
-  ident ident "(" solParam,* ")" ident* "(" solTy,* ")" "{" solStmt* "}" : solItem
+  ident ident "(" solParam,* ")" ident* "(" solReturn,* ")" "{" solStmt* "}" : solItem
 syntax ident ident "(" solParam,* ")" ident* ";" : solItem            -- event E(T indexed x, …) [anonymous];
 syntax "${" term "}" : solItem                                        -- Lean `TransitionDecl` splice
 
@@ -739,17 +753,94 @@ private def splitMethodCall (env : Env) (stx : TSyntax `solExpr) :
     | _ => Macro.throwErrorAt o "solm: malformed call option"
   return (recv, method, value, view, args)
 
-/-- Names/aliases `finish` has beyond `start` — used to let branch-declared binders stay
-    visible after the branch (spec bodies bind in both `if` arms and read afterwards). -/
-private def Env.additionsFrom (start finish : Env) : List String × List (String × STy) :=
-  (finish.locals.filter (fun n => !start.locals.contains n),
-   finish.storage.filter (fun p => (start.storage.lookup p.1).isNone))
+/-- Names introduced in branches/loops remain available to the enclosing spec body. -/
+private structure ScopeAdditions where
+  locals : List String
+  storage : List (String × STy)
+  refTuples : List (String × Array (Option STy))
 
-private def Env.withAdditions (base : Env) (adds : List (List String × List (String × STy))) : Env :=
-  let ls := (adds.flatMap (·.1)).eraseDups
-  let ss := adds.flatMap (·.2)
+private def Env.additionsFrom (start finish : Env) : ScopeAdditions :=
+  ⟨finish.locals.filter (fun n => !start.locals.contains n),
+   finish.storage.filter (fun p => (start.storage.lookup p.1).isNone),
+   finish.refTuples.filter (fun p => (start.refTuples.lookup p.1).isNone)⟩
+
+private def Env.withAdditions (base : Env) (adds : List ScopeAdditions) : Env :=
+  let ls := (adds.flatMap (·.locals)).eraseDups
+  let ss := adds.flatMap (·.storage)
+  let rs := adds.flatMap (·.refTuples)
   { base with locals := ls.filter (fun n => !base.locals.contains n) ++ base.locals
-              storage := ss.filter (fun p => (base.storage.lookup p.1).isNone) ++ base.storage }
+              storage := ss.filter (fun p => (base.storage.lookup p.1).isNone) ++ base.storage
+              refTuples := rs.filter (fun p => (base.refTuples.lookup p.1).isNone) ++ base.refTuples }
+
+private def Env.withStorageAlias (env : Env) (name : String) (ty : STy) : Env :=
+  { env with storage := (name,ty) :: env.storage
+             locals := env.locals.filter (· != name) }
+
+/-- A component of an internal multiple return can itself be a storage reference. -/
+private def returnedRefType? (env : Env) (e : TSyntax `solExpr) : Option STy := do
+  match e with
+  | `(solExpr| $base:ident.$index:num) =>
+    let refs ← env.refTuples.lookup base.getId.toString
+    (refs[index.getNat]?).join
+  | _ => none
+
+/-- Elaborate a reference value using the existing alias statement and variable expression.
+The fresh local prevents collisions with source names. No aggregate storage read is performed. -/
+private def elabReference (env : Env) (e : TSyntax `solExpr) (expected : STy) :
+    MacroM (Array Term × Term) := do
+  if let some actual := returnedRefType? env e then
+    unless actual == expected do Macro.throwErrorAt e "solm: storage reference type mismatch"
+    return (#[], ← elabExpr env e)
+  let r ← resolveRefOrThrow env e
+  unless r.origin matches .storage do
+    Macro.throwErrorAt e "solm: expected a persistent storage reference"
+  unless r.ty == some expected do
+    Macro.throwErrorAt e "solm: storage reference type mismatch"
+  let name ← withFreshMacroScope do
+    return (← Macro.addMacroScope `__solm_storage_ref).toString
+  return (#[← `(Solm.Stmt.letStorage $(quote name) $(← refTerm r))],
+    ← `(Solm.Expr.var $(quote name)))
+
+private def elabReferenceArgs (env : Env) (args : Array (TSyntax `solExpr))
+    (refs : Array (Option STy)) : MacroM (Array Term × Array Term) := do
+  unless args.size == refs.size do
+    Macro.throwError "solm: incorrect number of internal arguments or return values"
+  let mut pre := #[]
+  let mut values := #[]
+  for (arg, ref) in args.zip refs do
+    if let some ty := ref then
+      let (bindings, value) ← elabReference env arg ty
+      pre := pre ++ bindings
+      values := values.push value
+    else values := values.push (← elabExpr env arg)
+  return (pre, values)
+
+private def elabInternalDecl (env : Env) (t : TSyntax `solTy) (loc : Option LIdent)
+    (x f : LIdent) (args : Array (TSyntax `solExpr)) : MacroM (Array Term × Env) := do
+  let name := x.getId.toString
+  let fn := f.getId.toString
+  let some (_, (params, rets)) := env.fnRefs.find? (fun p => p.1 == fn && p.2.1.size == args.size)
+    | Macro.throwErrorAt f "solm: no internal signature with this argument count"
+  let (pre, values) ← elabReferenceArgs env args params
+  let call ← `(Solm.Stmt.internalCall $(quote fn) [$values,*] $(quote name))
+  let mut env' := { env with locals := name :: env.locals }
+  if let #[some ty] := rets then
+    if let some marker := loc then
+      unless marker.getId.toString == "storage" do
+        Macro.throwErrorAt marker "solm: a storage-reference result requires a storage alias"
+    let declared ← parseTy t
+    unless declared == .named "var" || declared == ty do
+      Macro.throwErrorAt t "solm: storage-reference result type mismatch"
+    env' := env.withStorageAlias name ty
+  else
+    if let some marker := loc then
+      if marker.getId.toString == "storage" then
+        Macro.throwErrorAt marker "solm: internal function does not return one storage reference"
+      unless isDataLocation marker.getId.toString do
+        Macro.throwErrorAt marker "solm: unknown data location"
+    if rets.any Option.isSome then
+      env' := { env' with refTuples := (name,rets) :: env.refTuples }
+  return (pre.push call, env')
 
 mutual
 
@@ -765,13 +856,43 @@ private partial def elabStmts (env : Env) (stmts : List (TSyntax `solStmt)) :
         let (restT, env') ← elabStmts env rest
         return (← `(($t : List Solm.Stmt) ++ $restT), env')
     | _ => do
-        let (t, env') ← elabStmt env s
+        let (ts, env') ← elabStmtSeq env s
         let (restT, env'') ← elabStmts env' rest
-        return (← `($t :: $restT), env'')
+        let body ← ts.foldrM (fun t rest => `($t :: $rest)) restT
+        return (body, env'')
 
 /-- `elabStmts`, keeping only the statement-list term. -/
 private partial def elabStmts' (env : Env) (stmts : List (TSyntax `solStmt)) : MacroM Term := do
   return (← elabStmts env stmts).1
+
+/-- Calls and reference returns can introduce alias-binding statements. -/
+private partial def elabStmtSeq (env : Env) (stx : TSyntax `solStmt) :
+    MacroM (Array Term × Env) := do
+  match stx with
+  | `(solStmt| $t:solTy $x:ident = $f:ident ($args:solExpr,*);) =>
+    if env.fns.contains f.getId.toString then
+      return ← elabInternalDecl env t none x f args.getElems
+  | `(solStmt| $t:solTy $loc:ident $x:ident = $f:ident ($args:solExpr,*);) =>
+    if env.fns.contains f.getId.toString then
+      return ← elabInternalDecl env t (some loc) x f args.getElems
+  | `(solStmt| $t:solTy $loc:ident $x:ident = $e:solExpr;) =>
+    if loc.getId.toString == "storage" then
+      if let some actual := returnedRefType? env e then
+        unless actual == (← parseTy t) do
+          Macro.throwErrorAt t "solm: storage alias type mismatch"
+        return (#[← `(Solm.Stmt.letDecl $(quote x.getId.toString) none $(← elabExpr env e))],
+          env.withStorageAlias x.getId.toString actual)
+  | `(solStmt| return $es:solExpr,*;) =>
+    if env.returnRefs.any Option.isSome then
+      let (pre, values) ← elabReferenceArgs env es.getElems env.returnRefs
+      return (pre.push (← `(Solm.Stmt.return [$values,*])), env)
+  | `(solStmt| return ($first:solExpr, $es:solExpr,*);) =>
+    if env.returnRefs.any Option.isSome then
+      let (pre, values) ← elabReferenceArgs env (#[first] ++ es.getElems) env.returnRefs
+      return (pre.push (← `(Solm.Stmt.return [$values,*])), env)
+  | _ => pure ()
+  let (t, env') ← elabStmt env stx
+  return (#[t], env')
 
 /-- Translate one (non-splice) statement; returns the `Stmt` term and the updated scope. -/
 private partial def elabStmt (env : Env) (stx : TSyntax `solStmt) : MacroM (Term × Env) := do
@@ -846,18 +967,18 @@ private partial def elabStmt (env : Env) (stx : TSyntax `solStmt) : MacroM (Term
       return (t, env.withAdditions [Env.additionsFrom env thnEnv, Env.additionsFrom env elsEnv])
   | `(solStmt| if ($c:solExpr) { $thn:solStmt* } else $e:solStmt) => do
       let (thnT, thnEnv) ← elabStmts env thn.toList
-      let (et, elsEnv) ← elabStmt env e
-      let t ← `(Solm.Stmt.ite $(← elabExpr env c) $thnT [$et])
+      let (et, elsEnv) ← elabStmts env [e]
+      let t ← `(Solm.Stmt.ite $(← elabExpr env c) $thnT $et)
       return (t, env.withAdditions [Env.additionsFrom env thnEnv, Env.additionsFrom env elsEnv])
   | `(solStmt| while ($c:solExpr) { $body:solStmt* }) => do
       let (bodyT, bodyEnv) ← elabStmts env body.toList
       let t ← `(Solm.Stmt.while $(← elabExpr env c) $bodyT)
       return (t, env.withAdditions [Env.additionsFrom env bodyEnv])
   | `(solStmt| for ($init:solStmt $c:solExpr; $post:solForPost) { $body:solStmt* }) => do
-      let (initT, env') ← elabStmt env init
+      let (initT, env') ← elabStmts env [init]
       let postT ← elabForPost env' post
       let (bodyT, bodyEnv) ← elabStmts env' body.toList
-      let t ← `(Solm.Stmt.for [$initT] $(← elabExpr env' c) [$postT] $bodyT)
+      let t ← `(Solm.Stmt.for $initT $(← elabExpr env' c) [$postT] $bodyT)
       return (t, env.withAdditions [Env.additionsFrom env bodyEnv])
   | `(solStmt| return $es:solExpr,* ;) => do
       let ts ← es.getElems.mapM (elabExpr env)
@@ -931,10 +1052,10 @@ private partial def elabDecl (env : Env) (t : TSyntax `solTy)
         Macro.throwErrorAt rhs "solm: storage alias must reference storage"
       let some aliasTy := r.ty
         | Macro.throwErrorAt rhs "solm: cannot type the storage alias"
-      let envA := { env with
-        storage := (name, aliasTy) :: env.storage
-        locals := env.locals.filter (· != name) }
-      return (← `(Solm.Stmt.letStorage $(quote name) $(← refTerm r)), envA)
+      unless aliasTy == (← parseTy t) do
+        Macro.throwErrorAt t "solm: storage alias type mismatch"
+      return (← `(Solm.Stmt.letStorage $(quote name) $(← refTerm r)),
+        env.withStorageAlias name aliasTy)
     else unless isDataLocation ls do
       Macro.throwErrorAt l.raw s!"solm: unknown data location '{ls}'"
   -- Call-shaped right-hand sides.
@@ -1029,10 +1150,42 @@ private def parseParam (env : Env) (stx : TSyntax `solParam) : MacroM (String ×
 private def paramTerm (p : String × Term) : MacroM Term := do
   `(({ name := $(quote p.1), ty := $(p.2) } : Solm.Param))
 
+private def functionParamTerm (p : String × Term) : MacroM Term := do
+  `(({ name := $(quote p.1), ty := $(p.2) } : Solm.FunctionParam))
+
+private def parseFunctionParam (env : Env) (stx : TSyntax `solParam) :
+    MacroM ((String × Term) × Option STy) := do
+  let (t, loc, name) ← match stx with
+    | `(solParam| $t:solTy $name:ident) => pure (t, none, name)
+    | `(solParam| $t:solTy $loc:ident $name:ident) => pure (t, some loc, name)
+    | _ => Macro.throwErrorAt stx "solm: malformed internal parameter"
+  let ty ← parseTy t
+  let mut reference := false
+  if let some loc := loc then
+    if loc.getId.toString == "storage" then reference := true
+    else unless isDataLocation loc.getId.toString do
+      Macro.throwErrorAt loc "solm: unknown data location"
+  unless reference do
+    -- Mappings (including nested struct members) cannot be read as value arguments.
+    discard <| abiTypeTerm env t ty
+  return ((name.getId.toString, ← storageTypeTerm env t ty), if reference then some ty else none)
+
+private def parseReturn (stx : TSyntax `solReturn) : MacroM (TSyntax `solTy × Bool) := do
+  match stx with
+  | `(solReturn| $t:solTy) => return (t, false)
+  | `(solReturn| $t:solTy $loc:ident) =>
+    if loc.getId.toString == "storage" then return (t, true)
+    unless isDataLocation loc.getId.toString do
+      Macro.throwErrorAt loc "solm: unknown return data location"
+    return (t, false)
+  | _ => Macro.throwErrorAt stx "solm: malformed return type"
+
 private structure FnInfo where
   name : String
   params : Array (String × Term)
   returns : Array Term
+  storageParams : List (String × STy) := []
+  returnRefs : Array (Option STy) := #[]
   bodyStx : Array (TSyntax `solStmt)
   /-- external/public ⇒ transition, internal/private ⇒ function -/
   isTransition : Bool
@@ -1040,7 +1193,11 @@ private structure FnInfo where
   kind : String  -- "function" | "constructor" | "receive" | "fallback"
 
 private def fnBodyTerm (env : Env) (fn : FnInfo) : MacroM Term := do
-  let env := { env with locals := fn.params.toList.map (·.1) ++ env.locals }
+  let names := fn.storageParams.map (·.1)
+  let env := { env with
+    storage := fn.storageParams ++ env.storage
+    locals := (fn.params.toList.map (·.1) ++ env.locals).filter (fun n => !names.contains n)
+    returnRefs := fn.returnRefs }
   let body ← elabStmts' env fn.bodyStx.toList
   -- Non-payable entry points get solc's callvalue guard; internal functions and receive don't.
   let needsGuard :=
@@ -1054,7 +1211,7 @@ private def transitionTerm (env : Env) (fn : FnInfo) : MacroM Term := do
        body := $(← fnBodyTerm env fn) } : Solm.TransitionDecl))
 
 private def functionTerm (env : Env) (fn : FnInfo) : MacroM Term := do
-  let ps ← fn.params.mapM paramTerm
+  let ps ← fn.params.mapM functionParamTerm
   `(({ name := $(quote fn.name), params := [$ps,*], returnType := [$(fn.returns),*],
        body := $(← fnBodyTerm env fn) } : Solm.FunctionDecl))
 
@@ -1082,7 +1239,7 @@ private def sepElems (n : Syntax) : Array Syntax :=
     fn-item productions): (fkw, f, params, mods, rets, body). -/
 private def destructFnRets (item : TSyntax `solItem) :
     Option (LIdent × LIdent × Array (TSyntax `solParam) × Array LIdent ×
-      Array (TSyntax `solTy) × Array (TSyntax `solStmt)) :=
+      Array (TSyntax `solReturn) × Array (TSyntax `solStmt)) :=
   let n := item.raw
   if n.isOfKind ``solItemFnRets then
     some (⟨n[0]⟩, ⟨n[1]⟩,
@@ -1107,15 +1264,33 @@ private def destructCtorRets (item : TSyntax `solItem) :
   else none
 
 private def mkFnInfo (env : Env) (f : LIdent) (params : Array (TSyntax `solParam))
-    (mods : Array LIdent) (rets : Array (TSyntax `solTy)) (body : Array (TSyntax `solStmt)) :
+    (mods : Array LIdent) (rets : Array (TSyntax `solReturn)) (body : Array (TSyntax `solStmt)) :
     MacroM (FnInfo × Bool) := do
-  let ps ← params.mapM (parseParam env)
   let (isTransition, payable) ← checkModifiers mods
-  let retTerms ← rets.mapM fun t => do abiTypeTerm env t (← parseTy t)
+  let mut storageParams := []
+  let ps ← if isTransition then params.mapM (parseParam env) else do
+    let parsed ← params.mapM (parseFunctionParam env)
+    storageParams := parsed.toList.filterMap fun ((name,_),ref) => ref.map (name,·)
+    pure (parsed.map (·.1))
+  let mut retTerms := #[]
+  let mut returnRefs := #[]
+  for r in rets do
+    let (t, reference) ← parseReturn r
+    let ty ← parseTy t
+    if isTransition && reference then
+      Macro.throwErrorAt r "solm: external return types cannot be storage references"
+    if isTransition then
+      retTerms := retTerms.push (← abiTypeTerm env t ty)
+    else
+      unless reference do discard <| abiTypeTerm env t ty
+      retTerms := retTerms.push (← storageTypeTerm env t ty)
+    returnRefs := returnRefs.push (if reference then some ty else none)
   let fn : FnInfo :=
     { name := f.getId.toString
       params := ps
       returns := retTerms
+      storageParams := storageParams
+      returnRefs := returnRefs
       bodyStx := body
       isTransition := isTransition
       payable := payable
@@ -1169,8 +1344,22 @@ macro_rules
     let stateNames := storage.map (·.1) ++ transient.map (·.1) ++ immutables ++ constants
     unless stateNames.eraseDups.length == stateNames.length do
       Macro.throwErrorAt name.raw "solm: duplicate state variable name"
-    let env : Env := { storage := storage, transient := transient, structs := structs, fns := fnNames,
-                       immutables := immutables, constants := constants }
+    let mut env : Env := { storage := storage, transient := transient, structs := structs, fns := fnNames,
+                           immutables := immutables, constants := constants }
+    -- Collect storage annotations before any body, so forward and recursive calls work.
+    for item in items do
+      let info : Option FnInfo ← match item with
+        | `(solItem| $fkw:ident $f:ident ($params:solParam,*) $mods:ident* { $body:solStmt* }) => do
+          if fkw.getId.toString != "function" then pure none else
+            pure (some (← mkFnInfo env f params.getElems mods #[] body).1)
+        | _ => do
+          if let some (fkw, f, params, mods, rets, body) := destructFnRets item then
+            if fkw.getId.toString != "function" then pure none else
+              pure (some (← mkFnInfo env f params mods rets body).1)
+          else pure none
+      if let some fn := info then
+        let refs := fn.params.map (fun p => fn.storageParams.lookup p.1)
+        env := { env with fnRefs := env.fnRefs ++ [(fn.name, refs, fn.returnRefs)] }
     -- Pass 2: translate items.
     let mut storageTerms : Array Term := #[]
     let mut transientTerms : Array Term := #[]

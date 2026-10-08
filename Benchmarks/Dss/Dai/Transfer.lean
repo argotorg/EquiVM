@@ -65,7 +65,7 @@ theorem daiLookupTransferFrom :
   rfl
 
 theorem daiBindTransferFromStore (I : ExecutionEnv) :
-    bindParams? transferFromTransition.params
+    bindParams? (transferFromTransition.params.map Param.toFunctionParam)
         [transferFromSrcValue I, transferFromDstValue I, transferFromWadValue I] =
       some (transferFromCallStore I) := by
   exact daiBindTransferFromCallStore I

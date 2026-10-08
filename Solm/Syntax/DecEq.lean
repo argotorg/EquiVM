@@ -513,6 +513,7 @@ end
 instance : DecidableEq Stmt := Stmt.decEq
 
 deriving instance DecidableEq for Param
+deriving instance DecidableEq for FunctionParam
 deriving instance DecidableEq for StorageDecl
 deriving instance DecidableEq for ConstantDecl
 deriving instance DecidableEq for ImmutableDecl
