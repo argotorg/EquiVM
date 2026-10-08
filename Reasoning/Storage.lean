@@ -1254,7 +1254,9 @@ theorem deleteSolidityStringShortZero
   have hclear := clearSolidityStringShortZero
     (cfg := cfg) (layout := layout) (evm := evm) (er := er) (baseSlot := baseSlot)
     hcfg hbase hload
-  simp [deleteStorage?, hresolve, hclear, EvalResult.bind, bind]
+  simp only [deleteStorage?, usesTransientStorage_of_resolveStorageRef hresolve,
+    Bool.false_eq_true, ↓reduceIte, hresolve, EvalResult.bind, bind]
+  exact hclear
 
 theorem deleteSolidityStringShortPacked
     {cfg : Config} {layout : StorageLayout}
@@ -1274,7 +1276,9 @@ theorem deleteSolidityStringShortPacked
     (cfg := cfg) (layout := layout) (evm := evm) (er := er)
     (baseSlot := baseSlot) (header := header) (len := len)
     hcfg hbase hload hpacked hflag hlen hvalid
-  simp [deleteStorage?, hresolve, hclear, EvalResult.bind, bind]
+  simp only [deleteStorage?, usesTransientStorage_of_resolveStorageRef hresolve,
+    Bool.false_eq_true, ↓reduceIte, hresolve, EvalResult.bind, bind]
+  exact hclear
 
 theorem deleteSolidityStringLongPrepared
     {cfg : Config} {layout : StorageLayout}
@@ -1295,7 +1299,9 @@ theorem deleteSolidityStringLongPrepared
     (cfg := cfg) (layout := layout) (evm := evm) (er := er)
     (baseSlot := baseSlot) (header := header) (len := len)
     hcfg hbase hload hflag hlen hvalid
-  simp [deleteStorage?, hresolve, hclear, EvalResult.bind, bind]
+  simp only [deleteStorage?, usesTransientStorage_of_resolveStorageRef hresolve,
+    Bool.false_eq_true, ↓reduceIte, hresolve, EvalResult.bind, bind]
+  exact hclear
 
 theorem writeSolidityStringShortPacked
     {cfg : Config} {layout : StorageLayout}

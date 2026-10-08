@@ -305,6 +305,10 @@ mutual
     next x y =>
         exact decEqOfIff (x = y) (by intro h; cases h; rfl) (by intro h; cases h; rfl)
 
+    next x y =>
+        letI : Decidable (x = y) := StorageRef.decEq x y
+        exact decEqOfIff (x = y) (by intro h; cases h; rfl) (by intro h; cases h; rfl)
+
   private def Expr.decEqList : (as bs : List Expr) → Decidable (as = bs)
     | [], [] => isTrue rfl
     | a :: as, b :: bs =>

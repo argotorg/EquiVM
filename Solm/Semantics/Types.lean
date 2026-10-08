@@ -14,6 +14,8 @@ structure ExternalCallABI where
 
 structure Config where
   storageBackend : StorageBackend
+  /-- Operations on `ContractDecl.transient`, independent of persistent storage. -/
+  transientBackend : StorageBackend := StorageBackend.empty
   externalABI : ExternalCallABI
   abiDecodeMode : ABI.DecodeMode := ABI.DecodeMode.modern
   /-- Initialisation code (creation bytecode ++ ABI-encoded constructor args) for a

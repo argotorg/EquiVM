@@ -74,6 +74,7 @@ private inductive STy where
 /-- Translation environment: declared names of the enclosing contract plus the local scope. -/
 private structure Env where
   storage : List (String × STy) := []
+  transient : List (String × STy) := []
   structs : List (String × List (String × STy)) := []
   /-- internal function names -/
   fns : List String := []
@@ -90,6 +91,9 @@ private def Env.isConstant (env : Env) (s : String) : Bool :=
   !env.isLocal s && env.constants.contains s
 private def Env.storageTy? (env : Env) (s : String) : Option STy :=
   if env.isLocal s then none else env.storage.lookup s
+
+private def Env.transientTy? (env : Env) (s : String) : Option STy :=
+  if env.isLocal s then none else env.transient.lookup s
 
 /-! ## Scalar type names -/
 
@@ -369,6 +373,7 @@ private def refTerm (r : RefInfo) : MacroM Term := do
 private def originTerm : VarOrigin → MacroM Term
   | .storage => `(Solm.VarOrigin.storage)
   | .localVar => `(Solm.VarOrigin.localVar)
+  | .transient => `(Solm.VarOrigin.transient)
 
 mutual
 
@@ -395,7 +400,7 @@ private partial def resolveRef (env : Env) (stx : Syntax) (comps : List String)
         | _ => exprOnly := true  -- tuple projection / slice: expression-fold handles these
       return some { origin := .localVar, base := c0, steps := out, ty := none,
                     isLength := isLen, exprOnly := exprOnly }
-    else if let some ty0 := env.storageTy? c0 then
+    else if let some ty0 := env.storageTy? c0 <|> env.transientTy? c0 then
       let mut out : Array Term := #[]
       let mut ty := ty0
       for s in steps do
@@ -414,7 +419,8 @@ private partial def resolveRef (env : Env) (stx : Syntax) (comps : List String)
             out := out.push (← `(Solm.StorageRefStep.aindex $(← elabExpr env k)))
             ty := t
         | _, _ => Macro.throwErrorAt stx s!"solm: cannot resolve path step on '{c0}'"
-      return some { origin := .storage, base := c0, steps := out, ty := some ty, isLength := isLen }
+      let origin := if (env.storageTy? c0).isSome then .storage else .transient
+      return some { origin := origin, base := c0, steps := out, ty := some ty, isLength := isLen }
     else
       return none
 
@@ -432,6 +438,8 @@ private partial def elabExpr (env : Env) (stx : TSyntax `solExpr) : MacroM Term 
         if env.isLocal x then return some (← `(Solm.Expr.var $(quote x)))
         else if env.storageTy? x == some (.named "address") then
           return some (← `(Solm.Expr.storage ({ base := $(quote x) } : Solm.StorageRef)))
+        else if env.transientTy? x == some (.named "address") then
+          return some (← `(Solm.Expr.transient ({ base := $(quote x) } : Solm.StorageRef)))
         else return none
       match full with
       | [x, "code", "length"] =>
@@ -446,6 +454,7 @@ private partial def elabExpr (env : Env) (stx : TSyntax `solExpr) : MacroM Term 
         return ← `(Solm.Expr.arrayLength $(← originTerm r.origin) $(← refTerm r))
       match r.origin with
       | .storage => return ← `(Solm.Expr.storage $(← refTerm r))
+      | .transient => return ← `(Solm.Expr.transient $(← refTerm r))
       | .localVar =>
           -- Fold a local path into pure expression forms.
           let mut e ← `(Solm.Expr.var $(quote r.base))
@@ -660,7 +669,7 @@ private partial def elabCall (env : Env) (stx : Syntax) (f : LIdent)
       else
         Macro.throwErrorAt f.raw s!"solm: unknown function or type '{tn}'"
   | x :: _ =>
-      if env.isLocal x || (env.storageTy? x).isSome then
+      if env.isLocal x || (env.storageTy? x).isSome || (env.transientTy? x).isSome then
         Macro.throwErrorAt stx
           s!"solm: external call must be bound: 'var r = …;'"
       else Macro.throwErrorAt f.raw s!"solm: unknown call '{".".intercalate comps}'"
@@ -706,6 +715,7 @@ private def splitMethodCall (env : Env) (stx : TSyntax `solExpr) :
     | some r =>
       match r.origin with
       | .storage => `(Solm.Expr.storage $(← refTerm r))
+      | .transient => `(Solm.Expr.transient $(← refTerm r))
       | .localVar => do
           let mut e ← `(Solm.Expr.var $(quote r.base))
           for c in baseComps.tail do
@@ -859,8 +869,8 @@ private partial def elabStmt (env : Env) (stx : TSyntax `solStmt) : MacroM (Term
   | `(solStmt| continue ;) => return (← `(Solm.Stmt.continue), env)
   | `(solStmt| delete $p:solExpr ;) => do
       let r ← resolveRefOrThrow env p
-      unless r.origin matches .storage do
-        Macro.throwErrorAt p "solm: delete expects a storage path"
+      unless r.origin matches .storage || r.origin matches .transient do
+        Macro.throwErrorAt p "solm: delete expects persistent or transient storage"
       return (← `(Solm.Stmt.delete $(← refTerm r)), env)
   | `(solStmt| try $call:solExpr $rkw:ident ($ret:ident) { $onOk:solStmt* }
         catch ($err:ident) { $onErr:solStmt* }) => do
@@ -890,8 +900,8 @@ private partial def elabPushPop (env : Env) (stx : Syntax) (comps : List String)
   let resolve : MacroM RefInfo := do
     let some r ← resolveRef env stx comps steps
       | Macro.throwErrorAt stx "solm: unknown push/pop target"
-    unless r.origin matches .storage do
-      Macro.throwErrorAt stx "solm: push/pop target must be a storage array"
+    unless r.origin matches .storage || r.origin matches .transient do
+      Macro.throwErrorAt stx "solm: push/pop target must be a persistent or transient array"
     pure r
   match method with
   | "push" => do
@@ -1118,6 +1128,7 @@ macro_rules
       Macro.throwErrorAt kw.raw "solm: expected 'contract'"
     -- Pass 1: collect declared names.
     let mut storage : List (String × STy) := []
+    let mut transient : List (String × STy) := []
     let mut structs : List (String × List (String × STy)) := []
     let mut fnNames : List String := []
     let mut immutables : List String := []
@@ -1129,6 +1140,8 @@ macro_rules
       | `(solItem| $t:solTy $m:ident $x:ident ;) =>
           if m.getId.toString == "immutable" then
             immutables := immutables ++ [x.getId.toString]
+          else if m.getId.toString == "transient" then
+            transient := transient ++ [(x.getId.toString, ← parseTy t)]
           else
             storage := storage ++ [(x.getId.toString, ← parseTy t)]
       | `(solItem| $_:solTy $m:ident $x:ident = $_:solExpr ;) => do
@@ -1153,10 +1166,14 @@ macro_rules
           if let some (fkw, f, _, _, _, _) := destructFnRets item then
             if fkw.getId.toString == "function" then
               fnNames := fnNames ++ [f.getId.toString]
-    let env : Env := { storage := storage, structs := structs, fns := fnNames,
+    let stateNames := storage.map (·.1) ++ transient.map (·.1) ++ immutables ++ constants
+    unless stateNames.eraseDups.length == stateNames.length do
+      Macro.throwErrorAt name.raw "solm: duplicate state variable name"
+    let env : Env := { storage := storage, transient := transient, structs := structs, fns := fnNames,
                        immutables := immutables, constants := constants }
     -- Pass 2: translate items.
     let mut storageTerms : Array Term := #[]
+    let mut transientTerms : Array Term := #[]
     let mut immutableTerms : Array Term := #[]
     let mut constantTerms : Array Term := #[]
     let mut structTerms : Array Term := #[]
@@ -1180,6 +1197,10 @@ macro_rules
               | Macro.throwErrorAt t "solm: an immutable must have an elementary type"
             immutableTerms := immutableTerms.push
               (← `(({ name := $(quote x.getId.toString), ty := $elemTy } : Solm.ImmutableDecl)))
+          else if m.getId.toString == "transient" then
+            let ty ← storageTypeTerm env t (← parseTy t)
+            transientTerms := transientTerms.push
+              (← `(({ name := $(quote x.getId.toString), ty := $ty } : Solm.StorageDecl)))
           else
             let ty ← storageTypeTerm env t (← parseTy t)
             storageTerms := storageTerms.push
@@ -1274,6 +1295,7 @@ macro_rules
       | some t => `(some $t) | none => `((none : Option Solm.TransitionDecl))
     `(({ name := $(quote name.getId.toString),
          storage := [$storageTerms,*],
+         transient := [$transientTerms,*],
          constants := [$constantTerms,*],
          immutables := [$immutableTerms,*],
          ctor := $ctorT,

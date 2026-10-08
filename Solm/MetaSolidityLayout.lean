@@ -1,6 +1,7 @@
 import Lean
 import Solm.SolidityLayout
 import Solm.SolidityStorage
+import Solm.TransientStorage
 
 /-!
 # Compile-time Solidity storage generation
@@ -352,6 +353,10 @@ elab "solidityLayout! " "[" structs:term "]" "[" decls:term "]" : term => do
 
 macro "solidityStorage! " "[" structs:term "]" "[" decls:term "]" : term =>
   `(solidityStorageBackend (solidityLayout! [$structs] [$decls]))
+
+/-- Generate a separate transient layout with the same Solidity packing rules. -/
+macro "solidityTransientStorage! " "[" structs:term "]" "[" decls:term "]" : term =>
+  `(solidityTransientStorageBackend (solidityLayout! [$structs] [$decls]))
 
 end MetaSolidityLayout
 end Solm
