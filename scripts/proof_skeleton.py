@@ -355,7 +355,11 @@ def render_immutable_plumbing(c: Contract) -> list[str]:
             "/-- The patched runtime has the template's jump destinations (patch sites are push payloads). -/",
             f"theorem {p}PatchedValidJumps (v : {c.imm_struct}) :",
             f"    D_J (deployedRuntime v) 0 = D_J {p}Bytecode 0 :=",
-            "  Layout.D_J_runtime (by native_decide) (by native_decide)", ""]
+            "  Layout.D_J_runtime (by native_decide) (by native_decide)", "",
+            "/-- The same fact in the form the block summaries state the code in. -/",
+            f"theorem {p}PatchedValidJumpsRuntime (v : {c.imm_struct}) :",
+            f"    D_J (immutableLayout.runtime {p}Bytecode (wordsOf (immStore v))) 0 = D_J {p}Bytecode 0 :=",
+            f"  {p}PatchedValidJumps v", ""]
     return out
 
 
@@ -700,7 +704,7 @@ class ProofGen:
 
     def valid_proof(self) -> str:
         if self.c.immutables:
-            return f"(by rw [{self.c.prefix}PatchedValidJumps v]; jump_dest)"
+            return f"(by rw [{self.c.prefix}PatchedValidJumpsRuntime v]; jump_dest)"
         return "(by jump_dest)"
 
     # --- chains --------------------------------------------------------------------------------

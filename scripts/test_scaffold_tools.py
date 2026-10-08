@@ -95,6 +95,38 @@ class SelectorTests(unittest.TestCase):
         self.assertIn("theorem aSelectorFact", text)
 
 
+class DiffTargetTests(unittest.TestCase):
+    def test_render_plain_and_immutable(self) -> None:
+        plain = scaffold.render_difftarget_lean("Foo.Bar", "Foo.Bar", "bar", "Bar", True, False)
+        self.assertIn("import Foo.Bar.Spec", plain)
+        self.assertIn("namespace Foo.Bar", plain)
+        self.assertIn("runtime := barBytecode", plain)
+        self.assertIn("initcode := some barCreationBytecode", plain)
+        self.assertNotIn("immutableLayout", plain)
+        imm = scaffold.render_difftarget_lean("Foo.Bar", "Foo.Bar", "bar", "Bar", False, True)
+        self.assertIn("import Foo.Bar.ImmutableCode", imm)
+        self.assertIn("initcode := none", imm)
+        self.assertIn("runtimeCodeOf := some (immutableLayout.deployed barBytecode)", imm)
+        self.assertIn("deployedRuntime := true", imm)
+
+    def test_registry_scans_targets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "Tests" / "DiffTest").mkdir(parents=True)
+            for module in ("A.One", "B.Two.Three"):
+                d = root / Path(*module.split("."))
+                d.mkdir(parents=True)
+                (d / "DiffTarget.lean").write_text(f"namespace {module}.Ns\ndef diffTarget := 0\n")
+            (root / ".lake" / "X").mkdir(parents=True)
+            (root / ".lake" / "X" / "DiffTarget.lean").write_text("namespace Skip\n")
+            text = scaffold.render_difftest_registry(root)
+            self.assertIn("import A.One.DiffTarget", text)
+            self.assertIn("import B.Two.Three.DiffTarget", text)
+            self.assertIn("B.Two.Three.Ns.diffTarget", text)
+            self.assertNotIn("Skip", text)
+            self.assertEqual(scaffold.render_difftest_registry(root / "Tests").count("import"), 1)
+
+
 class ImmutableOrderTests(unittest.TestCase):
     def test_write_order_from_creation_code(self) -> None:
         # ... PUSH1 0xba ADD MSTORE ... PUSH1 0x48 ADD MSTORE: scale (0xba) is written before owner.

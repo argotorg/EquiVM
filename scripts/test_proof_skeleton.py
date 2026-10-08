@@ -62,6 +62,18 @@ class PathTests(unittest.TestCase):
         self.check_contract("Examples/TinyImmutable", "TinyImmutable", "tinyImmutable", True)
 
 
+class ImmutableTests(unittest.TestCase):
+    def test_jump_table_lemma_in_summary_form(self) -> None:
+        c = fake_contract(ROOT / "Examples/TinyImmutable", "TinyImmutable", "tinyImmutable")
+        c.immutables = [ps.Immutable("owner", "address"), ps.Immutable("scale", "uint256")]
+        common = ps.render_common(c)
+        self.assertIn("D_J (deployedRuntime v) 0 = D_J tinyImmutableBytecode 0", common)
+        self.assertIn("D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0 = "
+                      "D_J tinyImmutableBytecode 0", common)
+        gen = ps.ProofGen(c, ps.Dispatcher(c, None))
+        self.assertIn("tinyImmutablePatchedValidJumpsRuntime v", gen.valid_proof())
+
+
 class SpellingTests(unittest.TestCase):
     def test_selector_term_is_rewritten(self) -> None:
         c = fake_contract(ROOT / "Examples/TinyImmutable", "TinyImmutable", "tinyImmutable")

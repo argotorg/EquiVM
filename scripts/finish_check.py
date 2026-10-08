@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """The finish checklist of Misc/prompt.md as one command.
 
-Builds the capstone module, searches the working directory for `sorry`/`admit` and project
-`axiom`s, prints the axiom footprint of the capstone theorem, and flags anything outside the
-accepted trusted base.
+Builds the capstone module, runs the differential suite on the contract, searches the working
+directory for `sorry`/`admit` and project `axiom`s, prints the axiom footprint of the capstone
+theorem, and flags anything outside the accepted trusted base.
 
 Example:
   scripts/finish_check.py --dir Benchmarks/Dss/Pot --module Benchmarks.Dss.Pot \
@@ -34,6 +34,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--module", required=True, help="Lean module path of the directory")
     parser.add_argument("--theorem", required=True, help="fully qualified capstone theorem")
     parser.add_argument("--skip-build", action="store_true")
+    parser.add_argument("--contract", help="target name in the differential suite (default: last module component)")
+    parser.add_argument("--difftest-count", type=int, default=20, help="cases per transition (default 20)")
+    parser.add_argument("--skip-difftest", action="store_true")
     parser.add_argument("--allow-axiom", action="append", default=[],
                         help="additional accepted axiom names (repeatable)")
     args = parser.parse_args(argv)
@@ -48,6 +51,21 @@ def main(argv: list[str] | None = None) -> int:
             print("FAIL build")
             return 1
         print("ok   build")
+
+    if not args.skip_difftest:
+        name = args.contract or args.module.rsplit(".", 1)[-1]
+        print(f"== lake exe solm-difftest --only {name} --count {args.difftest_count}", flush=True)
+        diff = run(["lake", "exe", "solm-difftest", "--only", name, "--count", str(args.difftest_count)])
+        out = (diff.stdout + diff.stderr).strip()
+        print("\n".join(out.splitlines()[-25:]))
+        if re.search(r"solm-difftest: 0 target", out):
+            failures += 1
+            print(f"FAIL no target named {name}: run scripts/scaffold.py difftest --dir {args.dir}")
+        elif diff.returncode != 0:
+            failures += 1
+            print("FAIL differential suite: the specification disagrees with the bytecode or gets stuck")
+        else:
+            print("ok   differential suite")
 
     print(f"== sorry/admit in {args.dir}")
     hits = []
