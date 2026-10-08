@@ -1,0 +1,40 @@
+{
+  "contract": "Vault",
+  "externalCalls": [
+    {
+      "name": "transferFrom",
+      "params": [
+        "address",
+        "address",
+        "uint256"
+      ],
+      "returns": [
+        "bool"
+      ],
+      "view": false
+    },
+    {
+      "name": "transfer",
+      "params": [
+        "address",
+        "uint256"
+      ],
+      "returns": [
+        "bool"
+      ],
+      "view": false
+    },
+    {
+      "name": "balanceOf",
+      "params": [
+        "address"
+      ],
+      "returns": [
+        "uint256"
+      ],
+      "view": true
+    }
+  ],
+  "holes": [],
+  "notes": []
+}

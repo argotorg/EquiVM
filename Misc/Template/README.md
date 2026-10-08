@@ -60,14 +60,28 @@ assumption and its justification, and is imported only by modules that use it.
    mirrors the Solidity source, when one is available. Events, error payloads,
    and exact gas tracking are not modeled currently. Contracts with immutables
    also get an `Immutables.lean` valuation.
-3. **Everything else** (agent). Hand the directory to the agent with
-   `Misc/prompt.md`. It audits the spec against the bytecode, assembles the
-   derived `Spec.lean` (contract reference, per-transition handles, storage
-   layout, external-call ABI, `Config`), transcribes `Bytecode.lean`,
-   scaffolds `Correct.lean`'s dispatch skeleton, proves each function body and
-   the constructor in their own files, and closes the top-level theorems —
-   `sorry`-free and axiom-clean (concrete obligations may still use documented
-   `native_decide` evaluation axioms).
-4. **Acceptance**. `lake build <Module>.Correct` succeeds, no `sorry`/`admit` in
-   the directory, and `#print axioms` on the capstone matches the accepted footprint
-   (see the finish checklist in `Misc/prompt.md`).
+3. **Generated scaffold** (scripts, see `scripts/README.md`; an agent runs steps 3 and 4 from
+   `Misc/scaffold-prompt.md`). `scripts/scaffold.py`
+   compiles and pins the artifacts, writes `Bytecode.lean`, `Selectors.lean` and the
+   immutables modules, and generates the block summaries; `scripts/bytecode_report.py`
+   writes the bytecode report the audit works from; `scripts/sol2solm.py` drafts
+   `SpecSyntax.lean` from the solc AST (with holes); `scripts/proof_skeleton.py` writes
+   the derived `Spec.lean`, `Common.lean`, the proved `Dispatch.lean`, one `sorry` stub per
+   function, `Constructor.lean` and `Correct.lean`; `scripts/scaffold.py difftest` writes
+   `DiffTarget.lean` and registers the contract in the differential suite.
+4. **Differential test, then audit** (agent, before any proof). The agent runs
+   `lake exe solm-difftest --only <Name> --count 50` (`Tests/DiffTest/README.md`) and fixes
+   every disagreement in the spec, then audits the spec against the bytecode report block by
+   block (step 8 of `Misc/scaffold-prompt.md`). The `successful/cases` line shows which
+   transitions the cases reach; raise the count or add words to `DiffTarget.lean` for the ones at
+   zero. The suite samples paths; it does not replace the audit.
+5. **Everything else** (agent). Hand the directory to the agent with
+   `Misc/prompt.md`. It closes the spec holes and audits the spec against the
+   bytecode report, proves each function body and the constructor in their own
+   files, and closes the top-level theorems — `sorry`-free and axiom-clean
+   (concrete obligations may still use documented `native_decide` evaluation
+   axioms).
+6. **Acceptance** (`scripts/finish_check.py`). `lake build <Module>.Correct` succeeds, the
+   differential suite passes on the contract, no `sorry`/`admit` in the directory, and
+   `#print axioms` on the capstone matches the accepted footprint (see the finish checklist in
+   `Misc/prompt.md`).

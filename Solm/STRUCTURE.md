@@ -87,10 +87,18 @@ Solm/
 │   │                      EVM's Θ/Λ (relational)
 │   └── Exec.lean          statement and transaction execution relations
 │                          (ExecStmt … solmExec, solmCtorExec)
-└── Refine.lean            the refinement relation: result equivalences, runtime
-                           refinement (runtimeRefinement), and the top-level
-                           contractRefinement linking constructor and runtime
-                           through the deployed immutables
+├── Refine.lean            the refinement relation: result equivalences, runtime
+│                          refinement (runtimeRefinement), and the top-level
+│                          contractRefinement linking constructor and runtime
+│                          through the deployed immutables
+├── Interp.lean            executable semantics: a fuel-indexed interpreter of the
+│                          statement relations, one arm per rule, with an Oracle for
+│                          the call/creation/gas existentials
+└── DiffTest/              differential tests against evmlean (Tests/DiffTest/README.md)
+    ├── Trace.lean         EVM run recording call boundaries and GAS words; replay oracle
+    ├── Compare.lean       the result equivalences and refinement cases, decided
+    ├── Gen.lean           input generators and storage pre-states
+    └── Harness.lean       targets, case families, summaries
 ```
 
 Dependency order (each layer imports the previous):
@@ -100,6 +108,7 @@ Syntax → Notation
 Syntax → Value → Storage → {SolidityLayout, VyperLayout}
 Semantics: Types → ValueOps → StorageOps → Eval → Exec   (Calls, Dispatch join at Exec)
 Equiv: on top of Semantics
+Interp: on top of Semantics;  DiffTest: on top of Interp and Refine
 ```
 
 Everything is in `namespace Solm`.
