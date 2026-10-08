@@ -1,0 +1,223 @@
+{
+  "compiler": "0.8.26+commit.8a97fa7a",
+  "creation": {
+    "bytes": 4057,
+    "functionDebugData": {
+      "@_542": {
+        "entryPoint": null,
+        "id": 542,
+        "parameterSlots": 1,
+        "returnSlots": 0
+      },
+      "abi_decode_tuple_t_contract$_IEAS_$372_fromMemory": {
+        "entryPoint": 98,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 1
+      }
+    },
+    "sha256": "4834b10609bbd79c79fd8ebb8536692a3e0273ad60ca8de6acd481cb012fe0b9"
+  },
+  "immutableReferences": {
+    "516": [
+      {
+        "length": 32,
+        "start": 824
+      },
+      {
+        "length": 32,
+        "start": 1719
+      },
+      {
+        "length": 32,
+        "start": 1888
+      },
+      {
+        "length": 32,
+        "start": 2289
+      }
+    ]
+  },
+  "methodIdentifiers": {
+    "attest(bytes32,uint256)": "72b9966d",
+    "multiAttest(bytes32[],uint256[][])": "54e1db35",
+    "multiRevoke(bytes32[],bytes32[][])": "13fde550",
+    "revoke(bytes32,bytes32)": "c2664610"
+  },
+  "runtime": {
+    "bytes": 3865,
+    "functionDebugData": {
+      "@attest_574": {
+        "entryPoint": 1884,
+        "id": 574,
+        "parameterSlots": 2,
+        "returnSlots": 1
+      },
+      "@multiAttest_735": {
+        "entryPoint": 935,
+        "id": 735,
+        "parameterSlots": 4,
+        "returnSlots": 1
+      },
+      "@multiRevoke_863": {
+        "entryPoint": 195,
+        "id": 863,
+        "parameterSlots": 4,
+        "returnSlots": 0
+      },
+      "@revoke_595": {
+        "entryPoint": 2187,
+        "id": 595,
+        "parameterSlots": 2,
+        "returnSlots": 0
+      },
+      "abi_decode_array_bytes32_dyn_calldata": {
+        "entryPoint": 2406,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 2
+      },
+      "abi_decode_tuple_t_array$_t_bytes32_$dyn_calldata_ptrt_array$_t_array$_t_bytes32_$dyn_calldata_ptr_$dyn_calldata_ptr": {
+        "entryPoint": 2482,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 4
+      },
+      "abi_decode_tuple_t_array$_t_bytes32_$dyn_calldata_ptrt_array$_t_array$_t_uint256_$dyn_calldata_ptr_$dyn_calldata_ptr": {
+        "entryPoint": null,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 4
+      },
+      "abi_decode_tuple_t_array$_t_bytes32_$dyn_memory_ptr_fromMemory": {
+        "entryPoint": 3547,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 1
+      },
+      "abi_decode_tuple_t_bytes32_fromMemory": {
+        "entryPoint": 3827,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 1
+      },
+      "abi_decode_tuple_t_bytes32t_bytes32": {
+        "entryPoint": null,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 2
+      },
+      "abi_decode_tuple_t_bytes32t_uint256": {
+        "entryPoint": 2662,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 2
+      },
+      "abi_encode_struct_AttestationRequestData": {
+        "entryPoint": 3109,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 1
+      },
+      "abi_encode_struct_RevocationRequestData": {
+        "entryPoint": null,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 0
+      },
+      "abi_encode_tuple_t_array$_t_bytes32_$dyn_memory_ptr__to_t_array$_t_bytes32_$dyn_memory_ptr__fromStack_reversed": {
+        "entryPoint": 2595,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 1
+      },
+      "abi_encode_tuple_t_array$_t_struct$_MultiAttestationRequest_$117_memory_ptr_$dyn_memory_ptr__to_t_array$_t_struct$_MultiAttestationRequest_$117_memory_ptr_$dyn_memory_ptr__fromStack_reversed": {
+        "entryPoint": 3304,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 1
+      },
+      "abi_encode_tuple_t_array$_t_struct$_MultiRevocationRequest_$168_memory_ptr_$dyn_memory_ptr__to_t_array$_t_struct$_MultiRevocationRequest_$168_memory_ptr_$dyn_memory_ptr__fromStack_reversed": {
+        "entryPoint": 2894,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 1
+      },
+      "abi_encode_tuple_t_bytes32__to_t_bytes32__fromStack_reversed": {
+        "entryPoint": null,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 1
+      },
+      "abi_encode_tuple_t_struct$_AttestationRequest_$95_memory_ptr__to_t_struct$_AttestationRequest_$95_memory_ptr__fromStack_reversed": {
+        "entryPoint": 3782,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 1
+      },
+      "abi_encode_tuple_t_struct$_RevocationRequest_$146_memory_ptr__to_t_struct$_RevocationRequest_$146_memory_ptr__fromStack_reversed": {
+        "entryPoint": null,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 1
+      },
+      "abi_encode_tuple_t_uint256__to_t_uint256__fromStack_reversed": {
+        "entryPoint": null,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 1
+      },
+      "access_calldata_tail_t_array$_t_bytes32_$dyn_calldata_ptr": {
+        "entryPoint": 2790,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 2
+      },
+      "access_calldata_tail_t_array$_t_uint256_$dyn_calldata_ptr": {
+        "entryPoint": null,
+        "id": null,
+        "parameterSlots": 2,
+        "returnSlots": 2
+      },
+      "panic_error_0x32": {
+        "entryPoint": 2743,
+        "id": null,
+        "parameterSlots": 0,
+        "returnSlots": 0
+      },
+      "panic_error_0x41": {
+        "entryPoint": 2696,
+        "id": null,
+        "parameterSlots": 0,
+        "returnSlots": 0
+      }
+    },
+    "sha256": "e2a292debd334ff78b7ec85ae48be9f89d48177df1b9c028e4e9b14bd2df9d70"
+  },
+  "settings": {
+    "evmVersion": "paris",
+    "metadata": {
+      "bytecodeHash": "none"
+    },
+    "optimizer": {
+      "enabled": true,
+      "runs": 1000000
+    },
+    "viaIR": false
+  },
+  "sourceSha256": {
+    "@ethereum-attestation-service/eas-contracts/contracts/Common.sol": "e18f291c3ec2fea1f920cdd6cdb955ea30d8b860d86f75962fb1fe10bfb97bc1",
+    "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol": "2db305cf4bcbf48c65dfa5ad89bbde51813555c2e7bba7d04d17a6b7ade297bc",
+    "@ethereum-attestation-service/eas-contracts/contracts/ISchemaRegistry.sol": "eb0fd5792c88c13abe03b228d7f38986e427c010d11321fd7623638b10ed0f05",
+    "@ethereum-attestation-service/eas-contracts/contracts/ISemver.sol": "096dd4aceb1dcc1e9823ed863305aa23a5b9a30de7aa3b04d918a87c1f4443e6",
+    "@ethereum-attestation-service/eas-contracts/contracts/resolver/ISchemaResolver.sol": "aa71c985397e6d315a05f1dc0a6435030aadc86c3eaf76665ce2e1bcb993ab88",
+    "contracts/Attester.sol": "e91a498cc19592a769e8629b5f8e4cd389e6124b4d1fe54211f061c39dee1a61"
+  },
+  "upstream": {
+    "branch": "master",
+    "commit": "d2864b166a08f9b3f9314f8b302316d67f227462",
+    "eas-contracts": "1.7.1",
+    "hardhat": "2.22.13",
+    "repository": "ethereum-attestation-service/eas-contracts-example"
+  }
+}
