@@ -21,7 +21,7 @@ You are given a working directory, which is named after the contract
   layout. (file `Spec.lean`)
 
 - A correctness file stating the top-level theorem with a `sorry`
-  placeholder. (file `Correct.lean`)
+  placeholder and a proof scaffold. (file `Correct.lean`)
 
 The top-level theorem is the contract refinement
 
@@ -42,11 +42,6 @@ and the correctness of the runtime code:
 runtimeRefinement <config> <runtimeBytecode> <contract>
 ```
 
-It has no `I.perm = true` precondition, so it also covers calls entered
-with STATICCALL: at a path's first SSTORE / LOG / value-carrying CALL
-both sides halt with a static-mode violation (see
-`Misc/Template/Function.lean`).
-
 For a contract with immutables, the deployed runtime depends on the values the constructor sets,
 and the theorem is assembled with `contractRefinement.of_runtime` instead (Section 7).
 
@@ -61,6 +56,12 @@ user, and do not continue until it is resolved.
 
 You should only work in the `<Name>/` directory. Do not make changes
 outside of it.
+
+Keep in mind: Solidity's return routine for dynamic arrays may overflow. If this
+operation is present in the contract, the refinement relation will require the
+well-formedness condition to rule out overflowing states: 224 + 64 *
+(solcSlotWordAt X sigma I).toNat < UInt256.size, where X is the dynamic array's
+base slot.
 
 ## 1. Overall Workflow
 
