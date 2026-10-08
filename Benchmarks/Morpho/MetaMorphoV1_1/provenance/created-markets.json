@@ -1,0 +1,290 @@
+[
+  {
+    "address": {
+      "ens_domain_name": null,
+      "hash": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+      "implementations": [],
+      "is_contract": true,
+      "is_scam": false,
+      "is_verified": true,
+      "metadata": {
+        "tags": [
+          {
+            "meta": {
+              "appID": "morpho",
+              "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+              "textColor": "#C163D4",
+              "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+              "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+              "tooltipDescription": "An efficient, secure & flexible lending protocol on Base.",
+              "tooltipUrl": "https://morpho.org/"
+            },
+            "name": "Morpho: Morpho Blue",
+            "ordinal": 10,
+            "slug": "morpho-morpho-blue",
+            "tagType": "name"
+          },
+          {
+            "meta": {
+              "appActionButtonText": "Morpho Aave App",
+              "appID": "morpho"
+            },
+            "name": "Morpho",
+            "ordinal": 0,
+            "slug": "morpho",
+            "tagType": "protocol"
+          }
+        ]
+      },
+      "name": "Morpho",
+      "private_tags": [],
+      "proxy_type": null,
+      "public_tags": [],
+      "reputation": "ok",
+      "watchlist_names": []
+    },
+    "block_hash": "0xbd6518395876f59ee101ff7f6759c6ef9bb65b6cf25c2e210422f0b8802cf13f",
+    "block_number": 26142549,
+    "block_timestamp": "2026-10-07T19:17:59.000000Z",
+    "data": "0x000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480000000000000000000000007f47c3e6b2c00fc4eb4d5ae50d0ab0ab6888eb4d000000000000000000000000716021a5d598c22851764923271c90a0aa704754000000000000000000000000870ac11d48b15db9a138cf899d20f13f79ba00bc0000000000000000000000000000000000000000000000000bef55718ad60000",
+    "decoded": {
+      "method_call": "CreateMarket(bytes32 indexed id, (address,address,address,address,uint256) marketParams)",
+      "method_id": "ac4b2400",
+      "parameters": [
+        {
+          "indexed": true,
+          "name": "id",
+          "type": "bytes32",
+          "value": "0xecabc12c73a97c766d0c6aeb4c15c635630d78158b2ac8370455a09efcc50837"
+        },
+        {
+          "indexed": false,
+          "name": "marketParams",
+          "type": "(address,address,address,address,uint256)",
+          "value": [
+            "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "0x7f47c3e6b2c00fC4eB4d5Ae50d0Ab0Ab6888Eb4D",
+            "0x716021a5d598C22851764923271C90a0aa704754",
+            "0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC",
+            "860000000000000000"
+          ]
+        }
+      ]
+    },
+    "index": 955,
+    "smart_contract": {
+      "ens_domain_name": null,
+      "hash": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+      "implementations": [],
+      "is_contract": true,
+      "is_scam": false,
+      "is_verified": true,
+      "metadata": null,
+      "name": null,
+      "private_tags": [],
+      "proxy_type": null,
+      "public_tags": [],
+      "reputation": "ok",
+      "watchlist_names": []
+    },
+    "topics": [
+      "0xac4b2400f169220b0c0afdde7a0b32e775ba727ea1cb30b35f935cdaab8683ac",
+      "0xecabc12c73a97c766d0c6aeb4c15c635630d78158b2ac8370455a09efcc50837",
+      null,
+      null
+    ],
+    "transaction_hash": "0xecb50a57c13ee38b2cbf6d3bb2e66891120f2ed0336c1cafe5f1e4e93dbcf22d"
+  },
+  {
+    "address": {
+      "ens_domain_name": null,
+      "hash": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+      "implementations": [],
+      "is_contract": true,
+      "is_scam": false,
+      "is_verified": true,
+      "metadata": {
+        "tags": [
+          {
+            "meta": {
+              "appID": "morpho",
+              "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+              "textColor": "#C163D4",
+              "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+              "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+              "tooltipDescription": "An efficient, secure & flexible lending protocol on Base.",
+              "tooltipUrl": "https://morpho.org/"
+            },
+            "name": "Morpho: Morpho Blue",
+            "ordinal": 10,
+            "slug": "morpho-morpho-blue",
+            "tagType": "name"
+          },
+          {
+            "meta": {
+              "appActionButtonText": "Morpho Aave App",
+              "appID": "morpho"
+            },
+            "name": "Morpho",
+            "ordinal": 0,
+            "slug": "morpho",
+            "tagType": "protocol"
+          }
+        ]
+      },
+      "name": "Morpho",
+      "private_tags": [],
+      "proxy_type": null,
+      "public_tags": [],
+      "reputation": "ok",
+      "watchlist_names": []
+    },
+    "block_hash": "0xa6171829748b4d75fac148bdc5e9d11f5c99f037a7889713c5c8093205d71610",
+    "block_number": 26140629,
+    "block_timestamp": "2026-10-07T12:52:23.000000Z",
+    "data": "0x000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc200000000000000000000000070e0b687b85a79aa8d936affc8ba6f9a1fb7befe00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000cb2bba6f17b8000",
+    "decoded": {
+      "method_call": "CreateMarket(bytes32 indexed id, (address,address,address,address,uint256) marketParams)",
+      "method_id": "ac4b2400",
+      "parameters": [
+        {
+          "indexed": true,
+          "name": "id",
+          "type": "bytes32",
+          "value": "0xddac43c721a67ea9f19b1c57d2de12039c99f3f271c90123f7d8fc9edb591ee6"
+        },
+        {
+          "indexed": false,
+          "name": "marketParams",
+          "type": "(address,address,address,address,uint256)",
+          "value": [
+            "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+            "0x70E0B687b85A79Aa8d936AFFc8BA6F9a1Fb7beFE",
+            "0x0000000000000000000000000000000000000000",
+            "915000000000000000"
+          ]
+        }
+      ]
+    },
+    "index": 458,
+    "smart_contract": {
+      "ens_domain_name": null,
+      "hash": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+      "implementations": [],
+      "is_contract": true,
+      "is_scam": false,
+      "is_verified": true,
+      "metadata": null,
+      "name": null,
+      "private_tags": [],
+      "proxy_type": null,
+      "public_tags": [],
+      "reputation": "ok",
+      "watchlist_names": []
+    },
+    "topics": [
+      "0xac4b2400f169220b0c0afdde7a0b32e775ba727ea1cb30b35f935cdaab8683ac",
+      "0xddac43c721a67ea9f19b1c57d2de12039c99f3f271c90123f7d8fc9edb591ee6",
+      null,
+      null
+    ],
+    "transaction_hash": "0x2035a60ee2c990eecd4ea7a9cc4f16425f2e65d605b34dc9db02368a8acdab36"
+  },
+  {
+    "address": {
+      "ens_domain_name": null,
+      "hash": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+      "implementations": [],
+      "is_contract": true,
+      "is_scam": false,
+      "is_verified": true,
+      "metadata": {
+        "tags": [
+          {
+            "meta": {
+              "appID": "morpho",
+              "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+              "textColor": "#C163D4",
+              "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+              "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+              "tooltipDescription": "An efficient, secure & flexible lending protocol on Base.",
+              "tooltipUrl": "https://morpho.org/"
+            },
+            "name": "Morpho: Morpho Blue",
+            "ordinal": 10,
+            "slug": "morpho-morpho-blue",
+            "tagType": "name"
+          },
+          {
+            "meta": {
+              "appActionButtonText": "Morpho Aave App",
+              "appID": "morpho"
+            },
+            "name": "Morpho",
+            "ordinal": 0,
+            "slug": "morpho",
+            "tagType": "protocol"
+          }
+        ]
+      },
+      "name": "Morpho",
+      "private_tags": [],
+      "proxy_type": null,
+      "public_tags": [],
+      "reputation": "ok",
+      "watchlist_names": []
+    },
+    "block_hash": "0x1ab7c0f05f4660106ee5d2cd8d8816891f37275da246a83b78eb3ba94d41f1bc",
+    "block_number": 26133182,
+    "block_timestamp": "2026-10-06T11:57:59.000000Z",
+    "data": "0x000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000827ce7e8e35861d9ac7fe002755767b695a5594a00000000000000000000000003674062e686df26f527f982741bf77e3c0c3542000000000000000000000000870ac11d48b15db9a138cf899d20f13f79ba00bc0000000000000000000000000000000000000000000000000aaf96eb9d0d0000",
+    "decoded": {
+      "method_call": "CreateMarket(bytes32 indexed id, (address,address,address,address,uint256) marketParams)",
+      "method_id": "ac4b2400",
+      "parameters": [
+        {
+          "indexed": true,
+          "name": "id",
+          "type": "bytes32",
+          "value": "0x64844761c350e108d3196b7bbafb38b3dc661746207ef4e951fe7c5fe6ad4035"
+        },
+        {
+          "indexed": false,
+          "name": "marketParams",
+          "type": "(address,address,address,address,uint256)",
+          "value": [
+            "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "0x827Ce7E8e35861D9Ac7fE002755767b695A5594a",
+            "0x03674062e686DF26f527F982741Bf77e3C0c3542",
+            "0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC",
+            "770000000000000000"
+          ]
+        }
+      ]
+    },
+    "index": 243,
+    "smart_contract": {
+      "ens_domain_name": null,
+      "hash": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+      "implementations": [],
+      "is_contract": true,
+      "is_scam": false,
+      "is_verified": true,
+      "metadata": null,
+      "name": null,
+      "private_tags": [],
+      "proxy_type": null,
+      "public_tags": [],
+      "reputation": "ok",
+      "watchlist_names": []
+    },
+    "topics": [
+      "0xac4b2400f169220b0c0afdde7a0b32e775ba727ea1cb30b35f935cdaab8683ac",
+      "0x64844761c350e108d3196b7bbafb38b3dc661746207ef4e951fe7c5fe6ad4035",
+      null,
+      null
+    ],
+    "transaction_hash": "0x8197d68c4bd70426f81c0e964c7a345217b38e6d84dc2e5790a03dfc15afc908"
+  }
+]

@@ -1,0 +1,114 @@
+{
+  "chainId": 1,
+  "factory": "0x1897A8997241C1cD4bD0698647e4EB7213535c24",
+  "vault": "0xBeeF7959aE71D4e45e1863dae0B94C35244AF816",
+  "compiler": "0.8.37+commit.f401782d",
+  "scope": "Compiler-upgraded local benchmark; historical deployment remains on solc 0.8.26.",
+  "bytes": 19708,
+  "deployedBytes": 19730,
+  "equal": false,
+  "metadataIncluded": true,
+  "runtimeSha256": "785357352bd5622cd434877743cfac18801676fce5e9fc809d3c9b851edb94c4",
+  "deployedRuntimeSha256": "4bae4d5b7b8be09ad5ff5749efd3291a25e26ce038260aae2f34daaebf0554e0",
+  "historicalComparison": "deployment-solc-0.8.26-comparison.json",
+  "immutables": {
+    "_asset": {
+      "type": "contract IERC20",
+      "value": "0x45804880de22913dafe09f4980848ece6ecbaf78",
+      "offsets": [
+        8940,
+        9602,
+        14666,
+        15717
+      ]
+    },
+    "_underlyingDecimals": {
+      "type": "uint8",
+      "value": "0x12",
+      "offsets": [
+        9800
+      ]
+    },
+    "_cachedDomainSeparator": {
+      "type": "bytes32",
+      "value": "0x8f37e0b6d6c1781e97de5ecb3bae2dd56076e9111d4b253739015ae80df19392",
+      "offsets": [
+        12994
+      ]
+    },
+    "_cachedChainId": {
+      "type": "uint256",
+      "value": "0x1",
+      "offsets": [
+        13183
+      ]
+    },
+    "_cachedThis": {
+      "type": "address",
+      "value": "0xbeef7959ae71d4e45e1863dae0b94c35244af816",
+      "offsets": [
+        12940
+      ]
+    },
+    "_hashedName": {
+      "type": "bytes32",
+      "value": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+      "offsets": [
+        13073
+      ]
+    },
+    "_hashedVersion": {
+      "type": "bytes32",
+      "value": "0xc89efdaa54c0f20c7adf612882df0950f5a951637e0307cdcb4c672f298b8bc6",
+      "offsets": [
+        13111
+      ]
+    },
+    "_name": {
+      "type": "ShortString",
+      "value": "0x0",
+      "offsets": [
+        4972
+      ]
+    },
+    "_version": {
+      "type": "ShortString",
+      "value": "0x3100000000000000000000000000000000000000000000000000000000000001",
+      "offsets": [
+        5013
+      ]
+    },
+    "MORPHO": {
+      "type": "contract IMorpho",
+      "value": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+      "offsets": [
+        6257,
+        6567,
+        8532,
+        9069,
+        9534,
+        12256,
+        13693,
+        13902,
+        15000,
+        15944,
+        16187,
+        17893,
+        18846,
+        19521
+      ]
+    },
+    "DECIMALS_OFFSET": {
+      "type": "uint8",
+      "value": "0x0",
+      "offsets": [
+        3730,
+        9764,
+        14429,
+        14499,
+        15301,
+        15368
+      ]
+    }
+  }
+}

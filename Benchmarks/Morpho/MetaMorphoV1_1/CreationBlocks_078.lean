@@ -10,18 +10,515 @@ namespace metaMorphoV1_1CreationBlocks
 private abbrev d := Reasoning.Theory.decode_append_left_of_decode Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode
 private abbrev j := Reasoning.Theory.D_J_contains_append_left Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode
 
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15919_fallthrough`. -/
-def metaMorphoV1_1Creation_block_15919_fallthrough_stack {x0 : UInt256} {x2 : UInt256} {R : List UInt256} : List UInt256 :=
+/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15896_taken`. -/
+def metaMorphoV1_1Creation_block_15896_taken_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {R : List UInt256} : List UInt256 :=
+  (x2 :: (UInt256.mul x0 x1) :: R)
+
+/-- Automatically generated RD summary for bytecode block at pc 15896. -/
+theorem metaMorphoV1_1Creation_block_15896_taken {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+    (hstack : R.length + 6 ≤ 1024)
+    (hcond : (UInt256.isZero (UInt256.lor (UInt256.eq (UInt256.div (UInt256.mul x0 x1) x0) x1) (UInt256.isZero x0))) ≠ (UInt256.ofNat 0))
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 9453) = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15896) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 9453) (metaMorphoV1_1Creation_block_15896_taken_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 16) (C + ((57))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r2 := r1.dup2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := r2.dup2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r4 := r3.mul (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r5 := r4.swap3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r6 := r5.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r7 := r6.dup2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r8 := r7.iszero (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r9 := r8.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r10 := r9.dup5 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r11 := r10.div (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r12 := r11.eq (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r13 := r12.or (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r14 := r13.iszero (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r15 := r14.push2 (UInt256.ofNat 9453) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r16 := r15.jumpiT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (j tail (UInt256.ofNat 9453) hvalid) (by evm_ov)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 9453)) r16 (by native_decide)
+  exact RD.normalizeCounters rFinal (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15896_taken_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+    (hstack : R.length + 6 ≤ 1024)
+    (hcond : (UInt256.isZero (UInt256.lor (UInt256.eq (UInt256.div (UInt256.mul x0 x1) x0) x1) (UInt256.isZero x0))) ≠ (UInt256.ofNat 0))
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 9453) = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15896) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 9453) (metaMorphoV1_1Creation_block_15896_taken_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15896_taken hstack hcond hvalid h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15896_fallthrough`. -/
+def metaMorphoV1_1Creation_block_15896_fallthrough_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {R : List UInt256} : List UInt256 :=
+  (x2 :: (UInt256.mul x0 x1) :: R)
+
+/-- Automatically generated RD summary for bytecode block at pc 15896. -/
+theorem metaMorphoV1_1Creation_block_15896_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+    (hstack : R.length + 6 ≤ 1024)
+    (hcond : (UInt256.isZero (UInt256.lor (UInt256.eq (UInt256.div (UInt256.mul x0 x1) x0) x1) (UInt256.isZero x0))) = (UInt256.ofNat 0))
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15896) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15914) (metaMorphoV1_1Creation_block_15896_fallthrough_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 16) (C + ((57))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r2 := r1.dup2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := r2.dup2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r4 := r3.mul (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r5 := r4.swap3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r6 := r5.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r7 := r6.dup2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r8 := r7.iszero (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r9 := r8.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r10 := r9.dup5 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r11 := r10.div (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r12 := r11.eq (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r13 := r12.or (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r14 := r13.iszero (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r15 := r14.push2 (UInt256.ofNat 9453) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r16 := r15.jumpiNT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (by evm_ov)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 15914)) r16 (by native_decide)
+  exact RD.normalizeCounters rFinal (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15896_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+    (hstack : R.length + 6 ≤ 1024)
+    (hcond : (UInt256.isZero (UInt256.lor (UInt256.eq (UInt256.div (UInt256.mul x0 x1) x0) x1) (UInt256.isZero x0))) = (UInt256.ofNat 0))
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15896) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15914) (metaMorphoV1_1Creation_block_15896_fallthrough_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15896_fallthrough hstack hcond h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15914`. -/
+def metaMorphoV1_1Creation_block_15914_stack {R : List UInt256} : List UInt256 :=
+  R
+
+/-- Automatically generated RD summary for bytecode block at pc 15914. -/
+theorem metaMorphoV1_1Creation_block_15914 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
+    (hstack : R.length + 1 ≤ 1024)
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x0 = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15914) (x0 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x0 (metaMorphoV1_1Creation_block_15914_stack (R := R)) mem aw rdata σ (k + 1) (C + ((8))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.jump (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (j tail x0 hvalid) (by evm_ov)
+  exact RD.normalizeCounters r1 (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15914_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
+    (hstack : R.length + 1 ≤ 1024)
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x0 = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15914) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x0 (metaMorphoV1_1Creation_block_15914_stack (R := R)) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15914 hstack hvalid h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Automatically generated RD summary for bytecode block at pc 15915. -/
+theorem metaMorphoV1_1Creation_block_15915_taken {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
+    (hstack : R.length + 4 ≤ 1024)
+    (hcond : (UInt256.gt x0 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1))) ≠ (UInt256.ofNat 0))
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 2690) = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15915) (x0 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 2690) (x0 :: R) mem aw rdata σ (k + 10) (C + ((35))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r2 := r1.push1 (UInt256.ofNat 1) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := r2.push1 (UInt256.ofNat 1) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r4 := r3.push1 (UInt256.ofNat 64) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r5 := r4.shl (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r6 := r5.sub (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r7 := r6.dup2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r8 := r7.gt (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r9 := r8.push2 (UInt256.ofNat 2690) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r10 := r9.jumpiT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (j tail (UInt256.ofNat 2690) hvalid) (by evm_ov)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 2690)) r10 (by native_decide)
+  exact RD.normalizeCounters rFinal (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15915_taken_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
+    (hstack : R.length + 4 ≤ 1024)
+    (hcond : (UInt256.gt x0 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1))) ≠ (UInt256.ofNat 0))
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 2690) = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15915) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 2690) (x0 :: R) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15915_taken hstack hcond hvalid h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Automatically generated RD summary for bytecode block at pc 15915. -/
+theorem metaMorphoV1_1Creation_block_15915_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
+    (hstack : R.length + 4 ≤ 1024)
+    (hcond : (UInt256.gt x0 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1))) = (UInt256.ofNat 0))
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15915) (x0 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15930) (x0 :: R) mem aw rdata σ (k + 10) (C + ((35))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r2 := r1.push1 (UInt256.ofNat 1) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := r2.push1 (UInt256.ofNat 1) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r4 := r3.push1 (UInt256.ofNat 64) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r5 := r4.shl (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r6 := r5.sub (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r7 := r6.dup2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r8 := r7.gt (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r9 := r8.push2 (UInt256.ofNat 2690) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r10 := r9.jumpiNT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (by evm_ov)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 15930)) r10 (by native_decide)
+  exact RD.normalizeCounters rFinal (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15915_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
+    (hstack : R.length + 4 ≤ 1024)
+    (hcond : (UInt256.gt x0 (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 64)) (UInt256.ofNat 1))) = (UInt256.ofNat 0))
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15915) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15930) (x0 :: R) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15915_fallthrough hstack hcond h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15930`. -/
+def metaMorphoV1_1Creation_block_15930_stack {x0 : UInt256} {R : List UInt256} : List UInt256 :=
+  (((UInt256.ofNat 32) + (UInt256.shiftLeft x0 (UInt256.ofNat 5))) :: R)
+
+/-- Automatically generated RD summary for bytecode block at pc 15930. -/
+theorem metaMorphoV1_1Creation_block_15930 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
+    (hstack : R.length + 3 ≤ 1024)
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x1 = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15930) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x1 (metaMorphoV1_1Creation_block_15930_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 6) (C + ((23))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.push1 (UInt256.ofNat 5) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r2 := r1.shl (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := r2.push1 (UInt256.ofNat 32) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r4 := r3.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r5 := r4.swap1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r6 := r5.jump (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (j tail x1 hvalid) (by evm_ov)
+  exact RD.normalizeCounters r6 (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15930_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
+    (hstack : R.length + 3 ≤ 1024)
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x1 = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15930) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x1 (metaMorphoV1_1Creation_block_15930_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15930 hstack hvalid h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Automatically generated RD summary for bytecode block at pc 15938. -/
+theorem metaMorphoV1_1Creation_block_15938_taken {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
+    (hstack : R.length + 3 ≤ 1024)
+    (hcond : (UInt256.isZero (memLoad x0 mem)) ≠ (UInt256.ofNat 0))
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 11515) = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15938) (x0 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11515) (x0 :: R) mem (M aw x0 (⟨32⟩ : UInt256)) rdata σ (k + 6) (C + ((23) + (memExpansionCost aw x0 (⟨32⟩ : UInt256)))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r2 := r1.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := RD.genMload r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r4 := r3.iszero (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r5 := r4.push2 (UInt256.ofNat 11515) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r6 := r5.jumpiT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (j tail (UInt256.ofNat 11515) hvalid) (by evm_ov)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 11515)) r6 (by native_decide)
+  exact RD.normalizeCounters rFinal (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15938_taken_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
+    (hstack : R.length + 3 ≤ 1024)
+    (hcond : (UInt256.isZero (memLoad x0 mem)) ≠ (UInt256.ofNat 0))
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 11515) = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15938) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11515) (x0 :: R) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15938_taken hstack hcond hvalid h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Automatically generated RD summary for bytecode block at pc 15938. -/
+theorem metaMorphoV1_1Creation_block_15938_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
+    (hstack : R.length + 3 ≤ 1024)
+    (hcond : (UInt256.isZero (memLoad x0 mem)) = (UInt256.ofNat 0))
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15938) (x0 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15946) (x0 :: R) mem (M aw x0 (⟨32⟩ : UInt256)) rdata σ (k + 6) (C + ((23) + (memExpansionCost aw x0 (⟨32⟩ : UInt256)))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r2 := r1.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := RD.genMload r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r4 := r3.iszero (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r5 := r4.push2 (UInt256.ofNat 11515) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r6 := r5.jumpiNT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (by evm_ov)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 15946)) r6 (by native_decide)
+  exact RD.normalizeCounters rFinal (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15938_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
+    (hstack : R.length + 3 ≤ 1024)
+    (hcond : (UInt256.isZero (memLoad x0 mem)) = (UInt256.ofNat 0))
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15938) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15946) (x0 :: R) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15938_fallthrough hstack hcond h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15946`. -/
+def metaMorphoV1_1Creation_block_15946_stack {x0 : UInt256} {R : List UInt256} : List UInt256 :=
+  (((UInt256.ofNat 32) + x0) :: R)
+
+/-- Automatically generated RD summary for bytecode block at pc 15946. -/
+theorem metaMorphoV1_1Creation_block_15946 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
+    (hstack : R.length + 3 ≤ 1024)
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x1 = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15946) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x1 (metaMorphoV1_1Creation_block_15946_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 4) (C + ((17))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.push1 (UInt256.ofNat 32) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r2 := r1.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := r2.swap1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r4 := r3.jump (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (j tail x1 hvalid) (by evm_ov)
+  exact RD.normalizeCounters r4 (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15946_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
+    (hstack : R.length + 3 ≤ 1024)
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x1 = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15946) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x1 (metaMorphoV1_1Creation_block_15946_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15946 hstack hvalid h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Automatically generated RD summary for bytecode block at pc 15951. -/
+theorem metaMorphoV1_1Creation_block_15951_taken {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
+    (hstack : R.length + 4 ≤ 1024)
+    (hcond : (UInt256.isZero (UInt256.lt x1 (memLoad x0 mem))) ≠ (UInt256.ofNat 0))
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 11515) = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15951) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11515) (x0 :: x1 :: R) mem (M aw x0 (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((29) + (memExpansionCost aw x0 (⟨32⟩ : UInt256)))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r2 := r1.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := RD.genMload r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r4 := r3.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r5 := r4.lt (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r6 := r5.iszero (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r7 := r6.push2 (UInt256.ofNat 11515) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r8 := r7.jumpiT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (j tail (UInt256.ofNat 11515) hvalid) (by evm_ov)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 11515)) r8 (by native_decide)
+  exact RD.normalizeCounters rFinal (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15951_taken_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
+    (hstack : R.length + 4 ≤ 1024)
+    (hcond : (UInt256.isZero (UInt256.lt x1 (memLoad x0 mem))) ≠ (UInt256.ofNat 0))
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 11515) = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15951) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 11515) (x0 :: x1 :: R) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15951_taken hstack hcond hvalid h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Automatically generated RD summary for bytecode block at pc 15951. -/
+theorem metaMorphoV1_1Creation_block_15951_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
+    (hstack : R.length + 4 ≤ 1024)
+    (hcond : (UInt256.isZero (UInt256.lt x1 (memLoad x0 mem))) = (UInt256.ofNat 0))
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15951) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15961) (x0 :: x1 :: R) mem (M aw x0 (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((29) + (memExpansionCost aw x0 (⟨32⟩ : UInt256)))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r2 := r1.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := RD.genMload r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r4 := r3.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r5 := r4.lt (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r6 := r5.iszero (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r7 := r6.push2 (UInt256.ofNat 11515) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r8 := r7.jumpiNT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (by evm_ov)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 15961)) r8 (by native_decide)
+  exact RD.normalizeCounters rFinal (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15951_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
+    (hstack : R.length + 4 ≤ 1024)
+    (hcond : (UInt256.isZero (UInt256.lt x1 (memLoad x0 mem))) = (UInt256.ofNat 0))
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15951) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15961) (x0 :: x1 :: R) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15951_fallthrough hstack hcond h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15961`. -/
+def metaMorphoV1_1Creation_block_15961_stack {x0 : UInt256} {x1 : UInt256} {R : List UInt256} : List UInt256 :=
+  ((((UInt256.shiftLeft x1 (UInt256.ofNat 5)) + x0) + (UInt256.ofNat 32)) :: R)
+
+/-- Automatically generated RD summary for bytecode block at pc 15961. -/
+theorem metaMorphoV1_1Creation_block_15961 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+    (hstack : R.length + 5 ≤ 1024)
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x2 = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15961) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x2 (metaMorphoV1_1Creation_block_15961_stack (x0 := x0) (x1 := x1) (R := R)) mem aw rdata σ (k + 8) (C + ((29))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.push1 (UInt256.ofNat 32) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r2 := r1.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := r2.push1 (UInt256.ofNat 5) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r4 := r3.shl (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r5 := r4.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r6 := r5.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r7 := r6.swap1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r8 := r7.jump (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (j tail x2 hvalid) (by evm_ov)
+  exact RD.normalizeCounters r8 (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15961_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+    (hstack : R.length + 5 ≤ 1024)
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x2 = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15961) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x2 (metaMorphoV1_1Creation_block_15961_stack (x0 := x0) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15961 hstack hvalid h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15971_taken`. -/
+def metaMorphoV1_1Creation_block_15971_taken_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {R : List UInt256} : List UInt256 :=
+  (x2 :: (x0 + x1) :: R)
+
+/-- Automatically generated RD summary for bytecode block at pc 15971. -/
+theorem metaMorphoV1_1Creation_block_15971_taken {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+    (hstack : R.length + 4 ≤ 1024)
+    (hcond : (UInt256.gt x0 (x0 + x1)) ≠ (UInt256.ofNat 0))
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 9453) = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15971) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 9453) (metaMorphoV1_1Creation_block_15971_taken_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 10) (C + ((35))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r2 := r1.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := r2.swap1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r4 := r3.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r5 := r4.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r6 := r5.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r7 := r6.swap3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r8 := r7.gt (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r9 := r8.push2 (UInt256.ofNat 9453) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r10 := r9.jumpiT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (j tail (UInt256.ofNat 9453) hvalid) (by evm_ov)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 9453)) r10 (by native_decide)
+  exact RD.normalizeCounters rFinal (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15971_taken_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+    (hstack : R.length + 4 ≤ 1024)
+    (hcond : (UInt256.gt x0 (x0 + x1)) ≠ (UInt256.ofNat 0))
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 9453) = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15971) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 9453) (metaMorphoV1_1Creation_block_15971_taken_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15971_taken hstack hcond hvalid h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15971_fallthrough`. -/
+def metaMorphoV1_1Creation_block_15971_fallthrough_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {R : List UInt256} : List UInt256 :=
+  (x2 :: (x0 + x1) :: R)
+
+/-- Automatically generated RD summary for bytecode block at pc 15971. -/
+theorem metaMorphoV1_1Creation_block_15971_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+    (hstack : R.length + 4 ≤ 1024)
+    (hcond : (UInt256.gt x0 (x0 + x1)) = (UInt256.ofNat 0))
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15971) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15983) (metaMorphoV1_1Creation_block_15971_fallthrough_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 10) (C + ((35))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r2 := r1.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := r2.swap1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r4 := r3.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r5 := r4.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r6 := r5.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r7 := r6.swap3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r8 := r7.gt (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r9 := r8.push2 (UInt256.ofNat 9453) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r10 := r9.jumpiNT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (by evm_ov)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 15983)) r10 (by native_decide)
+  exact RD.normalizeCounters rFinal (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15971_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+    (hstack : R.length + 4 ≤ 1024)
+    (hcond : (UInt256.gt x0 (x0 + x1)) = (UInt256.ofNat 0))
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15971) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15983) (metaMorphoV1_1Creation_block_15971_fallthrough_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15971_fallthrough hstack hcond h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15983`. -/
+def metaMorphoV1_1Creation_block_15983_stack {R : List UInt256} : List UInt256 :=
+  R
+
+/-- Automatically generated RD summary for bytecode block at pc 15983. -/
+theorem metaMorphoV1_1Creation_block_15983 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
+    (hstack : R.length + 1 ≤ 1024)
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x0 = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15983) (x0 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x0 (metaMorphoV1_1Creation_block_15983_stack (R := R)) mem aw rdata σ (k + 1) (C + ((8))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.jump (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (j tail x0 hvalid) (by evm_ov)
+  exact RD.normalizeCounters r1 (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15983_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
+    (hstack : R.length + 1 ≤ 1024)
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x0 = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15983) (x0 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x0 (metaMorphoV1_1Creation_block_15983_stack (R := R)) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15983 hstack hvalid h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15984_taken`. -/
+def metaMorphoV1_1Creation_block_15984_taken_stack {x0 : UInt256} {x2 : UInt256} {R : List UInt256} : List UInt256 :=
   (x2 :: x0 :: R)
 
-/-- Automatically generated RD summary for bytecode block at pc 15919. -/
-theorem metaMorphoV1_1Creation_block_15919_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+/-- Automatically generated RD summary for bytecode block at pc 15984. -/
+theorem metaMorphoV1_1Creation_block_15984_taken {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+    (hstack : R.length + 5 ≤ 1024)
+    (hcond : (UInt256.slt (UInt256.sub x1 x0) (UInt256.ofNat 64)) ≠ (UInt256.ofNat 0))
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 917) = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15984) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 917) (metaMorphoV1_1Creation_block_15984_taken_stack (x0 := x0) (x2 := x2) (R := R)) mem aw rdata σ (k + 10) (C + ((35))) := by
+  let r0 := h
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
+  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r2 := r1.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := r2.swap1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r4 := r3.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r5 := r4.push1 (UInt256.ofNat 64) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r6 := r5.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r7 := r6.sub (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r8 := r7.slt (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r9 := r8.push2 (UInt256.ofNat 917) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r10 := r9.jumpiT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (j tail (UInt256.ofNat 917) hvalid) (by evm_ov)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 917)) r10 (by native_decide)
+  exact RD.normalizeCounters rFinal (by omega) (by omega)
+
+/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
+theorem metaMorphoV1_1Creation_block_15984_taken_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+    (hstack : R.length + 5 ≤ 1024)
+    (hcond : (UInt256.slt (UInt256.sub x1 x0) (UInt256.ofNat 64)) ≠ (UInt256.ofNat 0))
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 917) = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15984) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 917) (metaMorphoV1_1Creation_block_15984_taken_stack (x0 := x0) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15984_taken hstack hcond hvalid h)
+  exact ⟨_, k', C', h'⟩
+
+/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15984_fallthrough`. -/
+def metaMorphoV1_1Creation_block_15984_fallthrough_stack {x0 : UInt256} {x2 : UInt256} {R : List UInt256} : List UInt256 :=
+  (x2 :: x0 :: R)
+
+/-- Automatically generated RD summary for bytecode block at pc 15984. -/
+theorem metaMorphoV1_1Creation_block_15984_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.slt (UInt256.sub x1 x0) (UInt256.ofNat 64)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15919) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15932) (metaMorphoV1_1Creation_block_15919_fallthrough_stack (x0 := x0) (x2 := x2) (R := R)) mem aw rdata σ (k + 10) (C + ((35))) := by
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15984) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15997) (metaMorphoV1_1Creation_block_15984_fallthrough_stack (x0 := x0) (x2 := x2) (R := R)) mem aw rdata σ (k + 10) (C + ((35))) := by
   let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := r2.swap1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -32,30 +529,30 @@ theorem metaMorphoV1_1Creation_block_15919_fallthrough {tail : ByteArray} {ee : 
   have r8 := r7.slt (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r9 := r8.push2 (UInt256.ofNat 917) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r10 := r9.jumpiNT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 15932)) r10 (by native_decide)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 15997)) r10 (by native_decide)
   exact RD.normalizeCounters rFinal (by omega) (by omega)
 
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_15919_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+theorem metaMorphoV1_1Creation_block_15984_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
     (hcond : (UInt256.slt (UInt256.sub x1 x0) (UInt256.ofNat 64)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15919) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15932) (metaMorphoV1_1Creation_block_15919_fallthrough_stack (x0 := x0) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15919_fallthrough hstack hcond h)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15984) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15997) (metaMorphoV1_1Creation_block_15984_fallthrough_stack (x0 := x0) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15984_fallthrough hstack hcond h)
   exact ⟨_, k', C', h'⟩
 
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15932`. -/
-def metaMorphoV1_1Creation_block_15932_stack {mem : ByteArray} {x1 : UInt256} {R : List UInt256} : List UInt256 :=
+/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15997`. -/
+def metaMorphoV1_1Creation_block_15997_stack {mem : ByteArray} {x1 : UInt256} {R : List UInt256} : List UInt256 :=
   ((memLoad (x1 + (UInt256.ofNat 32)) mem) :: (memLoad x1 mem) :: R)
 
-/-- Automatically generated RD summary for bytecode block at pc 15932. -/
-theorem metaMorphoV1_1Creation_block_15932 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
+/-- Automatically generated RD summary for bytecode block at pc 15997. -/
+theorem metaMorphoV1_1Creation_block_15997 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x0 = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15932) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x0 (metaMorphoV1_1Creation_block_15932_stack (mem := mem) (x1 := x1) (R := R)) mem (M (M aw x1 (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((29) + (memExpansionCost aw x1 (⟨32⟩ : UInt256)) + (memExpansionCost (M aw x1 (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)))) := by
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15997) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x0 (metaMorphoV1_1Creation_block_15997_stack (mem := mem) (x1 := x1) (R := R)) mem (M (M aw x1 (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) rdata σ (k + 8) (C + ((29) + (memExpansionCost aw x1 (⟨32⟩ : UInt256)) + (memExpansionCost (M aw x1 (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)))) := by
   let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
   have r1 := r0.push1 (UInt256.ofNat 32) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := RD.genMload r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -67,30 +564,30 @@ theorem metaMorphoV1_1Creation_block_15932 {tail : ByteArray} {ee : ExecutionEnv
   exact RD.normalizeCounters r8 (by omega) (by omega)
 
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_15932_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
+theorem metaMorphoV1_1Creation_block_15997_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x0 = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15932) (x0 :: x1 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x0 (metaMorphoV1_1Creation_block_15932_stack (mem := mem) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15932 hstack hvalid h)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15997) (x0 :: x1 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x0 (metaMorphoV1_1Creation_block_15997_stack (mem := mem) (x1 := x1) (R := R)) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15997 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_15941`. -/
-def metaMorphoV1_1Creation_block_15941_stack {R : List UInt256} : List UInt256 :=
+/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16006`. -/
+def metaMorphoV1_1Creation_block_16006_stack {R : List UInt256} : List UInt256 :=
   R
 
-/-- Final memory for bytecode block summary `metaMorphoV1_1Creation_block_15941`. -/
-def metaMorphoV1_1Creation_block_15941_memory {mem : ByteArray} {x0 : UInt256} {x1 : UInt256} : ByteArray :=
+/-- Final memory for bytecode block summary `metaMorphoV1_1Creation_block_16006`. -/
+def metaMorphoV1_1Creation_block_16006_memory {mem : ByteArray} {x0 : UInt256} {x1 : UInt256} : ByteArray :=
   ((memLoad ((UInt256.ofNat 128) + x0) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad (x0 + (UInt256.ofNat 96)) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad (x0 + (UInt256.ofNat 64)) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad (x0 + (UInt256.ofNat 32)) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32))).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32) (x1 + (UInt256.ofNat 32)).toNat 32))).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad (x0 + (UInt256.ofNat 32)) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32))).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32) (x1 + (UInt256.ofNat 32)).toNat 32) (x1 + (UInt256.ofNat 64)).toNat 32))).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad (x0 + (UInt256.ofNat 64)) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad (x0 + (UInt256.ofNat 32)) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32))).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32) (x1 + (UInt256.ofNat 32)).toNat 32))).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad (x0 + (UInt256.ofNat 32)) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32))).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32) (x1 + (UInt256.ofNat 32)).toNat 32) (x1 + (UInt256.ofNat 64)).toNat 32) (x1 + (UInt256.ofNat 96)).toNat 32)).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad (x0 + (UInt256.ofNat 96)) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad (x0 + (UInt256.ofNat 64)) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad (x0 + (UInt256.ofNat 32)) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32))).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32) (x1 + (UInt256.ofNat 32)).toNat 32))).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad (x0 + (UInt256.ofNat 32)) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32))).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32) (x1 + (UInt256.ofNat 32)).toNat 32) (x1 + (UInt256.ofNat 64)).toNat 32))).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad (x0 + (UInt256.ofNat 64)) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad (x0 + (UInt256.ofNat 32)) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32))).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32) (x1 + (UInt256.ofNat 32)).toNat 32))).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad (x0 + (UInt256.ofNat 32)) ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32))).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) (memLoad x0 mem)).toByteArray.write 0 mem x1.toNat 32) (x1 + (UInt256.ofNat 32)).toNat 32) (x1 + (UInt256.ofNat 64)).toNat 32) (x1 + (UInt256.ofNat 96)).toNat 32) (x1 + (UInt256.ofNat 128)).toNat 32)
 
-/-- Automatically generated RD summary for bytecode block at pc 15941. -/
-theorem metaMorphoV1_1Creation_block_15941 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+/-- Automatically generated RD summary for bytecode block at pc 16006. -/
+theorem metaMorphoV1_1Creation_block_16006 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x2 = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15941) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x2 (metaMorphoV1_1Creation_block_15941_stack (R := R)) (metaMorphoV1_1Creation_block_15941_memory (mem := mem) (x0 := x0) (x1 := x1)) (M (M (M (M (M (M (M (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) ((UInt256.ofNat 128) + x0) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)) rdata σ (k + 56) (C + ((171) + (memExpansionCost aw x0 (⟨32⟩ : UInt256)) + (memExpansionCost (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) ((UInt256.ofNat 128) + x0) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) ((UInt256.ofNat 128) + x0) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)))) := by
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16006) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x2 (metaMorphoV1_1Creation_block_16006_stack (R := R)) (metaMorphoV1_1Creation_block_16006_memory (mem := mem) (x0 := x0) (x1 := x1)) (M (M (M (M (M (M (M (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) ((UInt256.ofNat 128) + x0) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)) rdata σ (k + 56) (C + ((171) + (memExpansionCost aw x0 (⟨32⟩ : UInt256)) + (memExpansionCost (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) ((UInt256.ofNat 128) + x0) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M (M (M (M (M (M aw x0 (⟨32⟩ : UInt256)) x1 (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 32)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 64)) (⟨32⟩ : UInt256)) (x0 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 96)) (⟨32⟩ : UInt256)) ((UInt256.ofNat 128) + x0) (⟨32⟩ : UInt256)) (x1 + (UInt256.ofNat 128)) (⟨32⟩ : UInt256)))) := by
   let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r3 := RD.genMload r2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
@@ -150,567 +647,45 @@ theorem metaMorphoV1_1Creation_block_15941 {tail : ByteArray} {ee : ExecutionEnv
   exact RD.normalizeCounters r56 (by omega) (by omega)
 
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_15941_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
+theorem metaMorphoV1_1Creation_block_16006_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 7 ≤ 1024)
     (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x2 = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 15941) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x2 (metaMorphoV1_1Creation_block_15941_stack (R := R)) (metaMorphoV1_1Creation_block_15941_memory (mem := mem) (x0 := x0) (x1 := x1)) aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_15941 hstack hvalid h)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16006) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x2 (metaMorphoV1_1Creation_block_16006_stack (R := R)) (metaMorphoV1_1Creation_block_16006_memory (mem := mem) (x0 := x0) (x1 := x1)) aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16006 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16004`. -/
-def metaMorphoV1_1Creation_block_16004_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {x3 : UInt256} {R : List UInt256} : List UInt256 :=
-  (x1 :: x0 :: (UInt256.ofNat 12148) :: x2 :: x3 :: x0 :: (UInt256.ofNat 320) :: R)
+/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16069`. -/
+def metaMorphoV1_1Creation_block_16069_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {x3 : UInt256} {R : List UInt256} : List UInt256 :=
+  (x1 :: x0 :: (UInt256.ofNat 12190) :: x2 :: x3 :: x0 :: (UInt256.ofNat 320) :: R)
 
-/-- Automatically generated RD summary for bytecode block at pc 16004. -/
-theorem metaMorphoV1_1Creation_block_16004 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
+/-- Automatically generated RD summary for bytecode block at pc 16069. -/
+theorem metaMorphoV1_1Creation_block_16069 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12070) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16004) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12070) (metaMorphoV1_1Creation_block_16004_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw rdata σ (k + 9) (C + ((30))) := by
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12112) = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16069) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12112) (metaMorphoV1_1Creation_block_16069_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw rdata σ (k + 9) (C + ((30))) := by
   let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
+  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23666 := by native_decide
   have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r2 := r1.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.push2 (UInt256.ofNat 12148) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r3 := r2.push2 (UInt256.ofNat 12190) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r4 := r3.dup4 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r5 := r4.push2 (UInt256.ofNat 320) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r6 := r5.swap6 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
   have r7 := r6.swap4 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r8 := r7.push2 (UInt256.ofNat 12070) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r9 := r8.jump (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (j tail (UInt256.ofNat 12070) hvalid) (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 12070)) r9 (by native_decide)
+  have r8 := r7.push2 (UInt256.ofNat 12112) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
+  have r9 := r8.jump (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (j tail (UInt256.ofNat 12112) hvalid) (by evm_ov)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 12112)) r9 (by native_decide)
   exact RD.normalizeCounters rFinal (by omega) (by omega)
 
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16004_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
+theorem metaMorphoV1_1Creation_block_16069_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
     (hstack : R.length + 8 ≤ 1024)
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12070) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16004) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12070) (metaMorphoV1_1Creation_block_16004_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16004 hstack hvalid h)
-  exact ⟨_, k', C', h'⟩
-
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16019`. -/
-def metaMorphoV1_1Creation_block_16019_stack {x2 : UInt256} {x3 : UInt256} {R : List UInt256} : List UInt256 :=
-  ((x2 + x3) :: R)
-
-/-- Final memory for bytecode block summary `metaMorphoV1_1Creation_block_16019`. -/
-def metaMorphoV1_1Creation_block_16019_memory {mem : ByteArray} {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} : ByteArray :=
-  ((⟨0⟩ : UInt256).toByteArray.write 0 ((UInt256.ofNat 288).toByteArray.write 0 ((UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 160)) (UInt256.ofNat 1)) x1).toByteArray.write 0 ((⟨0⟩ : UInt256).toByteArray.write 0 (x0.toByteArray.write 0 mem (x2 + (UInt256.ofNat 160)).toNat 32) (x2 + (UInt256.ofNat 192)).toNat 32) (x2 + (UInt256.ofNat 224)).toNat 32) (x2 + (UInt256.ofNat 256)).toNat 32) (x2 + (UInt256.ofNat 288)).toNat 32)
-
-/-- Automatically generated RD summary for bytecode block at pc 16019. -/
-theorem metaMorphoV1_1Creation_block_16019 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
-    (hstack : R.length + 7 ≤ 1024)
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x4 = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16019) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x4 (metaMorphoV1_1Creation_block_16019_stack (x2 := x2) (x3 := x3) (R := R)) (metaMorphoV1_1Creation_block_16019_memory (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2)) (M (M (M (M (M aw (x2 + (UInt256.ofNat 160)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 192)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 224)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 256)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 288)) (⟨32⟩ : UInt256)) rdata σ (k + 33) (C + ((100) + (memExpansionCost aw (x2 + (UInt256.ofNat 160)) (⟨32⟩ : UInt256)) + (memExpansionCost (M aw (x2 + (UInt256.ofNat 160)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 192)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M aw (x2 + (UInt256.ofNat 160)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 192)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 224)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M aw (x2 + (UInt256.ofNat 160)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 192)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 224)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 256)) (⟨32⟩ : UInt256)) + (memExpansionCost (M (M (M (M aw (x2 + (UInt256.ofNat 160)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 192)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 224)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 256)) (⟨32⟩ : UInt256)) (x2 + (UInt256.ofNat 288)) (⟨32⟩ : UInt256)))) := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.push1 (UInt256.ofNat 160) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.dup4 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r4 := r3.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r5 := RD.genMstore r4 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r6 := r5.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r7 := r6.push1 (UInt256.ofNat 192) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r8 := r7.dup4 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r9 := r8.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r10 := RD.genMstore r9 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r11 := r10.push1 (UInt256.ofNat 1) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r12 := r11.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r13 := r12.push1 (UInt256.ofNat 160) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r14 := r13.shl (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r15 := r14.sub (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r16 := r15.and (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r17 := r16.push1 (UInt256.ofNat 224) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r18 := r17.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r19 := r18.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r20 := RD.genMstore r19 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r21 := r20.push2 (UInt256.ofNat 288) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r22 := r21.push2 (UInt256.ofNat 256) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r23 := r22.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r24 := r23.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r25 := RD.genMstore r24 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r26 := r25.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r27 := r26.push2 (UInt256.ofNat 288) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r28 := r27.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r29 := r28.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r30 := RD.genMstore r29 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r31 := r30.add (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r32 := r31.swap1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r33 := r32.jump (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (j tail x4 hvalid) (by evm_ov)
-  exact RD.normalizeCounters r33 (by omega) (by omega)
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16019_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
-    (hstack : R.length + 7 ≤ 1024)
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x4 = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16019) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x4 (metaMorphoV1_1Creation_block_16019_stack (x2 := x2) (x3 := x3) (R := R)) (metaMorphoV1_1Creation_block_16019_memory (mem := mem) (x0 := x0) (x1 := x1) (x2 := x2)) aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16019 hstack hvalid h)
-  exact ⟨_, k', C', h'⟩
-
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16063_taken`. -/
-def metaMorphoV1_1Creation_block_16063_taken_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {R : List UInt256} : List UInt256 :=
-  (x2 :: (UInt256.sub x0 x1) :: R)
-
-/-- Automatically generated RD summary for bytecode block at pc 16063. -/
-theorem metaMorphoV1_1Creation_block_16063_taken {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
-    (hstack : R.length + 4 ≤ 1024)
-    (hcond : (UInt256.gt (UInt256.sub x0 x1) x0) ≠ (UInt256.ofNat 0))
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 9405) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16063) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 9405) (metaMorphoV1_1Creation_block_16063_taken_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 10) (C + ((35))) := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.swap1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r4 := r3.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r5 := r4.sub (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r6 := r5.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r7 := r6.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r8 := r7.gt (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r9 := r8.push2 (UInt256.ofNat 9405) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r10 := r9.jumpiT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (j tail (UInt256.ofNat 9405) hvalid) (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 9405)) r10 (by native_decide)
-  exact RD.normalizeCounters rFinal (by omega) (by omega)
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16063_taken_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
-    (hstack : R.length + 4 ≤ 1024)
-    (hcond : (UInt256.gt (UInt256.sub x0 x1) x0) ≠ (UInt256.ofNat 0))
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 9405) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16063) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 9405) (metaMorphoV1_1Creation_block_16063_taken_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16063_taken hstack hcond hvalid h)
-  exact ⟨_, k', C', h'⟩
-
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16063_fallthrough`. -/
-def metaMorphoV1_1Creation_block_16063_fallthrough_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {R : List UInt256} : List UInt256 :=
-  (x2 :: (UInt256.sub x0 x1) :: R)
-
-/-- Automatically generated RD summary for bytecode block at pc 16063. -/
-theorem metaMorphoV1_1Creation_block_16063_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
-    (hstack : R.length + 4 ≤ 1024)
-    (hcond : (UInt256.gt (UInt256.sub x0 x1) x0) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16063) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16075) (metaMorphoV1_1Creation_block_16063_fallthrough_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 10) (C + ((35))) := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.swap1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r4 := r3.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r5 := r4.sub (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r6 := r5.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r7 := r6.dup3 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r8 := r7.gt (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r9 := r8.push2 (UInt256.ofNat 9405) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r10 := r9.jumpiNT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 16075)) r10 (by native_decide)
-  exact RD.normalizeCounters rFinal (by omega) (by omega)
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16063_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
-    (hstack : R.length + 4 ≤ 1024)
-    (hcond : (UInt256.gt (UInt256.sub x0 x1) x0) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16063) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16075) (metaMorphoV1_1Creation_block_16063_fallthrough_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16063_fallthrough hstack hcond h)
-  exact ⟨_, k', C', h'⟩
-
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16075`. -/
-def metaMorphoV1_1Creation_block_16075_stack {R : List UInt256} : List UInt256 :=
-  R
-
-/-- Automatically generated RD summary for bytecode block at pc 16075. -/
-theorem metaMorphoV1_1Creation_block_16075 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
-    (hstack : R.length + 1 ≤ 1024)
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x0 = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16075) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x0 (metaMorphoV1_1Creation_block_16075_stack (R := R)) mem aw rdata σ (k + 1) (C + ((8))) := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.jump (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (j tail x0 hvalid) (by evm_ov)
-  exact RD.normalizeCounters r1 (by omega) (by omega)
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16075_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
-    (hstack : R.length + 1 ≤ 1024)
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains x0 = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16075) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 x0 (metaMorphoV1_1Creation_block_16075_stack (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16075 hstack hvalid h)
-  exact ⟨_, k', C', h'⟩
-
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16076`. -/
-def metaMorphoV1_1Creation_block_16076_stack {ee : ExecutionEnv} {σ : AccountMap} {x0 : UInt256} {R : List UInt256} : List UInt256 :=
-  ((UInt256.ofNat 0) :: (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 21) (⟨0⟩ : UInt256))) :: (⟨0⟩ : UInt256) :: (⟨0⟩ : UInt256) :: x0 :: (⟨0⟩ : UInt256) :: R)
-
-/-- Automatically generated RD summary for bytecode block at pc 16076. -/
-theorem metaMorphoV1_1Creation_block_16076 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
-    (hstack : R.length + 6 ≤ 1024)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16076) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16117) (metaMorphoV1_1Creation_block_16076_stack (ee := ee) (σ := σ) (x0 := x0) (R := R)) mem aw rdata σ k' C' := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.swap1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r4 := r3.push0 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r5 := r4.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r6 := r5.push1 (UInt256.ofNat 21) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  obtain ⟨_, _, r7⟩ := RD.sload r6 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r8 := r7.pushConst (UInt256.ofNat 0) (width := 32) (op := .PUSH32) (by decide) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 16117)) r8 (by native_decide)
-  exact ⟨_, _, rFinal⟩
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16076_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
-    (hstack : R.length + 6 ≤ 1024)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16076) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16117) (metaMorphoV1_1Creation_block_16076_stack (ee := ee) (σ := σ) (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k0, C0, h0⟩ := metaMorphoV1_1Creation_block_16076 hstack h
-  obtain ⟨k', C', h'⟩ := RD.pack h0
-  exact ⟨_, k', C', h'⟩
-
-/-- Automatically generated RD summary for bytecode block at pc 16117. -/
-theorem metaMorphoV1_1Creation_block_16117_taken {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
-    (hstack : R.length + 5 ≤ 1024)
-    (hcond : (UInt256.lt x2 x1) ≠ (UInt256.ofNat 0))
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12405) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16117) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12405) (x0 :: x1 :: x2 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.dup2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.dup4 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r4 := r3.lt (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r5 := r4.push2 (UInt256.ofNat 12405) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r6 := r5.jumpiT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (j tail (UInt256.ofNat 12405) hvalid) (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 12405)) r6 (by native_decide)
-  exact RD.normalizeCounters rFinal (by omega) (by omega)
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16117_taken_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
-    (hstack : R.length + 5 ≤ 1024)
-    (hcond : (UInt256.lt x2 x1) ≠ (UInt256.ofNat 0))
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12405) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16117) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12405) (x0 :: x1 :: x2 :: R) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16117_taken hstack hcond hvalid h)
-  exact ⟨_, k', C', h'⟩
-
-/-- Automatically generated RD summary for bytecode block at pc 16117. -/
-theorem metaMorphoV1_1Creation_block_16117_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
-    (hstack : R.length + 5 ≤ 1024)
-    (hcond : (UInt256.lt x2 x1) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16117) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16125) (x0 :: x1 :: x2 :: R) mem aw rdata σ (k + 6) (C + ((23))) := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.dup2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.dup4 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r4 := r3.lt (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r5 := r4.push2 (UInt256.ofNat 12405) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r6 := r5.jumpiNT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 16125)) r6 (by native_decide)
-  exact RD.normalizeCounters rFinal (by omega) (by omega)
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16117_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
-    (hstack : R.length + 5 ≤ 1024)
-    (hcond : (UInt256.lt x2 x1) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16117) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16125) (x0 :: x1 :: x2 :: R) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16117_fallthrough hstack hcond h)
-  exact ⟨_, k', C', h'⟩
-
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16125`. -/
-def metaMorphoV1_1Creation_block_16125_stack {ee : ExecutionEnv} {σ : AccountMap} {x3 : UInt256} {x4 : UInt256} {R : List UInt256} : List UInt256 :=
-  ((σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 22) (⟨0⟩ : UInt256))) :: (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 23) (⟨0⟩ : UInt256))) :: (UInt256.ofNat 12273) :: (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 23) (⟨0⟩ : UInt256))) :: x4 :: x3 :: (σ.get? ee.codeOwner |>.option (⟨0⟩ : UInt256) (fun ac => ac.storage.getD (UInt256.ofNat 22) (⟨0⟩ : UInt256))) :: R)
-
-/-- Automatically generated RD summary for bytecode block at pc 16125. -/
-theorem metaMorphoV1_1Creation_block_16125 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
-    (hstack : R.length + 8 ≤ 1024)
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12192) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16125) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12192) (metaMorphoV1_1Creation_block_16125_stack (ee := ee) (σ := σ) (x3 := x3) (x4 := x4) (R := R)) mem aw rdata σ k' C' := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.pop (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.pop (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.pop (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r4 := r3.push1 (UInt256.ofNat 22) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  obtain ⟨_, _, r5⟩ := RD.sload r4 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r6 := r5.swap2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r7 := r6.push1 (UInt256.ofNat 23) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  obtain ⟨_, _, r8⟩ := RD.sload r7 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r9 := r8.push2 (UInt256.ofNat 12273) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r10 := r9.dup2 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r11 := r10.dup6 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r12 := r11.push2 (UInt256.ofNat 12192) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r13 := r12.jump (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (j tail (UInt256.ofNat 12192) hvalid) (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 12192)) r13 (by native_decide)
-  exact ⟨_, _, rFinal⟩
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16125_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
-    (hstack : R.length + 8 ≤ 1024)
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12192) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16125) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12192) (metaMorphoV1_1Creation_block_16125_stack (ee := ee) (σ := σ) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k0, C0, h0⟩ := metaMorphoV1_1Creation_block_16125 hstack hvalid h
-  obtain ⟨k', C', h'⟩ := RD.pack h0
-  exact ⟨_, k', C', h'⟩
-
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16144_taken`. -/
-def metaMorphoV1_1Creation_block_16144_taken_stack {x1 : UInt256} {x2 : UInt256} {x3 : UInt256} {R : List UInt256} : List UInt256 :=
-  (x1 :: x2 :: x3 :: R)
-
-/-- Automatically generated RD summary for bytecode block at pc 16144. -/
-theorem metaMorphoV1_1Creation_block_16144_taken {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
-    (hstack : R.length + 5 ≤ 1024)
-    (hcond : (UInt256.isZero (UInt256.lt x3 x0)) ≠ (UInt256.ofNat 0))
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12391) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16144) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12391) (metaMorphoV1_1Creation_block_16144_taken_stack (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw rdata σ (k + 6) (C + ((23))) := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.dup4 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.lt (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r4 := r3.iszero (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r5 := r4.push2 (UInt256.ofNat 12391) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r6 := r5.jumpiT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (j tail (UInt256.ofNat 12391) hvalid) (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 12391)) r6 (by native_decide)
-  exact RD.normalizeCounters rFinal (by omega) (by omega)
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16144_taken_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
-    (hstack : R.length + 5 ≤ 1024)
-    (hcond : (UInt256.isZero (UInt256.lt x3 x0)) ≠ (UInt256.ofNat 0))
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12391) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16144) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12391) (metaMorphoV1_1Creation_block_16144_taken_stack (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16144_taken hstack hcond hvalid h)
-  exact ⟨_, k', C', h'⟩
-
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16144_fallthrough`. -/
-def metaMorphoV1_1Creation_block_16144_fallthrough_stack {x1 : UInt256} {x2 : UInt256} {x3 : UInt256} {R : List UInt256} : List UInt256 :=
-  (x1 :: x2 :: x3 :: R)
-
-/-- Automatically generated RD summary for bytecode block at pc 16144. -/
-theorem metaMorphoV1_1Creation_block_16144_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
-    (hstack : R.length + 5 ≤ 1024)
-    (hcond : (UInt256.isZero (UInt256.lt x3 x0)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16144) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16152) (metaMorphoV1_1Creation_block_16144_fallthrough_stack (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw rdata σ (k + 6) (C + ((23))) := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.dup4 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.lt (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r4 := r3.iszero (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r5 := r4.push2 (UInt256.ofNat 12391) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r6 := r5.jumpiNT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 16152)) r6 (by native_decide)
-  exact RD.normalizeCounters rFinal (by omega) (by omega)
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16144_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
-    (hstack : R.length + 5 ≤ 1024)
-    (hcond : (UInt256.isZero (UInt256.lt x3 x0)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16144) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16152) (metaMorphoV1_1Creation_block_16144_fallthrough_stack (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16144_fallthrough hstack hcond h)
-  exact ⟨_, k', C', h'⟩
-
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16152`. -/
-def metaMorphoV1_1Creation_block_16152_stack {x1 : UInt256} {x2 : UInt256} {x3 : UInt256} {R : List UInt256} : List UInt256 :=
-  (x3 :: x2 :: (UInt256.ofNat 12297) :: (UInt256.ofNat 12304) :: (UInt256.ofNat 12311) :: x1 :: x2 :: x3 :: R)
-
-/-- Automatically generated RD summary for bytecode block at pc 16152. -/
-theorem metaMorphoV1_1Creation_block_16152 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
-    (hstack : R.length + 9 ≤ 1024)
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12192) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16152) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12192) (metaMorphoV1_1Creation_block_16152_stack (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw rdata σ (k + 8) (C + ((28))) := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.pop (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.push2 (UInt256.ofNat 12311) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.push2 (UInt256.ofNat 12304) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r4 := r3.push2 (UInt256.ofNat 12297) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r5 := r4.dup5 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r6 := r5.dup7 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r7 := r6.push2 (UInt256.ofNat 12192) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r8 := r7.jump (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (j tail (UInt256.ofNat 12192) hvalid) (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 12192)) r8 (by native_decide)
-  exact RD.normalizeCounters rFinal (by omega) (by omega)
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16152_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 : UInt256} {R : List UInt256}
-    (hstack : R.length + 9 ≤ 1024)
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12192) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16152) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12192) (metaMorphoV1_1Creation_block_16152_stack (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16152 hstack hvalid h)
-  exact ⟨_, k', C', h'⟩
-
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16168`. -/
-def metaMorphoV1_1Creation_block_16168_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {x3 : UInt256} {x4 : UInt256} {R : List UInt256} : List UInt256 :=
-  (x4 :: x0 :: x1 :: x2 :: x3 :: x0 :: R)
-
-/-- Automatically generated RD summary for bytecode block at pc 16168. -/
-theorem metaMorphoV1_1Creation_block_16168 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
-    (hstack : R.length + 7 ≤ 1024)
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12035) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16168) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12035) (metaMorphoV1_1Creation_block_16168_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw rdata σ (k + 5) (C + ((18))) := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.swap5 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r4 := r3.push2 (UInt256.ofNat 12035) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r5 := r4.jump (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (j tail (UInt256.ofNat 12035) hvalid) (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 12035)) r5 (by native_decide)
-  exact RD.normalizeCounters rFinal (by omega) (by omega)
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16168_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
-    (hstack : R.length + 7 ≤ 1024)
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12035) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16168) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12035) (metaMorphoV1_1Creation_block_16168_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16168 hstack hvalid h)
-  exact ⟨_, k', C', h'⟩
-
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16175`. -/
-def metaMorphoV1_1Creation_block_16175_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256} {x3 : UInt256} {x4 : UInt256} {R : List UInt256} : List UInt256 :=
-  (x0 :: x4 :: x1 :: x2 :: x3 :: x0 :: R)
-
-/-- Automatically generated RD summary for bytecode block at pc 16175. -/
-theorem metaMorphoV1_1Creation_block_16175 {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
-    (hstack : R.length + 7 ≤ 1024)
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12192) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16175) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12192) (metaMorphoV1_1Creation_block_16175_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw rdata σ (k + 5) (C + ((18))) := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.swap4 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.dup5 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r4 := r3.push2 (UInt256.ofNat 12192) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r5 := r4.jump (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (j tail (UInt256.ofNat 12192) hvalid) (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 12192)) r5 (by native_decide)
-  exact RD.normalizeCounters rFinal (by omega) (by omega)
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16175_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 x3 x4 : UInt256} {R : List UInt256}
-    (hstack : R.length + 7 ≤ 1024)
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12192) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16175) (x0 :: x1 :: x2 :: x3 :: x4 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12192) (metaMorphoV1_1Creation_block_16175_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (x4 := x4) (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16175 hstack hvalid h)
-  exact ⟨_, k', C', h'⟩
-
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16182_taken`. -/
-def metaMorphoV1_1Creation_block_16182_taken_stack {x0 : UInt256} {R : List UInt256} : List UInt256 :=
-  ((UInt256.isZero (UInt256.isZero x0)) :: x0 :: R)
-
-/-- Automatically generated RD summary for bytecode block at pc 16182. -/
-theorem metaMorphoV1_1Creation_block_16182_taken {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
-    (hstack : R.length + 4 ≤ 1024)
-    (hcond : (UInt256.isZero (UInt256.isZero x0)) ≠ (UInt256.ofNat 0))
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12371) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16182) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12371) (metaMorphoV1_1Creation_block_16182_taken_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 7) (C + ((26))) := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.iszero (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r4 := r3.iszero (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r5 := r4.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r6 := r5.push2 (UInt256.ofNat 12371) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r7 := r6.jumpiT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (j tail (UInt256.ofNat 12371) hvalid) (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 12371)) r7 (by native_decide)
-  exact RD.normalizeCounters rFinal (by omega) (by omega)
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16182_taken_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
-    (hstack : R.length + 4 ≤ 1024)
-    (hcond : (UInt256.isZero (UInt256.isZero x0)) ≠ (UInt256.ofNat 0))
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12371) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16182) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12371) (metaMorphoV1_1Creation_block_16182_taken_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16182_taken hstack hcond hvalid h)
-  exact ⟨_, k', C', h'⟩
-
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16182_fallthrough`. -/
-def metaMorphoV1_1Creation_block_16182_fallthrough_stack {x0 : UInt256} {R : List UInt256} : List UInt256 :=
-  ((UInt256.isZero (UInt256.isZero x0)) :: x0 :: R)
-
-/-- Automatically generated RD summary for bytecode block at pc 16182. -/
-theorem metaMorphoV1_1Creation_block_16182_fallthrough {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
-    (hstack : R.length + 4 ≤ 1024)
-    (hcond : (UInt256.isZero (UInt256.isZero x0)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16182) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16191) (metaMorphoV1_1Creation_block_16182_fallthrough_stack (x0 := x0) (R := R)) mem aw rdata σ (k + 7) (C + ((26))) := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.iszero (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r4 := r3.iszero (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r5 := r4.dup1 (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r6 := r5.push2 (UInt256.ofNat 12371) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r7 := r6.jumpiNT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 16191)) r7 (by native_decide)
-  exact RD.normalizeCounters rFinal (by omega) (by omega)
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16182_fallthrough_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
-    (hstack : R.length + 4 ≤ 1024)
-    (hcond : (UInt256.isZero (UInt256.isZero x0)) = (UInt256.ofNat 0))
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16182) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16191) (metaMorphoV1_1Creation_block_16182_fallthrough_stack (x0 := x0) (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16182_fallthrough hstack hcond h)
-  exact ⟨_, k', C', h'⟩
-
-/-- Final stack for bytecode block summary `metaMorphoV1_1Creation_block_16191_taken`. -/
-def metaMorphoV1_1Creation_block_16191_taken_stack {R : List UInt256} : List UInt256 :=
-  R
-
-/-- Automatically generated RD summary for bytecode block at pc 16191. -/
-theorem metaMorphoV1_1Creation_block_16191_taken {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
-    (hstack : R.length + 2 ≤ 1024)
-    (hcond : x0 ≠ (UInt256.ofNat 0))
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12327) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16191) (x0 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12327) (metaMorphoV1_1Creation_block_16191_taken_stack (R := R)) mem aw rdata σ (k + 3) (C + ((14))) := by
-  let r0 := h
-  have hcreationCodeSize : Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode.size = 23633 := by native_decide
-  have r1 := r0.jumpdest (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r2 := r1.push2 (UInt256.ofNat 12327) (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) (by evm_ov)
-  have r3 := r2.jumpiT (by exact d tail _ _ _ (by native_decide) (by rw [hcreationCodeSize]; native_decide) (by native_decide)) hcond (j tail (UInt256.ofNat 12327) hvalid) (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 12327)) r3 (by native_decide)
-  exact RD.normalizeCounters rFinal (by omega) (by omega)
-
-/-- Packed RD summary for bytecode block with abstract final counters and active words. -/
-theorem metaMorphoV1_1Creation_block_16191_taken_packed {tail : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
-    (hstack : R.length + 2 ≤ 1024)
-    (hcond : x0 ≠ (UInt256.ofNat 0))
-    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12327) = true)
-    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16191) (x0 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12327) (metaMorphoV1_1Creation_block_16191_taken_stack (R := R)) mem aw' rdata σ k' C' := by
-  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16191_taken hstack hcond hvalid h)
+    (hvalid : (D_J Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode 0).contains (UInt256.ofNat 12112) = true)
+    (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 16069) (x0 :: x1 :: x2 :: x3 :: R) mem aw rdata σ k C)
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1CreationBytecode ++ tail) ee g s0 (UInt256.ofNat 12112) (metaMorphoV1_1Creation_block_16069_stack (x0 := x0) (x1 := x1) (x2 := x2) (x3 := x3) (R := R)) mem aw' rdata σ k' C' := by
+  obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1Creation_block_16069 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
 end metaMorphoV1_1CreationBlocks

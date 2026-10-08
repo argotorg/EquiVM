@@ -1,0 +1,12 @@
+{
+  "version": "0.8.37+commit.f401782d",
+  "platform": "linux-amd64",
+  "sha256": "5de843c2c93563cc66425c99a4fb13fdbf32b4c4ae07469480faaf126e14404a",
+  "url": "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.37+commit.f401782d",
+  "reason": "Avoid LostStorageArrayWriteOnSlotOverflow, fixed in solc 0.8.32.",
+  "bugReference": "https://www.soliditylang.org/blog/2025/12/18/lost-storage-array-write-on-slot-overflow-bug/",
+  "settingsAuthority": "verification.standard-input.json (compiler version overridden)",
+  "sourcePatch": {
+    "src/MetaMorphoV1_1.sol": "pragma solidity 0.8.26; -> pragma solidity 0.8.37;"
+  }
+}

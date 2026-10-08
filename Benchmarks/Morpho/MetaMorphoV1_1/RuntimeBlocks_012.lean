@@ -12,7 +12,7 @@ open Reasoning.Immutables
 set_option maxRecDepth 10000
 
 theorem immutableLayout_sites :
-    Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.sites = [(8892, 32, "_asset"), (9554, 32, "_asset"), (14624, 32, "_asset"), (15675, 32, "_asset"), (9752, 32, "_underlyingDecimals"), (12952, 32, "_cachedDomainSeparator"), (13141, 32, "_cachedChainId"), (12898, 32, "_cachedThis"), (13031, 32, "_hashedName"), (13069, 32, "_hashedVersion"), (4899, 32, "_name"), (4940, 32, "_version"), (6184, 32, "MORPHO"), (6494, 32, "MORPHO"), (8484, 32, "MORPHO"), (9021, 32, "MORPHO"), (9486, 32, "MORPHO"), (12214, 32, "MORPHO"), (13651, 32, "MORPHO"), (13860, 32, "MORPHO"), (14958, 32, "MORPHO"), (15902, 32, "MORPHO"), (16145, 32, "MORPHO"), (17851, 32, "MORPHO"), (18804, 32, "MORPHO"), (19479, 32, "MORPHO"), (3680, 32, "DECIMALS_OFFSET"), (9716, 32, "DECIMALS_OFFSET"), (14387, 32, "DECIMALS_OFFSET"), (14457, 32, "DECIMALS_OFFSET"), (15259, 32, "DECIMALS_OFFSET"), (15326, 32, "DECIMALS_OFFSET")] := by native_decide
+    Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.sites = [(8940, 32, "_asset"), (9602, 32, "_asset"), (14666, 32, "_asset"), (15717, 32, "_asset"), (9800, 32, "_underlyingDecimals"), (12994, 32, "_cachedDomainSeparator"), (13183, 32, "_cachedChainId"), (12940, 32, "_cachedThis"), (13073, 32, "_hashedName"), (13111, 32, "_hashedVersion"), (4972, 32, "_name"), (5013, 32, "_version"), (6257, 32, "MORPHO"), (6567, 32, "MORPHO"), (8532, 32, "MORPHO"), (9069, 32, "MORPHO"), (9534, 32, "MORPHO"), (12256, 32, "MORPHO"), (13693, 32, "MORPHO"), (13902, 32, "MORPHO"), (15000, 32, "MORPHO"), (15944, 32, "MORPHO"), (16187, 32, "MORPHO"), (17893, 32, "MORPHO"), (18846, 32, "MORPHO"), (19521, 32, "MORPHO"), (3730, 32, "DECIMALS_OFFSET"), (9764, 32, "DECIMALS_OFFSET"), (14429, 32, "DECIMALS_OFFSET"), (14499, 32, "DECIMALS_OFFSET"), (15301, 32, "DECIMALS_OFFSET"), (15368, 32, "DECIMALS_OFFSET")] := by native_decide
 
 theorem immutableLayout_inBounds :
     Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.inBounds Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode = true := by native_decide
@@ -183,47 +183,47 @@ def metaMorphoV1_1_block_1552_stack {R : List UInt256} : List UInt256 :=
 /-- Automatically generated RD summary for bytecode block at pc 1552. -/
 theorem metaMorphoV1_1_block_1552 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
-    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 11121) = true)
+    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 11163) = true)
     (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 1552) R mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 11121) (metaMorphoV1_1_block_1552_stack (R := R)) mem aw rdata σ (k + 6) (C + ((23))) := by
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 11163) (metaMorphoV1_1_block_1552_stack (R := R)) mem aw rdata σ (k + 6) (C + ((23))) := by
   let r0 := h
   have r1 := r0.push1 (UInt256.ofNat 32) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1552⟩ : UInt256), UInt8.ofNat 96, .Push .PUSH1, some ((UInt256.ofNat 32), 1), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 1578) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1554⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 1578), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r3 := r2.push2 (UInt256.ofNat 1572) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1557⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 1572), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r4 := r3.push2 (UInt256.ofNat 1567) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1560⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 1567), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
-  have r5 := r4.push2 (UInt256.ofNat 11121) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1563⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 11121), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
+  have r5 := r4.push2 (UInt256.ofNat 11163) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1563⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 11163), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r6 := r5.jump (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1566⟩ : UInt256), UInt8.ofNat 86, .JUMP, none, immutableLayout_inBounds, immutableTemplate_size64)) hvalid (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 11121)) r6 (by native_decide)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 11163)) r6 (by native_decide)
   exact RD.normalizeCounters rFinal (by omega) (by omega)
 
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem metaMorphoV1_1_block_1552_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 5 ≤ 1024)
-    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 11121) = true)
+    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 11163) = true)
     (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 1552) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 11121) (metaMorphoV1_1_block_1552_stack (R := R)) mem aw' rdata σ k' C' := by
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 11163) (metaMorphoV1_1_block_1552_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1_block_1552 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
 /-- Automatically generated RD summary for bytecode block at pc 1567. -/
 theorem metaMorphoV1_1_block_1567 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 1 ≤ 1024)
-    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 15840) = true)
+    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 15882) = true)
     (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 1567) R mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 15840) R mem aw rdata σ (k + 3) (C + ((12))) := by
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 15882) R mem aw rdata σ (k + 3) (C + ((12))) := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1567⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
-  have r2 := r1.push2 (UInt256.ofNat 15840) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1568⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 15840), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
+  have r2 := r1.push2 (UInt256.ofNat 15882) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1568⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 15882), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r3 := r2.jump (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1571⟩ : UInt256), UInt8.ofNat 86, .JUMP, none, immutableLayout_inBounds, immutableTemplate_size64)) hvalid (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 15840)) r3 (by native_decide)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 15882)) r3 (by native_decide)
   exact RD.normalizeCounters rFinal (by omega) (by omega)
 
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem metaMorphoV1_1_block_1567_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 1 ≤ 1024)
-    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 15840) = true)
+    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 15882) = true)
     (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 1567) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 15840) R mem aw' rdata σ k' C' := by
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 15882) R mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1_block_1567 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -234,23 +234,23 @@ def metaMorphoV1_1_block_1572_stack {x0 : UInt256} {x1 : UInt256} {x2 : UInt256}
 /-- Automatically generated RD summary for bytecode block at pc 1572. -/
 theorem metaMorphoV1_1_block_1572 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
-    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 14447) = true)
+    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 14489) = true)
     (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 1572) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 14447) (metaMorphoV1_1_block_1572_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 4) (C + ((15))) := by
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 14489) (metaMorphoV1_1_block_1572_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw rdata σ (k + 4) (C + ((15))) := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1572⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.swap2 (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1573⟩ : UInt256), UInt8.ofNat 145, .SWAP2, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
-  have r3 := r2.push2 (UInt256.ofNat 14447) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1574⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 14447), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
+  have r3 := r2.push2 (UInt256.ofNat 14489) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1574⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 14489), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r4 := r3.jump (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1577⟩ : UInt256), UInt8.ofNat 86, .JUMP, none, immutableLayout_inBounds, immutableTemplate_size64)) hvalid (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 14447)) r4 (by native_decide)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 14489)) r4 (by native_decide)
   exact RD.normalizeCounters rFinal (by omega) (by omega)
 
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem metaMorphoV1_1_block_1572_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {x0 x1 x2 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
-    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 14447) = true)
+    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 14489) = true)
     (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 1572) (x0 :: x1 :: x2 :: R) mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 14447) (metaMorphoV1_1_block_1572_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 14489) (metaMorphoV1_1_block_1572_stack (x0 := x0) (x1 := x1) (x2 := x2) (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1_block_1572 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -379,22 +379,22 @@ def metaMorphoV1_1_block_1604_stack {R : List UInt256} : List UInt256 :=
 /-- Automatically generated RD summary for bytecode block at pc 1604. -/
 theorem metaMorphoV1_1_block_1604 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 11121) = true)
+    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 11163) = true)
     (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 1604) R mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 11121) (metaMorphoV1_1_block_1604_stack (R := R)) mem aw rdata σ (k + 3) (C + ((14))) := by
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 11163) (metaMorphoV1_1_block_1604_stack (R := R)) mem aw rdata σ (k + 3) (C + ((14))) := by
   let r0 := h
   have r1 := r0.push2 (UInt256.ofNat 1611) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1604⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 1611), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
-  have r2 := r1.push2 (UInt256.ofNat 11121) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1607⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 11121), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
+  have r2 := r1.push2 (UInt256.ofNat 11163) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1607⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 11163), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r3 := r2.jump (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1610⟩ : UInt256), UInt8.ofNat 86, .JUMP, none, immutableLayout_inBounds, immutableTemplate_size64)) hvalid (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 11121)) r3 (by native_decide)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 11163)) r3 (by native_decide)
   exact RD.normalizeCounters rFinal (by omega) (by omega)
 
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem metaMorphoV1_1_block_1604_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 11121) = true)
+    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 11163) = true)
     (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 1604) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 11121) (metaMorphoV1_1_block_1604_stack (R := R)) mem aw' rdata σ k' C' := by
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 11163) (metaMorphoV1_1_block_1604_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1_block_1604 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 
@@ -405,23 +405,23 @@ def metaMorphoV1_1_block_1611_stack {R : List UInt256} : List UInt256 :=
 /-- Automatically generated RD summary for bytecode block at pc 1611. -/
 theorem metaMorphoV1_1_block_1611 {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 11143) = true)
+    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 11185) = true)
     (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 1611) R mem aw rdata σ k C)
-    : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 11143) (metaMorphoV1_1_block_1611_stack (R := R)) mem aw rdata σ (k + 4) (C + ((15))) := by
+    : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 11185) (metaMorphoV1_1_block_1611_stack (R := R)) mem aw rdata σ (k + 4) (C + ((15))) := by
   let r0 := h
   have r1 := r0.jumpdest (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1611⟩ : UInt256), UInt8.ofNat 91, .JUMPDEST, none, immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r2 := r1.push2 (UInt256.ofNat 1619) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1612⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 1619), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
-  have r3 := r2.push2 (UInt256.ofNat 11143) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1615⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 11143), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
+  have r3 := r2.push2 (UInt256.ofNat 11185) (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1615⟩ : UInt256), UInt8.ofNat 97, .Push .PUSH2, some ((UInt256.ofNat 11185), 2), immutableLayout_inBounds, immutableTemplate_size64)) (by evm_ov)
   have r4 := r3.jump (by immutable_decode(Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout, Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode, immWords, (⟨1618⟩ : UInt256), UInt8.ofNat 86, .JUMP, none, immutableLayout_inBounds, immutableTemplate_size64)) hvalid (by evm_ov)
-  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 11143)) r4 (by native_decide)
+  have rFinal := RD.normalizePC (pc' := (UInt256.ofNat 11185)) r4 (by native_decide)
   exact RD.normalizeCounters rFinal (by omega) (by omega)
 
 /-- Packed RD summary for bytecode block with abstract final counters and active words. -/
 theorem metaMorphoV1_1_block_1611_packed {immWords : String → UInt256} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap} {k C : ℕ} {R : List UInt256}
     (hstack : R.length + 2 ≤ 1024)
-    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 11143) = true)
+    (hvalid : (D_J (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) 0).contains (UInt256.ofNat 11185) = true)
     (h : RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 1611) R mem aw rdata σ k C)
-    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 11143) (metaMorphoV1_1_block_1611_stack (R := R)) mem aw' rdata σ k' C' := by
+    : ∃ (aw' : UInt256) (k' C' : ℕ), RD (Benchmarks.Morpho.MetaMorphoV1_1.immutableLayout.runtime Benchmarks.Morpho.MetaMorphoV1_1.metaMorphoV1_1Bytecode immWords) ee g s0 (UInt256.ofNat 11185) (metaMorphoV1_1_block_1611_stack (R := R)) mem aw' rdata σ k' C' := by
   obtain ⟨k', C', h'⟩ := RD.pack (metaMorphoV1_1_block_1611 hstack hvalid h)
   exact ⟨_, k', C', h'⟩
 

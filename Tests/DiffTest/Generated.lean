@@ -1,5 +1,6 @@
 import Solm.DiffTest.Harness
 import Benchmarks.Morpho.MetaMorphoV1_1.DiffTarget
+import Benchmarks.Morpho.MetaMorphoV1_1.FixedBlue.DiffTarget
 import Tests.DiffTest.Fixtures.Factory.DiffTarget
 import Tests.Pipeline.Vault.DiffTarget
 
@@ -12,6 +13,7 @@ namespace Tests.DiffTest
 
 def generatedTargets : List Solm.DiffTest.Target :=
   [ Benchmarks.Morpho.MetaMorphoV1_1.diffTarget,
+    Benchmarks.Morpho.MetaMorphoV1_1.FixedBlue.diffTarget,
     Tests.DiffTest.Fixtures.Factory.diffTarget,
     Tests.Pipeline.Vault.diffTarget ]
 

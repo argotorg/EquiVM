@@ -1,0 +1,73 @@
+
+	ERC-20 Token | Address: 0x62fe596d...fb522dc78 | Etherscan
+ (https://etherscan.io/token/0x62fe596d59fb077c2df736df212e0affb522dc78?a=0x0000000000000000000000000000000000000000)
+citeturn10view0 [wordlim: 200] Crawled: 11 months ago; Content type: text/html; Source: open({"ref_id":"turn4view0","lineno":6615}); Total lines: 6795
+L6589:         /**
+L6590:          * @dev Returns the smallest of two signed numbers.
+L6591:          */
+L6592:         function min(int256 a, int256 b) internal pure returns (int256) {
+L6593:             return a < b ? a : b;
+L6594:         }
+L6595:         /**
+L6596:          * @dev Returns the average of two signed numbers without overflow.
+L6597:          * The result is rounded towards zero.
+L6598:          */
+L6599:         function average(int256 a, int256 b) internal pure returns (int256) {
+L6600:             // Formula from the book "Hacker's Delight"
+L6601:             int256 x = (a & b) + ((a ^ b) >> 1);
+L6602:             return x + (int256(uint256(x) >> 255) & (a ^ b));
+L6603:         }
+L6604:         /**
+L6605:          * @dev Returns the absolute unsigned value of a signed value.
+L6606:          */
+L6607:         function abs(int256 n) internal pure returns (uint256) {
+L6608:             unchecked {
+L6609:                 // must be unchecked in order to support `n = type(int256).min`
+L6610:                 return uint256(n >= 0 ? n : -n);
+L6611:             }
+L6612:         }
+L6613:     }
+L6614: 
+L6615: Settings
+L6616:     {
+L6617:       "remappings": [
+L6618:         "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+L6619:         "ds-test/=lib/forge-std/lib/ds-test/src/",
+L6620:         "erc4626-tests/=lib/erc4626-tests/",
+L6621:         "forge-std/=lib/forge-std/src/",
+L6622:         "halmos-cheatcodes/=lib/morpho-blue/lib/halmos-cheatcodes/src/",
+L6623:         "morpho-blue-irm/=lib/morpho-blue-irm/src/",
+L6624:         "morpho-blue/=lib/morpho-blue/",
+L6625:         "openzeppelin-contracts/=lib/openzeppelin-contracts/",
+L6626:         "solmate/=lib/morpho-blue-irm/lib/solmate/src/"
+L6627:       ],
+L6628:       "optimizer": {
+L6629:         "enabled": true,
+L6630:         "runs": 200
+L6631:       },
+L6632:       "metadata": {
+L6633:         "useLiteralContent": false,
+L6634:         "bytecodeHash": "ipfs",
+L6635:         "appendCBOR": true
+L6636:       },
+L6637:       "outputSelection": {
+L6638:         "*": {
+L6639:           "*": [
+L6640:             "evm.bytecode",
+L6641:             "evm.deployedBytecode",
+L6642:             "devdoc",
+L6643:             "userdoc",
+L6644:             "metadata",
+L6645:             "abi"
+L6646:           ]
+L6647:         }
+L6648:       },
+L6649:       "evmVersion": "cancun",
+L6650:       "viaIR": true,
+L6651:       "libraries": {}
+L6652:     }
+L6653: ####  Contract Security Audit
+L6654: 
+L6655:   * No Contract Security Audit Submitted-cite100† Submit Audit Here L6656: ####  Contract ABI
+L6657: 
+L6658: cite101† API†docs.etherscan.io 
