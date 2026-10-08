@@ -296,8 +296,8 @@ def contractSyntax : ContractDecl := solidity% contract CometWithExtendedAssetLi
     uint256 timeElapsed = uint256(((now_ - lastAccrualTime) as uint40));
     if (timeElapsed > 0) {
       var __c1 = accruedInterestIndices(timeElapsed);
-      baseSupplyIndex = __c1.0;
       baseBorrowIndex = __c1.1;
+      baseSupplyIndex = __c1.0;
       if (totalSupplyBase >= baseMinForRewards) {
         var __c2 = divBaseWei(((baseTrackingSupplySpeed * timeElapsed) as uint256), totalSupplyBase);
         var __c3 = safe64(__c2);
@@ -554,17 +554,21 @@ def contractSyntax : ContractDecl := solidity% contract CometWithExtendedAssetLi
 
   function getReserves_body() internal returns (int256) {
     var __c0 = getNowInternal();
-    var __c1 = accruedInterestIndices(((__c0 - lastAccrualTime) as uint40));
+    uint40 accruedAt = lastAccrualTime;
+    uint104 supplyPrincipal = totalSupplyBase;
+    uint104 borrowPrincipal = totalBorrowBase;
+    var __c1 = accruedInterestIndices(((__c0 - accruedAt) as uint40));
     uint64 baseSupplyIndex_ = __c1.0;
     uint64 baseBorrowIndex_ = __c1.1;
     address token = baseToken;
     var balance = token.balanceOf{view}(address(this));
-    var totalSupply_ = presentValueSupply(baseSupplyIndex_, totalSupplyBase);
-    var totalBorrow_ = presentValueBorrow(baseBorrowIndex_, totalBorrowBase);
+    var totalSupply_ = presentValueSupply(baseSupplyIndex_, supplyPrincipal);
+    var totalBorrow_ = presentValueBorrow(baseBorrowIndex_, borrowPrincipal);
     var __c5 = signed256(balance);
     var __c6 = signed256(totalSupply_);
+    int256 netSupply = (__c5 - __c6) as int256;
     var __c7 = signed256(totalBorrow_);
-    return (((__c5 - __c6) as int256) + __c7) as int256;
+    return (netSupply + __c7) as int256;
   }
 
   function doTransferIn(address asset, address «from», uint256 amount) internal returns (uint256) {
@@ -857,8 +861,9 @@ def contractSyntax : ContractDecl := solidity% contract CometWithExtendedAssetLi
           return false;
         }
         var asset = getAssetInfo_body(i);
+        uint128 collateralBalance = userCollateral[account][asset.asset].balance;
         var __c5 = getPrice_body(asset.priceFeed);
-        var newAmount = mulPrice(userCollateral[account][asset.asset].balance, __c5, asset.scale);
+        var newAmount = mulPrice(collateralBalance, __c5, asset.scale);
         var __c7 = mulFactor(newAmount, asset.liquidateCollateralFactor);
         var __c8 = signed256(__c7);
         liquidity = ((liquidity + __c8) as int256);
@@ -966,8 +971,9 @@ def contractSyntax : ContractDecl := solidity% contract CometWithExtendedAssetLi
           return true;
         }
         var asset = getAssetInfo_body(i);
+        uint128 collateralBalance = userCollateral[account][asset.asset].balance;
         var __c5 = getPrice_body(asset.priceFeed);
-        var newAmount = mulPrice(userCollateral[account][asset.asset].balance, __c5, asset.scale);
+        var newAmount = mulPrice(collateralBalance, __c5, asset.scale);
         var __c7 = mulFactor(newAmount, asset.borrowCollateralFactor);
         var __c8 = signed256(__c7);
         liquidity = ((liquidity + __c8) as int256);
@@ -1133,6 +1139,8 @@ def contractSyntax : ContractDecl := solidity% contract CometWithExtendedAssetLi
   }
 
   function getAssetInfoByAddress(address asset) external returns ((uint8, address, address, uint64, uint64, uint64, uint64, uint128)) {
+    bytes __calldata = msg.data;
+    require(__calldata.length < 57896044618658097711785492504343953926634992332820282019728792003956564819972);
     var info = getAssetInfoByAddress_body(asset);
     return tuple(info.offset, info.asset, info.priceFeed, info.scale, info.borrowCollateralFactor, info.liquidateCollateralFactor, info.liquidationFactor, info.supplyCap);
   }
@@ -1401,6 +1409,8 @@ def contractSyntax : ContractDecl := solidity% contract CometWithExtendedAssetLi
   }
 
   function getAssetInfo(uint8 i) external returns ((uint8, address, address, uint64, uint64, uint64, uint64, uint128)) {
+    bytes __calldata = msg.data;
+    require(__calldata.length < 57896044618658097711785492504343953926634992332820282019728792003956564819972);
     var info = getAssetInfo_body(i);
     return tuple(info.offset, info.asset, info.priceFeed, info.scale, info.borrowCollateralFactor, info.liquidateCollateralFactor, info.liquidationFactor, info.supplyCap);
   }
@@ -1443,8 +1453,9 @@ def contractSyntax : ContractDecl := solidity% contract CometWithExtendedAssetLi
     require(__calldata.length < 57896044618658097711785492504343953926634992332820282019728792003956564819972);
     require(msg.sender == governor);
     var reserves = getReserves_body();
+    require(reserves >= 0);
     var __c1 = unsigned256(reserves);
-    require(!(((reserves < 0) || (amount > __c1))));
+    require(amount <= __c1);
     var __c2 = doTransferOut(baseToken, «to», amount);
     emit WithdrawReserves(«to», amount);
   }

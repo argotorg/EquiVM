@@ -72,11 +72,12 @@ def fixtureTarget : Target :=
     config := config, runtime := cometWithExtendedAssetListBytecode,
     initcode := some cometWithExtendedAssetListCreationBytecode,
     immutables := initialImmutables contract,
+    callers := [EVM.address 0x2000, EVM.address 0x3000, EVM.address 0x4000],
     runtimeCodeOf := some (immutableLayout.deployed cometWithExtendedAssetListBytecode),
     -- Repeated token entries weight the address pool toward the configured assets. They
     -- install identical code at the same addresses and do not change the test world.
-    callees := List.replicate 3 (EVM.address 0x6000, tokenCode) ++
-      List.replicate 3 (EVM.address 0x6002, tokenCode) ++ compoundCallees,
+    callees := List.replicate 12 (EVM.address 0x6000, tokenCode) ++
+      List.replicate 12 (EVM.address 0x6002, tokenCode) ++ compoundCallees,
     words := (List.replicate 8 [0, 1, 10 ^ 3, 10 ^ 6, 10 ^ 15]).flatten ++
       [0, 1, 6, 8, 10 ^ 3, 10 ^ 6, 10 ^ 8, 10 ^ 12, 10 ^ 15, 10 ^ 18,
       8 * 10 ^ 17, 9 * 10 ^ 17, 10 ^ 24, 31536000, 2 ^ 104 - 1, 2 ^ 256 - 1] }
