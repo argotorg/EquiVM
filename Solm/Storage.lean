@@ -37,6 +37,13 @@ def storageStore (self : EVM.State) (a : EVM.Address) (key value : EVM.Word) : E
   self.lookupAccount a |>.option self λ acc ↦
     self.setAccount a (Ethereum.Account.updateStorage acc key value)
 
+def transientLoad (self : EVM.State) (a : EVM.Address) (key : EVM.Word) : EVM.Word :=
+  self.lookupAccount a |>.option ⟨0⟩ (Ethereum.Account.lookupTransientStorage (k := key))
+
+def transientStore (self : EVM.State) (a : EVM.Address) (key value : EVM.Word) : EVM.State :=
+  self.lookupAccount a |>.option self fun acc ↦
+    self.setAccount a (Ethereum.Account.updateTransientStorage acc key value)
+
 end EVM
 
 
@@ -140,6 +147,72 @@ def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Opti
   let resUInt256 : Ethereum.UInt256 := ⟨Ethereum.fromBytes' resList, hresSize⟩
   EVM.storageStore self self.executionEnv.codeOwner loc.slot resUInt256
 
+def transientLocLoad (self : EVM.State) (loc : StorageLoc) : Value :=
+  let slot := EVM.transientLoad self self.executionEnv.codeOwner loc.slot
+  let ⟨slotBytes, hprevStorageRefSize⟩ := EVM.Word.toBytesLEWithSizeProof slot -- LITTLE ENDIAN! easier extraction
+  let startByte := loc.offset.val
+  let endByte := loc.offset.val + loc.size.val
+  let bytes := slotBytes.extract startByte endByte
+  have hbyteSize : bytes.length <= 32 := by
+    unfold bytes startByte endByte; simp
+    apply Or.inl (by apply Nat.le_of_lt_succ; simp)
+  have hresSize : Ethereum.fromBytes' bytes < Ethereum.UInt256.size := by
+    apply lt_of_lt_of_le (b := 2^(8 * bytes.length))
+    · exact EVM.fromBytes'_le
+    · simp [Ethereum.UInt256.size]
+      apply le_trans (b := 2^(8 * 32))
+      · apply Nat.pow_le_pow_right
+        · simp
+        · omega
+      · simp
+  let word : EVM.Word := ⟨Ethereum.fromBytes' bytes, hresSize⟩
+  match loc.bitOffset with
+  | .some bo => wordToElem loc.type (word.shiftRight ⟨Fin.castLE (by simp [Ethereum.UInt256.size]) bo⟩ : EVM.Word)
+  | .none => wordToElem loc.type word
+
+def transientLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Option EVM.State := do
+  let slot := EVM.transientLoad self self.executionEnv.codeOwner loc.slot
+  -- Use the same LE packing as persistent storage, with the current transient slot as input.
+  let ⟨slotBytes, hprevStorageRefSize⟩ := EVM.Word.toBytesLEWithSizeProof slot
+  let valueWord <- valueToWord value
+  let startByte := loc.offset.val
+  let endByte := loc.offset.val + loc.size.val
+  let writeWord := storageLocWriteWord slot startByte loc.bitOffset valueWord
+  let ⟨valueBytes, hvalueSize⟩ := EVM.Word.toBytesLEWithSizeProof writeWord
+
+  let previousStart := slotBytes.take startByte
+  let previousEnd := slotBytes.drop endByte
+
+  let resList := previousStart ++ (valueBytes.take loc.size.val) ++ previousEnd
+  let resWord := Ethereum.fromBytes' resList
+
+  have hbyteSize : resList.length = 32 := by
+    unfold resList;
+    simp
+    have hprevStartLen : previousStart.length = startByte := by
+      simp [previousStart]; rw [hprevStorageRefSize]; omega
+    have hprevEndLen : previousEnd.length = 32 - endByte := by
+      simp [previousEnd]; rw [hprevStorageRefSize]
+    rw [hprevStartLen, hprevEndLen]
+    rw [Nat.min_eq_left]
+    · simp [startByte, endByte];
+      rw [← Nat.add_assoc, ← Nat.add_sub_assoc]
+      simp
+      suffices loc.offset.val + loc.size - 1 < 32 from by omega
+      exact loc.hbound
+    · rw [hvalueSize]; omega
+  have hresSize : Ethereum.fromBytes' resList < Ethereum.UInt256.size := by
+    apply lt_of_lt_of_le (b := 2^(8 * resList.length))
+    · exact EVM.fromBytes'_le
+    · simp [Ethereum.UInt256.size]
+      apply le_trans (b := 2^(8 * 32))
+      · apply Nat.pow_le_pow_right
+        · simp
+        · omega
+      · simp
+  let resUInt256 : Ethereum.UInt256 := ⟨Ethereum.fromBytes' resList, hresSize⟩
+  EVM.transientStore self self.executionEnv.codeOwner loc.slot resUInt256
+
 /-- Where a storage reference lives. This is a pure function of the reference: anything whose
     physical position depends on the current state (the short/long encoding of Solidity bytes)
     is left symbolic here and resolved by the backend. -/
@@ -166,6 +239,15 @@ structure StorageBackend where
   push : EvaledStorageRef -> StorageType -> Option Value -> EVM.State -> EvalResult EVM.State
   pop : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult EVM.State
   locate? : StorageLayout := fun _ => none
+
+/-- No storage declarations are configured. Accesses report an invalid storage reference. -/
+def StorageBackend.empty : StorageBackend where
+  read := fun _ _ _ ↦ .error .storageError
+  write := fun _ _ _ _ ↦ .error .storageError
+  clear := fun _ _ _ ↦ .error .storageError
+  length := fun _ _ _ ↦ .error .storageError
+  push := fun _ _ _ _ ↦ .error .storageError
+  pop := fun _ _ _ ↦ .error .storageError
 
 
 def intTypeSize (t : IntType) : Fin 33 :=

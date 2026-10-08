@@ -29,6 +29,7 @@ dependencies.
 | `Initcode.lean` | Constructor-time facts: decode of the initcode prefix, jump-table survival, constructor-argument arithmetic. |
 | `Solc.lean` | Compiler-emitted code shapes, proved once: selector dispatch, ABI length checks, free-memory-pointer and revert memory, the 160-bit address mask, getter/store routines, reentrancy locks, checked arithmetic, event logs, high-level call combinators. |
 | `Storage.lean` | Storage maps: `ExtTreeMap` lookup/update facts, `StorageLoc` load/store for the Solidity value encodings, the bytes/string storage layout, account-map equality/`EVMStateEquiv` with `SLOAD`/`SSTORE` preservation. |
+| `TransientStorage.lean` | Direct `tstorage` scalar load/store facts, account-map update and `EVMStateEquiv` lemmas, and Solm transient read, assignment, and delete helpers. |
 | `Dispatch.lean` | Solm dispatcher facts: `dispatchMsg` as a list walk (`dispatchList`), single-transition instances, `SingleSelectorDispatch`, and the `RDret`/`RDrev.reEquiv*` bridges that connect a finished trace to the equivalence statement. |
 | `ExternalCall.lean` | The `CALL` ↔ Solm `externalCall` boundary: both sides invoke the same `Θ`, so results coincide (`callCoincides`); transport of call results across equivalent account maps and substate changes. |
 | `Constructor.lean` | Skeletons for constructor (creation-code) equivalence proofs. |
@@ -37,6 +38,7 @@ dependencies.
 | `ABIComposite.lean` | Shared ABI type aliases, strict and legacy scalar-tuple decoders, dynamic-value decoders, and calldata word reads. |
 | `ABIViews.lean` | ABI word views, tuple encoders, packed tuple memory and hashes, calldata bounds, selector extraction, and return-value decoding. |
 | `PackedStorage.lean` | Packed address, bool, uint8, and uint48 locations, masks, loads, and stores. |
+| `TransientPackedStorage.lean` | Direct `tstorage` counterparts for packed bool, address, and uint48 loads, stores, and clears. |
 | `StorageLoops.lean` | Index and account-map facts for sequential storage clearing and copying, including prefix composition and repeated stores. |
 | `BytecodePatching.lean` | Immutable-word encoding, bytecode splicing, preserved decode windows, and jump destinations. |
 | `Immutables.lean` | Named immutable layouts, runtime construction, preserved decode windows, and decoding of patched PUSH20/PUSH32 operands for generated block summaries. |
@@ -75,6 +77,8 @@ The remaining extension modules have distinct responsibilities:
   `HeapMemory` adds heap invariants and dynamic layouts above `Solc`.
 - `PackedStorage` extends `Storage`. `WordArithmetic` supplies the higher-level word bounds
   used by compiler and storage proofs, with `SolmBody` and `Initcode` also available.
+- `TransientStorage` extends `Storage` and `SolmBody`; `TransientPackedStorage` extends it with
+  the pure masks and field layouts from `PackedStorage`.
 - `BytecodePatching` uses `Initcode`, `MemCascade`, and `Solm.Immutables` to connect bytecode
   splices to word writes and preserve decoding.
 - `Immutables` uses `MemCascade` and `Reach` to prove decoding rules for named immutable layouts
@@ -132,7 +136,8 @@ source of the constraint and the rule's reuse, rather than the absence of numeri
 - Decode calldata / encode a return value → `ABI`, `ABIComposite`, `ABIViews`.
 - A code shape the compiler emits → `Solc`, `SolcRoutines`.
 - Storage, state projections, and account-map equality → `Storage`; packed values →
-  `PackedStorage`; clearing and copying loops → `StorageLoops`.
+  `PackedStorage`; transient scalar facts → `TransientStorage`, `TransientPackedStorage`;
+  clearing and copying loops → `StorageLoops`.
 - Code-size guards and precompile results → `ExternalCall`.
 - Elementary source evaluation → `SolmBody`; arithmetic and exponentiation frames →
   `SolmArithmetic`.
@@ -146,7 +151,7 @@ source of the constraint and the rule's reuse, rather than the absence of numeri
 
 ## Build
 
-`lake build Reasoning` builds all twenty-four modules. A bare `lake build` builds only `Solm`
+`lake build Reasoning` builds the Reasoning modules. A bare `lake build` builds only `Solm`
 (the default target) — use explicit targets.
 
 After changing shared lemmas, check their callers with

@@ -109,11 +109,12 @@ inductive BinaryOp where
   | exp
   deriving Repr, Inhabited
 
-/-- Whether a variable path is rooted in a memory **local** or **storage**.
+/-- Whether a variable path is rooted in a local, persistent storage, or transient storage.
     Resolved statically, similar to solc. -/
 inductive VarOrigin where
   | localVar
   | storage
+  | transient
   deriving Repr, Inhabited
 
 mutual
@@ -198,6 +199,8 @@ inductive Expr where
   /- Read of a declared `constant` (`ContractDecl.constants`): the value of its compile-time
      constant expression. -/
   | const : Ident -> Expr
+  /- Read a reference in the contract's separate transient slot space. -/
+  | transient : StorageRef -> Expr
 
 inductive StorageRefStep where
   | field : Ident -> StorageRefStep
@@ -367,6 +370,8 @@ structure ContractDecl where
   transitions : List TransitionDecl := []
   receive : Option TransitionDecl := none
   fallback : Option TransitionDecl := none
+  /-- EIP-1153 transient state, with a slot space independent of persistent storage. -/
+  transient : List StorageDecl := []
   deriving Repr, Inhabited
 
 abbrev Program := List ContractDecl
