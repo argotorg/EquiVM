@@ -4,10 +4,33 @@ Audited artifact: solc 0.8.26, optimizer enabled with 1,000,000 runs, Paris, leg
 metadata hash disabled; upstream commit `d2864b166a08f9b3f9314f8b302316d67f227462`.
 See `README.md` and `Attester.compiler.json` for provenance and reproduction.
 
-The audit found and corrected two semantic gaps: wrapped nested calldata offsets, and the
-return-array allocation guard. The current executable checks find no remaining discrepancy.
-The functional refinement proofs are intentionally open. This report is not a certification
-that those universal theorems have been proved.
+The original audit found and corrected two semantic gaps: wrapped nested calldata offsets,
+and the return-array allocation guard. Proof development also found the outgoing-call size
+issue below, now fixed upstream. The universal contract refinement proof is complete.
+
+## Resolved: outgoing calls of at least 2^64 bytes
+
+`ReadLimitAudit.lean` proves that the source ABI encoder accepts a `multiRevoke` request with
+one schema and `2^58` zero UID/value pairs, producing exactly `2^64 + 196` bytes. The regression
+theorem `ReadLimitAudit.outgoingRequestPreserved` checks that the updated EVMLean read returns
+the entire encoded payload.
+
+CALL uses `ByteArray.readWithPadding` for its input. Previously its definition took a `panic!`
+branch at lengths of at least `2^64`, which returned the default empty byte array in the logical
+semantics. Solm's `typedCallViaEVM` passes the encoded bytes directly to `Θ`. EquiVM main commit
+`b67b0c4e` updates EVMLean to `dd418ee8b01980be94e58b363cbfe7fa83f87c5a`, removing that cutoff
+and adding unbounded read lemmas in `Reasoning/Memory.lean`.
+
+For this batch shape, ordinary canonical input would have `228 + 32 * 2^58` bytes, which is
+below `2^64`. All array lengths satisfy the uint64 guards. The constructed free pointer is
+`352 + 160 * 2^58`, and the outgoing slice ends well below `2^256`. The input and allocation
+guards therefore do not establish the missing strict bound on outgoing size. The theorem
+quantifies over uint256 gas, so a mainnet gas-limit assumption is unavailable.
+
+The fix permits direct proof of the CALL-data correspondence; no WF condition is needed for
+this read boundary. The remaining size arguments are also proved explicitly. Out-of-gas paths
+use the refinement's dedicated constructor, through the RD elimination combinators for runtime
+execution and explicit constructor trace cases. No additional WF condition was needed.
 
 ## Refinement boundary
 
@@ -145,7 +168,7 @@ Checks compare the pointer formula for varied array shapes and compare the sourc
 with the actual EVM allocator around the 64-bit boundary. The latter stops before writes to
 enormous accepted addresses, testing the branch without a huge transaction fixture.
 
-## Validation and proof obligations
+## Validation and completed proof
 
 `Audit.lean` runs more than 2,000 differential cases against the canonical AST and real EVM
 bytecode: every strict calldata prefix for all functions; malformed offsets/lengths; maximum
@@ -160,12 +183,33 @@ outbound target/value/calldata. Allocation tests supplement those transactions. 
 is not a proved interpreter for `ExecStmt`; finite checks do not replace quantified proofs.
 
 Generated summaries cover every constructor-prefix instruction and every runtime instruction
-except the four explicitly marked CALL boundaries. They compile without `sorry`. Their
-ordinary hypotheses (stack bounds, conditions, valid jumps, and RD states) must be established
-when composing traces. Metadata and embedded runtime-as-constructor-data are excluded.
+except the four explicitly marked CALL boundaries. Their ordinary hypotheses (stack bounds,
+conditions, valid jumps, and RD states) are established when composing traces. Metadata and
+embedded runtime-as-constructor-data are excluded.
 
-Ten functional targets remain `sorry`: four dispatcher/guard targets, four functions,
-constructor refinement, and runtime refinement. Their remaining work is loop/memory
-invariants, arbitrary-input decoder correspondence, CALL witness composition, return-decoder
-correspondence, and constructor patching. The capstone still uses the existing
-`contractRefinement.of_runtime` interface.
+All ten original functional obligations are proved: four dispatcher/guard targets, four public
+functions, constructor refinement, and runtime refinement. The completed supporting proofs
+establish loop and memory invariants, arbitrary-input decoder correspondence, CALL witness
+composition, return-decoder correspondence, and constructor patching. The capstone
+`Benchmarks.EAS.Attester.attesterContractCorrect` uses the existing
+`contractRefinement.of_runtime` interface with the original statement.
+
+The proof introduces no custom axioms. Its accepted trusted base consists of standard Lean
+logical axioms and `native_decide` evaluation axioms for concrete obligations, including
+bytecode decoding, jump destinations, and fixed ABI facts. Public selector identities use
+kernel evaluation. The full dependency list can be reproduced with `#print axioms` as shown
+in `README.md`.
+
+Final validation after merging EquiVM main commit `b67b0c4e`:
+
+- `lake build Solm Reasoning`: `Build completed successfully (3487 jobs).`
+- `lake build Benchmarks.EAS.Attester.Correct`:
+  `Build completed successfully (3612 jobs).`
+- `lake build Benchmarks.EAS.Attester.ReadLimitAudit`:
+  `Build completed successfully (3475 jobs).`
+- The proof-placeholder and axiom-declaration scans returned no matches.
+- The capstone's complete axiom audit lists `propext`, `Classical.choice`, `Quot.sound`, and
+  3,658 generated `native_decide` evaluation axioms, with no unexpected dependencies.
+
+No examples or other benchmarks were rebuilt for this proof validation. The separate
+differential audit described above was not rerun as part of this final proof gate.

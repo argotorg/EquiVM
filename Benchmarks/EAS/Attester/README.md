@@ -56,31 +56,32 @@ modern decoder mode, and constructor deployment codec. There is one contract bod
 
 `AUDIT.md` records the semantic review, mismatches fixed, and refinement scope. `Audit.lean`
 contains executable differential checks against the real EVM bytecode. It does not import
-the unproved correctness targets.
+the correctness targets; its finite checks are separate from the quantified proofs.
 
 `Common.lean`, `Dispatch.lean`, the four function files, `Constructor.lean`, and `Correct.lean`
-provide proof scaffolds. Their functional theorems intentionally contain `sorry`; neither
-the audit nor compilation establishes the universally quantified refinement.
+prove the full contract refinement, with supporting modules for ABI correspondence, memory,
+loop invariants, external calls, and immutable patching. Every proof body is complete.
 
-## Proof handoff
+## Completed refinement proof
 
-This benchmark is ready for proof work. The intended final target is
-`Benchmarks.EAS.Attester.attesterContractCorrect` in `Correct.lean`. Read `AUDIT.md` before
-starting; `SpecSyntax.lean` is the authoritative contract body.
+The final target is `Benchmarks.EAS.Attester.attesterContractCorrect` in `Correct.lean`.
+It combines constructor refinement with runtime refinement for every well-typed immutable
+assignment through the existing `contractRefinement.of_runtime` interface.
 
-The ten open obligations are in `Dispatch.lean` (four), `Attest.lean`, `Revoke.lean`,
-`MultiAttest.lean`, `MultiRevoke.lean`, `Constructor.lean`, and `Correct.lean`. Begin with dispatch
-and the single-request functions, then the nested-loop functions and constructor, and assemble
-the runtime theorem. Each function scaffold records its PCs and required correspondence facts.
+The proof covers dispatch and guard failures, all four entry points, both nested-loop request
+builders, the four external CALL boundaries, arbitrary return-data decoding, and the constructor's
+four immutable patches. It preserves the original statements and their arbitrary calldata,
+callee, immutable, and static-execution scope. Wrapped nested offsets and the return-array
+allocation guard are deliberate audited behavior.
 
-Use `Blocks/Runtime.index` and `Blocks/Creation.index` to locate existing summaries. The four
-CALL boundaries still require composition. Preserve the current refinement statements and
-their arbitrary calldata, callee, immutable, and static-execution scope. Wrapped nested offsets
-and the return-array allocation guard are deliberate audited behavior.
+Out-of-gas paths use the refinement's dedicated constructor. Input, allocation, and return-data
+bounds are proved directly, including the gas-derived bound on callee return data. The unbounded
+`readWithPadding` fix allows outgoing ABI encodings of at least 2^64 bytes to be related exactly.
+No additional well-formedness condition or contract-specific axiom is needed.
 
-The proof runs Paris-compiled bytecode under the repository's Cancun semantics. Functional
-proofs remain open; the previous audit is supporting evidence, not a replacement for them.
-The commands below build all proof modules and run the existing differential audit.
+The proof runs Paris-compiled bytecode under the repository's Cancun semantics. Selector
+identities use `decide +kernel`; concrete bytecode and decode checks use the permitted
+`native_decide` evaluation axioms. See `AUDIT.md` for the refinement boundary and validation.
 
 ## Block summaries and validation
 
@@ -98,13 +99,16 @@ is excluded from executable block discovery.
 From the project root:
 
 ```sh
-lake build Benchmarks.EAS.Attester.Bytecode
-python3 Benchmarks/EAS/Attester/generate_blocks.py
-lake build Benchmarks.EAS.Attester.Correct Benchmarks.EAS.Attester.Audit
+lake build Benchmarks.EAS.Attester.Correct
+lake build Benchmarks.EAS.Attester.ReadLimitAudit
+printf '%s\n' 'import Benchmarks.EAS.Attester.Correct' \
+  '#print axioms Benchmarks.EAS.Attester.attesterContractCorrect' | lake env lean --stdin
 ```
 
-Use `generate_blocks.py --check` to check reproducibility without rewriting the summaries.
-The refresh also passed `ABI.SignatureTests`, `Reasoning.ABIComposite`, and `Reasoning.ABIViews`.
+`lake build Benchmarks.EAS.Attester.Audit` runs the separate differential audit when desired.
+Use `python3 Benchmarks/EAS/Attester/generate_blocks.py --check` to check summary reproducibility
+without rewriting them. The artifact refresh also passed `ABI.SignatureTests`,
+`Reasoning.ABIComposite`, and `Reasoning.ABIViews`.
 
 The checked semantics are Cancun, as fixed by the current EVMLean dependency. This is
 Paris-compiled bytecode executed under that model, rather than a historical Paris fork
