@@ -67,8 +67,6 @@ import Examples.CtorStore.Spec
 import Examples.CtorStore.Bytecode
 import Examples.CtorTruth.Spec
 import Examples.CtorTruth.Bytecode
-import Benchmarks.Scaffolds.CometRewards.Spec
-import Benchmarks.Scaffolds.CometRewards.Bytecode
 import Benchmarks.Scaffolds.ERC721.Spec
 import Benchmarks.Scaffolds.ERC721.Bytecode
 import Benchmarks.Scaffolds.Klima.Spec
@@ -252,13 +250,6 @@ def ctorTruth : Target :=
 
 /-! ## Scaffolds (specifications not yet proved) -/
 
-def cometRewards : Target :=
-  { name := "CometRewards", contract := Benchmarks.CompoundIII.CometRewards.contract,
-    config := Benchmarks.CompoundIII.CometRewards.config,
-    runtime := Benchmarks.CompoundIII.CometRewards.cometRewardsBytecode,
-    initcode := some Benchmarks.CompoundIII.CometRewards.cometRewardsCreationBytecode,
-    callees := standardCallees, words := [10 ^ 6, 10 ^ 15, 10 ^ 18] }
-
 def erc721 : Target :=
   { name := "ERC721", contract := ERC721.erc721Contract, config := erc721Config,
     runtime := erc721Bytecode, initcode := some erc721CreationBytecode,
@@ -312,7 +303,7 @@ def benchmarks : List Target :=
   [weth9, auction, pot, cat, cure, dai, daiJoin, dssEnd, exponentialDecrease, flapper, flipper, flopper, gemJoin, jug, linearDecrease, spot, stairstepExponentialDecrease, vat, vow]
 
 def scaffolds : List Target :=
-  [cometRewards, erc721, klima, safe, timelockController, vestingWallet]
+  [erc721, klima, safe, timelockController, vestingWallet]
 
 /-- Every target: the ones above, then the generated ones (`Generated.lean`) not already named. -/
 def allTargets : List Target :=
