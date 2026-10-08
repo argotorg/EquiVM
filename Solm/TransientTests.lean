@@ -87,7 +87,7 @@ private def flagWrite : EvalResult EVM.State := assign evm "flag" (.int 123)
   let state ← flagWrite
   deleteStorage? cfg frame state { base := "flag" }) "flag" = .ok (.int 0)
 
--- Aggregate support reuses the current Solidity backend, including bounds and empty-pop reverts.
+-- Aggregate support uses the direct transient backend, including bounds and empty-pop reverts.
 private def arrayWrite : EvalResult EVM.State := do
   let state ← pushArray? cfg frame evm { base := "values" } (some (.int 11))
   pushArray? cfg frame state { base := "values" } (some (.int 22))
@@ -122,14 +122,36 @@ private def arrayWrite : EvalResult EVM.State := do
 
 private def longBytes : ByteArray := ⟨Array.replicate 33 0xab⟩
 private def shortBytes : ByteArray := ⟨#[0x12, 0x34]⟩
+private def dataWord : EVM.Word :=
+  match cfg.transientBackend.locate? { base := "data" } with
+  | some (.anchor slot) => solidityBytesDataSlot slot 0
+  | _ => ⟨0⟩
 #guard readAfter (assign evm "data" (.bytes longBytes)) "data" = .ok (.bytes longBytes)
+#guard (do
+  let state ← assign evm "data" (.bytes longBytes)
+  evalExpr? cfg frame state (.transient { base := "data", steps := [.aindex (.intLit 0)] })) =
+  .ok (.int 0xab)
+#guard (do
+  let state ← assign evm "data" (.bytes longBytes)
+  pure ((EVM.storageLoad state owner dataWord).toNat,
+    (EVM.transientLoad state owner dataWord).toNat == 0)) = .ok (0, false)
 #guard readAfter (do
   let state ← assign evm "data" (.bytes longBytes)
   assign state "data" (.bytes shortBytes)) "data" = .ok (.bytes shortBytes)
+#guard (do
+  let state ← assign evm "data" (.bytes longBytes)
+  let state ← assign state "data" (.bytes shortBytes)
+  pure (EVM.transientLoad state owner dataWord).toNat) = .ok 0
 #guard readAfter (do
   let state ← assign evm "data" (.bytes shortBytes)
   pushArray? cfg frame state { base := "data" } (some (.fixedBytes 0 [0x56]))) "data" =
   .ok (.bytes ⟨#[0x12, 0x34, 0x56]⟩)
+#guard readAfter (do
+  let state ← assign evm "data" (.bytes shortBytes)
+  popArray? cfg frame state { base := "data" }) "data" = .ok (.bytes ⟨#[0x12]⟩)
+#guard readAfter (do
+  let state ← assign evm "data" (.bytes longBytes)
+  deleteStorage? cfg frame state { base := "data" }) "data" = .ok (.bytes ByteArray.empty)
 
 -- A local persistent-storage alias wins for unqualified push/pop/delete, even when its name
 -- shadows a transient declaration. Explicit transient references still address the declared map.

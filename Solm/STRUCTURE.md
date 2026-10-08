@@ -39,7 +39,7 @@ Transient state is declared with `uint256 transient flag;` and stored separately
 `solidityTransientStorage! [contract.structs] [contract.transient]` in
 `Config.transientBackend`; persistent state still uses `Config.storageBackend`.
 The two layouts each start at slot zero and use the current Solidity packing rules.
-The transient backend reuses the persistent backend's encoding and aggregate operations
+The transient backend implements the same encoding and aggregate operations directly
 against the executing account's `tstorage` map.
 
 Reads and assignments resolve the declared storage kind. `delete`, `push`, and `pop`
