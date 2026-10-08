@@ -424,7 +424,7 @@ theorem readWithPadding_eq_extract (source : ByteArray) (addr : ℕ)
   have hsz : (source.extract addr (addr + 32)).size = 32 := by
     rw [ByteArray.size_extract]; omega
   unfold ByteArray.readWithPadding
-  rw [if_neg (by norm_num : ¬ ((32:ℕ) ≥ 2 ^ 64)), readWithoutPadding_eq_extract source addr h]
+  rw [readWithoutPadding_eq_extract source addr h]
   simp only []
   rw [hsz]
   rw [zeroes_zero (n := 32 - 32) (by rfl)]
@@ -446,7 +446,20 @@ theorem readWithPadding_eq_extract' (source : ByteArray) (addr len : ℕ)
   have hsz : (source.extract addr (addr + len)).size = len := by
     rw [ByteArray.size_extract]; omega
   unfold ByteArray.readWithPadding
-  rw [if_neg (by omega : ¬ ((len:ℕ) ≥ 2 ^ 64)), readWithoutPadding_eq_extract' source addr len hpos h]
+  rw [readWithoutPadding_eq_extract' source addr len hpos h]
+  simp only []
+  rw [hsz]
+  rw [zeroes_zero (n := len - len) (by omega)]
+  apply ByteArray.ext; rw [ByteArray.data_append]; show _ ++ #[] = _; rw [Array.append_empty]
+
+/-- An in-bounds padded read is the corresponding slice, for any positive length. -/
+theorem readWithPadding_eq_extract_unbounded (source : ByteArray) (addr len : ℕ)
+    (hpos : 0 < len) (h : addr + len ≤ source.size) :
+    source.readWithPadding addr len = source.extract addr (addr + len) := by
+  have hsz : (source.extract addr (addr + len)).size = len := by
+    rw [ByteArray.size_extract]; omega
+  unfold ByteArray.readWithPadding
+  rw [readWithoutPadding_eq_extract' source addr len hpos h]
   simp only []
   rw [hsz]
   rw [zeroes_zero (n := len - len) (by omega)]
@@ -463,6 +476,19 @@ theorem byteArray_readWithPadding_split (source : ByteArray) (addr len₁ len₂
   rw [readWithPadding_eq_extract' source addr (len₁ + len₂) (by omega) hsum (by omega)]
   rw [readWithPadding_eq_extract' source addr len₁ hpos₁ hlen₁ (by omega)]
   rw [readWithPadding_eq_extract' source (addr + len₁) len₂ hpos₂ hlen₂ (by omega)]
+  symm
+  rw [ByteArray.extract_append_extract]
+  congr <;> omega
+
+/-- Split an in-bounds padded read without a 64-bit length restriction. -/
+theorem byteArray_readWithPadding_split_unbounded (source : ByteArray) (addr len₁ len₂ : Nat)
+    (hpos₁ : 0 < len₁) (hpos₂ : 0 < len₂)
+    (hin : addr + len₁ + len₂ ≤ source.size) :
+    source.readWithPadding addr (len₁ + len₂) =
+      source.readWithPadding addr len₁ ++ source.readWithPadding (addr + len₁) len₂ := by
+  rw [readWithPadding_eq_extract_unbounded source addr (len₁ + len₂) (by omega) (by omega)]
+  rw [readWithPadding_eq_extract_unbounded source addr len₁ hpos₁ (by omega)]
+  rw [readWithPadding_eq_extract_unbounded source (addr + len₁) len₂ hpos₂ (by omega)]
   symm
   rw [ByteArray.extract_append_extract]
   congr <;> omega
@@ -594,7 +620,6 @@ theorem write0_read_back_gen (src base : ByteArray) (len : ℕ)
     (src.write 0 base 0 len).readWithPadding 0 len = src.extract 0 len := by
   apply ByteArray.ext
   unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
-  rw [if_neg (by omega : ¬ len ≥ 2 ^ 64)]
   have hdata := write0_data src base len hlen hsrc
   have hsize : (src.write 0 base 0 len).size ≥ len := by
     show (src.write 0 base 0 len).data.size ≥ len
@@ -631,7 +656,6 @@ theorem write0_read_back_from_gen (src base : ByteArray) (srcAddr len : ℕ)
     (src.write srcAddr base 0 len).readWithPadding 0 len = src.extract srcAddr (srcAddr + len) := by
   apply ByteArray.ext
   unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
-  rw [if_neg (by omega : ¬ len ≥ 2 ^ 64)]
   have hdata := write0_data_from src base srcAddr len hlen hsrc
   have hsize : (src.write srcAddr base 0 len).size ≥ len := by
     show (src.write srcAddr base 0 len).data.size ≥ len
@@ -801,6 +825,23 @@ theorem write32_read_below_len (src base : ByteArray) (dest read len : Nat)
   rw [extract_append_left _ _ _ _ (by rw [hbsz]; omega)]
   rw [extract_prefix _ _ _ _ (by omega)]
   rw [← readWithPadding_eq_extract' base read len hpos hlen64 hin]
+
+/-- A variable-length in-bounds read below a 32-byte write is unaffected. -/
+theorem write32_read_below_len_unbounded (src base : ByteArray) (dest read len : Nat)
+    (hsrc : 32 ≤ src.size) (hlo : dest ≤ base.size)
+    (hbelow : read + len ≤ dest) (hin : read + len ≤ base.size)
+    (hpos : 0 < len) :
+    (src.write 0 base dest 32).readWithPadding read len = base.readWithPadding read len := by
+  have hbsz : (base.extract 0 dest).size = dest := by rw [ByteArray.size_extract]; omega
+  have hsz32 : (src.extract 0 32).size = 32 := by rw [ByteArray.size_extract]; omega
+  rw [write32_eq src base dest hsrc hlo]
+  rw [readWithPadding_eq_extract_unbounded _ read len hpos (by
+    rw [ByteArray.size_append, ByteArray.size_append, hbsz, hsz32]
+    omega)]
+  rw [extract_append_left _ _ _ _ (by rw [ByteArray.size_append, hbsz, hsz32]; omega)]
+  rw [extract_append_left _ _ _ _ (by rw [hbsz]; omega)]
+  rw [extract_prefix _ _ _ _ (by omega)]
+  rw [← readWithPadding_eq_extract_unbounded base read len hpos hin]
 
 /-- A variable-length read above a 32-byte write is unaffected. -/
 theorem write32_read_above_len (src base : ByteArray) (dest read len : Nat)
@@ -988,6 +1029,28 @@ theorem toByteArray_write_read_below_len_of_gap
       omega)]
     rw [extract_append_left _ _ _ _ hread]
     exact (readWithPadding_eq_extract' _ read len hpos hlen64 hread).symm
+
+/-- An in-bounds read below a word write is unaffected for arbitrary read length. -/
+theorem toByteArray_write_read_below_len_of_gap_unbounded
+    (b : UInt256) (mem : ByteArray) (off read len : ℕ)
+    (hread : read + len ≤ mem.size) (hbelow : read + len ≤ off)
+    (hpos : 0 < len) (hgap : off - mem.size < USize.size) :
+    ((UInt256.toByteArray b).write 0 mem off 32).readWithPadding read len =
+      mem.readWithPadding read len := by
+  by_cases hle : off ≤ mem.size
+  · exact write32_read_below_len_unbounded _ _ off read len (by rw [toByteArray_size]) hle
+      hbelow hread hpos
+  · have hge : mem.size ≤ off := by omega
+    rw [toByteArray_write_eq _ _ off hge hgap]
+    rw [readWithPadding_eq_extract_unbounded _ read len hpos (by
+      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
+        toByteArray_size]
+      omega)]
+    rw [extract_append_left _ _ _ _ (by
+      rw [ByteArray.size_append, ByteArray_zeroes_size]
+      omega)]
+    rw [extract_append_left _ _ _ _ hread]
+    exact (readWithPadding_eq_extract_unbounded _ read len hpos hread).symm
 
 /-- Reading a window inside a 32-byte word write, allowing the write to extend memory by a zero
     gap. -/
@@ -1246,7 +1309,6 @@ theorem readWithPadding_zero_toList_of_size_lt32 (b : ByteArray)
     (b.readWithPadding 0 32).toList =
       b.toList ++ List.replicate (32 - b.size) 0 := by
   unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
-  rw [if_neg (by norm_num : ¬ ((32 : Nat) ≥ 2 ^ 64))]
   rw [if_neg (by omega : ¬ (0 : Nat) ≥ b.size)]
   change
     (b.extract 0 (0 + min 32 b.size) ++
@@ -3371,7 +3433,6 @@ theorem readWithPadding_tail32_toList (b : ByteArray) {addr : Nat}
     (b.readWithPadding addr 32).toList =
       b.toList.drop addr ++ List.replicate (32 - (b.toList.drop addr).length) 0 := by
   unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
-  rw [if_neg (by norm_num : ¬ ((32 : Nat) ≥ 2 ^ 64))]
   rw [if_neg (by omega : ¬ addr ≥ b.size)]
   rw [show min 32 b.size = 32 by omega]
   change
@@ -3461,7 +3522,6 @@ theorem fromByteArrayBigEndian_readWithPadding0_32_lt (o : ByteArray) :
     rw [byteArray_toList_eq, Array.length_toList]
     change (o.readWithPadding 0 32).size = 32
     unfold ByteArray.readWithPadding
-    rw [if_neg (by norm_num : ¬ (32 ≥ 2 ^ 64))]
     rw [ByteArray.size_append, ByteArray_zeroes_size]
     have hreadLe : (o.readWithoutPadding 0 32).size ≤ 32 := by
       unfold ByteArray.readWithoutPadding

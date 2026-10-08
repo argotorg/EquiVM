@@ -120,19 +120,18 @@ theorem cureDispatch_none_nomatch {cd : ByteArray}
 
 /-- Storage well-formedness for the generated `srcs` dynamic-array getter and source index map.
 
-The bound rules out overflow in the Solidity return routine's pointer/length arithmetic and keeps
-the final ABI return object within the byte-addressed memory model used by `ByteArray`.
+The bound rules out overflow in the Solidity return routine's 256-bit pointer/length arithmetic.
 It accounts for a 128-byte array base, 32-byte length word, 64-byte ABI prefix, and two
 `32 * len` byte spans.
 
 This intentionally does not assume relationships between mapping slots and array length slots:
 aliasing storage states are handled in the per-function proofs. -/
 def cureStorageWF (σ : AccountMap) (I : ExecutionEnv) : Prop :=
-  224 + 64 * (solcSlotWordAt ⟨2⟩ σ I).toNat < 2 ^ 64
+  224 + 64 * (solcSlotWordAt ⟨2⟩ σ I).toNat < UInt256.size
 
 theorem cureStorageWF_returnBound {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
-    224 + 64 * (solcSlotWordAt ⟨2⟩ σ I).toNat < 2 ^ 64 :=
+    224 + 64 * (solcSlotWordAt ⟨2⟩ σ I).toNat < UInt256.size :=
   hwf
 
 

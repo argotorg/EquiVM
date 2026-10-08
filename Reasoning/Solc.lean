@@ -6989,7 +6989,7 @@ theorem RD.solcStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
       (by unfold RD; exact Or.inl hoog),
       (by
         exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ false
-          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
+          (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize))⟩
   · have hd : decode s.executionEnv.code s.machineState.pc = some (.STATICCALL, .none) := by
       rw [hcode, hpc]; exact hdec
     have hdepth' : s.executionEnv.depth.val < 1024 := by rw [hee]; exact hdepth
@@ -7014,7 +7014,7 @@ theorem RD.solcStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
         (by unfold RD; exact Or.inl hXP),
         (by
           exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ false
-            (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
+            (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize))⟩
     · rename_i hP
       set mc := memoryExpansionCost s Operation.STATICCALL with hmc
       set gc := Ccall (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target)
@@ -7121,7 +7121,7 @@ theorem RD.solcStaticcall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
           cg (UInt256.ofNat s.executionEnv.gasPrice) (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)
           (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.blobVersionedHashes
           s.executionEnv.blocks false
-          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)
+          (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize)
 
 /-- Generic `STATICCALL` depth-limit `RD` combinator. -/
 theorem RD.solcStaticcallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
