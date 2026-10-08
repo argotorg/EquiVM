@@ -1,0 +1,2593 @@
+⚠ [1216/1278] Replayed Reasoning.EVMWord
+warning: Reasoning/EVMWord.lean:1146:32: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+⚠ [1222/1278] Replayed Reasoning.Memory
+warning: Reasoning/Memory.lean:1888:36: unused variable `hgap`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Reasoning/Memory.lean:1919:2: 'change
+  (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract 0 destAddr ++
+        (src.data ++
+              (ByteArray.zeroes
+                  (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr)))).data).extract
+          srcAddr
+          (srcAddr +
+            (min len (src.size - srcAddr) +
+              (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr))))) ++
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract
+        (destAddr +
+          min
+            (min len (src.size - srcAddr) +
+              (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr))))
+            ((src.data ++
+                  (ByteArray.zeroes
+                      (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr)))).data).size -
+              srcAddr)) =
+    base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
+      (src.extract srcAddr (srcAddr + len)).data' tactic does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Reasoning/Memory.lean:2201:2: 'change
+  (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract 0 destAddr ++
+        (src.data ++
+              (ByteArray.zeroes
+                  (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr)))).data).extract
+          srcAddr
+          (srcAddr +
+            (min len (src.size - srcAddr) +
+              (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr))))) ++
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract
+        (destAddr +
+          min
+            (min len (src.size - srcAddr) +
+              (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr))))
+            ((src.data ++
+                  (ByteArray.zeroes
+                      (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr)))).data).size -
+              srcAddr)) =
+    base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
+      (src.extract srcAddr (srcAddr + len)).data' tactic does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Reasoning/Memory.lean:2899:52: unused variable `hr`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Reasoning/Memory.lean:2924:32: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Reasoning/Memory.lean:3470:34: unused variable `hgap`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Reasoning/Memory.lean:3480:28: This simp argument is unused:
+  show (destAddr - base.size) = destAddr - base.size from rfl
+
+Hint: Omit it from the simp argument list.
+  simp only [hcopy, htail, ByteArray.data_copySlice, ByteArray.data_append, B̵y̵t̵e̵A̵r̵r̵a̵y̵.̵d̵a̵t̵a̵_̵e̵x̵t̵r̵a̵c̵t̵,̵ ̵s̵h̵o̵w̵ ̵(̵d̵e̵s̵t̵A̵d̵d̵r̵ ̵-̵ ̵b̵a̵s̵e̵.̵s̵i̵z̵e̵)̵ ̵=̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵d̵e̵s̵t̵A̵d̵d̵r̵ ̵-̵ ̵b̵a̵s̵e̵.̵s̵i̵z̵e̵ ̵f̵r̵o̵m̵ ̵r̵f̵l̵]̵B̲y̲t̲e̲A̲r̲r̲a̲y̲.̲d̲a̲t̲a̲_̲e̲x̲t̲r̲a̲c̲t̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [1223/1278] Replayed Reasoning.ABI
+warning: Reasoning/ABI.lean:4614:28: This simp argument is unused:
+  abiUInt256
+
+Hint: Omit it from the simp argument list.
+  simp [encodePackedValue?, a̵b̵i̵U̵I̵n̵t̵2̵5̵6̵,̵ ̵encodeABIWord?, hword, hlt]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Reasoning/ABI.lean:4621:28: This simp argument is unused:
+  abiBytes32
+
+Hint: Omit it from the simp argument list.
+  simp [encodePackedValue?, abiBytes32,̵ ̵a̵b̵i̵B̵y̵t̵e̵s̵3̵2̵Width, wordBytes32Value,
+  ̵  ̵ ̵ ̵fixedBytesSize, hlen]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Reasoning/ABI.lean:4621:57: This simp argument is unused:
+  wordBytes32Value
+
+Hint: Omit it from the simp argument list.
+  simp [encodePackedValue?, abiBytes32, abiBytes32Width, w̵o̵r̵d̵B̵y̵t̵e̵s̵3̵2̵V̵a̵l̵u̵e̵,̵
+  ̵ ̵ ̵ ̵ ̵fixedBytesSize, hlen]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [3472/3489] Replayed Reasoning.Solc
+warning: Reasoning/Solc.lean:8246:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+⚠ [3475/3489] Replayed Reasoning.Storage
+warning: Reasoning/Storage.lean:2027:41: This simp argument is unused:
+  Std.ExtTreeMap.getElem?_insert_self
+
+Hint: Omit it from the simp argument list.
+  simp [Option.option, State.setAccount,̵ ̵S̵t̵d̵.̵E̵x̵t̵T̵r̵e̵e̵M̵a̵p̵.̵g̵e̵t̵E̵l̵e̵m̵?̵_̵i̵n̵s̵e̵r̵t̵_̵s̵e̵l̵f̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [3479/3489] Replayed Reasoning.WordArithmetic
+warning: Reasoning/WordArithmetic.lean:884:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Reasoning/WordArithmetic.lean:989:6: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Reasoning/WordArithmetic.lean:1144:33: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Reasoning/WordArithmetic.lean:1175:43: unused variable `ha`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Reasoning/WordArithmetic.lean:1806:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Reasoning/WordArithmetic.lean:1982:23: `Int.ofNat_nonneg` has been deprecated: Use `Int.natCast_nonneg` instead
+warning: Reasoning/WordArithmetic.lean:2385:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+⚠ [3480/3489] Replayed Reasoning.Immutables
+warning: Reasoning/Immutables.lean:106:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Reasoning/Immutables.lean:109:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+⚠ [3482/3489] Replayed Benchmarks.CompoundIII.Comet.Common
+warning: Benchmarks/CompoundIII/Comet/Common.lean:37:16: 'simp [contract, Syntax.contractSyntax]' tactic does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:37:16: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:47:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isLiquidatableTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:47:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isLiquidatableTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:47:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isLiquidatableTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:48:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:59:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getReservesTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:59:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getReservesTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:59:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getReservesTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:59:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getReservesTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:59:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getReservesTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:60:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:71:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isSupplyPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:71:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isSupplyPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:71:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isSupplyPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:71:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isSupplyPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:71:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isSupplyPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:72:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:83:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, governorTransition, contract,
+        Syntax.contractSyntax, ABI.a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:83:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, governorTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:83:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, governorTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:83:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, governorTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:83:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, governorTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 2̵5̵6̵8̲ = "2̵5̵6̵8̲" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:84:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:95:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, totalSupplyTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:95:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, totalSupplyTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:95:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, totalSupplyTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:95:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, totalSupplyTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:95:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, totalSupplyTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:96:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:107:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵b̵a̵s̵e̵T̵r̵a̵c̵k̵i̵n̵g̵S̵u̵p̵p̵l̵y̵S̵p̵e̵e̵d̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲b̲a̲s̲e̲T̲r̲a̲c̲k̲i̲n̲g̲S̲u̲p̲p̲l̲y̲S̲p̲e̲e̲d̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲ ̲A̲B̲I̲.̲e̲l̲e̲m̲T̲o̲S̲i̲g̲S̲t̲r̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲i̲n̲t̲T̲y̲p̲e̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲2̲5̲6̲ ̲=̲ ̲"̲2̲5̲6̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:107:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵b̵a̵s̵e̵T̵r̵a̵c̵k̵i̵n̵g̵S̵u̵p̵p̵l̵y̵S̵p̵e̵e̵d̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲b̲a̲s̲e̲T̲r̲a̲c̲k̲i̲n̲g̲S̲u̲p̲p̲l̲y̲S̲p̲e̲e̲d̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲ ̲A̲B̲I̲.̲a̲b̲i̲T̲o̲S̲i̲g̲S̲t̲r̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲i̲n̲t̲T̲y̲p̲e̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲2̲5̲6̲ ̲=̲ ̲"̲2̲5̲6̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:107:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵b̵a̵s̵e̵T̵r̵a̵c̵k̵i̵n̵g̵S̵u̵p̵p̵l̵y̵S̵p̵e̵e̵d̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲b̲a̲s̲e̲T̲r̲a̲c̲k̲i̲n̲g̲S̲u̲p̲p̲l̲y̲S̲p̲e̲e̲d̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲ ̲A̲B̲I̲.̲a̲b̲i̲T̲o̲S̲i̲g̲S̲t̲r̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲e̲l̲e̲m̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲2̲5̲6̲ ̲=̲ ̲"̲2̲5̲6̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:107:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲baseTrackingSupplySpeedTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:107:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲baseTrackingSupplySpeedTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:108:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:119:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, initializeStorageTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:119:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, initializeStorageTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:119:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, initializeStorageTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:119:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, initializeStorageTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:119:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, initializeStorageTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:120:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:131:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲storeFrontPriceFactorTransition, contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:131:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲storeFrontPriceFactorTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:131:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲storeFrontPriceFactorTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:131:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲storeFrontPriceFactorTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:131:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲storeFrontPriceFactorTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:132:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:143:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, transferFromTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:144:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:155:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, pauseGuardianTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:155:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, pauseGuardianTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:155:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, pauseGuardianTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:155:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, pauseGuardianTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:155:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, pauseGuardianTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:156:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:167:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, withdrawFromTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:168:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:179:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲borrowPerSecondInterestRateSlopeHighTransition, contract, Syntax.contractSyntax,
+  ̲  ̲ ̲ ̲ ̲ ̲A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:179:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲borrowPerSecondInterestRateSlopeHighTransition, contract, Syntax.contractSyntax,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.abiToSigStr, A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:179:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲borrowPerSecondInterestRateSlopeHighTransition, contract, Syntax.contractSyntax,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.abiToSigStr, ABI.elemToSigStr, A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:179:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲borrowPerSecondInterestRateSlopeHighTransition, contract, Syntax.contractSyntax,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:179:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲borrowPerSecondInterestRateSlopeHighTransition, contract, Syntax.contractSyntax,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:180:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:191:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, userCollateralTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:191:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, userCollateralTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:191:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, userCollateralTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:192:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:203:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵b̵o̵r̵r̵o̵w̵P̵e̵r̵S̵e̵c̵o̵n̵d̵I̵n̵t̵e̵r̵e̵s̵t̵R̵a̵t̵e̵S̵l̵o̵p̵e̵L̵o̵w̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲b̲o̲r̲r̲o̲w̲P̲e̲r̲S̲e̲c̲o̲n̲d̲I̲n̲t̲e̲r̲e̲s̲t̲R̲a̲t̲e̲S̲l̲o̲p̲e̲L̲o̲w̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲e̲l̲e̲m̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲i̲n̲t̲T̲y̲p̲e̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲2̲5̲6̲ ̲=̲ ̲"̲2̲5̲6̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:203:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵b̵o̵r̵r̵o̵w̵P̵e̵r̵S̵e̵c̵o̵n̵d̵I̵n̵t̵e̵r̵e̵s̵t̵R̵a̵t̵e̵S̵l̵o̵p̵e̵L̵o̵w̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲b̲o̲r̲r̲o̲w̲P̲e̲r̲S̲e̲c̲o̲n̲d̲I̲n̲t̲e̲r̲e̲s̲t̲R̲a̲t̲e̲S̲l̲o̲p̲e̲L̲o̲w̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲a̲b̲i̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲i̲n̲t̲T̲y̲p̲e̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲2̲5̲6̲ ̲=̲ ̲"̲2̲5̲6̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:203:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵b̵o̵r̵r̵o̵w̵P̵e̵r̵S̵e̵c̵o̵n̵d̵I̵n̵t̵e̵r̵e̵s̵t̵R̵a̵t̵e̵S̵l̵o̵p̵e̵L̵o̵w̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲b̲o̲r̲r̲o̲w̲P̲e̲r̲S̲e̲c̲o̲n̲d̲I̲n̲t̲e̲r̲e̲s̲t̲R̲a̲t̲e̲S̲l̲o̲p̲e̲L̲o̲w̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲a̲b̲i̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲e̲l̲e̲m̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲2̲5̲6̲ ̲=̲ ̲"̲2̲5̲6̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:203:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲borrowPerSecondInterestRateSlopeLowTransition, contract, Syntax.contractSyntax,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:203:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵b̵o̵r̵r̵o̵w̵P̵e̵r̵S̵e̵c̵o̵n̵d̵I̵n̵t̵e̵r̵e̵s̵t̵R̵a̵t̵e̵S̵l̵o̵p̵e̵L̵o̵w̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲b̲o̲r̲r̲o̲w̲P̲e̲r̲S̲e̲c̲o̲n̲d̲I̲n̲t̲e̲r̲e̲s̲t̲R̲a̲t̲e̲S̲l̲o̲p̲e̲L̲o̲w̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲a̲b̲i̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲e̲l̲e̲m̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲i̲n̲t̲T̲y̲p̲e̲T̲o̲S̲i̲g̲S̲t̲r̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:204:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:215:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, userNonceTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:215:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, userNonceTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:215:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, userNonceTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 2̵5̵6̵8̲ = "2̵5̵6̵8̲" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:216:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:227:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseBorrowMinTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:227:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseBorrowMinTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:227:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseBorrowMinTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:227:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseBorrowMinTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:227:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseBorrowMinTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:228:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:239:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, decimalsTransition, contract,
+        Syntax.contractSyntax, ABI.a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:239:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, decimalsTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:239:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, decimalsTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:239:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, decimalsTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:239:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, decimalsTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 2̵5̵6̵8̲ = "2̵5̵6̵8̲" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:240:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:251:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, targetReservesTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:251:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, targetReservesTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:251:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, targetReservesTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:251:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, targetReservesTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:251:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, targetReservesTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:252:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:263:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, borrowBalanceOfTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:263:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, borrowBalanceOfTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:263:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, borrowBalanceOfTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:264:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:275:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲isBorrowCollateralizedTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:275:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲isBorrowCollateralizedTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:275:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲isBorrowCollateralizedTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:276:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:287:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵g̵e̵t̵A̵s̵s̵e̵t̵I̵n̵f̵o̵B̵y̵A̵d̵d̵r̵e̵s̵s̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲g̲e̲t̲A̲s̲s̲e̲t̲I̲n̲f̲o̲B̲y̲A̲d̲d̲r̲e̲s̲s̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲ ̲A̲B̲I̲.̲a̲b̲i̲T̲o̲S̲i̲g̲S̲t̲r̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲e̲l̲e̲m̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲2̲5̲6̲ ̲=̲ ̲"̲2̲5̲6̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:287:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲getAssetInfoByAddressTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:287:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲getAssetInfoByAddressTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:288:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:299:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getPriceTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:299:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getPriceTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:299:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getPriceTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 2̵5̵6̵8̲ = "2̵5̵6̵8̲" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:300:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:311:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, supplyToTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:312:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:323:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, transferAssetTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:324:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:335:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseScaleTransition, contract,
+        Syntax.contractSyntax, ABI.a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:335:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseScaleTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:335:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseScaleTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:335:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseScaleTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:335:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseScaleTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 2̵5̵6̵8̲ = "2̵5̵6̵8̲" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:336:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:347:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, pauseTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:347:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, pauseTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:347:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, pauseTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:348:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:359:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, extensionDelegateTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:359:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, extensionDelegateTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:359:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, extensionDelegateTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:359:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, extensionDelegateTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:359:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, extensionDelegateTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:360:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:371:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, totalsCollateralTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:371:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, totalsCollateralTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:371:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, totalsCollateralTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:372:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:383:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵s̵u̵p̵p̵l̵y̵P̵e̵r̵S̵e̵c̵o̵n̵d̵I̵n̵t̵e̵r̵e̵s̵t̵R̵a̵t̵e̵S̵l̵o̵p̵e̵L̵o̵w̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲u̲p̲p̲l̲y̲P̲e̲r̲S̲e̲c̲o̲n̲d̲I̲n̲t̲e̲r̲e̲s̲t̲R̲a̲t̲e̲S̲l̲o̲p̲e̲L̲o̲w̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲e̲l̲e̲m̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲i̲n̲t̲T̲y̲p̲e̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲2̲5̲6̲ ̲=̲ ̲"̲2̲5̲6̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:383:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵s̵u̵p̵p̵l̵y̵P̵e̵r̵S̵e̵c̵o̵n̵d̵I̵n̵t̵e̵r̵e̵s̵t̵R̵a̵t̵e̵S̵l̵o̵p̵e̵L̵o̵w̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲u̲p̲p̲l̲y̲P̲e̲r̲S̲e̲c̲o̲n̲d̲I̲n̲t̲e̲r̲e̲s̲t̲R̲a̲t̲e̲S̲l̲o̲p̲e̲L̲o̲w̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲a̲b̲i̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲i̲n̲t̲T̲y̲p̲e̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲2̲5̲6̲ ̲=̲ ̲"̲2̲5̲6̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:383:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵s̵u̵p̵p̵l̵y̵P̵e̵r̵S̵e̵c̵o̵n̵d̵I̵n̵t̵e̵r̵e̵s̵t̵R̵a̵t̵e̵S̵l̵o̵p̵e̵L̵o̵w̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲u̲p̲p̲l̲y̲P̲e̲r̲S̲e̲c̲o̲n̲d̲I̲n̲t̲e̲r̲e̲s̲t̲R̲a̲t̲e̲S̲l̲o̲p̲e̲L̲o̲w̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲a̲b̲i̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲e̲l̲e̲m̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲2̲5̲6̲ ̲=̲ ̲"̲2̲5̲6̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:383:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲supplyPerSecondInterestRateSlopeLowTransition, contract, Syntax.contractSyntax,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:383:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵s̵u̵p̵p̵l̵y̵P̵e̵r̵S̵e̵c̵o̵n̵d̵I̵n̵t̵e̵r̵e̵s̵t̵R̵a̵t̵e̵S̵l̵o̵p̵e̵L̵o̵w̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲u̲p̲p̲l̲y̲P̲e̲r̲S̲e̲c̲o̲n̲d̲I̲n̲t̲e̲r̲e̲s̲t̲R̲a̲t̲e̲S̲l̲o̲p̲e̲L̲o̲w̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲a̲b̲i̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲e̲l̲e̲m̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲i̲n̲t̲T̲y̲p̲e̲T̲o̲S̲i̲g̲S̲t̲r̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:384:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:395:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isWithdrawPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:395:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isWithdrawPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:395:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isWithdrawPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:395:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isWithdrawPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:395:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isWithdrawPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:396:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:407:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, balanceOfTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:407:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, balanceOfTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:407:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, balanceOfTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 2̵5̵6̵8̲ = "2̵5̵6̵8̲" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:408:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:419:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲borrowPerSecondInterestRateBaseTransition, contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:419:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲borrowPerSecondInterestRateBaseTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:419:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲borrowPerSecondInterestRateBaseTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:419:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲borrowPerSecondInterestRateBaseTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:419:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲borrowPerSecondInterestRateBaseTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:420:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:431:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, quoteCollateralTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:432:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:443:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getUtilizationTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:443:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getUtilizationTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:443:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getUtilizationTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:443:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getUtilizationTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:443:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getUtilizationTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:444:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:455:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲supplyPerSecondInterestRateSlopeHighTransition, contract, Syntax.contractSyntax,
+  ̲  ̲ ̲ ̲ ̲ ̲A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:455:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲supplyPerSecondInterestRateSlopeHighTransition, contract, Syntax.contractSyntax,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.abiToSigStr, A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:455:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲supplyPerSecondInterestRateSlopeHighTransition, contract, Syntax.contractSyntax,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.abiToSigStr, ABI.elemToSigStr, A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:455:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲supplyPerSecondInterestRateSlopeHighTransition, contract, Syntax.contractSyntax,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:455:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲supplyPerSecondInterestRateSlopeHighTransition, contract, Syntax.contractSyntax,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:456:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:467:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, totalBorrowTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:467:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, totalBorrowTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:467:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, totalBorrowTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:467:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, totalBorrowTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:467:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, totalBorrowTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:468:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:479:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isAbsorbPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:479:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isAbsorbPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:479:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isAbsorbPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:479:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isAbsorbPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:479:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isAbsorbPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:480:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:491:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, supplyFromTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:492:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:503:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, absorbTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:503:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, absorbTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:503:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, absorbTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:504:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:515:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, borrowKinkTransition, contract,
+        Syntax.contractSyntax, ABI.a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:515:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, borrowKinkTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:515:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, borrowKinkTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:515:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, borrowKinkTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:515:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, borrowKinkTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 2̵5̵6̵8̲ = "2̵5̵6̵8̲" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:516:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:527:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseMinForRewardsTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:527:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseMinForRewardsTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:527:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseMinForRewardsTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:527:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseMinForRewardsTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:527:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseMinForRewardsTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:528:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:539:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲supplyPerSecondInterestRateBaseTransition, contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:539:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲supplyPerSecondInterestRateBaseTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:539:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲supplyPerSecondInterestRateBaseTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:539:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲supplyPerSecondInterestRateBaseTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:539:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲supplyPerSecondInterestRateBaseTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:540:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:551:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵b̵a̵s̵e̵T̵r̵a̵c̵k̵i̵n̵g̵B̵o̵r̵r̵o̵w̵S̵p̵e̵e̵d̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲b̲a̲s̲e̲T̲r̲a̲c̲k̲i̲n̲g̲B̲o̲r̲r̲o̲w̲S̲p̲e̲e̲d̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲ ̲A̲B̲I̲.̲e̲l̲e̲m̲T̲o̲S̲i̲g̲S̲t̲r̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲i̲n̲t̲T̲y̲p̲e̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲2̲5̲6̲ ̲=̲ ̲"̲2̲5̲6̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:551:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵b̵a̵s̵e̵T̵r̵a̵c̵k̵i̵n̵g̵B̵o̵r̵r̵o̵w̵S̵p̵e̵e̵d̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲b̲a̲s̲e̲T̲r̲a̲c̲k̲i̲n̲g̲B̲o̲r̲r̲o̲w̲S̲p̲e̲e̲d̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲ ̲A̲B̲I̲.̲a̲b̲i̲T̲o̲S̲i̲g̲S̲t̲r̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲i̲n̲t̲T̲y̲p̲e̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲2̲5̲6̲ ̲=̲ ̲"̲2̲5̲6̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:551:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵[̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵p̵r̵i̵n̵t̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵t̵r̵a̵n̵s̵i̵t̵i̵o̵n̵S̵i̵g̵n̵a̵t̵u̵r̵e̵,̵ ̵b̵a̵s̵e̵T̵r̵a̵c̵k̵i̵n̵g̵B̵o̵r̵r̵o̵w̵S̵p̵e̵e̵d̵T̵r̵a̵n̵s̵i̵t̵i̵o̵n̵,̵ ̵c̵o̵n̵t̵r̵a̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵S̵y̵n̵t̵a̵x̵.̵c̵o̵n̵t̵r̵a̵c̵t̵S̵y̵n̵t̵a̵x̵,̵ ̵A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵e̵l̵e̵m̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵]̵s̲i̲m̲p̲ ̲[̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲S̲t̲r̲,̲ ̲A̲B̲I̲.̲p̲r̲i̲n̲t̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲ ̲t̲r̲a̲n̲s̲i̲t̲i̲o̲n̲S̲i̲g̲n̲a̲t̲u̲r̲e̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲b̲a̲s̲e̲T̲r̲a̲c̲k̲i̲n̲g̲B̲o̲r̲r̲o̲w̲S̲p̲e̲e̲d̲T̲r̲a̲n̲s̲i̲t̲i̲o̲n̲,̲ ̲c̲o̲n̲t̲r̲a̲c̲t̲,̲ ̲S̲y̲n̲t̲a̲x̲.̲c̲o̲n̲t̲r̲a̲c̲t̲S̲y̲n̲t̲a̲x̲,̲ ̲A̲B̲I̲.̲a̲b̲i̲T̲o̲S̲i̲g̲S̲t̲r̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲A̲B̲I̲.̲e̲l̲e̲m̲T̲o̲S̲i̲g̲S̲t̲r̲,̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲8̲ ̲=̲ ̲"̲8̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲,̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲s̲h̲o̲w̲ ̲N̲a̲t̲.̲r̲e̲p̲r̲ ̲2̲5̲6̲ ̲=̲ ̲"̲2̲5̲6̲"̲ ̲b̲y̲ ̲d̲e̲c̲i̲d̲e̲ ̲+̲k̲e̲r̲n̲e̲l̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:551:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲baseTrackingBorrowSpeedTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:551:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲baseTrackingBorrowSpeedTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:552:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:563:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getBorrowRateTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:564:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:575:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲getCollateralReservesTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵show Nat.repr 8 = "8" by decide +kernel,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:575:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲getCollateralReservesTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:575:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature,
+  ̲  ̲ ̲ ̲ ̲ ̲getCollateralReservesTransition, contract, Syntax.contractSyntax, ABI.abiToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:576:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:587:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isAllowedTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:587:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isAllowedTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:587:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isAllowedTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 2̵5̵6̵8̲ = "2̵5̵6̵8̲" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:588:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:599:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isTransferPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:599:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isTransferPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:599:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isTransferPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:599:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isTransferPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:599:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isTransferPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:600:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:611:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, numAssetsTransition, contract,
+        Syntax.contractSyntax, ABI.a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:611:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, numAssetsTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:611:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, numAssetsTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:611:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, numAssetsTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:611:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, numAssetsTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 2̵5̵6̵8̲ = "2̵5̵6̵8̲" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:612:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:623:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, supplyKinkTransition, contract,
+        Syntax.contractSyntax, ABI.a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:623:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, supplyKinkTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:623:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, supplyKinkTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:623:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, supplyKinkTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:623:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, supplyKinkTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 2̵5̵6̵8̲ = "2̵5̵6̵8̲" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:624:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:635:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, transferTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:636:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:647:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, trackingIndexScaleTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:647:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, trackingIndexScaleTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:647:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, trackingIndexScaleTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:647:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, trackingIndexScaleTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:647:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, trackingIndexScaleTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:648:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:659:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, approveThisTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:660:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:671:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, accrueAccountTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:671:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, accrueAccountTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:671:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, accrueAccountTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:672:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:683:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, transferAssetFromTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:684:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:695:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, withdrawToTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:696:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:707:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseTokenTransition, contract,
+        Syntax.contractSyntax, ABI.a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:707:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseTokenTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:707:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseTokenTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:707:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseTokenTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:707:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseTokenTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 2̵5̵6̵8̲ = "2̵5̵6̵8̲" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:708:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:719:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, liquidatorPointsTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:719:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, liquidatorPointsTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:719:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, liquidatorPointsTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:720:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:731:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getAssetInfoTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:732:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:743:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, hasPermissionTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:743:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, hasPermissionTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:743:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, hasPermissionTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:744:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:755:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isBuyPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:755:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isBuyPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:755:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isBuyPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:755:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isBuyPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:755:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, isBuyPausedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:756:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:767:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, getSupplyRateTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:768:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:779:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, userBasicTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:779:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, userBasicTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:779:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, userBasicTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 2̵5̵6̵8̲ = "2̵5̵6̵8̲" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:780:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:791:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, assetListTransition, contract,
+        Syntax.contractSyntax, ABI.a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵A̵B̵I̵.̵elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:791:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, assetListTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:791:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, assetListTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:791:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, assetListTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:791:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, assetListTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 2̵5̵6̵8̲ = "2̵5̵6̵8̲" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:792:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:803:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, withdrawReservesTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:804:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:815:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, buyCollateralTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:816:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:827:29: This simp argument is unused:
+  ABI.abiToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseTokenPriceFeedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, A̵B̵I̵.̵a̵b̵i̵T̵o̵S̵i̵g̵S̵t̵r̵,̵ ̵ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:827:46: This simp argument is unused:
+  ABI.elemToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseTokenPriceFeedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.i̲n̲t̲T̲y̲p̲el̵e̵m̵ToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:827:64: This simp argument is unused:
+  ABI.intTypeToSigStr
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseTokenPriceFeedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract,
+  ̵  ̵ ̵ ̵ ̵ ̵Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr,
+  ̲ A̵B̵I̵.̵i̵n̵t̵T̵y̵p̵e̵T̵o̵S̵i̵g̵S̵t̵r̵,̵  ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:827:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseTokenPriceFeedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8̵ ̵=̵ ̵"̵8̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:827:126: This simp argument is unused:
+  show Nat.repr 256 = "256" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, baseTokenPriceFeedTransition,
+  ̲  ̲ ̲ ̲ ̲ ̲contract, Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲  ̲ ̲ ̲ ̲ ̲show Nat.repr 8 = "8" by decide +̵k̵e̵r̵n̵e̵l̵,̵ ̵s̵h̵o̵w̵ ̵N̵a̵t̵.̵r̵e̵p̵r̵ ̵2̵5̵6̵ ̵=̵ ̵"̵2̵5̵6̵"̵ ̵b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:828:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:839:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, supplyTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:840:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:851:85: This simp argument is unused:
+  show Nat.repr 8 = "8" by decide +kernel
+
+Hint: Omit it from the simp argument list.
+  simp [transitionSigStr, ABI.printSignature, transitionSignature, withdrawTransition, contract,
+        Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+  ̲ s̵h̵o̵w̵ N̵a̵t̵.̵r̵e̵p̵r̵ 8̵ =̵ "̵8̵"̵ b̵y̵ ̵d̵e̵c̵i̵d̵e̵ ̵+̵k̵e̵r̵n̵e̵l̵,̵ ̵show Nat.repr 256 = "256" by decide +kernel]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:852:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Benchmarks/CompoundIII/Comet/Common.lean:1590:8: declaration uses `sorry`
+ℹ [3489/3489] Built Benchmarks.CompoundIII.Comet.ScaffoldAudit (4.2s)
+info: Benchmarks/CompoundIII/Comet/ScaffoldAudit.lean:82:0: decimals(), immutable=255: agree (success); EVM output=00000000000000000000000000000000000000000000000000000000000000ff
+decimals(), immutable=256: DISAGREE: the returned values do not ABI-encode at the declared return types; EVM output=0000000000000000000000000000000000000000000000000000000000000000
+numAssets(), immutable=255: agree (success); EVM output=00000000000000000000000000000000000000000000000000000000000000ff
+numAssets(), immutable=256: DISAGREE: the returned values do not ABI-encode at the declared return types; EVM output=0000000000000000000000000000000000000000000000000000000000000000
+info: Benchmarks/CompoundIII/Comet/ScaffoldAudit.lean:91:0: 'Benchmarks.CompoundIII.Comet.ScaffoldAudit.uint8_rejects_256' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: Benchmarks/CompoundIII/Comet/ScaffoldAudit.lean:92:0: 'Benchmarks.CompoundIII.Comet.ScaffoldAudit.uint8_mask_256' depends on axioms: [propext]
+info: Benchmarks/CompoundIII/Comet/ScaffoldAudit.lean:93:0: 'Benchmarks.CompoundIII.Comet.ScaffoldAudit.uint8_return_256_impossible' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+Build completed successfully (3489 jobs).

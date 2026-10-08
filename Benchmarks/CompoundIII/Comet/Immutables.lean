@@ -41,6 +41,8 @@ structure CometWithExtendedAssetListImmutables where
   numAssets : EVM.Word
   accrualDescaleFactor : EVM.Word
   assetList : EVM.Address
+  decimals_lt : decimals.toNat < 256
+  numAssets_lt : numAssets.toNat < 256
 
 /-- solc `immutableReferences`: each immutable's Solm name and patch offsets, in the order the
     constructor writes them. -/

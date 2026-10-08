@@ -1,0 +1,45 @@
+Benchmarks/CompoundIII/Comet/UserNonceScratch.lean:94:20: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern
+  D_J (immutableLayout.runtime cometWithExtendedAssetListBytecode (wordsOf (immStore v))) 0
+in the target expression
+  (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 2664) = true
+
+σ σ₀ : AccountMap
+A : Substate
+I : ExecutionEnv
+g : Sat256
+v : CometWithExtendedAssetListImmutables
+hcode : I.code = deployedRuntime v
+hsz : 4 ≤ I.calldata.size
+hsize : I.calldata.size < UInt256.size
+hsel : selIs I (cometWithExtendedAssetListSelBytes 14)
+k C : ℕ
+rd :
+  RD (deployedRuntime v) I g (initState σ σ₀ g A I) (UInt256.ofNat 1258)
+    [(uInt256OfByteArray (I.calldata.readBytes (UInt256.ofNat 0).toNat 32)).shiftRight (UInt256.ofNat 224)]
+    ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
+    (M (UInt256.ofNat 0) (UInt256.ofNat 64) { val := 32 }) ByteArray.empty σ k C
+rd1 :
+  RD (immutableLayout.runtime cometWithExtendedAssetListBytecode (wordsOf (immStore v))) I g (initState σ σ₀ g A I)
+    (UInt256.ofNat 2634) cometWithExtendedAssetList_block_1258_stack
+    ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
+    (M (UInt256.ofNat 0) (UInt256.ofNat 64) { val := 32 }) ByteArray.empty σ (k + 5) (C + 17)
+hv : I.weiValue = { val := 0 }
+rd2 :
+  RD (immutableLayout.runtime cometWithExtendedAssetListBytecode (wordsOf (immStore v))) I g (initState σ σ₀ g A I)
+    (UInt256.ofNat 2641) cometWithExtendedAssetList_block_2634_fallthrough_stack
+    ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
+    (M (UInt256.ofNat 0) (UInt256.ofNat 64) { val := 32 }) ByteArray.empty σ (k + 5 + 5) (C + 17 + 18)
+hlo : 36 ≤ I.calldata.size
+hhi : I.calldata.size < 2 ^ 255 + 4
+rd3 :
+  RD (immutableLayout.runtime cometWithExtendedAssetListBytecode (wordsOf (immStore v))) I g (initState σ σ₀ g A I)
+    (UInt256.ofNat 2653) cometWithExtendedAssetList_block_2634_fallthrough_stack
+    ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
+    (M (UInt256.ofNat 0) (UInt256.ofNat 64) { val := 32 }) ByteArray.empty σ (k + 5 + 5 + 8) (C + 17 + 18 + 30)
+rd4 :
+  RD (immutableLayout.runtime cometWithExtendedAssetListBytecode (wordsOf (immStore v))) I g (initState σ σ₀ g A I)
+    (UInt256.ofNat 1393) cometWithExtendedAssetList_block_2653_stack
+    ((UInt256.ofNat 128).toByteArray.write 0 ByteArray.empty (UInt256.ofNat 64).toNat 32)
+    (M (UInt256.ofNat 0) (UInt256.ofNat 64) { val := 32 }) ByteArray.empty σ (k + 5 + 5 + 8 + 6) (C + 17 + 18 + 30 + 23)
+hc : (calldataWord I.calldata 4).toNat < EVM.addressModulus
+⊢ (D_J (deployedRuntime v) 0).contains (UInt256.ofNat 2664) = true

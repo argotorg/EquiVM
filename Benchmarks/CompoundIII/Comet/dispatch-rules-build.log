@@ -1,0 +1,107 @@
+⚠ [1210/1235] Replayed Reasoning.EVMWord
+warning: Reasoning/EVMWord.lean:1146:32: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+⚠ [1211/1235] Replayed Reasoning.Memory
+warning: Reasoning/Memory.lean:1888:36: unused variable `hgap`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Reasoning/Memory.lean:1919:2: 'change
+  (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract 0 destAddr ++
+        (src.data ++
+              (ByteArray.zeroes
+                  (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr)))).data).extract
+          srcAddr
+          (srcAddr +
+            (min len (src.size - srcAddr) +
+              (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr))))) ++
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract
+        (destAddr +
+          min
+            (min len (src.size - srcAddr) +
+              (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr))))
+            ((src.data ++
+                  (ByteArray.zeroes
+                      (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr)))).data).size -
+              srcAddr)) =
+    base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
+      (src.extract srcAddr (srcAddr + len)).data' tactic does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Reasoning/Memory.lean:2201:2: 'change
+  (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract 0 destAddr ++
+        (src.data ++
+              (ByteArray.zeroes
+                  (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr)))).data).extract
+          srcAddr
+          (srcAddr +
+            (min len (src.size - srcAddr) +
+              (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr))))) ++
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract
+        (destAddr +
+          min
+            (min len (src.size - srcAddr) +
+              (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr))))
+            ((src.data ++
+                  (ByteArray.zeroes
+                      (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr)))).data).size -
+              srcAddr)) =
+    base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
+      (src.extract srcAddr (srcAddr + len)).data' tactic does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Reasoning/Memory.lean:2899:52: unused variable `hr`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Reasoning/Memory.lean:2924:32: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Reasoning/Memory.lean:3470:34: unused variable `hgap`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Reasoning/Memory.lean:3480:28: This simp argument is unused:
+  show (destAddr - base.size) = destAddr - base.size from rfl
+
+Hint: Omit it from the simp argument list.
+  simp only [hcopy, htail, ByteArray.data_copySlice, ByteArray.data_append, B̵y̵t̵e̵A̵r̵r̵a̵y̵.̵d̵a̵t̵a̵_̵e̵x̵t̵r̵a̵c̵t̵,̵ ̵s̵h̵o̵w̵ ̵(̵d̵e̵s̵t̵A̵d̵d̵r̵ ̵-̵ ̵b̵a̵s̵e̵.̵s̵i̵z̵e̵)̵ ̵=̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵d̵e̵s̵t̵A̵d̵d̵r̵ ̵-̵ ̵b̵a̵s̵e̵.̵s̵i̵z̵e̵ ̵f̵r̵o̵m̵ ̵r̵f̵l̵]̵B̲y̲t̲e̲A̲r̲r̲a̲y̲.̲d̲a̲t̲a̲_̲e̲x̲t̲r̲a̲c̲t̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [3457/3466] Replayed Reasoning.ABI
+warning: Reasoning/ABI.lean:4614:28: This simp argument is unused:
+  abiUInt256
+
+Hint: Omit it from the simp argument list.
+  simp [encodePackedValue?, a̵b̵i̵U̵I̵n̵t̵2̵5̵6̵,̵ ̵encodeABIWord?, hword, hlt]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Reasoning/ABI.lean:4621:28: This simp argument is unused:
+  abiBytes32
+
+Hint: Omit it from the simp argument list.
+  simp [encodePackedValue?, abiBytes32,̵ ̵a̵b̵i̵B̵y̵t̵e̵s̵3̵2̵Width, wordBytes32Value,
+  ̵  ̵ ̵ ̵fixedBytesSize, hlen]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Reasoning/ABI.lean:4621:57: This simp argument is unused:
+  wordBytes32Value
+
+Hint: Omit it from the simp argument list.
+  simp [encodePackedValue?, abiBytes32, abiBytes32Width, w̵o̵r̵d̵B̵y̵t̵e̵s̵3̵2̵V̵a̵l̵u̵e̵,̵
+  ̵ ̵ ̵ ̵ ̵fixedBytesSize, hlen]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [3459/3466] Replayed Reasoning.Solc
+warning: Reasoning/Solc.lean:8246:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+⚠ [3464/3466] Replayed Reasoning.Storage
+warning: Reasoning/Storage.lean:2027:41: This simp argument is unused:
+  Std.ExtTreeMap.getElem?_insert_self
+
+Hint: Omit it from the simp argument list.
+  simp [Option.option, State.setAccount,̵ ̵S̵t̵d̵.̵E̵x̵t̵T̵r̵e̵e̵M̵a̵p̵.̵g̵e̵t̵E̵l̵e̵m̵?̵_̵i̵n̵s̵e̵r̵t̵_̵s̵e̵l̵f̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+✔ [3466/3466] Built Benchmarks.CompoundIII.Comet.DispatchRules (2.4s)
+Build completed successfully (3466 jobs).

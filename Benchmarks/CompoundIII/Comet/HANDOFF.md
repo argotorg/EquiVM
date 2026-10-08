@@ -166,3 +166,82 @@ explicit adapters, not remaining specification holes.
 The loops, packed state updates, external call boundaries, and immutable constructor patching
 are expected to dominate the proof effort. The optimized Yul and the full runtime/creation block
 report are available alongside the compiler artifacts.
+
+## Proof audit, 2026-10-08: immutable valuation bounds (resolved with approval)
+
+The required differential suite was rerun successfully with the command above. Its current
+output is in `difftest.log`: 3625 cases, 3619 agree (2279 successful), zero disagreements or stuck
+cases, and six inapplicable constructor cases. This target uses constructor-derived immutables.
+
+The generated proof scaffold quantifies over a larger set of immutable values than that target.
+`CometWithExtendedAssetListImmutables` gives `decimals` and `numAssets` unrestricted `EVM.Word`
+fields, although their declared types in `SpecSyntax.lean` are `uint8`. The unconditional body
+lemmas and `cometWithExtendedAssetListCorrect` therefore include values such as 256. This is a
+counterexample to the scaffold's claimed runtime equivalence: the getter bytecode masks the
+word with 255 and returns zero, while the source returns 256, which cannot encode as `uint8`.
+
+`ScaffoldAudit.lean` reproduces both getters at 255 (successful agreement) and 256 (disagreement).
+It uses the actual deployed runtime from `immStore` of a scaffold valuation, the full original
+contract, zero call value, valid four-byte calldata, and 100000 gas. It also proves that 256
+cannot satisfy `returnEquiv` for a `uint8` return, and that the EVM mask produces zero. These
+small theorems use only standard Lean axioms and do not depend on unfinished proof theorems.
+Run `lake env lean Benchmarks/CompoundIII/Comet/ScaffoldAudit.lean` to reproduce the evidence.
+
+The user approved the correction: add the proof fields
+`decimals_lt : decimals.toNat < 256` and `numAssets_lt : numAssets.toNat < 256` to the immutable
+valuation structure. Derive them from the existing `immutablesFit` hypothesis when proving
+`restrictImmutables_of_fit`. This restricts the scaffold to well-typed valuations while
+preserving the requested whole-contract refinement statement, specification, and bytecode.
+The audit now uses an explicitly untyped store for these regression checks.
+
+Proof work stopped at this finding as required by `Misc/prompt.md` sections 1 and 10. The Lean
+skill additionally requires discussion before changing declaration signatures. No existing
+proof statement, specification, bytecode, or generated block summary has been changed. The full
+goal remained incomplete at that checkpoint, with the original 139 proof placeholders present.
+
+## Proof progress after approval
+
+The approved `decimals_lt` and `numAssets_lt` fields are now in `Immutables.lean`.
+`restrictImmutables_of_fit` is proved from `immutablesFit`, including both bounds, using the
+generic extraction lemmas in `ImmutableValues.lean`. The regression audit now constructs an
+explicitly untyped store for its deliberately invalid 256 cases.
+
+All 68 source selector-dispatch facts are proved. `SourceSelectors.lean` establishes selector
+uniqueness using kernel evaluation, and `SourceDispatch.lean` retains the scaffold's theorem
+signatures. The oversized original dispatcher file is split into three runtime-reach files
+plus the source-dispatch file; `Dispatch.lean` imports them. Its runtime traces are unchanged.
+
+The immutable-getter source prologue, signed calldata-size checks, return-memory round trip,
+and source/EVM refinement connection are proved in `GetterSource.lean`, `GetterCommon.lean`,
+and `SelectorRefinement.lean`. The last module handles named calls in a contract with a fallback.
+All 24 immutable getters and five pause-status getters are complete. The mapping getters
+`userNonce`, `totalsCollateral`, `userCollateral`, `isAllowed`, `liquidatorPoints`, and `userBasic`
+are complete, as is `hasPermission`. The utilization getter, both rate getters, and both total
+getters, both balance getters, `initializeStorage`, and `pause` are complete. This is 45 of the 68 ABI
+body proofs. Together with the selector facts and immutable extraction, 114 of the original
+139 placeholders are filled; 25 remain,
+including the constructor and fallback. The full contract theorem is still incomplete.
+
+Shared helpers cover canonical address decoding, two-address decoding, packed unsigned and
+signed storage fields, static multiword returns, and the internal permission routine. The
+`SignedFields` lemmas connect the source's signed normalization to `SIGNEXTEND` and ABI encoding;
+`userBasic` therefore includes negative principals. No new custom axioms have been introduced.
+
+The shared rate routines and accrued-interest-index routine now cover success and all arithmetic
+reverts. Their proofs retain the source and bytecode evaluation orders. Every accrual caller
+supplies a 40-bit elapsed time, so the intermediate rate/time/index products fit in 256 bits;
+the proofs retain both 64-bit index overflow checks. Timestamp-limit and elapsed-time-underflow
+paths are also proved. These helpers support the completed total and balance getters. The balance proofs cover
+positive, zero, and negative account principals. Checked negation of the minimum int104 value
+is proved to revert in both the source and bytecode. Shared source reads, unsigned conversion,
+present-value arithmetic, and checked-address refinement are factored for reuse.
+
+Initialization covers the timestamp and both index writes, preserving the other packed fields.
+The proof includes repeat-initialization reverts, timestamp overflow, and static-call rejection.
+`PackedWrites`, `ScalarWrites`, and the state-changing selector adapters support later mutations.
+The pause proof validates all five canonical bool arguments, both authorized callers, the packed
+flag update, the event/return path, and static-call rejection. Its helper files separate argument
+decoding, source execution, authorization, flag assembly, and the packed write.
+
+Targeted builds have been used throughout, including all completed ABI proof modules.
+No bytecode, Solidity source, specification, or supplied block summary was changed by this work.

@@ -1,0 +1,6 @@
+⚠ [1184/1208] Replayed Reasoning.EVMWord
+warning: Reasoning/EVMWord.lean:1146:32: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+✔ [1208/1208] Built Benchmarks.CompoundIII.Comet.ImmutableValues (1.7s)
+Build completed successfully (1208 jobs).

@@ -1,0 +1,96 @@
+⚠ [1230/1320] Replayed Reasoning.EVMWord
+warning: Reasoning/EVMWord.lean:1146:32: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+⚠ [1246/1320] Replayed Reasoning.Memory
+warning: Reasoning/Memory.lean:1888:36: unused variable `hgap`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Reasoning/Memory.lean:1919:2: 'change
+  (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract 0 destAddr ++
+        (src.data ++
+              (ByteArray.zeroes
+                  (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr)))).data).extract
+          srcAddr
+          (srcAddr +
+            (min len (src.size - srcAddr) +
+              (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr))))) ++
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract
+        (destAddr +
+          min
+            (min len (src.size - srcAddr) +
+              (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr))))
+            ((src.data ++
+                  (ByteArray.zeroes
+                      (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr)))).data).size -
+              srcAddr)) =
+    base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
+      (src.extract srcAddr (srcAddr + len)).data' tactic does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Reasoning/Memory.lean:2201:2: 'change
+  (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract 0 destAddr ++
+        (src.data ++
+              (ByteArray.zeroes
+                  (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr)))).data).extract
+          srcAddr
+          (srcAddr +
+            (min len (src.size - srcAddr) +
+              (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr))))) ++
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract
+        (destAddr +
+          min
+            (min len (src.size - srcAddr) +
+              (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr))))
+            ((src.data ++
+                  (ByteArray.zeroes
+                      (min base.size (destAddr + len) - (destAddr + min len (src.size - srcAddr)))).data).size -
+              srcAddr)) =
+    base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
+      (src.extract srcAddr (srcAddr + len)).data' tactic does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Reasoning/Memory.lean:2899:52: unused variable `hr`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Reasoning/Memory.lean:2924:32: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Reasoning/Memory.lean:3470:34: unused variable `hgap`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Reasoning/Memory.lean:3480:28: This simp argument is unused:
+  show (destAddr - base.size) = destAddr - base.size from rfl
+
+Hint: Omit it from the simp argument list.
+  simp only [hcopy, htail, ByteArray.data_copySlice, ByteArray.data_append, B̵y̵t̵e̵A̵r̵r̵a̵y̵.̵d̵a̵t̵a̵_̵e̵x̵t̵r̵a̵c̵t̵,̵ ̵s̵h̵o̵w̵ ̵(̵d̵e̵s̵t̵A̵d̵d̵r̵ ̵-̵ ̵b̵a̵s̵e̵.̵s̵i̵z̵e̵)̵ ̵=̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵d̵e̵s̵t̵A̵d̵d̵r̵ ̵-̵ ̵b̵a̵s̵e̵.̵s̵i̵z̵e̵ ̵f̵r̵o̵m̵ ̵r̵f̵l̵]̵B̲y̲t̲e̲A̲r̲r̲a̲y̲.̲d̲a̲t̲a̲_̲e̲x̲t̲r̲a̲c̲t̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [1249/1320] Replayed Reasoning.BytecodePatching
+warning: Reasoning/BytecodePatching.lean:328:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Reasoning/BytecodePatching.lean:1163:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Reasoning/BytecodePatching.lean:1166:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+⚠ [3500/3575] Replayed Reasoning.Immutables
+warning: Reasoning/Immutables.lean:106:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Reasoning/Immutables.lean:109:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+ℹ [7136/7138] Replayed evmlean/libleanffi.static
+info: stdout/stderr:
+Cloning EthereumTests into a submodule.
+Ξ_BN_ADD failed: BN_ADD returned 0 bytes; expected 64
+Ξ_BN_ADD failed: BN_ADD returned 0 bytes; expected 64
+Ξ_BN_MUL failed: BN_MUL returned 0 bytes; expected 64
+Ξ_SNARKV failed: SNARKV returned 0 bytes; expected 32
+solm-difftest: 1 target(s), seed 2026, 50 cases per transition
+CometWithExtendedAssetList: 3625 cases: 3619 agree (2279 successful), 0 disagree, 0 stuck, 0 EVM out of gas, 0 spec out of fuel, 6 inapplicable
+  successful/cases: constructor 0/25, isLiquidatable(address) 42/51, getReserves() 27/52, isSupplyPaused() 48/53, governor() 44/50, totalSupply() 30/50, baseTrackingSupplySpeed() 47/51, initializeStorage() 14/53, storeFrontPriceFactor() 45/50, transferFrom(address,address,uint256) 2/52, pauseGuardian() 43/51, withdrawFrom(address,address,address,uint256) 4/50, borrowPerSecondInterestRateSlopeHigh() 50/54, userCollateral(address,address) 42/50, borrowPerSecondInterestRateSlopeLow() 51/52, userNonce(address) 41/51, baseBorrowMin() 43/51, decimals() 43/50, targetReserves() 50/52, borrowBalanceOf(address) 33/52, isBorrowCollateralized(address) 37/50, getAssetInfoByAddress(address) 12/51, getPrice(address) 1/53, supplyTo(address,address,uint256) 4/53, transferAsset(address,address,uint256) 1/51, baseScale() 45/51, pause(bool,bool,bool,bool,bool) 24/53, extensionDelegate() 44/51, totalsCollateral(address) 41/50, supplyPerSecondInterestRateSlopeLow() 44/50, isWithdrawPaused() 47/52, balanceOf(address) 29/51, borrowPerSecondInterestRateBase() 48/52, quoteCollateral(address,uint256) 9/52, getUtilization() 47/53, supplyPerSecondInterestRateSlopeHigh() 47/52, totalBorrow() 30/50, isAbsorbPaused() 47/50, supplyFrom(address,address,address,uint256) 0/50, absorb(address,address[]) 5/53, borrowKink() 45/51, baseMinForRewards() 44/53, supplyPerSecondInterestRateBase() 43/51, baseTrackingBorrowSpeed() 46/52, getBorrowRate(uint256) 47/51, getCollateralReserves(address) 20/51, isAllowed(address,address) 43/51, isTransferPaused() 42/50, numAssets() 49/50, supplyKink() 46/52, transfer(address,uint256) 3/51, trackingIndexScale() 45/52, approveThis(address,address,uint256) 12/54, accrueAccount(address) 19/56, transferAssetFrom(address,address,address,uint256) 2/51, withdrawTo(address,address,uint256) 3/50, baseToken() 42/52, liquidatorPoints(address) 42/50, getAssetInfo(uint8) 39/50, hasPermission(address,address) 50/53, isBuyPaused() 48/50, getSupplyRate(uint256) 45/50, userBasic(address) 43/53, assetList() 47/52, withdrawReserves(address,uint256) 4/51, buyCollateral(address,uint256,uint256,address) 1/54, baseTokenPriceFeed() 45/52, supply(address,uint256) 2/52, withdraw(address,uint256) 1/52, stray 100/100
