@@ -336,7 +336,8 @@ def render_immutable_plumbing(c: Contract) -> list[str]:
     for imm in c.immutables:
         out += [f"@[simp] theorem immStore_get_{imm.name} (v : {c.imm_struct}) :",
                 f"    (immStore v).get? \"{imm.name}\" = some ({imm.value}) := by",
-                "  grind [immStore]", "",
+                "  simp only [immStore, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]",
+                "  rfl", "",
                 f"@[simp] theorem wordsOf_immStore_{imm.name} (v : {c.imm_struct}) :",
                 f"    wordsOf (immStore v) \"{imm.name}\" = {imm.word} :=",
                 f"  wordsOf_of_get (immStore_get_{imm.name} v) rfl", ""]
@@ -956,32 +957,33 @@ def render_dispatch(c: Contract, immutable_sites: dict | None, sorry_dispatch: b
             out += [f"  · rw [{t.name}SelectorOf]; exact hsel", ""]
         else:
             out += ["  sorry  -- TODO: contracts with a fallback/receive route unmatched selectors differently", ""]
-    out += [f"theorem {p}Dispatch_none_short {{cd : ByteArray}} (h : cd.size < 4) :",
-            "    dispatchMsg contract cd = none := by"]
-    if simple and not sorry_dispatch:
-        out += ["  rw [dispatchMsg_eq_dispatchList contract cd, transitions_eq]",
-                "  refine dispatchList_none_short _ ?_ h",
-                "  intro t ht",
-                "  simp only [List.mem_cons, List.not_mem_nil, or_false] at ht",
-                "  rcases ht with " + " | ".join(["rfl"] * len(c.transitions))]
-        out += [f"  · rw [{t.name}SelectorOf]; rfl" for t in c.transitions]
-        out += [""]
-    else:
-        out += ["  sorry", ""]
-    out += [f"theorem {p}Dispatch_none_nomatch {{I : ExecutionEnv}}",
-            f"    (hnm : ∀ i, i < {len(c.transitions)} → ({p}SelBytes i == I.calldata.extract 0 4) = false) :",
-            "    dispatchMsg contract I.calldata = none := by"]
-    if simple and not sorry_dispatch:
-        out += ["  refine dispatchMsg_none_of_all_ne (contract := contract) (cd := I.calldata) (by rfl) (by rfl) ?_",
-                "  intro t ht",
-                "  rw [transitions_eq] at ht",
-                "  simp only [List.mem_cons, List.not_mem_nil, or_false] at ht",
-                "  rcases ht with " + " | ".join(["rfl"] * len(c.transitions))]
-        for t in c.transitions:
-            out += [f"  · rw [{t.name}SelectorOf]; exact hnm {t.index} (by omega)"]
-        out += [""]
-    else:
-        out += ["  sorry", ""]
+    if simple:
+        out += [f"theorem {p}Dispatch_none_short {{cd : ByteArray}} (h : cd.size < 4) :",
+                "    dispatchMsg contract cd = none := by"]
+        if not sorry_dispatch:
+            out += ["  rw [dispatchMsg_eq_dispatchList contract cd, transitions_eq]",
+                    "  refine dispatchList_none_short _ ?_ h",
+                    "  intro t ht",
+                    "  simp only [List.mem_cons, List.not_mem_nil, or_false] at ht",
+                    "  rcases ht with " + " | ".join(["rfl"] * len(c.transitions))]
+            out += [f"  · rw [{t.name}SelectorOf]; rfl" for t in c.transitions]
+            out += [""]
+        else:
+            out += ["  sorry", ""]
+        out += [f"theorem {p}Dispatch_none_nomatch {{I : ExecutionEnv}}",
+                f"    (hnm : ∀ i, i < {len(c.transitions)} → ({p}SelBytes i == I.calldata.extract 0 4) = false) :",
+                "    dispatchMsg contract I.calldata = none := by"]
+        if not sorry_dispatch:
+            out += ["  refine dispatchMsg_none_of_all_ne (contract := contract) (cd := I.calldata) (by rfl) (by rfl) ?_",
+                    "  intro t ht",
+                    "  rw [transitions_eq] at ht",
+                    "  simp only [List.mem_cons, List.not_mem_nil, or_false] at ht",
+                    "  rcases ht with " + " | ".join(["rfl"] * len(c.transitions))]
+            for t in c.transitions:
+                out += [f"  · rw [{t.name}SelectorOf]; exact hnm {t.index} (by omega)"]
+            out += [""]
+        else:
+            out += ["  sorry", ""]
     # runtime reach lemmas
     out += ["/-! ## Runtime dispatcher paths -/", ""]
     size_hyps = " (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)"
@@ -1005,16 +1007,17 @@ def render_dispatch(c: Contract, immutable_sites: dict | None, sorry_dispatch: b
                                 Env("cvnz", "big", "nomatch"), "nomatch")
         out.append(text if not sorry_dispatch else text.split(":= by")[0] + ":= by\n  sorry\n")
     hwv_b = " (hwv : I.weiValue = ⟨0⟩)" if gen.global_guard else ""
-    text, _ = gen.rev_lemma(f"{p}X_short", "Calldata shorter than a selector",
-                            f"{{σ σ₀ A I}} {{g : Sat256}}{c.v_binder}\n    (hcode : I.code = {c.code_term}){hwv_b}\n"
-                            f"    (hshort : I.calldata.size < 4)", Env(0, "small", "nomatch"), "nomatch")
-    out.append(text if not sorry_dispatch else text.split(":= by")[0] + ":= by\n  sorry\n")
-    text, _ = gen.rev_lemma(f"{p}X_noMatch", "No selector matches",
-                            f"{{σ σ₀ A I}} {{g : Sat256}}{c.v_binder}\n    (hcode : I.code = {c.code_term}){hwv_b}\n"
-                            f"    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)\n"
-                            f"    (hnm : ∀ i, i < {len(c.transitions)} → ({p}SelBytes i == I.calldata.extract 0 4) = false)",
-                            Env(0, "big", "nomatch"), "nomatch")
-    out.append(text if not sorry_dispatch else text.split(":= by")[0] + ":= by\n  sorry\n")
+    if simple:
+        text, _ = gen.rev_lemma(f"{p}X_short", "Calldata shorter than a selector",
+                                f"{{σ σ₀ A I}} {{g : Sat256}}{c.v_binder}\n    (hcode : I.code = {c.code_term}){hwv_b}\n"
+                                f"    (hshort : I.calldata.size < 4)", Env(0, "small", "nomatch"), "nomatch")
+        out.append(text if not sorry_dispatch else text.split(":= by")[0] + ":= by\n  sorry\n")
+        text, _ = gen.rev_lemma(f"{p}X_noMatch", "No selector matches",
+                                f"{{σ σ₀ A I}} {{g : Sat256}}{c.v_binder}\n    (hcode : I.code = {c.code_term}){hwv_b}\n"
+                                f"    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)\n"
+                                f"    (hnm : ∀ i, i < {len(c.transitions)} → ({p}SelBytes i == I.calldata.extract 0 4) = false)",
+                                Env(0, "big", "nomatch"), "nomatch")
+        out.append(text if not sorry_dispatch else text.split(":= by")[0] + ":= by\n  sorry\n")
     out += [f"end {c.namespace}", ""]
     return "\n".join(out), info
 
@@ -1118,13 +1121,16 @@ def render_correct(c: Contract, global_guard: bool) -> str:
     out += [f"theorem {p}NoDispatch {{σ σ₀ A I}} {{g : UInt256}}{v}",
             f"    (hcode : I.code = {code}) (hsize : I.calldata.size < UInt256.size){hwv_b}",
             f"    (hnm : ∀ i, i < {n} → ({p}SelBytes i == I.calldata.extract 0 4) = false) :",
-            f"    runtimeRefinementFor config contract σ σ₀ g A I{imm} := by",
-            "  by_cases hsz : 4 ≤ I.calldata.size",
-            f"  · exact ({p}X_noMatch (g := Sat256.ofUInt256 g){vv} hcode{hwv_a} hsz hsize hnm)",
-            f"      |>.reEquivNoDispatch hcode ({p}Dispatch_none_nomatch hnm)",
-            "  · have hshort : I.calldata.size < 4 := by omega",
-            f"    exact ({p}X_short (g := Sat256.ofUInt256 g){vv} hcode{hwv_a} hshort)",
-            f"      |>.reEquivNoDispatch hcode ({p}Dispatch_none_short hshort)", ""]
+            f"    runtimeRefinementFor config contract σ σ₀ g A I{imm} := by"]
+    if c.has_fallback or c.has_receive:
+        out += ["  sorry  -- TODO: refine the fallback/receive execution for unmatched calldata", ""]
+    else:
+        out += ["  by_cases hsz : 4 ≤ I.calldata.size",
+                f"  · exact ({p}X_noMatch (g := Sat256.ofUInt256 g){vv} hcode{hwv_a} hsz hsize hnm)",
+                f"      |>.reEquivNoDispatch hcode ({p}Dispatch_none_nomatch hnm)",
+                "  · have hshort : I.calldata.size < 4 := by omega",
+                f"    exact ({p}X_short (g := Sat256.ofUInt256 g){vv} hcode{hwv_a} hshort)",
+                f"      |>.reEquivNoDispatch hcode ({p}Dispatch_none_short hshort)", ""]
     hyps = " ".join(f"(h{t.index} : ¬ selIs I ({p}SelBytes {t.index}))" for t in c.transitions)
     out += [f"theorem {p}NoSelectorMatches {{I : ExecutionEnv}}", f"    {hyps} :",
             f"    ∀ i, i < {n} → ({p}SelBytes i == I.calldata.extract 0 4) = false := by",
