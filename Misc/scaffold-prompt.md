@@ -38,7 +38,8 @@ differential suite cannot tell apart from it, and the proof skeleton the proving
    ```
    Compiles and pins the artifacts, writes `Bytecode.lean`, `Selectors.lean`, the immutable
    modules, `DiffTarget.lean` (registered in `Tests/DiffTest/Generated.lean`), the block
-   summaries, and checks them. Every check line must read `ok`.
+   summaries, and checks them. Every check line must read `ok`. A contract with transient
+   storage needs `--evm-version cancun` (or later) and solc 0.8.28 or later.
 2. **Report.** `scripts/bytecode_report.py <Dir> --output <Dir>/<Name>.report.md`: the
    dispatcher, every runtime block with its source statement, the per-function pc ranges, the
    internal routines. This is the ground truth for steps 4 and 8.
@@ -73,6 +74,8 @@ differential suite cannot tell apart from it, and the proof skeleton the proving
      a statement, or a statement without blocks, is a finding;
    - storage: each `SLOAD` and `SSTORE` has its read or write in the spec, in the same order,
      with the same slot derivation (mapping keys, array elements and lengths, packed fields);
+     the same for `TLOAD` and `TSTORE` against the `transient` declarations, whose slots start
+     at zero in their own space;
    - arithmetic: checked operations revert on overflow and wrapping ones do not; division and
      modulo by zero; shifts, masks and sign extension at the declared widths;
    - guards, in the order the bytecode evaluates them: the compiler's (payability, `EXTCODESIZE`,
