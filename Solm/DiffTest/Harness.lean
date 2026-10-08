@@ -38,8 +38,10 @@ structure Target where
   initcode : Option ByteArray := none
   /-- the code a successful constructor must return, as a function of its final immutables -/
   runtimeCodeOf : Option (Store → ByteArray) := none
-  /-- take `runtime` (and `runtimeCodeOf`) from a run of the creation code without arguments: for
-      a constructor that fixes the immutables itself when no patch layout is available -/
+  /-- take `runtime` and `immutables` from one constructor run with generated arguments: the code
+      the EVM returned and the store the specification's constructor left.  Without a
+      `runtimeCodeOf`, the returned code also becomes the expected deployed code (adequate when
+      the constructor fixes its immutables). -/
   deployedRuntime : Bool := false
   /-- extra accounts (addresses with code) for the external-call tests -/
   callees : List (EVM.Address × ByteArray) := []
@@ -204,19 +206,29 @@ def runConstructor (t : Target) (initcode : ByteArray) (args : List Value) (valu
           (.agree how, some σ')
       | v, _ => (v, none)
 
-/-- `deployedRuntime`: the code the creation code returns, run once without arguments. -/
-def Target.resolveRuntime (t : Target) : Target :=
+/-- `deployedRuntime`: a constructor run with generated arguments on both sides, retried with fresh
+    arguments up to `attempts` times (constructors reject many argument draws); the target is left
+    unchanged when no run succeeds. -/
+def Target.resolveRuntime (t : Target) (r : Rng) (attempts : Nat := 8) : Target × Rng := Id.run do
+  let mut r := r
   match t.deployedRuntime, t.initcode with
   | true, some initcode =>
-      match t.config.selfDeployment initcode [] with
-      | none => t
-      | some code =>
+      for _ in [:attempts] do
+        let (args, r') := genValues t.pools (t.contract.ctor.params.map Param.ty) r
+        r := r'
+        if let some code := t.config.selfDeployment initcode args then
           let σ := t.world ByteArray.empty
           let I := t.env code (t.callers.headD t.selfAddress) 0 ByteArray.empty true
-          match (runTrace (initialState σ σ (.ofNat t.gas) default I) (t.gas + 1)).result with
-          | .ok (.success _ o) => { t with runtime := o, runtimeCodeOf := some fun _ => o }
-          | _ => t
-  | _, _ => t
+          let g : UInt256 := .ofNat t.gas
+          let tr := runTrace (initialState σ σ g default I) (t.gas + 1)
+          match tr.result,
+                solmCtorExecRun t.fuel replayOracle (Replay.ofTrace tr) t.config t.contract args σ σ g default I with
+          | .ok (.success _ o), some (.result (.returned frame _ _), _) =>
+              return ({ t with runtime := o, immutables := frame.immutables,
+                               runtimeCodeOf := t.runtimeCodeOf <|> some fun _ => o }, r)
+          | _, _ => pure ()
+      return (t, r)
+  | _, _ => return (t, r)
 
 /-! ## Case generation -/
 
@@ -279,8 +291,8 @@ def transitionName : Option TransitionDecl → String
 /-- Run `count` cases per transition from the seed, continuing sequences from the EVM's
     post-state, and the constructor cases.  Returns the summary. -/
 def runTarget (t : Target) (seed : Nat) (count : Nat) (sequenceLength : Nat := 4) : Summary := Id.run do
-  let t := t.resolveRuntime
-  let mut r := Rng.ofSeed seed
+  let (t, r0) := t.resolveRuntime (Rng.ofSeed seed)
+  let mut r := r0
   let mut summary : Summary := {}
   let mut deployed : Option AccountMap := none
   -- constructor
