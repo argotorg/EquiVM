@@ -35,6 +35,15 @@ open Solm ABI Ethereum Ethereum.EVM
 
 namespace Reasoning.Reach
 
+/-- A memory read whose length comes from an EVM word fits in `UInt256`.
+    This bound does not depend on the gas available to the call. -/
+theorem readWithPadding_size_lt_uint256_of_word
+    (mem : ByteArray) (offset length : UInt256) :
+    (mem.readWithPadding offset.toNat length.toNat).size < UInt256.size :=
+  Nat.lt_of_le_of_lt
+    (Ethereum.EVM.ByteArray.readWithPadding_size_le mem offset.toNat length.toNat)
+    length.val.isLt
+
 open Reasoning.Theory
 
 /-- `MachineState.M` lifted to EVM words, including the word conversion used by gas accounting. -/
@@ -3009,7 +3018,7 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       (by unfold RD; exact Or.inl hoog),
       (by
         exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
+          (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize))⟩
   · -- reach the CALL cursor `s`; reduce `step_call` (value 0, depth < 1024)
     have hd : decode s.executionEnv.code s.machineState.pc = some (.CALL, .none) := by
       rw [hcode, hpc]; exact hdec
@@ -3038,7 +3047,7 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
         (by unfold RD; exact Or.inl hXP),
         (by
           exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-            (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
+            (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize))⟩
     · -- success: SUCC is concrete in hXP.  Emit `Or.inr ⟨SUCC, …⟩` with field projections,
       -- the gas-refund arithmetic (`C' = g - SUCC.gas`), and the Θ-link by tuple-eta.
       rename_i hP
@@ -3148,7 +3157,7 @@ theorem RD.call {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
           cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } { val := 0 }
           (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.blobVersionedHashes s.executionEnv.blocks s.executionEnv.perm
-          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)
+          (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize)
 
 /-- `RD.call` specialized to Solidity's empty-call-data / no-return-copy pattern.
 
@@ -3240,7 +3249,7 @@ theorem RD.callValueMadeOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {
       (by unfold RD; exact Or.inl hoog),
       (by
         exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
+          (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize))⟩
   · have hd : decode s.executionEnv.code s.machineState.pc = some (.CALL, .none) := by
       rw [hcode, hpc]; exact hdec
     have hdepth' : s.executionEnv.depth.val < 1024 := by rw [hee]; exact hdepth
@@ -3293,7 +3302,7 @@ theorem RD.callValueMadeOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {
         (by unfold RD; exact Or.inl hXP),
         (by
           exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-            (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _))⟩
+            (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize))⟩
     · rename_i hP
       set mc := memoryExpansionCost s Operation.CALL with hmc
       set gc := Ccall (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) valueWord
@@ -3387,7 +3396,7 @@ theorem RD.callValueMadeOr {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
           cg (UInt256.ofNat s.executionEnv.gasPrice) valueWord valueWord
           (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.blobVersionedHashes s.executionEnv.blocks s.executionEnv.perm
-          (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)
+          (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize)
 
 /-- `RD.callValueMade` specialized to Solidity's empty-call-data / no-return-copy pattern. -/
 
