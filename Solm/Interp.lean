@@ -247,7 +247,7 @@ partial def allocationSizes : Expr → List Expr
   | .abiEncodePacked es => es.flatMap fun (_, e) => allocationSizes e
   | .bytesSlice a b c | .ite a b c => allocationSizes a ++ allocationSizes b ++ allocationSizes c
   | .binary _ a b | .index a b | .extCodePrefix a b => allocationSizes a ++ allocationSizes b
-  | .storage ref | .arrayLength _ ref => refExprs ref |>.flatMap allocationSizes
+  | .storage ref | .transient ref | .arrayLength _ ref => refExprs ref |>.flatMap allocationSizes
   | _ => []
 where
   refExprs (ref : StorageRef) : List Expr :=
@@ -311,7 +311,8 @@ def execStmt (fuel : Nat) (o : Oracle Ω) (ω : Ω) (cfg : Config) (solm : Frame
           | .revert => (.result .reverted, ω)                                                       -- assignStoreRevert
           | .error e => (stuckEval "assign (store)" e, ω)
           | .ok (solm', evm') =>
-              if origin = .storage ∧ perm = false then (.result .staticViolation, ω)              -- assignStatic
+              if (origin = .storage ∨ origin = .transient) ∧ perm = false then
+                (.result .staticViolation, ω)                                                     -- assignStatic / assignTransientStatic
               else (.result (.ok solm' evm'), ω)                                                   -- assign
   | .push ref (some expr) =>
       match evalExpr? cfg solm evm expr with

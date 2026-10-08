@@ -108,7 +108,7 @@ partial def exprLiterals : Expr → List Value
   | .abiEncodePacked es => es.flatMap fun (_, e) => exprLiterals e
   | .bytesSlice a b c | .ite a b c => exprLiterals a ++ exprLiterals b ++ exprLiterals c
   | .binary _ a b | .index a b | .extCodePrefix a b => exprLiterals a ++ exprLiterals b
-  | .storage ref | .arrayLength _ ref => refLiterals ref
+  | .storage ref | .transient ref | .arrayLength _ ref => refLiterals ref
   | _ => []
 
 partial def refLiterals (ref : StorageRef) : List Value :=
@@ -319,8 +319,10 @@ partial def keyTuples (pools : Pools) (cap : Nat) :
 
 /-- Storage pre-state: for every mapping, entries at the key tuples over the case's actors (each
     kept with probability `keep`%), then `randomWrites` random writes per variable, all through
-    the specification's backend.  Writes the backend rejects are skipped.  Also returns the pools
-    of the keys and values written. -/
+    the specification's backends: persistent declarations through `storageBackend`, transient
+    ones through `transientBackend` (a nonzero transient pre-state stands for earlier calls of
+    the same transaction).  Writes a backend rejects are skipped.  Also returns the pools of the
+    keys and values written. -/
 partial def randomStorage (cfg : Config) (contract : ContractDecl) (pools : Pools) (evm : EVM.State)
     (r : Rng) (randomWrites : Nat := 2) (cap : Nat := 12) (keep : Nat := 85) :
     EVM.State × Pools × Rng := Id.run do
@@ -328,7 +330,8 @@ partial def randomStorage (cfg : Config) (contract : ContractDecl) (pools : Pool
   let mut evm := evm
   let mut trail : List Value := []
   let keyPools := pools.dedup
-  for decl in contract.storage do
+  let decls := contract.storage.map ((·, cfg.storageBackend)) ++ contract.transient.map ((·, cfg.transientBackend))
+  for (decl, backend) in decls do
     let mut targets : List (List EvaledStorageRefStep × List Value × StorageType) := []
     match decl.ty with
     | .mapping .. =>
@@ -345,7 +348,7 @@ partial def randomStorage (cfg : Config) (contract : ContractDecl) (pools : Pool
       let (v?, r') := genStorageValue pools contract.structs ty r
       r := r'
       if let some v := v? then
-        if let .ok evm' := cfg.storageBackend.write { base := decl.name, steps := steps } ty v evm then
+        if let .ok evm' := backend.write { base := decl.name, steps := steps } ty v evm then
           evm := evm'
           trail := trail ++ keys ++ [v]
   let written := Pools.ofValues trail
