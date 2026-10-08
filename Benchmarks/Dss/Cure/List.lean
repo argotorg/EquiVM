@@ -796,9 +796,6 @@ theorem listReturnCopiedMem_read_data_span_of_wf
     (base := 224 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (n := (solcSlotWordAt ⟨2⟩ σ I).toNat) (idx := 0)
     (by
-      have hret := cureStorageWF_returnEnd_lt_u64 hwf
-      omega)
-    (by
       rw [listReturnCopiedMem_size_of_wf hwf (n := (solcSlotWordAt ⟨2⟩ σ I).toNat)
         (by omega)]
       omega)
@@ -832,17 +829,11 @@ theorem listReturnCopiedMem_read_return_of_wf
             (32 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat) := by
     rw [show 64 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat =
       32 + (32 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat) by omega]
-    exact byteArray_readWithPadding_split
+    exact byteArray_readWithPadding_split_unbounded
       (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat)
       (listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat 32
       (32 + 32 * (solcSlotWordAt ⟨2⟩ σ I).toNat)
-      (by norm_num) (by omega) (by norm_num)
-      (by
-        have hret := cureStorageWF_returnEnd_lt_u64 hwf
-        omega)
-      (by
-        have hret := cureStorageWF_returnEnd_lt_u64 hwf
-        omega)
+      (by norm_num) (by omega)
       (by
         rw [listArrayFreePtr_toNat_of_wf hwf,
           listReturnCopiedMem_size_of_wf hwf
@@ -857,17 +848,11 @@ theorem listReturnCopiedMem_read_return_of_wf
           (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat).readWithPadding
             ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat + 64)
             (32 * (solcSlotWordAt ⟨2⟩ σ I).toNat) := by
-    exact byteArray_readWithPadding_split
+    exact byteArray_readWithPadding_split_unbounded
       (listReturnCopiedMem σ I (solcSlotWordAt ⟨2⟩ σ I).toNat)
       ((listArrayFreePtr (solcSlotWordAt ⟨2⟩ σ I)).toNat + 32) 32
       (32 * (solcSlotWordAt ⟨2⟩ σ I).toNat)
-      (by norm_num) (by omega) (by norm_num)
-      (by
-        have hret := cureStorageWF_returnEnd_lt_u64 hwf
-        omega)
-      (by
-        have hret := cureStorageWF_returnEnd_lt_u64 hwf
-        omega)
+      (by norm_num) (by omega)
       (by
         rw [listArrayFreePtr_toNat_of_wf hwf,
           listReturnCopiedMem_size_of_wf hwf
