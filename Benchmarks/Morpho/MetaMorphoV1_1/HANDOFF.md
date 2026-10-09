@@ -132,9 +132,9 @@ above do not use those precompiles.
 ## Where the spec follows compiled behavior
 
 The semantic audit covers all 76 selector arms, shared runtime routines, constructor code,
-and rejection of unknown/short calldata. There is no receive or fallback function. No audit
-finding remains open. This is an audited specification and proof skeleton, not a completed
-formal proof.
+and rejection of unknown/short calldata. There is no receive or fallback function. The later
+proof-valuation issue below was resolved with approved bounds. The remaining function and
+constructor proofs are still in progress.
 
 - `PendingAddress` includes an explicit `uint32 padding` field. Solidity packs its declared
   address and uint64 into 224 bits, but deletion clears the entire slot. Ordinary field
@@ -170,12 +170,14 @@ backend changes or slot-noncollision axioms were introduced.
 
 ## Guidance for the proving session
 
-Start from `Correct.lean`. All 78 remaining `sorry`s are the intended generated stubs:
-76 function bodies, the constructor, and `Common.restrictImmutables_of_fit`.
-`SpecSyntax.lean` is authoritative. Regenerate with
-`python3 Benchmarks/Morpho/MetaMorphoV1_1/generate_skeleton.py --force`; do not manually patch
-the generated proof files. The local wrapper preserves the hand-authored external ABI and
-raises elaboration resources for the eleven immutables.
+Start from `Correct.lean`. The original skeleton had 78 placeholders: 76 function bodies,
+the constructor, and `Common.restrictImmutables_of_fit`. Handwritten proofs now replace the
+bridge and twenty-nine function stubs. Do not force-regenerate the skeleton:
+that would overwrite this proof work. `SpecSyntax.lean` remains authoritative.
+
+`Dispatch.lean` now imports five source-dispatch shards and five EVM-reach shards. Every shard
+is below 2,000 lines; original theorem statements and proofs are retained. `BodyCommon.lean`
+contains shared source guards, byte-length arithmetic, selector exclusion, and return encoding.
 
 There are **eleven** immutables, including inherited OpenZeppelin fields. The test valuation
 is `deployedImmutables` in `DiffTarget.lean`; values and current offsets are also in
@@ -215,3 +217,126 @@ successful equivalence test. Begin with the simple getters and shared arithmetic
 be generated with `python3 scripts/bytecode_report.py Benchmarks/Morpho/MetaMorphoV1_1
 --full-creation --output /tmp/metamorpho-full-report.md`. Executable init code ends at PC 3893;
 the embedded runtime starts at byte 3894, followed by the two constructor event-topic constants.
+
+## Proof valuation issue found on 2026-10-08
+
+The randomized differential suite was rerun with `--only MetaMorphoV1_1 --count 50` and exited
+successfully: both targets again reported 4025 agreements, with zero disagreements or stuck
+cases. Those targets use fitting immutable stores.
+
+The generated `MetaMorphoV1_1Immutables` structure represents `_underlyingDecimals` and
+`DECIMALS_OFFSET`, both declared uint8, as unrestricted `EVM.Word` fields. Consequently,
+`metaMorphoV1_1Correct` and `metaMorphoV1_1DECIMALS_OFFSETBody` quantify over invalid valuations.
+At `DECIMALS_OFFSET = 256`, the runtime masks the value with 255 and returns zero, but the
+source returns 256, which cannot be ABI-encoded at the declared uint8 return type.
+
+`ImmutableTypeRegression.lean` preserves the executable reproduction and two kernel-checked
+facts about the mask and failed return encoding. Both theorem axiom audits contain only
+standard Lean axioms. Its module build and executable run pass, with this output:
+
+```text
+DECIMALS_OFFSET=255: agree (success)
+EVM return word: 255
+DECIMALS_OFFSET=256: DISAGREE: the returned values do not ABI-encode at the declared return types
+EVM return word: 0
+```
+
+The approved correction adds proof fields for `_underlyingDecimals.toNat < 256` and
+`DECIMALS_OFFSET.toNat < 256` to the valuation structure, deriving these bounds from
+`immutablesFit` in `restrictImmutables_of_fit`. This preserves the final
+`metaMorphoV1_1ContractCorrect` statement and the scope of all fitting immutable stores; it
+does not require any specification, bytecode, generated block-summary, or Solidity changes.
+The user approved this valuation change on 2026-10-08. The bridge is now proved from
+`immutablesFit`; its axiom audit contains only `propext` and `Quot.sound`.
+
+Completed functions: `DECIMALS_OFFSET`, `MORPHO`, `asset`, `lostAssets`, `lastTotalAssets`,
+`timelock`, `curator`, `guardian`, `skimRecipient`, `owner`, `pendingOwner`, `totalSupply`,
+`fee`, `feeRecipient`, `supplyQueueLength`, `withdrawQueueLength`, `decimals`,
+`pendingTimelock`, `pendingGuardian`, `balanceOf`, `nonces`, `isAllocator`, `pendingCap`,
+`config`, `allowance`, `supplyQueue`, `withdrawQueue`, `setCurator`, `setSkimRecipient`,
+`transferOwnership`, `acceptOwnership`, and `renounceOwnership`.
+
+Every completed function covers successful execution, nonzero callvalue rejection, and
+oversized calldata rejection. The queue getters cover bounds failures; the setters cover
+authorization, unchanged-value rejection, and static-call halts. The ownership functions cover
+authorization and static-call halts, preserving the unused portions of packed storage slots.
+`decimals` also covers uint8 sum overflow. All thirty-two individual axiom audits contain only
+standard Lean axioms and permitted concrete evaluation axioms; none contains `sorryAx`.
+The full `Correct` target passed at the thirty-two-function checkpoint (3619 jobs).
+There are **45 remaining placeholders** in other functions and the constructor. This is an
+intermediate checkpoint, not a completed correctness proof.
+
+Logs include `/tmp/metamorpho-32-functions-build.log`,
+`/tmp/metamorpho-transfer-ownership-build.log`, and `/tmp/metamorpho-accept-ownership-build.log`.
+
+The next dependency chain is `_maxDeposit` and the market/share arithmetic helpers used by
+`maxDeposit` and `maxMint`; these functions are not constant limit getters in this specification.
+
+The following dependencies now have completed proofs (the ABI-function count is unchanged):
+
+- `Arithmetic`, `CheckedArithmetic`, `MarketArithmetic`, and `MulDiv`: source arithmetic and
+  shared EVM checked addition, multiplication, division, and zero-floor subtraction routines.
+- `SharesToAssetsUp` and `SharesToAssetsUpRoutines`: rounded-up share-to-asset conversion,
+  including all arithmetic failure branches, on both the source and EVM sides.
+- `PackedSource`, `MorphoSlots`, and `MemoryArraySource`: source packed encoding, casts, nested
+  storage-slot hashes, and the singleton array used by `MorphoLib_supplyShares`.
+- `MemoryRoutines`, `MemoryArrayData`, `MemoryArrayRoutines`, and `PackedHashMemory`: allocation,
+  first-element access, singleton memory contents, and two-word hash buffers. The memory proofs
+  establish the length, contents, free cursor, and preservation of earlier allocated words.
+- `MorphoSlotRoutines.supplySharesReachEncoding`: EVM execution from pc 14078 through the nested
+  hashes and singleton construction to pc 14169. It assumes the explicit allocation bound
+  `ptr.toNat + 256 < 2^64`; callers must discharge it. Its audit contains 152 allowed axioms,
+  including concrete evaluation facts, and no `sorryAx` or unexpected axioms.
+- `SupplySharesSource`: the source supply-share reader, parameterized by the actual typed
+  `extSloads` call. It covers a nonempty decoded array, call failure, decoding failure, and an
+  empty decoded array.
+- `ExtSloadsABI`, `ExtSloadsMemory`, `ExtSloadsEncode`, and `ExtSloadsSetup`: the exact 100-byte
+  singleton request, preservation of its input array, the encoding loop, and the input stack
+  at STATICCALL pc 14210.
+- `ExtSloadsCall.extSloadsStaticcall`: couples the actual EVM call witness to the source call,
+  including the depth-limit branch, and reaches pc 14211. Its audit contains only the three
+  standard axioms and three permitted concrete evaluation axioms.
+
+Recent successful dependency build logs include `/tmp/metamorpho-slot-routines-build.log`,
+`/tmp/metamorpho-memory-array-routines-build.log`, `/tmp/metamorpho-slots-hash-memory-build.log`,
+`/tmp/metamorpho-extsloads-setup-build.log`, and `/tmp/metamorpho-extsloads-call-build.log`.
+
+## New unresolved return-buffer allocation mismatch
+
+Do not continue ordinary function proofs until this issue is resolved, as required by
+`Misc/prompt.md`. The previous approval concerned the uint8 immutable bounds; it did not
+authorize changing the source semantics outside this benchmark or restricting the gas domain.
+
+`ExtSloadsAllocationRegression.lean` contains a symbolic buffer of exactly `2^64` bytes:
+the ABI offset is 32, the array length is one, and all remaining bytes are zero. It proves:
+
+- `oversizedReturn_sourceAccepts`: the current external ABI decoder accepts a one-element array.
+- `oversizedReturn_allocatorRejects`: with free cursor 512, the compiled allocation guard fails.
+- `oversizedReturn_evmReverts`: from a successful-call state at pc 14211 with that buffer, the
+  supplied block summaries reach the allocation panic at pc 2690 and prove `RDrev`.
+- `oversizedReturn_withinGasDerivedBound`: the buffer is within the existing proved bound for
+  opaque EVM return data.
+- `oversizedReturn_memoryGasFits`: its EVM memory expansion costs less than `2^120` gas, a budget
+  allowed by the current 256-bit gas domain.
+
+These are checked local boundary facts, **not** an end-to-end counterexample to `Correct`.
+In particular, no complete transaction or callee `Theta` reachability witness is asserted.
+The source-acceptance proof uses only standard Lean axioms. The conditional bytecode-revert
+proof uses 74 allowed axioms, including concrete bytecode facts, with no unexpected axioms.
+
+The source frame does not track a compiler memory cursor. `ABI.decodeReturnValues?` checks
+the signed total-size bound and the individual uint64 offset/length bounds, but not the
+compiler's cumulative allocation bound. The source also does not reserve the copied return
+buffer. Thus decoder well-formedness alone cannot discharge the allocator guard. The earlier
+explicit `ptr + 256 < 2^64` obligation also requires a cumulative memory invariant at callers.
+
+The recommended repair is to retain the unconditional theorem and explicitly model allocation
+failure: add a memory cursor and allocation operation to Solm, propagate the cursor across
+internal calls, and annotate the benchmark's compiler allocation sites, including the raw
+return-buffer copy and decoded array. Likely library changes would involve
+`Solm/Semantics/Types.lean`, `Solm/Syntax/Basic.lean`, `Solm/Semantics/Exec.lean`, the interpreter
+and syntax support, and the affected `Reasoning` combinators. This exceeds the current
+benchmark-only edit scope and needs a scope decision before implementation. A smaller gas
+domain is an alternative change to the theorem's claim, not an implicit assumption we may add.
+
+Regression build log: `/tmp/metamorpho-extsloads-allocation-regression-build.log`.

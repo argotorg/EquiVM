@@ -1503,10 +1503,70 @@ theorem immutableLayout_keys :
     ∀ site ∈ immutableLayout.sites, site.2.2 ∈ contract.immutables.map (·.name) := by
   decide
 
+-- LIBRARY CANDIDATE: recover a typed address from any fitting immutable store.
+theorem immutablesFit_address {C : ContractDecl} {imms : Store} {name : String}
+    (h : immutablesFit C imms) (hd : ⟨name, .address⟩ ∈ C.immutables) :
+    ∃ a : EVM.Address, imms.get? name = some (.address a) := by
+  obtain ⟨v, hv, hfit⟩ := h _ hd
+  cases v <;> simp_all [elemValueFits]
+
+-- LIBRARY CANDIDATE: recover a bounded EVM word at any Solidity unsigned integer width.
+theorem immutablesFit_uint_word {C : ContractDecl} {imms : Store} {name : String}
+    (bits : ABI.BitWidth) (h : immutablesFit C imms)
+    (hd : ⟨name, .int (.uint bits)⟩ ∈ C.immutables) :
+    ∃ w : EVM.Word, imms.get? name = some (.int (Int.ofNat w.toNat)) ∧
+      w.toNat < 2 ^ bits.val := by
+  obtain ⟨v, hv, hfit⟩ := h _ hd
+  cases v <;> simp only [elemValueFits, Bool.false_eq_true, decide_eq_true_eq] at hfit
+  rename_i i
+  have hi : Int.ofNat i.toNat = i := Int.toNat_of_nonneg hfit.1
+  have hnat : i.toNat < 2 ^ bits.val := by
+    apply Int.ofNat_lt.mp
+    change (i.toNat : Int) < ((2 ^ bits.val : Nat) : Int)
+    simpa [Int.toNat_of_nonneg hfit.1] using hfit.2
+  have hbound : i.toNat < UInt256.size :=
+    lt_of_lt_of_le hnat (Nat.pow_le_pow_right (by decide) bits.property.2.1)
+  have hw : (EVM.word i.toNat).toNat = i.toNat := ulit_toNat' _ hbound
+  exact ⟨EVM.word i.toNat, by simpa only [hw, hi] using hv, by rwa [hw]⟩
+
 /-- A well-typed immutables store runs as the store of some valuation. -/
 theorem restrictImmutables_of_fit {imms : Store} (h : immutablesFit contract imms) :
     ∃ v, restrictImmutables contract imms = immStore v := by
-  sorry  -- TODO: case on each immutable's value as in Examples/TinyImmutable/Common.lean
+  obtain ⟨v0, hv0⟩ := immutablesFit_address (name := "_asset") h (by decide +kernel)
+  obtain ⟨v1, hv1, hb1⟩ :=
+    immutablesFit_uint_word (name := "_underlyingDecimals") ⟨8, by decide⟩ h (by decide +kernel)
+  obtain ⟨v2, hv2, hb2⟩ :=
+    immutablesFit_uint_word (name := "_cachedDomainSeparator") ⟨256, by decide⟩ h (by decide +kernel)
+  obtain ⟨v3, hv3, hb3⟩ :=
+    immutablesFit_uint_word (name := "_cachedChainId") ⟨256, by decide⟩ h (by decide +kernel)
+  obtain ⟨v4, hv4⟩ := immutablesFit_address (name := "_cachedThis") h (by decide +kernel)
+  obtain ⟨v5, hv5, hb5⟩ :=
+    immutablesFit_uint_word (name := "_hashedName") ⟨256, by decide⟩ h (by decide +kernel)
+  obtain ⟨v6, hv6, hb6⟩ :=
+    immutablesFit_uint_word (name := "_hashedVersion") ⟨256, by decide⟩ h (by decide +kernel)
+  obtain ⟨v7, hv7, hb7⟩ :=
+    immutablesFit_uint_word (name := "_name") ⟨256, by decide⟩ h (by decide +kernel)
+  obtain ⟨v8, hv8, hb8⟩ :=
+    immutablesFit_uint_word (name := "_version") ⟨256, by decide⟩ h (by decide +kernel)
+  obtain ⟨v9, hv9⟩ := immutablesFit_address (name := "MORPHO") h (by decide +kernel)
+  obtain ⟨v10, hv10, hb10⟩ :=
+    immutablesFit_uint_word (name := "DECIMALS_OFFSET") ⟨8, by decide⟩ h (by decide +kernel)
+  refine ⟨{
+    _asset := v0
+    _underlyingDecimals := v1
+    _cachedDomainSeparator := v2
+    _cachedChainId := v3
+    _cachedThis := v4
+    _hashedName := v5
+    _hashedVersion := v6
+    _name := v7
+    _version := v8
+    MORPHO := v9
+    DECIMALS_OFFSET := v10
+    underlyingDecimals_lt := hb1
+    decimalsOffset_lt := hb10 }, ?_⟩
+  simp only [restrictImmutables, contract, Syntax.contractSyntax, List.foldl, immStore,
+    hv0, hv1, hv2, hv3, hv4, hv5, hv6, hv7, hv8, hv9, hv10]
 
 /-- The patched runtime has the template's jump destinations (patch sites are push payloads). -/
 theorem metaMorphoV1_1PatchedValidJumps (v : MetaMorphoV1_1Immutables) :

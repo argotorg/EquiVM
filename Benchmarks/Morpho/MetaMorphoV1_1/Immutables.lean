@@ -27,6 +27,8 @@ structure MetaMorphoV1_1Immutables where
   _version : EVM.Word
   MORPHO : EVM.Address
   DECIMALS_OFFSET : EVM.Word
+  underlyingDecimals_lt : _underlyingDecimals.toNat < 256
+  decimalsOffset_lt : DECIMALS_OFFSET.toNat < 256
 
 /-- solc `immutableReferences`: each immutable's Solm name and patch offsets, in the order the
     constructor writes them. -/
