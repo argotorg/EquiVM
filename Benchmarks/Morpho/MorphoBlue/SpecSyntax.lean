@@ -214,25 +214,49 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
     return result;
   }
 
-  function SafeTransferLib_safeTransfer(address token, address «to», uint256 value) internal {
+  -- __memory models solc's free-memory pointer; it is neither storage nor an ABI argument.
+  -- PCs 14491/11507 allocate the code-check message; 14810/11535 allocate 128 input bytes.
+  function SafeTransferLib_safeTransfer(address token, address «to», uint256 value,
+      uint256 __memory) internal returns (uint256) {
+    __memory = __memory + 192;
+    require(__memory <= 2 ** 64 - 1);
     require(token.code.length > 0);
     (bool success, bytes memory returndata) = token.call(
       abi.encodeWithSelector(transfer, «to», value));
+    -- PCs 14548–14636: nonempty returndata needs a length word and rounded payload.
+    if (returndata.length != 0) {
+      require(returndata.length <= 2 ** 64 - 1);
+      __memory = __memory + 32 + ((returndata.length + 31) / 32) * 32;
+    }
+    -- The two subsequent require-message allocations each consume 64 bytes.
+    __memory = __memory + 128;
+    require(__memory <= 2 ** 64 - 1);
     require(success);
     if (returndata.length != 0) {
       require(abi.decode(returndata, (bool)));
     }
+    return __memory;
   }
 
+  -- transferFrom's input buffer consumes 160 bytes, in addition to its 64-byte code message.
   function SafeTransferLib_safeTransferFrom(address token, address «from», address «to»,
-      uint256 value) internal {
+      uint256 value, uint256 __memory) internal returns (uint256) {
+    __memory = __memory + 224;
+    require(__memory <= 2 ** 64 - 1);
     require(token.code.length > 0);
     (bool success, bytes memory returndata) = token.call(
       abi.encodeWithSelector(transferFrom, «from», «to», value));
+    if (returndata.length != 0) {
+      require(returndata.length <= 2 ** 64 - 1);
+      __memory = __memory + 32 + ((returndata.length + 31) / 32) * 32;
+    }
+    __memory = __memory + 128;
+    require(__memory <= 2 ** 64 - 1);
     require(success);
     if (returndata.length != 0) {
       require(abi.decode(returndata, (bool)));
     }
+    return __memory;
   }
 
   function setOwner(address newOwner) external {
@@ -261,7 +285,9 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
     var __c1 = UtilsLib_exactlyOneZero(assets, shares);
     require(__c1);
     require(onBehalf != address(0));
+    bool __accrued = marketParams.3 != address(0) && block.timestamp != market[id].lastUpdate;
     var __c2 = _accrueInterest(marketParams, id);
+    var __memory = Solc_afterAccrueMemory(672, __accrued, market[id].fee);
     if (assets > 0) {
       var __c3 = SharesMathLib_toSharesDown(assets, market[id].totalBorrowAssets,
           market[id].totalBorrowShares);
@@ -284,7 +310,7 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
       require(callback.code.length > 0);
       var __c8 = callback.onMorphoRepay(assets, data);
     }
-    var __c9 = SafeTransferLib_safeTransferFrom(marketParams.0, msg.sender, address(this), assets);
+    var __c9 = SafeTransferLib_safeTransferFrom(marketParams.0, msg.sender, address(this), assets, __memory);
     return (assets, shares);
   }
 
@@ -304,7 +330,7 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
       require(callback.code.length > 0);
       var __c2 = callback.onMorphoSupplyCollateral(assets, data);
     }
-    var __c3 = SafeTransferLib_safeTransferFrom(marketParams.1, msg.sender, address(this), assets);
+    var __c3 = SafeTransferLib_safeTransferFrom(marketParams.1, msg.sender, address(this), assets, 544);
   }
 
   function setFee(MarketParams memory marketParams, uint256 newFee) external {
@@ -353,7 +379,9 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
     require(receiver != address(0));
     var __c2 = _isSenderAuthorized(onBehalf);
     require(__c2);
+    bool __accrued = marketParams.3 != address(0) && block.timestamp != market[id].lastUpdate;
     var __c3 = _accrueInterest(marketParams, id);
+    var __memory = Solc_afterAccrueMemory(864, __accrued, market[id].fee);
     if (assets > 0) {
       var __c4 = SharesMathLib_toSharesUp(assets, market[id].totalBorrowAssets,
           market[id].totalBorrowShares);
@@ -369,11 +397,12 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
     market[id].totalBorrowShares = ((market[id].totalBorrowShares + __c7) as uint128);
     var __c8 = UtilsLib_toUint128(assets);
     market[id].totalBorrowAssets = ((market[id].totalBorrowAssets + __c8) as uint128);
+    if (position[id][onBehalf].borrowShares != 0) { __memory = __memory + 32; }
     var __c9 = _isHealthy(marketParams, id, onBehalf);
     require(__c9);
     require(market[id].totalBorrowAssets <= market[id].totalSupplyAssets);
     emit Borrow(id, msg.sender, onBehalf, receiver, assets, shares);
-    var __c10 = SafeTransferLib_safeTransfer(marketParams.0, receiver, assets);
+    var __c10 = SafeTransferLib_safeTransfer(marketParams.0, receiver, assets, __memory);
     return (assets, shares);
   }
 
@@ -397,7 +426,9 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
     require(receiver != address(0));
     var __c2 = _isSenderAuthorized(onBehalf);
     require(__c2);
+    bool __accrued = marketParams.3 != address(0) && block.timestamp != market[id].lastUpdate;
     var __c3 = _accrueInterest(marketParams, id);
+    var __memory = Solc_afterAccrueMemory(736, __accrued, market[id].fee);
     if (assets > 0) {
       var __c4 = SharesMathLib_toSharesUp(assets, market[id].totalSupplyAssets,
           market[id].totalSupplyShares);
@@ -415,7 +446,7 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
     market[id].totalSupplyAssets = ((market[id].totalSupplyAssets - __c7) as uint128);
     require(market[id].totalBorrowAssets <= market[id].totalSupplyAssets);
     emit Withdraw(id, msg.sender, onBehalf, receiver, assets, shares);
-    var __c8 = SafeTransferLib_safeTransfer(marketParams.0, receiver, assets);
+    var __c8 = SafeTransferLib_safeTransfer(marketParams.0, receiver, assets, __memory);
     return (assets, shares);
   }
 
@@ -506,13 +537,16 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
     require(receiver != address(0));
     var __c1 = _isSenderAuthorized(onBehalf);
     require(__c1);
+    bool __accrued = marketParams.3 != address(0) && block.timestamp != market[id].lastUpdate;
     var __c2 = _accrueInterest(marketParams, id);
+    var __memory = Solc_afterAccrueMemory(672, __accrued, market[id].fee);
     var __c3 = UtilsLib_toUint128(assets);
     position[id][onBehalf].collateral = ((position[id][onBehalf].collateral - __c3) as uint128);
+    if (position[id][onBehalf].borrowShares != 0) { __memory = __memory + 32; }
     var __c4 = _isHealthy(marketParams, id, onBehalf);
     require(__c4);
     emit WithdrawCollateral(id, msg.sender, onBehalf, receiver, assets);
-    var __c5 = SafeTransferLib_safeTransfer(marketParams.1, receiver, assets);
+    var __c5 = SafeTransferLib_safeTransfer(marketParams.1, receiver, assets, __memory);
   }
 
   function createMarket(MarketParams memory marketParams) external {
@@ -559,7 +593,9 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
     var __c1 = UtilsLib_exactlyOneZero(assets, shares);
     require(__c1);
     require(onBehalf != address(0));
+    bool __accrued = marketParams.3 != address(0) && block.timestamp != market[id].lastUpdate;
     var __c2 = _accrueInterest(marketParams, id);
+    var __memory = Solc_afterAccrueMemory(608, __accrued, market[id].fee);
     if (assets > 0) {
       var __c3 = SharesMathLib_toSharesDown(assets, market[id].totalSupplyAssets,
           market[id].totalSupplyShares);
@@ -581,7 +617,7 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
       require(callback.code.length > 0);
       var __c7 = callback.onMorphoSupply(assets, data);
     }
-    var __c8 = SafeTransferLib_safeTransferFrom(marketParams.0, msg.sender, address(this), assets);
+    var __c8 = SafeTransferLib_safeTransferFrom(marketParams.0, msg.sender, address(this), assets, __memory);
     return (assets, shares);
   }
 
@@ -599,7 +635,9 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
     require(market[id].lastUpdate != 0);
     var __c1 = UtilsLib_exactlyOneZero(seizedAssets, repaidShares);
     require(__c1);
+    bool __accrued = marketParams.3 != address(0) && block.timestamp != market[id].lastUpdate;
     var __c2 = _accrueInterest(marketParams, id);
+    var __memory = Solc_afterAccrueMemory(768, __accrued, market[id].fee);
     address oracle = marketParams.2;
     var collateralPrice = oracle.price{view}();
     var __c4 = _isHealthyWithPrice(marketParams, id, borrower, collateralPrice);
@@ -638,6 +676,7 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
     uint256 badDebtShares = 0;
     uint256 badDebtAssets = 0;
     if (position[id][borrower].collateral == 0) {
+      __memory = __memory + 192;
       badDebtShares = position[id][borrower].borrowShares;
       var __c16 = SharesMathLib_toAssetsUp(badDebtShares, market[id].totalBorrowAssets,
           market[id].totalBorrowShares);
@@ -653,14 +692,14 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
     }
     emit Liquidate(id, msg.sender, borrower, repaidAssets, repaidShares, seizedAssets,
         badDebtAssets, badDebtShares);
-    var __c21 = SafeTransferLib_safeTransfer(marketParams.1, msg.sender, seizedAssets);
+    var __c21 = SafeTransferLib_safeTransfer(marketParams.1, msg.sender, seizedAssets, __memory);
     if (data.length > 0) {
       address callback = msg.sender;
       require(callback.code.length > 0);
       var __c22 = callback.onMorphoLiquidate(repaidAssets, data);
     }
     var __c23 = SafeTransferLib_safeTransferFrom(marketParams.0, msg.sender, address(this),
-        repaidAssets);
+        repaidAssets, __c21);
     return (seizedAssets, repaidAssets);
   }
 
@@ -669,11 +708,11 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
     require(__calldata.length < (2 ** 255 + 4));
     require(assets != 0);
     emit FlashLoan(msg.sender, token, assets);
-    var __c0 = SafeTransferLib_safeTransfer(token, msg.sender, assets);
+    var __c0 = SafeTransferLib_safeTransfer(token, msg.sender, assets, 192);
     address callback = msg.sender;
       require(callback.code.length > 0);
     var __c1 = callback.onMorphoFlashLoan(assets, data);
-    var __c2 = SafeTransferLib_safeTransferFrom(token, msg.sender, address(this), assets);
+    var __c2 = SafeTransferLib_safeTransferFrom(token, msg.sender, address(this), assets, __c0);
   }
 
   function market(bytes32 arg0) external returns (uint128, uint128, uint128, uint128, uint128,
@@ -706,6 +745,19 @@ def contractSyntax : ContractDecl := solidity% contract Morpho {
     bytes __calldata = msg.data;
     require(__calldata.length < (2 ** 255 + 4));
     return isIrmEnabled[arg0];
+  }
+
+  -- Successful accrual allocates 32 return bytes and two 64-byte narrowing messages.
+  -- A nonzero fee adds a third message. Its nonzero status survives the fee-share writes:
+  -- an aliasing full-word position increment is checked and cannot decrease the high half.
+  -- Callers evaluate this immediately after accrual, before any later writes or callbacks.
+  function Solc_afterAccrueMemory(uint256 __memory, bool __accrued, uint256 __fee)
+      internal returns (uint256) {
+    if (__accrued) {
+      __memory = __memory + 160;
+      if (__fee != 0) { __memory = __memory + 64; }
+    }
+    return __memory;
   }
 
 }

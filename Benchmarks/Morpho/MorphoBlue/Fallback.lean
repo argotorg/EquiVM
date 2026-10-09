@@ -1,4 +1,5 @@
 import Benchmarks.Morpho.MorphoBlue.Dispatch
+import Benchmarks.Morpho.MorphoBlue.BodyCommon
 
 /-!
 # Morpho fallback correctness
@@ -14,11 +15,110 @@ namespace Benchmarks.Morpho.MorphoBlue
 
 set_option maxRecDepth 2000000
 
+def fallbackLocals (cd : ByteArray) : Store :=
+  (∅ : Store).insert "__calldata" (.bytes cd)
+
+theorem fallbackSize_eval (evm : EVM.State) (v : MorphoImmutables) :
+    evalExpr? config
+      { contract := contract, locals := fallbackLocals evm.executionEnv.calldata,
+        immutables := immStore v } evm
+      (.binary .ge (.arrayLength .localVar ⟨"__calldata", []⟩) (.intLit 4)) =
+      .ok (.bool (decide (4 ≤ evm.executionEnv.calldata.size))) := by
+  simp only [evalExpr?, fallbackLocals, store_get_self, readLocalPath?, evalBinaryOp?,
+    pure, bind, EvalResult.bind]
+  simp
+
+theorem fallbackByte_eval (evm : EVM.State) (v : MorphoImmutables) (i : Nat) (b : UInt8)
+    (hi : i < evm.executionEnv.calldata.size) :
+    evalExpr? config
+      { contract := contract, locals := fallbackLocals evm.executionEnv.calldata,
+        immutables := immStore v } evm
+      (.binary .eq (.index (.var "__calldata") (.intLit (Int.ofNat i)))
+        (.fixedBytesLit ⟨0, by decide⟩ [b])) =
+      .ok (.bool (evm.executionEnv.calldata[i] == b)) := by
+  simp only [evalExpr?, fallbackLocals, store_get_self, EvalResult.ofOption,
+    evalBinaryOp?, evalIndex?, pure, bind, EvalResult.bind]
+  simp only [evalByteIndex?]
+  rw [if_neg (by exact not_lt_of_ge (Int.natCast_nonneg i))]
+  simp [hi, byteArray_toList_eq, lookupNth_eq_getElem?, EvalResult.ofOption]
+  rfl
+
+
+
+set_option maxRecDepth 10000 in
+theorem fallbackBodyReverts (evm : EVM.State) (v : MorphoImmutables)
+    (hnm : (morphoSelBytes 27 == evm.executionEnv.calldata.extract 0 4) = false) :
+    ExecTransitionBody config contract evm (fallbackLocals evm.executionEnv.calldata)
+      setAuthorizationWithSigTransition.body .reverted (immStore v) := by
+  by_cases hcv : evm.executionEnv.weiValue = ⟨0⟩
+  · apply ExecFuncBody.execBlockRevert
+    have prelude :=  ABlock.requireStep
+      (ABlock.start (cfg := config) (evm := evm)
+        (solm := { contract := contract, locals := fallbackLocals evm.executionEnv.calldata,
+                   immutables := immStore v })
+        (stmts := setAuthorizationWithSigTransition.body)) (evalCallvalueEq_true hcv)
+    by_cases hsize : 4 ≤ evm.executionEnv.calldata.size
+    · have p0 := prelude.requireStep (by simpa only [hsize, decide_true] using fallbackSize_eval evm v)
+      by_cases h0 : evm.executionEnv.calldata[0] = (128 : UInt8)
+      · have p1 := p0.requireStep (by
+          have he := fallbackByte_eval evm v 0 128 (by omega)
+          rw [h0, beq_self_eq_true] at he
+          exact he)
+        by_cases h1 : evm.executionEnv.calldata[1] = (105 : UInt8)
+        · have p2 := p1.requireStep (by
+            have he := fallbackByte_eval evm v 1 105 (by omega)
+            rw [h1, beq_self_eq_true] at he
+            exact he)
+          by_cases h2 : evm.executionEnv.calldata[2] = (33 : UInt8)
+          · have p3 := p2.requireStep (by
+              have he := fallbackByte_eval evm v 2 33 (by omega)
+              rw [h2, beq_self_eq_true] at he
+              exact he)
+            by_cases h3 : evm.executionEnv.calldata[(3 : Nat)] = (143 : UInt8)
+            · have p4 := p3.requireStep (by
+                have he := fallbackByte_eval evm v 3 143 (by omega)
+                exact he.trans (congrArg (fun b => EvalResult.ok (Value.bool b))
+                  (beq_iff_eq.mpr h3)))
+              have hprefix := selectorPrefix_eq hsize h0 h1 h2 h3
+              rw [hprefix] at hnm
+              contradiction
+            · exact p3.requireRevert (by
+                have he := fallbackByte_eval evm v 3 143 (by omega)
+                exact he.trans (congrArg (fun b => EvalResult.ok (Value.bool b))
+                  (beq_eq_false_iff_ne.mpr h3)))
+          · exact p2.requireRevert (by
+              have he := fallbackByte_eval evm v 2 33 (by omega)
+              rw [beq_eq_false_iff_ne.mpr h2] at he
+              exact he)
+        · exact p1.requireRevert (by
+            have he := fallbackByte_eval evm v 1 105 (by omega)
+            rw [beq_eq_false_iff_ne.mpr h1] at he
+            exact he)
+      · exact p0.requireRevert (by
+          have he := fallbackByte_eval evm v 0 128 (by omega)
+          rw [beq_eq_false_iff_ne.mpr h0] at he
+          exact he)
+    · exact prelude.requireRevert (by simpa only [hsize, decide_false] using fallbackSize_eval evm v)
+  · exact bodyReverts_nonPayable hcv
+
 -- Generated obligation: the raw fallback rejects short and unmatched calldata.
 theorem morphoNoDispatch {σ σ₀ A I} {g : UInt256} (v : MorphoImmutables)
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 28 → (morphoSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
-  sorry
+  have rev : RDrev (deployedRuntime v) (.ofUInt256 g)
+      (initState σ σ₀ (.ofUInt256 g) A I) := by
+    by_cases hsz : 4 ≤ I.calldata.size
+    · exact morphoX_noMatch v hcode hsz hsize hnm
+    · exact morphoX_short v hcode (by omega)
+  apply RDrev.reEquivElim hcode rev
+  intro g' o hxi
+  have hreceive : receiveDispatchMsg contract I.calldata = none := by
+    simp [receiveDispatchMsg, show contract.receive = none from rfl]
+  refine .execution rfl
+    (.fallback (morphoDispatch_none_nomatch hnm) hreceive rfl rfl rfl rfl
+      (fallbackBodyReverts _ v (hnm 27 (by decide)))) ?_
+  rw [hxi]
+  exact .revert rfl rfl
 
 end Benchmarks.Morpho.MorphoBlue

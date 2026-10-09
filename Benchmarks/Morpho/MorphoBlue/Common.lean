@@ -536,7 +536,17 @@ theorem immutableLayout_keys :
 /-- A well-typed immutables store runs as the store of some valuation. -/
 theorem restrictImmutables_of_fit {imms : Store} (h : immutablesFit contract imms) :
     ∃ v, restrictImmutables contract imms = immStore v := by
-  sorry  -- TODO: case on each immutable's value as in Examples/TinyImmutable/Common.lean
+  obtain ⟨value, hv, hfit⟩ := h ⟨"DOMAIN_SEPARATOR", .bytes ⟨31, by decide⟩⟩ (by decide)
+  cases value <;> simp only [elemValueFits, Bool.false_eq_true] at hfit
+  rename_i n bs
+  simp only [decide_eq_true_eq] at hfit
+  rcases hfit with ⟨rfl, hlen⟩
+  refine ⟨⟨uInt256OfByteArray bs.toByteArray⟩, ?_⟩
+  have hbytes : EVM.Word.toBytesBE (uInt256OfByteArray bs.toByteArray) = bs := by
+    simpa [byteArray_toList_eq] using
+      toBytesBE_uInt256OfByteArray_of_size (arr := bs.toByteArray) (by simpa using hlen)
+  simp only [restrictImmutables, contract, Syntax.contractSyntax, List.foldl, hv, immStore,
+    hbytes]
 
 /-- The patched runtime has the template's jump destinations (patch sites are push payloads). -/
 theorem morphoPatchedValidJumps (v : MorphoImmutables) :

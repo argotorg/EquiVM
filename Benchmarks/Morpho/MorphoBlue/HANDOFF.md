@@ -1,4 +1,34 @@
-# Morpho Blue proof scaffold
+# Morpho Blue proof status
+
+The proof is complete (2026-10-09). All 28 public entry points, short/unknown-calldata
+rejection, and the constructor are connected to `morphoContractCorrect` in `Correct.lean`.
+The supplied top-level theorem statements are preserved.
+
+Final verification:
+
+- `lake build Benchmarks.Morpho.MorphoBlue.Correct` passed, **3952 jobs**.
+- The contract directory contains no `sorry`, `admit`, or axiom declarations.
+- `#print axioms morphoCorrect`: **11007 concrete native-evaluator axioms**, plus
+  `propext`, `Classical.choice`, and `Quot.sound`; no unapproved axioms.
+- `#print axioms morphoContractCorrect`: **11917 concrete native-evaluator axioms**, plus
+  the same three standard Lean axioms; no unapproved axioms. This is the trusted base
+  explicitly permitted by `Misc/prompt.md`.
+- Every authored Lean module is in the `Correct` import closure and is below 2000 lines.
+  Generated runtime/creation summary shards are excluded from that line-count check.
+- The corrected specification's differential runs agreed on all **1575 generated cases**
+  (544 successful) and all **66 supplemental scenarios** (56 successful).
+- Changes are confined to `Benchmarks/Morpho/MorphoBlue/`. Temporary scratch files, native
+  audit build artifacts, and development logs have been removed.
+
+To reproduce the axiom check after the build:
+
+```sh
+lake env lean --stdin <<'EOF'
+import Benchmarks.Morpho.MorphoBlue.Correct
+#print axioms Benchmarks.Morpho.MorphoBlue.morphoCorrect
+#print axioms Benchmarks.Morpho.MorphoBlue.morphoContractCorrect
+EOF
+```
 
 ## 1. Compiler settings and provenance
 
@@ -121,7 +151,7 @@ and headers under `/tmp` were used, without repository build-system changes.
 The block-by-block runtime and constructor audit is complete. The signature ordering finding
 was fixed and the differential runs repeated afterwards. No audit worksheet is included.
 
-## 4. Starting the proving session
+## 4. Proof structure and implementation notes
 
 The immutable is `DOMAIN_SEPARATOR : bytes32`, inserted at runtime offsets **6282** and
 **9401**. Its mainnet value is
@@ -157,13 +187,103 @@ The selector table has **28 entries**: 27 typed transitions followed by the raw 
 separate raw-fallback rejection obligation. All EVM dispatcher reach paths are generated and
 proved, including short and unmatched calldata.
 
-There are **61 intentional generated `sorry`s**: 28 function bodies, the constructor,
-`restrictImmutables_of_fit`, the raw fallback obligation, and 30 Solm dispatch facts for the
-fallback representation. There are none in `SpecSyntax`, the calldata/model helpers, the
-bytecode summaries, or the capstone. No contract proofs were written in this scaffolding pass.
+All public-function proofs and the constructor are complete. Each public proof covers
+success, nonpayability, malformed lengths, and applicable noncanonical argument branches.
+Static-mode failures and arithmetic failures are matched at their actual bytecode positions.
+The final build and top-level axiom audits are recorded above.
 
-Expect the most work in `liquidate` (two rounding directions and bad debt), `_accrueInterest`
-(IRM reentrancy, Taylor arithmetic and fee-share writes), and signature authorization (raw ABI
-entry, EIP-712 packing, precompile witness, and nonce/static ordering). Preserve reloads and
-store order across mapping operations; do not introduce a storage-slot noncollision axiom.
-The raw `extSloads` alias and whole-struct `createMarket` writes need explicit layout bridges.
+New local shared modules are `DispatchFacts.lean` (Solm routing), `BodyCommon.lean` (calldata
+prelude, refinement bridges that accept selector dispatch alongside the raw fallback, and
+return memory), `Storage.lean` (layout/evaluation bridges), and `Routines.lean` (canonical
+address decoders at calldata offsets 4 and 36). `ReturnCommon.lean` handles multiword ABI
+returns, `PackedStorage.lean` handles packed uint128 halves, `ErrorRoutines.lean` handles
+shared allocation and require paths, and `AdminCommon.lean` handles administrative address
+assignments, including static-mode violations. Reusable helpers are marked for promotion.
+The bytecode, Solidity, generated runtime/creation summaries, and `Reasoning/` remain
+unchanged. The specification allocation correction is documented below. All theorem
+statements supplied by the scaffold are preserved.
+
+The differential suites were rerun before proof work with the results in Section 2. The
+`lake exe` command unexpectedly started rebuilding unrelated Comet modules and was stopped;
+the already-built `.lake/build/bin/solm-difftest --only Morpho --count 50` ran successfully.
+The supplemental scenario suite also reran successfully. No unrelated builds should be run.
+
+`liquidate` covers both rounding directions and the bad-debt branch. `_accrueInterest`
+covers the arbitrary IRM call, Taylor arithmetic, and fee-share writes. Signature authorization
+covers raw ABI decoding, EIP-712 packing, the same opaque precompile-call witness on both sides,
+nonce/static ordering, recovered-address checks, and the final packed authorization write.
+`EcrecoverFacts` proves the precompile output is empty or a canonical address word directly
+from the existing EVM semantics; it adds no assumption. `AuthorizationSigRefine` composes the
+source and bytecode suffixes, and `SetAuthorizationWithSig` completes the fallback route.
+Storage reloads and store order are preserved throughout; no slot-noncollision assumption is
+used. The raw `extSloads` storage alias has a proved layout bridge.
+
+`createMarket` is complete, including all guard and ABI failures, static mode, the six
+storage writes in bytecode order, event memory, and the optional arbitrary-callee IRM call.
+Its local `CreateMarket*` modules use shared `MarketParams*`, `MarketStateCommon`,
+`MarketStorage*`, `BorrowRate*`, `WordBufferCommon`, and `Allocation` modules. The shared `_accrueInterest` routine and public `accrueInterest` are complete.
+`AccrueHeap` tracks reused buffers and bounded allocations; `AccrueFeeWrites`,
+`AccrueFeeRefine`, `AccrueFinishRefine`, `AccrueTailRefines`, `AccrueAssetsRefine`,
+`AccrueMathRefine`, `AccrueIrmRefine`, and `AccrueFunctionRefine` assemble all branches.
+`AccruePublicSource` and `AccruePublicRoutines` handle the public wrapper and its ABI,
+market-created guard, and internal-call plumbing. `setFee` is now complete using that internal routine;
+its `SetFee*` modules cover guards, memory preservation, and the post-accrual packed fee write.
+The constructor is complete through `ConstructorABI`, `ConstructorSource`, `ConstructorMemory`,
+`ConstructorReturnMemory`, `ConstructorRoutines`, and `ConstructorReverts`. The copied creation
+runtime has zero immutable sites while `morphoBytecode` contains the mainnet values, despite its
+header describing zero sites. `constructorTemplatePatches` proves equality after overwriting the
+two sites; all other ranges match exactly. The safe-transfer callees are proved once and reused
+by `flashLoan` and the lending entry points through their internal-call semantics.
+
+The safe-transfer investigation found missing compiler allocation guards in `SpecSyntax.lean`.
+`AllocationAudit.lean` proves that valid boolean returndata can exceed the size guard at pc 14555,
+and that a uint64-sized result can still fail the free-pointer guard at pc 11535. These are local
+post-call witnesses, not a refutation of the complete refinement theorem. The model's UInt256
+gas bound does not imply a uint64 return-size bound.
+
+The specification now threads an explicit local `__memory` cursor through both transfer helpers.
+It checks input-buffer allocation, nonempty return size, rounded return allocation, and the two
+64-byte require-message allocations. The second transfer in `flashLoan` and `liquidate` uses the
+first transfer's returned cursor. No public ABI, storage layout, bytecode, or Solidity was changed.
+The fixed cursor at the first transfer is 192 for flash loans, 544 for collateral supply, 672
+for repayment, 608 for supply, 736 for withdrawal, 864 for borrowing, 672 for collateral withdrawal,
+and 768 for liquidation. Accrual adds 0, 160, or 224 bytes; a nontrivial health check adds 32;
+liquidation's bad-debt branch adds 192. Each count follows the pinned compiler's optimized IR.
+`Solc_afterAccrueMemory` receives the fee immediately after accrual: a possible storage-slot alias
+in the checked position increment cannot turn a nonzero upper-half fee into zero. The checked
+arithmetic fact is in `AllocationAudit`; the completed lending proofs carry the full cursor
+invariant through accrual, health checks, bad debt, and both transfers where applicable.
+
+The corrected spec rebuilt through `Correct` and `DiffTarget` (3671 jobs), and all 66 differential
+scenarios still agree (56 successful, no disagreements or stuck executions). The current native
+50-case-per-transition run also agrees on all 1575 cases (544 successful, no disagreements,
+stuck cases, out-of-gas results, or fuel exhaustion). The interpreter run agrees with the
+native run, including its 544-success count. The sampler includes all specification literals
+in its word pool, so the new allocation constants change some generated samples. The native check compiled only the six current Morpho modules and a local driver,
+reusing cached framework objects; no other benchmark was rebuilt.
+`SafeTransferSourceAllocation` proves both source-side allocation rejection cases and preservation
+of other locals. `SafeTransferSourceTail` proves call failure, decode failure/false, and successful
+optional-bool return handling. No new assumptions were introduced. The mismatch is resolved by
+the specification correction, and the source lemmas are connected to the shared bytecode routines
+in the completed safe-transfer refinement proofs.
+
+`AccrueRoutinesStart` proves entry, elapsed subtraction, zero elapsed, IRM selection,
+timestamp storage, and static timestamp halt. `AccruePrepareCall`, `AccrueCallReturn`, and
+`AccrueCall` prove the arbitrary-callee IRM call and return decoding. `ZeroValueCallBridge`
+uses the existing `RD.call`/`RD.callDepthLimit` machinery and supports either caller permission
+mode. `AccrueMathRoutines`, `AccrueBorrowAssets`, `AccrueSupplyAssets`, `AccrueFeeMath`,
+`AccrueFeePosition`, `AccrueSupplyShares`, and `AccrueFinish` prove the remaining bytecode
+segments, including arithmetic failures, packed writes, and event/timestamp return. All
+storage loads retain their actual order and use the current post-call/post-write account map.
+
+The matching source stages are in `AccrueSourceStart`, `AccrueSourceCall`,
+`AccrueSourceMath`, `AccrueSourceFee`, `AccrueSourceFeeCalc`, `AccrueSourceFeeWrites`, and
+`AccrueSourceFinish`. `StateBlock` generalizes the existing pure `ABlock` continuation to
+state-changing prefixes. The memory bounds and full internal/public assembly are proved. No new placeholders were added to these helpers.
+
+`extSloads` is complete through `WordArrayABI`, `ExtSloadsSourceStep`, `ExtSloadsSource`,
+`ExtSloadsDecode`, `ExtSloadsMemory`, `ExtSloadsPrepare`, `ExtSloadsReadLoop`,
+`ExtSloadsReturn`, and `ExtSloadsFinish`. Both loops support arbitrary array lengths; the
+allocation and decoding bounds cover all rejection paths. Generic array/value/memory facts are
+reused from the proof-only `Benchmarks.EAS.Attester.LocalArray`, `WordArrayABI`,
+`WordSequenceMemory`, and `StructAllocMemory` modules. Its axiom audit is clean of `sorryAx`.
