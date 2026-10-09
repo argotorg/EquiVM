@@ -1,8 +1,8 @@
-⚠ [1213/1232] Replayed Reasoning.EVMWord
+⚠ [1213/1303] Replayed Reasoning.EVMWord
 warning: Reasoning/EVMWord.lean:1146:32: try 'simp' instead of 'simpa'
 
 Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
-⚠ [1224/1232] Replayed Reasoning.Memory
+⚠ [1224/1303] Replayed Reasoning.Memory
 warning: Reasoning/Memory.lean:1888:36: unused variable `hgap`
 
 Note: This linter can be disabled with `set_option linter.unusedVariables false`
@@ -67,15 +67,15 @@ Hint: Omit it from the simp argument list.
   ̵ ̵ ̵ ̵ ̵ ̵ ̵d̵e̵s̵t̵A̵d̵d̵r̵ ̵-̵ ̵b̵a̵s̵e̵.̵s̵i̵z̵e̵ ̵f̵r̵o̵m̵ ̵r̵f̵l̵]̵B̲y̲t̲e̲A̲r̲r̲a̲y̲.̲d̲a̲t̲a̲_̲e̲x̲t̲r̲a̲c̲t̲]̲
 
 Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
-⚠ [1225/1232] Replayed Reasoning.ABI
-warning: Reasoning/ABI.lean:4614:28: This simp argument is unused:
+⚠ [1225/1303] Replayed Reasoning.ABI
+warning: Reasoning/ABI.lean:4620:28: This simp argument is unused:
   abiUInt256
 
 Hint: Omit it from the simp argument list.
   simp [encodePackedValue?, a̵b̵i̵U̵I̵n̵t̵2̵5̵6̵,̵ ̵encodeABIWord?, hword, hlt]
 
 Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
-warning: Reasoning/ABI.lean:4621:28: This simp argument is unused:
+warning: Reasoning/ABI.lean:4627:28: This simp argument is unused:
   abiBytes32
 
 Hint: Omit it from the simp argument list.
@@ -83,7 +83,7 @@ Hint: Omit it from the simp argument list.
   ̵  ̵ ̵ ̵fixedBytesSize, hlen]
 
 Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
-warning: Reasoning/ABI.lean:4621:57: This simp argument is unused:
+warning: Reasoning/ABI.lean:4627:57: This simp argument is unused:
   wordBytes32Value
 
 Hint: Omit it from the simp argument list.
@@ -91,11 +91,11 @@ Hint: Omit it from the simp argument list.
   ̵ ̵ ̵ ̵ ̵fixedBytesSize, hlen]
 
 Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
-⚠ [3474/3513] Replayed Reasoning.Solc
+⚠ [3473/3517] Replayed Reasoning.Solc
 warning: Reasoning/Solc.lean:8246:2: try 'simp' instead of 'simpa'
 
 Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
-⚠ [3477/3513] Replayed Reasoning.Storage
+⚠ [3476/3517] Replayed Reasoning.Storage
 warning: Reasoning/Storage.lean:2027:41: This simp argument is unused:
   Std.ExtTreeMap.getElem?_insert_self
 
@@ -103,7 +103,7 @@ Hint: Omit it from the simp argument list.
   simp [Option.option, State.setAccount,̵ ̵S̵t̵d̵.̵E̵x̵t̵T̵r̵e̵e̵M̵a̵p̵.̵g̵e̵t̵E̵l̵e̵m̵?̵_̵i̵n̵s̵e̵r̵t̵_̵s̵e̵l̵f̵]
 
 Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
-⚠ [3480/3513] Replayed Reasoning.WordArithmetic
+⚠ [3479/3517] Replayed Reasoning.WordArithmetic
 warning: Reasoning/WordArithmetic.lean:884:2: try 'simp' instead of 'simpa'
 
 Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
@@ -123,14 +123,14 @@ warning: Reasoning/WordArithmetic.lean:1982:23: `Int.ofNat_nonneg` has been depr
 warning: Reasoning/WordArithmetic.lean:2385:2: try 'simp' instead of 'simpa'
 
 Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
-⚠ [3481/3513] Replayed Reasoning.Immutables
+⚠ [3480/3517] Replayed Reasoning.Immutables
 warning: Reasoning/Immutables.lean:106:4: try 'simp' instead of 'simpa'
 
 Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
 warning: Reasoning/Immutables.lean:109:4: try 'simp' instead of 'simpa'
 
 Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
-⚠ [3483/3513] Replayed Benchmarks.CompoundIII.Comet.Common
+⚠ [3482/3517] Replayed Benchmarks.CompoundIII.Comet.Common
 warning: Benchmarks/CompoundIII/Comet/Common.lean:38:16: 'simp [contract, Syntax.contractSyntax]' tactic does nothing
 
 Note: This linter can be disabled with `set_option linter.unusedTactic false`
@@ -2577,7 +2577,7 @@ Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
 warning: Benchmarks/CompoundIII/Comet/Common.lean:853:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
 
 Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
-⚠ [3490/3513] Replayed Benchmarks.CompoundIII.Comet.DispatchReach_001
+⚠ [3489/3517] Replayed Benchmarks.CompoundIII.Comet.DispatchReach_001
 warning: Benchmarks/CompoundIII/Comet/DispatchReach_001.lean:27:134: This simp argument is unused:
   cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory
 
@@ -6754,7 +6754,7 @@ Note: This linter can be disabled with `set_option linter.unusedTactic false`
 warning: Benchmarks/CompoundIII/Comet/DispatchReach_001.lean:647:331: this tactic is never executed
 
 Note: This linter can be disabled with `set_option linter.unreachableTactic false`
-⚠ [3494/3513] Replayed Benchmarks.CompoundIII.Comet.DispatchReach_002
+⚠ [3493/3517] Replayed Benchmarks.CompoundIII.Comet.DispatchReach_002
 warning: Benchmarks/CompoundIII/Comet/DispatchReach_002.lean:30:140: This simp argument is unused:
   cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory
 
@@ -17793,7 +17793,17 @@ Note: This linter can be disabled with `set_option linter.unusedTactic false`
 warning: Benchmarks/CompoundIII/Comet/DispatchReach_002.lean:1089:331: this tactic is never executed
 
 Note: This linter can be disabled with `set_option linter.unreachableTactic false`
-⚠ [3496/3513] Replayed Benchmarks.CompoundIII.Comet.DispatchReach_003
+⚠ [3511/3517] Replayed Benchmarks.CompoundIII.Comet.SignedFields
+warning: Benchmarks/CompoundIII/Comet/SignedFields.lean:108:18: This simp argument is unused:
+  if_true
+
+Hint: Omit it from the simp argument list.
+  simp only [encodeABIValue?, encodeABIWord?, show (104 : Nat) ≠ 0 from by decide,
+  ̵  ̵ ̵ ̵if_false, hb,
+  ̲ i̵f̵_̵t̵r̵u̵e̵,̵  ̲ ̲signed104_word]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [3515/3543] Replayed Benchmarks.CompoundIII.Comet.DispatchReach_003
 warning: Benchmarks/CompoundIII/Comet/DispatchReach_003.lean:31:140: This simp argument is unused:
   cometWithExtendedAssetListBlocks.cometWithExtendedAssetList_block_0_taken_memory
 
@@ -34405,5 +34415,27 @@ Note: This linter can be disabled with `set_option linter.unusedTactic false`
 warning: Benchmarks/CompoundIII/Comet/DispatchReach_003.lean:1451:331: this tactic is never executed
 
 Note: This linter can be disabled with `set_option linter.unreachableTactic false`
-✔ [3513/3513] Built Benchmarks.CompoundIII.Comet.LiquidatorPoints (10s)
-Build completed successfully (3513 jobs).
+⚠ [3528/3543] Replayed Reasoning.ExternalCall
+warning: Reasoning/ExternalCall.lean:720:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Reasoning/ExternalCall.lean:845:23: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+⚠ [3542/3543] Built Benchmarks.CompoundIII.Comet.LiquidatorPointsStoreEvm (2.7s)
+warning: Benchmarks/CompoundIII/Comet/LiquidatorPointsStoreEvm.lean:31:15: This simp argument is unused:
+  hp
+
+Hint: Omit it from the simp argument list.
+  simp only [h̵p̵,̵ ̵Bool.false_eq_true, if_false, internalMemoryRun]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Benchmarks/CompoundIII/Comet/LiquidatorPointsStoreEvm.lean:36:15: This simp argument is unused:
+  hp
+
+Hint: Omit it from the simp argument list.
+  simp only [h̵p̵,̵ ̵if_true, internalMemoryRun]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+✔ [3543/3543] Built Benchmarks.CompoundIII.Comet.LiquidatorPointsAllocation (3.3s)
+Build completed successfully (3543 jobs).

@@ -1,5 +1,16 @@
 # CometWithExtendedAssetList hand-off
 
+Current status (2026-10-09): the constructor input-size decision is resolved. The user requested
+a separate bounded copy of the refinement relation, keeping the deployment encoder unchanged.
+Comet now uses `typedConstructorRefinementWithCodeBound` and
+`contractRefinementWFWithCodeBound` from `Solm/RefineWithCodeBound.lean`. Both add the premise
+`I.code.size < UInt256.size` on deployments. Existing relations, the active config, and decoding
+are unchanged. The old encoder-guard proposal/review below is historical and superseded.
+The full proof is complete: the constructor and all runtime paths are proved without sorries
+or custom axioms. The Comet-only build passes. The top-level theorem's audit reports the three
+standard Lean axioms and 25,922 permitted concrete evaluation certificates. See the completion
+record at the end of this document; earlier open-goal notes are historical.
+
 ## Compiler settings and provenance
 
 Upstream: https://github.com/compound-finance/comet/tree/f766f51583c23acc33b2a7824654ef2029a96804
@@ -1138,5 +1149,452 @@ The public absorb proof is moving again. New checked files:
   argument reverts and internal static violations. Its final frame retains accounts, absorber,
   startGas and i=accounts.length. Build: absorb-accounts-source-build.log.
 
-The three original sorries remain in Absorb, Constructor and Correct's fallback. Next assemble
-the pause/accrual prefix and gas/points accounting around the now-complete accounts loop.
+The public absorb proof is now complete. AbsorbBeforePoints{Model,Evm,Source} connects pause,
+accrual and the accounts loop. LiquidatorPoints{Data,Memory,Allocation,Packed,StoreEvm} proves
+the four-field source/memory/storage representation, including equivalence of four packed
+source writes to the compiler's one SSTORE. AbsorbPoints{Model,CountsEvm,CountsSource,SpendEvm,
+SpendSource,Evm,Source} covers all counter and spending overflow branches. AbsorbAfterAccounts
+connects the gas reads/subtraction; AbsorbTrace, AbsorbInternalBodyEvm, AbsorbSource and AbsorbEvm
+assemble the full function. Absorb.lean has no sorry and consumes cometGasBound.
+
+Validation: absorb-complete-build.log builds Correct successfully (4279 jobs), still only Comet.
+cometWithExtendedAssetListAbsorbBody audit: 6440 axioms total, standard axioms plus accepted
+native_decide/bv_decide certificates, no sorry/custom axioms and no source warnings.
+The fallback proof is now complete as well. DelegateCallReach/Bridge prove the call and
+call-depth failure semantics locally in Comet; FallbackMemory proves arbitrary-length copy/read
+identity; FallbackDispatch handles all 68 misses and short calldata; FallbackEvm/Source/Fallback
+join the success/revert branches. Correct.lean's no-dispatch theorem uses cometFallbackRefines.
+Validation: fallback-complete-build.log builds Correct successfully (4286 jobs). Fallback audit:
+497 axioms, standard3/native_decide only. Full cometWithExtendedAssetListRuntimeCorrect audit:
+19159 axioms, standard3/native_decide/bv_decide only, no sorry/custom axioms or source warnings.
+The sole remaining sorry is the zero-call-value constructor branch (Constructor.lean:21).
+
+
+## Constructor input-size boundary, 2026-10-09
+
+ConstructorDeployment proves successful encoding preserves argument count and exposes the ABI
+tail. ConstructorEncoding provides scalar/tuple inversion and prefix encoding lemmas.
+ConstructorNonpayable completes the nonzero-call-value branch; Constructor.lean now uses it.
+
+The zero-value constructor proof uncovered a separate input-domain issue. The constructor
+refinement admits arbitrary initcode length, unlike the runtime calldata-size premise. The
+unchanged deployment encoder can accept an asset array with 2^256 entries. Its array length
+word is zero, its initcode CODESIZE word equals the empty-array deployment's word, and the first
+736 argument bytes equal that empty-array encoding. The source array length remains 2^256 and
+fails the <=24 guard. This is not fixed by a gas bound: the wrapped EVM copy size is only736.
+
+ConstructorSizeWitness proves, symbolically for arbitrary n, the exact admitted configuration
+encoding, then specializes arithmetic to n=UInt256.size. The checked declarations are:
+- deployment: config.selfDeployment accepts the configuration, for every n.
+- encodedArgs_length: ABI argument bytes =736+224*n.
+- encodedLength_wraps / encodedPrefix_wraps: the length word and copied argument prefix agree
+  with n=0 when n=2^256.
+- codesize_wraps: the CODESIZE words agree.
+- source_length_rejects / bytecode_length_accepts: the length guards disagree.
+- admittedInput_wraps bundles encoder admission, actual oversize, and the three collisions.
+This certifies the input/guard collision, not a complete negation of constructor refinement or
+an actual full Xi execution of the huge symbolic deployment. Do not overstate the witness.
+
+Validation: constructor-size-review-build.log builds Correct and ConstructorSizeWitness (4292
+jobs); sole sorry remains Constructor.lean:21. admittedInput_wraps audit has9 axioms, standard3
+plus native_decide only, no custom/sorry axioms or source warnings. No Examples/other benchmarks
+were built. Decoder and shared model code were not changed further.
+
+A pending asynchronous question requests approval to restrict Comet's selfDeployment to initcode
+size <2^256. ConstructorSizeBound.proposed.patch is the exact proposed Spec.lean change; it has
+NOT been applied. It would require adapting ConstructorDeployment's extraction lemma and
+adding a size-bound lemma before continuing the constructor. This changes the theorem's admitted
+deployments and needs explicit approval; the earlier gas-bound approval applied to runtime calls.
+No further dependent constructor proof work until resolution. This is the FIRST goal turn on
+this new boundary decision. Leave the goal active, not complete/paused/blocked.
+
+
+Second consecutive goal turn on the constructor input-size decision: the active config remains
+unchanged at f0a29d8a; the proposal is still unapplied and no approval has arrived. The previous
+turn was progress (complete fallback/runtime proof and a new checked boundary witness).
+
+This turn completed review-only validation in ConstructorSizeBoundReview.lean:
+- boundedDeployment_eq_some_iff proves that the proposal admits exactly the existing encodings
+  whose resulting initcode is smaller than 2^256 bytes.
+- boundedDeployment_shape carries the original argument-count/ABI-tail facts plus the size bound.
+- ordinaryDeployment_preserved covers every member of the witness family below the cap.
+- wrappingDeployment_rejected proves that the oversized symbolic witness is excluded.
+The definition is not connected to the active Comet config. The proposed patch remains unapplied.
+Targeted build passed (3500 jobs), constructor-size-bound-review-build.log. Rejection audit:
+9 axioms, standard3 and native_decide only; no custom/sorry axioms or source warnings.
+No builds are running. No changes to ABI, Solm, Reasoning, or the active Spec config this turn.
+The original zero-value constructor hole remains at Constructor.lean:21. Further dependent proof
+work needs the user's decision. This is only the second recurrence; leave the goal active.
+
+
+Third consecutive goal turn on the same constructor input-size decision: revalidated unchanged
+active Spec.selfDeployment, the unapplied proposed patch, HEAD f0a29d8a, the successful review
+build, and the sole remaining Constructor.lean:21 sorry. No user approval or external-state
+resolution has arrived. The previous turn made progress by completing checked proposal proofs;
+there is no running build to await and no further independent prerequisite to complete. Applying
+the guard or otherwise changing the admitted constructor inputs requires the user's decision.
+The blocked-audit threshold is satisfied. Mark the goal blocked (not complete). Resume with the
+original full objective after an explicit decision; apply no domain change by default.
+
+## Separate bounded relation approved; constructor resumed, 2026-10-09
+
+The user resolved the preceding decision by asking for a copy of the constructor-refinement
+relation with the bound, rather than changing the deployment encoder. They also explicitly
+set the full proof goal active. No further scope approval is needed for this choice.
+
+`Solm/RefineWithCodeBound.lean` adds `typedConstructorRefinementWithCodeBound`, an exact copy
+of the original universal deployment relation with the additional premise
+`I.code.size < Ethereum.UInt256.size`. `contractRefinementWFWithCodeBound` carries the same
+deployment domain into whole-contract correctness. Its `of_runtime` theorem uses the existing
+fixed-input execution/deployment relations. Both original relations imply their bounded
+copies via `.withCodeBound`. The new module is exported by `Solm.lean`. The original
+`Solm/Refine.lean`, `Spec.selfDeployment`, ABI decoding and runtime predicates are unchanged.
+Comet's constructor/capstone use the new copies. The old encoder-guard proposal and
+ConstructorSizeBoundReview remain historical, unapplied alternatives: do not apply that patch.
+
+Proof continuation completed:
+- ConstructorDeployment: bounded shape extraction and `cometConstructorCodeSize`, proving
+  the actual `CODESIZE - 21425` equals the ABI-tail length under the new bound.
+- ConstructorInput: typed ConstructorAsset/ConstructorConfig records and full successful-encoding
+  inversion, including every array element. `cometConstructorInput` uses only standard3 axioms.
+- ConstructorInputEncoding: exact general encoding (736+224*n bytes), not just the earlier
+  witness family; `cometConstructorBoundedInput` gives the canonical config and
+  `22161 + 224*c.assetConfigs.length < UInt256.size` for every admitted deployment.
+- ConstructorAllocationWords: argument-size/count casts, exact first allocation end
+  `1664+224*n`, and both outcomes of its 64-bit guard. The 64-bit check remains an execution
+  branch; it is not a new theorem premise or a deployment filter.
+- ConstructorEntry: creation blocks0→13→2711, initial allocation success→33 or panic/revert.
+- ConstructorMemory: exact CODECOPY memory, its size, arbitrary argument-word reads,
+  the outer offset32 and free-pointer reads. No restriction on array contents or selected words.
+- ConstructorDecodeHead: creation blocks33→49→66→82→2711. `cometConstructorDecodeStart`
+  composes the full prefix, including the first allocation failure. On success it reaches
+  the record allocator with stack `[free,672,99,928,32,argSize,free]`, where
+  `free=1664+224*n` and `argSize=736+224*n`. Main Constructor.lean consumes this theorem.
+
+Validation: `constructor-code-bound-core-build.log` builds Solm/Reasoning (3491 jobs).
+`constructor-bounded-head-build.log` builds Correct with all new active helpers (4298 jobs).
+Earlier `constructor-bounded-entry-build.log` also checked ConstructorSizeWitness (4297 jobs).
+No Examples or other benchmarks were built. The new relation's `of_runtime` audit is standard3
+only. Bounded-input audit:7 axioms; decode-start audit:397 axioms. Both use only standard3 and
+accepted native_decide certificates, with no sorry/custom axioms or source warnings.
+The sole remaining sorry is Constructor.lean:27, in the zero-call-value branch. Runtime remains
+complete. The whole-contract theorem is not complete and must not be reported as proved.
+
+Next: decode the configuration record from the `cometConstructorDecodeStart` cursor. The next
+672-byte allocation can also fail; retain that case. Success returns to99, then the five address
+fields via2747/2767, twelve uint64 fields via2768/2788, three uint104 fields via2789/2809,
+then the dynamic asset array. `constructorCopiedMemory_load` gives all canonical input words;
+use write preservation while constructing the record. Later connect the full constructor source
+execution, external calls, immutables and runtime-bytecode patch/return. A source reversion proof
+for oversized asset arrays must accompany allocator failures; the EVM prefix alone does not
+close those constructor-refinement branches.
+
+## Constructor record and asset-array entry proved, 2026-10-09
+
+The previous goal turn was progress: the bounded relation and constructor entry were verified.
+This continuation completes the next constructor segment without adding proof holes or changing
+the specification, decoder, refinement statement, bytecode, or block summaries.
+
+New checked modules:
+- ConstructorAllocate: reusable creation allocator at2711, with both success and panic/revert;
+  record allocation guard is exactly `constructorRecordBase c + 672 < 2^64`.
+- ConstructorScalarRead: memory-reader routines2747/2767,2768/2788,2789/2809,2810/2824 for
+  addresses, uint64, uint104 and uint8. Each has explicit canonicality, read and return-jump facts.
+- ConstructorRecordMemory: `constructorRecordBase c =1664+224*n`; `constructorScalarMemory c i`
+  writes the first i scalar fields starting at that base. Proves size, MemoryPrefix preservation,
+  arbitrary encoded-word reads, scalar reads, array offset/length and free-pointer reads.
+- ConstructorDecodeAddresses/Uint64/Uint104: all twenty fixed fields decoded, using the existing
+  summaries and scalar-reader lemmas. The last field remains on the stack at531 until stored.
+- ConstructorDecodeScalars: stores that last field and validates offset672, reaching562 with
+  memory `constructorScalarMemory c 20`. `cometConstructorDecodeRecord` includes all earlier
+  allocation failures. Original definitions/statements remain as authorized.
+- ConstructorAssetHeader: validates the array head and canonical length, reaches the array
+  allocator at2711. Record allocation success already implies n<2^64, so its length check passes.
+- ConstructorAssetAllocation: `constructorArrayBase =recordBase+672`,
+  `constructorArrayEnd =arrayBase+32+32*n =2368+256*n`. The pointer-array allocation succeeds
+  iff arrayEnd<2^64; otherwise the actual EVM execution reverts or runs out of gas.
+- ConstructorAssetEnter: proves the payload-end check is exact equality to the copied argument
+  end, stores the array length, reaches the element loop664. `cometConstructorDecodeToAssets`
+  composes the complete prefix with all preceding allocation failures. Constructor.lean now
+  consumes it. Its success stack is
+  `[672,32,ofNat(arrayBase+32),928,argSize,ofNat n,1664,ofNat arrayBase,ofNat recordBase]`,
+  memory `constructorArrayHeaderMemory c`, and existential aw/k/C. No new domain restriction.
+
+Validation: constructor-array-allocation-build.log passed4308 jobs; constructor-assets-enter-build.log
+passed4309 jobs for Correct, Comet only, including the final whitespace-only formatting changes.
+`cometConstructorDecodeToAssets` axiom audit:1688 total, standard3/native_decide only, no
+sorry/custom axioms and no source warnings. Constructor.lean needs maxRecDepth2000 for the larger
+composed prefix. The only remaining sorry is its zero-call-value branch, now at line28.
+
+Next: prove the asset-element loop664→2494→2508→2711 (224-byte record allocation)→2524 and
+the seven field readers/stores, through2656→664. Loop input cursor is1664+224*i, pointer-array
+cursor arrayBase+32+32*i, and next record free pointer arrayEnd+224*i. Final successful free
+pointer should be2368+480*n; retain allocator failure cases. After the loop,685 stores the array
+pointer at recordBase+640, reads baseToken from recordBase+64, creates the decimals() calldata,
+and reaches STATICCALL733. CreationBlocks_003 contains664/685;007/008 contain the asset loop.
+Source constructor execution (including reversion for invalid/oversized configurations), external
+calls, immutables and runtime patch/return are still required. Do not mark the full goal complete.
+
+## Constructor asset loop and first call entry proved, 2026-10-09
+
+This continuation completes argument decoding and reaches the base-token decimals STATICCALL.
+It adds no new theorem-domain restriction and no proof holes. Decoder, shared libraries,
+specification, bytecode and supplied block summaries were not changed.
+
+New checked modules:
+- ConstructorAssetMemory: asset word indexing at argument index23+7*i+j; the exact encoded
+  input load at1664+224*i+32*j; the seven-field memory model and preservation of input words;
+  pointer-array header size/free-pointer/prefix facts.
+- ConstructorAssetFields: reusable full seven-field decoder2524→2656→664. It proves both
+  address canonicality checks, uint8/uint64 checks and the inline uint128 check, stores all
+  seven words and the array entry. Explicit input reads and disjointness prevent aliasing.
+- ConstructorAssetLoopMemory: free(i)=arrayEnd+224*i, entry(i)=arrayBase+32+32*i, and recursive
+  memory after i iterations. Proves sizes, free-pointer reads, and input-prefix preservation.
+- ConstructorAssetLoop: one iteration664→2494→2508→2711→2524→664 with both allocator outcomes;
+  induction over all remaining assets; exit to685. `cometConstructorDecode` composes every
+  decoder step from creation entry. Success iff final free=2368+480*n is below2^64; otherwise
+  RDrev. The 64-bit test is an EVM execution branch, not a premise of constructor refinement.
+- ConstructorDecodedMemory: a generic consecutive-word read-back lemma, scalar/asset record
+  read-back, preservation of config fields and the array header, final store of the array pointer
+  at recordBase+640, and resulting free-pointer/config-field loads.
+- ConstructorDecimalsEnter: block685 normalized to STATICCALL733, with target baseToken,
+  input/output pointer ofNat(finalFree), input size4, output size32, and GAS argument exactly
+  `(g.subNat C).toUInt256` at the resulting RD counter. Memory is constructorDecimalsMemory:
+  decoded memory plus the decimals selector word at finalFree. `cometConstructorDecodeToDecimals`
+  composes the full prefix, including all allocation failures. Constructor.lean consumes it.
+
+Validation: constructor-assets-loop-build.log passed4317 jobs for Comet Correct, including all
+new modules and final formatting changes. No Examples or other benchmarks were built.
+`cometConstructorDecode` audit:2219 axioms; `cometConstructorDecodeToDecimals` audit:2327 axioms.
+Both use only standard3/native_decide certificates, with no custom/sorry axioms or source warnings.
+The only remaining proof hole remains Constructor.lean:28. Runtime is complete. Goal stays active;
+these EVM prefix theorems do not yet establish constructor refinement.
+
+Next: connect the first decimals call at733 to the source constructor, prove the postcall return
+checks734→742→750 and decimals≤18, then storeFrontPriceFactor≤1e18, assets.length≤24 and nonzero
+baseMinForRewards. Source execution, reversion for invalid/oversized configurations, the second
+price-feed decimals call, extensionDelegate.assetListFactory, internal createAssetList_call,
+immutables and runtime patch/return are still required. Prove createAssetList_call once as
+ExecFuncBody and use the internal-call bridge as required by Misc/prompt.md. Source reversion
+must accompany the EVM allocation-failure branches; do not report the prefix as full refinement.
+
+## Constructor decoding and both decimals calls connected, 2026-10-09
+
+`Constructor.lean` now consumes `cometConstructorInitialCalls`. All allocation failures, the
+first decimals call/decode/check failures, the three configuration-check failures, and the
+second decimals call/decode/check failures establish full constructor refinement by reverting.
+The remaining single sorry starts at902, after matching source execution of body.take9.
+No specification, decoder, relation, bytecode, block-summary or shared-library edits in this pass.
+
+New checked modules:
+- DecimalsCall: exact selector payload49/60/229/103 (kernel-decided selector identity), return
+  decoding with both length and uint8 checks, and reusable source call success/revert witnesses.
+- ConstructorSourcePrefix: typed Configuration struct, argument binding, source entry/config/
+  decimals frames, and matching constructor prefix execution.
+- ConstructorDecimalsCall/Memory/Response/Check: STATICCALL733 source/EVM bridge, exact call
+  memory and return decoding734→742→2428→2442→2711→2457→2467→2810→2478→750, every short/dirty/
+  failed branch, and decimals≤18 at750→764. Small allocator proves ptr+32 fits from finalFree<2^64.
+- ConstructorSourceChecks/Oversized: every base-token call outcome yields source reversion when
+  assets.length>24, so decoder allocation failures now close full refinement. The source call
+  witness uses the actual input state's available gas and EVM invocation, not a forced failure.
+- ConstructorFirstPhase: from initial state either full refinement, or matching body.take4 and
+  EVM764 with source state/account-map relation and checked decimals response.
+- ConstructorChecksMemory/Checks/ChecksSource: call preserves the config and array count;
+  storeFrontPriceFactor≤1e18, assets.length≤24, baseMinForRewards≠0 agree on both sides;
+  successful prefix reaches832 and source body.take7.
+- ConstructorPriceFeedMemory/Call/Response/Check/Source: second decimals call uses the source
+  state from the first call. STATICCALL871 returns at872; decode2303→2317→2711→2332→2342→2810
+  →2357→888, check exactly8, then902. Every failed/short/dirty/wrong-value case reverts on both
+  sides. Its free pointer is finalFree+32; successful allocation advances it to finalFree+64.
+- ConstructorInitialCalls: composes the above, preserving all facts needed by the remaining
+  constructor. Its success witnesses are evm',σ',out,feed,aw,k,C; finalFree<2^64,
+  ConstructorChecksValid c, SourceState initial I σ' evm', out.size<2^138, out.size≥32,
+  calldataWord out0≤18, feed.size<2^138, feed.size≥32, calldataWord feed0=8,
+  ExecBlock initial body.take9 to constructorSourcePriceFeed c (calldataWord out0)8,
+  and RD902 with stack `[calldataWord out0,ofNat recordBase]++constructorAssetLoopStack c n`
+  and memory constructorPriceFeedReturnMemory c out feed. The EVM account map is σ'.
+
+Validation: `constructor-initial-calls-build.log`: `Build completed successfully (4338 jobs).`
+Only Comet Correct was built; no Examples or other benchmarks. New files are LSP-clean.
+FirstPhase audit2749 and InitialCalls audit3491 axioms: only standard3/native_decide certificates,
+no custom/sorry axioms and no source warnings. The sole remaining sorry is Constructor.lean:29.
+Runtime remains complete. The whole-contract theorem is not yet proved; goal remains active.
+
+Next:902 writes governor/pauseGuardian/baseToken/baseTokenPriceFeed/extensionDelegate to
+128/160/192/224/256, storeFrontPriceFactor to544 and decimals to800, then988 computes
+baseScale=10^decimals (uint64), writes576 and trackingIndexScale608, checks baseScale≥1e6 and
+reaches1024 or reverts. Continue immutable initialization, delegate.assetListFactory STATICCALL1291,
+the internal createAssetList_call proof (once as ExecFuncBody), factory CALL1393, and deployed
+runtime patch/return. CreationBlocks_004 is now compiled; do not edit it. Preserve the generic
+source/EVM external-call witnesses and prove both outcomes of every remaining check.
+
+## Initial immutables and base-scale guard proved, 2026-10-09
+
+Further progress in the same continuation: the sole constructor sorry is now at1024, after
+matching source body.take19, not at902. The remaining path has6≤decimals≤18. The baseScale<1e6
+branch now closes full constructor refinement with the actual EVM/source reverts.
+
+New checked modules:
+- ConstructorDataMemory: reusable predicate preserving all decoded words in the interval
+  [recordBase,finalFree), including asset records and pointer table. Proved for both calls'
+  resulting memory, preserved under writes below recordBase, with scalar/pointer/count reads.
+- ConstructorInitialImmsSource: generic config-field evaluation; exact first seven immutable
+  inserts (five addresses, storeFrontPriceFactor and decimals); source prefix9→16.
+- ConstructorInitialImmsMemory: block902's exact seven writes normalized to
+  constructorInitialImmMemory c w mem. Config reads remain valid between each write; address
+  and uint64 masks preserve all canonical fields. Generic address/uint64 canonicality lemmas.
+- ConstructorInitialImms: reusable902→988 RD summary with exact memory and generic stack tail.
+- ConstructorScaleWords: EXP10 and uint64 masking equal10^decimals fordecimals≤18, with full
+  natural-word conversion bounds. EXP cases are kernel-decided; baseScale≥1e6 iffdecimals≥6.
+- ConstructorScaleEvm: block988, including both the scale guard outcomes; successful memory
+  stores baseScale at576 and trackingIndexScale at608, preserving ConstructorDataMemory.
+- ConstructorScaleSource: exact source EXP/casts, immutable type fits, assignments and check;
+  source prefix16→19 or whole-constructor revert.
+
+Constructor.lean consumes all of these. At its sole sorry(line44), hevm'' is RD1024 with stack
+`[ofNat recordBase]++constructorAssetLoopStack c n`, memory
+`constructorScaleMemory c w (constructorInitialImmMemory c w
+  (constructorPriceFeedReturnMemory c out feed))`, wherew=calldataWord out0. `hm''` is its
+ConstructorDataMemory proof; `hsource''` executes body.take19 to constructorSourceScale c w8.
+The account map remainsσ', and SourceState initial Iσ'evm' is still available. hscaleLo gives6≤w.toNat.
+
+Validation: `constructor-scale-build.log`: `Build completed successfully (4345 jobs).`
+Only Comet Correct was built; all new modules are LSP-clean and formatted to100 columns.
+Axiom audits: cometConstructorInitialImms200, cometConstructorScale183 (standard3/native_decide
+only); constructorSourceInitialImms_exec3, constructorSourceScaleChecked_revert3 (standard3 only).
+No custom/sorry axioms or source warnings in these audits. `git diff --check` passes.
+Search still finds exactlyone sorry(Constructor.lean:44), no project-authored axioms. Goal active.
+
+Next:1024→1119→1200→1279 initializes the remaining immutables, accrualDescaleFactor and
+per-second rates, and prepares delegate.assetListFactory STATICCALL1291. Reuse ConstructorDataMemory
+for config reads through immutable stores. Then prove the source internal createAssetList_call
+once, bridge the factory CALL1393, and finish deployed runtime patch/return.
+
+Engineering notes: generated memory expressions use raw ByteArray.write and ofNat constants.
+Normalize with a local equation `word.toByteArray.write 0 mem off32 = writeWord mem off word`
+plus `simp (disch := decide) only [UInt256.toNat_ofNat_of_lt, hwrite, ...]` before applying read
+lemmas. `simp [← writeWord]` cannot refold a def. Normalize32*j in instantiated scalar-read lemmas.
+`UInt256.ofNat255` versus`⟨255⟩` still defeats rw despite definitional equality; an explicit
+`have hbyte : (⟨255⟩ : UInt256)=UInt256.ofNat255 :=rfl` fixes it. For source immutable writes,
+use refine with an evaluation hole, then apply the field lemma; supplying the locals proof
+too early can infer the old frame instead of the updated immutable store.
+
+## Remaining immutables and factory getter proved, 2026-10-09
+
+The constructor now reaches PC1308 and source body.take36. Its sole remaining sorry is the
+successful factory-getter continuation; every factory-getter failure now closes full
+constructor refinement. Runtime proofs and the decoder were not changed in this continuation.
+
+New checked modules:
+- ConstructorRemainingImmsMemory: canonical uint104 fields and uint64 rates; exact normalized
+  memory/stack equations for blocks1024,1119,1200. `constructorRewardMemory` writes864,704,640,
+  672,736; `constructorSupplyMemory` writes768,288,320,352,384; `constructorBorrowMemory` writes
+  416,448,480,512,832. Config reads survive each write. Rates divide by31536000.
+- ConstructorRemainingImmsEvm: exact1024→1291 trace, preserving the delegate and free pointer.
+  `constructorRemainingImmMemory` composes reward/supply/borrow writes. Low complete reads
+  ending at or below288 survive. The final GAS word equals `(g.subNat C').toUInt256`.
+- ConstructorRemainingImmsSource: source prefix19→34, all remaining immutable assignments,
+  type fits, and uint8 asset count; `constructorSourceDelegate_exec` adds statement34, giving
+  source prefix35. `constructorSourceDivNat` and `constructorSourceAssetCount` work in arbitrary
+  frames with the required expression/local facts.
+- ConstructorFactoryCall: getter selector0x7042e2d8 and ABI encoding proved with `decide +kernel`;
+  exact address-return decode; source success/failure; STATICCALL1291→1292 bridge. Source prefix
+ 35→36 yields `constructorSourceFactory c w feed factoryWord`; failure yields whole-body revert.
+- ConstructorFactoryResponse: generic1292→1308 response decoder or RDrev. Handles failed call,
+  short data, and noncanonical address. Successful stack is `[640,base,factoryWord]++R`.
+  `constructorFactoryReturnMemory mem out ptr` is
+  `writeWord (callOutputMem mem out ptr 32) 64 (ptr+32)`; the returned word atptr is proved.
+- ConstructorFactoryMemory: concrete pointer `constructorFactoryPtr c = ofNat(finalFree+64)`,
+  pointer bounds fromn≤24, and exact memory size and payload. `constructorFactoryBaseMemory`
+  composes all immutable initialization over the price-feed return memory. Its size isptr.
+  `constructorFactoryInputMemory` writes the getter selector atptr and has sizeptr+32.
+
+At Constructor.lean's sole sorry (line75 before future edits):
+- `w = calldataWord out0`, `6≤w.toNat≤18`; `feedWord = calldataWord feed0 = 8`.
+- `hvalid : ConstructorChecksValid c` includesn≤24; `hbound` is still the complete initcode bound.
+- `hevm5 : RD ...1308 [640,recordBase,calldataWord factoryOut0]++loopStack` with memory
+  `constructorFactoryReturnMemory
+    (constructorFactoryInputMemory c w out feed) factoryOut (constructorFactoryPtr c)`.
+- `hsource4` executes body.take36 to
+  `constructorSourceFactory c w feedWord (calldataWord factoryOut0)` in stateevm4.
+- `hs4 : SourceState initial I σ4 evm4`, factoryOut.size<2^138,
+  `hfactory : ConstructorFactoryReturnValid factoryOut` (size≥32 and word<2^160).
+- The continuation must prove the internal helper once as ExecFuncBody, then bridge its
+  internal call. It must not inline the helper in the constructor.
+
+Next helper source AST (checked with lookupCallable?): params factory:address and
+assets:dynamicArray(tuple(address,address,uint8,uint64,uint64,uint64,uint128)), returnsaddress.
+Its body has7 statements: letpayload, letindex, while, lowLevelCall, requireok,
+letresultAddress(abiDecodeaddress), returnresultAddress. Initial packed payload AST uses
+fixedBytesLit[186,21,185,209], intLit32, and arrayLength local assets. The loop body's entry is
+`index (var assets) (var index)`; packed append casts tuple components0and1 to uint256, while
+components2..6 are direct tupleGet (the redundant source casts were lowered away). The loop
+incrementsindex with plain binary.add. See AssetSource.lean for packed encoding, source call,
+decode, and internal-call patterns; execWhile_var is available in Reasoning.SolmBody.
+
+EVM1308 writes factory-call payload header: selector0xba15b9d1 atfree, offset32 atfree+4,
+asset count atfree+36; stackat1358 is
+`[0,n,arrayBase+32,free+68,free,factoryWord,free]++loopStack`.
+Loop1358→2075→2150→1358 appends the7 asset words; CALL1393 and response follow. Finish immutable
+assetList at896, runtime patch/copy1410→1505→1598→1696→1792→1890→1988 and deployed-code equality.
+Do not edit supplied bytecode/blocks/spec Solidity, or build Examples/other benchmarks.
+
+Engineering notes: `dsimp only` between source immutable-write steps reduces nested frame
+projections and avoids a200k-heartbeat timeout. Conditional memory-preservation simp needs
+`disch := (first | omega | (simp only [writeWord_sparse_size]; omega))`; a single unconditional
+simp can fail on the plain disjointness premise. For generic pointers, `word_add_sub_left`
+proves `(ptr+n)-ptr=n`; `usub_uadd_lit_cancel` only accepts explicit ofNat pointers.
+AccountAddress.ofUInt256 differs definitionally from ofNat(toNat); use
+`accountAddress_ofUInt256_eq_ofNat_toNat`. `Int.ofNat_lt.mpr` avoids opaque casts in omega.
+
+Validation: `constructor-factory-build.log`: `Build completed successfully (4351 jobs)` after
+final formatting. Only Comet Correct was built; the new modules have no warnings, and
+`git diff --check` passes. Exactly one sorry remains in Constructor.lean; no axiom declarations
+were added. Axiom audits: RemainingImms EVM619, FactoryResponse601 (standard3/native certificates
+only), RemainingImms source3, Factory call5, Factory source success/revert3, Factory payload4.
+No unexpected axioms or
+source warnings. The whole-contract theorem remains incomplete; the goal remains active.
+
+## Constructor and whole-contract proof complete, 2026-10-09
+
+`cometWithExtendedAssetListContractCorrect` in `Correct.lean` is now proved, including the full
+constructor. It uses the separate `contractRefinementWFWithCodeBound` relation, the existing
+`cometGasBound` for runtime calls, and `trivialStorageWF`. The added deployment premise is
+`I.code.size < UInt256.size`; the original refinement relations and deployment encoder remain
+unchanged. The decoder continues to use the previously implemented `solc0815` mode.
+
+The final constructor continuation is complete:
+
+- `CreateAssetListSyntax`, `Payload`, `Loop`, `Source`, and `Internal` prove the full internal
+  helper once as `ExecFuncBody`, including successful calls and all reverting responses, then
+  bridge it to the constructor's internal call. `ConstructorAssetsSource` proves the final
+  source assignment and whole-body success or revert.
+- `ConstructorAssetReads` and `CreateAssetListEncoder`, `Memory`, `Head`, `Evm`, `Call`, and
+  `Response` prove the exact seven-word asset loop, ABI payload, factory CALL, and response
+  decoder. `ConstructorAssetsMemory` and `ConstructorAssetsCall` connect those generic routines
+  to the constructor's allocated configuration. Failed calls, short returndata, and
+  noncanonical addresses all close the corresponding full-constructor revert branch.
+- `ConstructorRuntimeWindow`, `Memory`, `Parts`, `Start`, and `Evm` prove runtime copying,
+  all 70 immutable patch writes, and the final RETURN. The copied 18,599-byte runtime template
+  is checked against the creation artifact. Generic window/cascade lemmas connect the returned
+  bytes to `immutableLayout.runtime`.
+- `ConstructorFinalMemory` proves all 25 immutable memory words; `ConstructorFinalImms` proves
+  the source values have the declared types and yield the same words. `ConstructorRuntimeFinish`
+  identifies the returned code with the source immutables' deployed runtime. `Constructor`
+  combines the final account-map agreement, source execution, and EVM success/out-of-gas cases.
+
+Validation:
+
+- `lake build Benchmarks.CompoundIII.Comet.Correct` succeeds (4,374 jobs), recorded in
+  `constructor-complete-build.log`. No Examples or other benchmarks were built.
+- LSP diagnostics for the constructor, final memory/immutable modules, runtime return, and
+  top-level correctness are clean. A source scan finds no `sorry`, `admit`, or `axiom` in Comet's
+  Lean files; `git diff --check` passes.
+- Constructor axiom audit: 6,769 dependencies, all standard axioms or allowed concrete
+  evaluation certificates. Whole-contract audit: 25,925 dependencies, comprising `propext`,
+  `Classical.choice`, `Quot.sound`, and 25,922 concrete evaluation certificates. Neither audit
+  reports `sorryAx`, custom axioms, or source warnings. The source helper body and final
+  immutable type-bound proofs use only the standard three axioms.
+
+No proof obligations remain. The supplied Solidity, bytecode, and generated block summaries
+were not edited. No commit or push was requested or performed.
