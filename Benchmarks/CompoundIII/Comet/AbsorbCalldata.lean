@@ -51,7 +51,7 @@ theorem solc0815_decodeCalldata_addressArray_prefix {cd : ByteArray} {x y : Iden
   have hargsShort : ¬ cd.toList.length - 4 < 64 := by omega
   simp only [decodeCalldataWithMode, decodeCalldata, hshort, if_false,
     List.any_cons, List.any_nil, isDynamicABIType, Bool.false_or, Bool.true_or,
-    if_true, true_and, not_le.mpr hbig, List.isEmpty_cons,
+    true_and, not_le.mpr hbig, List.isEmpty_cons,
     Bool.false_eq_true, false_and, solcTotalSizeDynamicGuard, List.length_drop,
     not_le.mpr hargsBig, decodeCalldata.decodeArgs]
   rw [show abiTupleHeadSize? [.elem .address, .dynamicArray (.elem .address)] = some 64 by

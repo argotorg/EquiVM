@@ -28,7 +28,8 @@ theorem cometWithExtendedAssetListIsBorrowCollateralizedBody {σ σ₀ A I} {g :
   have hdecode : decodeCalldataWithMode config.abiDecodeMode
       (isBorrowCollateralizedTransition.params.map Param.name)
       (transitionSignature isBorrowCollateralizedTransition).paramTypes I.calldata =
-      decodeCalldata ["account"] [.elem .address] I.calldata := rfl
+      decodeCalldata ["account"] [.elem .address] I.calldata := by
+    exact solc0815_decodeCalldata_scalar_eq (by decide)
   have hX := isBorrowCollateralizedX (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hlo : 36 ≤ I.calldata.size

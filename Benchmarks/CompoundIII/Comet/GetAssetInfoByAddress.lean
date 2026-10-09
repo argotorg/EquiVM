@@ -29,7 +29,8 @@ theorem cometWithExtendedAssetListGetAssetInfoByAddressBody {σ σ₀ A I} {g : 
   have hdecode : decodeCalldataWithMode config.abiDecodeMode
       (getAssetInfoByAddressTransition.params.map Param.name)
       (transitionSignature getAssetInfoByAddressTransition).paramTypes I.calldata =
-      decodeCalldata ["asset"] [.elem .address] I.calldata := rfl
+      decodeCalldata ["asset"] [.elem .address] I.calldata := by
+    exact solc0815_decodeCalldata_scalar_eq (by decide)
   have hX := getAssetInfoByAddressX (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hlo : 36 ≤ I.calldata.size

@@ -4,8 +4,10 @@ Current status (2026-10-09): the constructor input-size decision is resolved. Th
 a separate bounded copy of the refinement relation, keeping the deployment encoder unchanged.
 Comet now uses `typedConstructorRefinementWithCodeBound` and
 `contractRefinementWFWithCodeBound` from `Solm/RefineWithCodeBound.lean`. Both add the premise
-`I.code.size < UInt256.size` on deployments. Existing relations, the active config, and decoding
-are unchanged. The old encoder-guard proposal/review below is historical and superseded.
+`I.code.size < UInt256.size` on deployments. Existing relations and the deployment encoder
+are unchanged. The decoder narrowing recorded below preserves `.solc0815` for every calldata
+call and leaves existing shared decoder bodies unchanged. The old encoder-guard proposal/review
+below is historical and superseded.
 The full proof is complete: the constructor and all runtime paths are proved without sorries
 or custom axioms. The Comet-only build passes. The top-level theorem's audit reports the three
 standard Lean axioms and 25,922 permitted concrete evaluation certificates. See the completion
@@ -1598,3 +1600,38 @@ Validation:
 
 No proof obligations remain. The supplied Solidity, bytecode, and generated block summaries
 were not edited. No commit or push was requested or performed.
+
+## Decoder narrowing without mode rerouting, 2026-10-09
+
+The user authorized changes to mode-selection lines while requiring existing shared logic to
+remain unchanged. `decodeCalldataWithMode` now forwards its selected mode directly, restoring
+the original wrapper. There is no scalar/static-argument switch from `.solc0815` to `.modern`.
+Identical branches select the existing body with `| .modern | .solc0815 =>`; this removes
+41 net lines from `ABI/Decode.lean` relative to commit `688324d9`.
+
+The sole new decoding behavior remains `.solc0815`'s deferred validation of calldata
+`address[]` elements. Scalar addresses and returned address arrays remain strict. A source
+comparison against `origin/main` confirms byte-for-byte identity after removing only the
+new-mode helper, dispatch entry, and mode-selection entries. No existing branch body changed.
+
+`Solc0815Decode.lean` now proves `solc0815_decodeCalldata_scalar_eq`, allowing the scalar-call
+proofs to reuse existing decoding facts without changing runtime mode selection. Those proof
+steps replace the former `rfl` reliance on the shortcut. The new lemma and its helpers use
+only the three standard Lean axioms.
+
+Validation:
+
+- `lake build Solm Reasoning` succeeds (3,491 jobs), recorded in
+  `solc0815-narrow-core-build.log`.
+- `lake build Benchmarks.CompoundIII.Comet.Correct
+  Benchmarks.CompoundIII.Comet.Solc0815Regression` succeeds (4,382 jobs), recorded in
+  `solc0815-narrow-comet-build.log`. All ten regression cases agree, including the original
+  dirty-address/static-accrual mismatch. Scalar and return-array validation guards pass.
+- The whole-contract axiom audit remains 25,925 dependencies: the three standard axioms,
+  25,906 `native_decide` certificates, and 16 `bv_decide` certificates. No `sorryAx`, custom
+  axioms, or source warnings. A source scan finds no `sorry`, `admit`, or axiom declarations
+  in the Comet Lean files; `git diff --check` passes.
+
+The complete bounded constructor/runtime theorem still checks. Examples, other benchmarks,
+and the general differential-test executable were not rebuilt. Solidity, bytecode, generated
+block summaries, and the theorem's resource bounds were not edited.

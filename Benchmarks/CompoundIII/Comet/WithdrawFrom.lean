@@ -30,7 +30,8 @@ theorem cometWithExtendedAssetListWithdrawFromBody {σ σ₀ A I} {g : UInt256} 
       (withdrawFromTransition.params.map Param.name)
       (transitionSignature withdrawFromTransition).paramTypes I.calldata =
       decodeCalldata ["src", "to", "asset", "amount"]
-        [.elem .address, .elem .address, .elem .address, abiUInt256] I.calldata := rfl
+        [.elem .address, .elem .address, .elem .address, abiUInt256] I.calldata := by
+    exact solc0815_decodeCalldata_scalar_eq (by decide)
   have hdec := hdecode.trans (decodeCalldata_threeAddressUint I "src" "to" "asset" "amount" hsz)
   have hX := withdrawFromX (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel

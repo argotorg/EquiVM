@@ -29,7 +29,8 @@ theorem cometWithExtendedAssetListQuoteCollateralBody {σ σ₀ A I} {g : UInt25
   have hdecode : decodeCalldataWithMode config.abiDecodeMode
       (quoteCollateralTransition.params.map Param.name)
       (transitionSignature quoteCollateralTransition).paramTypes I.calldata =
-      decodeCalldata ["asset", "baseAmount"] [.elem .address, abiUInt256] I.calldata := rfl
+      decodeCalldata ["asset", "baseAmount"] [.elem .address, abiUInt256] I.calldata := by
+    exact solc0815_decodeCalldata_scalar_eq (by decide)
   have hX := quoteCollateralX (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hlo : 68 ≤ I.calldata.size

@@ -5,6 +5,39 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 namespace Benchmarks.CompoundIII.Comet
 
+private theorem solc0815_decodeABIWord_eq (ty : ABIType) (word : EVM.Word) :
+    decodeABIWord? ty word .solc0815 = decodeABIWord? ty word := by
+  cases ty <;> rfl
+
+private theorem solc0815_decodeScalarWords_eq (types : List ABIType) (bytes : List UInt8)
+    (cursor : Nat) :
+    decodeScalarWordsWithMode? .solc0815 types bytes cursor =
+      decodeScalarWords? types bytes cursor := by
+  induction types generalizing cursor with
+  | nil => rfl
+  | cons ty tys ih =>
+      simp only [decodeScalarWordsWithMode?, decodeScalarWords?, decodeScalarWordWithMode?,
+        decodeScalarWord?, solc0815_decodeABIWord_eq]
+      simp_rw [ih]
+
+/-- Scalar-only calls agree with the existing decoder without changing the selected mode. -/
+theorem solc0815_decodeCalldata_scalar_eq {names : List Ident} {types : List ABIType}
+    {cd : ByteArray} (hscalar : types.all isABIScalarWordType = true) :
+    decodeCalldataWithMode .solc0815 names types cd = decodeCalldata names types cd := by
+  have hargs : decodeCalldata.decodeArgs .solc0815 names types (cd.toList.drop 4) ∅ =
+      decodeCalldata.decodeArgs .modern names types (cd.toList.drop 4) ∅ := by
+    cases types with
+    | nil => rfl
+    | cons ty tys =>
+        have hhead := abiTupleHeadSize_scalarWords_eq hscalar
+        have hvalues := decodeABIValues_scalarWordsWithMode_eq
+          (mode := .solc0815) (bytes := cd.toList.drop 4) (cursor := 0)
+          hscalar (by simp : 0 + 32 * (ty :: tys).length = 32 * (ty :: tys).length)
+        rw [solc0815_decodeScalarWords_eq] at hvalues
+        rw [← decodeABIValues_scalarWords_eq hscalar (by simp)] at hvalues
+        simp only [decodeCalldata.decodeArgs, hhead, bind, Option.bind, hvalues]
+  simp only [decodeCalldataWithMode, decodeCalldata, hargs]
+
 -- LIBRARY CANDIDATE (Reasoning/ABI): the solc 0.8.15 calldata address-array view.
 theorem solc0815_addressArrayWord_canonical {n : Nat} (hn : n < EVM.addressModulus) :
     Solc0815.addressArrayWord n = .address (AccountAddress.ofNat n) := by

@@ -30,7 +30,8 @@ theorem cometWithExtendedAssetListSupplyToBody {σ σ₀ A I} {g : UInt256} (v :
       (supplyToTransition.params.map Param.name)
       (transitionSignature supplyToTransition).paramTypes I.calldata =
       decodeCalldata ["dst", "asset", "amount"]
-        [.elem .address, .elem .address, abiUInt256] I.calldata := rfl
+        [.elem .address, .elem .address, abiUInt256] I.calldata := by
+    exact solc0815_decodeCalldata_scalar_eq (by decide)
   have hX := supplyToX (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hargs : TwoAddressUintCalldataValid I

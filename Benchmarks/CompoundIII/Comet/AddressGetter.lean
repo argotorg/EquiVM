@@ -47,7 +47,7 @@ theorem checkedAddressGetter_refines {t : TransitionDecl} {imms : Store}
       (transitionSignature t).paramTypes I.calldata =
       decodeCalldata [name] [.elem .address] I.calldata := by
     simp only [transitionSignature, hp, List.map_cons, List.map_nil]
-    rfl
+    exact solc0815_decodeCalldata_scalar_eq (by decide)
   by_cases hlo : 36 ≤ I.calldata.size
   · by_cases hhi : I.calldata.size < 2 ^ 255 + 4
     · by_cases hc : (calldataWord I.calldata 4).toNat < EVM.addressModulus

@@ -29,7 +29,8 @@ theorem cometWithExtendedAssetListWithdrawReservesBody {σ σ₀ A I} {g : UInt2
   have hdecode : decodeCalldataWithMode config.abiDecodeMode
       (withdrawReservesTransition.params.map Param.name)
       (transitionSignature withdrawReservesTransition).paramTypes I.calldata =
-      decodeCalldata ["to", "amount"] [.elem .address, abiUInt256] I.calldata := rfl
+      decodeCalldata ["to", "amount"] [.elem .address, abiUInt256] I.calldata := by
+    exact solc0815_decodeCalldata_scalar_eq (by decide)
   have hX := withdrawReservesX (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hlo : 68 ≤ I.calldata.size

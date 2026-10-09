@@ -28,7 +28,8 @@ theorem cometWithExtendedAssetListIsLiquidatableBody {σ σ₀ A I} {g : UInt256
   have hdecode : decodeCalldataWithMode config.abiDecodeMode
       (isLiquidatableTransition.params.map Param.name)
       (transitionSignature isLiquidatableTransition).paramTypes I.calldata =
-      decodeCalldata ["account"] [.elem .address] I.calldata := rfl
+      decodeCalldata ["account"] [.elem .address] I.calldata := by
+    exact solc0815_decodeCalldata_scalar_eq (by decide)
   have hX := isLiquidatableX (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hlo : 36 ≤ I.calldata.size

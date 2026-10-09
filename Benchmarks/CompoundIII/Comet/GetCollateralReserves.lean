@@ -29,7 +29,8 @@ theorem cometWithExtendedAssetListGetCollateralReservesBody {σ σ₀ A I} {g : 
   have hdecode : decodeCalldataWithMode config.abiDecodeMode
       (getCollateralReservesTransition.params.map Param.name)
       (transitionSignature getCollateralReservesTransition).paramTypes I.calldata =
-      decodeCalldata ["asset"] [.elem .address] I.calldata := rfl
+      decodeCalldata ["asset"] [.elem .address] I.calldata := by
+    exact solc0815_decodeCalldata_scalar_eq (by decide)
   have hX := getCollateralReservesX (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hlo : 36 ≤ I.calldata.size

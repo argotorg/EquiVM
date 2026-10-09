@@ -29,7 +29,8 @@ theorem cometWithExtendedAssetListGetAssetInfoBody {σ σ₀ A I} {g : UInt256} 
   have hdecode : decodeCalldataWithMode config.abiDecodeMode
       (getAssetInfoTransition.params.map Param.name)
       (transitionSignature getAssetInfoTransition).paramTypes I.calldata =
-      decodeCalldata ["i"] [.elem (.int (.uint ⟨8, by decide⟩))] I.calldata := rfl
+      decodeCalldata ["i"] [.elem (.int (.uint ⟨8, by decide⟩))] I.calldata := by
+    exact solc0815_decodeCalldata_scalar_eq (by decide)
   have hX := getAssetInfoX (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hlo : 36 ≤ I.calldata.size

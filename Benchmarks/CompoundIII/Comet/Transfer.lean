@@ -29,7 +29,8 @@ theorem cometWithExtendedAssetListTransferBody {σ σ₀ A I} {g : UInt256} (v :
   have hdecode : decodeCalldataWithMode config.abiDecodeMode
       (transferTransition.params.map Param.name)
       (transitionSignature transferTransition).paramTypes I.calldata =
-      decodeCalldata ["dst", "amount"] [.elem .address, abiUInt256] I.calldata := rfl
+      decodeCalldata ["dst", "amount"] [.elem .address, abiUInt256] I.calldata := by
+    exact solc0815_decodeCalldata_scalar_eq (by decide)
   have hX := transferX (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hlo : 68 ≤ I.calldata.size

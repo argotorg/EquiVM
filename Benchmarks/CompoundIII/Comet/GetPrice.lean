@@ -29,7 +29,8 @@ theorem cometWithExtendedAssetListGetPriceBody {σ σ₀ A I} {g : UInt256} (v :
   have hdecode : decodeCalldataWithMode config.abiDecodeMode
       (getPriceTransition.params.map Param.name)
       (transitionSignature getPriceTransition).paramTypes I.calldata =
-      decodeCalldata ["priceFeed"] [.elem .address] I.calldata := rfl
+      decodeCalldata ["priceFeed"] [.elem .address] I.calldata := by
+    exact solc0815_decodeCalldata_scalar_eq (by decide)
   have hX := getPriceX (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) v hcode hsz hsize hsel
   by_cases hlo : 36 ≤ I.calldata.size

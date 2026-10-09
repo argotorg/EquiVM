@@ -30,7 +30,8 @@ theorem cometWithExtendedAssetListBuyCollateralBody {σ σ₀ A I} {g : UInt256}
       (buyCollateralTransition.params.map Param.name)
       (transitionSignature buyCollateralTransition).paramTypes I.calldata =
       decodeCalldata ["asset", "minAmount", "baseAmount", "recipient"]
-        [.elem .address, abiUInt256, abiUInt256, .elem .address] I.calldata := rfl
+        [.elem .address, abiUInt256, abiUInt256, .elem .address] I.calldata := by
+    exact solc0815_decodeCalldata_scalar_eq (by decide)
   have hdec := hdecode.trans
     (decodeCalldata_addressUintUintAddress I "asset" "minAmount" "baseAmount" "recipient" hsz)
   have hX := buyCollateralX (σ := σ) (σ₀ := σ₀) (A := A)
