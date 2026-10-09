@@ -83,20 +83,21 @@ theorem runtimeRefinement_behaviors_included {cfg : Config} {bytecode : ByteArra
   exact runtimeRefinementFor_captured
     (hrun σ σ₀ g A I hcode hsize)
 
-/-- The same inclusion for relations carrying a storage well-formedness precondition. -/
-theorem runtimeRefinementWithWF_behaviors_included {wf : StorageWF} {cfg : Config}
-    {bytecode : ByteArray} {contract : ContractDecl}
-    {immutables : Store} (h : runtimeRefinementWithWF wf cfg bytecode contract immutables)
+/-- The same inclusion for relations carrying a storage well-formedness precondition and a gas
+    bound. -/
+theorem runtimeRefinementWithWF_behaviors_included {wf : StorageWF} {gasBound : GasBound}
+    {cfg : Config} {bytecode : ByteArray} {contract : ContractDecl} {immutables : Store}
+    (h : runtimeRefinementWithWF wf gasBound cfg bytecode contract immutables)
     (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv)
     (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
-    (hwf : wf σ I) :
+    (hwf : wf σ I) (hgas : gasBound g) :
     Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass ∨
     capturedBySpec cfg contract σ σ₀ g A I
       (Ethereum.EVM.Ξ σ σ₀ g A I) immutables := by
   obtain ⟨hrun⟩ := h
   exact runtimeRefinementFor_captured
-    (hrun σ σ₀ g A I hcode hsize hwf)
+    (hrun σ σ₀ g A I hcode hsize hwf hgas)
 
 /-- A captured exceptional halt is `INVALID`, or a static-mode violation matched by a Solm
     `.staticViolation`. -/

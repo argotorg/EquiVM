@@ -11,8 +11,8 @@ The statement of Solm/EVM refinement, layered bottom-up:
   returned bytes must be the deployed runtime code for the constructor's final immutables).
 * **Fixed-input relation** — `runtimeRefinementFor` couples one EVM execution
   (`Ethereum.EVM.Ξ`) with one Solm execution (`solmExec`) at fixed transaction inputs.
-* **∀-closure** — `runtimeRefinement` (and the precondition-carrying `runtimeRefinementWithWF`)
-  quantify over all inputs.
+* **∀-closure** — `runtimeRefinement` (and `runtimeRefinementWithWF`, which carries a storage
+  precondition and a bound on the starting gas) quantify over all inputs.
 * **Top level** — the contract refinement (`contractRefinement`) composes the constructor
   (`typedConstructorRefinement`) and runtime relations through the immutables the constructor
   deploys.
@@ -191,13 +191,20 @@ abbrev StorageWF := Ethereum.AccountMap → Ethereum.ExecutionEnv → Prop
 /-- Trivial storage well-formedness predicate for contracts whose correctness is unconditional. -/
 def trivialStorageWF : StorageWF := fun _ _ => True
 
-/-- Runtime refinement under a contract-specific storage well-formedness precondition.
+/-- A bound on the gas a runtime call starts with (e.g. `fun g => g.toNat < 2^64`). -/
+abbrev GasBound := Ethereum.UInt256 → Prop
 
-This is the same runtime relation as `runtimeRefinement`, except the caller must additionally
-prove `wf σ I` for the EVM-side initial storage and execution environment.  Both relations
-cover either permission mode. -/
-inductive runtimeRefinementWithWF (wf : StorageWF) (cfg : Config) (bytecode : ByteArray)
-    (contract : ContractDecl) (immutables : Store := ∅) : Prop where
+/-- No gas bound: refinement holds for every amount of gas. -/
+def noGasBound : GasBound := fun _ => True
+
+/-- Runtime refinement under a contract-specific storage well-formedness precondition and a gas
+bound.
+
+This is the same runtime relation as `runtimeRefinement`, except it only covers calls where
+`wf σ I` holds for the EVM-side initial storage and execution environment, and `gasBound g`
+holds for the starting gas.  Both relations cover either permission mode. -/
+inductive runtimeRefinementWithWF (wf : StorageWF) (gasBound : GasBound) (cfg : Config)
+    (bytecode : ByteArray) (contract : ContractDecl) (immutables : Store := ∅) : Prop where
   | intro :
     (∀ (σ : Ethereum.AccountMap)
       (σ₀ : Ethereum.AccountMap)
@@ -207,9 +214,10 @@ inductive runtimeRefinementWithWF (wf : StorageWF) (cfg : Config) (bytecode : By
     I.code = bytecode →
     I.calldata.size < Ethereum.UInt256.size →
     wf σ I →
+    gasBound g →
     runtimeRefinementFor cfg contract σ σ₀ g A I immutables
     ) →
-    runtimeRefinementWithWF wf cfg bytecode contract immutables
+    runtimeRefinementWithWF wf gasBound cfg bytecode contract immutables
 
 /-- Runtime refinement of `bytecode` with the spec run with the deployed `immutables`, in either
     permission mode.  When entered through `STATICCALL`, the EVM halts at the first forbidden
@@ -228,10 +236,10 @@ inductive runtimeRefinement (cfg : Config) (bytecode : ByteArray) (contract : Co
     ) →
     runtimeRefinement cfg bytecode contract immutables
 
-/-- Sanity check: the two definitions agree for the trivial storage well-formedness predicate. -/
+/-- Sanity check: the two definitions agree for the trivial storage predicate and no gas bound. -/
 theorem runtimeRefinementWithWF_trivial_iff {cfg : Config} {bytecode : ByteArray}
     {contract : ContractDecl} {immutables : Store} :
-    runtimeRefinementWithWF trivialStorageWF cfg bytecode contract immutables ↔
+    runtimeRefinementWithWF trivialStorageWF noGasBound cfg bytecode contract immutables ↔
       runtimeRefinement cfg bytecode contract immutables := by
   constructor
   · intro h
@@ -239,12 +247,12 @@ theorem runtimeRefinementWithWF_trivial_iff {cfg : Config} {bytecode : ByteArray
     | intro hrun =>
         refine runtimeRefinement.intro ?_
         intro σ σ₀ g A I hcode hsize
-        exact hrun σ σ₀ g A I hcode hsize trivial
+        exact hrun σ σ₀ g A I hcode hsize trivial trivial
   · intro h
     cases h with
     | intro hrun =>
         refine runtimeRefinementWithWF.intro ?_
-        intro σ σ₀ g A I hcode hsize _hwf
+        intro σ σ₀ g A I hcode hsize _hwf _hgas
         exact hrun σ σ₀ g A I hcode hsize
 
 /-! ## Contract refinement
@@ -261,7 +269,8 @@ so the constructor affects the runtime only through its immutables, and the depl
 function of them.
 The constructor's final storage does not reach the runtime half: `runtimeRefinement` quantifies
 over every runtime state, so constructor-established storage facts can only enter through the
-storage well-formedness precondition `wf`.
+storage well-formedness precondition `wf`.  The runtime half can likewise be restricted to calls
+whose starting gas satisfies `gasBound`; the constructor half is unaffected.
 
 Proofs rarely go through that per deployment.  `contractRefinement.of_runtime` splits it: a
 constructor proof (`typedConstructorRefinement`) that the EVM returns `runtimeCodeOf` of the final
@@ -314,21 +323,22 @@ inductive constructorRefinementFor (cfg : Config) (contract : ContractDecl) (arg
 
 /-- Deployment refinement at fixed deployment inputs: the constructor refines, and whatever it
     deployed refines at runtime. -/
-def deploymentRefinement (wf : StorageWF) (cfg : Config) (contract : ContractDecl)
+def deploymentRefinement (wf : StorageWF) (gasBound : GasBound) (cfg : Config)
+    (contract : ContractDecl)
     (args : List Value) (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
     (A : Ethereum.Substate) (I : Ethereum.ExecutionEnv) (runtimeCodeOf : Store → ByteArray) :
     Prop :=
   ∃ imms?, constructorRefinementFor cfg contract args σ σ₀ g A I runtimeCodeOf imms? ∧
     ∀ imms, imms? = some imms →
-      runtimeRefinementWithWF wf cfg (runtimeCodeOf imms) contract
+      runtimeRefinementWithWF wf gasBound cfg (runtimeCodeOf imms) contract
         (restrictImmutables contract imms)
 
 /-- Top-level refinement of a contract with immutables, under a storage well-formedness
-    precondition for runtime calls: `deploymentRefinement` at every deployment of `initcode` (the
-    deployment inputs of `typedConstructorRefinement`), for one `runtimeCodeOf` shared by all of
-    them. -/
-inductive contractRefinementWF (wf : StorageWF) (cfg : Config) (initcode : ByteArray)
-    (contract : ContractDecl) : Prop where
+    precondition and a gas bound for runtime calls: `deploymentRefinement` at every deployment of
+    `initcode` (the deployment inputs of `typedConstructorRefinement`), for one `runtimeCodeOf`
+    shared by all of them. -/
+inductive contractRefinementWF (wf : StorageWF) (gasBound : GasBound) (cfg : Config)
+    (initcode : ByteArray) (contract : ContractDecl) : Prop where
   | intro (runtimeCodeOf : Store → ByteArray) :
     (∀ (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
       (I : Ethereum.ExecutionEnv) (args : List Value) (deployedInitcode : ByteArray),
@@ -339,12 +349,12 @@ inductive contractRefinementWF (wf : StorageWF) (cfg : Config) (initcode : ByteA
       -- `CREATE`/`CREATE2` are themselves forbidden under `perm = false`, so `Λ` is never reached
       -- with it.  The hypothesis excludes nothing reachable.
       I.perm = true →
-      deploymentRefinement wf cfg contract args σ σ₀ g A I runtimeCodeOf) →
-    contractRefinementWF wf cfg initcode contract
+      deploymentRefinement wf gasBound cfg contract args σ σ₀ g A I runtimeCodeOf) →
+    contractRefinementWF wf gasBound cfg initcode contract
 
 /-- Top-level refinement of a contract with immutables. -/
 abbrev contractRefinement (cfg : Config) (initcode : ByteArray) (contract : ContractDecl) : Prop :=
-  contractRefinementWF trivialStorageWF cfg initcode contract
+  contractRefinementWF trivialStorageWF noGasBound cfg initcode contract
 
 /-! ### Proving it: constructor and runtime separately -/
 
@@ -390,15 +400,16 @@ def typedConstructorRefinement (cfg : Config) (initcode : ByteArray) (contract :
     I.perm = true →  -- unreachable otherwise, see `contractRefinementWF`
     typedConstructorRefinementFor cfg contract args σ σ₀ g A I runtimeCodeOf
 
-theorem typedConstructorRefinementFor.toDeployment {wf : StorageWF} {cfg : Config}
+theorem typedConstructorRefinementFor.toDeployment {wf : StorageWF} {gasBound : GasBound}
+    {cfg : Config}
     {contract : ContractDecl} {args : List Value} {σ σ₀ : Ethereum.AccountMap}
     {g : Ethereum.UInt256} {A : Ethereum.Substate} {I : Ethereum.ExecutionEnv}
     {runtimeCodeOf : Store → ByteArray}
     (h : typedConstructorRefinementFor cfg contract args σ σ₀ g A I runtimeCodeOf)
     (hrt : ∀ imms, immutablesFit contract imms →
-      runtimeRefinementWithWF wf cfg (runtimeCodeOf imms) contract
+      runtimeRefinementWithWF wf gasBound cfg (runtimeCodeOf imms) contract
         (restrictImmutables contract imms)) :
-    deploymentRefinement wf cfg contract args σ σ₀ g A I runtimeCodeOf := by
+    deploymentRefinement wf gasBound cfg contract args σ σ₀ g A I runtimeCodeOf := by
   cases h with
   | outOfGas hoog => exact ⟨none, .outOfGas hoog, fun _ h => by cases h⟩
   | @execution _ solmRes hΞ hsolm hres hfit =>
@@ -411,17 +422,17 @@ theorem typedConstructorRefinementFor.toDeployment {wf : StorageWF} {cfg : Confi
 
 /-- **The usual proof route**: a constructor proof for some `runtimeCodeOf`, and a runtime proof
     of `runtimeCodeOf imms` for every well-typed immutables store `imms`. -/
-theorem contractRefinementWF.of_runtime {wf : StorageWF} {cfg : Config} {initcode : ByteArray}
-    {contract : ContractDecl} {runtimeCodeOf : Store → ByteArray}
+theorem contractRefinementWF.of_runtime {wf : StorageWF} {gasBound : GasBound} {cfg : Config}
+    {initcode : ByteArray} {contract : ContractDecl} {runtimeCodeOf : Store → ByteArray}
     (hctor : typedConstructorRefinement cfg initcode contract runtimeCodeOf)
     (hrt : ∀ imms, immutablesFit contract imms →
-      runtimeRefinementWithWF wf cfg (runtimeCodeOf imms) contract
+      runtimeRefinementWithWF wf gasBound cfg (runtimeCodeOf imms) contract
         (restrictImmutables contract imms)) :
-    contractRefinementWF wf cfg initcode contract :=
+    contractRefinementWF wf gasBound cfg initcode contract :=
   .intro runtimeCodeOf fun σ σ₀ g A I args d hdeploy hcode hcalldata hperm =>
     (hctor σ σ₀ g A I args d hdeploy hcode hcalldata hperm).toDeployment hrt
 
-/-- `contractRefinementWF.of_runtime` without a storage precondition. -/
+/-- `contractRefinementWF.of_runtime` without a storage precondition or gas bound. -/
 theorem contractRefinement.of_runtime {cfg : Config} {initcode : ByteArray}
     {contract : ContractDecl} {runtimeCodeOf : Store → ByteArray}
     (hctor : typedConstructorRefinement cfg initcode contract runtimeCodeOf)
@@ -434,13 +445,13 @@ theorem contractRefinement.of_runtime {cfg : Config} {initcode : ByteArray}
 /-! ### Contracts without immutables -/
 
 /-- **Contracts without immutables**: the constructor returns `runtimeCode`, which refines the spec
-    under the storage precondition `wf`. -/
-theorem contractRefinementWF.of_constant {wf : StorageWF} {cfg : Config}
+    under the storage precondition `wf` and gas bound `gasBound`. -/
+theorem contractRefinementWF.of_constant {wf : StorageWF} {gasBound : GasBound} {cfg : Config}
     {initcode runtimeCode : ByteArray} {contract : ContractDecl}
     (hctor : typedConstructorRefinement cfg initcode contract (fun _ => runtimeCode))
-    (hrt : runtimeRefinementWithWF wf cfg runtimeCode contract)
+    (hrt : runtimeRefinementWithWF wf gasBound cfg runtimeCode contract)
     (himm : contract.immutables = [] := by rfl) :
-    contractRefinementWF wf cfg initcode contract :=
+    contractRefinementWF wf gasBound cfg initcode contract :=
   contractRefinementWF.of_runtime hctor fun imms _ => by
     rw [restrictImmutables_noImmutables himm]
     exact hrt

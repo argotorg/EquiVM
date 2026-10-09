@@ -28,6 +28,21 @@ differential suite cannot tell apart from it, and the proof skeleton the proving
 - The differential suite is evidence, not the audit. It runs first and samples the paths its
   generator reaches; the audit of step 8 covers every block of the bytecode, is yours to do, and
   ends either with a faithful spec or with an immediate report of what cannot be made faithful.
+- **No memory implementation details in the spec.** The finished spec works on values: it
+  never models the free memory pointer, allocation, memory layout or copying (encoding buffers,
+  scratch space, `mload`/`mstore`), including where a translated hole or inline assembly touches
+  them. A compiler guard on an allocation (a size check that reverts) stays as a `require`, since
+  its revert is observable; the pointer arithmetic behind it does not. Where that arithmetic is
+  safe only because of gas, the gas bound below covers it, not the spec.
+- **The gas bound is yours to find.** The runtime refinement may be stated only for calls whose
+  starting gas satisfies a bound (`runtimeRefinementWithWF <wf> <gasBound> …`, `noGasBound` when
+  there is none). The proving session takes the bound from your hand-off. Propose one only when
+  it lets the proof abstract a low-level implementation detail, and then choose the loosest bound
+  that does. It must sit above `2^24`: every starting gas up to `2^24` (the per-transaction gas
+  cap of EIP-7825) satisfies it, so no real call is excluded. A bound is an obligation, not an
+  assumption: within the bound, every path on which the abstracted detail does not hold must be
+  shown to end in the `outOfGas` refinement case. If such a path can complete within the bound,
+  the bound is wrong.
 
 ## Steps
 
@@ -72,6 +87,9 @@ differential suite cannot tell apart from it, and the proof skeleton the proving
    pc range and blocks from the report and walk the blocks in order against the spec:
    - every block implements a spec statement and every statement has its blocks; a block without
      a statement, or a statement without blocks, is a finding;
+   - memory: a block that only manages memory (free-pointer bumps, allocation, encoding buffers)
+     is accounted for by the statement it serves, never by a statement of its own; a spec
+     statement that models the free memory pointer, an allocation or a memory layout is a finding;
    - storage: each `SLOAD` and `SSTORE` has its read or write in the spec, in the same order,
      with the same slot derivation (mapping keys, array elements and lengths, packed fields);
      the same for `TLOAD` and `TSTORE` against the `transient` declarations, whose slots start
@@ -86,6 +104,14 @@ differential suite cannot tell apart from it, and the proof skeleton the proving
    - results: return encoding, every revert path (the revert itself is modelled, its payload is
      not), events and their arguments; `delete`, `push`, `pop`;
    - the environment: every use of `msg.sender`, `msg.value`, `address(this)`, `block.*`;
+   - gas (see the gas-bound rule): every low-level detail whose correctness depends on the
+     starting gas, such as pointer or size arithmetic that cannot overflow only because memory
+     expansion would exhaust the gas first, or behaviour that reads `GAS` or forwards gas to a
+     call. For each one, find the largest starting gas under which every path that breaks it runs
+     out of gas first (e.g. expanding memory to an overflowing offset costs more than that gas).
+     The bound you propose is the loosest one that covers all of them, and it sits above `2^24`.
+     A detail that needs a bound at or below `2^24`, or a path that breaks it and still completes
+     within the bound, is a finding;
    - proof blockers: storage reads and writes of mappings, arrays, strings and bytes in the
      bytecode's order (otherwise the proof needs a slot-noncollision axiom, which is not allowed);
      the same logic in one helper function rather than repeated; nothing the Solm semantics cannot
@@ -97,7 +123,9 @@ differential suite cannot tell apart from it, and the proof skeleton the proving
 9. **Hand-off.** `<Dir>/HANDOFF.md`: compiler settings and provenance; the differential run
    (command, seed, summary line, coverage line); the places where the spec follows the bytecode
    rather than the source, if any; what the proving session should know (immutables and their
-   valuation, external-call ABI entries, the functions you expect to be hard and why).
+   valuation, external-call ABI entries, the functions you expect to be hard and why); the gas
+   bound: `noGasBound`, or the bound with the details it abstracts, why it is the loosest, why it
+   sits above `2^24`, and why every path that breaks an abstracted detail within it runs out of gas.
 
 ## Done when
 
@@ -105,4 +133,4 @@ differential suite cannot tell apart from it, and the proof skeleton the proving
 - `lake build <Module>.Correct` succeeds with no `sorry` outside the generated stubs.
 - `lake exe solm-difftest --only <Name> --count 50` reports no disagreement and no stuck case.
 - The audit of step 8 is complete for every function and the constructor, with no finding left.
-- `HANDOFF.md` has the four sections of step 9.
+- `HANDOFF.md` has the five sections of step 9.

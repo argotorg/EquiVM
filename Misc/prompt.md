@@ -63,6 +63,14 @@ well-formedness condition to rule out overflowing states: 224 + 64 *
 (solcSlotWordAt X sigma I).toNat < UInt256.size, where X is the dynamic array's
 base slot.
 
+Keep in mind: the runtime relation can also carry a gas bound
+(`runtimeRefinementWithWF <wf> <gasBound> …`, `noGasBound` when there is none). Use one only
+when it lets you abstract a low-level implementation detail (e.g. gas-dependent freePtr arithmetic
+that cannot overflow below the bound), and choose the loosest bound that does. The bound is not
+free: for calls within the bound, every path on which the abstracted detail does not hold
+(e.g. the freePtr arithmetic would overflow) must be shown to end in the `outOfGas` refinement
+case. Only bounds above 2^24 are acceptable.
+
 ## 1. Overall Workflow
 
 ### Phase 0: Evaluate the spec and bytecode
@@ -478,7 +486,7 @@ theorem <name>ContractCorrect : contractRefinement config <initcode> contract :=
   .of_runtime <name>ConstructorCorrect <name>RuntimeCorrect
 ```
 
-(`contractRefinementWF <wf> …` with a storage precondition), with
+(`contractRefinementWF <wf> <gasBound> …` with a storage precondition or gas bound), with
 `runtimeCodeOf := immutableLayout.deployed <template>` from `Reasoning/Immutables.lean`: the
 template with every immutable site patched with `wordsOf imms`, each immutable's word under Solm's
 `valueToWord`. Never define a contract-specific `runtimeCodeOf`, word map, or patch function.
