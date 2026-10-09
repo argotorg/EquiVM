@@ -67,20 +67,8 @@ base slot.
 
 ### Phase 0: Evaluate the spec and bytecode
 
-Run the differential suite first:
 
-```
-lake exe solm-difftest --only <Name> --count 50
-```
-
-(`Tests/DiffTest/README.md`; the target comes from `scripts/scaffold.py difftest`). It runs
-the bytecode and the Solm spec on generated calls and compares them with the refinement
-relation. Every `DISAGREE` or `spec stuck` must be understood and, when it is a spec error,
-fixed before any proof work; an inconclusive case (out of gas, out of fuel, allocation cap)
-imposes nothing. The `successful/cases` line shows which transitions the cases reach on a
-successful path; a transition at `0/N` has only been tested on its revert paths, so raise the
-count or add the words its guards need to `DiffTarget.lean`. The suite complements the audit
-below, it does not replace it: it cannot see paths the generator never reaches.
+Do not rerun the differential test suite. This is a HARD RULE.
 
 Do a thorough read of the Solm spec and the bytecode. Check that the
 Solm spec matches the bytecode's storage reads/writes, arithmetic, and
