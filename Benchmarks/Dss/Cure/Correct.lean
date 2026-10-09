@@ -35,9 +35,9 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.Cure
 
 theorem cureCorrect :
-    runtimeRefinementWithWF cureStorageWF config cureBytecode contract := by
+    runtimeRefinementWithWF cureStorageWF noGasBound config cureBytecode contract := by
   refine runtimeRefinementWithWF.intro ?_
-  intro σ σ₀ g A I hcode hsize hStorageWF
+  intro σ σ₀ g A I hcode hsize hStorageWF _
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hamt : selIs I (cureSelBytes 0)
     · exact cureAmtBodyCore hcode hsize hwv hamt
@@ -87,7 +87,7 @@ theorem cureCorrect :
   · exact cureNonPayable hcode hwv
 
 theorem cureContractCorrect :
-    contractRefinementWF cureStorageWF config cureCreationBytecode contract :=
+    contractRefinementWF cureStorageWF noGasBound config cureCreationBytecode contract :=
   contractRefinementWF.of_constant cureConstructorCorrect cureCorrect
 
 end Benchmarks.Dss.Cure
