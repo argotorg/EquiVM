@@ -652,7 +652,7 @@ theorem decodeScalarWordWithMode_uint256_ok {mode : DecodeMode} {bytes : List UI
   rw [if_pos hlen]
   simp only
   cases mode with
-  | modern =>
+  | modern | solc08Calldata _ =>
     rw [if_neg (show ¬ ((256 : ℕ) = 0) from by decide)]
     rw [if_pos (show (↑(ABI.bytesToWord (List.take 32 (List.drop start bytes))).val : ℕ)
       < EVM.twoPow 256 from (ABI.bytesToWord ((bytes.drop start).take 32)).val.isLt)]
@@ -1178,6 +1178,10 @@ theorem decodeCalldataWithMode_empty_ok {mode : DecodeMode} {cd : ByteArray}
   · have htlen : cd.toList.length = cd.size := by
       rw [byteArray_toList_eq, Array.length_toList]; rfl
     simp [decodeCalldataWithMode, decodeCalldata, htlen, hsz4, decodeCalldata.decodeArgs]
+  · have htlen : cd.toList.length = cd.size := by
+      rw [byteArray_toList_eq, Array.length_toList]; rfl
+    simp [decodeCalldataWithMode, decodeCalldata, htlen, hsz4,
+      ABI.Solc08Calldata.decodeArgs?, decodeCalldata.insertValues]
 
 theorem decodeScalarWords_uint256_ok {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32) :

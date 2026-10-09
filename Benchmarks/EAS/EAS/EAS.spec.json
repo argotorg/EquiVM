@@ -1,0 +1,115 @@
+{
+  "contract": "EAS",
+  "externalCalls": [
+    {
+      "name": "getSchema",
+      "params": [
+        "bytes32"
+      ],
+      "returns": [
+        "SchemaRecord"
+      ],
+      "view": true
+    },
+    {
+      "name": "isPayable",
+      "params": [],
+      "returns": [
+        "bool"
+      ],
+      "view": true
+    },
+    {
+      "name": "multiRevoke",
+      "params": [
+        "Attestation",
+        "uint256[]"
+      ],
+      "returns": [
+        "bool"
+      ],
+      "view": false
+    },
+    {
+      "name": "multiAttest",
+      "params": [
+        "Attestation",
+        "uint256[]"
+      ],
+      "returns": [
+        "bool"
+      ],
+      "view": false
+    },
+    {
+      "name": "revoke",
+      "params": [
+        "Attestation"
+      ],
+      "returns": [
+        "bool"
+      ],
+      "view": false
+    },
+    {
+      "name": "attest",
+      "params": [
+        "Attestation"
+      ],
+      "returns": [
+        "bool"
+      ],
+      "view": false
+    },
+    {
+      "name": "sendValue",
+      "params": [
+        "address",
+        "uint256"
+      ],
+      "returns": [],
+      "view": false
+    }
+  ],
+  "holes": [
+    "call function (uint256) pure returns (struct AttestationRequestData memory[] memory) @2958",
+    "call function (uint256) pure returns (struct AttestationRequestData memory[] memory) @3399",
+    "call function (uint256) pure returns (bytes32[] memory[] memory) @3968",
+    "call function (uint256) pure returns (bytes32[] memory[] memory) @6259",
+    "call function (uint256) pure returns (struct RevocationRequestData memory[] memory) @9268",
+    "call function (uint256) pure returns (struct RevocationRequestData memory[] memory) @9659",
+    "uninitialised local of type AttestationsResult @16398",
+    "call function (uint256) pure returns (bytes32[] memory) @16437",
+    "call function (uint256) pure returns (struct Attestation memory[] memory) @16730",
+    "call function (uint256) pure returns (uint256[] memory) @16801",
+    "increment in expression position @2843",
+    "abi.encode @2899",
+    "call function (uint256) pure returns (bytes32[] memory) @28198",
+    "call function (uint256) pure returns (struct Attestation memory[] memory) @20037",
+    "call function (uint256) pure returns (uint256[] memory) @20108",
+    "increment in expression position @3872",
+    "abi.encode @3927",
+    "abi.encode @3625",
+    "string literal with escapes @8453",
+    "builtin ecrecover() @6357"
+  ],
+  "notes": [
+    "`multiRequest` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 5042:64:11",
+    "`multiDelegatedRequest` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 7302:91:11",
+    "`data` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 7407:67:11",
+    "`multiRequest` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 10911:63:11",
+    "`multiDelegatedRequest` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 12383:88:11",
+    "`data` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 12485:64:11",
+    "constant ATTEST_TYPEHASH = 99505243715942933888240952616802929847476548576208744958988217175427947486817 inlined",
+    "constant REVOKE_TYPEHASH = 76690012066023820863223560235467895628960054969079040944716494920993861113424 inlined",
+    "constant VERSION = \"0.26\" inlined",
+    "constant EMPTY_UID = 0 inlined",
+    "`request` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 16907:47:11",
+    "constant NO_EXPIRATION_TIME = 0 inlined",
+    "`data` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 2674:49:12",
+    "`signature` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 2733:52:12",
+    "`request` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 20214:46:11",
+    "`data` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 3704:48:12",
+    "`signature` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 3762:52:12"
+  ]
+}

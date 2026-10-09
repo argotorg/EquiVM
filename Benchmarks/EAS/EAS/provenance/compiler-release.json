@@ -1,0 +1,11 @@
+{
+  "path": "solc-linux-amd64-v0.8.32+commit.ebbd65e5",
+  "version": "0.8.32",
+  "build": "commit.ebbd65e5",
+  "longVersion": "0.8.32+commit.ebbd65e5",
+  "keccak256": "0xdec6e17aa961928d2fcd339fa90ecbd15230aca59b80cde112ca3b99fe04366f",
+  "sha256": "0xaafc7e409a10b669010cd93207474a4364fbccbe635106ac09c12cd0cb475a1b",
+  "urls": [
+    "dweb:/ipfs/QmZ6ujznFDWweoYGKXVSsLinwzgN3hmvSwpRdfhjVPoe5e"
+  ]
+}

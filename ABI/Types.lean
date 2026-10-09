@@ -38,6 +38,24 @@ inductive ElemType where
   | function : ElemType
   deriving DecidableEq, Repr, Inhabited
 
+/-- A step through a calldata value's ABI shape. `element` applies to every array element;
+    `field i` is a tuple/struct component, not its byte offset. -/
+inductive CalldataStep where
+  | element
+  | field (index : Nat)
+  deriving DecidableEq, Repr, Inhabited
+
+/-- Where a Solidity calldata value is materialized in memory. A path ending here (`[]`)
+    selects eager decoding for the entire value; an empty list of paths keeps the value and
+    all descendants in calldata. Copy boundaries must come from the compiled access path,
+    not just the source parameter's data location. -/
+structure CalldataPlan where
+  materialize : List (List CalldataStep) := [[]]
+  /-- Retain a failed decode at these paths for an explicit check in the contract body.
+      This is opt-in: callers must check the failure marker before using such a value. -/
+  deferErrors : List (List CalldataStep) := []
+  deriving DecidableEq, Repr, Inhabited
+
 /-- ABI decoder mode for compiler-specific wrapper behavior. Modern solc decoders reject
     non-canonical value words and use signed size guards. Legacy solc instead *cleans*
     value types rather than validating them: normalize `bool` (nonzero → true), mask `address`, and
@@ -48,11 +66,18 @@ inductive ElemType where
     agrees under the contract proof's calldata-size precondition.
 
     Vyper fixed-argument wrappers keep canonical address checks but use minimum static-size checks
-    rather than solc's signed huge-calldata guard. -/
+    rather than solc's signed huge-calldata guard.
+
+    `solc08Calldata` models solc's distinct calldata-reference and materializing decoders,
+    verified against 0.8.18 and 0.8.32. Its table maps a selector to one plan per argument;
+    unspecified arguments are materialized. Direct nested tails use signed bounds and
+    wrapping EVM addresses, while top-level and materialized offsets retain the uint64 cap.
+    Return data always uses the materializing decoder, never the selector table. -/
 inductive DecodeMode where
   | modern : DecodeMode
   | legacySolc05 : DecodeMode
   | vyper : DecodeMode
+  | solc08Calldata (plans : List (Nat × List CalldataPlan) := []) : DecodeMode
   deriving DecidableEq, Repr, Inhabited
 
 /-- ABI types for parameters, locals, and return values. -/

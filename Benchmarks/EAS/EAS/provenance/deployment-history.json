@@ -1,0 +1,166 @@
+[
+  {
+    "sha": "02992ba409012ccf953aa5d77a3a4e5e1c5c66aa",
+    "node_id": "C_kwDOEe-K_NoAKDAyOTkyYmE0MDkwMTJjY2Y5NTNhYTVkNzdhM2E0ZTVlMWM1YzY2YWE",
+    "commit": {
+      "author": {
+        "name": "lbeder",
+        "email": "leonid@lbeder.com",
+        "date": "2023-04-13T12:12:48Z"
+      },
+      "committer": {
+        "name": "lbeder",
+        "email": "leonid@lbeder.com",
+        "date": "2023-04-13T12:12:48Z"
+      },
+      "message": "Update solidity version to 0.8.19",
+      "tree": {
+        "sha": "c03e5029c8ee5dfe2efeee47265e100fe7b5d5a9",
+        "url": "https://api.github.com/repos/ethereum-attestation-service/eas-contracts/git/trees/c03e5029c8ee5dfe2efeee47265e100fe7b5d5a9"
+      },
+      "url": "https://api.github.com/repos/ethereum-attestation-service/eas-contracts/git/commits/02992ba409012ccf953aa5d77a3a4e5e1c5c66aa",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "url": "https://api.github.com/repos/ethereum-attestation-service/eas-contracts/commits/02992ba409012ccf953aa5d77a3a4e5e1c5c66aa",
+    "html_url": "https://github.com/ethereum-attestation-service/eas-contracts/commit/02992ba409012ccf953aa5d77a3a4e5e1c5c66aa",
+    "comments_url": "https://api.github.com/repos/ethereum-attestation-service/eas-contracts/commits/02992ba409012ccf953aa5d77a3a4e5e1c5c66aa/comments",
+    "author": {
+      "login": "lbeder",
+      "id": 2841614,
+      "node_id": "MDQ6VXNlcjI4NDE2MTQ=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2841614?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/lbeder",
+      "html_url": "https://github.com/lbeder",
+      "followers_url": "https://api.github.com/users/lbeder/followers",
+      "following_url": "https://api.github.com/users/lbeder/following{/other_user}",
+      "gists_url": "https://api.github.com/users/lbeder/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/lbeder/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/lbeder/subscriptions",
+      "organizations_url": "https://api.github.com/users/lbeder/orgs",
+      "repos_url": "https://api.github.com/users/lbeder/repos",
+      "events_url": "https://api.github.com/users/lbeder/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/lbeder/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "lbeder",
+      "id": 2841614,
+      "node_id": "MDQ6VXNlcjI4NDE2MTQ=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2841614?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/lbeder",
+      "html_url": "https://github.com/lbeder",
+      "followers_url": "https://api.github.com/users/lbeder/followers",
+      "following_url": "https://api.github.com/users/lbeder/following{/other_user}",
+      "gists_url": "https://api.github.com/users/lbeder/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/lbeder/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/lbeder/subscriptions",
+      "organizations_url": "https://api.github.com/users/lbeder/orgs",
+      "repos_url": "https://api.github.com/users/lbeder/repos",
+      "events_url": "https://api.github.com/users/lbeder/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/lbeder/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "d9b29ac138e2f3e34fde4ccb55de029646c276d9",
+        "url": "https://api.github.com/repos/ethereum-attestation-service/eas-contracts/commits/d9b29ac138e2f3e34fde4ccb55de029646c276d9",
+        "html_url": "https://github.com/ethereum-attestation-service/eas-contracts/commit/d9b29ac138e2f3e34fde4ccb55de029646c276d9"
+      }
+    ]
+  },
+  {
+    "sha": "aefff5aea2b61b4d86f5af016bc51b6acf3685fc",
+    "node_id": "C_kwDOEe-K_NoAKGFlZmZmNWFlYTJiNjFiNGQ4NmY1YWYwMTZiYzUxYjZhY2YzNjg1ZmM",
+    "commit": {
+      "author": {
+        "name": "lbeder",
+        "email": "lbeder@users.noreply.github.com",
+        "date": "2023-03-04T18:21:25Z"
+      },
+      "committer": {
+        "name": "lbeder",
+        "email": "lbeder@users.noreply.github.com",
+        "date": "2023-03-04T18:21:25Z"
+      },
+      "message": "Deploy to Ethereum mainnet",
+      "tree": {
+        "sha": "a230fb5fcfce3cf737cb554380065eafb2af03de",
+        "url": "https://api.github.com/repos/ethereum-attestation-service/eas-contracts/git/trees/a230fb5fcfce3cf737cb554380065eafb2af03de"
+      },
+      "url": "https://api.github.com/repos/ethereum-attestation-service/eas-contracts/git/commits/aefff5aea2b61b4d86f5af016bc51b6acf3685fc",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "url": "https://api.github.com/repos/ethereum-attestation-service/eas-contracts/commits/aefff5aea2b61b4d86f5af016bc51b6acf3685fc",
+    "html_url": "https://github.com/ethereum-attestation-service/eas-contracts/commit/aefff5aea2b61b4d86f5af016bc51b6acf3685fc",
+    "comments_url": "https://api.github.com/repos/ethereum-attestation-service/eas-contracts/commits/aefff5aea2b61b4d86f5af016bc51b6acf3685fc/comments",
+    "author": {
+      "login": "lbeder",
+      "id": 2841614,
+      "node_id": "MDQ6VXNlcjI4NDE2MTQ=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2841614?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/lbeder",
+      "html_url": "https://github.com/lbeder",
+      "followers_url": "https://api.github.com/users/lbeder/followers",
+      "following_url": "https://api.github.com/users/lbeder/following{/other_user}",
+      "gists_url": "https://api.github.com/users/lbeder/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/lbeder/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/lbeder/subscriptions",
+      "organizations_url": "https://api.github.com/users/lbeder/orgs",
+      "repos_url": "https://api.github.com/users/lbeder/repos",
+      "events_url": "https://api.github.com/users/lbeder/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/lbeder/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "lbeder",
+      "id": 2841614,
+      "node_id": "MDQ6VXNlcjI4NDE2MTQ=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2841614?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/lbeder",
+      "html_url": "https://github.com/lbeder",
+      "followers_url": "https://api.github.com/users/lbeder/followers",
+      "following_url": "https://api.github.com/users/lbeder/following{/other_user}",
+      "gists_url": "https://api.github.com/users/lbeder/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/lbeder/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/lbeder/subscriptions",
+      "organizations_url": "https://api.github.com/users/lbeder/orgs",
+      "repos_url": "https://api.github.com/users/lbeder/repos",
+      "events_url": "https://api.github.com/users/lbeder/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/lbeder/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "f751d45c5d5c2fda624e33cd8c6cea643dac57ab",
+        "url": "https://api.github.com/repos/ethereum-attestation-service/eas-contracts/commits/f751d45c5d5c2fda624e33cd8c6cea643dac57ab",
+        "html_url": "https://github.com/ethereum-attestation-service/eas-contracts/commit/f751d45c5d5c2fda624e33cd8c6cea643dac57ab"
+      }
+    ]
+  }
+]

@@ -1,0 +1,95 @@
+{
+  "reason": "User requested Solidity 0.8.32 to avoid SOL-2025-1; changes are exact-version pragma declarations only.",
+  "files": [
+    {
+      "path": "contracts/EAS.sol",
+      "originalSha256": "600221f06aeacdba8351e0796605dfad97e4d0b32e3eea871efc301a8a845773",
+      "benchmarkSha256": "c8e09c05ea7665342e4e4b263948fd00060f4f6c3bd08f614b6e74046ae29665"
+    },
+    {
+      "path": "contracts/EIP712Verifier.sol",
+      "originalSha256": "9dd30f49691ea5d1ddbf9eee3909ca7b633b10ddcc7e356b3c7942b5e2248e32",
+      "benchmarkSha256": "0b093fdcafa12ff9da5c0de8796f1ed0625cd3ad6539d71953356396a0bb4511"
+    },
+    {
+      "path": "contracts/SchemaRegistry.sol",
+      "originalSha256": "ac6c9ce543fbaffeb5edc3397903db1a3a7226e0b2c01776d688bfbe82ba8b27",
+      "benchmarkSha256": "61c3c8f596c327b4f5f1078bcd24b6adf18f6e1a00490c0146ca0d5b4b9c4a98"
+    },
+    {
+      "path": "contracts/Types.sol",
+      "originalSha256": "8608284df5413646784721c22eae03e05784c2bb82113c790d9ddbf5077de1b0",
+      "benchmarkSha256": "f3ce5f1b52034d6481e7048b99fdd7a63c83f2b2f13dc4685f5a2a3b0841f148"
+    },
+    {
+      "path": "contracts/resolver/SchemaResolver.sol",
+      "originalSha256": "514dec809eddd65cd862bd6dd1ab633e2082fccabec299ca1f61471db66dd811",
+      "benchmarkSha256": "6d41fef1bd3a507ff577524b55bf247cec109552c746951c80048b9da18274ed"
+    },
+    {
+      "path": "contracts/resolver/examples/AttestationResolver.sol",
+      "originalSha256": "f3a33d69f9afcf8e6b3e7af102f37ce7a65b24a93d17ba5e0b05db0e50819980",
+      "benchmarkSha256": "c516b2fbec714e8094c3d3c755aef9c891808689201215c021f6d767bcf075b0"
+    },
+    {
+      "path": "contracts/resolver/examples/AttesterResolver.sol",
+      "originalSha256": "86b3f4a9ffeb6317a00294347611cf622c65086abd9d99784749da0a6cfb1ab6",
+      "benchmarkSha256": "9d8dd4ab0d8bdb846512a449ad10f175c5685ff0b5501b38a909bb374275d9d6"
+    },
+    {
+      "path": "contracts/resolver/examples/DataResolver.sol",
+      "originalSha256": "006d2908f74ce9db8aa5c1ec86b9937e196e731ddd69d66da4bd11351601fa0b",
+      "benchmarkSha256": "d85d905d53fe599fb70644e44a148f3d752159f9369ae40478dc9b4b602e68e4"
+    },
+    {
+      "path": "contracts/resolver/examples/ExpirationTimeResolver.sol",
+      "originalSha256": "18843a0f5d4de969a1420853aec393c8714a45cf17c65fcf430f7d2eb23af906",
+      "benchmarkSha256": "d154327283ee8e0aeab80fd15bf1c721609ef82889ba0fcc2d42430fed30cb92"
+    },
+    {
+      "path": "contracts/resolver/examples/PayingResolver.sol",
+      "originalSha256": "e98b72cd1f402e8bd4c3d2a10a7c30f4aed76b0b7ceb6811fdecc36ad26255b3",
+      "benchmarkSha256": "dfaf4dff928c1e57a7d8f1e568f4ac6811bdc801b6843fd235475d7b34bcfe8d"
+    },
+    {
+      "path": "contracts/resolver/examples/RecipientResolver.sol",
+      "originalSha256": "d81c4efbae186939c3d611c566115d75aa8341267e20323becd5fb5b46a2a475",
+      "benchmarkSha256": "cb85af6ede251555be146df0c31ed6b4fc05247dc5028865be5987c0d1326279"
+    },
+    {
+      "path": "contracts/resolver/examples/RevocationResolver.sol",
+      "originalSha256": "53dc59b229ec68794e5920a14e35784b789608533eb542b3803754b48d596313",
+      "benchmarkSha256": "5e0fc8c0e9881e7f3ee6e01a5d720537c58f87cd719a7aab9c129c855988a39c"
+    },
+    {
+      "path": "contracts/resolver/examples/TokenResolver.sol",
+      "originalSha256": "256e97e070f09bb55c07a86166a95a9af903a5826dc1f1fd1ce9fc57b91b4163",
+      "benchmarkSha256": "aa1d7b90af51b77db8afaf7d9da007739899bd7ffd023e2657ba06ec289ea9d4"
+    },
+    {
+      "path": "contracts/resolver/examples/ValueResolver.sol",
+      "originalSha256": "b58733734bb8bdde405efddf741b068b72e186eeecbd9c93cf5f7d00d1211dc6",
+      "benchmarkSha256": "63d99e00ab905e75bfa5585ca983f6b82fc4b08d503b3e2deca86c9210ec0cff"
+    },
+    {
+      "path": "contracts/tests/TestEAS.sol",
+      "originalSha256": "1996e79c91ffa7d0492a5d00ff6d37bb987969944e62bd30ae7759513f9ac16c",
+      "benchmarkSha256": "d92401c9028fd8312750caf0e740b1c554d15cbfe5a90fb2551dffd816a7c880"
+    },
+    {
+      "path": "contracts/tests/TestEIP712Verifier.sol",
+      "originalSha256": "37820b9fafa7bf6cd9ac192e6ad1a7f1d659272f644bd5ae181c581a505a5d25",
+      "benchmarkSha256": "005842cf5a42715de75e90b1b1ccbe6b9d67563fd2112a2fe55bcf03c8fa44db"
+    },
+    {
+      "path": "contracts/tests/TestERC20Token.sol",
+      "originalSha256": "d91a3f171343f55ddce0d05b2273d2610b3387624ed30adac4dbeaf5a17a4be8",
+      "benchmarkSha256": "258aa5bc2b7cd54369e81904b42997cff77fe73031c67426bd1128ab6cd907a4"
+    },
+    {
+      "path": "contracts/tests/TestSchemaResolver.sol",
+      "originalSha256": "cf871dfd8e302ea18730e64cd8ce8ff4d5681758029a6c2bf0abb35e7dab0068",
+      "benchmarkSha256": "cfa06102626e74cd5c99ddc86866551cf5891de169a442bec0140aa9c2bd6923"
+    }
+  ]
+}

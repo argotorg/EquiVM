@@ -1,0 +1,180 @@
+--- a/contracts/EAS.sol
++++ b/contracts/EAS.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+ 
+--- a/contracts/EIP712Verifier.sol
++++ b/contracts/EIP712Verifier.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+--- a/contracts/SchemaRegistry.sol
++++ b/contracts/SchemaRegistry.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { EMPTY_UID } from "./Types.sol";
+ import { ISchemaRegistry, SchemaRecord } from "./ISchemaRegistry.sol";
+--- a/contracts/Types.sol
++++ b/contracts/Types.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ // A representation of an empty/uninitialized UID.
+ bytes32 constant EMPTY_UID = 0;
+--- a/contracts/resolver/SchemaResolver.sol
++++ b/contracts/resolver/SchemaResolver.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { IEAS, Attestation } from "../IEAS.sol";
+ 
+--- a/contracts/resolver/examples/AttestationResolver.sol
++++ b/contracts/resolver/examples/AttestationResolver.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { SchemaResolver } from "../SchemaResolver.sol";
+ 
+--- a/contracts/resolver/examples/AttesterResolver.sol
++++ b/contracts/resolver/examples/AttesterResolver.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { SchemaResolver } from "../SchemaResolver.sol";
+ 
+--- a/contracts/resolver/examples/DataResolver.sol
++++ b/contracts/resolver/examples/DataResolver.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { SchemaResolver } from "../SchemaResolver.sol";
+ 
+--- a/contracts/resolver/examples/ExpirationTimeResolver.sol
++++ b/contracts/resolver/examples/ExpirationTimeResolver.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { SchemaResolver } from "../SchemaResolver.sol";
+ 
+--- a/contracts/resolver/examples/PayingResolver.sol
++++ b/contracts/resolver/examples/PayingResolver.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+ 
+--- a/contracts/resolver/examples/RecipientResolver.sol
++++ b/contracts/resolver/examples/RecipientResolver.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { SchemaResolver } from "../SchemaResolver.sol";
+ 
+--- a/contracts/resolver/examples/RevocationResolver.sol
++++ b/contracts/resolver/examples/RevocationResolver.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { SchemaResolver } from "../SchemaResolver.sol";
+ 
+--- a/contracts/resolver/examples/TokenResolver.sol
++++ b/contracts/resolver/examples/TokenResolver.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+--- a/contracts/resolver/examples/ValueResolver.sol
++++ b/contracts/resolver/examples/ValueResolver.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { SchemaResolver } from "../SchemaResolver.sol";
+ 
+--- a/contracts/tests/TestEAS.sol
++++ b/contracts/tests/TestEAS.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { EAS } from "../EAS.sol";
+ 
+--- a/contracts/tests/TestEIP712Verifier.sol
++++ b/contracts/tests/TestEIP712Verifier.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { EIP712Verifier } from "../EIP712Verifier.sol";
+ import { DelegatedAttestationRequest, DelegatedRevocationRequest } from "../IEAS.sol";
+--- a/contracts/tests/TestERC20Token.sol
++++ b/contracts/tests/TestERC20Token.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+ 
+--- a/contracts/tests/TestSchemaResolver.sol
++++ b/contracts/tests/TestSchemaResolver.sol
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: MIT
+ 
+-pragma solidity 0.8.18;
++pragma solidity 0.8.32;
+ 
+ import { SchemaResolver } from "../resolver/SchemaResolver.sol";
+ 

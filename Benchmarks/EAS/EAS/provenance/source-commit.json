@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/ethereum-attestation-service/eas-contracts",
+  "commit": "aefff5aea2b61b4d86f5af016bc51b6acf3685fc",
+  "contractsMatched": 21,
+  "verificationRecord": "https://eth.blockscout.com/api/v2/smart-contracts/0xA1207F3BBa224E2c9c3c6D5aF63D0eb1582Ce587",
+  "etherscanStatus": "HTTP 403; verification-input.json reconstructed from the Blockscout verification record, not downloaded from Etherscan."
+}
