@@ -166,8 +166,9 @@ theorem cometWithExtendedAssetListNoSelectorMatches {I : ExecutionEnv}
   · simpa [selIs] using h67
 
 theorem cometWithExtendedAssetListCorrect (v : CometWithExtendedAssetListImmutables) :
-    runtimeRefinement config (deployedRuntime v) contract (immStore v) := by
-  refine ⟨fun σ σ₀ g A I hcode hsize ↦ ?_⟩
+    runtimeRefinementWithWF trivialStorageWF cometGasBound config
+      (deployedRuntime v) contract (immStore v) := by
+  refine ⟨fun σ σ₀ g A I hcode hsize _hwf hgas ↦ ?_⟩
   by_cases h0 : selIs I (cometWithExtendedAssetListSelBytes 0)
   · exact cometWithExtendedAssetListIsLiquidatableBody v hcode hsize h0
   · by_cases h1 : selIs I (cometWithExtendedAssetListSelBytes 1)
@@ -245,7 +246,7 @@ theorem cometWithExtendedAssetListCorrect (v : CometWithExtendedAssetListImmutab
                                                                           · by_cases h37 : selIs I (cometWithExtendedAssetListSelBytes 37)
                                                                             · exact cometWithExtendedAssetListSupplyFromBody v hcode hsize h37
                                                                             · by_cases h38 : selIs I (cometWithExtendedAssetListSelBytes 38)
-                                                                              · exact cometWithExtendedAssetListAbsorbBody v hcode hsize h38
+                                                                              · exact cometWithExtendedAssetListAbsorbBody v hcode hsize h38 hgas
                                                                               · by_cases h39 : selIs I (cometWithExtendedAssetListSelBytes 39)
                                                                                 · exact cometWithExtendedAssetListBorrowKinkBody v hcode hsize h39
                                                                                 · by_cases h40 : selIs I (cometWithExtendedAssetListSelBytes 40)
@@ -307,14 +308,16 @@ theorem cometWithExtendedAssetListCorrect (v : CometWithExtendedAssetListImmutab
                                                                                                                                         · exact cometWithExtendedAssetListNoDispatch v hcode hsize (cometWithExtendedAssetListNoSelectorMatches h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 h25 h26 h27 h28 h29 h30 h31 h32 h33 h34 h35 h36 h37 h38 h39 h40 h41 h42 h43 h44 h45 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67)
 
 theorem cometWithExtendedAssetListRuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
-    runtimeRefinement config (immutableLayout.deployed cometWithExtendedAssetListBytecode imms) contract
+    runtimeRefinementWithWF trivialStorageWF cometGasBound config
+      (immutableLayout.deployed cometWithExtendedAssetListBytecode imms) contract
       (restrictImmutables contract imms) := by
   obtain ⟨v, hv⟩ := restrictImmutables_of_fit hfit
   rw [← Reasoning.Immutables.Layout.deployed_restrict immutableLayout_keys, hv]
   exact cometWithExtendedAssetListCorrect v
 
 theorem cometWithExtendedAssetListContractCorrect :
-    contractRefinement config cometWithExtendedAssetListCreationBytecode contract :=
+    contractRefinementWF trivialStorageWF cometGasBound config
+      cometWithExtendedAssetListCreationBytecode contract :=
   .of_runtime cometWithExtendedAssetListConstructorCorrect cometWithExtendedAssetListRuntimeCorrect
 
 end Benchmarks.CompoundIII.Comet

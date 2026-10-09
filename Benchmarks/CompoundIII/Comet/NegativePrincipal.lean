@@ -53,6 +53,18 @@ theorem signextend104_idem (w : UInt256) :
         (x.setWidth 104).signExtend 256 := by bv_decide
   exact congrArg (fun x : BitVec 256 ↦ (⟨x.toFin⟩ : UInt256)) (hb ⟨w.val⟩)
 
+-- LIBRARY CANDIDATE: decoding a signed field is unchanged by canonical sign extension.
+theorem signed104_signextend (w : UInt256) :
+    signed104 (UInt256.signextend (UInt256.ofNat 12) w) = signed104 w := by
+  rw [signed104_bitvec, signed104_bitvec]
+  have hw : UInt256.signextend (UInt256.ofNat 12) w =
+      ⟨(((⟨w.val⟩ : BitVec 256).setWidth 104).signExtend 256).toFin⟩ :=
+    congrArg UInt256.mk (signextend104_bitvec (⟨w.val⟩ : BitVec 256))
+  rw [hw]
+  have hb (x : BitVec 256) :
+      ((x.setWidth 104).signExtend 256).setWidth 104 = x.setWidth 104 := by bv_decide
+  exact congrArg BitVec.toInt (hb ⟨w.val⟩)
+
 -- LIBRARY CANDIDATE: the additive inverse in the EVM word ring is involutive.
 theorem wordZeroSubZeroSub (w : UInt256) :
     UInt256.sub (UInt256.ofNat 0) (UInt256.sub (UInt256.ofNat 0) w) = w := by

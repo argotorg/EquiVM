@@ -1,8 +1,8 @@
-⚠ [1213/1309] Replayed Reasoning.EVMWord
+⚠ [1213/1250] Replayed Reasoning.EVMWord
 warning: Reasoning/EVMWord.lean:1146:32: try 'simp' instead of 'simpa'
 
 Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
-⚠ [1224/1309] Replayed Reasoning.Memory
+⚠ [1224/1250] Replayed Reasoning.Memory
 warning: Reasoning/Memory.lean:1888:36: unused variable `hgap`
 
 Note: This linter can be disabled with `set_option linter.unusedVariables false`
@@ -67,7 +67,7 @@ Hint: Omit it from the simp argument list.
   ̵ ̵ ̵ ̵ ̵ ̵ ̵d̵e̵s̵t̵A̵d̵d̵r̵ ̵-̵ ̵b̵a̵s̵e̵.̵s̵i̵z̵e̵ ̵f̵r̵o̵m̵ ̵r̵f̵l̵]̵B̲y̲t̲e̲A̲r̲r̲a̲y̲.̲d̲a̲t̲a̲_̲e̲x̲t̲r̲a̲c̲t̲]̲
 
 Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
-⚠ [1225/1309] Replayed Reasoning.ABI
+⚠ [1225/1250] Replayed Reasoning.ABI
 warning: Reasoning/ABI.lean:4614:28: This simp argument is unused:
   abiUInt256
 
@@ -2587,5 +2587,5 @@ Hint: Omit it from the simp argument list.
   ̲ i̵f̵_̵t̵r̵u̵e̵,̵  ̲ ̲signed104_word]
 
 Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
-✔ [3506/3506] Built Benchmarks.CompoundIII.Comet.NegativePrincipal (4.3s)
+✔ [3506/3506] Built Benchmarks.CompoundIII.Comet.NegativePrincipal (4.1s)
 Build completed successfully (3506 jobs).

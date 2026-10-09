@@ -4,6 +4,13 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.CompoundIII.Comet
 
+-- LIBRARY CANDIDATE: division by zero propagates a source revert.
+theorem divSourceZero {cfg solm evm lhs rhs a}
+    (ha : evalExpr? cfg solm evm lhs = .ok (.int a))
+    (hb : evalExpr? cfg solm evm rhs = .ok (.int 0)) :
+    evalExpr? cfg solm evm (.binary .div lhs rhs) = .revert := by
+  simp only [evalExpr?, ha, hb, bind, EvalResult.bind, evalBinaryOp?, ↓reduceIte]
+
 def mulFactorWord (n factor : UInt256) : UInt256 :=
   UInt256.div (UInt256.mul n factor) ⟨1000000000000000000⟩
 

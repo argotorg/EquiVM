@@ -19,6 +19,12 @@ theorem high128_lt (w : UInt256) : (high128 w).toNat < 2 ^ 128 := by
 theorem low128_clean (w : UInt256) (hw : w.toNat < 2 ^ 128) : low128 w = w :=
   u256LandMaskCleanOfToNat w _ rfl hw
 
+theorem mask128Clean (w : UInt256) (hw : w.toNat < 2^128) :
+    UInt256.land (UInt256.sub (UInt256.shiftLeft (UInt256.ofNat 1) (UInt256.ofNat 128))
+      (UInt256.ofNat 1)) w = w := by
+  rw [u256_land_comm]
+  exact low128_clean w hw
+
 theorem low128_load (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm
       { slot := slot, offset := 0, size := ⟨16, by decide⟩, hbound := by decide,

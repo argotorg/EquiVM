@@ -10,6 +10,12 @@ theorem voidReturnEquiv : returnEquiv ByteArray.empty none [] := by
   simp [encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?]
   rfl
 
+-- LIBRARY CANDIDATE: the empty ABI encoding of an explicit void return.
+theorem explicitVoidReturnEquiv : returnEquiv ByteArray.empty (some []) [] := by
+  apply returnEquiv.returned rfl
+  simp [encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?]
+  rfl
+
 -- GENERALIZES Reasoning.Dispatch.RDret.reEquivExecutionGen to selector dispatch with fallback.
 theorem selectorStateReturn_refines {cfg : Config} {C : ContractDecl} {t : TransitionDecl}
     {imms : Store} {σ σ₀ A I} {g : UInt256} {code out : ByteArray} {args frame values}

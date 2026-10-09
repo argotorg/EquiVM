@@ -671,6 +671,11 @@ theorem decodeScalarWordWithMode_uint256_ok {mode : DecodeMode} {bytes : List UI
     · apply Int.ofNat_lt.mpr
       rw [show EVM.twoPow 256 = UInt256.size by rfl]
       exact (ABI.bytesToWord ((bytes.drop start).take 32)).val.isLt
+  | solc0815 =>
+    rw [if_neg (show ¬ ((256 : ℕ) = 0) from by decide)]
+    rw [if_pos (show (↑(ABI.bytesToWord (List.take 32 (List.drop start bytes))).val : ℕ)
+      < EVM.twoPow 256 from (ABI.bytesToWord ((bytes.drop start).take 32)).val.isLt)]
+    rfl
 
 theorem decodeScalarWordWithMode_uint256_none_short {mode : DecodeMode} {bytes : List UInt8}
     {start : Nat}
@@ -1178,6 +1183,7 @@ theorem decodeCalldataWithMode_empty_ok {mode : DecodeMode} {cd : ByteArray}
   · have htlen : cd.toList.length = cd.size := by
       rw [byteArray_toList_eq, Array.length_toList]; rfl
     simp [decodeCalldataWithMode, decodeCalldata, htlen, hsz4, decodeCalldata.decodeArgs]
+  · simpa [decodeCalldataWithMode] using decodeCalldata_empty_ok (cd := cd) hsz4
 
 theorem decodeScalarWords_uint256_ok {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32) :

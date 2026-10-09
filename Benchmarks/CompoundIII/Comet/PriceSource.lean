@@ -66,7 +66,7 @@ theorem signedPrice_of_pos {w : UInt256} (hp : 0 < signedPrice w) :
 theorem pricePayload_eval (frame : Frame) (evm : EVM.State) :
     evalExpr? config frame evm pricePayloadExpr = .ok (.bytes pricePayload) := by
   simp [pricePayloadExpr, pricePayload, evalExpr?, evalPackedArgs?, encodePackedValue?,
-    pure, bind, EvalResult.bind]
+    fixedBytesSize, pure, bind, EvalResult.bind, EvalResult.ofOption]
 
 theorem pricePrefix_exec (imms : Store) (addr : AccountAddress) (evm evm' : EVM.State)
     (z : Bool) (out : ByteArray)
@@ -88,10 +88,11 @@ theorem priceDecoded_exec (imms : Store) (addr : AccountAddress) (evm : EVM.Stat
     ExecBlock config (priceCallFrame imms addr true out) evm
       (priceRemainder.take 3) (.ok (priceDecodedFrame imms addr out) evm) := by
   apply ExecBlock.consNormal (ExecStmt.requireTrue ?_)
-  · apply ExecBlock.consNormal (ExecStmt.letDecl ?_)
-    · apply ExecBlock.consNormal (ExecStmt.letDecl ?_) ExecBlock.nil
+  · apply ExecBlock.consNormal (ExecStmt.letDecl (value := priceRoundValue out) ?_)
+    · apply ExecBlock.consNormal
+        (ExecStmt.letDecl (value := .int (signedPrice (calldataWord out 32))) ?_) ExecBlock.nil
       simp only [evalExpr?, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert,
-        EvalResult.ofOption, pure, bind, EvalResult.bind, priceRoundValue, tupleGetValue?]
+        EvalResult.ofOption, bind, EvalResult.bind, priceRoundValue, tupleGetValue?]
       rfl
     · have hd := priceRoundDecode_result hlo hhi
       rw [if_pos hcanon] at hd
@@ -170,5 +171,43 @@ theorem priceRemainder_reverts (imms : Store) (addr : AccountAddress) (evm : EVM
         · simp only [evalExpr?, priceCallFrame, Std.HashMap.get?_eq_getElem?,
             Std.HashMap.getElem?_insert, EvalResult.ofOption]
           rfl
+
+theorem price_call_ok (frame : Frame) (evm evm' : EVM.State) (addr : AccountAddress)
+    (expr : Expr) (ret : Ident) (out : ByteArray)
+    (hf : frame.contract = contract)
+    (he : evalExpr? config frame evm expr = .ok (.address addr))
+    (hc : callViaEVM evm addr 0 pricePayload (true, evm', out) false)
+    (hhi : out.size < 2^255) (hv : PriceValid out) :
+    ExecStmt config frame evm (.internalCall "getPrice_body" [expr] ret)
+      (.ok { frame with locals := frame.locals.insert ret (.int (calldataWord out 32).toNat) }
+        evm') := by
+  have hb : ExecFuncBody config (priceEntry frame.immutables addr) evm priceCallable.body
+      (.returned (priceDecodedFrame frame.immutables addr out) evm'
+        (some [.int (calldataWord out 32).toNat])) :=
+    .execBlockRet (execBlockAppendOk (pricePrefix_exec _ _ _ _ _ _ hc)
+      (priceRemainder_returns _ _ _ _ hhi hv))
+  exact ExecStmt.internalCallReturn (callee := priceCallable)
+    (locals := (∅ : Store).insert "priceFeed" (.address addr))
+    (cfg := config) (solm := frame) (evm := evm) (args := [expr]) (argVals := [.address addr])
+    (by simp only [evalExprs?, he, pure, bind, EvalResult.bind])
+    (by rw [hf]; exact priceCallable_lookup) rfl (by simpa only [hf] using hb)
+
+theorem price_call_revert (frame : Frame) (evm evm' : EVM.State) (addr : AccountAddress)
+    (expr : Expr) (ret : Ident) (out : ByteArray) (z : Bool)
+    (hf : frame.contract = contract)
+    (he : evalExpr? config frame evm expr = .ok (.address addr))
+    (hc : callViaEVM evm addr 0 pricePayload (z, evm', out) false)
+    (hhi : out.size < 2^255) (hv : ¬ (z = true ∧ PriceValid out)) :
+    ExecStmt config frame evm (.internalCall "getPrice_body" [expr] ret) .reverted := by
+  apply ExecStmt.internalCallRevert (callee := priceCallable)
+    (locals := (∅ : Store).insert "priceFeed" (.address addr))
+    (cfg := config) (solm := frame) (evm := evm) (args := [expr]) (argVals := [.address addr])
+    (by simp only [evalExprs?, he, pure, bind, EvalResult.bind])
+    (by rw [hf]; exact priceCallable_lookup) rfl
+  have hb : ExecFuncBody config (priceEntry frame.immutables addr) evm priceCallable.body
+      .reverted :=
+    .execBlockRevert (execBlockAppendOk (pricePrefix_exec _ _ _ _ _ _ hc)
+      (priceRemainder_reverts _ _ _ _ _ hhi hv))
+  simpa only [hf] using hb
 
 end Benchmarks.CompoundIII.Comet

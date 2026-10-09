@@ -1,5 +1,6 @@
 import Benchmarks.CompoundIII.Comet.Dispatch
 import Benchmarks.CompoundIII.Comet.PackedReturn
+import Benchmarks.CompoundIII.Comet.UserCollateralRead
 import Benchmarks.CompoundIII.Comet.TwoAddressDecode
 import Benchmarks.CompoundIII.Comet.RuntimeBlocks_010
 
@@ -19,48 +20,6 @@ open Benchmarks.CompoundIII.Comet.Immutables
 namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 10000
-
-def userCollateralSlot (addr₀ addr₁ : AccountAddress) : UInt256 :=
-  solcMappingSlot (solcMappingSlot ⟨6⟩ (EVM.word addr₀.val)) (EVM.word addr₁.val)
-
-def userCollateralWord (σ : AccountMap) (I : ExecutionEnv) (addr₀ addr₁ : AccountAddress) : UInt256 :=
-  solcSlotWordAt (userCollateralSlot addr₀ addr₁) σ I
-
-theorem evalUserCollateralField (evm : EVM.State) (locals imms : Store)
-    (addr₀ addr₁ : AccountAddress) (upper : Bool)
-    (hlocal : locals.get? "userCollateral" = none)
-    (harg₀ : locals.get? "arg0" = some (.address addr₀))
-    (harg₁ : locals.get? "arg1" = some (.address addr₁)) :
-    evalExpr? config { contract := contract, locals := locals, immutables := imms }
-      evm (.storage ⟨"userCollateral", [.mindex (.var "arg0"), .mindex (.var "arg1"),
-        .field (if upper then "_reserved" else "balance")]⟩) =
-      .ok (.int ((if upper then high128 else low128)
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (userCollateralSlot addr₀ addr₁))).toNat) := by
-  cases upper
-  · apply evalExpr_storage_scalar_value (hbackend := rfl)
-      (loc := { slot := userCollateralSlot addr₀ addr₁, offset := ⟨0, by decide⟩, size := ⟨16, by decide⟩, hbound := by decide, type := .int (.uint ⟨128, by decide⟩) })
-      (er := ⟨"userCollateral", [.mindex (.address addr₀), .mindex (.address addr₁), .field "balance"]⟩)
-      (t := .int (.uint ⟨128, by decide⟩)) hlocal
-    · simp only [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?, harg₀, harg₁,
-        valueToKey?, pure, bind, EvalResult.bind, EvalResult.ofOption, Bool.false_eq_true, if_false]
-    · change storageTypeAt? contract.storage
-        ⟨"userCollateral", [.mindex (.address addr₀), .mindex (.address addr₁), .field "balance"]⟩ = _
-      rfl
-    · simp only [userCollateralSlot, solcMappingSlot, keyValueToWord_address]
-      rfl
-    · exact low128_load evm (userCollateralSlot addr₀ addr₁)
-  · apply evalExpr_storage_scalar_value (hbackend := rfl)
-      (loc := { slot := userCollateralSlot addr₀ addr₁, offset := ⟨16, by decide⟩, size := ⟨16, by decide⟩, hbound := by decide, type := .int (.uint ⟨128, by decide⟩) })
-      (er := ⟨"userCollateral", [.mindex (.address addr₀), .mindex (.address addr₁), .field "_reserved"]⟩)
-      (t := .int (.uint ⟨128, by decide⟩)) hlocal
-    · simp only [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?, harg₀, harg₁,
-        valueToKey?, pure, bind, EvalResult.bind, EvalResult.ofOption, if_true]
-    · change storageTypeAt? contract.storage
-        ⟨"userCollateral", [.mindex (.address addr₀), .mindex (.address addr₁), .field "_reserved"]⟩ = _
-      rfl
-    · simp only [userCollateralSlot, solcMappingSlot, keyValueToWord_address]
-      rfl
-    · exact high128_load evm (userCollateralSlot addr₀ addr₁)
 
 theorem userCollateral_returns {σ σ₀ A I} {g : Sat256} (imms : Store)
     (hvalue : I.weiValue = ⟨0⟩) (hhi : I.calldata.size < 2 ^ 255 + 4) :

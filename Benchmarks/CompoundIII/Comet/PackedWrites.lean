@@ -24,6 +24,23 @@ theorem packedWriteBytes (old data : UInt256) (offset size : Nat)
     Nat.min_eq_left hoff, Nat.min_eq_left hsize, Nat.pow_mul]
 
 -- LIBRARY CANDIDATE: writes to an arbitrary byte-aligned scalar storage location.
+theorem storageLocStore_packed_value (evm : EVM.State) (slot data : UInt256)
+    (offset : Fin 32) (size : Fin 33) (ty : ElemType)
+    (value : Value) (hvalue : valueToWord value = some data)
+    {hbound : offset.val + size.val - 1 < 32} :
+    storageLocStore evm
+      { slot := slot, offset := offset, size := size, hbound := hbound, type := ty }
+      value =
+    some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+      (packedWriteWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+        data offset.val size.val)) := by
+  unfold storageLocStore storageLocWriteWord
+  simp only [hvalue, bind, Option.bind]
+  congr 2
+  unfold packedWriteWord
+  rw [← packedWriteBytes _ _ _ _ (by omega) (by omega)]
+  exact (u256_ofNat_toNat _).symm
+
 theorem storageLocStore_packed_int (evm : EVM.State) (slot data : UInt256)
     (offset : Fin 32) (size : Fin 33) (ty : ElemType)
     {hbound : offset.val + size.val - 1 < 32} :
@@ -33,12 +50,8 @@ theorem storageLocStore_packed_int (evm : EVM.State) (slot data : UInt256)
     some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
       (packedWriteWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
         data offset.val size.val)) := by
-  unfold storageLocStore storageLocWriteWord
-  simp only [valueToWord, wordOfInt_ofNat_toNat, bind, Option.bind]
-  congr 2
-  unfold packedWriteWord
-  rw [← packedWriteBytes _ _ _ _ (by omega) (by omega)]
-  exact (u256_ofNat_toNat _).symm
+  exact storageLocStore_packed_value evm slot data offset size ty _
+    (by simp only [valueToWord, wordOfInt_ofNat_toNat]; rfl)
 
 -- LIBRARY CANDIDATE: lift natural remainder and division into fixed-width words.
 theorem bitvecOfNatMod {width : Nat} (x : BitVec width) (n : Nat) (hn : n < 2^width) :

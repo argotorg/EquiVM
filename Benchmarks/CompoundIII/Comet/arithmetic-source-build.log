@@ -1,8 +1,8 @@
-⚠ [1213/1392] Replayed Reasoning.EVMWord
+⚠ [1213/1228] Replayed Reasoning.EVMWord
 warning: Reasoning/EVMWord.lean:1146:32: try 'simp' instead of 'simpa'
 
 Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
-⚠ [1224/1392] Replayed Reasoning.Memory
+⚠ [1224/1228] Replayed Reasoning.Memory
 warning: Reasoning/Memory.lean:1888:36: unused variable `hgap`
 
 Note: This linter can be disabled with `set_option linter.unusedVariables false`
@@ -67,7 +67,7 @@ Hint: Omit it from the simp argument list.
   ̵ ̵ ̵ ̵ ̵ ̵ ̵d̵e̵s̵t̵A̵d̵d̵r̵ ̵-̵ ̵b̵a̵s̵e̵.̵s̵i̵z̵e̵ ̵f̵r̵o̵m̵ ̵r̵f̵l̵]̵B̲y̲t̲e̲A̲r̲r̲a̲y̲.̲d̲a̲t̲a̲_̲e̲x̲t̲r̲a̲c̲t̲]̲
 
 Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
-⚠ [1225/1392] Replayed Reasoning.ABI
+⚠ [1225/1228] Replayed Reasoning.ABI
 warning: Reasoning/ABI.lean:4614:28: This simp argument is unused:
   abiUInt256
 
@@ -91,11 +91,11 @@ Hint: Omit it from the simp argument list.
   ̵ ̵ ̵ ̵ ̵fixedBytesSize, hlen]
 
 Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
-⚠ [3473/3483] Replayed Reasoning.Solc
+⚠ [3474/3485] Replayed Reasoning.Solc
 warning: Reasoning/Solc.lean:8246:2: try 'simp' instead of 'simpa'
 
 Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
-⚠ [3476/3483] Replayed Reasoning.Storage
+⚠ [3477/3485] Replayed Reasoning.Storage
 warning: Reasoning/Storage.lean:2027:41: This simp argument is unused:
   Std.ExtTreeMap.getElem?_insert_self
 
@@ -103,7 +103,7 @@ Hint: Omit it from the simp argument list.
   simp [Option.option, State.setAccount,̵ ̵S̵t̵d̵.̵E̵x̵t̵T̵r̵e̵e̵M̵a̵p̵.̵g̵e̵t̵E̵l̵e̵m̵?̵_̵i̵n̵s̵e̵r̵t̵_̵s̵e̵l̵f̵]
 
 Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
-⚠ [3479/3483] Replayed Reasoning.WordArithmetic
+⚠ [3480/3485] Replayed Reasoning.WordArithmetic
 warning: Reasoning/WordArithmetic.lean:884:2: try 'simp' instead of 'simpa'
 
 Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
@@ -123,7 +123,7 @@ warning: Reasoning/WordArithmetic.lean:1982:23: `Int.ofNat_nonneg` has been depr
 warning: Reasoning/WordArithmetic.lean:2385:2: try 'simp' instead of 'simpa'
 
 Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
-⚠ [3480/3483] Replayed Reasoning.Immutables
+⚠ [3481/3485] Replayed Reasoning.Immutables
 warning: Reasoning/Immutables.lean:106:4: try 'simp' instead of 'simpa'
 
 Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
@@ -2577,5 +2577,5 @@ Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
 warning: Benchmarks/CompoundIII/Comet/Common.lean:853:6: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
 
 Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
-✔ [3485/3485] Built Benchmarks.CompoundIII.Comet.ArithmeticSource (2.9s)
+✔ [3485/3485] Built Benchmarks.CompoundIII.Comet.ArithmeticSource (4.2s)
 Build completed successfully (3485 jobs).
