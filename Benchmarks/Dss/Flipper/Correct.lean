@@ -1,0 +1,143 @@
+import Benchmarks.Dss.Flipper.Constructor
+import Benchmarks.Dss.Flipper.Beg
+import Benchmarks.Dss.Flipper.Bids
+import Benchmarks.Dss.Flipper.Cat
+import Benchmarks.Dss.Flipper.Deal
+import Benchmarks.Dss.Flipper.DentBody
+import Benchmarks.Dss.Flipper.Deny
+import Benchmarks.Dss.Flipper.FileAddress
+import Benchmarks.Dss.Flipper.FileUint
+import Benchmarks.Dss.Flipper.Ilk
+import Benchmarks.Dss.Flipper.KickBody
+import Benchmarks.Dss.Flipper.Kicks
+import Benchmarks.Dss.Flipper.Rely
+import Benchmarks.Dss.Flipper.Tau
+import Benchmarks.Dss.Flipper.TendBody
+import Benchmarks.Dss.Flipper.Tick
+import Benchmarks.Dss.Flipper.Ttl
+import Benchmarks.Dss.Flipper.Vat
+import Benchmarks.Dss.Flipper.Wards
+import Benchmarks.Dss.Flipper.YankBody
+import Solm.Refine
+
+/-!
+# MakerDAO/Sky DSS Flipper benchmark correctness stub
+
+The upstream Solidity source, optimized runtime bytecode, Solm AST spec, and Solm syntax companion
+are present. The runtime-equivalence proof is intentionally left as the benchmark target. This file
+also exposes the whole-contract wrapper that combines the constructor and runtime targets.
+-/
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+set_option maxRecDepth 2000000
+
+namespace Benchmarks.Dss.Flipper
+
+theorem flipperNoSelectorMatches {I : ExecutionEnv}
+    (hbeg : ¬ selIs I (flipperSelBytes 0))
+    (hbids : ¬ selIs I (flipperSelBytes 1))
+    (hcat : ¬ selIs I (flipperSelBytes 2))
+    (hdeal : ¬ selIs I (flipperSelBytes 3))
+    (hdent : ¬ selIs I (flipperSelBytes 4))
+    (hdeny : ¬ selIs I (flipperSelBytes 5))
+    (hfileAddress : ¬ selIs I (flipperSelBytes 6))
+    (hfileUint : ¬ selIs I (flipperSelBytes 7))
+    (hilk : ¬ selIs I (flipperSelBytes 8))
+    (hkick : ¬ selIs I (flipperSelBytes 9))
+    (hkicks : ¬ selIs I (flipperSelBytes 10))
+    (hrely : ¬ selIs I (flipperSelBytes 11))
+    (htau : ¬ selIs I (flipperSelBytes 12))
+    (htend : ¬ selIs I (flipperSelBytes 13))
+    (htick : ¬ selIs I (flipperSelBytes 14))
+    (httl : ¬ selIs I (flipperSelBytes 15))
+    (hvat : ¬ selIs I (flipperSelBytes 16))
+    (hwards : ¬ selIs I (flipperSelBytes 17))
+    (hyank : ¬ selIs I (flipperSelBytes 18)) :
+    ∀ i, i < 19 → (flipperSelBytes i == I.calldata.extract 0 4) = false := by
+  intro i hi
+  interval_cases i
+  · simpa [selIs, flipperSelBytes] using hbeg
+  · simpa [selIs, flipperSelBytes] using hbids
+  · simpa [selIs, flipperSelBytes] using hcat
+  · simpa [selIs, flipperSelBytes] using hdeal
+  · simpa [selIs, flipperSelBytes] using hdent
+  · simpa [selIs, flipperSelBytes] using hdeny
+  · simpa [selIs, flipperSelBytes] using hfileAddress
+  · simpa [selIs, flipperSelBytes] using hfileUint
+  · simpa [selIs, flipperSelBytes] using hilk
+  · simpa [selIs, flipperSelBytes] using hkick
+  · simpa [selIs, flipperSelBytes] using hkicks
+  · simpa [selIs, flipperSelBytes] using hrely
+  · simpa [selIs, flipperSelBytes] using htau
+  · simpa [selIs, flipperSelBytes] using htend
+  · simpa [selIs, flipperSelBytes] using htick
+  · simpa [selIs, flipperSelBytes] using httl
+  · simpa [selIs, flipperSelBytes] using hvat
+  · simpa [selIs, flipperSelBytes] using hwards
+  · simpa [selIs, flipperSelBytes] using hyank
+
+theorem flipperCorrect :
+    runtimeRefinement config flipperBytecode contract := by
+  refine runtimeRefinement.intro ?_
+  intro σ σ₀ g A I hcode hsize
+  by_cases hwv : I.weiValue = ⟨0⟩
+  · by_cases hbeg : selIs I (flipperSelBytes 0)
+    · exact flipperBegBodyCore hcode hsize hwv hbeg
+    · by_cases hbids : selIs I (flipperSelBytes 1)
+      · exact flipperBidsBodyCore hcode hsize hwv hbids
+      · by_cases hcat : selIs I (flipperSelBytes 2)
+        · exact flipperCatBodyCore hcode hsize hwv hcat
+        · by_cases hdeal : selIs I (flipperSelBytes 3)
+          · exact flipperDealBodyCore hcode hsize hwv hdeal
+          · by_cases hdent : selIs I (flipperSelBytes 4)
+            · exact flipperDentBodyCore hcode hsize hwv hdent
+            · by_cases hdeny : selIs I (flipperSelBytes 5)
+              · exact flipperDenyBodyCore hcode hsize hwv hdeny
+              · by_cases hfileAddress : selIs I (flipperSelBytes 6)
+                · exact flipperFileAddressBodyCore hcode hsize hwv hfileAddress
+
+                · by_cases hfileUint : selIs I (flipperSelBytes 7)
+                  · exact flipperFileUintBodyCore hcode hsize hwv hfileUint
+
+                  · by_cases hilk : selIs I (flipperSelBytes 8)
+                    · exact flipperIlkBodyCore hcode hsize hwv hilk
+                    · by_cases hkick : selIs I (flipperSelBytes 9)
+                      · exact flipperKickBodyCore hcode hsize hwv hkick
+                      · by_cases hkicks : selIs I (flipperSelBytes 10)
+                        · exact flipperKicksBodyCore hcode hsize hwv hkicks
+                        · by_cases hrely : selIs I (flipperSelBytes 11)
+                          · exact flipperRelyBodyCore hcode hsize hwv hrely
+                          · by_cases htau : selIs I (flipperSelBytes 12)
+                            · exact flipperTauBodyCore hcode hsize hwv htau
+                            · by_cases htend : selIs I (flipperSelBytes 13)
+                              · exact flipperTendBodyCore hcode hsize hwv htend
+
+                              · by_cases htick : selIs I (flipperSelBytes 14)
+                                · exact flipperTickBodyCore hcode hsize hwv htick
+
+                                · by_cases httl : selIs I (flipperSelBytes 15)
+                                  · exact flipperTtlBodyCore hcode hsize hwv httl
+
+                                  · by_cases hvat : selIs I (flipperSelBytes 16)
+                                    · exact flipperVatBodyCore hcode hsize hwv hvat
+
+                                    · by_cases hwards : selIs I (flipperSelBytes 17)
+                                      · exact flipperWardsBodyCore hcode hsize hwv
+                                          hwards
+                                      · by_cases hyank : selIs I (flipperSelBytes 18)
+                                        · exact flipperYankBodyCore hcode hsize hwv
+                                            hyank
+                                        · exact flipperNoDispatch hcode hsize hwv
+                                            (flipperNoSelectorMatches hbeg hbids hcat
+                                              hdeal hdent hdeny hfileAddress hfileUint
+                                              hilk hkick hkicks hrely htau htend htick httl
+                                              hvat hwards hyank)
+
+  · exact flipperNonPayable hcode hwv
+
+theorem flipperContractCorrect :
+    contractRefinement config flipperCreationBytecode contract :=
+  contractRefinement.of_constant flipperConstructorCorrect flipperCorrect
+
+end Benchmarks.Dss.Flipper

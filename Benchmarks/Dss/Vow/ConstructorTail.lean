@@ -1,0 +1,578 @@
+import Reasoning.Storage
+import Reasoning.WordArithmetic
+import Benchmarks.Dss.Vow.Constructor
+import Reasoning.ExternalCall
+import Reasoning.Initcode
+import Reasoning.Memory
+import Reasoning.Solc
+import Solm.Refine
+
+/-!
+# MakerDAO/Sky DSS Vow constructor tail
+
+Terminal EVM trace facts for the constructor after the external `vat.hope(flapper)` call.
+-/
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+set_option maxRecDepth 2000000
+
+namespace Benchmarks.Dss.Vow
+
+macro "ctor_tail_decode" : tactic =>
+  `(tactic|
+    (rw [Reasoning.Theory.decode_append_left_window
+      vowCreationBytecode _ _ (by native_decide) (by native_decide)]
+     native_decide))
+
+macro "ctor_tail_jump_dest" : tactic =>
+  `(tactic|
+    (exact D_J_contains_append_left vowCreationBytecode _ _ (by jump_dest)))
+
+theorem vowCtorHopeCallFailure
+    {σ σ₀ σFinal : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    {mem out : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
+    (vat flapper flopper : AccountAddress)
+    (rd217 :
+      RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
+        (initState σ σ₀ g A I) ⟨217⟩
+        (⟨0⟩ :: rest) mem aw out σFinal k C)
+    (hout : out.size < UInt256.size)
+    (hov : rest.length + 5 ≤ 1024) :
+    RDrev (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) g
+      (initState σ σ₀ g A I) := by
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨217⟩) (okPc := ⟨233⟩) rd217
+    (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+    (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode)
+    (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode)
+    (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode)
+    hout hov
+
+theorem vowCtorHopeCallSuccessToReturnStart
+    {σ σ₀ σFinal : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    {mem out : ByteArray} {aw target : UInt256} {k C : ℕ}
+    (vat flapper flopper : AccountAddress)
+    (rd217 :
+      RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
+        (initState σ σ₀ g A I) ⟨217⟩
+        (⟨1⟩ :: vowCtorCallEndPtr :: vowCtorHopeSelectorWord :: target ::
+          EVM.word flopper.val :: EVM.word flapper.val :: EVM.word vat.val :: [])
+        mem aw out σFinal k C)
+    (hperm : I.perm = true) :
+    ∃ k' C',
+      RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
+        (initState σ σ₀ g A I) ⟨246⟩
+        [] mem aw out
+        (sstoreAccountMap I.codeOwner σFinal ⟨12⟩ ⟨1⟩) k' C' := by
+  obtain ⟨_, _, rd235⟩ :=
+    RD.solcCallSuccessGuardOk (pc := ⟨217⟩) (okPc := ⟨233⟩) rd217
+      (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+      (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode)
+      (by ctor_tail_decode) (by ctor_tail_jump_dest) (by ctor_tail_decode) (by ctor_tail_decode)
+      (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd236 := rd235.pop (by ctor_tail_decode)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd238 := rd236.push1 ⟨1⟩ (by ctor_tail_decode)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd240 := rd238.push1 ⟨12⟩ (by ctor_tail_decode)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  obtain ⟨_, _, rd241⟩ := rd240.sstore hperm (by ctor_tail_decode)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd242 := rd241.pop (by ctor_tail_decode)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd243 := rd242.pop (by ctor_tail_decode)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd244 := rd243.pop (by ctor_tail_decode)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd245 := rd244.pop (by ctor_tail_decode)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd246 := rd245.pop (by ctor_tail_decode)
+    (by simp)
+  exact ⟨_, _, by simpa using rd246⟩
+
+private theorem vowCreationBytecode_size_tail : vowCreationBytecode.size = 5410 := by
+  native_decide
+
+private theorem vowBytecode_size_tail : vowBytecode.size = 5150 := by
+  native_decide
+
+theorem vowCtorRuntimeWindow (vat flapper flopper : AccountAddress) :
+    (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper).extract 260 5410 =
+      vowBytecode := by
+  rw [Reasoning.Theory.byteArray_extract_append_left]
+  · native_decide
+  · rw [vowCreationBytecode_size_tail]
+
+def vowCtorRuntimeMem (vat flapper flopper : AccountAddress) (mem : ByteArray) :
+    ByteArray :=
+  (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper).write 260 mem 0 5150
+
+theorem vowCtorRuntimeMem_read (vat flapper flopper : AccountAddress) (mem : ByteArray) :
+    (vowCtorRuntimeMem vat flapper flopper mem).readWithPadding 0 5150 = vowBytecode := by
+  rw [vowCtorRuntimeMem]
+  rw [write0_read_back_from_gen
+    (src := vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper)
+    (base := mem) (srcAddr := 260) (len := 5150)]
+  · simpa [show 260 + 5150 = 5410 by norm_num] using
+      vowCtorRuntimeWindow vat flapper flopper
+  · norm_num
+  · rw [ByteArray.size_append, vowCreationBytecode_size_tail, vowCtorArgsTail_size]
+    norm_num
+  · norm_num
+
+theorem vowCtorReturnRuntime
+    {σ σ₀ σFinal : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    {mem out : ByteArray} {k C : ℕ}
+    (vat flapper flopper : AccountAddress)
+    (rd246 :
+      RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
+        (initState σ σ₀ g A I) ⟨246⟩
+        [] mem (UInt256.ofNat 9) out σFinal k C) :
+    RDret (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) g
+      (initState σ σ₀ g A I)
+      σFinal vowBytecode := by
+  exact evm_run rd246 with [
+    raw push2 ⟨5150⟩ (by ctor_tail_decode) (by evm_ov),
+    raw dup1 (by ctor_tail_decode) (by evm_ov),
+    raw push2 ⟨260⟩ (by ctor_tail_decode) (by evm_ov),
+    raw push1 ⟨0⟩ (by ctor_tail_decode) (by evm_ov),
+    raw codecopy 506 (vowCtorRuntimeMem vat flapper flopper mem) (UInt256.ofNat 161)
+      (by ctor_tail_decode) mem_cost (by rfl) (by native_decide) (by evm_ov),
+    raw push1 ⟨0⟩ (by ctor_tail_decode) (by evm_ov),
+    raw ret 0 vowBytecode (by ctor_tail_decode) mem_cost
+      (vowCtorRuntimeMem_read vat flapper flopper mem) (by evm_ov)]
+
+theorem vowCtorHopeSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 224) :
+    (vowCtorHopeSelectorMem mem).extract 224 228 = vatHopeSelector := by
+  unfold vowCtorHopeSelectorMem
+  have hgap : 224 - mem.size < USize.size := by
+    rw [hmem]
+    native_decide
+  rw [toByteArray_write_eq vowCtorHopeSelectorShifted mem 224
+    (by omega) hgap]
+  have hprefix :
+      (mem ++ ByteArray.zeroes (224 - mem.size)).size = 224 := by
+    rw [ByteArray.size_append, ByteArray_zeroes_size, hmem]
+  rw [extract_append_right_window _ _ 224 228 (by rw [hprefix]), hprefix,
+    show 224 - 224 = 0 from rfl, show 228 - 224 = 4 from rfl,
+    toByteArray_eq_toBytesBE]
+  native_decide
+
+theorem vowCtorHopeCalldataMem_read224_36 (arg : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 224) :
+    (vowCtorHopeCalldataMem arg mem).readWithPadding 224 36 =
+      vatHopeSelector ++ arg.toByteArray := by
+  rw [readWithPadding_eq_extract' _ 224 36 (by norm_num) (by norm_num)
+      (by rw [vowCtorHopeCalldataMem_size arg hmem]), vowCtorHopeCalldataMem,
+    write32_eq _ (vowCtorHopeSelectorMem mem) 228 (by rw [toByteArray_size])
+      (by rw [vowCtorHopeSelectorMem_size hmem]; omega)]
+  have hAsz : ((vowCtorHopeSelectorMem mem).extract 0 228).size = 228 := by
+    rw [ByteArray.size_extract, vowCtorHopeSelectorMem_size hmem]
+    omega
+  have hBsz : (arg.toByteArray.extract 0 32).size = 32 := by
+    rw [ByteArray.size_extract, toByteArray_size]
+    omega
+  have hPsz :
+      ((vowCtorHopeSelectorMem mem).extract 0 228 ++
+        arg.toByteArray.extract 0 32).size = 260 := by
+    rw [ByteArray.size_append, hAsz, hBsz]
+  have hBfull : arg.toByteArray.extract 0 32 = arg.toByteArray := by
+    have h := @ByteArray.extract_zero_size arg.toByteArray
+    rwa [toByteArray_size] at h
+  rw [extract_append_left _ _ _ _ (by rw [hPsz]),
+    extract_append_span _ _ 224 260 (by rw [hAsz]; omega) (by rw [hAsz]; omega),
+    hAsz, extract_prefix _ 228 224 228 (by omega), vowCtorHopeSelectorMem_selector hmem,
+    extract_extract_BA, show (0 : ℕ) + 0 = 0 from rfl,
+    show min (0 + (260 - 228)) 32 = 32 from by omega, hBfull]
+
+theorem vowCtorHopeEncode_eq (flapper : AccountAddress) {mem : ByteArray}
+    (hmem : mem.size = 224) :
+    config.externalABI.encode? "hope" [.address flapper] =
+      some ((vowCtorHopeCalldataMem (EVM.word flapper.val) mem).readWithPadding
+        vowCtorCallOutPtr.toNat vowCtorCallInSize.toNat) := by
+  change config.externalABI.encode? "hope" [.address flapper] =
+    some ((vowCtorHopeCalldataMem (EVM.word flapper.val) mem).readWithPadding 224 36)
+  rw [vowCtorHopeCalldataMem_read224_36 _ hmem]
+  simp [config, vowExternalABI, ABI.encodeCallWithSelector?, ABI.encodeABIValues?,
+    ABI.encodeABIValuesFrom?, ABI.encodeABIValue?, ABI.encodeABIWord?, ABI.abiTupleHeadSize?,
+    ABI.staticABIEncodedSize?, ABI.isDynamicABIType, addr, vatHopeSelector, selectorBytes,
+    word_toBytesBE_toByteArray_eq_toByteArray]
+
+
+theorem vowCtorHopeCallDepthLimit
+    {σ σFinal σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    {mem : ByteArray} {k C : ℕ}
+    (vat flapper flopper : AccountAddress) (vatStored gasWord : UInt256)
+    (rd216 :
+      RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
+        (initState σ σ₀ g A I) ⟨216⟩
+        [gasWord, UInt256.land solcAddrMask vatStored,
+          vowCtorCallOutSize, vowCtorCallOutPtr, vowCtorCallInSize,
+          vowCtorCallOutPtr, vowCtorCallOutSize, vowCtorCallEndPtr,
+          vowCtorHopeSelectorWord, UInt256.land solcAddrMask vatStored,
+          EVM.word flopper.val, EVM.word flapper.val, EVM.word vat.val]
+        mem (UInt256.ofNat 9) ByteArray.empty σFinal k C)
+    (hdepth : I.depth = 1024) :
+    ∃ k' C',
+      RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
+        (initState σ σ₀ g A I) ⟨217⟩
+        (⟨0⟩ :: vowCtorCallEndPtr :: vowCtorHopeSelectorWord ::
+          UInt256.land solcAddrMask vatStored :: EVM.word flopper.val :: EVM.word flapper.val ::
+          EVM.word vat.val :: [])
+        mem (UInt256.ofNat 9) ByteArray.empty σFinal k' C' := by
+  obtain ⟨k', C', rd217raw⟩ := RD.callDepthLimit rd216 (by ctor_tail_decode) hdepth
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  have haw :
+      UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 9).toNat
+        vowCtorCallOutPtr.toNat vowCtorCallInSize.toNat)
+        vowCtorCallOutPtr.toNat vowCtorCallOutSize.toNat) = UInt256.ofNat 9 := by
+    unfold vowCtorCallOutPtr vowCtorCallInSize vowCtorCallOutSize
+    native_decide
+  have hmin : (min vowCtorCallOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
+    unfold vowCtorCallOutSize
+    rfl
+  have rd217 : RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
+      (initState σ σ₀ g A I) ⟨217⟩
+      (⟨0⟩ :: vowCtorCallEndPtr :: vowCtorHopeSelectorWord ::
+        UInt256.land solcAddrMask vatStored :: EVM.word flopper.val :: EVM.word flapper.val ::
+        EVM.word vat.val :: [])
+      (ByteArray.empty.write 0 mem vowCtorCallOutPtr.toNat
+        (min vowCtorCallOutSize (UInt256.ofNat ByteArray.empty.size)).toNat)
+      (UInt256.ofNat 9) ByteArray.empty σFinal k' C' := by
+    simpa [haw, vowCtorCallOutPtr, vowCtorCallOutSize, vowCtorCallInSize,
+      vowCtorCallEndPtr] using rd217raw
+  rw [hmin, byteArray_write_len_zero] at rd217
+  exact ⟨k', C', by simpa using rd217⟩
+
+theorem vowCtorPrefixStateEquiv
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    (vat flapper flopper : AccountAddress) :
+    let evm0e := initState σ σ₀ g A I
+    let evm0s := initState σ σ₀ g A I
+    let evm1e := vowCtorAfterWardsState evm0e
+    let evm1s := vowCtorAfterWardsState evm0s
+    let evm2e := vowCtorAfterVatState evm1e vat
+    let evm2s := vowCtorAfterVatState evm1s vat
+    let evm3e := vowCtorAfterFlapperState evm2e flapper
+    let evm3s := vowCtorAfterFlapperState evm2s flapper
+    let evm4e := vowCtorAfterFlopperState evm3e flopper
+    let evm4s := vowCtorAfterFlopperState evm3s flopper
+    evm4e.accountMap = evm4s.accountMap := by
+  intro evm0e evm0s evm1e evm1s evm2e evm2s evm3e evm3s evm4e evm4s
+  rfl
+
+theorem vowCtorPrefixAccountMapEquiv
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
+    (vat flapper flopper : AccountAddress) :
+    let σWards := sstoreAccountMap I.codeOwner σ (vowCtorCallerWardsSlot I) ⟨1⟩
+    let vatStored := setAddressOffset0Word (solcSlotWord σWards I ⟨1⟩) (EVM.word vat.val)
+    let σVat := sstoreAccountMap I.codeOwner σWards ⟨1⟩ vatStored
+    let flapperStored :=
+      setAddressOffset0Word (solcSlotWord σVat I ⟨2⟩) (EVM.word flapper.val)
+    let σFlapper := sstoreAccountMap I.codeOwner σVat ⟨2⟩ flapperStored
+    let flopperStored :=
+      setAddressOffset0Word (solcSlotWord σFlapper I ⟨3⟩) (EVM.word flopper.val)
+    let σFlopper := sstoreAccountMap I.codeOwner σFlapper ⟨3⟩ flopperStored
+    let evm0s :=
+      initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1s := vowCtorAfterWardsState evm0s
+    let evm2s := vowCtorAfterVatState evm1s vat
+    let evm3s := vowCtorAfterFlapperState evm2s flapper
+    let evm4s := vowCtorAfterFlopperState evm3s flopper
+    Eq σFlopper evm4s.accountMap := by
+  intro σWards vatStored σVat flapperStored σFlapper flopperStored σFlopper
+    evm0s evm1s evm2s evm3s evm4s
+  let evm0e :=
+    initState σ σ₀ (Sat256.ofUInt256 g) A I
+  let evm1e := vowCtorAfterWardsState evm0e
+  let evm2e := vowCtorAfterVatState evm1e vat
+  let evm3e := vowCtorAfterFlapperState evm2e flapper
+  let evm4e := vowCtorAfterFlopperState evm3e flopper
+  have hprefix := vowCtorPrefixStateEquiv
+    (σ := σ)
+     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    vat flapper flopper
+  have hslot : wardsSlot (.address I.source) = vowCtorCallerWardsSlot I :=
+    vowCtorCallerWardsSlot_eq I
+  have hmap : Eq evm4e.accountMap evm4s.accountMap := by
+    simpa [evm0e, evm1e, evm2e, evm3e, evm4e, evm0s, evm1s, evm2s, evm3s, evm4s]
+      using hprefix
+  simpa [-Std.ExtTreeMap.get?_eq_getElem?, evm4e, evm3e, evm2e, evm1e, evm0e, σFlopper, flopperStored, σFlapper,
+    flapperStored, σVat, vatStored, σWards, vowCtorAfterFlopperState,
+    vowCtorAfterFlapperState, vowCtorAfterVatState, vowCtorAfterWardsState, initState,
+    storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
+    State.lookupAccount, Account.lookupStorage, solcSlotWord, hslot] using hmap
+
+
+set_option maxHeartbeats 0 in
+theorem vowConstructorCorrect :
+    typedConstructorRefinement config vowCreationBytecode contract (fun _ => vowBytecode) := by
+  intro σ σ₀ g A I args deployedInitcode
+    hdeploy hcode _hcalldata hperm
+  rcases vowCtorDeployment_shape hdeploy with ⟨vat, flapper, flopper, hargs, hdeployed⟩
+  subst args
+  have hcodeTail : I.code = vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper := by
+    simpa [hdeployed] using hcode
+  by_cases hwv : I.weiValue = ⟨0⟩
+  · obtain ⟨_, _, rd67⟩ := vowCtorArgsReach
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+      (g := Sat256.ofUInt256 g) vat flapper flopper hcodeTail hwv
+    obtain ⟨_, _, rd86⟩ := vowCtorWardsStoreReach vat flapper flopper hperm rd67
+    let σWards := sstoreAccountMap I.codeOwner σ (vowCtorCallerWardsSlot I) ⟨1⟩
+    let vatStored := setAddressOffset0Word (solcSlotWord σWards I ⟨1⟩) (EVM.word vat.val)
+    have rd86' := by
+      simpa [σWards] using rd86
+    obtain ⟨_, _, rd116⟩ := vowCtorVatStoreReach vat flapper flopper hperm rd86'
+    let σVat := sstoreAccountMap I.codeOwner σWards ⟨1⟩ vatStored
+    have rd116' := by
+      simpa [σVat, vatStored, σWards] using rd116
+    obtain ⟨_, _, rd131⟩ :=
+      vowCtorFlapperStoreReach vat flapper flopper vatStored hperm rd116'
+    let flapperStored := setAddressOffset0Word (solcSlotWord σVat I ⟨2⟩)
+      (EVM.word flapper.val)
+    let σFlapper := sstoreAccountMap I.codeOwner σVat ⟨2⟩ flapperStored
+    have rd131' := by
+      simpa [σFlapper, flapperStored, σVat] using rd131
+    obtain ⟨_, _, rd147⟩ :=
+      vowCtorFlopperStoreReach vat flapper flopper vatStored hperm rd131'
+    let flopperStored := setAddressOffset0Word (solcSlotWord σFlapper I ⟨3⟩)
+      (EVM.word flopper.val)
+    let σFlopper := sstoreAccountMap I.codeOwner σFlapper ⟨3⟩ flopperStored
+    have rd147' := by
+      simpa [σFlopper, flopperStored, σFlapper] using rd147
+    obtain ⟨_, _, rd201⟩ := vowCtorCallSetupReach vat flapper flopper vatStored rd147'
+    let targetWord := UInt256.land solcAddrMask vatStored
+    have htargetWord : targetWord = EVM.word vat.val := by
+      simpa [targetWord, vatStored] using
+        ctorSetAddressOffset0Word_low_address (solcSlotWord σWards I ⟨1⟩) vat
+    let evm0s :=
+      initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1s := vowCtorAfterWardsState evm0s
+    let evm2s := vowCtorAfterVatState evm1s vat
+    let evm3s := vowCtorAfterFlapperState evm2s flapper
+    let evm4s := vowCtorAfterFlopperState evm3s flopper
+    have hAccounts4 : Eq σFlopper evm4s.accountMap := by
+      simpa [σWards, vatStored, σVat, flapperStored, σFlapper, flopperStored, σFlopper,
+        evm0s, evm1s, evm2s, evm3s, evm4s] using
+        vowCtorPrefixAccountMapEquiv
+          (σ := σ)
+           (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          vat flapper flopper
+    by_cases hcodeSize : extCodeSizeWord σFlopper targetWord = ⟨0⟩
+    · have hrev := vowCtorHopeNoCode vat flapper flopper vatStored
+        (by simpa [σFlopper, targetWord] using rd201)
+        (by simpa [targetWord] using hcodeSize)
+      rcases hrev.xiResult hcodeTail with hOOG | ⟨g', out, hRev⟩
+      · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+      · have hcodeSizeSolm : extCodeSizeWord evm4s.accountMap targetWord = ⟨0⟩ := by
+          simpa [hAccounts4] using hcodeSize
+        have haddr : vat = AccountAddress.ofUInt256 targetWord := by
+          rw [htargetWord, accountAddress_of_word_val_tail]
+        have hvatNoCode :
+            (UInt256.ofNat ((evm4s.lookupAccount vat).option 0 (fun acc => acc.code.size))).toNat =
+              0 := by
+          simpa [evm4s, State.lookupAccount] using
+            extCodeSizeWord_zero_lookup_code_zero (σ := evm4s.accountMap)
+              (target := targetWord) (addr := vat) haddr hcodeSizeSolm
+        refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+          (vowCtorSolmExecReverts_noCode
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            vat flapper flopper hwv (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using hvatNoCode))
+          ?_
+        exact ctorResultEquiv.revert rfl rfl
+    · have hcodeSizeSolmNe : extCodeSizeWord evm4s.accountMap targetWord ≠ ⟨0⟩ := by
+        simpa [hAccounts4] using hcodeSize
+      have haddr : vat = AccountAddress.ofUInt256 targetWord := by
+        rw [htargetWord, accountAddress_of_word_val_tail]
+      have hvatCode :
+          0 < (UInt256.ofNat ((evm4s.lookupAccount vat).option 0
+            (fun acc => acc.code.size))).toNat := by
+        simpa [evm4s, State.lookupAccount] using
+          extCodeSizeWord_ne_zero_lookup_code_pos (σ := evm4s.accountMap)
+            (target := targetWord) (addr := vat) haddr hcodeSizeSolmNe
+      obtain ⟨gasWord, _, _, rd216⟩ := vowCtorHopeCallReady vat flapper flopper vatStored
+        (by simpa [σFlopper, targetWord] using rd201) (by simpa [targetWord] using hcodeSize)
+      by_cases hdepth : I.depth.val < 1024
+      · obtain ⟨σCall, z, out, Ain, callGas, _, _, hΘ, rd217, hout⟩ :=
+          vowCtorHopePostCall vat flapper flopper vatStored gasWord rd216 hdepth
+        let evm0e :=
+          initState σ σ₀ (Sat256.ofUInt256 g) A I
+        let evm1e := vowCtorAfterWardsState evm0e
+        let evm2e := vowCtorAfterVatState evm1e vat
+        let evm3e := vowCtorAfterFlapperState evm2e flapper
+        let evm4e := vowCtorAfterFlopperState evm3e flopper
+        have hAccounts4e : Eq evm4e.accountMap evm4s.accountMap := by
+          simpa [evm0e, evm1e, evm2e, evm3e, evm4e, evm0s, evm1s, evm2s, evm3s, evm4s]
+            using (vowCtorPrefixStateEquiv
+              (σ := σ)
+               (σ₀ := σ₀) (A := A) (I := I)
+              (g := Sat256.ofUInt256 g) vat flapper flopper)
+        have hmap : evm4e.accountMap = σFlopper := hAccounts4e.trans hAccounts4.symm
+        have hSigma0 :
+            evm4e.σ₀ = (initState σ σ₀ (Sat256.ofUInt256 g) A I).σ₀ := by
+          simp [evm4e, evm3e, evm2e, evm1e, evm0e, vowCtorAfterFlopperState,
+            vowCtorAfterFlapperState, vowCtorAfterVatState, vowCtorAfterWardsState,
+            storageStore_σ₀, initState]
+        have hEnv4 : evm4e.executionEnv = I := by
+          simp [evm4e, evm3e, evm2e, evm1e, evm0e, vowCtorAfterFlopperState,
+            vowCtorAfterFlapperState, vowCtorAfterVatState, vowCtorAfterWardsState,
+            storageStore_executionEnv, initState]
+        have htgt : EVM.address vat = AccountAddress.ofUInt256 targetWord := by
+          rw [htargetWord, accountAddress_of_word_val_tail, eVM_address_id]
+        have hslot : wardsSlot (.address I.source) = vowCtorCallerWardsSlot I :=
+          vowCtorCallerWardsSlot_eq I
+        obtain ⟨gTheta, ATheta, hTheta⟩ := hΘ
+        have hdepthNe : evm4e.executionEnv.depth ≠ 1024 := by
+          intro hEq
+          have hEqI : I.depth = 1024 := by
+            simpa [evm4e, evm3e, evm2e, evm1e, evm0e, vowCtorAfterFlopperState,
+              vowCtorAfterFlapperState, vowCtorAfterVatState, vowCtorAfterWardsState,
+              storageStore_executionEnv, initState] using hEq
+          have hnot : ¬ I.depth.val < 1024 := by
+            rw [hEqI]
+            decide
+          exact hnot hdepth
+        let evmCallEvm : EVM.State :=
+          { evm4e with
+            accountMap := σCall
+            substate := ATheta
+          }
+        have hcallEvm :
+            typedCallViaEVM config evm4e (EVM.address vat) "hope" 0 [.address flapper]
+              (z, evmCallEvm, out) true := by
+          refine callCoincides (A_in := Ain) (g'' := gTheta) (callGas := callGas)
+            (callPerm := true) (targetWord := targetWord)
+            (mem := vowCtorHopeCalldataMem (EVM.word flapper.val)
+              (vowCtorWardsHashMem I vat flapper flopper))
+            (inOff := vowCtorCallOutPtr) (inSize := vowCtorCallInSize)
+            hdepthNe htgt ?_ ?_
+          · simpa [vowCtorCallOutPtr, vowCtorCallInSize] using
+              (vowCtorHopeEncode_eq flapper
+                (vowCtorWardsHashMem_size I vat flapper flopper))
+          · calc
+              (σCall, gTheta, ATheta, z, out) =
+                  Θ σFlopper (initState σ σ₀ (Sat256.ofUInt256 g) A I).σ₀ Ain
+                    (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
+                    (AccountAddress.ofUInt256 targetWord)
+                    (toExecute σFlopper (AccountAddress.ofUInt256 targetWord)) callGas
+                    (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
+                    ((vowCtorHopeCalldataMem (EVM.word flapper.val)
+                      (vowCtorWardsHashMem I vat flapper flopper)).readWithPadding
+                      vowCtorCallOutPtr.toNat vowCtorCallInSize.toNat)
+                    (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm := hTheta
+              _ = Θ evm4e.accountMap evm4e.σ₀ Ain
+                    (AccountAddress.ofUInt256 (UInt256.ofNat evm4e.executionEnv.codeOwner))
+                    evm4e.executionEnv.sender (AccountAddress.ofUInt256 targetWord)
+                    (toExecute evm4e.accountMap (AccountAddress.ofUInt256 targetWord)) callGas
+                    (UInt256.ofNat evm4e.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
+                    ((vowCtorHopeCalldataMem (EVM.word flapper.val)
+                      (vowCtorWardsHashMem I vat flapper flopper)).readWithPadding
+                      vowCtorCallOutPtr.toNat vowCtorCallInSize.toNat)
+                    (evm4e.executionEnv.depth + 1) evm4e.executionEnv.header
+                    evm4e.executionEnv.blobVersionedHashes evm4e.executionEnv.blocks
+                    (true && evm4e.executionEnv.perm) := by
+                simp only [hmap, hSigma0, hEnv4, hperm, Bool.true_and]
+        obtain ⟨σSolmCall, ASolmCall, hcallSolm, hPostAccounts⟩ :=
+          typedCallViaEVM_sameInputs (evm_solm := evm4s) hcallEvm hAccounts4e
+            (by simp [evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
+              evm0e, evm0s, vowCtorAfterFlopperState, vowCtorAfterFlapperState,
+              vowCtorAfterVatState, vowCtorAfterWardsState, initState])
+            (by simp [evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
+              evm0e, evm0s, vowCtorAfterFlopperState, vowCtorAfterFlapperState,
+              vowCtorAfterVatState, vowCtorAfterWardsState, storageStore_executionEnv,
+              initState])
+        let evmHopeSolm : EVM.State :=
+          { evm4s with
+            accountMap := σSolmCall
+            substate := ASolmCall
+          }
+        cases z
+        · have hrev := vowCtorHopeCallFailure vat flapper flopper (by simpa using rd217) hout
+            (by simp only [List.length_cons, List.length_nil]; omega)
+          rcases hrev.xiResult hcodeTail with hOOG | ⟨g', outRev, hRev⟩
+          · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+          · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+              (vowCtorSolmExecReverts_callFailure
+                (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                (evmHope := evmHopeSolm) (out := out)
+                vat flapper flopper hwv
+                (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using hvatCode)
+                (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s, evmHopeSolm] using hcallSolm))
+              ?_
+            exact ctorResultEquiv.revert rfl rfl
+        · obtain ⟨_, _, rd246⟩ :=
+            vowCtorHopeCallSuccessToReturnStart vat flapper flopper (by simpa using rd217) hperm
+          have hret := vowCtorReturnRuntime vat flapper flopper rd246
+          rcases RDretXiResultAccountMapReordered hcodeTail hret with hOOG | ⟨g', A', hSuccess⟩
+          · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+          · have hAccountsLive :
+                Eq (sstoreAccountMap I.codeOwner σCall ⟨12⟩ ⟨1⟩)
+                  (vowCtorAfterLiveState evmHopeSolm).accountMap := by
+              have hbase := congrArg
+                (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨12⟩ ⟨1⟩)
+                hPostAccounts
+              simpa [evmHopeSolm, evm4s, evm3s, evm2s, evm1s, evm0s, vowCtorAfterLiveState,
+                storageStore_accountMap, storageStore_executionEnv, vowCtorAfterFlopperState,
+                vowCtorAfterFlapperState, vowCtorAfterVatState, vowCtorAfterWardsState, initState]
+                using hbase
+            refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hSuccess)
+              (vowCtorSolmExecSuccess
+                (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                (evmHope := evmHopeSolm) (out := out) vat flapper flopper hwv
+                (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using hvatCode)
+                (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s, evmHopeSolm] using hcallSolm))
+              ?_
+            exact ctorResultEquiv.success rfl rfl hAccountsLive rfl
+      · have hdepthEq : I.depth = 1024 := by
+          apply Fin.ext
+          have hle : I.depth.val ≤ 1024 := Nat.le_of_lt_succ I.depth.isLt
+          omega
+        obtain ⟨_, _, rd217⟩ :=
+          vowCtorHopeCallDepthLimit vat flapper flopper vatStored gasWord rd216 hdepthEq
+        have hrev := vowCtorHopeCallFailure vat flapper flopper rd217
+          (by native_decide)
+          (by simp only [List.length_cons, List.length_nil]; omega)
+        rcases hrev.xiResult hcodeTail with hOOG | ⟨g', outRev, hRev⟩
+        · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+        · let A_hope := (evm4s.addAccessedAccount (EVM.address vat)).substate
+          have hcallDepth :
+              typedCallViaEVM config evm4s (EVM.address vat) "hope" 0 [.address flapper]
+                (false, { evm4s with substate := A_hope }, ByteArray.empty) true := by
+            simpa [A_hope, evm4s, evm3s, evm2s, evm1s, evm0s, storageStore_executionEnv,
+              vowCtorAfterFlopperState, vowCtorAfterFlapperState, vowCtorAfterVatState,
+              vowCtorAfterWardsState, initState] using
+              (callNotMade_depthLimit (cfg := config) (evm := evm4s)
+                (tgt := EVM.address vat) (name := "hope") (args := [.address flapper])
+                (callPerm := true)
+                (calldata :=
+                  (vowCtorHopeCalldataMem (EVM.word flapper.val)
+                    (vowCtorWardsHashMem I vat flapper flopper)).readWithPadding
+                    vowCtorCallOutPtr.toNat vowCtorCallInSize.toNat)
+                (vowCtorHopeEncode_eq flapper
+                  (vowCtorWardsHashMem_size I vat flapper flopper))
+                (by
+                  simpa [evm4s, evm3s, evm2s, evm1s, evm0s, storageStore_executionEnv,
+                    vowCtorAfterFlopperState, vowCtorAfterFlapperState, vowCtorAfterVatState,
+                    vowCtorAfterWardsState, initState] using hdepthEq))
+          refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+            (vowCtorSolmExecReverts_callFailure
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+              (evmHope := { evm4s with substate := A_hope }) (out := ByteArray.empty)
+              vat flapper flopper hwv
+              (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using hvatCode)
+              (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using hcallDepth))
+            ?_
+          exact ctorResultEquiv.revert rfl rfl
+  · have hrd := vowCtorNonpayableRDrev
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+      (g := Sat256.ofUInt256 g) vat flapper flopper hcodeTail hwv
+    rcases hrd.xiResult hcodeTail with hOOG | ⟨g', out, hRev⟩
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+        (vowCtorSolmExecReverts_nonpayable
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          vat flapper flopper hwv)
+        ?_
+      exact ctorResultEquiv.revert rfl rfl
+
+end Benchmarks.Dss.Vow

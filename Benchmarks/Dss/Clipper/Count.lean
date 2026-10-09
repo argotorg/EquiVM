@@ -1,0 +1,292 @@
+import Reasoning.SolcRoutines
+import Benchmarks.Dss.Clipper.Fallback
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+open Benchmarks.Dss.Clipper.Immutables
+
+namespace Benchmarks.Dss.Clipper
+
+set_option linter.unusedTactic false
+
+theorem clipperCountSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
+    (hsel : selIs I (clipperSelBytes 5)) :
+    clipperSelWord I = clipperSelNat 5 := by
+  simpa [clipperSelWord, solcSelectorWord, clipperSelNat] using
+    solcSelectorWord_eq_of_beq I hsz 0x06 0x66 0x1a 0xbd (clipperSelNat 5)
+      (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
+
+theorem clipperDispatch_count {I : ExecutionEnv}
+    (hsel : selIs I (clipperSelBytes 5)) :
+    dispatchMsg contract I.calldata = some countTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
+    (pre := [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition])
+    (post :=
+      [cuspTransition, denyTransition, dogTransition, fileUintTransition, fileAddressTransition,
+        getStatusTransition, ilkTransition, kickTransition, kicksTransition, listTransition,
+        redoTransition, relyTransition, salesTransition, spotterTransition, stoppedTransition,
+        tailTransition, takeTransition, tipTransition, upchostTransition, vatTransition,
+        vowTransition, wardsTransition, yankTransition])
+    (ti := countTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
+  · rfl
+  · intro t ht
+    simp only [List.mem_cons, List.mem_nil_iff] at ht
+    rcases ht with rfl | rfl | rfl | rfl | rfl | hfalse
+    · rw [selectorOf, activeSelectorBytes, ← byteArray_eq_of_beq hsel]
+      native_decide
+    · rw [selectorOf, bufSelectorBytes, ← byteArray_eq_of_beq hsel]
+      native_decide
+    · rw [selectorOf, calcSelectorBytes, ← byteArray_eq_of_beq hsel]
+      native_decide
+    · rw [selectorOf, chipSelectorBytes, ← byteArray_eq_of_beq hsel]
+      native_decide
+    · rw [selectorOf, chostSelectorBytes, ← byteArray_eq_of_beq hsel]
+      native_decide
+    · cases hfalse
+  · rw [selectorOf, countSelectorBytes]
+    simpa [clipperSelBytes] using hsel
+
+theorem clipperDecode_count {I : ExecutionEnv}
+    (hsz : 4 ≤ I.calldata.size) :
+    decodeCalldataWithMode config.abiDecodeMode (countTransition.params.map Param.name)
+      (transitionSignature countTransition).paramTypes I.calldata = some ∅ := by
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
+  exact decodeCalldataWithMode_empty_ok hsz
+
+theorem clipperEvalActiveLength (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
+    (hbase : locals.get? "active" = none) :
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
+      (.arrayLength .storage activeRef) =
+      .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat)) := by
+  let er : EvaledStorageRef := { base := "active", steps := [] }
+  have her : evalStorageRef config
+      { contract := contract, locals := locals, immutables := immStore v } evm activeRef = .ok er := by
+    unfold evalStorageRef activeRef
+    simp only [evalStorageRefSteps]
+    rfl
+  have hty : storageTypeAt? contract.storage er = some (.dynamicArray uint256St) := by
+    simp [er, storageTypeAt?, contract, storageDecls]
+  have hres :
+      resolveStorageRef? config
+        { contract := contract, locals := locals, immutables := immStore v } evm activeRef =
+        .ok (er, .dynamicArray uint256St) :=
+    resolveStorageRef?_ok hbase her hty
+  rw [evalExpr?]
+  simp only [hres, bind, EvalResult.bind]
+  change (do
+    let len ← config.storageBackend.length er (.dynamicArray uint256St) evm
+    pure (Value.int (Int.ofNat len))) =
+    .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat))
+  have hlength : solidityStorageLength? storageLayoutRaw { base := "active" }
+      (.dynamicArray uint256St) evm =
+        .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat :=
+    clipperActiveLength evm
+  simp [config, solidityStorageBackend, storageLayout, er, hlength]
+  simp only [EvalResult.bind, bind, pure]
+
+theorem clipperCountBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
+    (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "active" = none) :
+    ExecTransitionBody config contract evm locals countTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm
+        (some [(.int (Int.ofNat
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat))])) (immStore v) := by
+  simpa [countTransition] using
+    nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h
+      (clipperEvalActiveLength v evm locals hbase)
+
+set_option maxHeartbeats 1000000 in
+theorem clipperReachCountBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
+    {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsel : selIs I (clipperSelBytes 5)) :
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨468⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := clipperReachRoot
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
+  have hword := clipperCountSelectorWord hsz hsel
+  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+    (tgt := (⟨260⟩ : UInt256)) h32
+    (by
+        change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none)
+        clipper_decode)
+    (by
+        change decode code (selArmPush4Pc (⟨32⟩ : UInt256)) =
+          some (.Push .PUSH4, some (clipperSelNat 20, 4))
+        clipper_decode)
+    (by
+        change decode code (selArmEqPc (⟨32⟩ : UInt256)) = some (.GT, .none)
+        clipper_decode)
+    (by decide)
+    (by
+        change decode code (selArmPushTgtPc (⟨32⟩ : UInt256)) =
+          some (.Push .PUSH2, some (⟨260⟩, 2))
+        clipper_decode)
+    (by
+        change decode code (selArmJumpiPc (⟨32⟩ : UInt256) 2) = some (.JUMPI, .none)
+        clipper_decode)
+    (by rw [hword]; native_decide)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
+    (by simp)
+  have h369 := RD.selectorSplitTakenPush2 (pc := (⟨261⟩ : UInt256)) (pivot := clipperSelNat 9)
+    (tgt := (⟨369⟩ : UInt256))
+    (h260.jumpdest
+      (by
+          change decode code (⟨260⟩ : UInt256) = some (.JUMPDEST, .none)
+          clipper_decode)
+      (by simp))
+    (by
+        change decode code (⟨261⟩ : UInt256) = some (.DUP1, .none)
+        clipper_decode)
+    (by
+        change decode code (selArmPush4Pc (⟨261⟩ : UInt256)) =
+          some (.Push .PUSH4, some (clipperSelNat 9, 4))
+        clipper_decode)
+    (by
+        change decode code (selArmEqPc (⟨261⟩ : UInt256)) = some (.GT, .none)
+        clipper_decode)
+    (by decide)
+    (by
+        change decode code (selArmPushTgtPc (⟨261⟩ : UInt256)) =
+          some (.Push .PUSH2, some (⟨369⟩, 2))
+        clipper_decode)
+    (by
+        change decode code (selArmJumpiPc (⟨261⟩ : UInt256) 2) = some (.JUMPI, .none)
+        clipper_decode)
+    (by rw [hword]; native_decide)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨369⟩ : UInt256) (by native_decide))
+    (by simp)
+  have h429 := RD.selectorSplitTakenPush2 (pc := (⟨370⟩ : UInt256)) (pivot := clipperSelNat 21)
+    (tgt := (⟨429⟩ : UInt256))
+    (h369.jumpdest
+      (by
+          change decode code (⟨369⟩ : UInt256) = some (.JUMPDEST, .none)
+          clipper_decode)
+      (by simp))
+    (by
+        change decode code (⟨370⟩ : UInt256) = some (.DUP1, .none)
+        clipper_decode)
+    (by
+        change decode code (selArmPush4Pc (⟨370⟩ : UInt256)) =
+          some (.Push .PUSH4, some (clipperSelNat 21, 4))
+        clipper_decode)
+    (by
+        change decode code (selArmEqPc (⟨370⟩ : UInt256)) = some (.GT, .none)
+        clipper_decode)
+    (by decide)
+    (by
+        change decode code (selArmPushTgtPc (⟨370⟩ : UInt256)) =
+          some (.Push .PUSH2, some (⟨429⟩, 2))
+        clipper_decode)
+    (by
+        change decode code (selArmJumpiPc (⟨370⟩ : UInt256) 2) = some (.JUMPI, .none)
+        clipper_decode)
+    (by rw [hword]; native_decide)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨429⟩ : UInt256) (by native_decide))
+    (by simp)
+  have h468 := RD.selectorArmTakenPush2 (pc := (⟨430⟩ : UInt256)) (sel := clipperSelNat 5)
+    (tgt := (⟨468⟩ : UInt256))
+    (h429.jumpdest
+      (by
+          change decode code (⟨429⟩ : UInt256) = some (.JUMPDEST, .none)
+          clipper_decode)
+      (by simp))
+    (by
+        change decode code (⟨430⟩ : UInt256) = some (.DUP1, .none)
+        clipper_decode)
+    (by
+        change decode code (selArmPush4Pc (⟨430⟩ : UInt256)) =
+          some (.Push .PUSH4, some (clipperSelNat 5, 4))
+        clipper_decode)
+    (by
+        change decode code (selArmEqPc (⟨430⟩ : UInt256)) = some (.EQ, .none)
+        clipper_decode)
+    (by decide)
+    (by
+        change decode code (selArmPushTgtPc (⟨430⟩ : UInt256)) =
+          some (.Push .PUSH2, some (⟨468⟩, 2))
+        clipper_decode)
+    (by
+        change decode code (selArmJumpiPc (⟨430⟩ : UInt256) 2) = some (.JUMPI, .none)
+        clipper_decode)
+    (by rw [hword]; native_decide)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨468⟩ : UInt256) (by native_decide))
+    (by simp)
+  exact ⟨_, _, h468⟩
+
+theorem clipperCountGetterEntryWf (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
+    solcGetterEntryWf code (⟨468⟩ : UInt256) (⟨476⟩ : UInt256) (⟨1453⟩ : UInt256) := by
+  unfold solcGetterEntryWf
+  repeat' first | apply And.intro
+  all_goals
+    rw [clipperDecodeBeforeFirstPatch v hpatch _ (by native_decide)]
+    native_decide
+
+
+theorem clipperCountSlotGetterWf (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
+    solcWordSlotGetterSwapJumpWf code (⟨1453⟩ : UInt256) (⟨11⟩ : UInt256) := by
+  unfold solcWordSlotGetterSwapJumpWf
+  repeat' first | apply And.intro
+  all_goals
+    exact clipperDecodeBeforeFirstPatchOfDecode v hpatch _ _
+      (by native_decide) (by native_decide) (by native_decide)
+
+theorem clipperX_count (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
+      (⟨468⟩ : UInt256) [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      σ k C) :
+    RDret code g (initState σ σ₀ g A I) σ
+      (UInt256.toByteArray (solcSlotWord σ I ⟨11⟩)) := by
+  obtain ⟨_, _, h1453⟩ := RD.solcGetterThunk hreach
+    (clipperCountGetterEntryWf v hpatch)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨1453⟩ : UInt256) (by native_decide))
+  obtain ⟨_, _, h476⟩ := RD.solcWordSlotGetterSwapJump (slot := (⟨11⟩ : UInt256))
+    (R := [sel]) h1453 (clipperCountSlotGetterWf v hpatch)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨476⟩ : UInt256) (by native_decide))
+    (by simp only [List.length_singleton]; omega)
+  exact RD.solcReturnWordFromMem h476 (clipperReturnWord476Wf v hpatch)
+    solcFreePtrMem_mload64
+    (by rfl)
+    (solcReturnMem_mload64 (solcSlotWord σ I ⟨11⟩))
+    (solcReturnMem_read128 (solcSlotWord σ I ⟨11⟩))
+    (by simp only [List.length_nil]; omega)
+
+theorem clipperCountBody (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I (clipperSelBytes 5)) :
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+  have hsz : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I (clipperSelBytes 5) (by native_decide) hsel
+  have hbody :
+      ExecTransitionBody config contract
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ countTransition.body
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (solcSlotWord σ I ⟨11⟩).toNat))])) (immStore v) := by
+    simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
+      clipperCountBodyReturns v
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (by simp only [initState]; exact hwv) (by simp)
+  have henc :
+      returnEquiv (UInt256.toByteArray (solcSlotWord σ I ⟨11⟩))
+        (some [(.int (Int.ofNat (solcSlotWord σ I ⟨11⟩).toNat))])
+        countTransition.returnType := by
+    rw [show countTransition.returnType = [uint256] from rfl]
+    exact returnEquiv_of_encode
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWord σ I ⟨11⟩))
+  have hreach := clipperReachCountBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    (v := v) hpatch hcode hwv hsz hsize hsel
+  have hret := clipperX_count (v := v) (code := code)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (g := Sat256.ofUInt256 g) (sel := clipperSelWord I) hpatch hreach
+  exact hret.reEquivExecution hcode (clipperDispatch_count hsel)
+    (clipperDecode_count hsz) hbody henc
+
+end Benchmarks.Dss.Clipper

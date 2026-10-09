@@ -1,0 +1,1078 @@
+import Reasoning.WordArithmetic
+import Reasoning.Memory
+import Reasoning.ABIComposite
+import Examples.OpenZeppelinBench.ERC6909.Storage
+import Reasoning.SolmBody
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+
+namespace OpenZeppelinBench.ERC6909
+
+/-! ## ABI decode and source-level body for `approve(address,uint256,uint256)` -/
+
+/-- The raw ABI word for `approve`'s `spender` argument. -/
+abbrev approveSpenderWord (I : ExecutionEnv) : UInt256 :=
+  calldataWord I.calldata 4
+
+/-- The raw ABI word for `approve`'s `id` argument. -/
+abbrev approveIdWord (I : ExecutionEnv) : UInt256 :=
+  calldataWord I.calldata 36
+
+/-- The raw ABI word for `approve`'s `amount` argument. -/
+abbrev approveAmountWord (I : ExecutionEnv) : UInt256 :=
+  calldataWord I.calldata 68
+
+abbrev approveSpenderValue (I : ExecutionEnv) : Value :=
+  .address (AccountAddress.ofNat (approveSpenderWord I).toNat)
+
+abbrev approveIdValue (I : ExecutionEnv) : Value :=
+  .int (Int.ofNat (approveIdWord I).toNat)
+
+abbrev approveAmountValue (I : ExecutionEnv) : Value :=
+  .int (Int.ofNat (approveAmountWord I).toNat)
+
+abbrev approveStore (I : ExecutionEnv) : Store :=
+  (((∅ : Store).insert "spender" (approveSpenderValue I)).insert "id"
+    (approveIdValue I)).insert "amount" (approveAmountValue I)
+
+abbrev approveOwnerWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.ofNat I.source.val
+
+def approveSlot (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
+  allowanceSlot (.address evm.executionEnv.source)
+    (.address (AccountAddress.ofNat (approveSpenderWord I).toNat))
+    (.int (Int.ofNat (approveIdWord I).toNat))
+
+def approveSlotI (I : ExecutionEnv) : UInt256 :=
+  allowanceSlot (.address I.source)
+    (.address (AccountAddress.ofNat (approveSpenderWord I).toNat))
+    (.int (Int.ofNat (approveIdWord I).toNat))
+
+def approvePostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
+  Solm.EVM.storageStore evm evm.executionEnv.codeOwner (approveSlot evm I)
+    (approveAmountWord I)
+
+
+theorem erc6909Decode_approve_ok {I : ExecutionEnv}
+    (hsz100 : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hcanon : (approveSpenderWord I).toNat < EVM.addressModulus) :
+    decodeCalldata (approveTransition.params.map Param.name)
+      (transitionSignature approveTransition).paramTypes I.calldata = some (approveStore I) := by
+  show decodeCalldata ["spender", "id", "amount"] [addr, uint256, uint256] I.calldata =
+    some (approveStore I)
+  simpa [addr, uint256, abiUInt256, approveStore, approveSpenderValue, approveIdValue,
+    approveAmountValue, approveSpenderWord, approveIdWord, approveAmountWord]
+    using decodeCalldata_addr_uint256_uint256_ok
+      (cd := I.calldata) (x := "spender") (y := "id") (z := "amount")
+      hsz100 hbig hcanon
+
+theorem erc6909Decode_approve_none_short {I : ExecutionEnv}
+    (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100) :
+    decodeCalldata (approveTransition.params.map Param.name)
+      (transitionSignature approveTransition).paramTypes I.calldata = none := by
+  show decodeCalldata ["spender", "id", "amount"] [addr, uint256, uint256] I.calldata = none
+  simpa [addr, uint256, abiUInt256] using
+    decodeCalldata_addr_uint256_uint256_none_short
+      (cd := I.calldata) (x := "spender") (y := "id") (z := "amount") hsz4 hshort
+
+theorem erc6909Decode_approve_none_noncanon {I : ExecutionEnv}
+    (hsz100 : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hnc : ¬ (approveSpenderWord I).toNat < EVM.addressModulus) :
+    decodeCalldata (approveTransition.params.map Param.name)
+      (transitionSignature approveTransition).paramTypes I.calldata = none := by
+  show decodeCalldata ["spender", "id", "amount"] [addr, uint256, uint256] I.calldata = none
+  simpa [addr, uint256, abiUInt256, approveSpenderWord] using
+    decodeCalldata_addr_uint256_uint256_none_noncanon
+      (cd := I.calldata) (x := "spender") (y := "id") (z := "amount") hsz100 hbig hnc
+
+theorem erc6909Decode_approve_none_huge {I : ExecutionEnv}
+    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
+    decodeCalldata (approveTransition.params.map Param.name)
+      (transitionSignature approveTransition).paramTypes I.calldata = none := by
+  show decodeCalldata ["spender", "id", "amount"] [addr, uint256, uint256] I.calldata = none
+  simpa [addr, uint256, abiUInt256] using
+    decodeCalldata_addr_uint256_uint256_none_huge
+      (cd := I.calldata) (x := "spender") (y := "id") (z := "amount") hbig
+
+theorem approveOwnerWord_toNat (I : ExecutionEnv) :
+    (approveOwnerWord I).toNat = I.source.val := by
+  unfold approveOwnerWord
+  exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
+    (show AccountAddress.size ≤ UInt256.size from by decide))
+
+theorem approveOwnerWord_canonical (I : ExecutionEnv) :
+    (approveOwnerWord I).toNat < EVM.addressModulus := by
+  rw [approveOwnerWord_toNat]
+  change I.source.val < AccountAddress.size
+  exact I.source.isLt
+
+theorem approveOwner_ofNat (I : ExecutionEnv) :
+    AccountAddress.ofNat (approveOwnerWord I).toNat = I.source := by
+  apply Fin.ext
+  unfold AccountAddress.ofNat
+  rw [approveOwnerWord_toNat, Fin.val_ofNat]
+  exact Nat.mod_eq_of_lt I.source.isLt
+
+theorem approveStore_spender (I : ExecutionEnv) :
+    (approveStore I).get? "spender" = some (approveSpenderValue I) := by
+  rw [approveStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
+    store_get_self]
+
+theorem approveStore_id (I : ExecutionEnv) :
+    (approveStore I).get? "id" = some (approveIdValue I) := by
+  rw [approveStore, store_get_ne _ _ (by decide), store_get_self]
+
+theorem approveStore_amount (I : ExecutionEnv) :
+    (approveStore I).get? "amount" = some (approveAmountValue I) := by
+  rw [approveStore, store_get_self]
+
+theorem approveStore_allowances (I : ExecutionEnv) :
+    (approveStore I).get? "_allowances" = none := by
+  rw [approveStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
+    store_get_ne _ _ (by decide)]
+  simp
+
+theorem evalExpr_approve_spender (evm : EVM.State) (I : ExecutionEnv) :
+    evalExpr? config { contract := contract, locals := approveStore I } evm
+      (.var "spender") = .ok (approveSpenderValue I) := by
+  simp only [evalExpr?, EvalResult.ofOption]
+  rw [approveStore_spender]
+
+theorem evalExpr_approve_id (evm : EVM.State) (I : ExecutionEnv) :
+    evalExpr? config { contract := contract, locals := approveStore I } evm
+      (.var "id") = .ok (approveIdValue I) := by
+  simp only [evalExpr?, EvalResult.ofOption]
+  rw [approveStore_id]
+
+theorem evalExpr_approve_amount (evm : EVM.State) (I : ExecutionEnv) :
+    evalExpr? config { contract := contract, locals := approveStore I } evm
+      (.var "amount") = .ok (approveAmountValue I) := by
+  simp only [evalExpr?, EvalResult.ofOption]
+  rw [approveStore_amount]
+
+theorem evalExpr_approve_sender (evm : EVM.State) (I : ExecutionEnv) :
+    evalExpr? config { contract := contract, locals := approveStore I } evm sender =
+      .ok (.address evm.executionEnv.source) := by
+  simp [sender, evalExpr?, envValue, pure]
+
+theorem evalExpr_approve_zeroAddr (evm : EVM.State) (I : ExecutionEnv) :
+    evalExpr? config { contract := contract, locals := approveStore I } evm zeroAddr =
+      .ok (.address (AccountAddress.ofNat 0)) := by
+  simp [zeroAddr, addrSt, evalExpr?, castValue?, EvalResult.bind, EvalResult.ofOption, pure,
+    bind]
+
+def approveEvaledRef (evm : EVM.State) (I : ExecutionEnv) : EvaledStorageRef :=
+  { base := "_allowances",
+    steps := [.mindex (.address evm.executionEnv.source),
+      .mindex (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)),
+      .mindex (.int (Int.ofNat (approveIdWord I).toNat))] }
+
+theorem evalStorageRef_approve_allowance (evm : EVM.State) (I : ExecutionEnv) :
+    evalStorageRef config { contract := contract, locals := approveStore I } evm
+      (allowanceRef sender (.var "spender") (.var "id")) =
+        EvalResult.ok (approveEvaledRef evm I) := by
+  simp [evalStorageRef, evalStorageRefStep, sender, envValue, evalExpr_approve_spender,
+    evalExpr_approve_id, approveEvaledRef, approveSpenderValue, approveIdValue,
+    valueToKey?, EvalResult.seqList, EvalResult.bind, EvalResult.ofOption, bind, pure,
+    evalExpr?, evalStorageRefSteps, allowanceRef]
+
+theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
+    assignStorageRef? config { contract := contract, locals := approveStore I } evm
+      .storage (allowanceRef sender (.var "spender") (.var "id")) (approveAmountValue I) =
+        .ok ({ contract := contract, locals := approveStore I }, approvePostState evm I) := by
+  simp only [allowanceRef]
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St) (loc := wordLoc (approveSlot evm I))
+      (hbase := approveStore_allowances I)
+      (her := evalStorageRef_approve_allowance evm I)
+      (hty := by
+        simp [storageTypeAt?, approveEvaledRef, contract, storageDecls, uint256St,
+          storageTypeStep?])
+      (hloc := by
+        simpa [config, approveEvaledRef, approveSlot] using
+          storageLayout_allowance
+            (.address evm.executionEnv.source)
+            (.address (AccountAddress.ofNat (approveSpenderWord I).toNat))
+            (.int (Int.ofNat (approveIdWord I).toNat)))
+  erw [storageLocStore_uint256]
+  simp [approvePostState, approveSlot, approveEvaledRef]
+
+theorem evalExpr_approve_sender_ne_zero_true (evm : EVM.State) (hsource : evm.executionEnv.source ≠
+    AccountAddress.ofNat 0) :
+  evalExpr? config { contract := contract, locals := approveStore evm.executionEnv } evm
+      (.binary .ne sender zeroAddr) = .ok (.bool true) := by
+  have hbeq :
+      (Value.address evm.executionEnv.source == Value.address (AccountAddress.ofNat 0)) =
+        false := by
+    simp [BEq.beq, hsource]
+  simp [evalExpr?, evalExpr_approve_sender, evalExpr_approve_zeroAddr, evalBinaryOp?,
+    EvalResult.bind, bind, pure, hbeq]
+
+theorem evalExpr_approve_sender_ne_zero_false (evm : EVM.State) (hsource :
+    evm.executionEnv.source = AccountAddress.ofNat 0) :
+  evalExpr? config { contract := contract, locals := approveStore evm.executionEnv } evm
+      (.binary .ne sender zeroAddr) = .ok (.bool false) := by
+  have hbeq :
+      (Value.address evm.executionEnv.source == Value.address (AccountAddress.ofNat 0)) =
+        true := by
+    simp [BEq.beq, hsource]
+  simp [evalExpr?, evalExpr_approve_sender, evalExpr_approve_zeroAddr, evalBinaryOp?,
+    EvalResult.bind, bind, pure, hbeq]
+
+theorem evalExpr_approve_spender_ne_zero_true (evm : EVM.State) (I : ExecutionEnv)
+    (hspender : AccountAddress.ofNat (approveSpenderWord I).toNat ≠ AccountAddress.ofNat 0) :
+  evalExpr? config { contract := contract, locals := approveStore I } evm
+      (.binary .ne (.var "spender") zeroAddr) = .ok (.bool true) := by
+  have hbeq : (approveSpenderValue I == Value.address (AccountAddress.ofNat 0)) = false := by
+    simp [approveSpenderValue, BEq.beq, hspender]
+  simp [evalExpr?, evalExpr_approve_spender, evalExpr_approve_zeroAddr, evalBinaryOp?,
+    EvalResult.bind, bind, pure, hbeq]
+
+theorem evalExpr_approve_spender_ne_zero_false (evm : EVM.State) (I : ExecutionEnv)
+    (hspender : AccountAddress.ofNat (approveSpenderWord I).toNat = AccountAddress.ofNat 0) :
+  evalExpr? config { contract := contract, locals := approveStore I } evm
+      (.binary .ne (.var "spender") zeroAddr) = .ok (.bool false) := by
+  have hbeq : (approveSpenderValue I == Value.address (AccountAddress.ofNat 0)) = true := by
+    simp [approveSpenderValue, BEq.beq, hspender]
+  simp [evalExpr?, evalExpr_approve_spender, evalExpr_approve_zeroAddr, evalBinaryOp?,
+    EvalResult.bind, bind, pure, hbeq]
+
+theorem erc6909ApproveBodyReturns (evm : EVM.State)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsource : evm.executionEnv.source ≠ AccountAddress.ofNat 0)
+    (hspender :
+      AccountAddress.ofNat (approveSpenderWord evm.executionEnv).toNat ≠ AccountAddress.ofNat 0) :
+    ExecTransitionBody config contract evm (approveStore evm.executionEnv) approveTransition.body
+      (.returned { contract := contract, locals := approveStore evm.executionEnv }
+        (approvePostState evm evm.executionEnv) (some [(.bool true)])) := by
+  refine ExecFuncBody.execBlockRet ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_approve_sender_ne_zero_true evm hsource)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_approve_spender_ne_zero_true evm evm.executionEnv hspender)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.assign (evalExpr_approve_amount evm evm.executionEnv)
+      (approveAssign evm evm.executionEnv)) ?_
+  exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
+
+/-- Static mode: the body halts at the allowance write. -/
+theorem erc6909ApproveBodyStatic (evm : EVM.State)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsource : evm.executionEnv.source ≠ AccountAddress.ofNat 0)
+    (hspender :
+      AccountAddress.ofNat (approveSpenderWord evm.executionEnv).toNat ≠ AccountAddress.ofNat 0)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (approveStore evm.executionEnv) approveTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_approve_sender_ne_zero_true evm hsource)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_approve_spender_ne_zero_true evm evm.executionEnv hspender)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_approve_amount evm evm.executionEnv)
+      (approveAssign evm evm.executionEnv) hperm)
+
+theorem erc6909ApproveBodyReverts_sender (evm : EVM.State)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsource : evm.executionEnv.source = AccountAddress.ofNat 0) :
+    ExecTransitionBody config contract evm (approveStore evm.executionEnv) approveTransition.body
+      .reverted := by
+  refine ExecFuncBody.execBlockRevert ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  exact ExecBlock.consRevert
+    (ExecStmt.requireFalse (evalExpr_approve_sender_ne_zero_false evm hsource))
+
+theorem erc6909ApproveBodyReverts_spender (evm : EVM.State)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsource : evm.executionEnv.source ≠ AccountAddress.ofNat 0)
+    (hspender :
+      AccountAddress.ofNat (approveSpenderWord evm.executionEnv).toNat = AccountAddress.ofNat 0) :
+    ExecTransitionBody config contract evm (approveStore evm.executionEnv) approveTransition.body
+      .reverted := by
+  refine ExecFuncBody.execBlockRevert ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_approve_sender_ne_zero_true evm hsource)) ?_
+  exact ExecBlock.consRevert
+    (ExecStmt.requireFalse
+      (evalExpr_approve_spender_ne_zero_false evm evm.executionEnv hspender))
+
+theorem erc6909ApproveSelector_size {I : ExecutionEnv}
+    (hsel : selIs I ⟨#[0x42, 0x6a, 0x84, 0x93]⟩) :
+    4 ≤ I.calldata.size := by
+  have hs := byteArray_size_eq_of_beq hsel
+  have hleft : (⟨#[0x42, 0x6a, 0x84, 0x93]⟩ : ByteArray).size = 4 := rfl
+  rw [hleft, ByteArray.size_extract] at hs
+  omega
+
+theorem erc6909Dispatch_approve {cd : ByteArray}
+    (hsel : ((⟨#[0x42, 0x6a, 0x84, 0x93]⟩ : ByteArray) == cd.extract 0 4) = true) :
+    dispatchMsg contract cd = some approveTransition := by
+  have hcd : cd.extract 0 4 = (⟨#[0x42, 0x6a, 0x84, 0x93]⟩ : ByteArray) :=
+    (byteArray_eq_of_beq hsel).symm
+  refine dispatchMsg_eq_some_of_split (pre := [allowanceTransition])
+    (post := [balanceOfTransition, isOperatorTransition, setOperatorTransition,
+      supportsInterfaceTransition, transferTransition, transferFromTransition])
+    rfl rfl ?_ (by rw [selectorOf, erc6909ApproveSelectorBytes]; exact hsel)
+  intro t ht
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
+  rcases ht with rfl
+  rw [selectorOf, erc6909AllowanceSelectorBytes, hcd]
+  decide
+
+/-! ## Local scratch-memory facts for the three-level `_allowances` write -/
+
+
+theorem approveSource_zero_iff (I : ExecutionEnv) :
+    I.source = AccountAddress.ofNat 0 ↔ approveOwnerWord I = ⟨0⟩ := by
+  constructor
+  · intro h
+    apply u256_inj
+    rw [approveOwnerWord_toNat, h]
+    rfl
+  · intro h
+    rw [← approveOwner_ofNat I, h]
+    rfl
+
+
+def approveOwnerHashMem (owner : UInt256) : ByteArray :=
+  twoWordHashMem owner ⟨2⟩ solcFreePtrMem
+
+def approveOwnerSlot (owner : UInt256) : UInt256 :=
+  UInt256.ofNat (fromByteArrayBigEndian
+    (KEC ((approveOwnerHashMem owner).readWithPadding 0 64)))
+
+def approveSpenderHashMem (owner spender : UInt256) : ByteArray :=
+  twoWordHashMem spender (approveOwnerSlot owner) (approveOwnerHashMem owner)
+
+def approveSpenderSlot (owner spender : UInt256) : UInt256 :=
+  UInt256.ofNat (fromByteArrayBigEndian
+    (KEC ((approveSpenderHashMem owner spender).readWithPadding 0 64)))
+
+def approveIdHashMem (owner spender id : UInt256) : ByteArray :=
+  twoWordHashMem id (approveSpenderSlot owner spender)
+    (approveSpenderHashMem owner spender)
+
+def approveEventMem (owner spender id amount : UInt256) : ByteArray :=
+  (UInt256.toByteArray amount).write 0 (approveIdHashMem owner spender id) 128 32
+
+def approveReturnMem (owner spender id amount : UInt256) : ByteArray :=
+  (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0
+    (approveEventMem owner spender id amount) 128 32
+
+theorem approveOwnerHashMem_size (owner : UInt256) :
+    (approveOwnerHashMem owner).size = 96 := by
+  unfold approveOwnerHashMem
+  exact twoWordHashMem_size_96 owner ⟨2⟩ solcFreePtrMem_size
+
+theorem approveSpenderHashMem_size (owner spender : UInt256) :
+    (approveSpenderHashMem owner spender).size = 96 := by
+  unfold approveSpenderHashMem
+  exact twoWordHashMem_size_96 spender (approveOwnerSlot owner)
+    (approveOwnerHashMem_size owner)
+
+theorem approveIdHashMem_size (owner spender id : UInt256) :
+    (approveIdHashMem owner spender id).size = 96 := by
+  unfold approveIdHashMem
+  exact twoWordHashMem_size_96 id (approveSpenderSlot owner spender)
+    (approveSpenderHashMem_size owner spender)
+
+theorem approveOwnerHashMem_read0_64 (owner : UInt256) :
+    (approveOwnerHashMem owner).readWithPadding 0 64 =
+      UInt256.toByteArray owner ++ UInt256.toByteArray (⟨2⟩ : UInt256) := by
+  unfold approveOwnerHashMem
+  exact twoWordHashMem_read0_64 owner ⟨2⟩ solcFreePtrMem_size
+
+theorem approveSpenderHashMem_read0_64 (owner spender : UInt256) :
+    (approveSpenderHashMem owner spender).readWithPadding 0 64 =
+      UInt256.toByteArray spender ++ UInt256.toByteArray (approveOwnerSlot owner) := by
+  unfold approveSpenderHashMem
+  exact twoWordHashMem_read0_64 spender (approveOwnerSlot owner)
+    (approveOwnerHashMem_size owner)
+
+theorem approveIdHashMem_read0_64 (owner spender id : UInt256) :
+    (approveIdHashMem owner spender id).readWithPadding 0 64 =
+      UInt256.toByteArray id ++ UInt256.toByteArray (approveSpenderSlot owner spender) := by
+  unfold approveIdHashMem
+  exact twoWordHashMem_read0_64 id (approveSpenderSlot owner spender)
+    (approveSpenderHashMem_size owner spender)
+
+theorem approveIdHashMem_read64 (owner spender id : UInt256) :
+    (approveIdHashMem owner spender id).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold approveIdHashMem approveSpenderHashMem approveOwnerHashMem
+  apply twoWordHashMem_read64
+  · exact twoWordHashMem_size_96 spender (approveOwnerSlot owner)
+      (twoWordHashMem_size_96 owner ⟨2⟩ solcFreePtrMem_size)
+  · apply twoWordHashMem_read64
+    · exact twoWordHashMem_size_96 owner ⟨2⟩ solcFreePtrMem_size
+    · exact twoWordHashMem_read64 owner ⟨2⟩ solcFreePtrMem_size
+        solcFreePtrMem_read64
+
+theorem approveIdHashMem_mload64 (owner spender id : UInt256) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (approveIdHashMem owner spender id).size then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((approveIdHashMem owner spender id).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [approveIdHashMem_size]; decide)
+    (approveIdHashMem_read64 owner spender id)
+
+theorem approveEventMem_size (owner spender id amount : UInt256) :
+    (approveEventMem owner spender id amount).size = 160 := by
+  unfold approveEventMem
+  rw [toByteArray_write_eq _ _ _ (by rw [approveIdHashMem_size]; omega)
+      (by rw [approveIdHashMem_size]; exact lt_usize _ (by norm_num)),
+    ByteArray.size_append, ByteArray.size_append, approveIdHashMem_size,
+    ByteArray_zeroes_size,
+    show 128 - 96 = 32 from by norm_num,
+    toByteArray_size]
+
+theorem approveEventMem_read64 (owner spender id amount : UInt256) :
+    (approveEventMem owner spender id amount).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold approveEventMem
+  rw [toByteArray_write_eq _ _ _ (by rw [approveIdHashMem_size]; omega)
+      (by rw [approveIdHashMem_size]; exact lt_usize _ (by norm_num))]
+  rw [readWithPadding_eq_extract _ 64 (by
+      rw [ByteArray.size_append, ByteArray.size_append, approveIdHashMem_size,
+        ByteArray_zeroes_size,
+        show 128 - 96 = 32 from by norm_num,
+        toByteArray_size]
+      norm_num)]
+  rw [extract_append_left _ _ _ _ (by
+      rw [ByteArray.size_append, approveIdHashMem_size, ByteArray_zeroes_size,
+        show 128 - 96 = 32 from by norm_num]
+      omega)]
+  rw [extract_append_left _ _ _ _ (by rw [approveIdHashMem_size]),
+    ← readWithPadding_eq_extract _ 64 (by rw [approveIdHashMem_size]),
+    approveIdHashMem_read64]
+
+theorem approveEventMem_mload64 (owner spender id amount : UInt256) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (approveEventMem owner spender id amount).size then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((approveEventMem owner spender id amount).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [approveEventMem_size]; decide)
+    (approveEventMem_read64 owner spender id amount)
+
+theorem approveReturnMem_size (owner spender id amount : UInt256) :
+    (approveReturnMem owner spender id amount).size = 160 := by
+  unfold approveReturnMem
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [approveEventMem_size]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, approveEventMem_size, toByteArray_size]
+  omega
+
+theorem approveReturnMem_read64 (owner spender id amount : UInt256) :
+    (approveReturnMem owner spender id amount).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold approveReturnMem
+  rw [write32_read_below _ _ 128 64 (by rw [toByteArray_size])
+      (by rw [approveEventMem_size]; omega) (by omega),
+    approveEventMem_read64]
+
+theorem approveReturnMem_mload64 (owner spender id amount : UInt256) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (approveReturnMem owner spender id amount).size then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((approveReturnMem owner spender id amount).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [approveReturnMem_size]; decide)
+    (approveReturnMem_read64 owner spender id amount)
+
+theorem approveReturnMem_read128 (owner spender id amount : UInt256) :
+    (approveReturnMem owner spender id amount).readWithPadding 128 32 =
+      UInt256.toByteArray (⟨1⟩ : UInt256) := by
+  unfold approveReturnMem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [approveEventMem_size]; omega)]
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by
+    change (UInt256.toByteArray (⟨1⟩ : UInt256)).size ≤ 32
+    rw [toByteArray_size])
+
+theorem approveOwnerKeccakSlot (I : ExecutionEnv) :
+    approveOwnerSlot (approveOwnerWord I) =
+      mapSlot (keyValueToWord (.address I.source)) ⟨2⟩ := by
+  have hownerKey : keyValueToWord (.address I.source) = approveOwnerWord I := by
+    rw [← approveOwner_ofNat I]
+    exact keyValueToWord_address_of_canonical _
+      (approveOwnerWord_canonical I)
+  unfold approveOwnerSlot mapSlot
+  rw [approveOwnerHashMem_read0_64, hownerKey]
+  exact mappingSlot_single (approveOwnerWord I) ⟨2⟩
+
+theorem approveSpenderKeccakSlot (I : ExecutionEnv)
+    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus) :
+    approveSpenderSlot (approveOwnerWord I) (approveSpenderWord I) =
+      mapSlot (keyValueToWord
+        (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)))
+        (mapSlot (keyValueToWord (.address I.source)) ⟨2⟩) := by
+  have hownerKey : keyValueToWord (.address I.source) = approveOwnerWord I := by
+    rw [← approveOwner_ofNat I]
+    exact keyValueToWord_address_of_canonical _
+      (approveOwnerWord_canonical I)
+  have hspenderKey :
+      keyValueToWord (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)) =
+        approveSpenderWord I :=
+    keyValueToWord_address_of_canonical _ hcanonSpender
+  unfold approveSpenderSlot mapSlot
+  rw [approveSpenderHashMem_read0_64, approveOwnerKeccakSlot I]
+  rw [hownerKey, hspenderKey]
+  exact mappingSlot_single (approveSpenderWord I)
+    (uInt256OfByteArray (KEC (UInt256.toByteArray (approveOwnerWord I) ++
+      UInt256.toByteArray (⟨2⟩ : UInt256))))
+
+theorem approveFinalKeccakSlot (I : ExecutionEnv)
+    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        (KEC ((approveIdHashMem (approveOwnerWord I) (approveSpenderWord I)
+          (approveIdWord I)).readWithPadding 0 64)))
+      = approveSlotI I := by
+  unfold approveSlotI allowanceSlot mapSlot
+  rw [approveIdHashMem_read0_64, approveSpenderKeccakSlot I hcanonSpender]
+  have hownerKey : keyValueToWord (.address I.source) = approveOwnerWord I := by
+    rw [← approveOwner_ofNat I]
+    exact keyValueToWord_address_of_canonical _
+      (approveOwnerWord_canonical I)
+  have hspenderKey :
+      keyValueToWord (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)) =
+        approveSpenderWord I :=
+    keyValueToWord_address_of_canonical _ hcanonSpender
+  rw [hownerKey, hspenderKey]
+  rw [keyValueToWord_uint256 (approveIdWord I)]
+  exact mappingSlot_single (approveIdWord I)
+    (uInt256OfByteArray (KEC (UInt256.toByteArray (approveSpenderWord I) ++
+      UInt256.toByteArray
+        (uInt256OfByteArray (KEC (UInt256.toByteArray (approveOwnerWord I) ++
+          UInt256.toByteArray (⟨2⟩ : UInt256)))))))
+
+/-! ## EVM ABI decode traces for the approve body wrapper -/
+
+theorem erc6909ApproveX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1742⟩
+      [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨242⟩, ⟨193⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨k, C, rd⟩ := hreach
+  exact ⟨_, _, evm_run rd with [
+    jumpdest, push2 ⟨193⟩, push2 ⟨242⟩, calldatasize, push1 ⟨4⟩,
+    push2 ⟨1742⟩, jump (by jump_dest) ]⟩
+
+theorem erc6909ApproveX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨522⟩
+      [approveAmountWord I, approveIdWord I, approveSpenderWord I, ⟨193⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
+    solcCalldataStaticLenCheckOk (words := 3) (by simpa using hsz100) hszhi hsize
+  obtain ⟨k, C, rd1742⟩ := erc6909ApproveX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  have rd1629 := evm_run rd1742 with [
+    jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
+    push2 ⟨1760⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
+    jumpdest, push2 ⟨1769⟩, dup5, push2 ⟨1629⟩, jump (by jump_dest) ]
+  obtain ⟨_, _, rd1769⟩ :=
+    erc6909DecodeAddrOk rd1629 hcanonSpender (by jump_dest) (by evm_ov)
+  have rd1770 := evm_run rd1769 with [jumpdest]
+  have rd1771 := RD.swap6 rd1770 (by decide) (by simp)
+  have rd1777 := evm_run rd1771 with [push1 ⟨32⟩, dup6, add, calldataload]
+  have rd1778 := RD.swap6 rd1777 (by decide) (by simp)
+  have rd1781 := evm_run rd1778 with [pop, push1 ⟨64⟩, swap1]
+  have rd1782 := RD.swap5 rd1781 (by decide) (by simp)
+  have rd242 := evm_run rd1782 with [
+    add, calldataload, swap4, swap3, pop, pop, pop, jump (by jump_dest) ]
+  have rd522 := evm_run rd242 with [jumpdest, push2 ⟨522⟩, jump (by jump_dest)]
+  exact ⟨_, _, by
+    simpa [approveSpenderWord, approveIdWord, approveAmountWord, calldataWord] using rd522⟩
+
+theorem erc6909ApproveX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hshort : I.calldata.size < 100)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ :=
+    solcCalldataStaticLenCheckShort (words := 3) hsz4 (by simpa using hshort) hsize
+      (by norm_num)
+  obtain ⟨k, C, rd1742⟩ := erc6909ApproveX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  exact evm_run rd1742 with [
+    jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
+    push2 ⟨1760⟩, jumpiNT (by rw [hslt]; decide),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
+theorem erc6909ApproveX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ :=
+    solcCalldataStaticLenCheckHuge (words := 3) hbig hsize (by norm_num)
+  obtain ⟨k, C, rd1742⟩ := erc6909ApproveX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  exact evm_run rd1742 with [
+    jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
+    push2 ⟨1760⟩, jumpiNT (by rw [hslt]; decide),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
+theorem erc6909ApproveX_noncanon_spender {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hnc : UInt256.eq (approveSpenderWord I)
+      (UInt256.land (approveSpenderWord I) solcAddrMask) = ⟨0⟩)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
+    solcCalldataStaticLenCheckOk (words := 3) (by simpa using hsz100) hszhi hsize
+  obtain ⟨k, C, rd1742⟩ := erc6909ApproveX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  have rd1629 := evm_run rd1742 with [
+    jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
+    push2 ⟨1760⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
+    jumpdest, push2 ⟨1769⟩, dup5, push2 ⟨1629⟩, jump (by jump_dest) ]
+  simpa [approveSpenderWord, calldataWord] using erc6909DecodeAddrRevert rd1629 hnc (by evm_ov)
+
+/-! ## EVM trace for the approve body and `_approve` helper -/
+
+def approveApprovalTopic : UInt256 :=
+  ⟨0xb3fd5071835887567a0671151121894ddccc2842f1d10bedad13e0d17cace9a7⟩
+
+def approveInvalidApproverSelectorWord : UInt256 :=
+  UInt256.shiftLeft ⟨0x198ecd53⟩ ⟨227⟩
+
+def approveInvalidSpenderSelectorWord : UInt256 :=
+  UInt256.shiftLeft ⟨0x6f65f465⟩ ⟨224⟩
+
+def approveErrorMem (selector arg : UInt256) : ByteArray :=
+  (UInt256.toByteArray arg).write 0 (solcReturnMem selector) 132 32
+
+theorem approveErrorMem_size (selector arg : UInt256) :
+    (approveErrorMem selector arg).size = 164 := by
+  unfold approveErrorMem
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [solcReturnMem_size]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, solcReturnMem_size, toByteArray_size]
+  omega
+
+theorem approveErrorMem_read64 (selector arg : UInt256) :
+    (approveErrorMem selector arg).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold approveErrorMem
+  rw [write32_read_below _ _ 132 64 (by rw [toByteArray_size])
+      (by rw [solcReturnMem_size]; omega) (by omega),
+    solcReturnMem_read64]
+
+theorem approveErrorMem_mload64 (selector arg : UInt256) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (approveErrorMem selector arg).size then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((approveErrorMem selector arg).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [approveErrorMem_size]; decide)
+    (approveErrorMem_read64 selector arg)
+
+theorem erc6909ApproveX_toHelper {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨766⟩
+      [approveAmountWord I, approveIdWord I, approveSpenderWord I, approveOwnerWord I,
+        ⟨512⟩, ⟨0⟩, approveAmountWord I, approveIdWord I, approveSpenderWord I, ⟨193⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, rd522⟩ := erc6909ApproveX_decoded
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    hsz100 hsize hszhi hcanonSpender hreach
+  exact ⟨_, _, by
+    simpa [approveOwnerWord] using evm_run rd522 with [
+      jumpdest, push0, push2 ⟨512⟩, caller, dup6, dup6, dup6, push2 ⟨766⟩,
+      jump (by jump_dest) ]⟩
+
+theorem erc6909ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
+    (hsource : I.source ≠ AccountAddress.ofNat 0)
+    (hspender : AccountAddress.ofNat (approveSpenderWord I).toNat ≠ AccountAddress.ofNat 0)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧ ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨900⟩
+      [⟨32⟩, ⟨64⟩, approveOwnerWord I, approveSpenderWord I, approveAmountWord I,
+        approveIdWord I, approveSpenderWord I, approveOwnerWord I, ⟨512⟩, ⟨0⟩,
+        approveAmountWord I, approveIdWord I, approveSpenderWord I, ⟨193⟩, sel]
+      (approveIdHashMem (approveOwnerWord I) (approveSpenderWord I) (approveIdWord I))
+      (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveAmountWord I)) k C)
+    ∨ (I.perm = false ∧ RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I)) := by
+  obtain ⟨_, _, rd766⟩ := erc6909ApproveX_toHelper
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    hsz100 hsize hszhi hcanonSpender hreach
+  have hownerWordNZ : approveOwnerWord I ≠ ⟨0⟩ := by
+    intro hzero
+    exact hsource ((approveSource_zero_iff I).mpr hzero)
+  have hspenderWordNZ : approveSpenderWord I ≠ ⟨0⟩ := by
+    intro hzero
+    exact hspender ((accountAddress_ofNat_zero_iff hcanonSpender).mpr hzero)
+  have rd848 := evm_run rd766 with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and,
+    push2 ⟨807⟩,
+    jumpiT (by
+      rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide]
+      rw [solcAddrMask_clean (approveOwnerWord_canonical I)]
+      exact hownerWordNZ)
+      (by jump_dest),
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and,
+    push2 ⟨848⟩,
+    jumpiT (by
+      rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide]
+      rw [solcAddrMask_clean hcanonSpender]
+      exact hspenderWordNZ)
+      (by jump_dest) ]
+  have hslot := approveFinalKeccakSlot I hcanonSpender
+  have rd876₀ := evm_run rd848 with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, dup2, and,
+    push0, dup2, dup2,
+    raw mstore 0 (wordAt0Mem (approveOwnerWord I) solcFreePtrMem)
+      (UInt256.ofNat 3) (by decide) mem_cost
+      (by
+        rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+          solcAddrMask from by decide]
+        rw [solcAddrMask_clean_left (approveOwnerWord_canonical I)]
+        rfl)
+      (by decide) (by evm_ov),
+    push1 ⟨2⟩, push1 ⟨32⟩, swap1, dup2,
+    raw mstore 0 (approveOwnerHashMem (approveOwnerWord I)) (UInt256.ofNat 3)
+      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨64⟩, dup1, dup4,
+    raw keccak256 0 (approveOwnerSlot (approveOwnerWord I)) (UInt256.ofNat 3)
+      (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+  have rd877 := RD.swap5 rd876₀ (by decide) (by evm_ov)
+  have rd878 := RD.dup9 rd877 (by decide) (by evm_ov)
+  have rd882₀ := evm_run rd878 with [
+    and, dup1, dup5,
+    raw mstore 0 (wordAt0Mem (approveSpenderWord I)
+        (approveOwnerHashMem (approveOwnerWord I)))
+      (UInt256.ofNat 3) (by decide) mem_cost
+      (by
+        rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+          solcAddrMask from by decide]
+        rw [solcAddrMask_clean hcanonSpender]
+        rfl)
+      (by decide) (by evm_ov) ]
+  have rd883 := RD.swap5 rd882₀ (by decide) (by evm_ov)
+  have rd899 := evm_run rd883 with [
+    dup3,
+    raw mstore 0 (approveSpenderHashMem (approveOwnerWord I) (approveSpenderWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    dup1, dup4,
+    raw keccak256 0 (approveSpenderSlot (approveOwnerWord I) (approveSpenderWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    dup8, dup5,
+    raw mstore 0 (wordAt0Mem (approveIdWord I)
+        (approveSpenderHashMem (approveOwnerWord I) (approveSpenderWord I)))
+      (UInt256.ofNat 3) (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    dup3,
+    raw mstore 0 (approveIdHashMem (approveOwnerWord I) (approveSpenderWord I)
+        (approveIdWord I))
+      (UInt256.ofNat 3) (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    swap2, dup3, swap1,
+    raw keccak256 0 (approveSlotI I) (UInt256.ofNat 3)
+      (by decide) mem_cost hslot (by decide) (by evm_ov),
+    dup6, swap1 ]
+  have rd899' := rd899
+  rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+      solcAddrMask from by decide,
+    solcAddrMask_clean_left (approveOwnerWord_canonical I),
+    solcAddrMask_clean hcanonSpender] at rd899'
+  by_cases hp : I.perm = true
+  · exact Or.inl ⟨hp, by simpa using rd899'.sstore hp (by decide) (by evm_ov)⟩
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd899'.sstoreStatic hpf (by decide) (by evm_ov)⟩
+
+theorem erc6909ApproveX_revert_owner {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
+    (hsource : I.source = AccountAddress.ofNat 0)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd766⟩ := erc6909ApproveX_toHelper
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    hsz100 hsize hszhi hcanonSpender hreach
+  have hownerZeroWord : approveOwnerWord I = ⟨0⟩ := (approveSource_zero_iff I).mp hsource
+  have rd781 := evm_run rd766 with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and,
+    push2 ⟨807⟩,
+    jumpiNT (by
+      rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide]
+      rw [hownerZeroWord]
+      decide) ]
+  exact evm_run rd781 with [
+    push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    push4 ⟨0x198ecd53⟩, push1 ⟨227⟩, shl, dup2,
+    raw mstore 6 (solcReturnMem approveInvalidApproverSelectorWord)
+      (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push0, push1 ⟨4⟩, dup3, add,
+    raw mstore 3 (approveErrorMem approveInvalidApproverSelectorWord ⟨0⟩)
+      (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨36⟩, add, push2 ⟨698⟩, jump (by jump_dest),
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+      mem_cost (approveErrorMem_mload64 approveInvalidApproverSelectorWord ⟨0⟩)
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1,
+    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+
+theorem erc6909ApproveX_revert_spender {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
+    (hsource : I.source ≠ AccountAddress.ofNat 0)
+    (hspender : AccountAddress.ofNat (approveSpenderWord I).toNat = AccountAddress.ofNat 0)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd766⟩ := erc6909ApproveX_toHelper
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    hsz100 hsize hszhi hcanonSpender hreach
+  have hownerWordNZ : approveOwnerWord I ≠ ⟨0⟩ := by
+    intro hzero
+    exact hsource ((approveSource_zero_iff I).mpr hzero)
+  have hspenderZeroWord : approveSpenderWord I = ⟨0⟩ :=
+    (accountAddress_ofNat_zero_iff hcanonSpender).mp hspender
+  have rd822 := evm_run rd766 with [
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and,
+    push2 ⟨807⟩,
+    jumpiT (by
+      rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide]
+      rw [solcAddrMask_clean (approveOwnerWord_canonical I)]
+      exact hownerWordNZ)
+      (by jump_dest),
+    jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and,
+    push2 ⟨848⟩,
+    jumpiNT (by
+      rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask from by decide]
+      rw [hspenderZeroWord]
+      decide) ]
+  exact evm_run rd822 with [
+    push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    push4 ⟨0x6f65f465⟩, push1 ⟨224⟩, shl, dup2,
+    raw mstore 6 (solcReturnMem approveInvalidSpenderSelectorWord)
+      (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push0, push1 ⟨4⟩, dup3, add,
+    raw mstore 3 (approveErrorMem approveInvalidSpenderSelectorWord ⟨0⟩)
+      (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨36⟩, add, push2 ⟨698⟩, jump (by jump_dest),
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+      mem_cost (approveErrorMem_mload64 approveInvalidSpenderSelectorWord ⟨0⟩)
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1,
+    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+
+theorem erc6909X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hperm : I.perm = true)
+    (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
+    (hsource : I.source ≠ AccountAddress.ofNat 0)
+    (hspender : AccountAddress.ofNat (approveSpenderWord I).toNat ≠ AccountAddress.ofNat 0)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret erc6909BenchBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveAmountWord I))
+      (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
+  obtain ⟨_, _, rd900⟩ := permSplit_true hperm (erc6909ApproveX_stored
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    hsz100 hsize hszhi hcanonSpender hsource hspender hreach)
+  have rd951 := evm_run rd900 with [
+    swap1,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost
+      (approveIdHashMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
+        (approveIdWord I))
+      (by decide) (by evm_ov),
+    dup5, dup2,
+    raw mstore 6 (approveEventMem (approveOwnerWord I) (approveSpenderWord I)
+        (approveIdWord I) (approveAmountWord I))
+      (UInt256.ofNat 5) (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    dup6, swap4, swap3, swap2 ]
+  have rd942 := rd951.pushConst approveApprovalTopic (width := 32) (op := .PUSH32)
+    (by decide) (by decide) (by evm_ov)
+  have rd951Log := evm_run rd942 with [
+    swap2, add, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (approveEventMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
+        (approveIdWord I) (approveAmountWord I))
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1 ]
+  have rd952 := RD.log4 0 (UInt256.ofNat 5) rd951Log (by decide) hperm
+    mem_cost (by decide) (by evm_ov)
+  have rd512 := evm_run rd952 with [
+    pop, pop, pop, pop, jump (by jump_dest) ]
+  have rd193 := evm_run rd512 with [
+    jumpdest, pop, push1 ⟨1⟩, swap4, swap3, pop, pop, pop, jump (by jump_dest) ]
+  have rd165 := evm_run rd193 with [
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (approveEventMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
+        (approveIdWord I) (approveAmountWord I))
+      (by decide) (by evm_ov),
+    swap1, iszero, iszero, dup2,
+    raw mstore 0 (approveReturnMem (approveOwnerWord I) (approveSpenderWord I)
+        (approveIdWord I) (approveAmountWord I))
+      (UInt256.ofNat 5) (by decide) mem_cost
+      (by
+        rw [show UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ from by decide]
+        rfl)
+      (by decide) (by evm_ov),
+    push1 ⟨32⟩, add, push2 ⟨165⟩, jump (by jump_dest) ]
+  exact evm_run rd165 with [
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (approveReturnMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
+        (approveIdWord I) (approveAmountWord I))
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1,
+    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
+      mem_cost
+      (by
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+          show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32
+            from by decide]
+        change (approveReturnMem (approveOwnerWord I) (approveSpenderWord I)
+            (approveIdWord I) (approveAmountWord I)).readWithPadding 128 32 =
+          UInt256.toByteArray (⟨1⟩ : UInt256)
+        exact approveReturnMem_read128 (approveOwnerWord I) (approveSpenderWord I)
+          (approveIdWord I) (approveAmountWord I))
+      (by evm_ov) ]
+
+theorem erc6909ApproveBodyCore
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I (erc6909SelBytes 3))
+    (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨228⟩
+      [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      σ k C) :
+    runtimeRefinementFor config contract
+      σ σ₀ g A I := by
+  have hselApprove : selIs I ⟨#[0x42, 0x6a, 0x84, 0x93]⟩ := by
+    simpa [erc6909SelBytes] using hsel
+  have hsz4 := erc6909ApproveSelector_size hselApprove
+  have hd := erc6909Dispatch_approve (cd := I.calldata) hselApprove
+  by_cases hsz100 : 100 ≤ I.calldata.size
+  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
+    · by_cases hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus
+      · have hdec := erc6909Decode_approve_ok (I := I) hsz100 hbig hcanonSpender
+        let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
+        let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
+        by_cases hsource : I.source = AccountAddress.ofNat 0
+        · have hbody :
+              ExecTransitionBody config contract evmS (approveStore I)
+                approveTransition.body .reverted := by
+            simpa [evmS, initState] using erc6909ApproveBodyReverts_sender evmS
+              (by simp only [evmS, initState]; exact hwv)
+              (by simpa [evmS, initState] using hsource)
+          exact (erc6909ApproveX_revert_owner (g := Sat256.ofUInt256 g)
+              hsz100 hsize hbig hcanonSpender hsource hreach)
+            |>.reEquivExecutionRevert hcode hd hdec hbody
+        · by_cases hspender :
+            AccountAddress.ofNat (approveSpenderWord I).toNat = AccountAddress.ofNat 0
+          · have hbody :
+                ExecTransitionBody config contract evmS (approveStore I)
+                  approveTransition.body .reverted := by
+              simpa [evmS, initState] using erc6909ApproveBodyReverts_spender evmS
+                (by simp only [evmS, initState]; exact hwv)
+                (by simpa [evmS, initState] using hsource)
+                (by simpa [evmS, initState] using hspender)
+            exact (erc6909ApproveX_revert_spender (g := Sat256.ofUInt256 g)
+                hsz100 hsize hbig hcanonSpender hsource hspender hreach)
+              |>.reEquivExecutionRevert hcode hd hdec hbody
+          · by_cases hperm : I.perm = true
+            · have hbody :
+                  ExecTransitionBody config contract evmS (approveStore I)
+                    approveTransition.body
+                    (.returned { contract := contract, locals := approveStore I }
+                      (approvePostState evmS I) (some [(.bool true)])) := by
+                simpa [evmS, initState] using erc6909ApproveBodyReturns evmS
+                  (by simp only [evmS, initState]; exact hwv)
+                  (by simpa [evmS, initState] using hsource)
+                  (by simpa [evmS, initState] using hspender)
+              exact (erc6909X_approve (g := Sat256.ofUInt256 g)
+                  hsz100 hsize hbig hperm hcanonSpender hsource hspender hreach)
+                |>.reEquivExecutionGen hcode hd hdec hbody
+                  (by simp [evmS, approvePostState, approveSlot, approveSlotI, initState,
+                    storageStore_accountMap])
+                  (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
+            · have hpf : I.perm = false := by simpa using hperm
+              have hbody :
+                  ExecTransitionBody config contract evmS (approveStore I)
+                    approveTransition.body .staticViolation := by
+                simpa [evmS, initState] using erc6909ApproveBodyStatic evmS
+                  (by simp only [evmS, initState]; exact hwv)
+                  (by simpa [evmS, initState] using hsource)
+                  (by simpa [evmS, initState] using hspender)
+                  (by simp only [evmS, initState]; exact hpf)
+              exact (permSplit_false hpf (erc6909ApproveX_stored (g := Sat256.ofUInt256 g)
+                  hsz100 hsize hbig hcanonSpender hsource hspender hreach))
+                |>.reEquivStaticHalt hcode hd hdec hbody
+      · have hdec := erc6909Decode_approve_none_noncanon (I := I)
+          hsz100 hbig hcanonSpender
+        have hnc : UInt256.eq (approveSpenderWord I)
+            (UInt256.land (approveSpenderWord I) solcAddrMask) = ⟨0⟩ :=
+          uInt256_eq_zero_of_ne (fun he => hcanonSpender (solcAddrCanonical_of_clean he))
+        exact (erc6909ApproveX_noncanon_spender (g := Sat256.ofUInt256 g)
+            hsz100 hsize hbig hnc hreach)
+          |>.reEquivDecodingFailed hcode hd hdec
+    · have hbigge : 2 ^ 255 + 4 ≤ I.calldata.size := by omega
+      have hdec := erc6909Decode_approve_none_huge (I := I) hbigge
+      exact (erc6909ApproveX_hugearg (g := Sat256.ofUInt256 g)
+          hsz4 hsize hbigge hreach)
+        |>.reEquivDecodingFailed hcode hd hdec
+  · have hshort : I.calldata.size < 100 := by omega
+    have hdec := erc6909Decode_approve_none_short (I := I) hsz4 hshort
+    exact (erc6909ApproveX_shortarg (g := Sat256.ofUInt256 g)
+        hsz4 hsize hshort hreach)
+      |>.reEquivDecodingFailed hcode hd hdec
+
+end OpenZeppelinBench.ERC6909

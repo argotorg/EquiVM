@@ -22,7 +22,7 @@ inductive EvaledStorageRefStep where
   | tupleElem : Nat -> EvaledStorageRefStep
   | mindex : KeyValue -> EvaledStorageRefStep
   | aindex : KeyValue -> EvaledStorageRefStep
-  /- Accessor for the slot that holds the length of an array. -/
+  /- Legacy locator-only alias for an array or bytes header. New backends use the bare ref. -/
   | length : EvaledStorageRefStep
   deriving Repr, Inhabited
 
@@ -70,15 +70,23 @@ inductive EnvVar where
 inductive UnaryOp where
   | not
   | neg
-  | bitNot
+  /-- Integer complement at an explicit width and signed interpretation. -/
+  | bitNot : IntType -> UnaryOp
+  | fixedBitNot
   deriving Repr, Inhabited
 
 inductive BinaryOp where
   | add
   | sub
   | mul
+  /-- Euclidean integer division. -/
   | div
+  /-- Mathematical modulo, used for explicit wrapping. -/
   | mod
+  /-- Integer division truncated toward zero, without a width or overflow mode. -/
+  | sdiv
+  /-- Remainder paired with `sdiv`; a nonzero remainder has the dividend's sign. -/
+  | srem
   | eq
   | ne
   | lt
@@ -87,19 +95,26 @@ inductive BinaryOp where
   | ge
   | and
   | or
-  | bitAnd
-  | bitOr
-  | bitXor
-  | shl
-  | shr
+  | bitAnd : IntType -> BinaryOp
+  | bitOr : IntType -> BinaryOp
+  | bitXor : IntType -> BinaryOp
+  | shl : IntType -> BinaryOp
+  /-- Logical for unsigned types, arithmetic for signed types. -/
+  | shr : IntType -> BinaryOp
+  | fixedBitAnd
+  | fixedBitOr
+  | fixedBitXor
+  | fixedShl
+  | fixedShr
   | exp
   deriving Repr, Inhabited
 
-/-- Whether a variable path is rooted in a memory **local** or **storage**.
+/-- Whether a variable path is rooted in a local, persistent storage, or transient storage.
     Resolved statically, similar to solc. -/
 inductive VarOrigin where
   | localVar
   | storage
+  | transient
   deriving Repr, Inhabited
 
 mutual
@@ -148,7 +163,7 @@ inductive Expr where
      storage array length; local paths read the in-memory value and return its array/byte count. -/
   | arrayLength : VarOrigin -> StorageRef -> Expr
   /- `keccak256(b)`: the Keccak-256 hash of the dynamic bytes `b`, as a `bytes32` value.  The hash
-     primitive is the same `ffi.KEC` the EVM's `KECCAK256` opcode uses. -/
+     primitive is the same pure `Ethereum.KEC` the EVM's `KECCAK256` opcode uses. -/
   | keccak256 : Expr -> Expr
   /- `abi.encodePacked(e₁, …)`: the non-padded ("packed") ABI encoding of the listed values, as a
      dynamic `bytes`.  Each operand carries its (statically known) `ABIType`, which fixes its packed
@@ -177,6 +192,15 @@ inductive Expr where
      `.selector` (`bytes4`), and `type(I).interfaceId` (`bytes4`) — all of which solc bakes as PUSH
      immediates.  Evaluates to `Value.fixedBytes n bs`; `==`/comparisons already act on `fixedBytes`. -/
   | fixedBytesLit : Fin 32 -> List UInt8 -> Expr
+  /- Read of a declared `immutable` (`ContractDecl.immutables`).  The constructor initialises it
+     (`Stmt.setImmutable`); the runtime reads the value the constructor left, which solc embeds in
+     the deployed code. -/
+  | immutable : Ident -> Expr
+  /- Read of a declared `constant` (`ContractDecl.constants`): the value of its compile-time
+     constant expression. -/
+  | const : Ident -> Expr
+  /- Read a reference in the contract's separate transient slot space. -/
+  | transient : StorageRef -> Expr
 
 inductive StorageRefStep where
   | field : Ident -> StorageRefStep
@@ -267,6 +291,12 @@ inductive Stmt where
   | pop : StorageRef -> Stmt
   /- `delete x`: reset the storage at `x` to its zero value (recursively, per its type) -/
   | delete : StorageRef -> Stmt
+  /- `name = e;` for an `immutable` `name` inside the constructor.  Solidity accepts this only in
+     the constructor body; a value is checked against the declared type. -/
+  | setImmutable : Ident -> Expr -> Stmt
+  /- `emit E(e₁, …)`: an event.  The arguments are evaluated (and may revert); the log itself is
+     not modelled.  In static mode (`LOG*` is forbidden) the statement halts the execution. -/
+  | emit : Ident -> List Expr -> Stmt
   deriving Repr, Inhabited
 
 
@@ -281,6 +311,20 @@ structure Param where
 structure StorageDecl where
   name : Ident
   ty : StorageType
+  deriving Repr, Inhabited
+
+/-- `T constant name = value;`.  `value` is a compile-time constant expression (see
+    `evalConstExpr?`): literals, operators, casts, `keccak256`, and other constants. -/
+structure ConstantDecl where
+  name : Ident
+  ty : ABI.ABIType
+  value : Expr
+  deriving Repr, Inhabited
+
+/-- `T immutable name;`.  Solidity immutables are value types, so `ty` is elementary. -/
+structure ImmutableDecl where
+  name : Ident
+  ty : ABI.ElemType
   deriving Repr, Inhabited
 
 structure ConstructorDecl where
@@ -318,12 +362,16 @@ structure TransitionDecl where
 structure ContractDecl where
   name : Ident
   storage : List StorageDecl
+  constants : List ConstantDecl := []
+  immutables : List ImmutableDecl := []
   ctor : ConstructorDecl
   structs : List StructDecl := [] -- Maybe these should not be per-contract. Zoe: if we are inlining them anyway, do we still need this?
   functions : List FunctionDecl := []
   transitions : List TransitionDecl := []
   receive : Option TransitionDecl := none
   fallback : Option TransitionDecl := none
+  /-- EIP-1153 transient state, with a slot space independent of persistent storage. -/
+  transient : List StorageDecl := []
   deriving Repr, Inhabited
 
 abbrev Program := List ContractDecl

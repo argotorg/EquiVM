@@ -1,0 +1,390 @@
+import Reasoning.Storage
+import Benchmarks.Dss.Clipper.KickDepthLimit
+import Benchmarks.Dss.Clipper.Invalid
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+open Benchmarks.Dss.Clipper.Immutables
+
+namespace Benchmarks.Dss.Clipper
+
+attribute [local irreducible] Ethereum.KEC
+
+set_option maxHeartbeats 4000000
+set_option maxRecDepth 10000
+set_option linter.unusedTactic false
+
+/-! The top-level coupling for `kick`.  The source and compiler traces are
+split at the point where the auction has been initialized; the external-call
+and post-call portions are coupled by `ClipperKickTailOutcome`. -/
+
+private theorem clipperKickConnectOutcome
+    (v : ClipperImmutables) {code : ByteArray}
+    {σ σ₀ : AccountMap} {A : Substate}
+    {g : UInt256} {I : ExecutionEnv} {evmLock sourceInit : EVM.State}
+    {id : UInt256}
+    (hcode : I.code = code)
+    (hdispatch : dispatchMsg contract I.calldata = some kickTransition)
+    (hdecode : decodeCalldataWithMode config.abiDecodeMode
+      (kickTransition.params.map Param.name)
+      (transitionSignature kickTransition).paramTypes I.calldata =
+        some (clipperKickStore I))
+    (hprefix : ∀ {result : ExecResult},
+      ExecBlock config
+          (Frame.mk contract (clipperKickLocalsActivePos evmLock I) (immStore v))
+          sourceInit (clipperKickAfterInitializationBody) result →
+        ExecBlock config (Frame.mk contract (clipperKickStore I) (immStore v))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          kickTransition.body result)
+    (hid : clipperKickSourceIdWord evmLock = id)
+    (houtcome : ClipperKickTailOutcome v code g
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+      evmLock sourceInit id) :
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+  cases houtcome with
+  | reverted hsource hevm =>
+      have hbody : ExecTransitionBody config contract
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (clipperKickStore I) kickTransition.body .reverted (immStore v) :=
+        ExecFuncBody.execBlockRevert (hprefix hsource)
+      exact hevm.reEquivExecutionRevert hcode hdispatch hdecode hbody
+  | invalid hsource hevm =>
+      have hbody : ExecTransitionBody config contract
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (clipperKickStore I) kickTransition.body .reverted (immStore v) :=
+        ExecFuncBody.execBlockRevert (hprefix hsource)
+      exact RDinvalid.reEquivExecutionInvalid hcode hevm hdispatch hdecode hbody
+  | returned σFinal sourceAfter frame hsource hevm haccounts =>
+      have hbody : ExecTransitionBody config contract
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (clipperKickStore I) kickTransition.body
+          (.returned frame sourceAfter
+            (some [.int (Int.ofNat id.toNat)])) (immStore v) := by
+        apply ExecFuncBody.execBlockRet
+        simpa [hid] using hprefix hsource
+      have henc : returnEquiv id.toByteArray
+          (some [.int (Int.ofNat id.toNat)]) kickTransition.returnType := by
+        rw [show kickTransition.returnType = [uint256] from rfl]
+        exact returnEquiv_of_encode
+          (by simpa [uint256] using uint256ReturnEncoding id)
+      exact hevm.reEquivExecutionGen hcode hdispatch hdecode
+        hbody haccounts henc
+
+
+private theorem clipperKickSourceInitializedState_originalAccounts
+    (evm : EVM.State) (I : ExecutionEnv) :
+    (clipperKickSourceInitializedState evm I).σ₀ = evm.σ₀ := by
+  simp [clipperKickSourceInitializedState, clipperKickSourceSalesUsrState,
+    clipperKickSourceSalesLotState, clipperKickSourceSalesTabState,
+    clipperKickSourceSalesPosState, clipperKickSourceActiveState,
+    clipperKickSourceActiveLengthState, clipperKickSourceIdState,
+    storageStore_σ₀]
+
+private theorem clipperKickSourceInitializedState_executionEnv
+    (evm : EVM.State) (I : ExecutionEnv) :
+    (clipperKickSourceInitializedState evm I).executionEnv = evm.executionEnv := by
+  simp [clipperKickSourceInitializedState, clipperKickSourceSalesUsrState,
+    clipperKickSourceSalesLotState, clipperKickSourceSalesTabState,
+    clipperKickSourceSalesPosState, clipperKickSourceActiveState,
+    clipperKickSourceActiveLengthState, clipperKickSourceIdState,
+    storageStore_executionEnv]
+
+set_option maxHeartbeats 8000000 in
+theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I (clipperSelBytes 13))
+    (hStorageWF : clipperStorageWF σ I) :
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I (clipperSelBytes 13) (by native_decide) hsel
+  have hdispatch : dispatchMsg contract I.calldata = some kickTransition :=
+    clipperDispatch_kick hsel
+  have hreachEntry := clipperReachKickEntry
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (g := Sat256.ofUInt256 g) v hpatch hcode hwv hsz4 hsize hsel
+  by_cases hsz132 : 132 ≤ I.calldata.size
+  · have hdecode := clipperDecode_kick_ok (I := I) hsz132
+    obtain ⟨_, _, rd5361⟩ := clipperKickX_decoded
+      (v := v) (g := Sat256.ofUInt256 g) hpatch hsz132 hsize hreachEntry
+    let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    have hvalue : evmSolm.executionEnv.weiValue = ⟨0⟩ := by
+      simpa [evmSolm, initState] using hwv
+    have hsrc : evmSolm.executionEnv.source = I.source := by
+      simp [evmSolm, initState]
+    have hInitialAccounts : σ = evmSolm.accountMap := by
+      simp [evmSolm, initState]
+    have hauthEq : clipperRelyAuthWord σ I =
+        Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
+          (clipperRelyAuthStorageSlot I) := by
+      simpa [clipperRelyAuthWord] using
+        slotWord_eq_of_accounts_eq evmSolm I
+          (clipperRelyAuthStorageSlot I) (by simp [evmSolm, initState])
+          hInitialAccounts
+    have connectRevert
+        (hsource : ExecBlock config
+          (Frame.mk contract (clipperKickStore I) (immStore v)) evmSolm
+          kickTransition.body .reverted)
+        (hevm : RDrev code (Sat256.ofUInt256 g)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
+        runtimeRefinementFor config contract
+          σ σ₀ g A I (immStore v) := by
+      have hbody : ExecTransitionBody config contract evmSolm
+          (clipperKickStore I) kickTransition.body .reverted (immStore v) :=
+        ExecFuncBody.execBlockRevert hsource
+      simpa [evmSolm] using
+        hevm.reEquivExecutionRevert hcode hdispatch hdecode hbody
+    by_cases hauth : clipperRelyAuthWord σ I = ⟨1⟩
+    · have hauthSource : Solm.EVM.storageLoad evmSolm
+          evmSolm.executionEnv.codeOwner (clipperRelyAuthStorageSlot I) = ⟨1⟩ := by
+        rw [← hauthEq]
+        exact hauth
+      obtain ⟨_, _, rd5443⟩ := clipperKickX_authorized v hpatch hauth rd5361
+      have hlockEq : solcSlotWord σ I ⟨13⟩ =
+          Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨13⟩ :=
+        slotWord_eq_of_accounts_eq evmSolm I ⟨13⟩
+          (by simp [evmSolm, initState]) hInitialAccounts
+      by_cases hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩
+      · have hlockedSource : Solm.EVM.storageLoad evmSolm
+            evmSolm.executionEnv.codeOwner ⟨13⟩ = ⟨0⟩ := by
+          rw [← hlockEq]
+          exact hlocked
+        obtain ⟨_, _, rd5520⟩ := clipperKickX_lockOpen v hpatch hlocked rd5443
+        by_cases hperm : I.perm = true
+        swap
+        · have hstaticPerm : I.perm = false := by simpa using hperm
+          have hstatic := permSplit_false hstaticPerm
+            (clipperKickX_lockAndStoppedOpenSplit v hpatch rd5520)
+          exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+            (ExecFuncBody.execBlockStatic
+              ((clipperKickSourceRevertsStoppedSplit v evmSolm I hvalue hsrc
+                hauthSource hlockedSource).2 hstaticPerm))
+        let σLock := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
+        let evmLock := clipperKickLockedState evmSolm
+        have hLockAccounts : σLock = evmLock.accountMap := by
+          simpa [σLock, evmLock, clipperKickLockedState, storageStore_accountMap,
+            evmSolm, initState] using
+            congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨13⟩ ⟨1⟩)
+              hInitialAccounts
+        have henvLock : evmLock.executionEnv = I := by
+          simp [evmLock, clipperKickLockedState, evmSolm, initState,
+            storageStore_executionEnv]
+        have hstoppedEq : solcSlotWord σLock I ⟨14⟩ =
+            Solm.EVM.storageLoad evmLock evmLock.executionEnv.codeOwner ⟨14⟩ :=
+          slotWord_eq_of_accounts_eq evmLock I ⟨14⟩
+            henvLock hLockAccounts
+        by_cases hstopped : (solcSlotWord σLock I ⟨14⟩).toNat < 1
+        · have hstoppedSource :
+              (Solm.EVM.storageLoad evmLock evmLock.executionEnv.codeOwner ⟨14⟩).toNat < 1 := by
+            rw [← hstoppedEq]
+            exact hstopped
+          obtain ⟨_, _, rd5609⟩ := clipperKickX_lockAndStoppedOpen
+            (σ := σ) v hpatch hperm (by simpa [σLock] using hstopped) rd5520
+          by_cases htab : 0 < (clipperKickTabWord I).toNat
+          · obtain ⟨_, _, rd5681⟩ := clipperKickX_tabPositive
+              (σ := σLock) v hpatch htab (by simpa [σLock] using rd5609)
+            by_cases hlot : 0 < (clipperKickLotWord I).toNat
+            · obtain ⟨_, _, rd5753⟩ := clipperKickX_lotPositive
+                (σ := σLock) v hpatch hlot rd5681
+              by_cases husr : clipperKickUsrMaskedWord I ≠ ⟨0⟩
+              · obtain ⟨_, _, rd5831⟩ := clipperKickX_usrPositive
+                  (σ := σLock) v hpatch husr rd5753
+                have hidEq : clipperKickSourceIdWord evmLock =
+                    clipperKickIdWord σLock I := by
+                  simp only [clipperKickSourceIdWord, clipperKickIdWord]
+                  rw [← slotWord_eq_of_accounts_eq evmLock I ⟨10⟩
+                    henvLock hLockAccounts]
+                by_cases hid : clipperKickIdWord σLock I ≠ ⟨0⟩
+                · obtain ⟨_, _, rd5913⟩ := clipperKickX_idPositive
+                    (σ := σLock) v hpatch hperm hid rd5831
+                  obtain ⟨_, _, rd8728⟩ := clipperKickX_initializeAuction
+                    (σ := σLock) v hpatch hperm rd5913
+                  let sourceInit := clipperKickSourceInitializedState evmLock I
+                  have hlenEq : clipperKickSourceActiveLengthWord evmLock =
+                      solcSlotWord σ I ⟨11⟩ := by
+                    calc
+                      clipperKickSourceActiveLengthWord evmLock =
+                          Solm.EVM.storageLoad evmLock
+                            evmLock.executionEnv.codeOwner ⟨11⟩ := by
+                        simp only [clipperKickSourceActiveLengthWord,
+                          clipperKickSourceIdState]
+                        exact storageLoad_storageStore_ne evmLock
+                          evmLock.executionEnv.codeOwner (by decide)
+                      _ = solcSlotWord σLock I ⟨11⟩ :=
+                        (slotWord_eq_of_accounts_eq evmLock I ⟨11⟩
+                          henvLock hLockAccounts).symm
+                      _ = solcSlotWord σ I ⟨11⟩ := by
+                        simpa [σLock, solcSlotWord] using
+                          sstoreAccountMap_storage_getD_ne σ I.codeOwner
+                            ⟨11⟩ ⟨13⟩ ⟨1⟩ (by decide)
+                  have hlen : (clipperKickSourceActiveLengthWord evmLock).toNat + 1 <
+                      UInt256.size := by
+                    rw [hlenEq]
+                    unfold clipperStorageWF at hStorageWF
+                    omega
+                  have hpresentSolm : ∃ acc,
+                      evmSolm.accountMap.get? I.codeOwner = some acc := by
+                    cases hacc : evmSolm.accountMap.get? I.codeOwner with
+                    | none =>
+                        exfalso
+                        have hownerSolm : evmSolm.executionEnv.codeOwner =
+                            I.codeOwner := by simp [evmSolm, initState]
+                        have hacc' : evmSolm.accountMap.get?
+                            evmSolm.executionEnv.codeOwner = none := by
+                          simpa [hownerSolm] using hacc
+                        have hzeroLoad : Solm.EVM.storageLoad evmSolm
+                            evmSolm.executionEnv.codeOwner
+                              (clipperRelyAuthStorageSlot I) = ⟨0⟩ := by
+                          unfold Solm.EVM.storageLoad State.lookupAccount
+                          rw [hacc']
+                          rfl
+                        rw [hzeroLoad] at hauthSource
+                        exact (by decide : (⟨0⟩ : UInt256) ≠ ⟨1⟩) hauthSource
+                    | some acc => exact ⟨acc, rfl⟩
+                  obtain ⟨accSolm, haccSolm⟩ := hpresentSolm
+                  obtain ⟨accLock, haccLock⟩ := storageStore_present
+                    evmSolm evmSolm.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
+                      (by simpa [evmSolm, initState] using haccSolm)
+                  have hpresentLock : ∃ acc,
+                      evmLock.accountMap.get? I.codeOwner = some acc := by
+                    exact ⟨accLock, by
+                      simpa [evmLock, clipperKickLockedState, evmSolm, initState,
+                        storageStore_executionEnv] using haccLock⟩
+                  have hInitAccounts :
+                      clipperKickInitializedMap σLock I = sourceInit.accountMap := by
+                    simpa [sourceInit] using
+                      clipperKickInitializedState_accounts_eq evmLock I
+                        henvLock hpresentLock hLockAccounts
+                  have halignInit : ClipperKickCallAligned
+                      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                      (clipperKickInitializedMap σLock I) I sourceInit :=
+                    { accounts := hInitAccounts
+                      originalAccounts := by
+                        calc
+                          (initState σ σ₀ (Sat256.ofUInt256 g) A I).σ₀ =
+                              σ₀ := rfl
+                          _ = evmSolm.σ₀ := rfl
+                          _ = evmLock.σ₀ := by
+                            simpa [evmLock, clipperKickLockedState] using
+                              (storageStore_σ₀ evmSolm
+                                evmSolm.executionEnv.codeOwner ⟨13⟩ ⟨1⟩).symm
+                          _ = sourceInit.σ₀ := by
+                            simpa [sourceInit] using
+                              (clipperKickSourceInitializedState_originalAccounts
+                                evmLock I).symm
+                      executionEnv := by
+                        calc
+                          sourceInit.executionEnv = evmLock.executionEnv := by
+                            simpa [sourceInit] using
+                              clipperKickSourceInitializedState_executionEnv evmLock I
+                          _ = I := henvLock }
+                  have hslot : clipperKickSourceSalesBaseSlot evmLock + ⟨4⟩ =
+                      clipperKickTopSlot (clipperKickIdWord σLock I) := by
+                    simpa [clipperKickTopSlot] using congrArg (fun slot => slot + ⟨4⟩)
+                      (clipperKickSalesBaseSlot_eq evmLock σLock I hidEq)
+                  have hprefix : ∀ {result : ExecResult},
+                      ExecBlock config
+                          (Frame.mk contract (clipperKickLocalsActivePos evmLock I) (immStore v))
+                          sourceInit (clipperKickAfterInitializationBody) result →
+                        ExecBlock config (Frame.mk contract (clipperKickStore I) (immStore v))
+                          evmSolm kickTransition.body result := by
+                    intro result hafter
+                    exact clipperKickSourcePrefix v evmSolm I hvalue hsrc hauthSource
+                      hlockedSource hstoppedSource htab hlot husr
+                      (by rw [hidEq]; exact hid) hlen hafter
+                  have houtcome : ClipperKickTailOutcome v code g
+                      (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+                      evmLock sourceInit (clipperKickIdWord σLock I) := by
+                    by_cases hdepth : I.depth.val < 1024
+                    · have hfeed := clipperKickSimulateGetFeedPrice
+                        (callerLocals := clipperKickLocalsActivePos evmLock I)
+                        v hpatch rd8728
+                        halignInit hdepth hperm
+                        (clipperKickSalesHashMem_size σLock I)
+                        (clipperKickSalesHashMem_read64 σLock I)
+                        (clipperKickJumpDest6061 v hpatch) (by simp)
+                      exact clipperKickFinishAfterFeedPrice v hpatch hdepth hperm
+                        hslot (by simp) hfeed
+                    · have hdepthEq : I.depth = (1024 : Fin 1025) := by
+                        have hval : I.depth.val = 1024 := by
+                          have hle : I.depth.val ≤ 1024 := Nat.le_of_lt_succ I.depth.isLt
+                          omega
+                        apply Fin.ext
+                        simpa using hval
+                      by_cases hspotter : extCodeSizeWord
+                          (clipperKickInitializedMap σLock I)
+                          (clipperSpotterTarget (clipperKickInitializedMap σLock I) I) = ⟨0⟩
+                      · have hevm := RD.clipperKickGetFeedPriceSpotterIlksNoCode
+                            v hpatch rd8728 hspotter
+                            (clipperKickSalesHashMem_size σLock I)
+                            (clipperKickSalesHashMem_read64 σLock I) (by simp)
+                        have haddr := clipperKickSpotterAddress_eq_of_aligned halignInit
+                        have hnoCode := clipperKickNoCode_of_aligned halignInit
+                          haddr hspotter
+                        have hcall := clipperGetFeedPriceCallRevertsSpotterIlksNoCode
+                          v sourceInit (clipperKickLocalsActivePos evmLock I)
+                            "feedPrice" hnoCode
+                        exact .reverted
+                          (clipperKickAfterInitializationGetFeedReverts
+                            v evmLock sourceInit I hcall) hevm
+                      · exact clipperKickDepthLimitReverts v hpatch hdepthEq hspotter
+                          halignInit rd8728
+                          (clipperKickSalesHashMem_size σLock I)
+                          (clipperKickSalesHashMem_read64 σLock I) (by simp)
+                  exact clipperKickConnectOutcome v hcode hdispatch hdecode
+                    (by
+                      intro result hafter
+                      simpa [evmSolm] using hprefix hafter)
+                    hidEq houtcome
+                · have hidZero : clipperKickIdWord σLock I = ⟨0⟩ := by
+                    simpa using hid
+                  have hsource := clipperKickSourceRevertsId v evmSolm I hvalue hsrc
+                    hauthSource hlockedSource hstoppedSource htab hlot husr
+                    (by rw [hidEq]; exact hidZero)
+                  have hevm := clipperKickX_idZero (σ := σLock) v hpatch hperm
+                    hidZero rd5831
+                  exact connectRevert hsource hevm
+              · have husrZero : clipperKickUsrMaskedWord I = ⟨0⟩ := by
+                  simpa using husr
+                have hsource := clipperKickSourceRevertsUsr v evmSolm I hvalue hsrc
+                  hauthSource hlockedSource hstoppedSource htab hlot husrZero
+                have hevm := clipperKickX_usrZero (σ := σLock) v hpatch husrZero rd5753
+                exact connectRevert hsource hevm
+            · have hsource := clipperKickSourceRevertsLot v evmSolm I hvalue hsrc
+                hauthSource hlockedSource hstoppedSource htab hlot
+              have hevm := clipperKickX_lotZero (σ := σLock) v hpatch hlot rd5681
+              exact connectRevert hsource hevm
+          · have hsource := clipperKickSourceRevertsTab v evmSolm I hvalue hsrc
+              hauthSource hlockedSource hstoppedSource htab
+            have hevm := clipperKickX_tabZero (σ := σLock) v hpatch htab
+              (by simpa [σLock] using rd5609)
+            exact connectRevert hsource hevm
+        · have hstoppedGe : 1 ≤ (solcSlotWord σLock I ⟨14⟩).toNat := by omega
+          have hsource := clipperKickSourceRevertsStopped v evmSolm I hvalue hsrc
+            hauthSource hlockedSource (by rw [← hstoppedEq]; exact hstoppedGe)
+          have hevm := clipperKickX_stopped (σ := σ) v hpatch hperm
+            (by simpa [σLock] using hstoppedGe) rd5520
+          exact connectRevert hsource hevm
+      · have hlockedSource : Solm.EVM.storageLoad evmSolm
+            evmSolm.executionEnv.codeOwner ⟨13⟩ ≠ ⟨0⟩ := by
+          intro hz
+          exact hlocked (by rw [hlockEq, hz])
+        have hsource := clipperKickSourceRevertsLocked v evmSolm I hvalue hsrc
+          hauthSource hlockedSource
+        have hevm := clipperKickX_locked v hpatch hlocked rd5443
+        exact connectRevert hsource hevm
+    · have hauthSource : Solm.EVM.storageLoad evmSolm
+          evmSolm.executionEnv.codeOwner (clipperRelyAuthStorageSlot I) ≠ ⟨1⟩ := by
+        intro hone
+        exact hauth (by rw [hauthEq, hone])
+      have hsource := clipperKickSourceRevertsUnauthorized v evmSolm I hvalue hsrc
+        hauthSource
+      have hevm := clipperKickX_unauthorized v hpatch hauth rd5361
+      exact connectRevert hsource hevm
+  · have hshort : I.calldata.size < 132 := by omega
+    exact (clipperKickX_shortarg (v := v) (g := Sat256.ofUInt256 g)
+      hpatch hsz4 hsize hshort hreachEntry).reEquivDecodingFailed
+        hcode hdispatch (clipperDecode_kick_none_short hsz4 hshort)
+
+end Benchmarks.Dss.Clipper

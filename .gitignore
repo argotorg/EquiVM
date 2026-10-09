@@ -26,6 +26,7 @@ CLAUDE.md
 .uv-tools/
 .vscodei
 .DS_STORE
+__pycache__/
 
 # archived Claude Code session transcripts for completed proofs
 /proof-session-logs/

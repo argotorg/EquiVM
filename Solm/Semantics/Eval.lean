@@ -24,6 +24,7 @@ mutual
     | .var _ => 1
     | .env _ => 1
     | .storage slot => slotEvalSize slot + 1
+    | .transient slot => slotEvalSize slot + 1
     | .arrayLength _ slot => slotEvalSize slot + 1
     | .field base _ => exprEvalSize base + 1
     | .cast expr _ => exprEvalSize expr + 1
@@ -45,6 +46,8 @@ mutual
     | .balanceOf e => exprEvalSize e + 1
     | .extCodeHash e => exprEvalSize e + 1
     | .fixedBytesLit _ _ => 1
+    | .immutable _ => 1
+    | .const _ => 1
   termination_by expr => (sizeOf expr, 0)
   decreasing_by
     all_goals simp_wf
@@ -97,6 +100,80 @@ mutual
     all_goals simp_wf
     all_goals decreasing_tactic
 end
+
+/-! ## Constant expressions
+
+A `constant`'s value is a compile-time constant expression: literals, operators, casts, range
+checks, `keccak256`, and other constants.  Anything else (variables, storage, environment, calls)
+is not a constant expression and is a `.typeError`, as solc rejects it at compile time.  The
+operators share their definitions with `evalExpr?`. -/
+
+/-- Evaluate a constant expression; `resolve` gives the values of the constants it names. -/
+def evalConstExprWith (resolve : Ident -> EvalResult Value) : Expr -> EvalResult Value
+  | .intLit n => pure (.int n)
+  | .boolLit b => pure (.bool b)
+  | .bytesLit b => pure (.bytes b)
+  | .fixedBytesLit n bs => pure (.fixedBytes n bs)
+  | .const name => resolve name
+  | .cast expr ty => do
+      let value <- evalConstExprWith resolve expr
+      EvalResult.ofOption .typeError (castValue? value ty)
+  | .unary op expr => do
+      let value <- evalConstExprWith resolve expr
+      EvalResult.ofOption .typeError (evalUnaryOp? op value)
+  | .binary .and lhs rhs => do
+      match <- evalConstExprWith resolve lhs with
+      | .bool false => pure (.bool false)
+      | .bool true =>
+          (match <- evalConstExprWith resolve rhs with
+           | .bool b => pure (.bool b)
+           | _ => .error .typeError)
+      | _ => .error .typeError
+  | .binary .or lhs rhs => do
+      match <- evalConstExprWith resolve lhs with
+      | .bool true => pure (.bool true)
+      | .bool false =>
+          (match <- evalConstExprWith resolve rhs with
+           | .bool b => pure (.bool b)
+           | _ => .error .typeError)
+      | _ => .error .typeError
+  | .binary op lhs rhs => do
+      let lhsValue <- evalConstExprWith resolve lhs
+      let rhsValue <- evalConstExprWith resolve rhs
+      evalBinaryOp? op lhsValue rhsValue
+  | .ite cond thenExpr elseExpr => do
+      match <- evalConstExprWith resolve cond with
+      | .bool true => evalConstExprWith resolve thenExpr
+      | .bool false => evalConstExprWith resolve elseExpr
+      | _ => .error .typeError
+  | .inRange intType expr => do
+      let value <- evalConstExprWith resolve expr
+      match value, intType with
+      | .int i, .uint n =>
+          if i < 0 || i >= 2^(n.val) then .revert else pure value
+      | .int i, .sint n =>
+          let bound : Int := 2^(n.val - 1)
+          if i < -bound || i >= bound then .revert else pure value
+      | _, _ => .error .typeError
+  | .keccak256 e => do
+      match <- evalConstExprWith resolve e with
+      | .bytes ba => pure (.fixedBytes ⟨31, by decide⟩ (Ethereum.KEC ba).toList)
+      | _ => .error .typeError
+  | _ => .error .typeError
+
+/-- The value of the constant `name` among `constants`, unfolding at most `fuel` constant
+    references; running out of fuel means the definitions are cyclic. -/
+def evalConstant? (constants : List ConstantDecl) : Nat -> Ident -> EvalResult Value
+  | 0, _ => .error .typeError
+  | fuel + 1, name =>
+      match constants.find? (·.name == name) with
+      | some decl => evalConstExprWith (evalConstant? constants fuel) decl.value
+      | none => .error .unboundVariable
+
+/-- The value of the contract's constant `name`.  An acyclic chain of constant references is at
+    most as long as the constant list, so that much fuel suffices. -/
+def constantValue? (contract : ContractDecl) (name : Ident) : EvalResult Value :=
+  evalConstant? contract.constants contract.constants.length name
 
 mutual
 
@@ -174,6 +251,60 @@ def resolveStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
           pure (er, ty)
       | .revert => .revert
       | .error e => .error e
+  termination_by (slotEvalSize slot, 1)
+  decreasing_by
+    all_goals simp [slotEvalSize]
+    all_goals omega
+
+def evalTransientStorageRefStep (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (base : Ident) (pre : List EvaledStorageRefStep) (step : StorageRefStep) :
+    EvalResult EvaledStorageRefStep :=
+  match step with
+  | .field name => pure (.field name)
+  | .mindex expr => do
+      let index ← evalExpr? cfg solm evm expr
+      let indexKey ← EvalResult.ofOption .typeError (valueToKey? index)
+      pure (.mindex indexKey)
+  | .aindex expr => do
+      let index ← evalExpr? cfg solm evm expr
+      let indexKey ← EvalResult.ofOption .typeError (valueToKey? index)
+      let _ ← arrayIndexInBounds? { cfg with storageBackend := cfg.transientBackend }
+        evm solm.contract.transient base pre indexKey
+      pure (.aindex indexKey)
+  termination_by (slotStepEvalSize step, 0)
+  decreasing_by
+    all_goals simp [slotStepEvalSize]
+    all_goals omega
+
+def evalTransientStorageRefSteps (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (base : Ident) (pre : List EvaledStorageRefStep) :
+    List StorageRefStep → EvalResult (List EvaledStorageRefStep)
+  | [] => pure []
+  | step :: rest => do
+      let estep ← evalTransientStorageRefStep cfg solm evm base pre step
+      let erest ← evalTransientStorageRefSteps cfg solm evm base (pre ++ [estep]) rest
+      pure (estep :: erest)
+  termination_by steps => (slotStepsEvalSize steps, 0)
+  decreasing_by
+    all_goals simp [slotStepsEvalSize]
+    all_goals omega
+
+def evalTransientStorageRef (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (slot : StorageRef) : EvalResult EvaledStorageRef := do
+  let steps ← evalTransientStorageRefSteps cfg solm evm slot.base [] slot.steps
+  pure { base := slot.base, steps := steps }
+  termination_by (slotEvalSize slot, 0)
+  decreasing_by
+    simp [slotEvalSize]
+    apply Prod.Lex.left
+    omega
+
+/-- Resolve an explicitly transient reference independently of persistent-storage aliases. -/
+def resolveTransientStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (slot : StorageRef) : EvalResult (EvaledStorageRef × StorageType) := do
+  let er ← evalTransientStorageRef cfg solm evm slot
+  let ty ← EvalResult.ofOption .storageError (storageTypeAt? solm.contract.transient er)
+  pure (er, ty)
   termination_by (slotEvalSize slot, 1)
   decreasing_by
     all_goals simp [slotEvalSize]
@@ -267,16 +398,12 @@ def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
     | none => .error .unboundVariable
   | .storage => do
     let (evaledStorageRef, ty) <- resolveStorageRef? cfg solm evm slot
-    match value with
-    | .struct _ _ | .array _ | .bytes _ => do
-      -- whole-array / whole-struct assignment: write every slot by the declared type
-      let evm' <- writeStorage? cfg evm evaledStorageRef ty value
-      pure (solm, evm')
-    | _ => do
-      -- scalar leaf: a single whole/partial-slot store
-      let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef evm)
-      let evm' <- EvalResult.ofOption .storageError (value.toABI? >>= storageLocStore evm loc)
-      pure (solm, evm')
+    let evm' <- cfg.storageBackend.write evaledStorageRef ty value evm
+    pure (solm, evm')
+  | .transient => do
+    let (er, ty) ← resolveTransientStorageRef? cfg solm evm slot
+    let evm' ← cfg.transientBackend.write er ty value evm
+    pure (solm, evm')
 
 def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
     Expr -> EvalResult Value
@@ -318,12 +445,18 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | .env var => pure (envValue evm var)
   | .storage slot => do
       let (evaledStorageRef, ty) <- resolveStorageRef? cfg solm evm slot
-      readStorage? cfg evm evaledStorageRef ty
+      cfg.storageBackend.read evaledStorageRef ty evm
+  | .transient slot => do
+      let (er, ty) ← resolveTransientStorageRef? cfg solm evm slot
+      cfg.transientBackend.read er ty evm
   | .arrayLength origin slot => do
       match origin with
       | .storage => do
           let (er, ty) <- resolveStorageRef? cfg solm evm slot
-          readStorageArrayLength? cfg evm er ty
+          pure (.int (← cfg.storageBackend.length er ty evm))
+      | .transient => do
+          let (er, ty) ← resolveTransientStorageRef? cfg solm evm slot
+          pure (.int (← cfg.transientBackend.length er ty evm))
       | .localVar =>
           match solm.locals.get? slot.base with
           | some root => do
@@ -340,7 +473,7 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
       | .storageRef er ty => do
           let step := EvaledStorageRefStep.field name
           let ty' <- EvalResult.ofOption .typeError (storageTypeStep? ty step)
-          readStorage? cfg evm { er with steps := er.steps ++ [step] } ty'
+          cfg.storageBackend.read { er with steps := er.steps ++ [step] } ty' evm
       | _ => EvalResult.ofOption .typeError (lookupField? baseValue name)
   | .cast expr ty => do /- TODO do we really need to have casting? -/
       let value <- evalExpr? cfg solm evm expr
@@ -395,23 +528,22 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | .keccak256 e => do
       let value <- evalExpr? cfg solm evm e
       match value with
-      -- Keccak-256 of the dynamic bytes, as a `bytes32` value; same `ffi.KEC` as the EVM opcode.
-      | .bytes ba => pure (.fixedBytes ⟨31, by decide⟩ (ffi.KEC ba).toList)
+      -- Keccak-256 of the dynamic bytes, as a `bytes32` value; same `Ethereum.KEC` as the EVM opcode.
+      | .bytes ba => pure (.fixedBytes ⟨31, by decide⟩ (Ethereum.KEC ba).toList)
       | _ => .error .typeError
   | .abiEncodePacked args => do
       let bytes <- evalPackedArgs? cfg solm evm args
       pure (.bytes (ByteArray.mk bytes.toArray))
   | .abiEncodeCall name args => do
       let values <- evalExprList? cfg solm evm args
-      let abiValues <- EvalResult.ofOption .typeError (Value.toABIList? values)
-      let bytes <- EvalResult.ofOption .typeError (cfg.externalABI.encode? name abiValues)
+      let bytes <- EvalResult.ofOption .typeError (cfg.externalABI.encode? name values)
       pure (.bytes bytes)
   | .abiDecode ty e => do
       let value <- evalExpr? cfg solm evm e
       match value with
       | .bytes bytes =>
           match ABI.decodeReturnValueWithMode? cfg.abiDecodeMode ty bytes with
-          | some decoded => pure (Value.ofABI decoded)
+          | some decoded => pure decoded
           | none => .revert
       | _ => .error .typeError
   | .extCodeSize e => do
@@ -464,6 +596,8 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
           pure (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE h))
       | _ => .error .typeError
   | .fixedBytesLit n bs => pure (.fixedBytes n bs)
+  | .immutable name => EvalResult.ofOption .unboundVariable (solm.immutables.get? name)
+  | .const name => constantValue? solm.contract name
   termination_by expr => (exprEvalSize expr, 0)
 decreasing_by
   all_goals simp [exprEvalSize, slotEvalSize]
@@ -504,7 +638,7 @@ def evalPackedArgs? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | [] => pure []
   | (ty, e) :: rest => do
       let v <- evalExpr? cfg solm evm e
-      let head <- EvalResult.ofOption .typeError (v.toABI? >>= encodePackedValue? ty)
+      let head <- EvalResult.ofOption .typeError (encodePackedValue? ty v)
       let tail <- evalPackedArgs? cfg solm evm rest
       pure (head ++ tail)
 termination_by as => (typedArgsEvalSize as, 0)
@@ -513,6 +647,21 @@ decreasing_by
   all_goals omega
 
 end
+
+theorem evalExpr_cast_int {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {expr : Expr} {intType : IntType} {i : Int}
+    (h : evalExpr? cfg solm evm expr = .ok (.int i)) :
+    evalExpr? cfg solm evm (.cast expr (.elem (.int intType))) =
+      .ok (.int (normalizeInt intType i)) := by
+  simp only [evalExpr?, h, EvalResult.bind, bind, castValue_int, EvalResult.ofOption]
+
+theorem evalExpr_cast_neg_int {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {expr : Expr} {intType : IntType} {i : Int}
+    (h : evalExpr? cfg solm evm expr = .ok (.int i)) :
+    evalExpr? cfg solm evm (.cast (.unary .neg expr) (.elem (.int intType))) =
+      .ok (.int (normalizeInt intType (-i))) := by
+  simp only [evalExpr?, h, EvalResult.bind, bind, evalUnaryOp?,
+    castValue_int, EvalResult.ofOption]
 
 def evalExprs? (cfg : Config) (solm : Frame) (evm : EVM.State)
     (exprs : List Expr) : EvalResult (List Value) :=

@@ -12,24 +12,24 @@ structure Signature where
 -- TODO: maybe turn all of the following into a typeclass
 
 def intTypeToSigStr : IntType → String
-  | .uint b => "uint" ++ reprStr b
-  | .sint b => "int" ++ reprStr b
+  | .uint b => "uint" ++ Nat.repr b.val
+  | .sint b => "int" ++ Nat.repr b.val
 
 def fixedTypeToSigStr : FixedType → String
-  | .ufixed m n => "ufixed" ++ reprStr m ++ "x" ++ reprStr n
-  | .fixed m n => "fixed" ++ reprStr m ++ "x" ++ reprStr n
+  | .ufixed m n => "ufixed" ++ Nat.repr m.val ++ "x" ++ Nat.repr n.val
+  | .fixed m n => "fixed" ++ Nat.repr m.val ++ "x" ++ Nat.repr n.val
 
 def elemToSigStr : ElemType → String
   | .int i => intTypeToSigStr i
   | .bool => "bool"
   | .address => "address"
-  | .bytes n => "bytes" ++ reprStr (n.val + 1)
+  | .bytes n => "bytes" ++ Nat.repr (n.val + 1)
   | .fixed f => fixedTypeToSigStr f
   | .function => "function"
 
 def abiToSigStr : ABIType → String
   | .elem t => elemToSigStr t
-  | .array t n => abiToSigStr t ++ "[" ++ reprStr n ++ "]"
+  | .array t n => abiToSigStr t ++ "[" ++ Nat.repr n ++ "]"
   | .tuple ts => "(" ++ (",".intercalate <| ts.map abiToSigStr) ++ ")"
   | .string => "string"
   | .bytes => "bytes"

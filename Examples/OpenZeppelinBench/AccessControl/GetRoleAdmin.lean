@@ -1,0 +1,453 @@
+import Reasoning.WordArithmetic
+import Reasoning.Memory
+import Examples.OpenZeppelinBench.AccessControl.Storage
+import Reasoning.ABI
+import Reasoning.SolmBody
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+set_option maxRecDepth 2000000
+
+namespace OpenZeppelinBench.AccessControl
+
+/-!
+# AccessControl `getRoleAdmin(bytes32)` proof
+
+The body decodes a single `bytes32`, reads `_roles[role].adminRole`, and returns the
+full storage word.
+-/
+
+abbrev getRoleAdminRoleWord (I : ExecutionEnv) : UInt256 :=
+  calldataWord I.calldata 4
+
+abbrev getRoleAdminRoleBytes (I : ExecutionEnv) : List UInt8 :=
+  (I.calldata.toList.drop 4).take 32
+
+abbrev getRoleAdminRoleValue (I : ExecutionEnv) : Value :=
+  .fixedBytes bytes32Width (getRoleAdminRoleBytes I)
+
+abbrev getRoleAdminStore (I : ExecutionEnv) : Store :=
+  (∅ : Store).insert "role" (getRoleAdminRoleValue I)
+
+abbrev getRoleAdminRoleKey (I : ExecutionEnv) : KeyValue :=
+  .fixedBytes bytes32Width (getRoleAdminRoleBytes I)
+
+def getRoleAdminEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
+  { base := "_roles", steps := [.mindex (getRoleAdminRoleKey I), .field "adminRole"] }
+
+def getRoleAdminSlot (I : ExecutionEnv) : UInt256 :=
+  roleAdminSlot (getRoleAdminRoleKey I)
+
+def getRoleAdminLoc (I : ExecutionEnv) : StorageLoc :=
+  bytes32Loc (getRoleAdminSlot I)
+
+def getRoleAdminBaseSlot (I : ExecutionEnv) : UInt256 :=
+  uInt256OfByteArray
+    (KEC (UInt256.toByteArray (getRoleAdminRoleWord I) ++
+      UInt256.toByteArray (⟨0⟩ : UInt256)))
+
+def getRoleAdminWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (getRoleAdminSlot I) ⟨0⟩)
+
+def getRoleAdminCurrent (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
+  Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (getRoleAdminSlot I)
+
+theorem getRoleAdminKeyValueToWord {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
+    keyValueToWord (getRoleAdminRoleKey I) = getRoleAdminRoleWord I := by
+  have htlen : I.calldata.toList.length = I.calldata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  have hlen : (getRoleAdminRoleBytes I).length = 32 := by
+    rw [getRoleAdminRoleBytes, List.length_take, List.length_drop, htlen]
+    omega
+  simp [keyValueToWord, bytes32Width, getRoleAdminRoleBytes, hlen]
+  unfold getRoleAdminRoleWord calldataWord
+  rw [uInt256OfByteArray_eq]
+  apply congrArg UInt256.ofNat
+  unfold fromByteArrayBigEndian
+  rw [byteArray_toList_eq (I.calldata.readBytes 4 32),
+    readBytes_at_toList I.calldata 4 (by omega) (by decide)]
+  rw [byteArray_toList_eq]
+
+
+theorem getRoleAdminSlot_evm (I : ExecutionEnv) (hsz36 : 36 ≤ I.calldata.size) :
+    getRoleAdminSlot I = getRoleAdminBaseSlot I + ⟨1⟩ := by
+  unfold getRoleAdminSlot roleAdminSlot roleDataSlot mapSlot addSlot getRoleAdminRoleKey
+  rw [getRoleAdminKeyValueToWord hsz36]
+  rw [word_ofNat_add_one_eq]
+  rfl
+
+theorem accessControlGetRoleAdminSelector_size {I : ExecutionEnv}
+    (hsel : selIs I ⟨#[0x24, 0x8a, 0x9c, 0xa3]⟩) :
+    4 ≤ I.calldata.size := by
+  have hs := byteArray_size_eq_of_beq hsel
+  have hleft : (⟨#[0x24, 0x8a, 0x9c, 0xa3]⟩ : ByteArray).size = 4 := rfl
+  rw [hleft, ByteArray.size_extract] at hs
+  omega
+
+theorem accessControlDispatch_getRoleAdmin {cd : ByteArray}
+    (hsel : ((⟨#[0x24, 0x8a, 0x9c, 0xa3]⟩ : ByteArray) == cd.extract 0 4) =
+      true) :
+    dispatchMsg contract cd = some getRoleAdminTransition := by
+  have hcd : cd.extract 0 4 = (⟨#[0x24, 0x8a, 0x9c, 0xa3]⟩ : ByteArray) :=
+    (byteArray_eq_of_beq hsel).symm
+  refine dispatchMsg_eq_some_of_split (pre := [defaultAdminRoleTransition])
+    (post := [grantRoleTransition, hasRoleTransition, renounceRoleTransition,
+      revokeRoleTransition, supportsInterfaceTransition])
+    rfl rfl ?_ (by rw [selectorOf, getRoleAdminSelectorBytes]; exact hsel)
+  intro t ht
+  simp only [List.mem_singleton] at ht
+  subst ht
+  rw [selectorOf, defaultAdminRoleSelectorBytes, hcd]
+  decide
+
+theorem accessControlDecode_getRoleAdmin_ok {I : ExecutionEnv}
+    (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4) :
+    decodeCalldata (getRoleAdminTransition.params.map Param.name)
+      (transitionSignature getRoleAdminTransition).paramTypes I.calldata =
+        some (getRoleAdminStore I) := by
+  show decodeCalldata ["role"] [bytes32] I.calldata = some (getRoleAdminStore I)
+  simpa [bytes32, bytes32Width, abiBytes32, abiBytes32Width, getRoleAdminStore,
+    getRoleAdminRoleValue, getRoleAdminRoleBytes]
+    using decodeCalldata_bytes32_ok (cd := I.calldata) (x := "role") hsz36 hbig
+
+theorem accessControlDecode_getRoleAdmin_none_short {I : ExecutionEnv}
+    (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
+    decodeCalldata (getRoleAdminTransition.params.map Param.name)
+      (transitionSignature getRoleAdminTransition).paramTypes I.calldata = none := by
+  show decodeCalldata ["role"] [bytes32] I.calldata = none
+  simpa [bytes32, bytes32Width, abiBytes32, abiBytes32Width]
+    using decodeCalldata_bytes32_none_short (cd := I.calldata) (x := "role") hsz4 hshort
+
+theorem accessControlDecode_getRoleAdmin_none_huge {I : ExecutionEnv}
+    (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
+    decodeCalldata (getRoleAdminTransition.params.map Param.name)
+      (transitionSignature getRoleAdminTransition).paramTypes I.calldata = none := by
+  show decodeCalldata ["role"] [bytes32] I.calldata = none
+  simpa [bytes32, bytes32Width, abiBytes32, abiBytes32Width]
+    using decodeCalldata_bytes32_none_huge (cd := I.calldata) (x := "role") hbig
+
+theorem accessControlGetRoleAdminBodyReturns (evm : EVM.State) (I : ExecutionEnv)
+    (h : evm.executionEnv.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size) :
+  ExecTransitionBody config contract evm (getRoleAdminStore I) getRoleAdminTransition.body
+      (.returned { contract := contract, locals := getRoleAdminStore I } evm
+        (some [(.fixedBytes bytes32Width
+          (EVM.Word.toBytesBE (getRoleAdminCurrent evm I)))])) := by
+  exact ExecFuncBody.execBlockRet <|
+    (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
+      have her :
+          evalStorageRef config { contract := contract, locals := getRoleAdminStore I } evm
+            (roleAdminRef (.var "role")) = .ok (getRoleAdminEvaledRef I) := by
+        have htlen : I.calldata.toList.length = I.calldata.size := by
+          rw [byteArray_toList_eq, Array.length_toList]
+          rfl
+        have hlen : (getRoleAdminRoleBytes I).length = 32 := by
+          rw [getRoleAdminRoleBytes, List.length_take, List.length_drop, htlen]
+          omega
+        simp [evalStorageRef, evalStorageRefStep, roleAdminRef, getRoleAdminStore,
+          getRoleAdminRoleValue, getRoleAdminRoleKey, getRoleAdminEvaledRef,
+          show bytes32Width = abiBytes32Width from rfl,
+    valueToKey_bytes32_of_length hlen, EvalResult.bind,
+          EvalResult.ofOption, bind, pure, evalExpr?]
+      have hty :
+          storageTypeAt? contract.storage (getRoleAdminEvaledRef I) =
+            some (.elem (.bytes bytes32Width)) := by
+        simp [getRoleAdminEvaledRef, storageTypeAt?, storageTypeStep?, contract, storageDecls,
+          roleDataStruct, roleDataSt, bytes32St]
+      have hloc :
+          config.storageBackend.locate? (getRoleAdminEvaledRef I) =
+            some (.leaf (getRoleAdminLoc I)) := by
+        simpa [config, getRoleAdminEvaledRef, getRoleAdminLoc, getRoleAdminSlot] using
+          storageLayout_adminRole (getRoleAdminRoleKey I)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bytes bytes32Width)
+        (hbase := by simp [getRoleAdminStore, roleAdminRef])
+        (her := her) (hty := hty) (hloc := hloc)]
+      rw [show storageLocLoad evm (getRoleAdminLoc I) =
+          .fixedBytes bytes32Width
+            (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+              (getRoleAdminSlot I))) by
+        simpa [getRoleAdminLoc] using
+          accessControlStorageLocLoad_bytes32 evm (getRoleAdminSlot I)]
+      simp [getRoleAdminCurrent])
+
+/-! ## EVM scratch memory and trace -/
+
+
+def getRoleAdminRoleMem (I : ExecutionEnv) : ByteArray :=
+  wordAt0Mem (getRoleAdminRoleWord I) solcFreePtrMem
+
+def getRoleAdminHashMem (I : ExecutionEnv) : ByteArray :=
+  twoWordHashMem (getRoleAdminRoleWord I) ⟨0⟩ solcFreePtrMem
+
+def getRoleAdminReturnMem (I : ExecutionEnv) (val : UInt256) : ByteArray :=
+  (UInt256.toByteArray val).write 0 (getRoleAdminHashMem I) 128 32
+
+theorem getRoleAdminRoleMem_size (I : ExecutionEnv) :
+    (getRoleAdminRoleMem I).size = 96 := by
+  unfold getRoleAdminRoleMem
+  exact wordAt0Mem_size_96 (getRoleAdminRoleWord I) solcFreePtrMem_size
+
+theorem getRoleAdminHashMem_size (I : ExecutionEnv) :
+    (getRoleAdminHashMem I).size = 96 := by
+  unfold getRoleAdminHashMem
+  exact twoWordHashMem_size_96 (getRoleAdminRoleWord I) ⟨0⟩ solcFreePtrMem_size
+
+theorem getRoleAdminHashMem_read64 (I : ExecutionEnv) :
+    (getRoleAdminHashMem I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  unfold getRoleAdminHashMem
+  exact twoWordHashMem_read64 (getRoleAdminRoleWord I) ⟨0⟩ solcFreePtrMem_size
+    solcFreePtrMem_read64
+
+theorem getRoleAdminHashMem_mload64 (I : ExecutionEnv) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (getRoleAdminHashMem I).size then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((getRoleAdminHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [getRoleAdminHashMem_size]; decide)
+    (getRoleAdminHashMem_read64 I)
+
+theorem getRoleAdminHashMem_read0_64 (I : ExecutionEnv) :
+    (getRoleAdminHashMem I).readWithPadding 0 64 =
+      UInt256.toByteArray (getRoleAdminRoleWord I) ++ UInt256.toByteArray (⟨0⟩ : UInt256) := by
+  unfold getRoleAdminHashMem
+  exact twoWordHashMem_read0_64 (getRoleAdminRoleWord I) ⟨0⟩
+    solcFreePtrMem_size
+
+theorem getRoleAdminBaseKeccakSlot (I : ExecutionEnv) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        (KEC ((getRoleAdminHashMem I).readWithPadding
+          (⟨0⟩ : UInt256).toNat (⟨64⟩ : UInt256).toNat))) =
+      getRoleAdminBaseSlot I := by
+  rw [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
+    show (⟨64⟩ : UInt256).toNat = 64 from by decide]
+  rw [getRoleAdminHashMem_read0_64]
+  unfold getRoleAdminBaseSlot
+  exact mappingSlot_single (getRoleAdminRoleWord I) ⟨0⟩
+
+theorem getRoleAdminReturnMem_size (I : ExecutionEnv) (val : UInt256) :
+    (getRoleAdminReturnMem I val).size = 160 := by
+  unfold getRoleAdminReturnMem
+  rw [toByteArray_write_eq _ _ _ (by rw [getRoleAdminHashMem_size]; omega)
+      (by rw [getRoleAdminHashMem_size]; exact lt_usize _ (by norm_num)),
+    ByteArray.size_append, ByteArray.size_append, getRoleAdminHashMem_size, ByteArray_zeroes_size,
+    show 128 - 96 = 32 from by norm_num,
+    toByteArray_size]
+
+theorem getRoleAdminReturnMem_read64 (I : ExecutionEnv) (val : UInt256) :
+    (getRoleAdminReturnMem I val).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  unfold getRoleAdminReturnMem
+  rw [toByteArray_write_eq _ _ _ (by rw [getRoleAdminHashMem_size]; omega)
+      (by rw [getRoleAdminHashMem_size]; exact lt_usize _ (by norm_num))]
+  rw [readWithPadding_eq_extract _ 64 (by
+      rw [ByteArray.size_append, ByteArray.size_append, getRoleAdminHashMem_size,
+        ByteArray_zeroes_size,
+        show 128 - 96 = 32 from by norm_num,
+        toByteArray_size]
+      norm_num)]
+  rw [extract_append_left _ _ _ _ (by
+      rw [ByteArray.size_append, getRoleAdminHashMem_size, ByteArray_zeroes_size,
+        show 128 - 96 = 32 from by norm_num]
+      omega)]
+  rw [extract_append_left _ _ _ _ (by rw [getRoleAdminHashMem_size]),
+    ← readWithPadding_eq_extract _ 64 (by rw [getRoleAdminHashMem_size]),
+    getRoleAdminHashMem_read64]
+
+theorem getRoleAdminReturnMem_mload64 (I : ExecutionEnv) (val : UInt256) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (getRoleAdminReturnMem I val).size then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((getRoleAdminReturnMem I val).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [getRoleAdminReturnMem_size]; decide)
+    (getRoleAdminReturnMem_read64 I val)
+
+theorem getRoleAdminReturnMem_read128 (I : ExecutionEnv) (val : UInt256) :
+    (getRoleAdminReturnMem I val).readWithPadding 128 32 = UInt256.toByteArray val := by
+  unfold getRoleAdminReturnMem
+  rw [toByteArray_write_eq _ _ _ (by rw [getRoleAdminHashMem_size]; omega)
+      (by rw [getRoleAdminHashMem_size]; exact lt_usize _ (by norm_num))]
+  rw [readWithPadding_eq_extract _ 128 (by
+      rw [ByteArray.size_append, ByteArray.size_append, getRoleAdminHashMem_size,
+        ByteArray_zeroes_size,
+        show 128 - 96 = 32 from by norm_num,
+        toByteArray_size])]
+  rw [extract_append_right_window
+      (getRoleAdminHashMem I ++ ByteArray.zeroes (128 - (getRoleAdminHashMem I).size))
+      (UInt256.toByteArray val) 128 160 (by
+        rw [ByteArray.size_append, getRoleAdminHashMem_size, ByteArray_zeroes_size,
+          show 128 - 96 = 32 from by norm_num])]
+  rw [ByteArray.size_append, getRoleAdminHashMem_size, ByteArray_zeroes_size,
+    show 128 - 96 = 32 from by norm_num]
+  norm_num
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by
+    change (UInt256.toByteArray val).size ≤ 32
+    rw [toByteArray_size])
+
+theorem accessControlGetRoleAdminX_toDecoder {σ σ₀ A I} {g : Sat256}
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState σ σ₀ g A I) ⟨166⟩ [accessControlSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨899⟩
+      [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨180⟩, ⟨200⟩, accessControlSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, rd166⟩ := hreach
+  exact ⟨_, _, evm_run rd166 with [
+    jumpdest, push2 ⟨200⟩, push2 ⟨180⟩, calldatasize, push1 ⟨4⟩,
+    push2 ⟨899⟩, jump (by jump_dest) ]⟩
+
+theorem accessControlGetRoleAdminX_decodeRevert {σ σ₀ A I} {g : Sat256}
+    (hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState σ σ₀ g A I) ⟨166⟩ [accessControlSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd899⟩ := accessControlGetRoleAdminX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hreach
+  exact evm_run rd899 with [
+    jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨915⟩,
+    jumpiNT (by rw [hslt]; decide),
+    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+
+theorem accessControlGetRoleAdminX_decoded {σ σ₀ A I} {g : Sat256}
+    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState σ σ₀ g A I) ⟨166⟩ [accessControlSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨180⟩
+      [getRoleAdminRoleWord I, ⟨200⟩, accessControlSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩ :=
+    solcDecodeLenCheckOk_4_32 hsz36 hszhi hsize
+  obtain ⟨_, _, rd899⟩ := accessControlGetRoleAdminX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hreach
+  have rd915 := evm_run rd899 with [
+    jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨915⟩,
+    jumpiT (by rw [hslt]; decide) (by jump_dest) ]
+  have rd180 := evm_run rd915 with [jumpdest, pop, calldataload, swap2, swap1, pop,
+    jump (by jump_dest)]
+  exact ⟨_, _, by simpa [getRoleAdminRoleWord, calldataWord] using rd180⟩
+
+theorem accessControlGetRoleAdminX {σ σ₀ A I} {g : Sat256}
+    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I g
+      (initState σ σ₀ g A I) ⟨166⟩ [accessControlSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret accessControlBenchBytecode g (initState σ σ₀ g A I) σ
+      (UInt256.toByteArray (getRoleAdminWord σ I)) := by
+  obtain ⟨_, _, rd180⟩ := accessControlGetRoleAdminX_decoded
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hsz36 hsize hszhi hreach
+  have hslot := getRoleAdminBaseKeccakSlot I
+  have rd194pre := evm_run rd180 with [
+    jumpdest, push0, swap1, dup2,
+    raw mstore 0 (getRoleAdminRoleMem I) (UInt256.ofNat 3) (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    push1 ⟨32⟩, dup2, swap1,
+    raw mstore 0 (getRoleAdminHashMem I) (UInt256.ofNat 3) (by decide) mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    push1 ⟨64⟩, swap1,
+    raw keccak256 0 (getRoleAdminBaseSlot I) (UInt256.ofNat 3) (by decide)
+      mem_cost hslot (by decide) (by evm_ov),
+    push1 ⟨1⟩, add]
+  obtain ⟨_, _, rd198₀⟩ := rd194pre.sload (by decide) (by evm_ov)
+  have rd198 :
+      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨198⟩
+        [getRoleAdminWord σ I, ⟨200⟩, accessControlSelWord I]
+        (getRoleAdminHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C := by
+    exact ⟨_, _, by
+      have hpc198 :
+          (⟨180⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 +
+                        ⟨1⟩ +
+                      ⟨1⟩ +
+                    ⟨1⟩ +
+                  UInt256.ofNat 2 +
+                ⟨1⟩ +
+              ⟨1⟩ +
+            UInt256.ofNat 2 +
+          ⟨1⟩ +
+          ⟨1⟩ : UInt256) = ⟨198⟩ := by
+        decide
+      simpa [hpc198, getRoleAdminWord, getRoleAdminSlot_evm I hsz36,
+        u256_add_comm] using rd198₀⟩
+  obtain ⟨_, _, rd198⟩ := rd198
+  have rd200 := evm_run rd198 with [swap1, jump (by jump_dest)]
+  have rd157 := evm_run rd200 with [
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+      mem_cost
+      (getRoleAdminHashMem_mload64 I)
+      (by decide) (by evm_ov),
+    swap1, dup2,
+    raw mstore 6 (getRoleAdminReturnMem I (getRoleAdminWord σ I)) (UInt256.ofNat 5)
+      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+    push1 ⟨32⟩, add, push2 ⟨157⟩, jump (by jump_dest) ]
+  exact evm_run rd157 with [
+    jumpdest, push1 ⟨64⟩,
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      mem_cost
+      (getRoleAdminReturnMem_mload64 I (getRoleAdminWord σ I))
+      (by decide) (by evm_ov),
+    dup1, swap2, sub, swap1,
+    raw ret 0 (UInt256.toByteArray (getRoleAdminWord σ I)) (by decide)
+      mem_cost
+      (by
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+          show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32 from by decide]
+        exact getRoleAdminReturnMem_read128 I (getRoleAdminWord σ I))
+      (by evm_ov) ]
+
+theorem accessControlGetRoleAdminBody {σ σ₀ A I}
+    {g : UInt256}
+    (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x24, 0x8a, 0x9c, 0xa3]⟩)
+    (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨166⟩
+      [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      σ k C) :
+    runtimeRefinementFor config contract
+      σ σ₀ g A I := by
+  have hsz4 := accessControlGetRoleAdminSelector_size hsel
+  have hd := accessControlDispatch_getRoleAdmin (cd := I.calldata) (by
+    simpa [selIs] using hsel)
+  by_cases hsz36 : 36 ≤ I.calldata.size
+  · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
+    · have hdec := accessControlDecode_getRoleAdmin_ok (I := I) hsz36 hbig
+      have hbody :
+          ExecTransitionBody config contract
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+            (getRoleAdminStore I) getRoleAdminTransition.body
+            (.returned { contract := contract, locals := getRoleAdminStore I }
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+              (some [(.fixedBytes bytes32Width
+                (EVM.Word.toBytesBE (getRoleAdminWord σ I)))])) := by
+        simpa [getRoleAdminCurrent, getRoleAdminWord, initState, Solm.EVM.storageLoad,
+          State.lookupAccount] using
+          accessControlGetRoleAdminBodyReturns
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+            (by simp only [initState]; exact hwv) hsz36
+      exact (accessControlGetRoleAdminX (g := Sat256.ofUInt256 g) hsz36 hsize hbig hreach)
+        |>.reEquivExecution hcode hd hdec hbody
+          (returnEquiv_of_encode (abit := bytes32)
+            (rv := .fixedBytes bytes32Width (EVM.Word.toBytesBE (getRoleAdminWord σ I)))
+            (o := UInt256.toByteArray (getRoleAdminWord σ I))
+            (by simpa [bytes32, bytes32Width] using
+              bytes32ReturnEncoding (getRoleAdminWord σ I)))
+    · have hbigge : 2 ^ 255 + 4 ≤ I.calldata.size := by omega
+      have hdec := accessControlDecode_getRoleAdmin_none_huge (I := I) hbigge
+      have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ :=
+        solcDecodeLenCheckHuge_4_32 hbigge hsize
+      exact (accessControlGetRoleAdminX_decodeRevert (g := Sat256.ofUInt256 g) hslt hreach)
+        |>.reEquivDecodingFailed hcode hd hdec
+  · have hshort : I.calldata.size < 36 := by omega
+    have hdec := accessControlDecode_getRoleAdmin_none_short (I := I) hsz4 hshort
+    have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ :=
+      solcDecodeLenCheckShort_4_32 hsz4 hshort hsize
+    exact (accessControlGetRoleAdminX_decodeRevert (g := Sat256.ofUInt256 g) hslt hreach)
+      |>.reEquivDecodingFailed hcode hd hdec
+
+end OpenZeppelinBench.AccessControl

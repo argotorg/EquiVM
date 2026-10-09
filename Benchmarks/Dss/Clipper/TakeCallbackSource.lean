@@ -1,0 +1,355 @@
+import Reasoning.WordArithmetic
+import Benchmarks.Dss.Clipper.TakeCallbackCall
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+open Benchmarks.Dss.Clipper.Immutables
+
+namespace Benchmarks.Dss.Clipper
+
+
+abbrev clipperTakeLocalsCallbackRet (evmLoc evmRead evmVat : EVM.State)
+    (I : ExecutionEnv) (price slice owe0 owe slice' tabNew lotNew : UInt256) : Store :=
+  (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+    tabNew lotNew).insert "_clipperCallRet" .unit
+
+
+set_option maxHeartbeats 1000000 in
+theorem clipperEvalTakeCallbackGuardTrue (v : ClipperImmutables)
+    (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
+    (price slice owe0 owe slice' tabNew lotNew : UInt256)
+    (hdataLen : clipperTakeDataLenWord I ≠ ⟨0⟩)
+    (hpayload : (clipperTakeDataBytes I).length =
+      (clipperTakeDataLenWord I).toNat)
+    (hwhoVat : UInt256.land (clipperTakeWhoWord I) solcAddrMask ≠
+      clipperTakeVatTarget v)
+    (hwhoDog : UInt256.land (clipperTakeWhoWord I) solcAddrMask ≠
+      UInt256.land (clipperTakeDogEVMWord evmVat) solcAddrMask) :
+    evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v))
+      evmVat
+      (.binary .and
+        (.binary .gt (bytesLength "data") (.intLit 0))
+        (.binary .and
+          (.binary .ne (.var "who") vatExpr)
+          (.binary .ne (.var "who") (.var "dog_")))) =
+        .ok (.bool true) := by
+  have hlenNat : (clipperTakeDataLenWord I).toNat ≠ 0 := by
+    intro hz
+    apply hdataLen
+    exact uint256_toNat_eq_zero hz
+  have hbytesPos : 0 < (clipperTakeDataBytes I).length := by omega
+  have hwhoVatAddr :
+      AccountAddress.ofNat (clipperTakeWhoWord I).toNat ≠ v.vat := by
+    intro hEq
+    apply hwhoVat
+    have hmasked : AccountAddress.ofNat
+        (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat = v.vat := by
+      rw [← addressOfNat_eq_of_masked_word (clipperTakeWhoWord I)]
+      exact hEq
+    rw [← clipperTakeVatTargetAddress v] at hmasked
+    rw [accountAddress_ofUInt256_eq_ofNat_toNat] at hmasked
+    have htargetClean : UInt256.land (clipperTakeVatTarget v) solcAddrMask =
+        clipperTakeVatTarget v :=
+      solcAddrMask_clean (by
+        simpa [clipperTakeVatTarget, u256_land_comm] using
+          solcAddrMask_result_canonical (EVM.Word.ofNat (↑v.vat : Nat)))
+    have hmaskedWords := maskedAddress_injective
+      (a := clipperTakeWhoWord I) (b := clipperTakeVatTarget v)
+      (by simpa [htargetClean] using hmasked)
+    simpa [htargetClean] using hmaskedWords
+  have hwhoDogAddr : AccountAddress.ofNat (clipperTakeWhoWord I).toNat ≠
+      AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat := by
+    intro hEq
+    apply hwhoDog
+    apply maskedAddress_injective
+    rw [← addressOfNat_eq_of_masked_word (clipperTakeWhoWord I),
+      ← addressOfNat_eq_of_masked_word (clipperTakeDogEVMWord evmVat)]
+    exact hEq
+  have hlen := clipperEvalTakeDataLength v evmLoc evmRead evmVat I price slice owe0 owe
+    slice' tabNew lotNew
+  have hwho := clipperEvalTakeWhoAtDogLoaded v evmLoc evmRead evmVat I price slice owe0
+    owe slice' tabNew lotNew
+  have hdog := clipperEvalTakeDogAtDogLoaded v evmLoc evmRead evmVat I price slice owe0
+    owe slice' tabNew lotNew
+  have hgt : evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v)) evmVat
+      (.binary .gt (bytesLength "data") (.intLit 0)) = .ok (.bool true) := by
+    rw [evalExpr?]
+    simp only [EvalResult.bind, bind]
+    rw [hlen]
+    simp only [evalExpr?, pure]
+    rw [evalBinaryOpGtInt]
+    exact congrArg (fun b => EvalResult.ok (Value.bool b))
+      (decide_eq_true (Int.ofNat_lt_ofNat_of_lt hbytesPos))
+    all_goals decide
+  have hneVat : evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v)) evmVat
+      (.binary .ne (.var "who") vatExpr) = .ok (.bool true) := by
+    rw [evalExpr?]
+    simp only [EvalResult.bind, bind]
+    rw [hwho, clipperEvalVat]
+    change evalBinaryOp? .ne
+      (.address (AccountAddress.ofNat (clipperTakeWhoWord I).toNat))
+      (.address v.vat) = .ok (.bool true)
+    rw [evalBinaryOpNeAddress]
+    simp [hwhoVatAddr]
+    all_goals decide
+  have hneDog : evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v)) evmVat
+      (.binary .ne (.var "who") (.var "dog_")) = .ok (.bool true) := by
+    rw [evalExpr?]
+    simp only [EvalResult.bind, bind]
+    rw [hwho, hdog]
+    change evalBinaryOp? .ne
+      (.address (AccountAddress.ofNat (clipperTakeWhoWord I).toNat))
+      (.address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)) =
+        .ok (.bool true)
+    rw [evalBinaryOpNeAddress]
+    simp [hwhoDogAddr]
+    all_goals decide
+  rw [evalExpr?]
+  simp only [EvalResult.bind, bind, pure]
+  rw [hgt, evalExpr?]
+  simp only [EvalResult.bind, bind, pure]
+  rw [hneVat, hneDog]
+
+theorem clipperEvalTakeCallbackTarget (v : ClipperImmutables)
+    (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
+    (price slice owe0 owe slice' tabNew lotNew : UInt256) :
+    evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v))
+      evmVat (.var "who") =
+        .ok (.address (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)) :=
+  clipperEvalTakeWhoAtDogLoaded v evmLoc evmRead evmVat I price slice owe0 owe slice'
+    tabNew lotNew
+
+theorem clipperTakeCallbackSkipWhoVatStmt (v : ClipperImmutables)
+    (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
+    (price slice owe0 owe slice' tabNew lotNew : UInt256)
+    (hwho : UInt256.land (clipperTakeWhoWord I) solcAddrMask = clipperTakeVatTarget v) :
+    ExecStmt config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v))
+      evmVat
+      (.ite
+        (.binary .and
+          (.binary .gt (bytesLength "data") (.intLit 0))
+          (.binary .and
+            (.binary .ne (.var "who") vatExpr)
+            (.binary .ne (.var "who") (.var "dog_"))))
+        (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
+          [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet") [])
+      (.ok
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+            tabNew lotNew) (immStore v)) evmVat) := by
+  exact ExecStmt.iteFalse
+    (clipperEvalTakeCallbackGuardWhoVat v evmLoc evmRead evmVat I price slice owe0 owe
+      slice' tabNew lotNew hwho)
+    ExecBlock.nil
+
+theorem clipperTakeCallbackSkipWhoDogStmt (v : ClipperImmutables)
+    (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
+    (price slice owe0 owe slice' tabNew lotNew : UInt256)
+    (hwho : UInt256.land (clipperTakeWhoWord I) solcAddrMask =
+      UInt256.land (clipperTakeDogEVMWord evmVat) solcAddrMask) :
+    ExecStmt config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v))
+      evmVat
+      (.ite
+        (.binary .and
+          (.binary .gt (bytesLength "data") (.intLit 0))
+          (.binary .and
+            (.binary .ne (.var "who") vatExpr)
+            (.binary .ne (.var "who") (.var "dog_"))))
+        (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
+          [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet") [])
+      (.ok
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+            tabNew lotNew) (immStore v)) evmVat) := by
+  exact ExecStmt.iteFalse
+    (clipperEvalTakeCallbackGuardWhoDog v evmLoc evmRead evmVat I price slice owe0 owe
+      slice' tabNew lotNew hwho)
+    ExecBlock.nil
+
+theorem clipperEvalTakeCallbackCodeGuardFalse (v : ClipperImmutables)
+    (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
+    (price slice owe0 owe slice' tabNew lotNew : UInt256)
+    (hnoCode :
+      (UInt256.ofNat
+        ((evmVat.lookupAccount
+          (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)).option 0
+          (fun acc => acc.code.size))).toNat = 0) :
+    evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v))
+      evmVat (.binary .gt (.extCodeSize (.var "who")) (.intLit 0)) =
+        .ok (.bool false) := by
+  simp [evalExpr?, EvalResult.bind, bind,
+    clipperEvalTakeCallbackTarget v evmLoc evmRead evmVat I price slice owe0 owe slice'
+      tabNew lotNew,
+    evalBinaryOp?, EVM.Word.ofNat, hnoCode]
+
+theorem clipperEvalTakeCallbackCodeGuardTrue (v : ClipperImmutables)
+    (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
+    (price slice owe0 owe slice' tabNew lotNew : UInt256)
+    (hcode : 0 <
+      (UInt256.ofNat
+        ((evmVat.lookupAccount
+          (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)).option 0
+          (fun acc => acc.code.size))).toNat) :
+    evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v))
+      evmVat (.binary .gt (.extCodeSize (.var "who")) (.intLit 0)) =
+        .ok (.bool true) := by
+  simp [evalExpr?, EvalResult.bind, bind,
+    clipperEvalTakeCallbackTarget v evmLoc evmRead evmVat I price slice owe0 owe slice'
+      tabNew lotNew,
+    evalBinaryOp?, EVM.Word.ofNat, hcode]
+
+theorem clipperTakeCallbackNoCodeStmt (v : ClipperImmutables)
+    (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
+    (price slice owe0 owe slice' tabNew lotNew : UInt256)
+    (hguard : evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v)) evmVat
+      (.binary .and
+        (.binary .gt (bytesLength "data") (.intLit 0))
+        (.binary .and
+          (.binary .ne (.var "who") vatExpr)
+          (.binary .ne (.var "who") (.var "dog_")))) = .ok (.bool true))
+    (hnoCode :
+      (UInt256.ofNat
+        ((evmVat.lookupAccount
+          (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)).option 0
+          (fun acc => acc.code.size))).toNat = 0) :
+    ExecStmt config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v)) evmVat
+      (.ite
+        (.binary .and
+          (.binary .gt (bytesLength "data") (.intLit 0))
+          (.binary .and
+            (.binary .ne (.var "who") vatExpr)
+            (.binary .ne (.var "who") (.var "dog_"))))
+        (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
+          [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet") [])
+      .reverted := by
+  apply ExecStmt.iteTrue hguard
+  simpa [checkedExternalCallStmts] using
+    ExecBlock.consRevert (ExecStmt.requireFalse
+      (clipperEvalTakeCallbackCodeGuardFalse v evmLoc evmRead evmVat I price slice owe0
+        owe slice' tabNew lotNew hnoCode))
+
+theorem clipperTakeCallbackCallFailureStmt (v : ClipperImmutables)
+    (evmLoc evmRead evmVat evmCb : EVM.State) (I : ExecutionEnv)
+    (price slice owe0 owe slice' tabNew lotNew : UInt256) {outCb : ByteArray}
+    (hguard : evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v)) evmVat
+      (.binary .and
+        (.binary .gt (bytesLength "data") (.intLit 0))
+        (.binary .and
+          (.binary .ne (.var "who") vatExpr)
+          (.binary .ne (.var "who") (.var "dog_")))) = .ok (.bool true))
+    (hcode : 0 <
+      (UInt256.ofNat
+        ((evmVat.lookupAccount
+          (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)).option 0
+          (fun acc => acc.code.size))).toNat)
+    (hcall : typedCallViaEVM config evmVat
+      (EVM.address (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)) "clipperCall" 0
+      [.address evmVat.executionEnv.source,
+        .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat),
+        .int (Int.ofNat slice'.toNat), clipperTakeDataValue I]
+      (false, evmCb, outCb) true) :
+    ExecStmt config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v)) evmVat
+      (.ite
+        (.binary .and
+          (.binary .gt (bytesLength "data") (.intLit 0))
+          (.binary .and
+            (.binary .ne (.var "who") vatExpr)
+            (.binary .ne (.var "who") (.var "dog_"))))
+        (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
+          [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet") [])
+      .reverted := by
+  apply ExecStmt.iteTrue hguard
+  let dogFrame := Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+      tabNew lotNew) (immStore v)
+  have hargs := clipperEvalTakeCallbackArgs v evmLoc evmRead evmVat I price slice owe0
+    owe slice' tabNew lotNew
+  simpa [checkedExternalCallStmts, dogFrame] using
+    (ExecBlock.consNormal (ExecStmt.requireTrue
+      (clipperEvalTakeCallbackCodeGuardTrue v evmLoc evmRead evmVat I price slice owe0
+        owe slice' tabNew lotNew hcode))
+      (ExecBlock.consRevert
+        (ExecStmt.externalCallFailure
+          (clipperEvalTakeCallbackTarget v evmLoc evmRead evmVat I price slice owe0 owe
+            slice' tabNew lotNew)
+          (by simp [evalExpr?, pure]) (by simpa [dogFrame] using hargs) hcall)))
+
+theorem clipperTakeCallbackCallSuccessStmt (v : ClipperImmutables)
+    (evmLoc evmRead evmVat evmCb : EVM.State) (I : ExecutionEnv)
+    (price slice owe0 owe slice' tabNew lotNew : UInt256) {outCb : ByteArray}
+    (hguard : evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v)) evmVat
+      (.binary .and
+        (.binary .gt (bytesLength "data") (.intLit 0))
+        (.binary .and
+          (.binary .ne (.var "who") vatExpr)
+          (.binary .ne (.var "who") (.var "dog_")))) = .ok (.bool true))
+    (hcode : 0 <
+      (UInt256.ofNat
+        ((evmVat.lookupAccount
+          (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)).option 0
+          (fun acc => acc.code.size))).toNat)
+    (hcall : typedCallViaEVM config evmVat
+      (EVM.address (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)) "clipperCall" 0
+      [.address evmVat.executionEnv.source,
+        .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat),
+        .int (Int.ofNat slice'.toNat), clipperTakeDataValue I]
+      (true, evmCb, outCb) true) :
+    ExecStmt config
+      (Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v)) evmVat
+      (.ite
+        (.binary .and
+          (.binary .gt (bytesLength "data") (.intLit 0))
+          (.binary .and
+            (.binary .ne (.var "who") vatExpr)
+            (.binary .ne (.var "who") (.var "dog_"))))
+        (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
+          [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet") [])
+      (.ok
+        (Frame.mk contract (clipperTakeLocalsCallbackRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+            tabNew lotNew) (immStore v)) evmCb) := by
+  apply ExecStmt.iteTrue hguard
+  let dogFrame := Frame.mk contract (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
+      tabNew lotNew) (immStore v)
+  let cbFrame := Frame.mk contract (clipperTakeLocalsCallbackRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+      tabNew lotNew) (immStore v)
+  have hargs := clipperEvalTakeCallbackArgs v evmLoc evmRead evmVat I price slice owe0
+    owe slice' tabNew lotNew
+  simpa [checkedExternalCallStmts, dogFrame, cbFrame, clipperTakeLocalsCallbackRet,
+    collapseReturns] using
+    (ExecBlock.consNormal (ExecStmt.requireTrue
+      (clipperEvalTakeCallbackCodeGuardTrue v evmLoc evmRead evmVat I price slice owe0
+        owe slice' tabNew lotNew hcode))
+      (ExecBlock.consNormal
+        (ExecStmt.externalCallSuccess
+          (clipperEvalTakeCallbackTarget v evmLoc evmRead evmVat I price slice owe0 owe
+            slice' tabNew lotNew)
+          (by simp [evalExpr?, pure]) (by simpa [dogFrame] using hargs) hcall
+          (clipperTakeDecodeClipperCallVoid outCb))
+        ExecBlock.nil))
+
+end Benchmarks.Dss.Clipper

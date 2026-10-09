@@ -1,0 +1,2929 @@
+import Benchmarks.Dss.Vat.Dispatch
+import Benchmarks.Dss.Vat.HealBase
+import Benchmarks.Dss.Vat.Rely
+
+namespace Benchmarks.Dss.Vat
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 0
+
+/-! ## `suck(address,address,uint256)` -/
+
+abbrev suckUWord (I : ExecutionEnv) : UInt256 :=
+  calldataWord I.calldata 4
+
+abbrev suckUMaskedWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.land solcAddrMask (suckUWord I)
+
+abbrev suckVWord (I : ExecutionEnv) : UInt256 :=
+  calldataWord I.calldata 36
+
+abbrev suckVMaskedWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.land solcAddrMask (suckVWord I)
+
+abbrev suckRadWord (I : ExecutionEnv) : UInt256 :=
+  calldataWord I.calldata 68
+
+abbrev suckUValue (I : ExecutionEnv) : Value :=
+  .address (AccountAddress.ofNat (suckUWord I).toNat)
+
+abbrev suckVValue (I : ExecutionEnv) : Value :=
+  .address (AccountAddress.ofNat (suckVWord I).toNat)
+
+abbrev suckRadValue (I : ExecutionEnv) : Value :=
+  .int (Int.ofNat (suckRadWord I).toNat)
+
+abbrev suckStore (I : ExecutionEnv) : Store :=
+  (((∅ : Store).insert "u" (suckUValue I)).insert "v" (suckVValue I)).insert
+    "rad" (suckRadValue I)
+
+abbrev suckStoreSinNew (I : ExecutionEnv) (sinNew : UInt256) : Store :=
+  (suckStore I).insert "sinNew" (.int (Int.ofNat sinNew.toNat))
+
+abbrev suckStoreDaiNew (I : ExecutionEnv) (sinNew daiNew : UInt256) : Store :=
+  (suckStoreSinNew I sinNew).insert "daiNew" (.int (Int.ofNat daiNew.toNat))
+
+abbrev suckStoreViceNew (I : ExecutionEnv)
+    (sinNew daiNew viceNew : UInt256) : Store :=
+  (suckStoreDaiNew I sinNew daiNew).insert "viceNew" (.int (Int.ofNat viceNew.toNat))
+
+abbrev suckStoreDebtNew (I : ExecutionEnv)
+    (sinNew daiNew viceNew debtNew : UInt256) : Store :=
+  (suckStoreViceNew I sinNew daiNew viceNew).insert "debtNew"
+    (.int (Int.ofNat debtNew.toNat))
+
+abbrev suckUKey (I : ExecutionEnv) : KeyValue :=
+  .address (AccountAddress.ofNat (suckUWord I).toNat)
+
+abbrev suckVKey (I : ExecutionEnv) : KeyValue :=
+  .address (AccountAddress.ofNat (suckVWord I).toNat)
+
+abbrev suckSinSlot (I : ExecutionEnv) : UInt256 :=
+  sinSlot (suckUKey I)
+
+abbrev suckDaiSlot (I : ExecutionEnv) : UInt256 :=
+  daiSlot (suckVKey I)
+
+abbrev suckViceSlot : UInt256 :=
+  ⟨8⟩
+
+abbrev suckDebtSlot : UInt256 :=
+  ⟨7⟩
+
+abbrev suckPostState (evm : EVM.State) (I : ExecutionEnv)
+    (sinNew daiNew viceNew debtNew : UInt256) : EVM.State :=
+  Solm.EVM.storageStore
+    (Solm.EVM.storageStore
+      (Solm.EVM.storageStore
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (suckSinSlot I) sinNew)
+        evm.executionEnv.codeOwner (suckDaiSlot I) daiNew)
+      evm.executionEnv.codeOwner suckViceSlot viceNew)
+    evm.executionEnv.codeOwner suckDebtSlot debtNew
+
+theorem suckSinSlot_eq (I : ExecutionEnv) :
+    suckSinSlot I = solcMappingSlot ⟨6⟩ (suckUMaskedWord I) := by
+  unfold suckSinSlot suckUKey suckUMaskedWord sinSlot mapSlot solcMappingSlot
+  rw [keyValueToWord_address_ofNat_mask]
+
+theorem suckDaiSlot_eq (I : ExecutionEnv) :
+    suckDaiSlot I = solcMappingSlot ⟨5⟩ (suckVMaskedWord I) := by
+  unfold suckDaiSlot suckVKey suckVMaskedWord daiSlot mapSlot solcMappingSlot
+  rw [keyValueToWord_address_ofNat_mask]
+
+
+theorem suckUMaskedWord_canonical (I : ExecutionEnv) :
+    (suckUMaskedWord I).toNat < EVM.addressModulus := by
+  unfold suckUMaskedWord
+  rw [u256_land_comm solcAddrMask (suckUWord I)]
+  exact solcAddrMask_result_canonical (suckUWord I)
+
+theorem suckVMaskedWord_canonical (I : ExecutionEnv) :
+    (suckVMaskedWord I).toNat < EVM.addressModulus := by
+  unfold suckVMaskedWord
+  rw [u256_land_comm solcAddrMask (suckVWord I)]
+  exact solcAddrMask_result_canonical (suckVWord I)
+
+abbrev suckSinEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
+  { base := "sin", steps := [.mindex (suckUKey I)] }
+
+abbrev suckDaiEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
+  { base := "dai", steps := [.mindex (suckVKey I)] }
+
+abbrev suckViceEvaledRef : EvaledStorageRef :=
+  { base := "vice", steps := [] }
+
+abbrev suckDebtEvaledRef : EvaledStorageRef :=
+  { base := "debt", steps := [] }
+
+theorem suckStore_get_u (I : ExecutionEnv) :
+    (suckStore I).get? "u" = some (suckUValue I) := by
+  unfold suckStore
+  repeat rw [store_get_ne _ _ (by native_decide)]
+  simp
+
+theorem suckStore_get_v (I : ExecutionEnv) :
+    (suckStore I).get? "v" = some (suckVValue I) := by
+  unfold suckStore
+  rw [store_get_ne _ _ (by native_decide)]
+  simp
+
+theorem suckStoreSinNew_get_u (I : ExecutionEnv) (sinNew : UInt256) :
+    (suckStoreSinNew I sinNew).get? "u" = some (suckUValue I) := by
+  rw [suckStoreSinNew, store_get_ne _ _ (by native_decide), suckStore_get_u]
+
+theorem suckStoreSinNew_get_v (I : ExecutionEnv) (sinNew : UInt256) :
+    (suckStoreSinNew I sinNew).get? "v" = some (suckVValue I) := by
+  rw [suckStoreSinNew, store_get_ne _ _ (by native_decide), suckStore_get_v]
+
+theorem suckStoreDaiNew_get_v (I : ExecutionEnv) (sinNew daiNew : UInt256) :
+    (suckStoreDaiNew I sinNew daiNew).get? "v" = some (suckVValue I) := by
+  rw [suckStoreDaiNew, store_get_ne _ _ (by native_decide),
+    suckStoreSinNew_get_v]
+
+theorem suckStore_get_rad (I : ExecutionEnv) :
+    (suckStore I).get? "rad" = some (suckRadValue I) := by
+  simp [suckStore]
+
+theorem suckStoreSinNew_get_rad (I : ExecutionEnv) (sinNew : UInt256) :
+    (suckStoreSinNew I sinNew).get? "rad" = some (suckRadValue I) := by
+  rw [suckStoreSinNew, store_get_ne _ _ (by native_decide), suckStore_get_rad]
+
+theorem suckStoreDaiNew_get_rad (I : ExecutionEnv) (sinNew daiNew : UInt256) :
+    (suckStoreDaiNew I sinNew daiNew).get? "rad" = some (suckRadValue I) := by
+  rw [suckStoreDaiNew, store_get_ne _ _ (by native_decide),
+    suckStoreSinNew_get_rad]
+
+theorem suckStoreViceNew_get_rad (I : ExecutionEnv)
+    (sinNew daiNew viceNew : UInt256) :
+    (suckStoreViceNew I sinNew daiNew viceNew).get? "rad" =
+      some (suckRadValue I) := by
+  rw [suckStoreViceNew, store_get_ne _ _ (by native_decide),
+    suckStoreDaiNew_get_rad]
+
+theorem suckStoreSinNew_get_sinNew (I : ExecutionEnv) (sinNew : UInt256) :
+    (suckStoreSinNew I sinNew).get? "sinNew" =
+      some (.int (Int.ofNat sinNew.toNat)) := by
+  simp [suckStoreSinNew]
+
+theorem suckStoreDaiNew_get_daiNew (I : ExecutionEnv) (sinNew daiNew : UInt256) :
+    (suckStoreDaiNew I sinNew daiNew).get? "daiNew" =
+      some (.int (Int.ofNat daiNew.toNat)) := by
+  simp [suckStoreDaiNew]
+
+theorem suckStoreViceNew_get_viceNew (I : ExecutionEnv)
+    (sinNew daiNew viceNew : UInt256) :
+    (suckStoreViceNew I sinNew daiNew viceNew).get? "viceNew" =
+      some (.int (Int.ofNat viceNew.toNat)) := by
+  simp [suckStoreViceNew]
+
+theorem suckStoreDebtNew_get_debtNew (I : ExecutionEnv)
+    (sinNew daiNew viceNew debtNew : UInt256) :
+    (suckStoreDebtNew I sinNew daiNew viceNew debtNew).get? "debtNew" =
+      some (.int (Int.ofNat debtNew.toNat)) := by
+  simp [suckStoreDebtNew]
+
+theorem suckStore_sin (I : ExecutionEnv) :
+    (suckStore I).get? "sin" = none := by
+  unfold suckStore
+  repeat rw [store_get_ne _ _ (by native_decide)]
+  simp
+
+theorem suckStoreSinNew_sin (I : ExecutionEnv) (sinNew : UInt256) :
+    (suckStoreSinNew I sinNew).get? "sin" = none := by
+  rw [suckStoreSinNew, store_get_ne _ _ (by native_decide), suckStore_sin]
+
+theorem suckStore_dai (I : ExecutionEnv) :
+    (suckStore I).get? "dai" = none := by
+  unfold suckStore
+  repeat rw [store_get_ne _ _ (by native_decide)]
+  simp
+
+theorem suckStoreSinNew_dai (I : ExecutionEnv) (sinNew : UInt256) :
+    (suckStoreSinNew I sinNew).get? "dai" = none := by
+  rw [suckStoreSinNew, store_get_ne _ _ (by native_decide), suckStore_dai]
+
+theorem suckStoreDaiNew_dai (I : ExecutionEnv) (sinNew daiNew : UInt256) :
+    (suckStoreDaiNew I sinNew daiNew).get? "dai" = none := by
+  rw [suckStoreDaiNew, store_get_ne _ _ (by native_decide), suckStoreSinNew_dai]
+
+theorem suckStore_vice (I : ExecutionEnv) :
+    (suckStore I).get? "vice" = none := by
+  unfold suckStore
+  repeat rw [store_get_ne _ _ (by native_decide)]
+  simp
+
+theorem suckStoreDaiNew_vice (I : ExecutionEnv) (sinNew daiNew : UInt256) :
+    (suckStoreDaiNew I sinNew daiNew).get? "vice" = none := by
+  rw [suckStoreDaiNew, store_get_ne _ _ (by native_decide)]
+  rw [suckStoreSinNew, store_get_ne _ _ (by native_decide), suckStore_vice]
+
+theorem suckStoreViceNew_vice (I : ExecutionEnv) (sinNew daiNew viceNew : UInt256) :
+    (suckStoreViceNew I sinNew daiNew viceNew).get? "vice" = none := by
+  rw [suckStoreViceNew, store_get_ne _ _ (by native_decide), suckStoreDaiNew_vice]
+
+theorem suckStore_debt (I : ExecutionEnv) :
+    (suckStore I).get? "debt" = none := by
+  unfold suckStore
+  repeat rw [store_get_ne _ _ (by native_decide)]
+  simp
+
+theorem suckStoreViceNew_debt (I : ExecutionEnv) (sinNew daiNew viceNew : UInt256) :
+    (suckStoreViceNew I sinNew daiNew viceNew).get? "debt" = none := by
+  rw [suckStoreViceNew, store_get_ne _ _ (by native_decide)]
+  rw [suckStoreDaiNew, store_get_ne _ _ (by native_decide)]
+  rw [suckStoreSinNew, store_get_ne _ _ (by native_decide), suckStore_debt]
+
+theorem suckStoreDebtNew_debt (I : ExecutionEnv)
+    (sinNew daiNew viceNew debtNew : UInt256) :
+    (suckStoreDebtNew I sinNew daiNew viceNew debtNew).get? "debt" = none := by
+  rw [suckStoreDebtNew, store_get_ne _ _ (by native_decide), suckStoreViceNew_debt]
+
+theorem suckStore_wards (I : ExecutionEnv) :
+    (suckStore I).get? "wards" = none := by
+  unfold suckStore
+  repeat rw [store_get_ne _ _ (by native_decide)]
+  simp
+
+set_option linter.unusedSimpArgs false in
+theorem evalStorageRef_suck_sin_u (evm : EVM.State) (I : ExecutionEnv) (locals : Store)
+    (hu : locals.get? "u" = some (suckUValue I)) :
+    evalStorageRef config { contract := contract, locals := locals } evm
+      (sinRef (.var "u")) = .ok (suckSinEvaledRef I) := by
+  simp [suckSinEvaledRef, suckUValue, suckUKey, sinRef, evalStorageRef,
+    evalStorageRefSteps, evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption,
+    EvalResult.bind, bind, pure, ← Std.HashMap.get?_eq_getElem?, hu]
+
+theorem evalExpr_suck_sin_u_old (evm : EVM.State) (I : ExecutionEnv) :
+    evalExpr? config { contract := contract, locals := suckStore I } evm
+        (.storage (sinRef (.var "u"))) =
+      .ok (.int (Int.ofNat
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)).toNat)) := by
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := suckStore_sin I)
+    (her := evalStorageRef_suck_sin_u evm I (suckStore I) (suckStore_get_u I))
+    (hty := by simp [storageTypeAt?, storageTypeStep?, contract,
+      storageDecls, uint256St])
+    (hloc := by
+      change storageLayoutRaw (suckSinEvaledRef I) =
+        some (.leaf (wordLoc (suckSinSlot I)))
+      simp [storageLayoutRaw, suckSinEvaledRef, suckSinSlot])]
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (suckSinSlot I))
+
+theorem evalExpr_suck_sin_u (evm : EVM.State) (I : ExecutionEnv) (locals : Store)
+    (hu : locals.get? "u" = some (suckUValue I)) (hbase : locals.get? "sin" = none) :
+    evalExpr? config { contract := contract, locals := locals } evm
+        (.storage (sinRef (.var "u"))) =
+      .ok (.int (Int.ofNat
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)).toNat)) := by
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
+    (her := evalStorageRef_suck_sin_u evm I locals hu)
+    (hty := by simp [storageTypeAt?, storageTypeStep?, contract,
+      storageDecls, uint256St])
+    (hloc := by
+      change storageLayoutRaw (suckSinEvaledRef I) =
+        some (.leaf (wordLoc (suckSinSlot I)))
+      simp [storageLayoutRaw, suckSinEvaledRef, suckSinSlot])]
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (suckSinSlot I))
+
+set_option linter.unusedSimpArgs false in
+theorem evalStorageRef_suck_dai_v (evm : EVM.State) (I : ExecutionEnv) (locals : Store)
+    (hv : locals.get? "v" = some (suckVValue I)) :
+    evalStorageRef config { contract := contract, locals := locals } evm
+      (daiRef (.var "v")) = .ok (suckDaiEvaledRef I) := by
+  simp [suckDaiEvaledRef, suckVValue, suckVKey, daiRef, evalStorageRef,
+    evalStorageRefSteps, evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption,
+    EvalResult.bind, bind, pure, ← Std.HashMap.get?_eq_getElem?, hv]
+
+theorem evalExpr_suck_dai_v (evm : EVM.State) (I : ExecutionEnv) (locals : Store)
+    (hv : locals.get? "v" = some (suckVValue I)) (hbase : locals.get? "dai" = none) :
+    evalExpr? config { contract := contract, locals := locals } evm
+        (.storage (daiRef (.var "v"))) =
+      .ok (.int (Int.ofNat
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckDaiSlot I)).toNat)) := by
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
+    (her := evalStorageRef_suck_dai_v evm I locals hv)
+    (hty := by simp [storageTypeAt?, storageTypeStep?, contract,
+      storageDecls, uint256St])
+    (hloc := by
+      change storageLayoutRaw (suckDaiEvaledRef I) =
+        some (.leaf (wordLoc (suckDaiSlot I)))
+      simp [storageLayoutRaw, suckDaiEvaledRef, suckDaiSlot])]
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (suckDaiSlot I))
+
+theorem evalStorageRef_suck_vice (evm : EVM.State) (locals : Store) :
+    evalStorageRef config { contract := contract, locals := locals } evm viceRef =
+      .ok suckViceEvaledRef := by
+  simp [evalStorageRef, evalStorageRefSteps, viceRef, suckViceEvaledRef,
+    EvalResult.bind, pure, bind]
+
+theorem evalStorageRef_suck_debt (evm : EVM.State) (locals : Store) :
+    evalStorageRef config { contract := contract, locals := locals } evm debtRef =
+      .ok suckDebtEvaledRef := by
+  simp [evalStorageRef, evalStorageRefSteps, debtRef, suckDebtEvaledRef,
+    EvalResult.bind, pure, bind]
+
+theorem evalExpr_suck_vice (evm : EVM.State) (locals : Store)
+    (hbase : locals.get? "vice" = none) :
+    evalExpr? config { contract := contract, locals := locals } evm (.storage viceRef) =
+      .ok (.int (Int.ofNat
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner suckViceSlot).toNat)) := by
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
+    (her := evalStorageRef_suck_vice evm locals)
+    (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
+    (hloc := by rfl)]
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm suckViceSlot)
+
+theorem evalExpr_suck_debt (evm : EVM.State) (locals : Store)
+    (hbase : locals.get? "debt" = none) :
+    evalExpr? config { contract := contract, locals := locals } evm (.storage debtRef) =
+      .ok (.int (Int.ofNat
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner suckDebtSlot).toNat)) := by
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
+    (her := evalStorageRef_suck_debt evm locals)
+    (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
+    (hloc := by rfl)]
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm suckDebtSlot)
+
+theorem suckEvalExpr_add256_ok {evm : EVM.State} {locals : Store}
+    {x y : Expr} {a b sum : UInt256}
+    (hx : evalExpr? config { contract := contract, locals := locals } evm x =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hy : evalExpr? config { contract := contract, locals := locals } evm y =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hsum : sum = a + b)
+    (hfit : a.toNat + b.toNat < UInt256.size) :
+    evalExpr? config { contract := contract, locals := locals } evm (add256 x y) =
+      .ok (.int (Int.ofNat sum.toNat)) := by
+  have hlt : ¬ Int.ofNat (a.toNat + b.toNat) ≥ (2 : Int) ^ 256 :=
+    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
+  have hword : sum.toNat = a.toNat + b.toNat := by
+    rw [hsum, uadd_toNat, Nat.mod_eq_of_lt hfit]
+  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
+    uint256Int, hword]
+  rw [if_neg]
+  · rfl
+  · intro hbad
+    rcases hbad with hbad | hbad
+    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
+    · exact hlt hbad
+
+theorem suckEvalExpr_add256_revert {evm : EVM.State} {locals : Store}
+    {x y : Expr} {a b : UInt256}
+    (hx : evalExpr? config { contract := contract, locals := locals } evm x =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hy : evalExpr? config { contract := contract, locals := locals } evm y =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hover : UInt256.size ≤ a.toNat + b.toNat) :
+    evalExpr? config { contract := contract, locals := locals } evm (add256 x y) =
+      .revert := by
+  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
+  intro _
+  exact_mod_cast hover
+
+theorem suckEvalExpr_ge_uint256_true {evm : EVM.State} {locals : Store}
+    {lhs rhs : Expr} {a b : UInt256}
+    (hlhs : evalExpr? config { contract := contract, locals := locals } evm lhs =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hge : b.toNat ≤ a.toNat) :
+    evalExpr? config { contract := contract, locals := locals } evm (.binary .ge lhs rhs) =
+      .ok (.bool true) := by
+  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?]
+  exact_mod_cast hge
+
+theorem assign_suck_sin_u (evm : EVM.State) (I : ExecutionEnv)
+    (locals : Store) (sinNew : UInt256)
+    (hu : locals.get? "u" = some (suckUValue I)) (hbase : locals.get? "sin" = none) :
+    let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner (suckSinSlot I) sinNew
+    assignStorageRef? config { contract := contract, locals := locals } evm
+      .storage (sinRef (.var "u")) (.int (Int.ofNat sinNew.toNat)) =
+        .ok ({ contract := contract, locals := locals }, evm') := by
+  intro evm'
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (suckSinSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
+    (hbase := hbase)
+    (her := evalStorageRef_suck_sin_u evm I locals hu)
+    (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
+    (hloc := by
+      change storageLayoutRaw (suckSinEvaledRef I) = some (.leaf (wordLoc (suckSinSlot I)))
+      simp [storageLayoutRaw, suckSinEvaledRef, suckSinSlot])
+    (hstore := by simpa [evm'] using storageLocStore_uint256 evm (suckSinSlot I) sinNew)
+
+theorem assign_suck_dai_v (evm : EVM.State) (I : ExecutionEnv)
+    (locals : Store) (daiNew : UInt256)
+    (hv : locals.get? "v" = some (suckVValue I)) (hbase : locals.get? "dai" = none) :
+    let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner (suckDaiSlot I) daiNew
+    assignStorageRef? config { contract := contract, locals := locals } evm
+      .storage (daiRef (.var "v")) (.int (Int.ofNat daiNew.toNat)) =
+        .ok ({ contract := contract, locals := locals }, evm') := by
+  intro evm'
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (suckDaiSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
+    (hbase := hbase)
+    (her := evalStorageRef_suck_dai_v evm I locals hv)
+    (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
+    (hloc := by
+      change storageLayoutRaw (suckDaiEvaledRef I) = some (.leaf (wordLoc (suckDaiSlot I)))
+      simp [storageLayoutRaw, suckDaiEvaledRef, suckDaiSlot])
+    (hstore := by simpa [evm'] using storageLocStore_uint256 evm (suckDaiSlot I) daiNew)
+
+theorem assign_suck_vice (evm : EVM.State) (locals : Store) (viceNew : UInt256)
+    (hbase : locals.get? "vice" = none) :
+    let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner suckViceSlot viceNew
+    assignStorageRef? config { contract := contract, locals := locals } evm
+      .storage viceRef (.int (Int.ofNat viceNew.toNat)) =
+        .ok ({ contract := contract, locals := locals }, evm') := by
+  intro evm'
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc suckViceSlot) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
+    (hbase := hbase)
+    (her := evalStorageRef_suck_vice evm locals)
+    (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
+    (hloc := by rfl)
+    (hstore := by simpa [evm'] using storageLocStore_uint256 evm suckViceSlot viceNew)
+
+theorem assign_suck_debt (evm : EVM.State) (locals : Store) (debtNew : UInt256)
+    (hbase : locals.get? "debt" = none) :
+    let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner suckDebtSlot debtNew
+    assignStorageRef? config { contract := contract, locals := locals } evm
+      .storage debtRef (.int (Int.ofNat debtNew.toNat)) =
+        .ok ({ contract := contract, locals := locals }, evm') := by
+  intro evm'
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc suckDebtSlot) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
+    (hbase := hbase)
+    (her := evalStorageRef_suck_debt evm locals)
+    (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
+    (hloc := by rfl)
+    (hstore := by simpa [evm'] using storageLocStore_uint256 evm suckDebtSlot debtNew)
+
+theorem vatSuckSinAddBlockOk (evm : EVM.State) (I : ExecutionEnv)
+    {sinVal sinNew : UInt256}
+    (hsinLoad :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I) = sinVal)
+    (hsinNew : sinNew = sinVal + suckRadWord I)
+    (hsinFit : sinVal.toNat + (suckRadWord I).toNat < UInt256.size) :
+    ExecBlock config { contract := contract, locals := suckStore I } evm
+      (checkedAddUintInto "sinNew" (.storage (sinRef (.var "u"))) (.var "rad"))
+      (.ok { contract := contract, locals := suckStoreSinNew I sinNew } evm) := by
+  have hrad :
+      evalExpr? config { contract := contract, locals := suckStore I } evm (.var "rad") =
+        .ok (.int (Int.ofNat (suckRadWord I).toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm) (locals := suckStore I) (name := "rad")
+      (value := suckRadWord I) (suckStore_get_rad I)
+  have hsin :
+      evalExpr? config { contract := contract, locals := suckStore I } evm
+          (.storage (sinRef (.var "u"))) =
+        .ok (.int (Int.ofNat sinVal.toNat)) := by
+    simpa [hsinLoad] using evalExpr_suck_sin_u_old (evm := evm) (I := I)
+  have hadd :
+      evalExpr? config { contract := contract, locals := suckStore I } evm
+          (add256 (.storage (sinRef (.var "u"))) (.var "rad")) =
+        .ok (.int (Int.ofNat sinNew.toNat)) :=
+    suckEvalExpr_add256_ok hsin hrad hsinNew hsinFit
+  have hsinNewEval :
+      evalExpr? config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+          (.var "sinNew") =
+        .ok (.int (Int.ofNat sinNew.toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm) (locals := suckStoreSinNew I sinNew)
+      (name := "sinNew") (value := sinNew) (suckStoreSinNew_get_sinNew I sinNew)
+  have hsinAgain :
+      evalExpr? config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+          (.storage (sinRef (.var "u"))) =
+        .ok (.int (Int.ofNat sinVal.toNat)) := by
+    simpa [hsinLoad] using
+      evalExpr_suck_sin_u evm I (suckStoreSinNew I sinNew)
+        (suckStoreSinNew_get_u I sinNew) (suckStoreSinNew_sin I sinNew)
+  have hsinNewNat : sinNew.toNat = sinVal.toNat + (suckRadWord I).toNat := by
+    rw [hsinNew, uadd_toNat, Nat.mod_eq_of_lt hsinFit]
+  have hreq :
+      evalExpr? config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+          (.binary .ge (.var "sinNew") (.storage (sinRef (.var "u")))) =
+        .ok (.bool true) :=
+    suckEvalExpr_ge_uint256_true hsinNewEval hsinAgain (by rw [hsinNewNat]; omega)
+  refine ExecBlock.consNormal (ExecStmt.letDecl hadd) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
+  exact ExecBlock.nil
+
+theorem vatSuckAssignSinOk (evm : EVM.State) (I : ExecutionEnv)
+    {sinNew : UInt256} :
+    ExecBlock config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+      [ .assign .storage (sinRef (.var "u")) (.var "sinNew") ]
+      (.ok { contract := contract, locals := suckStoreSinNew I sinNew }
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (suckSinSlot I) sinNew)) := by
+  have hsinNewEval :
+      evalExpr? config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+          (.var "sinNew") =
+        .ok (.int (Int.ofNat sinNew.toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm) (locals := suckStoreSinNew I sinNew)
+      (name := "sinNew") (value := sinNew) (suckStoreSinNew_get_sinNew I sinNew)
+  have hassign :
+      assignStorageRef? config { contract := contract, locals := suckStoreSinNew I sinNew }
+          evm .storage (sinRef (.var "u")) (.int (Int.ofNat sinNew.toNat)) =
+        .ok ({ contract := contract, locals := suckStoreSinNew I sinNew },
+          Solm.EVM.storageStore evm evm.executionEnv.codeOwner (suckSinSlot I) sinNew) := by
+    simpa using assign_suck_sin_u evm I (suckStoreSinNew I sinNew) sinNew
+      (suckStoreSinNew_get_u I sinNew) (suckStoreSinNew_sin I sinNew)
+  exact ExecBlock.consNormal (ExecStmt.assign hsinNewEval hassign) ExecBlock.nil
+
+theorem vatSuckDaiAddBlockOk (evm : EVM.State) (I : ExecutionEnv)
+    {sinNew daiVal daiNew : UInt256}
+    (hdaiLoad :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckDaiSlot I) = daiVal)
+    (hdaiNew : daiNew = daiVal + suckRadWord I)
+    (hdaiFit : daiVal.toNat + (suckRadWord I).toNat < UInt256.size) :
+    ExecBlock config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+      (checkedAddUintInto "daiNew" (.storage (daiRef (.var "v"))) (.var "rad"))
+      (.ok { contract := contract, locals := suckStoreDaiNew I sinNew daiNew } evm) := by
+  have hrad :
+      evalExpr? config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+          (.var "rad") =
+        .ok (.int (Int.ofNat (suckRadWord I).toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm) (locals := suckStoreSinNew I sinNew)
+      (name := "rad") (value := suckRadWord I) (suckStoreSinNew_get_rad I sinNew)
+  have hdai :
+      evalExpr? config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+          (.storage (daiRef (.var "v"))) =
+        .ok (.int (Int.ofNat daiVal.toNat)) := by
+    simpa [hdaiLoad] using
+      evalExpr_suck_dai_v evm I (suckStoreSinNew I sinNew)
+        (suckStoreSinNew_get_v I sinNew) (suckStoreSinNew_dai I sinNew)
+  have hadd :
+      evalExpr? config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+          (add256 (.storage (daiRef (.var "v"))) (.var "rad")) =
+        .ok (.int (Int.ofNat daiNew.toNat)) :=
+    suckEvalExpr_add256_ok hdai hrad hdaiNew hdaiFit
+  have hdaiNewEval :
+      evalExpr? config { contract := contract, locals := suckStoreDaiNew I sinNew daiNew }
+          evm (.var "daiNew") =
+        .ok (.int (Int.ofNat daiNew.toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm) (locals := suckStoreDaiNew I sinNew daiNew)
+      (name := "daiNew") (value := daiNew) (suckStoreDaiNew_get_daiNew I sinNew daiNew)
+  have hdaiAgain :
+      evalExpr? config { contract := contract, locals := suckStoreDaiNew I sinNew daiNew }
+          evm (.storage (daiRef (.var "v"))) =
+        .ok (.int (Int.ofNat daiVal.toNat)) := by
+    simpa [hdaiLoad] using
+      evalExpr_suck_dai_v evm I (suckStoreDaiNew I sinNew daiNew)
+        (suckStoreDaiNew_get_v I sinNew daiNew) (suckStoreDaiNew_dai I sinNew daiNew)
+  have hdaiNewNat : daiNew.toNat = daiVal.toNat + (suckRadWord I).toNat := by
+    rw [hdaiNew, uadd_toNat, Nat.mod_eq_of_lt hdaiFit]
+  have hreq :
+      evalExpr? config { contract := contract, locals := suckStoreDaiNew I sinNew daiNew }
+          evm (.binary .ge (.var "daiNew") (.storage (daiRef (.var "v")))) =
+        .ok (.bool true) :=
+    suckEvalExpr_ge_uint256_true hdaiNewEval hdaiAgain (by rw [hdaiNewNat]; omega)
+  refine ExecBlock.consNormal (ExecStmt.letDecl hadd) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
+  exact ExecBlock.nil
+
+theorem vatSuckDaiAddBlockRevert (evm : EVM.State) (I : ExecutionEnv)
+    {sinNew daiVal : UInt256}
+    (hdaiLoad :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckDaiSlot I) = daiVal)
+    (hdaiOverflow : UInt256.size ≤ daiVal.toNat + (suckRadWord I).toNat) :
+    ExecBlock config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+      (checkedAddUintInto "daiNew" (.storage (daiRef (.var "v"))) (.var "rad"))
+      .reverted := by
+  have hrad :
+      evalExpr? config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+          (.var "rad") =
+        .ok (.int (Int.ofNat (suckRadWord I).toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm) (locals := suckStoreSinNew I sinNew)
+      (name := "rad") (value := suckRadWord I) (suckStoreSinNew_get_rad I sinNew)
+  have hdai :
+      evalExpr? config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+          (.storage (daiRef (.var "v"))) =
+        .ok (.int (Int.ofNat daiVal.toNat)) := by
+    simpa [hdaiLoad] using
+      evalExpr_suck_dai_v evm I (suckStoreSinNew I sinNew)
+        (suckStoreSinNew_get_v I sinNew) (suckStoreSinNew_dai I sinNew)
+  have hadd :
+      evalExpr? config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+          (add256 (.storage (daiRef (.var "v"))) (.var "rad")) = .revert :=
+    suckEvalExpr_add256_revert hdai hrad hdaiOverflow
+  exact ExecBlock.consRevert (ExecStmt.letDeclRevert hadd)
+
+theorem vatSuckAssignDaiOk (evm : EVM.State) (I : ExecutionEnv)
+    {sinNew daiNew : UInt256} :
+    ExecBlock config { contract := contract, locals := suckStoreDaiNew I sinNew daiNew } evm
+      [ .assign .storage (daiRef (.var "v")) (.var "daiNew") ]
+      (.ok { contract := contract, locals := suckStoreDaiNew I sinNew daiNew }
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (suckDaiSlot I) daiNew)) := by
+  have hdaiNewEval :
+      evalExpr? config { contract := contract, locals := suckStoreDaiNew I sinNew daiNew } evm
+          (.var "daiNew") =
+        .ok (.int (Int.ofNat daiNew.toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm) (locals := suckStoreDaiNew I sinNew daiNew)
+      (name := "daiNew") (value := daiNew) (suckStoreDaiNew_get_daiNew I sinNew daiNew)
+  have hassign :
+      assignStorageRef? config { contract := contract, locals := suckStoreDaiNew I sinNew daiNew }
+          evm .storage (daiRef (.var "v")) (.int (Int.ofNat daiNew.toNat)) =
+        .ok ({ contract := contract, locals := suckStoreDaiNew I sinNew daiNew },
+          Solm.EVM.storageStore evm evm.executionEnv.codeOwner (suckDaiSlot I) daiNew) := by
+    simpa using assign_suck_dai_v evm I (suckStoreDaiNew I sinNew daiNew) daiNew
+      (suckStoreDaiNew_get_v I sinNew daiNew) (suckStoreDaiNew_dai I sinNew daiNew)
+  exact ExecBlock.consNormal (ExecStmt.assign hdaiNewEval hassign) ExecBlock.nil
+
+theorem vatSuckViceAddBlockOk (evm : EVM.State) (I : ExecutionEnv)
+    {sinNew daiNew viceVal viceNew : UInt256}
+    (hviceLoad :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner suckViceSlot = viceVal)
+    (hviceNew : viceNew = viceVal + suckRadWord I)
+    (hviceFit : viceVal.toNat + (suckRadWord I).toNat < UInt256.size) :
+    ExecBlock config { contract := contract, locals := suckStoreDaiNew I sinNew daiNew } evm
+      (checkedAddUintInto "viceNew" (.storage viceRef) (.var "rad"))
+      (.ok { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew } evm) := by
+  have hrad :
+      evalExpr? config { contract := contract, locals := suckStoreDaiNew I sinNew daiNew }
+          evm (.var "rad") =
+        .ok (.int (Int.ofNat (suckRadWord I).toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm) (locals := suckStoreDaiNew I sinNew daiNew)
+      (name := "rad") (value := suckRadWord I) (suckStoreDaiNew_get_rad I sinNew daiNew)
+  have hvice :
+      evalExpr? config { contract := contract, locals := suckStoreDaiNew I sinNew daiNew }
+          evm (.storage viceRef) =
+        .ok (.int (Int.ofNat viceVal.toNat)) := by
+    simpa [hviceLoad] using
+      evalExpr_suck_vice evm (suckStoreDaiNew I sinNew daiNew)
+        (suckStoreDaiNew_vice I sinNew daiNew)
+  have hadd :
+      evalExpr? config { contract := contract, locals := suckStoreDaiNew I sinNew daiNew }
+          evm (add256 (.storage viceRef) (.var "rad")) =
+        .ok (.int (Int.ofNat viceNew.toNat)) :=
+    suckEvalExpr_add256_ok hvice hrad hviceNew hviceFit
+  have hviceNewEval :
+      evalExpr? config
+          { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew }
+          evm (.var "viceNew") =
+        .ok (.int (Int.ofNat viceNew.toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm)
+      (locals := suckStoreViceNew I sinNew daiNew viceNew) (name := "viceNew")
+      (value := viceNew) (suckStoreViceNew_get_viceNew I sinNew daiNew viceNew)
+  have hviceAgain :
+      evalExpr? config
+          { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew }
+          evm (.storage viceRef) =
+        .ok (.int (Int.ofNat viceVal.toNat)) := by
+    simpa [hviceLoad] using
+      evalExpr_suck_vice evm (suckStoreViceNew I sinNew daiNew viceNew)
+        (suckStoreViceNew_vice I sinNew daiNew viceNew)
+  have hviceNewNat : viceNew.toNat = viceVal.toNat + (suckRadWord I).toNat := by
+    rw [hviceNew, uadd_toNat, Nat.mod_eq_of_lt hviceFit]
+  have hreq :
+      evalExpr? config
+          { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew } evm
+          (.binary .ge (.var "viceNew") (.storage viceRef)) =
+        .ok (.bool true) :=
+    suckEvalExpr_ge_uint256_true hviceNewEval hviceAgain (by rw [hviceNewNat]; omega)
+  refine ExecBlock.consNormal (ExecStmt.letDecl hadd) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
+  exact ExecBlock.nil
+
+theorem vatSuckViceAddBlockRevert (evm : EVM.State) (I : ExecutionEnv)
+    {sinNew daiNew viceVal : UInt256}
+    (hviceLoad :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner suckViceSlot = viceVal)
+    (hviceOverflow : UInt256.size ≤ viceVal.toNat + (suckRadWord I).toNat) :
+    ExecBlock config { contract := contract, locals := suckStoreDaiNew I sinNew daiNew } evm
+      (checkedAddUintInto "viceNew" (.storage viceRef) (.var "rad"))
+      .reverted := by
+  have hrad :
+      evalExpr? config { contract := contract, locals := suckStoreDaiNew I sinNew daiNew }
+          evm (.var "rad") =
+        .ok (.int (Int.ofNat (suckRadWord I).toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm) (locals := suckStoreDaiNew I sinNew daiNew)
+      (name := "rad") (value := suckRadWord I) (suckStoreDaiNew_get_rad I sinNew daiNew)
+  have hvice :
+      evalExpr? config { contract := contract, locals := suckStoreDaiNew I sinNew daiNew }
+          evm (.storage viceRef) =
+        .ok (.int (Int.ofNat viceVal.toNat)) := by
+    simpa [hviceLoad] using
+      evalExpr_suck_vice evm (suckStoreDaiNew I sinNew daiNew)
+        (suckStoreDaiNew_vice I sinNew daiNew)
+  have hadd :
+      evalExpr? config { contract := contract, locals := suckStoreDaiNew I sinNew daiNew }
+          evm (add256 (.storage viceRef) (.var "rad")) = .revert :=
+    suckEvalExpr_add256_revert hvice hrad hviceOverflow
+  exact ExecBlock.consRevert (ExecStmt.letDeclRevert hadd)
+
+theorem vatSuckAssignViceOk (evm : EVM.State) (I : ExecutionEnv)
+    {sinNew daiNew viceNew : UInt256} :
+    ExecBlock config
+      { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew } evm
+      [ .assign .storage viceRef (.var "viceNew") ]
+      (.ok { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew }
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner suckViceSlot viceNew)) := by
+  have hviceNewEval :
+      evalExpr? config
+          { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew } evm
+          (.var "viceNew") =
+        .ok (.int (Int.ofNat viceNew.toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm)
+      (locals := suckStoreViceNew I sinNew daiNew viceNew) (name := "viceNew")
+      (value := viceNew) (suckStoreViceNew_get_viceNew I sinNew daiNew viceNew)
+  have hassign :
+      assignStorageRef? config
+          { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew }
+          evm .storage viceRef (.int (Int.ofNat viceNew.toNat)) =
+        .ok ({ contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew },
+          Solm.EVM.storageStore evm evm.executionEnv.codeOwner suckViceSlot viceNew) := by
+    simpa using assign_suck_vice evm (suckStoreViceNew I sinNew daiNew viceNew) viceNew
+      (suckStoreViceNew_vice I sinNew daiNew viceNew)
+  exact ExecBlock.consNormal (ExecStmt.assign hviceNewEval hassign) ExecBlock.nil
+
+theorem vatSuckDebtAddBlockOk (evm : EVM.State) (I : ExecutionEnv)
+    {sinNew daiNew viceNew debtVal debtNew : UInt256}
+    (hdebtLoad :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner suckDebtSlot = debtVal)
+    (hdebtNew : debtNew = debtVal + suckRadWord I)
+    (hdebtFit : debtVal.toNat + (suckRadWord I).toNat < UInt256.size) :
+    ExecBlock config
+      { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew } evm
+      (checkedAddUintInto "debtNew" (.storage debtRef) (.var "rad"))
+      (.ok { contract := contract, locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew }
+        evm) := by
+  have hrad :
+      evalExpr? config
+          { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew } evm
+          (.var "rad") =
+        .ok (.int (Int.ofNat (suckRadWord I).toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm)
+      (locals := suckStoreViceNew I sinNew daiNew viceNew) (name := "rad")
+      (value := suckRadWord I) (suckStoreViceNew_get_rad I sinNew daiNew viceNew)
+  have hdebt :
+      evalExpr? config
+          { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew } evm
+          (.storage debtRef) =
+        .ok (.int (Int.ofNat debtVal.toNat)) := by
+    simpa [hdebtLoad] using
+      evalExpr_suck_debt evm (suckStoreViceNew I sinNew daiNew viceNew)
+        (suckStoreViceNew_debt I sinNew daiNew viceNew)
+  have hadd :
+      evalExpr? config
+          { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew } evm
+          (add256 (.storage debtRef) (.var "rad")) =
+        .ok (.int (Int.ofNat debtNew.toNat)) :=
+    suckEvalExpr_add256_ok hdebt hrad hdebtNew hdebtFit
+  have hdebtNewEval :
+      evalExpr? config
+          { contract := contract, locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew }
+          evm (.var "debtNew") =
+        .ok (.int (Int.ofNat debtNew.toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm)
+      (locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew) (name := "debtNew")
+      (value := debtNew) (suckStoreDebtNew_get_debtNew I sinNew daiNew viceNew debtNew)
+  have hdebtAgain :
+      evalExpr? config
+          { contract := contract, locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew }
+          evm (.storage debtRef) =
+        .ok (.int (Int.ofNat debtVal.toNat)) := by
+    simpa [hdebtLoad] using
+      evalExpr_suck_debt evm (suckStoreDebtNew I sinNew daiNew viceNew debtNew)
+        (suckStoreDebtNew_debt I sinNew daiNew viceNew debtNew)
+  have hdebtNewNat : debtNew.toNat = debtVal.toNat + (suckRadWord I).toNat := by
+    rw [hdebtNew, uadd_toNat, Nat.mod_eq_of_lt hdebtFit]
+  have hreq :
+      evalExpr? config
+          { contract := contract, locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew }
+          evm (.binary .ge (.var "debtNew") (.storage debtRef)) =
+        .ok (.bool true) :=
+    suckEvalExpr_ge_uint256_true hdebtNewEval hdebtAgain (by rw [hdebtNewNat]; omega)
+  refine ExecBlock.consNormal (ExecStmt.letDecl hadd) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
+  exact ExecBlock.nil
+
+theorem vatSuckDebtAddBlockRevert (evm : EVM.State) (I : ExecutionEnv)
+    {sinNew daiNew viceNew debtVal : UInt256}
+    (hdebtLoad :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner suckDebtSlot = debtVal)
+    (hdebtOverflow : UInt256.size ≤ debtVal.toNat + (suckRadWord I).toNat) :
+    ExecBlock config
+      { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew } evm
+      (checkedAddUintInto "debtNew" (.storage debtRef) (.var "rad"))
+      .reverted := by
+  have hrad :
+      evalExpr? config
+          { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew } evm
+          (.var "rad") =
+        .ok (.int (Int.ofNat (suckRadWord I).toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm)
+      (locals := suckStoreViceNew I sinNew daiNew viceNew) (name := "rad")
+      (value := suckRadWord I) (suckStoreViceNew_get_rad I sinNew daiNew viceNew)
+  have hdebt :
+      evalExpr? config
+          { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew } evm
+          (.storage debtRef) =
+        .ok (.int (Int.ofNat debtVal.toNat)) := by
+    simpa [hdebtLoad] using
+      evalExpr_suck_debt evm (suckStoreViceNew I sinNew daiNew viceNew)
+        (suckStoreViceNew_debt I sinNew daiNew viceNew)
+  have hadd :
+      evalExpr? config
+          { contract := contract, locals := suckStoreViceNew I sinNew daiNew viceNew } evm
+          (add256 (.storage debtRef) (.var "rad")) = .revert :=
+    suckEvalExpr_add256_revert hdebt hrad hdebtOverflow
+  exact ExecBlock.consRevert (ExecStmt.letDeclRevert hadd)
+
+theorem vatSuckAssignDebtOk (evm : EVM.State) (I : ExecutionEnv)
+    {sinNew daiNew viceNew debtNew : UInt256} :
+    ExecBlock config
+      { contract := contract, locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew } evm
+      [ .assign .storage debtRef (.var "debtNew") ]
+      (.ok { contract := contract, locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew }
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner suckDebtSlot debtNew)) := by
+  have hdebtNewEval :
+      evalExpr? config
+          { contract := contract, locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew }
+          evm (.var "debtNew") =
+        .ok (.int (Int.ofNat debtNew.toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm)
+      (locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew) (name := "debtNew")
+      (value := debtNew) (suckStoreDebtNew_get_debtNew I sinNew daiNew viceNew debtNew)
+  have hassign :
+      assignStorageRef? config
+          { contract := contract, locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew }
+          evm .storage debtRef (.int (Int.ofNat debtNew.toNat)) =
+        .ok ({ contract := contract, locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew },
+          Solm.EVM.storageStore evm evm.executionEnv.codeOwner suckDebtSlot debtNew) := by
+    simpa using assign_suck_debt evm (suckStoreDebtNew I sinNew daiNew viceNew debtNew) debtNew
+      (suckStoreDebtNew_debt I sinNew daiNew viceNew debtNew)
+  exact ExecBlock.consNormal (ExecStmt.assign hdebtNewEval hassign) ExecBlock.nil
+
+theorem vatSuckSourceSuccess (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hauth :
+      evalExpr? config { contract := contract, locals := suckStore I } evm
+        (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true))
+    (hsinFit :
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)).toNat +
+        (suckRadWord I).toNat < UInt256.size) :
+    let sinVal := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)
+    let sinNew := sinVal + suckRadWord I
+    let evmSin := Solm.EVM.storageStore evm evm.executionEnv.codeOwner (suckSinSlot I) sinNew
+    let daiVal := Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I)
+    let daiNew := daiVal + suckRadWord I
+    let evmDai := Solm.EVM.storageStore evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I) daiNew
+    let viceVal := Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner suckViceSlot
+    let viceNew := viceVal + suckRadWord I
+    let evmVice := Solm.EVM.storageStore evmDai evmDai.executionEnv.codeOwner suckViceSlot viceNew
+    let debtVal := Solm.EVM.storageLoad evmVice evmVice.executionEnv.codeOwner suckDebtSlot
+    let debtNew := debtVal + suckRadWord I
+    daiVal.toNat + (suckRadWord I).toNat < UInt256.size →
+    viceVal.toNat + (suckRadWord I).toNat < UInt256.size →
+    debtVal.toNat + (suckRadWord I).toNat < UInt256.size →
+    ExecTransitionBody config contract evm (suckStore I) suckTransition.body
+      (.returned { contract := contract, locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew }
+        (suckPostState evm I sinNew daiNew viceNew debtNew) none) := by
+  intro sinVal sinNew evmSin daiVal daiNew evmDai viceVal viceNew evmVice debtVal debtNew
+    hdaiFit hviceFit hdebtFit
+  have hsinLoad :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I) = sinVal := rfl
+  have hdaiLoad :
+      Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I) = daiVal := rfl
+  have hviceLoad :
+      Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner suckViceSlot = viceVal := rfl
+  have hdebtLoad :
+      Solm.EVM.storageLoad evmVice evmVice.executionEnv.codeOwner suckDebtSlot = debtVal := rfl
+  have hprefix :
+      ExecBlock config { contract := contract, locals := suckStore I } evm
+        [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+          .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ]
+        (.ok { contract := contract, locals := suckStore I } evm) := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true hwv
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hauth) ExecBlock.nil
+  have hsinAdd :=
+    vatSuckSinAddBlockOk evm I (sinVal := sinVal) (sinNew := sinNew)
+      hsinLoad (by rfl) hsinFit
+  have hsinAssign := vatSuckAssignSinOk evm I (sinNew := sinNew)
+  have hdaiAdd :=
+    vatSuckDaiAddBlockOk evmSin I (sinNew := sinNew) (daiVal := daiVal)
+      (daiNew := daiNew) hdaiLoad (by rfl) hdaiFit
+  have hdaiAssign := vatSuckAssignDaiOk evmSin I (sinNew := sinNew) (daiNew := daiNew)
+  have hviceAdd :=
+    vatSuckViceAddBlockOk evmDai I (sinNew := sinNew) (daiNew := daiNew)
+      (viceVal := viceVal) (viceNew := viceNew) hviceLoad (by rfl) hviceFit
+  have hviceAssign :=
+    vatSuckAssignViceOk evmDai I (sinNew := sinNew) (daiNew := daiNew)
+      (viceNew := viceNew)
+  have hdebtAdd :=
+    vatSuckDebtAddBlockOk evmVice I (sinNew := sinNew) (daiNew := daiNew)
+      (viceNew := viceNew) (debtVal := debtVal) (debtNew := debtNew)
+      hdebtLoad (by rfl) hdebtFit
+  have hdebtAssign :=
+    vatSuckAssignDebtOk evmVice I (sinNew := sinNew) (daiNew := daiNew)
+      (viceNew := viceNew) (debtNew := debtNew)
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiAdd
+  have h04 := execBlock_append h03 hdaiAssign
+  have h05 := execBlock_append h04 hviceAdd
+  have h06 := execBlock_append h05 hviceAssign
+  have h07 := execBlock_append h06 hdebtAdd
+  have hblock := execBlock_append h07 hdebtAssign
+  simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
+    List.append_assoc, suckPostState, evmSin, evmDai, evmVice, storageStore_executionEnv] using
+    ExecFuncBody.execBlockOK hblock
+
+theorem vatSuckSourceRevertDaiOverflow (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hauth :
+      evalExpr? config { contract := contract, locals := suckStore I } evm
+        (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true))
+    (hsinFit :
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)).toNat +
+        (suckRadWord I).toNat < UInt256.size) :
+    let sinVal := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)
+    let sinNew := sinVal + suckRadWord I
+    let evmSin := Solm.EVM.storageStore evm evm.executionEnv.codeOwner (suckSinSlot I) sinNew
+    let daiVal := Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I)
+    UInt256.size ≤ daiVal.toNat + (suckRadWord I).toNat →
+    ExecTransitionBody config contract evm (suckStore I) suckTransition.body .reverted := by
+  intro sinVal sinNew evmSin daiVal hdaiOverflow
+  have hsinLoad :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I) = sinVal := rfl
+  have hdaiLoad :
+      Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I) = daiVal := rfl
+  have hprefix :
+      ExecBlock config { contract := contract, locals := suckStore I } evm
+        [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+          .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ]
+        (.ok { contract := contract, locals := suckStore I } evm) := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true hwv
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hauth) ExecBlock.nil
+  have hsinAdd :=
+    vatSuckSinAddBlockOk evm I (sinVal := sinVal) (sinNew := sinNew)
+      hsinLoad (by rfl) hsinFit
+  have hsinAssign := vatSuckAssignSinOk evm I (sinNew := sinNew)
+  have hdaiRevert :=
+    vatSuckDaiAddBlockRevert evmSin I (sinNew := sinNew) (daiVal := daiVal)
+      hdaiLoad hdaiOverflow
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiRevert
+  have hblock := execBlock_append_term
+    (s2 :=
+      [ .assign .storage (daiRef (.var "v")) (.var "daiNew") ] ++
+      checkedAddUintInto "viceNew" (.storage viceRef) (.var "rad") ++
+      [ .assign .storage viceRef (.var "viceNew") ] ++
+      checkedAddUintInto "debtNew" (.storage debtRef) (.var "rad") ++
+      [ .assign .storage debtRef (.var "debtNew") ])
+    h03 (by intro f' e' h; cases h)
+  simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
+    List.append_assoc] using ExecFuncBody.execBlockRevert hblock
+
+theorem vatSuckSourceStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hauth :
+      evalExpr? config { contract := contract, locals := suckStore I } evm
+        (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true))
+    (hsinFit :
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)).toNat +
+        (suckRadWord I).toNat < UInt256.size)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (suckStore I) suckTransition.body
+      .staticViolation := by
+  let sinVal := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)
+  let sinNew := sinVal + suckRadWord I
+  have hprefix :
+      ExecBlock config { contract := contract, locals := suckStore I } evm
+        [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+          .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ]
+        (.ok { contract := contract, locals := suckStore I } evm) := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true hwv
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hauth) ExecBlock.nil
+  have hsinAdd :=
+    vatSuckSinAddBlockOk evm I (sinVal := sinVal) (sinNew := sinNew) rfl (by rfl) hsinFit
+  have hsinAssign :
+      ExecBlock config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+        [ .assign .storage (sinRef (.var "u")) (.var "sinNew") ] .staticViolation := by
+    cases vatSuckAssignSinOk evm I (sinNew := sinNew) with
+    | consNormal hstmt _ => exact ExecBlock.consStatic (execStmt_assign_static hstmt hperm)
+  have hblock := execBlock_append_term
+    (s2 :=
+      checkedAddUintInto "daiNew" (.storage (daiRef (.var "v"))) (.var "rad") ++
+      [ .assign .storage (daiRef (.var "v")) (.var "daiNew") ] ++
+      checkedAddUintInto "viceNew" (.storage viceRef) (.var "rad") ++
+      [ .assign .storage viceRef (.var "viceNew") ] ++
+      checkedAddUintInto "debtNew" (.storage debtRef) (.var "rad") ++
+      [ .assign .storage debtRef (.var "debtNew") ])
+    (execBlock_append (execBlock_append hprefix hsinAdd) hsinAssign) (by intro f' e' h; cases h)
+  simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
+    List.append_assoc] using ExecFuncBody.execBlockStatic hblock
+
+theorem vatSuckSourceRevertDaiOverflowVat
+    {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hsinFit :
+      (solcSlotWordAt (suckSinSlot I) σ I).toNat +
+        (suckRadWord I).toNat < UInt256.size)
+    (hdaiOverflow :
+      UInt256.size ≤
+        (solcSlotWordAt (suckDaiSlot I)
+          (sstoreAccountMap I.codeOwner σ (suckSinSlot I)
+            (solcSlotWordAt (suckSinSlot I) σ I + suckRadWord I)) I).toNat +
+          (suckRadWord I).toNat) :
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 (suckStore I) suckTransition.body .reverted := by
+  intro evm0
+  have hguard := vatAuthGuardEval_true
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    (locals := suckStore I) (suckStore_wards I) hauth
+  let sinVal := solcSlotWordAt (suckSinSlot I) σ I
+  let sinNew := sinVal + suckRadWord I
+  let evmSin := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner (suckSinSlot I) sinNew
+  let daiVal := Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I)
+  have hsinLoad :
+      Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (suckSinSlot I) = sinVal := by
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, sinVal, evm0, initState, Solm.EVM.storageLoad, solcSlotWordAt,
+      State.lookupAccount, Account.lookupStorage]
+  have hsinFitLoad : sinVal.toNat + (suckRadWord I).toNat < UInt256.size := by
+    simpa [sinVal] using hsinFit
+  have hdaiLoad :
+      Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I) = daiVal := rfl
+  have hdaiOverflowLoad :
+      UInt256.size ≤ daiVal.toNat + (suckRadWord I).toNat := by
+    have hload :
+        daiVal =
+          solcSlotWordAt (suckDaiSlot I)
+            (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew) I := by
+      simpa [daiVal, evmSin, evm0, sinNew, initState, storageStore_executionEnv] using
+        (storageLoad_after_initState_store
+          (σ := σ) (σ₀ := σ₀)
+          (A := A) (I := I) (g := Sat256.ofUInt256 g)
+          (writeSlot := suckSinSlot I) (readSlot := suckDaiSlot I) (val := sinNew))
+    rw [hload]
+    simpa [sinNew, sinVal] using hdaiOverflow
+  have hprefix :
+      ExecBlock config { contract := contract, locals := suckStore I } evm0
+        [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+          .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ]
+        (.ok { contract := contract, locals := suckStore I } evm0) := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simpa [evm0, initState] using hwv)
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hguard) ExecBlock.nil
+  have hsinAdd :=
+    vatSuckSinAddBlockOk evm0 I (sinVal := sinVal) (sinNew := sinNew)
+      hsinLoad (by rfl) hsinFitLoad
+  have hsinAssign := vatSuckAssignSinOk evm0 I (sinNew := sinNew)
+  have hdaiRevert :=
+    vatSuckDaiAddBlockRevert evmSin I (sinNew := sinNew) (daiVal := daiVal)
+      hdaiLoad hdaiOverflowLoad
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiRevert
+  have hblock := execBlock_append_term
+    (s2 :=
+      [ .assign .storage (daiRef (.var "v")) (.var "daiNew") ] ++
+      checkedAddUintInto "viceNew" (.storage viceRef) (.var "rad") ++
+      [ .assign .storage viceRef (.var "viceNew") ] ++
+      checkedAddUintInto "debtNew" (.storage debtRef) (.var "rad") ++
+      [ .assign .storage debtRef (.var "debtNew") ])
+    h03 (by intro f' e' h; cases h)
+  simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
+    List.append_assoc] using ExecFuncBody.execBlockRevert hblock
+
+theorem vatSuckSourceRevertViceOverflow (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hauth :
+      evalExpr? config { contract := contract, locals := suckStore I } evm
+        (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true))
+    (hsinFit :
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)).toNat +
+        (suckRadWord I).toNat < UInt256.size) :
+    let sinVal := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)
+    let sinNew := sinVal + suckRadWord I
+    let evmSin := Solm.EVM.storageStore evm evm.executionEnv.codeOwner (suckSinSlot I) sinNew
+    let daiVal := Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I)
+    let daiNew := daiVal + suckRadWord I
+    let evmDai := Solm.EVM.storageStore evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I) daiNew
+    let viceVal := Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner suckViceSlot
+    daiVal.toNat + (suckRadWord I).toNat < UInt256.size →
+    UInt256.size ≤ viceVal.toNat + (suckRadWord I).toNat →
+    ExecTransitionBody config contract evm (suckStore I) suckTransition.body .reverted := by
+  intro sinVal sinNew evmSin daiVal daiNew evmDai viceVal hdaiFit hviceOverflow
+  have hsinLoad :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I) = sinVal := rfl
+  have hdaiLoad :
+      Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I) = daiVal := rfl
+  have hviceLoad :
+      Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner suckViceSlot = viceVal := rfl
+  have hprefix :
+      ExecBlock config { contract := contract, locals := suckStore I } evm
+        [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+          .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ]
+        (.ok { contract := contract, locals := suckStore I } evm) := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true hwv
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hauth) ExecBlock.nil
+  have hsinAdd :=
+    vatSuckSinAddBlockOk evm I (sinVal := sinVal) (sinNew := sinNew)
+      hsinLoad (by rfl) hsinFit
+  have hsinAssign := vatSuckAssignSinOk evm I (sinNew := sinNew)
+  have hdaiAdd :=
+    vatSuckDaiAddBlockOk evmSin I (sinNew := sinNew) (daiVal := daiVal)
+      (daiNew := daiNew) hdaiLoad (by rfl) hdaiFit
+  have hdaiAssign := vatSuckAssignDaiOk evmSin I (sinNew := sinNew) (daiNew := daiNew)
+  have hviceRevert :=
+    vatSuckViceAddBlockRevert evmDai I (sinNew := sinNew) (daiNew := daiNew)
+      (viceVal := viceVal) hviceLoad hviceOverflow
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiAdd
+  have h04 := execBlock_append h03 hdaiAssign
+  have h05 := execBlock_append h04 hviceRevert
+  have hblock := execBlock_append_term
+    (s2 :=
+      [ .assign .storage viceRef (.var "viceNew") ] ++
+      checkedAddUintInto "debtNew" (.storage debtRef) (.var "rad") ++
+      [ .assign .storage debtRef (.var "debtNew") ])
+    h05 (by intro f' e' h; cases h)
+  simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
+    List.append_assoc] using ExecFuncBody.execBlockRevert hblock
+
+theorem vatSuckSourceRevertViceOverflowVat
+    {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hsinFit :
+      (solcSlotWordAt (suckSinSlot I) σ I).toNat +
+        (suckRadWord I).toNat < UInt256.size) :
+    let sinNew := solcSlotWordAt (suckSinSlot I) σ I + suckRadWord I
+    let σSinSolm := sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew
+    let daiNew := solcSlotWordAt (suckDaiSlot I) σSinSolm I + suckRadWord I
+    let σDaiSolm := sstoreAccountMap I.codeOwner σSinSolm (suckDaiSlot I) daiNew
+    (solcSlotWordAt (suckDaiSlot I) σSinSolm I).toNat +
+      (suckRadWord I).toNat < UInt256.size →
+    UInt256.size ≤ (solcSlotWordAt suckViceSlot σDaiSolm I).toNat + (suckRadWord I).toNat →
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 (suckStore I) suckTransition.body .reverted := by
+  intro sinNew σSinSolm daiNew σDaiSolm hdaiFit hviceOverflow evm0
+  have hguard := vatAuthGuardEval_true
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    (locals := suckStore I) (suckStore_wards I) hauth
+  have hsinLoad :
+      Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (suckSinSlot I) =
+        solcSlotWordAt (suckSinSlot I) σ I := by
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, evm0, initState, Solm.EVM.storageLoad, solcSlotWordAt,
+      State.lookupAccount, Account.lookupStorage]
+  have hdaiLoad :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner (suckSinSlot I)
+            sinNew)
+          (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner (suckSinSlot I)
+            sinNew).executionEnv.codeOwner
+          (suckDaiSlot I) =
+        solcSlotWordAt (suckDaiSlot I) σSinSolm I := by
+    simpa [evm0, sinNew, σSinSolm, initState, storageStore_executionEnv] using
+      (storageLoad_after_initState_store
+        (σ := σ) (σ₀ := σ₀)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g)
+        (writeSlot := suckSinSlot I) (readSlot := suckDaiSlot I) (val := sinNew))
+  have hviceLoad :
+      Solm.EVM.storageLoad
+          (Solm.EVM.storageStore
+            (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner (suckSinSlot I)
+              sinNew)
+            (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner (suckSinSlot I)
+              sinNew).executionEnv.codeOwner (suckDaiSlot I) daiNew)
+          (Solm.EVM.storageStore
+            (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner (suckSinSlot I)
+              sinNew)
+            (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner (suckSinSlot I)
+              sinNew).executionEnv.codeOwner (suckDaiSlot I) daiNew).executionEnv.codeOwner
+          suckViceSlot =
+        solcSlotWordAt suckViceSlot σDaiSolm I := by
+    simpa [evm0, sinNew, σSinSolm, daiNew, σDaiSolm, initState,
+      storageStore_executionEnv] using
+      (storageLoad_after_initState_store₂
+        (σ := σ) (σ₀ := σ₀)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g)
+        (slot₁ := suckSinSlot I) (slot₂ := suckDaiSlot I) (readSlot := suckViceSlot)
+        (val₁ := sinNew) (val₂ := daiNew))
+  have hprefix :
+      ExecBlock config { contract := contract, locals := suckStore I } evm0
+        [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+          .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ]
+        (.ok { contract := contract, locals := suckStore I } evm0) := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simpa [evm0, initState] using hwv)
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hguard) ExecBlock.nil
+  have hsinAdd :=
+    vatSuckSinAddBlockOk evm0 I
+      (sinVal := solcSlotWordAt (suckSinSlot I) σ I) (sinNew := sinNew)
+      hsinLoad (by rfl) hsinFit
+  have hsinAssign := vatSuckAssignSinOk evm0 I (sinNew := sinNew)
+  have hdaiAdd :=
+    vatSuckDaiAddBlockOk
+      (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner (suckSinSlot I) sinNew)
+      I (sinNew := sinNew) (daiVal := solcSlotWordAt (suckDaiSlot I) σSinSolm I)
+      (daiNew := daiNew) hdaiLoad (by rfl) hdaiFit
+  have hdaiAssign :=
+    vatSuckAssignDaiOk
+      (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner (suckSinSlot I) sinNew)
+      I (sinNew := sinNew) (daiNew := daiNew)
+  have hviceRevert :=
+    vatSuckViceAddBlockRevert
+      (Solm.EVM.storageStore
+        (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner (suckSinSlot I) sinNew)
+        (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner (suckSinSlot I)
+          sinNew).executionEnv.codeOwner (suckDaiSlot I) daiNew)
+      I (sinNew := sinNew) (daiNew := daiNew)
+      (viceVal := solcSlotWordAt suckViceSlot σDaiSolm I) hviceLoad hviceOverflow
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiAdd
+  have h04 := execBlock_append h03 hdaiAssign
+  have h05 := execBlock_append h04 hviceRevert
+  have hblock := execBlock_append_term
+    (s2 :=
+      [ .assign .storage viceRef (.var "viceNew") ] ++
+      checkedAddUintInto "debtNew" (.storage debtRef) (.var "rad") ++
+      [ .assign .storage debtRef (.var "debtNew") ])
+    h05 (by intro f' e' h; cases h)
+  simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
+    List.append_assoc] using ExecFuncBody.execBlockRevert hblock
+
+theorem vatSuckSourceRevertDebtOverflow (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hauth :
+      evalExpr? config { contract := contract, locals := suckStore I } evm
+        (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true))
+    (hsinFit :
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)).toNat +
+        (suckRadWord I).toNat < UInt256.size) :
+    let sinVal := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)
+    let sinNew := sinVal + suckRadWord I
+    let evmSin := Solm.EVM.storageStore evm evm.executionEnv.codeOwner (suckSinSlot I) sinNew
+    let daiVal := Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I)
+    let daiNew := daiVal + suckRadWord I
+    let evmDai := Solm.EVM.storageStore evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I) daiNew
+    let viceVal := Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner suckViceSlot
+    let viceNew := viceVal + suckRadWord I
+    let evmVice := Solm.EVM.storageStore evmDai evmDai.executionEnv.codeOwner suckViceSlot viceNew
+    let debtVal := Solm.EVM.storageLoad evmVice evmVice.executionEnv.codeOwner suckDebtSlot
+    daiVal.toNat + (suckRadWord I).toNat < UInt256.size →
+    viceVal.toNat + (suckRadWord I).toNat < UInt256.size →
+    UInt256.size ≤ debtVal.toNat + (suckRadWord I).toNat →
+    ExecTransitionBody config contract evm (suckStore I) suckTransition.body .reverted := by
+  intro sinVal sinNew evmSin daiVal daiNew evmDai viceVal viceNew evmVice debtVal
+    hdaiFit hviceFit hdebtOverflow
+  have hsinLoad :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I) = sinVal := rfl
+  have hdaiLoad :
+      Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I) = daiVal := rfl
+  have hviceLoad :
+      Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner suckViceSlot = viceVal := rfl
+  have hdebtLoad :
+      Solm.EVM.storageLoad evmVice evmVice.executionEnv.codeOwner suckDebtSlot = debtVal := rfl
+  have hprefix :
+      ExecBlock config { contract := contract, locals := suckStore I } evm
+        [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+          .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ]
+        (.ok { contract := contract, locals := suckStore I } evm) := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true hwv
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hauth) ExecBlock.nil
+  have hsinAdd :=
+    vatSuckSinAddBlockOk evm I (sinVal := sinVal) (sinNew := sinNew)
+      hsinLoad (by rfl) hsinFit
+  have hsinAssign := vatSuckAssignSinOk evm I (sinNew := sinNew)
+  have hdaiAdd :=
+    vatSuckDaiAddBlockOk evmSin I (sinNew := sinNew) (daiVal := daiVal)
+      (daiNew := daiNew) hdaiLoad (by rfl) hdaiFit
+  have hdaiAssign := vatSuckAssignDaiOk evmSin I (sinNew := sinNew) (daiNew := daiNew)
+  have hviceAdd :=
+    vatSuckViceAddBlockOk evmDai I (sinNew := sinNew) (daiNew := daiNew)
+      (viceVal := viceVal) (viceNew := viceNew) hviceLoad (by rfl) hviceFit
+  have hviceAssign :=
+    vatSuckAssignViceOk evmDai I (sinNew := sinNew) (daiNew := daiNew)
+      (viceNew := viceNew)
+  have hdebtRevert :=
+    vatSuckDebtAddBlockRevert evmVice I (sinNew := sinNew) (daiNew := daiNew)
+      (viceNew := viceNew) (debtVal := debtVal) hdebtLoad hdebtOverflow
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiAdd
+  have h04 := execBlock_append h03 hdaiAssign
+  have h05 := execBlock_append h04 hviceAdd
+  have h06 := execBlock_append h05 hviceAssign
+  have h07 := execBlock_append h06 hdebtRevert
+  have hblock := execBlock_append_term
+    (s2 := [ .assign .storage debtRef (.var "debtNew") ])
+    h07 (by intro f' e' h; cases h)
+  simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
+    List.append_assoc] using ExecFuncBody.execBlockRevert hblock
+
+theorem vatSuckSourceRevertDebtOverflowVat
+    {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hsinFit :
+      (solcSlotWordAt (suckSinSlot I) σ I).toNat +
+        (suckRadWord I).toNat < UInt256.size) :
+    let sinNew := solcSlotWordAt (suckSinSlot I) σ I + suckRadWord I
+    let σSinSolm := sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew
+    let daiNew := solcSlotWordAt (suckDaiSlot I) σSinSolm I + suckRadWord I
+    let σDaiSolm := sstoreAccountMap I.codeOwner σSinSolm (suckDaiSlot I) daiNew
+    let viceNew := solcSlotWordAt suckViceSlot σDaiSolm I + suckRadWord I
+    let σViceSolm := sstoreAccountMap I.codeOwner σDaiSolm suckViceSlot viceNew
+    (solcSlotWordAt (suckDaiSlot I) σSinSolm I).toNat +
+      (suckRadWord I).toNat < UInt256.size →
+    (solcSlotWordAt suckViceSlot σDaiSolm I).toNat +
+      (suckRadWord I).toNat < UInt256.size →
+    UInt256.size ≤ (solcSlotWordAt suckDebtSlot σViceSolm I).toNat + (suckRadWord I).toNat →
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 (suckStore I) suckTransition.body .reverted := by
+  intro sinNew σSinSolm daiNew σDaiSolm viceNew σViceSolm hdaiFit hviceFit
+    hdebtOverflow evm0
+  have hguard := vatAuthGuardEval_true
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    (locals := suckStore I) (suckStore_wards I) hauth
+  have hsinLoad :
+      Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (suckSinSlot I) =
+        solcSlotWordAt (suckSinSlot I) σ I := by
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, evm0, initState, Solm.EVM.storageLoad, solcSlotWordAt,
+      State.lookupAccount, Account.lookupStorage]
+  let evmSin := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
+    (suckSinSlot I) sinNew
+  have hdaiLoad :
+      Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I) =
+        solcSlotWordAt (suckDaiSlot I) σSinSolm I := by
+    simpa [evmSin, evm0, sinNew, σSinSolm, initState, storageStore_executionEnv] using
+      (storageLoad_after_initState_store
+        (σ := σ) (σ₀ := σ₀)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g)
+        (writeSlot := suckSinSlot I) (readSlot := suckDaiSlot I) (val := sinNew))
+  let evmDai := Solm.EVM.storageStore evmSin evmSin.executionEnv.codeOwner
+    (suckDaiSlot I) daiNew
+  have hviceLoad :
+      Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner suckViceSlot =
+        solcSlotWordAt suckViceSlot σDaiSolm I := by
+    simpa [evmDai, evmSin, evm0, sinNew, σSinSolm, daiNew, σDaiSolm, initState,
+      storageStore_executionEnv] using
+      (storageLoad_after_initState_store₂
+        (σ := σ) (σ₀ := σ₀)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g)
+        (slot₁ := suckSinSlot I) (slot₂ := suckDaiSlot I) (readSlot := suckViceSlot)
+        (val₁ := sinNew) (val₂ := daiNew))
+  let evmVice := Solm.EVM.storageStore evmDai evmDai.executionEnv.codeOwner
+    suckViceSlot viceNew
+  have hdebtLoad :
+      Solm.EVM.storageLoad evmVice evmVice.executionEnv.codeOwner suckDebtSlot =
+        solcSlotWordAt suckDebtSlot σViceSolm I := by
+    simpa [evmVice, evmDai, evmSin, evm0, sinNew, σSinSolm, daiNew, σDaiSolm,
+      viceNew, σViceSolm, initState, storageStore_executionEnv] using
+      (storageLoad_after_initState_store₃
+        (σ := σ) (σ₀ := σ₀)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g)
+        (slot₁ := suckSinSlot I) (slot₂ := suckDaiSlot I) (slot₃ := suckViceSlot)
+        (readSlot := suckDebtSlot) (val₁ := sinNew) (val₂ := daiNew)
+        (val₃ := viceNew))
+  have hprefix :
+      ExecBlock config { contract := contract, locals := suckStore I } evm0
+        [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+          .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ]
+        (.ok { contract := contract, locals := suckStore I } evm0) := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simpa [evm0, initState] using hwv)
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hguard) ExecBlock.nil
+  have hsinAdd :=
+    vatSuckSinAddBlockOk evm0 I
+      (sinVal := solcSlotWordAt (suckSinSlot I) σ I) (sinNew := sinNew)
+      hsinLoad (by rfl) hsinFit
+  have hsinAssign := vatSuckAssignSinOk evm0 I (sinNew := sinNew)
+  have hdaiAdd :=
+    vatSuckDaiAddBlockOk evmSin I (sinNew := sinNew)
+      (daiVal := solcSlotWordAt (suckDaiSlot I) σSinSolm I)
+      (daiNew := daiNew) hdaiLoad (by rfl) hdaiFit
+  have hdaiAssign := vatSuckAssignDaiOk evmSin I (sinNew := sinNew) (daiNew := daiNew)
+  have hviceAdd :=
+    vatSuckViceAddBlockOk evmDai I (sinNew := sinNew) (daiNew := daiNew)
+      (viceVal := solcSlotWordAt suckViceSlot σDaiSolm I) (viceNew := viceNew)
+      hviceLoad (by rfl) hviceFit
+  have hviceAssign :=
+    vatSuckAssignViceOk evmDai I (sinNew := sinNew) (daiNew := daiNew)
+      (viceNew := viceNew)
+  have hdebtRevert :=
+    vatSuckDebtAddBlockRevert evmVice I (sinNew := sinNew) (daiNew := daiNew)
+      (viceNew := viceNew) (debtVal := solcSlotWordAt suckDebtSlot σViceSolm I)
+      hdebtLoad hdebtOverflow
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiAdd
+  have h04 := execBlock_append h03 hdaiAssign
+  have h05 := execBlock_append h04 hviceAdd
+  have h06 := execBlock_append h05 hviceAssign
+  have h07 := execBlock_append h06 hdebtRevert
+  have hblock := execBlock_append_term
+    (s2 := [ .assign .storage debtRef (.var "debtNew") ])
+    h07 (by intro f' e' h; cases h)
+  simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
+    List.append_assoc] using ExecFuncBody.execBlockRevert hblock
+
+theorem vatSuckSourceSuccessVat
+    {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hsinFit :
+      (solcSlotWordAt (suckSinSlot I) σ I).toNat +
+        (suckRadWord I).toNat < UInt256.size) :
+    let sinNew := solcSlotWordAt (suckSinSlot I) σ I + suckRadWord I
+    let σSinSolm := sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew
+    let daiNew := solcSlotWordAt (suckDaiSlot I) σSinSolm I + suckRadWord I
+    let σDaiSolm := sstoreAccountMap I.codeOwner σSinSolm (suckDaiSlot I) daiNew
+    let viceNew := solcSlotWordAt suckViceSlot σDaiSolm I + suckRadWord I
+    let σViceSolm := sstoreAccountMap I.codeOwner σDaiSolm suckViceSlot viceNew
+    let debtNew := solcSlotWordAt suckDebtSlot σViceSolm I + suckRadWord I
+    (solcSlotWordAt (suckDaiSlot I) σSinSolm I).toNat +
+      (suckRadWord I).toNat < UInt256.size →
+    (solcSlotWordAt suckViceSlot σDaiSolm I).toNat +
+      (suckRadWord I).toNat < UInt256.size →
+    (solcSlotWordAt suckDebtSlot σViceSolm I).toNat +
+      (suckRadWord I).toNat < UInt256.size →
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 (suckStore I) suckTransition.body
+      (.returned { contract := contract, locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew }
+        (suckPostState evm0 I sinNew daiNew viceNew debtNew) none) := by
+  intro sinNew σSinSolm daiNew σDaiSolm viceNew σViceSolm debtNew hdaiFit hviceFit
+    hdebtFit evm0
+  have hguard := vatAuthGuardEval_true
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    (locals := suckStore I) (suckStore_wards I) hauth
+  have hsinLoad :
+      Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (suckSinSlot I) =
+        solcSlotWordAt (suckSinSlot I) σ I := by
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, evm0, initState, Solm.EVM.storageLoad, solcSlotWordAt,
+      State.lookupAccount, Account.lookupStorage]
+  let evmSin := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
+    (suckSinSlot I) sinNew
+  have hdaiLoad :
+      Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I) =
+        solcSlotWordAt (suckDaiSlot I) σSinSolm I := by
+    simpa [evmSin, evm0, sinNew, σSinSolm, initState, storageStore_executionEnv] using
+      (storageLoad_after_initState_store
+        (σ := σ) (σ₀ := σ₀)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g)
+        (writeSlot := suckSinSlot I) (readSlot := suckDaiSlot I) (val := sinNew))
+  let evmDai := Solm.EVM.storageStore evmSin evmSin.executionEnv.codeOwner
+    (suckDaiSlot I) daiNew
+  have hviceLoad :
+      Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner suckViceSlot =
+        solcSlotWordAt suckViceSlot σDaiSolm I := by
+    simpa [evmDai, evmSin, evm0, sinNew, σSinSolm, daiNew, σDaiSolm, initState,
+      storageStore_executionEnv] using
+      (storageLoad_after_initState_store₂
+        (σ := σ) (σ₀ := σ₀)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g)
+        (slot₁ := suckSinSlot I) (slot₂ := suckDaiSlot I) (readSlot := suckViceSlot)
+        (val₁ := sinNew) (val₂ := daiNew))
+  let evmVice := Solm.EVM.storageStore evmDai evmDai.executionEnv.codeOwner
+    suckViceSlot viceNew
+  have hdebtLoad :
+      Solm.EVM.storageLoad evmVice evmVice.executionEnv.codeOwner suckDebtSlot =
+        solcSlotWordAt suckDebtSlot σViceSolm I := by
+    simpa [evmVice, evmDai, evmSin, evm0, sinNew, σSinSolm, daiNew, σDaiSolm,
+      viceNew, σViceSolm, initState, storageStore_executionEnv] using
+      (storageLoad_after_initState_store₃
+        (σ := σ) (σ₀ := σ₀)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g)
+        (slot₁ := suckSinSlot I) (slot₂ := suckDaiSlot I) (slot₃ := suckViceSlot)
+        (readSlot := suckDebtSlot) (val₁ := sinNew) (val₂ := daiNew)
+        (val₃ := viceNew))
+  let evmDebt := Solm.EVM.storageStore evmVice evmVice.executionEnv.codeOwner
+    suckDebtSlot debtNew
+  have hprefix :
+      ExecBlock config { contract := contract, locals := suckStore I } evm0
+        [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+          .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ]
+        (.ok { contract := contract, locals := suckStore I } evm0) := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simpa [evm0, initState] using hwv)
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hguard) ExecBlock.nil
+  have hsinAdd :=
+    vatSuckSinAddBlockOk evm0 I
+      (sinVal := solcSlotWordAt (suckSinSlot I) σ I) (sinNew := sinNew)
+      hsinLoad (by rfl) hsinFit
+  have hsinAssign := vatSuckAssignSinOk evm0 I (sinNew := sinNew)
+  have hdaiAdd :=
+    vatSuckDaiAddBlockOk evmSin I (sinNew := sinNew)
+      (daiVal := solcSlotWordAt (suckDaiSlot I) σSinSolm I)
+      (daiNew := daiNew) hdaiLoad (by rfl) hdaiFit
+  have hdaiAssign := vatSuckAssignDaiOk evmSin I (sinNew := sinNew) (daiNew := daiNew)
+  have hviceAdd :=
+    vatSuckViceAddBlockOk evmDai I (sinNew := sinNew) (daiNew := daiNew)
+      (viceVal := solcSlotWordAt suckViceSlot σDaiSolm I) (viceNew := viceNew)
+      hviceLoad (by rfl) hviceFit
+  have hviceAssign :=
+    vatSuckAssignViceOk evmDai I (sinNew := sinNew) (daiNew := daiNew)
+      (viceNew := viceNew)
+  have hdebtAdd :=
+    vatSuckDebtAddBlockOk evmVice I (sinNew := sinNew) (daiNew := daiNew)
+      (viceNew := viceNew) (debtVal := solcSlotWordAt suckDebtSlot σViceSolm I)
+      (debtNew := debtNew) hdebtLoad (by rfl) hdebtFit
+  have hdebtAssign :=
+    vatSuckAssignDebtOk evmVice I (sinNew := sinNew) (daiNew := daiNew)
+      (viceNew := viceNew) (debtNew := debtNew)
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiAdd
+  have h04 := execBlock_append h03 hdaiAssign
+  have h05 := execBlock_append h04 hviceAdd
+  have h06 := execBlock_append h05 hviceAssign
+  have h07 := execBlock_append h06 hdebtAdd
+  have hblock := execBlock_append h07 hdebtAssign
+  simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
+    List.append_assoc, suckPostState, evmSin, evmDai, evmVice, evmDebt,
+    storageStore_executionEnv] using ExecFuncBody.execBlockOK hblock
+
+theorem vatSuckSourceSuccessVatEq
+    {σ σ₀ A I} {g : UInt256}
+    {sinNew daiNew viceNew debtNew : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hsinFit :
+      (solcSlotWordAt (suckSinSlot I) σ I).toNat +
+        (suckRadWord I).toNat < UInt256.size)
+    (hsinNew :
+      solcSlotWordAt (suckSinSlot I) σ I + suckRadWord I = sinNew)
+    (hdaiFit :
+      (solcSlotWordAt (suckDaiSlot I)
+        (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew) I).toNat +
+        (suckRadWord I).toNat < UInt256.size)
+    (hdaiNew :
+      solcSlotWordAt (suckDaiSlot I)
+        (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew) I +
+        suckRadWord I = daiNew)
+    (hviceFit :
+      (solcSlotWordAt suckViceSlot
+        (sstoreAccountMap I.codeOwner
+          (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+          (suckDaiSlot I) daiNew) I).toNat +
+        (suckRadWord I).toNat < UInt256.size)
+    (hviceNew :
+      solcSlotWordAt suckViceSlot
+        (sstoreAccountMap I.codeOwner
+          (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+          (suckDaiSlot I) daiNew) I +
+        suckRadWord I = viceNew)
+    (hdebtFit :
+      (solcSlotWordAt suckDebtSlot
+        (sstoreAccountMap I.codeOwner
+          (sstoreAccountMap I.codeOwner
+            (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+            (suckDaiSlot I) daiNew)
+          suckViceSlot viceNew) I).toNat +
+        (suckRadWord I).toNat < UInt256.size)
+    (hdebtNew :
+      solcSlotWordAt suckDebtSlot
+        (sstoreAccountMap I.codeOwner
+          (sstoreAccountMap I.codeOwner
+            (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+            (suckDaiSlot I) daiNew)
+          suckViceSlot viceNew) I +
+        suckRadWord I = debtNew) :
+    ExecTransitionBody config contract
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (suckStore I) suckTransition.body
+      (.returned { contract := contract, locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew }
+        (suckPostState
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          I sinNew daiNew viceNew debtNew) none) := by
+  have hbody :=
+    vatSuckSourceSuccessVat
+      (σ := σ) (σ₀ := σ₀)
+      (A := A) (I := I) (g := g) hwv hauth hsinFit
+      (by simpa only [hsinNew] using hdaiFit)
+      (by simpa only [hsinNew, hdaiNew] using hviceFit)
+      (by simpa only [hsinNew, hdaiNew, hviceNew] using hdebtFit)
+  simpa only [hsinNew, hdaiNew, hviceNew, hdebtNew] using hbody
+
+theorem vatSuckSourceRevertSinOverflow
+    {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hover : UInt256.size ≤
+      (solcSlotWordAt (suckSinSlot I) σ I).toNat + (suckRadWord I).toNat) :
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 (suckStore I) suckTransition.body .reverted := by
+  intro evm0
+  have hsinLoad :
+      Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (suckSinSlot I) =
+        solcSlotWordAt (suckSinSlot I) σ I := by
+    simp [evm0, solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad,
+      State.lookupAccount, Account.lookupStorage]
+  have hrad :
+      evalExpr? config { contract := contract, locals := suckStore I } evm0 (.var "rad") =
+        .ok (.int (Int.ofNat (suckRadWord I).toNat)) :=
+    vatEvalExpr_varUInt256 (evm := evm0) (locals := suckStore I) (name := "rad")
+      (value := suckRadWord I) (suckStore_get_rad I)
+  have hsin :
+      evalExpr? config { contract := contract, locals := suckStore I } evm0
+          (.storage (sinRef (.var "u"))) =
+        .ok (.int (Int.ofNat (solcSlotWordAt (suckSinSlot I) σ I).toNat)) := by
+    simpa [hsinLoad] using evalExpr_suck_sin_u_old (evm := evm0) (I := I)
+  have hadd :
+      evalExpr? config { contract := contract, locals := suckStore I } evm0
+          (add256 (.storage (sinRef (.var "u"))) (.var "rad")) = .revert :=
+    suckEvalExpr_add256_revert hsin hrad hover
+  have hguardAuth := vatAuthGuardEval_true
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    (locals := suckStore I) (suckStore_wards I) hauth
+  have hblock :
+      ExecBlock config { contract := contract, locals := suckStore I } evm0
+        suckTransition.body .reverted := by
+    change ExecBlock config { contract := contract, locals := suckStore I } evm0
+      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
+        .letDecl "sinNew" (some uint256)
+          (add256 (.storage (sinRef (.var "u"))) (.var "rad")),
+        .require (.binary .ge (.var "sinNew") (.storage (sinRef (.var "u")))),
+        .assign .storage (sinRef (.var "u")) (.var "sinNew"),
+        .letDecl "daiNew" (some uint256)
+          (add256 (.storage (daiRef (.var "v"))) (.var "rad")),
+        .require (.binary .ge (.var "daiNew") (.storage (daiRef (.var "v")))),
+        .assign .storage (daiRef (.var "v")) (.var "daiNew"),
+        .letDecl "viceNew" (some uint256)
+          (add256 (.storage viceRef) (.var "rad")),
+        .require (.binary .ge (.var "viceNew") (.storage viceRef)),
+        .assign .storage viceRef (.var "viceNew"),
+        .letDecl "debtNew" (some uint256)
+          (add256 (.storage debtRef) (.var "rad")),
+        .require (.binary .ge (.var "debtNew") (.storage debtRef)),
+        .assign .storage debtRef (.var "debtNew") ]
+      .reverted
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
+    exact ExecBlock.consRevert (ExecStmt.letDeclRevert hadd)
+  simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
+
+theorem vatDecode_suck_ok {I : ExecutionEnv} (hsz100 : 100 ≤ I.calldata.size) :
+    decodeCalldataWithMode config.abiDecodeMode (suckTransition.params.map Param.name)
+      (transitionSignature suckTransition).paramTypes I.calldata = some (suckStore I) := by
+  show decodeCalldataWithMode config.abiDecodeMode ["u", "v", "rad"]
+    [addr, addr, uint256] I.calldata = _
+  change decodeCalldataWithMode DecodeMode.legacySolc05 ["u", "v", "rad"]
+      [abiAddress, abiAddress, abiUInt256] I.calldata =
+    some ((((∅ : Store).insert "u"
+      (.address (AccountAddress.ofNat (calldataWord I.calldata 4).toNat))).insert "v"
+      (.address (AccountAddress.ofNat (calldataWord I.calldata 36).toNat))).insert "rad"
+      (.int (Int.ofNat (calldataWord I.calldata 68).toNat)))
+  exact
+    decodeCalldata_legacyAddress_legacyAddress_uint256_ok
+      (cd := I.calldata) (x := "u") (y := "v") (z := "rad") hsz100
+
+theorem vatDecode_suck_none_short {I : ExecutionEnv}
+    (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100) :
+    decodeCalldataWithMode config.abiDecodeMode (suckTransition.params.map Param.name)
+      (transitionSignature suckTransition).paramTypes I.calldata = none := by
+  show decodeCalldataWithMode config.abiDecodeMode ["u", "v", "rad"]
+    [addr, addr, uint256] I.calldata = none
+  change decodeCalldataWithMode DecodeMode.legacySolc05 ["u", "v", "rad"]
+    [abiAddress, abiAddress, abiUInt256] I.calldata = none
+  simpa using decodeCalldata_legacyAddress_legacyAddress_uint256_none_short
+    (cd := I.calldata) (x := "u") (y := "v") (z := "rad") hsz4 hshort
+
+theorem vatDispatchSuck {I : ExecutionEnv}
+    (hsel : selIs I (vatSelBytes 24)) :
+    dispatchMsg contract I.calldata = some suckTransition := by
+  have hcd : I.calldata.extract 0 4 = vatSelBytes 24 := (byteArray_eq_of_beq hsel).symm
+  rw [dispatchMsg_eq_dispatchList contract I.calldata (by rfl) (by rfl)]
+  change dispatchList transitions I.calldata = some suckTransition
+  unfold transitions
+  simp [dispatchList, selectorOf, hcd, LineSelectorBytes, cageSelectorBytes,
+    canSelectorBytes, daiSelectorBytes, debtSelectorBytes, denySelectorBytes,
+    fileIlkSelectorBytes, fileLineSelectorBytes, fluxSelectorBytes, foldSelectorBytes,
+    forkSelectorBytes, frobSelectorBytes, gemSelectorBytes, grabSelectorBytes,
+    healSelectorBytes, hopeSelectorBytes, ilksSelectorBytes, initSelectorBytes,
+    liveSelectorBytes, moveSelectorBytes, nopeSelectorBytes, relySelectorBytes,
+    sinSelectorBytes, slipSelectorBytes, suckSelectorBytes]
+  native_decide
+
+theorem vatReachSuckBody {σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsel : selIs I (vatSelBytes 24)) :
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
+        ⟨1543⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+        σ k C := by
+  have hword : vatSelWord I = ⟨0xf24e23eb⟩ :=
+    vatSelWord_eq_of_beq I hsz 0xf2 0x4e 0x23 0xeb ⟨0xf24e23eb⟩
+      (by native_decide) (by simpa [vatSelBytes] using hsel)
+  have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) = ⟨0⟩ := by
+    rw [hword]
+    native_decide
+  have hhigh : UInt256.gt (armSelNat vatBytecode vatHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
+    rw [hword]
+    native_decide
+  have hhighhigh :
+      UInt256.gt (armSelNat vatBytecode vatHighHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
+    rw [hword]
+    native_decide
+  have heq0 : ∀ j, j < 2 →
+      UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms65FirstPc j))
+        (vatSelWord I) = ⟨0⟩ := by
+    intro j hj
+    interval_cases j <;> rw [hword] <;> native_decide
+  have htake :
+      UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms65FirstPc 2))
+        (vatSelWord I) ≠ ⟨0⟩ := by
+    rw [hword]
+    native_decide
+  exact vatReachArms65Body 2 (by omega) ⟨1543⟩ hcode hwv hsz hsize
+    hroot hhigh hhighhigh heq0 htake (by jump_dest) (by native_decide)
+
+theorem vatSuckX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hreach : ∃ k C, RD vatBytecode I g
+      (initState σ σ₀ g A I) ⟨1543⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I) ⟨6190⟩
+      [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
+    (code := vatBytecode) (sel := sel) (entry := ⟨1543⟩) (ret := ⟨524⟩)
+    (decoded := ⟨1565⟩) (need := ⟨96⟩) hreach
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by jump_dest)
+    (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz100) hsize)
+  obtain ⟨_, _, hmasked⟩ := RD.solcAddressAddressUint256ExternalMaskAndJumpMasked
+    (code := vatBytecode) (decoded := ⟨1565⟩) (ret := ⟨524⟩) (routine := ⟨6190⟩)
+    (R := [sel]) hdecoded
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by jump_dest) (by simp)
+  exact ⟨_, _, by
+    simpa [suckRadWord, suckVMaskedWord, suckUMaskedWord, suckVWord, suckUWord,
+      calldataWord] using hmasked⟩
+
+theorem vatSuckX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
+    (hsize : I.calldata.size < UInt256.size)
+    (hreach : ∃ k C, RD vatBytecode I g
+      (initState σ σ₀ g A I) ⟨1543⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev vatBytecode g (initState σ σ₀ g A I) := by
+  have hlt :
+      UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
+    apply ult_one
+    rw [usub_ofNat_word_toNat (by simpa using hsz4) hsize]
+    change I.calldata.size - 4 < 96
+    omega
+  exact RD.solcExternalStaticArgsShortReverts
+    (code := vatBytecode) (sel := sel) (entry := ⟨1543⟩) (ret := ⟨524⟩)
+    (decoded := ⟨1565⟩) (need := ⟨96⟩) hreach
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide) hlt
+
+theorem vatSuckBodyCoreDecodeFailed_short
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
+    (hsel : selIs I (vatSelBytes 24))
+    (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1543⟩ [vatSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  exact (vatSuckX_shortarg (g := Sat256.ofUInt256 g) hsz4 hshort hsize hreach)
+    |>.reEquivDecodingFailed hcode (vatDispatchSuck hsel)
+      (vatDecode_suck_none_short hsz4 hshort)
+
+theorem RD.vatSuckSinLoadToAdd
+    {σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
+    {memAuth : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6272⟩
+      [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel]
+      memAuth (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hmem : memAuth.size = 96) :
+    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6637⟩
+      (suckRadWord I ::
+        solcSlotWord σ I (solcMappingSlot ⟨6⟩ (suckUMaskedWord I)) ::
+        ⟨6307⟩ :: suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I ::
+        ⟨524⟩ :: sel :: [])
+      (twoWordHashMem (suckUMaskedWord I) ⟨6⟩ memAuth)
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
+  have hmaskLiteral :
+      UInt256.land (suckUMaskedWord I)
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
+        suckUMaskedWord I := by
+    rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+      solcAddrMask from by decide]
+    exact solcAddrMask_clean (suckUMaskedWord_canonical I)
+  have hslot :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (KEC ((twoWordHashMem (suckUMaskedWord I) ⟨6⟩ memAuth).readWithPadding 0 64))) =
+        solcMappingSlot ⟨6⟩ (suckUMaskedWord I) :=
+    twoWordHashMem_solcMappingSlot ⟨6⟩ (suckUMaskedWord I) hmem
+  have rd6283pre := evm_run h with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
+    raw shl (by native_decide) (by evm_ov),
+    raw sub (by native_decide) (by evm_ov),
+    raw dup4 (by native_decide) (by evm_ov)]
+  have rd6283₀ := evm_run rd6283pre with [raw and (by native_decide) (by evm_ov)]
+  have rd6283 := rd6283₀
+  rw [hmaskLiteral] at rd6283
+  have rd6287pre := evm_run rd6283 with [
+    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov)]
+  have rd6288 := rd6287pre.mstore 0 (wordAt0Mem (suckUMaskedWord I) memAuth)
+    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have rd6292pre := evm_run rd6288 with [
+    raw push1 ⟨6⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+  have rd6293 := rd6292pre.mstore 0
+    (twoWordHashMem (suckUMaskedWord I) ⟨6⟩ memAuth)
+    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have rd6296pre := evm_run rd6293 with [
+    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov)]
+  have rd6297 := rd6296pre.keccak256 0 (solcMappingSlot ⟨6⟩ (suckUMaskedWord I))
+    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
+  obtain ⟨k6298, C6298, rd6298raw⟩ := rd6297.sload (by native_decide) (by evm_ov)
+  have rd6298 : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6298⟩
+      (solcSlotWord σ I (solcMappingSlot ⟨6⟩ (suckUMaskedWord I)) ::
+        suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I ::
+        ⟨524⟩ :: sel :: [])
+      (twoWordHashMem (suckUMaskedWord I) ⟨6⟩ memAuth)
+      (UInt256.ofNat 3) ByteArray.empty σ k6298 C6298 := by
+    simpa [solcSlotWord] using rd6298raw
+  have rd6637pre := evm_run rd6298 with [
+    raw push2 ⟨6307⟩ (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw dup3 (by native_decide) (by evm_ov),
+    raw push2 ⟨6637⟩ (by native_decide) (by evm_ov)]
+  exact ⟨_, _, rd6637pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+
+theorem RD.vatSuckSinAddOverflow
+    {σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
+    {memAuth : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6272⟩
+      [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel]
+      memAuth (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hmem : memAuth.size = 96)
+    (hover : UInt256.size ≤
+      (solcSlotWordAt (suckSinSlot I) σ I).toNat + (suckRadWord I).toNat) :
+    RDrev vatBytecode (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  have hslotEq :
+      solcSlotWord σ I (solcMappingSlot ⟨6⟩ (suckUMaskedWord I)) =
+        solcSlotWordAt (suckSinSlot I) σ I := by
+    simp [solcSlotWordAt, suckSinSlot_eq I]
+  obtain ⟨_, _, hroutine⟩ := RD.vatSuckSinLoadToAdd h hmem
+  exact RD.solcCheckedAddEmptyRevertAnyWords
+    (code := vatBytecode) (pc := ⟨6637⟩) (okPc := ⟨6615⟩)
+    (a := solcSlotWordAt (suckSinSlot I) σ I) (b := suckRadWord I) (ret := ⟨6307⟩)
+    (R := [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel])
+    (by simpa [hslotEq] using hroutine)
+    (by
+      unfold solcCheckedAddEmptyRevertWf solcCheckedAddSuccessWf
+      repeat' first | apply And.intro | native_decide)
+    hover (by simp)
+
+theorem RD.vatSuckSinAddSuccess
+    {σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
+    {memAuth : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6272⟩
+      [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel]
+      memAuth (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hmem : memAuth.size = 96)
+    (hfit :
+      (solcSlotWordAt (suckSinSlot I) σ I).toNat + (suckRadWord I).toNat < UInt256.size) :
+    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6307⟩
+      ((solcSlotWordAt (suckSinSlot I) σ I + suckRadWord I) ::
+        suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      (twoWordHashMem (suckUMaskedWord I) ⟨6⟩ memAuth)
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
+  have hslotEq :
+      solcSlotWord σ I (solcMappingSlot ⟨6⟩ (suckUMaskedWord I)) =
+        solcSlotWordAt (suckSinSlot I) σ I := by
+    simp [solcSlotWordAt, suckSinSlot_eq I]
+  obtain ⟨_, _, hroutine⟩ := RD.vatSuckSinLoadToAdd h hmem
+  obtain ⟨_, _, hafter⟩ := RD.solcCheckedAddSuccess
+    (code := vatBytecode) (pc := ⟨6637⟩) (okPc := ⟨6615⟩)
+    (a := solcSlotWordAt (suckSinSlot I) σ I) (b := suckRadWord I) (ret := ⟨6307⟩)
+    (R := [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel])
+    (by simpa [hslotEq] using hroutine)
+    (by
+      unfold solcCheckedAddSuccessWf
+      repeat' first | apply And.intro | native_decide)
+    hfit (by jump_dest) (by jump_dest) (by simp)
+  exact ⟨_, _, hafter⟩
+
+theorem RD.vatSuckSinStoreSplit
+    {σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel sinNew : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6307⟩
+      (sinNew :: suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I ::
+        ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hmem : mem.size = 96) :
+    (I.perm = true ∧
+    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6340⟩
+      (⟨32⟩ :: ⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: suckRadWord I ::
+        suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      (twoWordHashMem (suckUMaskedWord I) ⟨6⟩ mem)
+      (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew) k' C') ∨
+      (I.perm = false ∧ RDstatic vatBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
+  have hmaskLiteral :
+      UInt256.land (suckUMaskedWord I)
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
+        suckUMaskedWord I := by
+    rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+      solcAddrMask from by decide]
+    exact solcAddrMask_clean (suckUMaskedWord_canonical I)
+  have hslot :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (KEC ((twoWordHashMem (suckUMaskedWord I) ⟨6⟩ mem).readWithPadding 0 64))) =
+        solcMappingSlot ⟨6⟩ (suckUMaskedWord I) :=
+    twoWordHashMem_solcMappingSlot ⟨6⟩ (suckUMaskedWord I) hmem
+  have hslotEq : solcMappingSlot ⟨6⟩ (suckUMaskedWord I) = suckSinSlot I := by
+    rw [suckSinSlot_eq]
+  have hmaskDef :
+      UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
+    decide
+  have rd6319pre := evm_run h with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
+    raw shl (by native_decide) (by evm_ov),
+    raw sub (by native_decide) (by evm_ov),
+    raw dup1 (by native_decide) (by evm_ov),
+    raw dup6 (by native_decide) (by evm_ov)]
+  have rd6319₀ := evm_run rd6319pre with [raw and (by native_decide) (by evm_ov)]
+  have rd6319 := rd6319₀
+  rw [hmaskLiteral] at rd6319
+  have rd6322pre := evm_run rd6319 with [
+    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov)]
+  have rd6323 := rd6322pre.mstore 0 (wordAt0Mem (suckUMaskedWord I) mem)
+    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have rd6330pre := evm_run rd6323 with [
+    raw push1 ⟨6⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov)]
+  have rd6331 := rd6330pre.mstore 0
+    (twoWordHashMem (suckUMaskedWord I) ⟨6⟩ mem)
+    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have rd6335pre := evm_run rd6331 with [
+    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
+    raw dup1 (by native_decide) (by evm_ov),
+    raw dup4 (by native_decide) (by evm_ov)]
+  have rd6336 := rd6335pre.keccak256 0 (solcMappingSlot ⟨6⟩ (suckUMaskedWord I))
+    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
+  have rd6339pre := evm_run rd6336 with [
+    raw swap5 (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw swap5 (by native_decide) (by evm_ov)]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd6339pre.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd6340raw⟩ := rd6339pre.sstore hperm (by native_decide) (by evm_ov)
+  have hpc :
+      ({ val := 6307 } + { val := 1 } + UInt256.ofNat 2 + UInt256.ofNat 2 +
+          UInt256.ofNat 2 + { val := 1 } + { val := 1 } + { val := 1 } +
+          { val := 1 } + { val := 1 } + UInt256.ofNat 2 + { val := 1 } +
+          { val := 1 } + { val := 1 } + UInt256.ofNat 2 + UInt256.ofNat 2 +
+          { val := 1 } + { val := 1 } + { val := 1 } + UInt256.ofNat 2 +
+          { val := 1 } + { val := 1 } + { val := 1 } + { val := 1 } +
+          { val := 1 } + { val := 1 } + { val := 1 } : UInt256) = ⟨6340⟩ := by
+    native_decide
+  have rd6340 := rd6340raw
+  rw [hpc] at rd6340
+  exact ⟨_, _, by simpa [hslotEq, hmaskDef] using rd6340⟩
+
+theorem RD.vatSuckDaiLoadToAdd
+    {σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6340⟩
+      (⟨32⟩ :: ⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: suckRadWord I ::
+        suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hmem : mem.size = 96) :
+    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6637⟩
+      (suckRadWord I ::
+        solcSlotWord σ I (solcMappingSlot ⟨5⟩ (suckVMaskedWord I)) ::
+        ⟨6361⟩ :: suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I ::
+        ⟨524⟩ :: sel :: [])
+      (twoWordHashMem (suckVMaskedWord I) ⟨5⟩ mem)
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
+  have hmaskLiteral :
+      UInt256.land (suckVMaskedWord I) solcAddrMask = suckVMaskedWord I :=
+    solcAddrMask_clean (suckVMaskedWord_canonical I)
+  have hslot :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (KEC ((twoWordHashMem (suckVMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
+        solcMappingSlot ⟨5⟩ (suckVMaskedWord I) :=
+    twoWordHashMem_solcMappingSlot ⟨5⟩ (suckVMaskedWord I) hmem
+  have rd6342pre := evm_run h with [
+    raw swap2 (by native_decide) (by evm_ov),
+    raw dup6 (by native_decide) (by evm_ov)]
+  have rd6343₀ := evm_run rd6342pre with [raw and (by native_decide) (by evm_ov)]
+  have rd6343 := rd6343₀
+  rw [hmaskLiteral] at rd6343
+  have rd6344pre := evm_run rd6343 with [raw dup2 (by native_decide) (by evm_ov)]
+  have rd6345 := rd6344pre.mstore 0 (wordAt0Mem (suckVMaskedWord I) mem)
+    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have rd6349pre := evm_run rd6345 with [
+    raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw swap2 (by native_decide) (by evm_ov)]
+  have rd6350 := rd6349pre.mstore 0
+    (twoWordHashMem (suckVMaskedWord I) ⟨5⟩ mem)
+    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have rd6351 := rd6350.keccak256 0 (solcMappingSlot ⟨5⟩ (suckVMaskedWord I))
+    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
+  obtain ⟨k6352, C6352, rd6352raw⟩ := rd6351.sload (by native_decide) (by evm_ov)
+  have rd6352 : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6352⟩
+      (solcSlotWord σ I (solcMappingSlot ⟨5⟩ (suckVMaskedWord I)) ::
+        suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      (twoWordHashMem (suckVMaskedWord I) ⟨5⟩ mem)
+      (UInt256.ofNat 3) ByteArray.empty σ k6352 C6352 := by
+    simpa [solcSlotWord] using rd6352raw
+  have rd6637pre := evm_run rd6352 with [
+    raw push2 ⟨6361⟩ (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw dup3 (by native_decide) (by evm_ov),
+    raw push2 ⟨6637⟩ (by native_decide) (by evm_ov)]
+  exact ⟨_, _, rd6637pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+
+theorem RD.vatSuckDaiAddOverflow
+    {σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6340⟩
+      (⟨32⟩ :: ⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: suckRadWord I ::
+        suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hmem : mem.size = 96)
+    (hover : UInt256.size ≤
+      (solcSlotWordAt (suckDaiSlot I) σ I).toNat + (suckRadWord I).toNat) :
+    RDrev vatBytecode (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) := by
+  have hslotEq :
+      solcSlotWord σ I (solcMappingSlot ⟨5⟩ (suckVMaskedWord I)) =
+        solcSlotWordAt (suckDaiSlot I) σ I := by
+    simp [solcSlotWordAt, suckDaiSlot_eq I]
+  obtain ⟨_, _, hroutine⟩ := RD.vatSuckDaiLoadToAdd h hmem
+  exact RD.solcCheckedAddEmptyRevertAnyWords
+    (code := vatBytecode) (pc := ⟨6637⟩) (okPc := ⟨6615⟩)
+    (a := solcSlotWordAt (suckDaiSlot I) σ I) (b := suckRadWord I) (ret := ⟨6361⟩)
+    (R := [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel])
+    (by simpa [hslotEq] using hroutine)
+    (by
+      unfold solcCheckedAddEmptyRevertWf solcCheckedAddSuccessWf
+      repeat' first | apply And.intro | native_decide)
+    hover (by simp)
+
+theorem RD.vatSuckDaiAddSuccess
+    {σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6340⟩
+      (⟨32⟩ :: ⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: suckRadWord I ::
+        suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hmem : mem.size = 96)
+    (hfit :
+      (solcSlotWordAt (suckDaiSlot I) σ I).toNat + (suckRadWord I).toNat < UInt256.size) :
+    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6361⟩
+      ((solcSlotWordAt (suckDaiSlot I) σ I + suckRadWord I) ::
+        suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      (twoWordHashMem (suckVMaskedWord I) ⟨5⟩ mem)
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
+  have hslotEq :
+      solcSlotWord σ I (solcMappingSlot ⟨5⟩ (suckVMaskedWord I)) =
+        solcSlotWordAt (suckDaiSlot I) σ I := by
+    simp [solcSlotWordAt, suckDaiSlot_eq I]
+  obtain ⟨_, _, hroutine⟩ := RD.vatSuckDaiLoadToAdd h hmem
+  obtain ⟨_, _, hafter⟩ := RD.solcCheckedAddSuccess
+    (code := vatBytecode) (pc := ⟨6637⟩) (okPc := ⟨6615⟩)
+    (a := solcSlotWordAt (suckDaiSlot I) σ I) (b := suckRadWord I) (ret := ⟨6361⟩)
+    (R := [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel])
+    (by simpa [hslotEq] using hroutine)
+    (by
+      unfold solcCheckedAddSuccessWf
+      repeat' first | apply And.intro | native_decide)
+    hfit (by jump_dest) (by jump_dest) (by simp)
+  exact ⟨_, _, hafter⟩
+
+theorem RD.vatSuckDaiStore
+    {σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel daiNew : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6361⟩
+      (daiNew :: suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I ::
+        ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hmem : mem.size = 96)
+    (hperm : I.perm = true) :
+    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6387⟩
+      (suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      (twoWordHashMem (suckVMaskedWord I) ⟨5⟩ mem)
+      (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner σ (suckDaiSlot I) daiNew) k' C' := by
+  have hmaskLiteral :
+      UInt256.land (suckVMaskedWord I)
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
+        suckVMaskedWord I := by
+    rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+      solcAddrMask from by decide]
+    exact solcAddrMask_clean (suckVMaskedWord_canonical I)
+  have hslot :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (KEC ((twoWordHashMem (suckVMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
+        solcMappingSlot ⟨5⟩ (suckVMaskedWord I) :=
+    twoWordHashMem_solcMappingSlot ⟨5⟩ (suckVMaskedWord I) hmem
+  have hslotEq : solcMappingSlot ⟨5⟩ (suckVMaskedWord I) = suckDaiSlot I := by
+    rw [suckDaiSlot_eq]
+  have rd6371pre := evm_run h with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
+    raw shl (by native_decide) (by evm_ov),
+    raw sub (by native_decide) (by evm_ov),
+    raw dup4 (by native_decide) (by evm_ov)]
+  have rd6372₀ := evm_run rd6371pre with [raw and (by native_decide) (by evm_ov)]
+  have rd6372 := rd6372₀
+  rw [hmaskLiteral] at rd6372
+  have rd6375pre := evm_run rd6372 with [
+    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov)]
+  have rd6376 := rd6375pre.mstore 0 (wordAt0Mem (suckVMaskedWord I) mem)
+    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have rd6381pre := evm_run rd6376 with [
+    raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+  have rd6382 := rd6381pre.mstore 0
+    (twoWordHashMem (suckVMaskedWord I) ⟨5⟩ mem)
+    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have rd6385pre := evm_run rd6382 with [
+    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov)]
+  have rd6386 := rd6385pre.keccak256 0 (solcMappingSlot ⟨5⟩ (suckVMaskedWord I))
+    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd6387raw⟩ := rd6386.sstore hperm (by native_decide) (by evm_ov)
+  have hpc :
+      ({ val := 6361 } + { val := 1 } + UInt256.ofNat 2 + UInt256.ofNat 2 +
+          UInt256.ofNat 2 + { val := 1 } + { val := 1 } + { val := 1 } +
+          { val := 1 } + UInt256.ofNat 2 + { val := 1 } + { val := 1 } +
+          { val := 1 } + UInt256.ofNat 2 + UInt256.ofNat 2 + { val := 1 } +
+          UInt256.ofNat 2 + { val := 1 } + { val := 1 } + { val := 1 } : UInt256) =
+        ⟨6387⟩ := by
+    native_decide
+  have rd6387 := rd6387raw
+  rw [hpc] at rd6387
+  exact ⟨_, _, by simpa [hslotEq] using rd6387⟩
+
+theorem RD.vatSuckViceLoadToAdd
+    {σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6387⟩
+      (suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6637⟩
+      (suckRadWord I :: solcSlotWordAt suckViceSlot σ I :: ⟨6399⟩ ::
+        suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
+  obtain ⟨k6390, C6390, rd6390raw⟩ :=
+    (h.push1 ⟨8⟩ (by native_decide) (by evm_ov)).sload (by native_decide) (by evm_ov)
+  have rd6390 : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6390⟩
+      (solcSlotWordAt suckViceSlot σ I :: suckRadWord I :: suckVMaskedWord I ::
+        suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k6390 C6390 := by
+    simpa [solcSlotWordAt, suckViceSlot, solcSlotWord] using rd6390raw
+  have rd6637pre := evm_run rd6390 with [
+    raw push2 ⟨6399⟩ (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw dup3 (by native_decide) (by evm_ov),
+    raw push2 ⟨6637⟩ (by native_decide) (by evm_ov)]
+  exact ⟨_, _, rd6637pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+
+theorem RD.vatSuckViceAddOverflow
+    {σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6387⟩
+      (suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hover : UInt256.size ≤ (solcSlotWordAt suckViceSlot σ I).toNat + (suckRadWord I).toNat) :
+    RDrev vatBytecode (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) := by
+  obtain ⟨_, _, hroutine⟩ := RD.vatSuckViceLoadToAdd h
+  exact RD.solcCheckedAddEmptyRevertAnyWords
+    (code := vatBytecode) (pc := ⟨6637⟩) (okPc := ⟨6615⟩)
+    (a := solcSlotWordAt suckViceSlot σ I) (b := suckRadWord I) (ret := ⟨6399⟩)
+    (R := [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel])
+    (by simpa using hroutine)
+    (by
+      unfold solcCheckedAddEmptyRevertWf solcCheckedAddSuccessWf
+      repeat' first | apply And.intro | native_decide)
+    hover (by simp)
+
+theorem RD.vatSuckViceAddSuccess
+    {σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6387⟩
+      (suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hfit : (solcSlotWordAt suckViceSlot σ I).toNat + (suckRadWord I).toNat < UInt256.size) :
+    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6399⟩
+      ((solcSlotWordAt suckViceSlot σ I + suckRadWord I) :: suckRadWord I ::
+        suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
+  obtain ⟨_, _, hroutine⟩ := RD.vatSuckViceLoadToAdd h
+  obtain ⟨_, _, hafter⟩ := RD.solcCheckedAddSuccess
+    (code := vatBytecode) (pc := ⟨6637⟩) (okPc := ⟨6615⟩)
+    (a := solcSlotWordAt suckViceSlot σ I) (b := suckRadWord I) (ret := ⟨6399⟩)
+    (R := [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel])
+    (by simpa using hroutine)
+    (by
+      unfold solcCheckedAddSuccessWf
+      repeat' first | apply And.intro | native_decide)
+    hfit (by jump_dest) (by jump_dest) (by simp)
+  exact ⟨_, _, hafter⟩
+
+theorem RD.vatSuckViceStore
+    {σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel viceNew : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6399⟩
+      (viceNew :: suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I ::
+        ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hperm : I.perm = true) :
+    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6403⟩
+      (suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner σ suckViceSlot viceNew) k' C' := by
+  have rd6402pre := evm_run h with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
+  exact rd6402pre.sstore hperm (by native_decide) (by evm_ov)
+
+theorem RD.vatSuckDebtLoadToAdd
+    {σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6403⟩
+      (suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6637⟩
+      (suckRadWord I :: solcSlotWordAt suckDebtSlot σ I :: ⟨6415⟩ ::
+        suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
+  obtain ⟨k6406, C6406, rd6406raw⟩ :=
+    (h.push1 ⟨7⟩ (by native_decide) (by evm_ov)).sload (by native_decide) (by evm_ov)
+  have rd6406 : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6406⟩
+      (solcSlotWordAt suckDebtSlot σ I :: suckRadWord I :: suckVMaskedWord I ::
+        suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k6406 C6406 := by
+    simpa [solcSlotWordAt, suckDebtSlot, solcSlotWord] using rd6406raw
+  have rd6637pre := evm_run rd6406 with [
+    raw push2 ⟨6415⟩ (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw dup3 (by native_decide) (by evm_ov),
+    raw push2 ⟨6637⟩ (by native_decide) (by evm_ov)]
+  exact ⟨_, _, rd6637pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+
+theorem RD.vatSuckDebtAddOverflow
+    {σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6403⟩
+      (suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hover : UInt256.size ≤ (solcSlotWordAt suckDebtSlot σ I).toNat + (suckRadWord I).toNat) :
+    RDrev vatBytecode (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) := by
+  obtain ⟨_, _, hroutine⟩ := RD.vatSuckDebtLoadToAdd h
+  exact RD.solcCheckedAddEmptyRevertAnyWords
+    (code := vatBytecode) (pc := ⟨6637⟩) (okPc := ⟨6615⟩)
+    (a := solcSlotWordAt suckDebtSlot σ I) (b := suckRadWord I) (ret := ⟨6415⟩)
+    (R := [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel])
+    (by simpa using hroutine)
+    (by
+      unfold solcCheckedAddEmptyRevertWf solcCheckedAddSuccessWf
+      repeat' first | apply And.intro | native_decide)
+    hover (by simp)
+
+theorem RD.vatSuckDebtAddSuccess
+    {σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6403⟩
+      (suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hfit : (solcSlotWordAt suckDebtSlot σ I).toNat + (suckRadWord I).toNat < UInt256.size) :
+    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6415⟩
+      ((solcSlotWordAt suckDebtSlot σ I + suckRadWord I) :: suckRadWord I ::
+        suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
+  obtain ⟨_, _, hroutine⟩ := RD.vatSuckDebtLoadToAdd h
+  obtain ⟨_, _, hafter⟩ := RD.solcCheckedAddSuccess
+    (code := vatBytecode) (pc := ⟨6637⟩) (okPc := ⟨6615⟩)
+    (a := solcSlotWordAt suckDebtSlot σ I) (b := suckRadWord I) (ret := ⟨6415⟩)
+    (R := [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel])
+    (by simpa using hroutine)
+    (by
+      unfold solcCheckedAddSuccessWf
+      repeat' first | apply And.intro | native_decide)
+    hfit (by jump_dest) (by jump_dest) (by simp)
+  exact ⟨_, _, hafter⟩
+
+theorem RD.vatSuckDebtStoreReturn
+    {σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel debtNew : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6415⟩
+      (debtNew :: suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I ::
+        ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hperm : I.perm = true) :
+    ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩
+      [sel] mem (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner σ suckDebtSlot debtNew) k' C' := by
+  have rd6418pre := evm_run h with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw push1 ⟨7⟩ (by native_decide) (by evm_ov)]
+  obtain ⟨_, _, rd6419⟩ := rd6418pre.sstore hperm (by native_decide) (by evm_ov)
+  exact ⟨_, _, evm_run rd6419 with [
+    raw pop (by native_decide) (by evm_ov),
+    raw pop (by native_decide) (by evm_ov),
+    raw pop (by native_decide) (by evm_ov),
+    raw jump (by native_decide) (by jump_dest) (by evm_ov)]⟩
+
+theorem RD.vatSuckDebtStoreStop
+    {σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel debtNew : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6415⟩
+      (debtNew :: suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I ::
+        ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hperm : I.perm = true) :
+    RDret vatBytecode (Sat256.ofUInt256 g)
+      (initState σi σ₀ (Sat256.ofUInt256 g) A I)
+      (sstoreAccountMap I.codeOwner σ suckDebtSlot debtNew)
+      ByteArray.empty := by
+  obtain ⟨_, _, rd524⟩ := RD.vatSuckDebtStoreReturn h hperm
+  have rd525 := rd524.jumpdest (by native_decide) (by evm_ov)
+  exact RD.stop rd525 (by native_decide) (by evm_ov)
+
+theorem vatSuckFinishSuccess
+    {σ σ₀ A I} {g sel sinNew daiNew viceNew debtNew : UInt256}
+    {k C : ℕ}
+    (hcode : I.code = vatBytecode)
+    (hperm : I.perm = true)
+    (hdispatch : dispatchMsg contract I.calldata = some suckTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (suckTransition.params.map Param.name)
+        (transitionSignature suckTransition).paramTypes I.calldata = some (suckStore I))
+    (hbody :
+      ExecTransitionBody config contract
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (suckStore I) suckTransition.body
+        (.returned { contract := contract, locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew }
+          (suckPostState (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+            I sinNew daiNew viceNew debtNew) none))
+    (hdebtOk : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6415⟩
+      (debtNew :: suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I ::
+        ⟨524⟩ :: sel :: [])
+      mem (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner
+        (sstoreAccountMap I.codeOwner
+          (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+          (suckDaiSlot I) daiNew)
+        suckViceSlot viceNew) k C) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  have hret := RD.vatSuckDebtStoreStop
+    (σi := σ)
+    (σ := sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
+        (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+        (suckDaiSlot I) daiNew)
+      suckViceSlot viceNew)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) (debtNew := debtNew)
+    (mem := mem) hdebtOk hperm
+  have haccountsFinal :
+      Eq
+        (sstoreAccountMap I.codeOwner
+          (sstoreAccountMap I.codeOwner
+            (sstoreAccountMap I.codeOwner
+              (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+              (suckDaiSlot I) daiNew)
+            suckViceSlot viceNew)
+          suckDebtSlot debtNew)
+        (suckPostState (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          I sinNew daiNew viceNew debtNew).accountMap := by
+    simp [suckPostState, initState, storageStore_accountMap]
+  have henc : returnEquiv ByteArray.empty none suckTransition.returnType := by
+    rw [show suckTransition.returnType = [] by rfl]
+    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+    haccountsFinal henc
+
+theorem vatSuckAfterDaiViceOverflow
+    {σ σ₀ A I} {g sel sinNew daiNew : UInt256}
+    {mem : ByteArray} {k C : ℕ}
+    (hcode : I.code = vatBytecode)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some suckTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (suckTransition.params.map Param.name)
+        (transitionSignature suckTransition).paramTypes I.calldata = some (suckStore I))
+    (hauthSolm : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hsinFitSolmVat :
+      (solcSlotWordAt (suckSinSlot I) σ I).toNat +
+        (suckRadWord I).toNat < UInt256.size)
+    (hsinNewSolm :
+      solcSlotWordAt (suckSinSlot I) σ I + suckRadWord I = sinNew)
+    (hdaiFitSolmVat :
+      (solcSlotWordAt (suckDaiSlot I)
+        (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew) I).toNat +
+        (suckRadWord I).toNat < UInt256.size)
+    (hdaiNewSolm :
+      solcSlotWordAt (suckDaiSlot I)
+        (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew) I +
+        suckRadWord I = daiNew)
+    (hafterDaiStore : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6387⟩
+      [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel]
+      mem (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner
+        (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+        (suckDaiSlot I) daiNew) k C)
+    (hviceOverflow :
+      UInt256.size ≤
+        (solcSlotWordAt suckViceSlot
+          (sstoreAccountMap I.codeOwner
+            (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+            (suckDaiSlot I) daiNew) I).toNat +
+          (suckRadWord I).toNat) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  let σDaiEvm := sstoreAccountMap I.codeOwner
+    (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+    (suckDaiSlot I) daiNew
+  have hbody :
+      ExecTransitionBody config contract
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (suckStore I) suckTransition.body .reverted :=
+    vatSuckSourceRevertViceOverflowVat
+      (σ := σ) (σ₀ := σ₀)
+      (A := A) (I := I) (g := g) hwv hauthSolm hsinFitSolmVat
+      (by simpa only [hsinNewSolm] using hdaiFitSolmVat)
+      (by simpa only [σDaiEvm, hsinNewSolm, hdaiNewSolm] using hviceOverflow)
+  have hrev := RD.vatSuckViceAddOverflow
+    (σi := σ) (σ := σDaiEvm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) (mem := mem)
+    (by simpa only [σDaiEvm] using hafterDaiStore)
+    (by simpa only [σDaiEvm] using hviceOverflow)
+  exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
+
+theorem vatSuckAfterViceDebtOverflow
+    {σ σ₀ A I} {g sel sinNew daiNew viceNew : UInt256}
+    {mem : ByteArray} {k C : ℕ}
+    (hcode : I.code = vatBytecode)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some suckTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (suckTransition.params.map Param.name)
+        (transitionSignature suckTransition).paramTypes I.calldata = some (suckStore I))
+    (hauthSolm : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hsinFitSolmVat :
+      (solcSlotWordAt (suckSinSlot I) σ I).toNat +
+        (suckRadWord I).toNat < UInt256.size)
+    (hsinNewSolm :
+      solcSlotWordAt (suckSinSlot I) σ I + suckRadWord I = sinNew)
+    (hdaiFitSolmVat :
+      (solcSlotWordAt (suckDaiSlot I)
+        (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew) I).toNat +
+        (suckRadWord I).toNat < UInt256.size)
+    (hdaiNewSolm :
+      solcSlotWordAt (suckDaiSlot I)
+        (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew) I +
+        suckRadWord I = daiNew)
+    (hviceFitSolmVat :
+      (solcSlotWordAt suckViceSlot
+        (sstoreAccountMap I.codeOwner
+          (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+          (suckDaiSlot I) daiNew) I).toNat +
+        (suckRadWord I).toNat < UInt256.size)
+    (hviceNewSolm :
+      solcSlotWordAt suckViceSlot
+        (sstoreAccountMap I.codeOwner
+          (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+          (suckDaiSlot I) daiNew) I +
+        suckRadWord I = viceNew)
+    (hafterViceStore : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6403⟩
+      [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel]
+      mem (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner
+        (sstoreAccountMap I.codeOwner
+          (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+          (suckDaiSlot I) daiNew)
+        suckViceSlot viceNew) k C)
+    (hdebtOverflow :
+      UInt256.size ≤
+        (solcSlotWordAt suckDebtSlot
+          (sstoreAccountMap I.codeOwner
+            (sstoreAccountMap I.codeOwner
+              (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+              (suckDaiSlot I) daiNew)
+            suckViceSlot viceNew) I).toNat +
+          (suckRadWord I).toNat) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  let σViceEvm := sstoreAccountMap I.codeOwner
+    (sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+      (suckDaiSlot I) daiNew)
+    suckViceSlot viceNew
+  have hbody :
+      ExecTransitionBody config contract
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (suckStore I) suckTransition.body .reverted :=
+    vatSuckSourceRevertDebtOverflowVat
+      (σ := σ) (σ₀ := σ₀)
+      (A := A) (I := I) (g := g) hwv hauthSolm hsinFitSolmVat
+      (by simpa only [hsinNewSolm] using hdaiFitSolmVat)
+      (by simpa only [hsinNewSolm, hdaiNewSolm] using hviceFitSolmVat)
+      (by
+        simpa only [σViceEvm, hsinNewSolm, hdaiNewSolm, hviceNewSolm] using
+          hdebtOverflow)
+  have hrev := RD.vatSuckDebtAddOverflow
+    (σi := σ) (σ := σViceEvm)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) (mem := mem)
+    (by simpa only [σViceEvm] using hafterViceStore)
+    (by simpa only [σViceEvm] using hdebtOverflow)
+  exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
+
+theorem vatSuckAfterDaiStore
+    {σ σ₀ A I} {g sel sinNew daiNew : UInt256}
+    {mem : ByteArray} {k C : ℕ}
+    (hcode : I.code = vatBytecode)
+    (hperm : I.perm = true)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some suckTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (suckTransition.params.map Param.name)
+        (transitionSignature suckTransition).paramTypes I.calldata = some (suckStore I))
+    (hauthSolm : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hsinFitSolmVat :
+      (solcSlotWordAt (suckSinSlot I) σ I).toNat +
+        (suckRadWord I).toNat < UInt256.size)
+    (hsinNewSolm :
+      solcSlotWordAt (suckSinSlot I) σ I + suckRadWord I = sinNew)
+    (hdaiFitSolmVat :
+      (solcSlotWordAt (suckDaiSlot I)
+        (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew) I).toNat +
+        (suckRadWord I).toNat < UInt256.size)
+    (hdaiNewSolm :
+      solcSlotWordAt (suckDaiSlot I)
+        (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew) I +
+        suckRadWord I = daiNew)
+    (hafterDaiStore : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6387⟩
+      [suckRadWord I, suckVMaskedWord I, suckUMaskedWord I, ⟨524⟩, sel]
+      mem (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner
+        (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+        (suckDaiSlot I) daiNew) k C) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
+  let σDaiEvm := sstoreAccountMap I.codeOwner
+    (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
+    (suckDaiSlot I) daiNew
+  by_cases hviceOverflow :
+      UInt256.size ≤ (solcSlotWordAt suckViceSlot σDaiEvm I).toNat +
+        (suckRadWord I).toNat
+  · exact vatSuckAfterDaiViceOverflow
+      (σ := σ)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
+      (sinNew := sinNew) (daiNew := daiNew) (mem := mem)
+      hcode hwv hdispatch hdecode hauthSolm hsinFitSolmVat hsinNewSolm
+      hdaiFitSolmVat hdaiNewSolm hafterDaiStore
+      (by simpa only [σDaiEvm] using hviceOverflow)
+  · have hviceFit :
+        (solcSlotWordAt suckViceSlot σDaiEvm I).toNat + (suckRadWord I).toNat <
+          UInt256.size :=
+      Nat.lt_of_not_ge hviceOverflow
+    let viceNew := solcSlotWordAt suckViceSlot σDaiEvm I + suckRadWord I
+    have hviceNewSolm :
+        solcSlotWordAt suckViceSlot σDaiEvm I + suckRadWord I = viceNew := rfl
+    obtain ⟨_, _, hviceOk⟩ := RD.vatSuckViceAddSuccess
+      (σi := σ) (σ := σDaiEvm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) (mem := mem)
+      (by simpa only [σDaiEvm] using hafterDaiStore)
+      (by simpa only [σDaiEvm] using hviceFit)
+    obtain ⟨_, _, hafterViceStore⟩ := RD.vatSuckViceStore
+      (σi := σ) (σ := σDaiEvm)
+      (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
+      (viceNew := viceNew) (mem := mem)
+      (by simpa only [viceNew, σDaiEvm] using hviceOk)
+      hperm
+    let σViceEvm := sstoreAccountMap I.codeOwner σDaiEvm suckViceSlot viceNew
+    by_cases hdebtOverflow :
+        UInt256.size ≤ (solcSlotWordAt suckDebtSlot σViceEvm I).toNat +
+          (suckRadWord I).toNat
+    · exact vatSuckAfterViceDebtOverflow
+        (σ := σ)
+        (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
+        (sinNew := sinNew) (daiNew := daiNew) (viceNew := viceNew) (mem := mem)
+        hcode hwv hdispatch hdecode hauthSolm hsinFitSolmVat hsinNewSolm
+        hdaiFitSolmVat hdaiNewSolm hviceFit hviceNewSolm
+        (by simpa only [σViceEvm] using hafterViceStore)
+        (by simpa only [σViceEvm] using hdebtOverflow)
+    · have hdebtFit :
+          (solcSlotWordAt suckDebtSlot σViceEvm I).toNat + (suckRadWord I).toNat <
+            UInt256.size :=
+        Nat.lt_of_not_ge hdebtOverflow
+      let debtNew := solcSlotWordAt suckDebtSlot σViceEvm I + suckRadWord I
+      have hdebtNewSolm :
+          solcSlotWordAt suckDebtSlot σViceEvm I + suckRadWord I = debtNew := rfl
+      obtain ⟨_, _, _hdebtOk⟩ := RD.vatSuckDebtAddSuccess
+        (σi := σ) (σ := σViceEvm)
+        (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) (mem := mem)
+        (by simpa only [σViceEvm] using hafterViceStore)
+        (by simpa only [σViceEvm] using hdebtFit)
+      have hbody :
+          ExecTransitionBody config contract
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+            (suckStore I) suckTransition.body
+            (.returned { contract := contract, locals := suckStoreDebtNew I sinNew daiNew viceNew debtNew }
+              (suckPostState
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                I sinNew daiNew viceNew debtNew) none) :=
+        vatSuckSourceSuccessVatEq
+          (σ := σ) (σ₀ := σ₀)
+          (A := A) (I := I) (g := g) hwv hauthSolm hsinFitSolmVat hsinNewSolm
+          hdaiFitSolmVat hdaiNewSolm hviceFit hviceNewSolm
+          hdebtFit hdebtNewSolm
+      exact vatSuckFinishSuccess
+        (σ := σ)
+        (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
+        (sinNew := sinNew) (daiNew := daiNew) (viceNew := viceNew)
+        (debtNew := debtNew) (mem := mem)
+        hcode hperm hdispatch hdecode hbody
+        (by simpa only [debtNew, σViceEvm] using _hdebtOk)
+
+theorem vatSuckBodyCore : VatBodyTheoremAnyPerm 24 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I (vatSelBytes 24) rfl hsel
+  have hdispatch : dispatchMsg contract I.calldata = some suckTransition :=
+    vatDispatchSuck hsel
+  have hreach := vatReachSuckBody (σ := σ)
+    (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz4 hsize hsel
+  by_cases hsz100 : 100 ≤ I.calldata.size
+  · have hdecode := vatDecode_suck_ok (I := I) hsz100
+    obtain ⟨_, _, hdecoded⟩ := vatSuckX_decoded
+      (σ := σ) (σ₀ := σ₀)
+      (A := A) (I := I) (g := Sat256.ofUInt256 g)
+      hsz100 hsize hreach
+    let callerSlot := vatCallerWardsSlot I
+    by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
+    · have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := hauthEvm
+      have hauthSolc :
+          solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
+        simpa [callerSlot, vatCallerWardsSlot, solcSlotWordAt] using hauthEvm
+      obtain ⟨_, _, hafterAuth⟩ := RD.vatAuthCheckOk
+        (code := vatBytecode) (pc := ⟨6190⟩) (okPc := ⟨6272⟩)
+        (key := suckRadWord I) (ret := suckVMaskedWord I)
+        (R := [suckUMaskedWord I, ⟨524⟩, vatSelWord I])
+        (by simpa using hdecoded)
+        (by
+          unfold vatAuthCheckWf
+          repeat' first | apply And.intro | native_decide)
+        hauthSolc (by jump_dest) (by simp)
+      let memAuth := twoWordHashMem (hopeSourceWord I) ⟨0⟩ solcFreePtrMem
+      have hmemAuth : memAuth.size = 96 := by
+        dsimp [memAuth]
+        exact twoWordHashMem_size_96 (hopeSourceWord I) ⟨0⟩ solcFreePtrMem_size
+      let sinSlot := suckSinSlot I
+      by_cases hsinOverflow :
+          UInt256.size ≤ (solcSlotWordAt sinSlot σ I).toNat + (suckRadWord I).toNat
+      · have hbody :
+            ExecTransitionBody config contract
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+              (suckStore I) suckTransition.body .reverted :=
+          vatSuckSourceRevertSinOverflow
+            (σ := σ) (σ₀ := σ₀)
+            (A := A) (I := I) (g := g) hwv
+            (by simpa [callerSlot] using hauthSolm)
+            (by simpa [sinSlot] using hsinOverflow)
+        have hrev := RD.vatSuckSinAddOverflow
+          (σ := σ) (σ₀ := σ₀)
+          (A := A) (I := I) (g := g) (sel := vatSelWord I)
+          (memAuth := memAuth)
+          (by simpa [memAuth] using hafterAuth) hmemAuth
+          (by simpa [sinSlot] using hsinOverflow)
+        exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
+      · have hsinFit :
+            (solcSlotWordAt sinSlot σ I).toNat + (suckRadWord I).toNat < UInt256.size :=
+          Nat.lt_of_not_ge hsinOverflow
+        let sinNew := solcSlotWordAt sinSlot σ I + suckRadWord I
+        obtain ⟨_, _, _hsinOk⟩ := RD.vatSuckSinAddSuccess
+          (σ := σ) (σ₀ := σ₀)
+          (A := A) (I := I) (g := g) (sel := vatSelWord I)
+          (memAuth := memAuth)
+          (by simpa [memAuth] using hafterAuth) hmemAuth
+          (by simpa [sinSlot] using hsinFit)
+        let memSin := twoWordHashMem (suckUMaskedWord I) ⟨6⟩ memAuth
+        have hmemSin : memSin.size = 96 := by
+          dsimp [memSin]
+          exact twoWordHashMem_size_96 (suckUMaskedWord I) ⟨6⟩ hmemAuth
+        rcases RD.vatSuckSinStoreSplit
+            (σ := σ) (σ₀ := σ₀)
+            (A := A) (I := I) (g := g) (sel := vatSelWord I) (sinNew := sinNew)
+            (mem := memSin)
+            (by simpa [sinNew, sinSlot, memSin] using _hsinOk)
+            hmemSin with
+          ⟨hperm, _, _, _hafterSinStore⟩ | ⟨hpf, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+            (vatSuckSourceStatic (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+              (by simpa [initState] using hwv)
+              (vatAuthGuardEval_true (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+                (g := Sat256.ofUInt256 g) (locals := suckStore I) (suckStore_wards I)
+                (by simpa [callerSlot] using hauthSolm))
+              (by
+                simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState, Solm.EVM.storageLoad,
+                  solcSlotWordAt, solcSlotWord, State.lookupAccount, Account.lookupStorage,
+                  sinSlot] using hsinFit)
+              (by simpa [initState] using hpf))
+        let σSinEvm := sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew
+        let memAfterSin := twoWordHashMem (suckUMaskedWord I) ⟨6⟩ memSin
+        have hmemAfterSin : memAfterSin.size = 96 := by
+          dsimp [memAfterSin]
+          exact twoWordHashMem_size_96 (suckUMaskedWord I) ⟨6⟩ hmemSin
+        by_cases hdaiOverflow :
+            UInt256.size ≤
+              (solcSlotWordAt (suckDaiSlot I) σSinEvm I).toNat + (suckRadWord I).toNat
+        ·
+          have hsinFitSolmVat :
+              (solcSlotWordAt (suckSinSlot I) σ I).toNat +
+                (suckRadWord I).toNat < UInt256.size := by
+            simpa only [sinSlot] using hsinFit
+          have hdaiOverflowSolmVat :
+              UInt256.size ≤
+                (solcSlotWordAt (suckDaiSlot I) σSinEvm I).toNat + (suckRadWord I).toNat :=
+            hdaiOverflow
+          have hsinNewSolmEq :
+              solcSlotWordAt (suckSinSlot I) σ I + suckRadWord I = sinNew := rfl
+          have hbody :
+              ExecTransitionBody config contract
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                (suckStore I) suckTransition.body .reverted :=
+            vatSuckSourceRevertDaiOverflowVat
+              (σ := σ) (σ₀ := σ₀)
+              (A := A) (I := I) (g := g) hwv
+              (by simpa [callerSlot] using hauthSolm)
+              hsinFitSolmVat
+              (by simpa [σSinEvm, hsinNewSolmEq] using hdaiOverflowSolmVat)
+          have hrev := RD.vatSuckDaiAddOverflow
+            (σ := σSinEvm) (σ₀ := σ₀)
+            (A := A) (I := I) (g := g) (sel := vatSelWord I)
+            (mem := memAfterSin)
+            (by simpa [σSinEvm, memAfterSin] using _hafterSinStore)
+            hmemAfterSin
+            (by simpa [σSinEvm] using hdaiOverflow)
+          exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
+        · have hdaiFit :
+              (solcSlotWordAt (suckDaiSlot I) σSinEvm I).toNat +
+                (suckRadWord I).toNat < UInt256.size :=
+            Nat.lt_of_not_ge hdaiOverflow
+          let daiNew := solcSlotWordAt (suckDaiSlot I) σSinEvm I + suckRadWord I
+          obtain ⟨_, _, _hdaiOk⟩ := RD.vatSuckDaiAddSuccess
+            (σi := σ) (σ := σSinEvm)
+            (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := vatSelWord I)
+            (mem := memAfterSin)
+            (by simpa [σSinEvm, memAfterSin] using _hafterSinStore)
+            hmemAfterSin
+            (by simpa [σSinEvm] using hdaiFit)
+          let memDai := twoWordHashMem (suckVMaskedWord I) ⟨5⟩ memAfterSin
+          have hmemDai : memDai.size = 96 := by
+            dsimp [memDai]
+            exact twoWordHashMem_size_96 (suckVMaskedWord I) ⟨5⟩ hmemAfterSin
+          obtain ⟨kDaiStore, CDaiStore, hafterDaiStore⟩ := RD.vatSuckDaiStore
+            (σi := σ) (σ := σSinEvm)
+            (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := vatSelWord I)
+            (daiNew := daiNew) (mem := memDai)
+            (by simpa [daiNew, σSinEvm, memDai] using _hdaiOk)
+            hmemDai hperm
+          have hsinFitSolmVat :
+              (solcSlotWordAt (suckSinSlot I) σ I).toNat +
+                (suckRadWord I).toNat < UInt256.size := by
+            simpa only [sinSlot] using hsinFit
+          have hsinNewSolm :
+              solcSlotWordAt (suckSinSlot I) σ I + suckRadWord I = sinNew := by
+            dsimp [sinNew]
+          have hdaiFitSolmVat :
+              (solcSlotWordAt (suckDaiSlot I) σSinEvm I).toNat +
+                (suckRadWord I).toNat < UInt256.size := hdaiFit
+          have hdaiNewSolm :
+              solcSlotWordAt (suckDaiSlot I) σSinEvm I + suckRadWord I = daiNew := rfl
+          exact vatSuckAfterDaiStore
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+            (g := g) (sel := vatSelWord I) (sinNew := sinNew) (daiNew := daiNew)
+            (mem := twoWordHashMem (suckVMaskedWord I) ⟨5⟩ memDai)
+            hcode hperm hwv hdispatch hdecode
+            (by simpa only [callerSlot] using hauthSolm)
+            hsinFitSolmVat hsinNewSolm
+            (by simpa only [σSinEvm] using hdaiFitSolmVat)
+            (by simpa only [σSinEvm] using hdaiNewSolm)
+            (by simpa only [σSinEvm] using hafterDaiStore)
+    · have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := hauthEvm
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+      have hbody :
+          ExecTransitionBody config contract evm0 (suckStore I) suckTransition.body .reverted := by
+        have hguard := vatAuthGuardEval_false
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+          (g := Sat256.ofUInt256 g) (locals := suckStore I)
+          (by simp [suckStore]) (by simpa [callerSlot] using hauthSolm)
+        have hblock := nonpayableSecondRequireReverts
+          (cfg := config) (solm := { contract := contract, locals := suckStore I })
+          (evm := evm0)
+          (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
+          (rest :=
+            checkedAddUintInto "sinNew" (.storage (sinRef (.var "u"))) (.var "rad") ++
+            [ .assign .storage (sinRef (.var "u")) (.var "sinNew") ] ++
+            checkedAddUintInto "daiNew" (.storage (daiRef (.var "v"))) (.var "rad") ++
+            [ .assign .storage (daiRef (.var "v")) (.var "daiNew") ] ++
+            checkedAddUintInto "viceNew" (.storage viceRef) (.var "rad") ++
+            [ .assign .storage viceRef (.var "viceNew") ] ++
+            checkedAddUintInto "debtNew" (.storage debtRef) (.var "rad") ++
+            [ .assign .storage debtRef (.var "debtNew") ])
+          (by simp [evm0, initState]; exact hwv)
+          hguard
+        simpa [ExecTransitionBody, suckTransition, nonpayable, auth, evm0, List.append_assoc]
+          using ExecFuncBody.execBlockRevert hblock
+      have hauthSolc :
+          solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) ≠ ⟨1⟩ := by
+        simpa [callerSlot, vatCallerWardsSlot, solcSlotWordAt] using hauthEvm
+      have hrev := RD.vatAuthCheckRevert
+        (pc := ⟨6190⟩) (okPc := ⟨6272⟩) (key := suckRadWord I)
+        (ret := suckVMaskedWord I) (R := [suckUMaskedWord I, ⟨524⟩, vatSelWord I])
+        (by simpa using hdecoded)
+        (by
+          unfold vatAuthCheckWf
+          repeat' first | apply And.intro | native_decide)
+        (by
+          unfold vatAuthRevertTailWf vatAuthTailPc
+          repeat' first | apply And.intro | native_decide)
+        hauthSolc (by simp)
+      exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
+  · exact vatSuckBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hsel hreach
+
+end Benchmarks.Dss.Vat

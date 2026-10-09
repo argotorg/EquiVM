@@ -1,0 +1,125 @@
+import Reasoning.ExternalCall
+import Benchmarks.Dss.Clipper.TakeCallbackContinuationSource
+import Benchmarks.Dss.Clipper.TakeCallbackEquiv
+import Benchmarks.Dss.Clipper.TakeDynamicRemove
+import Benchmarks.Dss.Clipper.TakeDynamicPostDog
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+open Benchmarks.Dss.Clipper.Immutables
+
+namespace Benchmarks.Dss.Clipper
+
+
+set_option maxHeartbeats 1000000 in
+theorem clipperTakeOweGtTabCallbackTailRevertEquivFromPostWords
+    (v : ClipperImmutables) {code : ByteArray}
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some takeTransition)
+    (hdec :
+      decodeCalldataWithMode config.abiDecodeMode
+        (List.map Param.name takeTransition.params)
+        (transitionSignature takeTransition).paramTypes I.calldata =
+      some (clipperTakeStore I))
+    (hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
+    (hstoppedSolmLt :
+      (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
+    (husrSolm :
+      clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
+    {evmPrice evmVat evmCb : EVM.State} {outVat : ByteArray}
+    {callbackFrame : Frame} {price tab lot : UInt256}
+    (htab : tab = clipperTakeSalesTabEVMWord evmPrice I)
+    (hlot : lot = clipperTakeSalesLotEVMWord evmPrice I)
+    (hrev : RDrev code (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I))
+    (hmax : price.toNat ≤ (clipperTakeMaxWord I).toNat)
+    (hmul : price.toNat *
+      (clipperMinWord (clipperTakeAmtWord I) lot).toNat < UInt256.size)
+    (hgt : tab.toNat <
+      (UInt256.mul price (clipperMinWord (clipperTakeAmtWord I) lot)).toNat)
+    (hvatCode :
+      0 < (UInt256.ofNat
+        ((evmPrice.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
+    (hcallVat : typedCallViaEVM config evmPrice (EVM.address v.vat) "flux" 0
+      [v.ilk, .address evmPrice.executionEnv.codeOwner,
+        .address (AccountAddress.ofNat
+          (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat),
+        .int (Int.ofNat
+          (UInt256.div (clipperTakeSalesTabEVMWord evmPrice I) price).toNat)]
+      (true, evmVat, outVat) true)
+    (hcallback :
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+      let evmLock := Solm.EVM.storageStore evm0
+        evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
+      let slice := clipperMinWord
+        (clipperTakeSalesLotEVMWord evmPrice I) (clipperTakeAmtWord I)
+      let owe0 := UInt256.mul slice price
+      let slice' := UInt256.div (clipperTakeSalesTabEVMWord evmPrice I) price
+      let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmPrice I)
+        (clipperTakeSalesTabEVMWord evmPrice I)
+      let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmPrice I) slice'
+      ExecStmt config
+        (Frame.mk contract (clipperTakeLocalsDogLoaded evmLock evmPrice evmVat I price slice owe0 owe0
+            slice' tabNew lotNew) (immStore v))
+        evmVat
+        (.ite
+          (.binary .and
+            (.binary .gt (bytesLength "data") (.intLit 0))
+            (.binary .and
+              (.binary .ne (.var "who") vatExpr)
+              (.binary .ne (.var "who") (.var "dog_"))))
+          (checkedExternalCallStmts (.var "who") "clipperCall" (.intLit 0)
+            [sender, .var "owe", .var "slice", .var "data"] "_clipperCallRet") [])
+        (.ok callbackFrame evmCb))
+    (htail : ExecBlock config callbackFrame evmCb
+      (checkedExternalCallStmts vatExpr "move" (.intLit 0)
+          [sender, .storage vowRef, .var "owe"] "_moveRet" ++
+        clipperTakeAfterMoveStmts) .reverted)
+    (hstatus :
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+      let evmLock := Solm.EVM.storageStore evm0
+        evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
+      ExecStmt config
+        { contract := contract, locals := clipperTakeLocalsTic evmLock I, immutables := immStore v }
+        evmLock
+        (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
+        (.ok (Frame.mk contract (clipperTakeLocalsSt evmLock I false price) (immStore v)) evmPrice)) :
+    runtimeRefinementFor config contract
+      σ σ₀ g A I (immStore v) := by
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  let evmLock := Solm.EVM.storageStore evm0
+    evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
+  let slice := clipperMinWord
+    (clipperTakeSalesLotEVMWord evmPrice I) (clipperTakeAmtWord I)
+  have hsrcMul : slice.toNat * price.toNat < UInt256.size := by
+    simpa [slice] using
+      (clipperTakeOweGtTabSourceMul_of_post_lot
+        (I := I) (evmPrice := evmPrice) (price := price)
+        (lot := lot) hlot hmul)
+  have hsrcGt :
+      (clipperTakeSalesTabEVMWord evmPrice I).toNat <
+        (UInt256.mul slice price).toNat := by
+    simpa [slice] using
+      (clipperTakeOweGtTabSourceGt_of_post_words
+        (I := I) (evmPrice := evmPrice) (price := price)
+        (tab := tab) (lot := lot) htab hlot hgt)
+  have hsliceLot :
+      (UInt256.div (clipperTakeSalesTabEVMWord evmPrice I) price).toNat ≤
+        (clipperTakeSalesLotEVMWord evmPrice I).toNat :=
+    clipperTakeOweGtTabSourceDivLeLot_of_post_words
+      (I := I) (evmPrice := evmPrice) (price := price)
+      (tab := tab) (lot := lot) htab hlot hmul hgt
+  have hafter : ExecBlock config
+      (Frame.mk contract (clipperTakeLocalsSlice evmLock evmPrice I false price slice) (immStore v))
+      evmPrice (clipperTakeAfterSliceStmts) .reverted := by
+    exact clipperTakeOweGtTabCallbackTailSource v evmLock evmPrice
+      evmVat evmCb I price slice hsrcMul hsrcGt hsliceLot hvatCode hcallVat
+      (by simpa [evm0, evmLock, slice] using hcallback) htail
+  have hbody := clipperTakeSourceRevertsOfAfterSlice
+    (σ := σ) (σ₀ := σ₀)
+    (A := A) (I := I) (g := g) (evmPrice := evmPrice)
+    v price hwv hlockedSolm hstoppedSolmLt husrSolm hmax hstatus
+    (by simpa [evm0, evmLock, slice] using hafter)
+  exact hrev.reEquivExecutionRevert hcode hdispatch hdec hbody
+
+end Benchmarks.Dss.Clipper
