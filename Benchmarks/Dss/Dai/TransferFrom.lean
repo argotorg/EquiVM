@@ -249,7 +249,7 @@ theorem transferFromCallStore_get_wad (I : ExecutionEnv) :
   simp
 
 theorem daiBindTransferFromCallStore (I : ExecutionEnv) :
-    bindParams? transferFromTransition.params
+    bindParams? (transferFromTransition.params.map Param.toFunctionParam)
         [transferFromSrcValue I, transferFromDstValue I, transferFromWadValue I] =
       some (transferFromCallStore I) := by
   rfl

@@ -245,7 +245,7 @@ def checkConstructor (target value : Nat) : IO Unit := do
   let base := runtimeState .empty .empty
   let s := { base with executionEnv :=
     { base.executionEnv with code := code, calldata := .empty, weiValue := .ofNat value } }
-  let locals := (bindParams? constructorDecl.params args).get!
+  let locals := (bindParams? (constructorDecl.params.map Param.toFunctionParam) args).get!
   let source := runBody 100 ⟨⟨contract, locals, initialImmutables contract⟩, s, []⟩
     constructorDecl.body
   let actual := Ξ s.accountMap s.σ₀ (.ofNat 5000000) s.substate s.executionEnv

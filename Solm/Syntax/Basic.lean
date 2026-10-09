@@ -48,6 +48,24 @@ inductive StorageType where
   | string : StorageType
   deriving Repr, Inhabited
 
+mutual
+  /-- ABI boundary types embedded in the type language used by internal functions. -/
+  def StorageType.ofABI : ABIType → StorageType
+    | .elem t => .elem t
+    | .array t n => .array (ofABI t) n
+    | .dynamicArray t => .dynamicArray (ofABI t)
+    | .tuple ts => .tuple (ofABIList ts)
+    | .bytes => .bytes
+    | .string => .string
+
+  /-- Structural recursion keeps the embedding reducible in existing AST proofs. -/
+  def StorageType.ofABIList : List ABIType → List StorageType
+    | [] => []
+    | t :: ts => ofABI t :: ofABIList ts
+end
+
+instance : Coe ABIType StorageType := ⟨StorageType.ofABI⟩
+
 /- Ethereum environment variables -/
 inductive EnvVar where
   | caller
@@ -308,6 +326,16 @@ structure Param where
   ty : ABI.ABIType
   deriving Repr, Inhabited
 
+/-- Internal parameters can describe any storage type, including mappings.
+Arguments are ordinary `Value`s; a storage alias is carried by `Value.storageRef`. -/
+structure FunctionParam where
+  name : Ident
+  ty : StorageType
+  deriving Repr, Inhabited
+
+def Param.toFunctionParam (p : Param) : FunctionParam :=
+  ⟨p.name, StorageType.ofABI p.ty⟩
+
 structure StorageDecl where
   name : Ident
   ty : StorageType
@@ -340,13 +368,13 @@ structure StructDecl where
   fields : List StorageDecl
   deriving Repr, Inhabited
 
-/- For now, internal function interface only accept ABI types.
- - In the future, we may extend this with non-ABI types as well (e.g., mappings). -/
+/-- Internal interfaces use the full type language. References are runtime values,
+so parameters and results do not need a separate passing mode. -/
 structure FunctionDecl where
   name : Ident
-  params : List Param
-  /-- ABI return types (potentially, multi-element; `[]` = void) -/
-  returnType : List ABIType := []
+  params : List FunctionParam
+  /-- Internal result types (potentially, multi-element; `[]` = void). -/
+  returnType : List StorageType := []
   body : List Stmt
   deriving Repr, Inhabited
 

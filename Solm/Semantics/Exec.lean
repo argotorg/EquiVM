@@ -26,12 +26,12 @@ inductive ExecResult where
   | staticViolation : ExecResult
 
 structure CallableDecl where
-  params : List Param
-  returnType : List ABIType := []
+  params : List FunctionParam
+  returnType : List StorageType := []
   body : Body
   deriving Repr, Inhabited
 
-def bindParams? (params : List Param) (args : List Value) : Option Store :=
+def bindParams? (params : List FunctionParam) (args : List Value) : Option Store :=
   match params, args with
   | [], [] => some ∅
   | p :: ps, v :: vs => do
@@ -43,7 +43,8 @@ def FunctionDecl.toCallable (decl : FunctionDecl) : CallableDecl :=
   { params := decl.params, returnType := decl.returnType, body := decl.body }
 
 def TransitionDecl.toCallable (decl : TransitionDecl) : CallableDecl :=
-  { params := decl.params, returnType := decl.returnType, body := decl.body }
+  { params := decl.params.map Param.toFunctionParam
+    returnType := decl.returnType.map StorageType.ofABI, body := decl.body }
 
 
 def lookupFunction? (decls : List FunctionDecl) (name : Ident) : Option CallableDecl :=

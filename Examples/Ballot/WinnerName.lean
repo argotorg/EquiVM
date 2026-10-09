@@ -145,7 +145,7 @@ theorem ballotWinningProposal_lookup :
   rfl
 
 theorem ballotWinningProposal_bind :
-    bindParams? winningProposalTransition.params [] = some ∅ := rfl
+    bindParams? winningProposalTransition.toCallable.params [] = some ∅ := rfl
 
 theorem ballotWinnerNameBodyReturns (evm : EVM.State)
     (h : evm.executionEnv.weiValue = ⟨0⟩)

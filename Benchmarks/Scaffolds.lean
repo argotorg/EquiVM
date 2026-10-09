@@ -1,5 +1,3 @@
-import Benchmarks.Scaffolds.Comet.Correct
-import Benchmarks.Scaffolds.CometRewards.Correct
 import Benchmarks.Scaffolds.ERC721.Correct
 import Benchmarks.Scaffolds.Klima.Correct
 import Benchmarks.Scaffolds.Safe.Correct
