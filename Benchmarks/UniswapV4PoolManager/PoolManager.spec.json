@@ -1,0 +1,326 @@
+{
+  "contract": "PoolManager",
+  "externalCalls": [
+    {
+      "name": "unlockCallback",
+      "params": [
+        "bytes"
+      ],
+      "returns": [
+        "bytes"
+      ],
+      "view": false
+    },
+    {
+      "name": "isValidHookAddress",
+      "params": [
+        "address",
+        "uint24"
+      ],
+      "returns": [
+        "bool"
+      ],
+      "view": true
+    },
+    {
+      "name": "beforeInitialize",
+      "params": [
+        "address",
+        "PoolKey",
+        "uint160"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "afterInitialize",
+      "params": [
+        "address",
+        "PoolKey",
+        "uint160",
+        "int24"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "beforeModifyLiquidity",
+      "params": [
+        "address",
+        "PoolKey",
+        "ModifyLiquidityParams_8903",
+        "bytes"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "afterModifyLiquidity",
+      "params": [
+        "address",
+        "PoolKey",
+        "ModifyLiquidityParams_8903",
+        "BalanceDelta",
+        "BalanceDelta",
+        "bytes"
+      ],
+      "returns": [
+        "BalanceDelta",
+        "BalanceDelta"
+      ],
+      "view": false
+    },
+    {
+      "name": "wrap",
+      "params": [
+        "int256"
+      ],
+      "returns": [
+        "BalanceDelta"
+      ],
+      "view": true
+    },
+    {
+      "name": "beforeSwap",
+      "params": [
+        "address",
+        "PoolKey",
+        "SwapParams_8914",
+        "bytes"
+      ],
+      "returns": [
+        "int256",
+        "BeforeSwapDelta",
+        "uint24"
+      ],
+      "view": false
+    },
+    {
+      "name": "afterSwap",
+      "params": [
+        "address",
+        "PoolKey",
+        "SwapParams_8914",
+        "BalanceDelta",
+        "bytes",
+        "BeforeSwapDelta"
+      ],
+      "returns": [
+        "BalanceDelta",
+        "BalanceDelta"
+      ],
+      "view": false
+    },
+    {
+      "name": "beforeDonate",
+      "params": [
+        "address",
+        "PoolKey",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "afterDonate",
+      "params": [
+        "address",
+        "PoolKey",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "unwrap",
+      "params": [
+        "Currency"
+      ],
+      "returns": [
+        "address"
+      ],
+      "view": true
+    },
+    {
+      "name": "balanceOf",
+      "params": [
+        "address"
+      ],
+      "returns": [
+        "uint256"
+      ],
+      "view": true
+    }
+  ],
+  "holes": [
+    "`.selector` outside abi.encodeWithSelector @5728",
+    "`.selector` outside abi.encodeWithSelector @6010",
+    "`.selector` outside abi.encodeWithSelector @6377",
+    "`.selector` outside abi.encodeWithSelector @6483",
+    "`.selector` outside abi.encodeWithSelector @6599",
+    "`.selector` outside abi.encodeWithSelector @6804",
+    "`.selector` outside abi.encodeWithSelector @5449",
+    "arithmetic on non-integer type BalanceDelta @8623",
+    "constant ZERO_DELTA with a call in its initialiser @9165",
+    "`.selector` outside abi.encodeWithSelector @5449",
+    "`.selector` outside abi.encodeWithSelector @9623",
+    "constant ZERO_DELTA with a call in its initialiser @10892",
+    "`.selector` outside abi.encodeWithSelector @5449",
+    "`.selector` outside abi.encodeWithSelector @5449",
+    "`.selector` outside abi.encodeWithSelector @5449",
+    "`.selector` outside abi.encodeWithSelector @5449",
+    "`.selector` outside abi.encodeWithSelector @5449",
+    "`.selector` outside abi.encodeWithSelector @14246",
+    "`.selector` outside abi.encodeWithSelector @5449",
+    "`.selector` outside abi.encodeWithSelector @5449",
+    "`.selector` outside abi.encodeWithSelector @15362",
+    "inline assembly block @422",
+    "inline assembly block @658",
+    "inline assembly block @411",
+    "inline assembly block @656",
+    "inline assembly block @1664",
+    "`.selector` outside abi.encodeWithSelector @1416",
+    "`.selector` outside abi.encodeWithSelector @1503",
+    "`.selector` outside abi.encodeWithSelector @1940",
+    "`.selector` outside abi.encodeWithSelector @2184",
+    "inline assembly block @837",
+    "inline assembly block @814",
+    "inline assembly block @527",
+    "inline assembly block @622",
+    "inline assembly block @675",
+    "`.selector` outside abi.encodeWithSelector @1049",
+    "inline assembly block @1431",
+    "inline assembly block @3008",
+    "inline assembly block @1084",
+    "inline assembly block @357",
+    "`.selector` outside abi.encodeWithSelector @4701",
+    "`.selector` outside abi.encodeWithSelector @28701",
+    "uninitialised local of type ModifyLiquidityState @6783",
+    "`.selector` outside abi.encodeWithSelector @7510",
+    "`.selector` outside abi.encodeWithSelector @7690",
+    "`.selector` outside abi.encodeWithSelector @1566",
+    "`.selector` outside abi.encodeWithSelector @22121",
+    "constant ADDRESS_ZERO with a call in its initialiser @4991",
+    "inline assembly block @766",
+    "inline assembly block @937",
+    "`.selector` outside abi.encodeWithSelector @2187",
+    "inline assembly block @1809",
+    "`.selector` outside abi.encodeWithSelector @2113",
+    "inline assembly block @2238",
+    "`.selector` outside abi.encodeWithSelector @4152",
+    "`.selector` outside abi.encodeWithSelector @16022",
+    "inline assembly block @956",
+    "`.selector` outside abi.encodeWithSelector @1909",
+    "inline assembly block @1088",
+    "inline assembly block @1748",
+    "inline assembly block @629",
+    "inline assembly block @1502",
+    "`.selector` outside abi.encodeWithSelector @8281",
+    "inline assembly block @8660",
+    "inline assembly block @8869",
+    "inline assembly block @9078",
+    "inline assembly block @9287",
+    "inline assembly block @9496",
+    "inline assembly block @9705",
+    "inline assembly block @9914",
+    "inline assembly block @10123",
+    "inline assembly block @10332",
+    "inline assembly block @10541",
+    "inline assembly block @10750",
+    "inline assembly block @10959",
+    "inline assembly block @11168",
+    "inline assembly block @11377",
+    "inline assembly block @3217",
+    "inline assembly block @2578",
+    "inline assembly block @2342",
+    "`.selector` outside abi.encodeWithSelector @4287",
+    "`.selector` outside abi.encodeWithSelector @4389",
+    "`.selector` outside abi.encodeWithSelector @4485",
+    "inline assembly block @26435",
+    "inline assembly block @28155",
+    "inline assembly block @2509",
+    "`.selector` outside abi.encodeWithSelector @4085",
+    "inline assembly block @553",
+    "inline assembly block @1682",
+    "inline assembly block @3297",
+    "`.selector` outside abi.encodeWithSelector @3811",
+    "inline assembly block @4383",
+    "inline assembly block @6424",
+    "inline assembly block @452",
+    "inline assembly block @2052",
+    "inline assembly block @2241",
+    "named return of type SwapResult needs a default @12391",
+    "`.selector` outside abi.encodeWithSelector @13975",
+    "constant ZERO_DELTA with a call in its initialiser @14280",
+    "`.selector` outside abi.encodeWithSelector @14457",
+    "`.selector` outside abi.encodeWithSelector @14889",
+    "`.selector` outside abi.encodeWithSelector @15078",
+    "`.selector` outside abi.encodeWithSelector @15279",
+    "uninitialised local of type StepComputations @15381",
+    "tuple expression @19667",
+    "inline assembly block @1070",
+    "inline assembly block @1408",
+    "inline assembly block @1526",
+    "inline assembly block @1271",
+    "inline assembly block @763",
+    "`.selector` outside abi.encodeWithSelector @3680",
+    "inline assembly block @3741",
+    "inline assembly block @1199",
+    "inline assembly block @547",
+    "inline assembly block @2855",
+    "inline assembly block @759",
+    "inline assembly block @2092",
+    "inline assembly block @2447",
+    "inline assembly block @1347",
+    "inline assembly block @1750",
+    "inline assembly block @2224",
+    "inline assembly block @2391",
+    "inline assembly block @2811",
+    "inline assembly block @2977",
+    "inline assembly block @3254",
+    "`.selector` outside abi.encodeWithSelector @1882",
+    "inline assembly block @9783",
+    "inline assembly block @12384",
+    "inline assembly block @1882",
+    "inline assembly block @2089",
+    "inline assembly block @1864",
+    "inline assembly block @2516",
+    "increment in expression position @5498",
+    "inline assembly block @1328",
+    "inline assembly block @558",
+    "increment in expression position @5408",
+    "inline assembly block @10595",
+    "inline assembly block @846",
+    "inline assembly block @1676",
+    "inline assembly block @1766",
+    "inline assembly block @6731",
+    "inline assembly block @8211",
+    "inline assembly block @2951",
+    "inline assembly block @5468",
+    "`.selector` outside abi.encodeWithSelector @570"
+  ],
+  "notes": [
+    "constant MAX_TICK_SPACING = type(int16).max inlined",
+    "constant MAX_TICK_SPACING = (type(int16).max) inlined",
+    "constant MIN_TICK_SPACING = 1 inlined",
+    "constant Q128 = 340282366920938463463374607431768211456 inlined",
+    "constant DYNAMIC_FEE_FLAG = 8388608 inlined",
+    "constant MIN_SQRT_PRICE = 4295128739 inlined",
+    "constant MAX_SQRT_PRICE_MINUS_MIN_SQRT_PRICE_MINUS_ONE = ((((1461446703485210103287273052203988822378723970342 - 4295128739) as uint256) - 1) as uint256) inlined",
+    "constant MIN_TICK = -887272 inlined",
+    "constant MAX_TICK = 887272 inlined",
+    "constant MAX_SWAP_FEE = 1000000 inlined",
+    "constant MAX_SQRT_PRICE = 1461446703485210103287273052203988822378723970342 inlined",
+    "constant PIPS_DENOMINATOR = 1000000 inlined",
+    "constant MAX_LP_FEE = 1000000 inlined",
+    "constant RESOLUTION = 96 inlined",
+    "constant Q96 = 79228162514264337593543950336 inlined",
+    "constant OVERRIDE_FEE_FLAG = 4194304 inlined",
+    "mulmod translated as (a * b) % n: differs for n == 0 (EVM gives 0)",
+    "constant REMOVE_OVERRIDE_MASK = 12582911 inlined"
+  ]
+}
