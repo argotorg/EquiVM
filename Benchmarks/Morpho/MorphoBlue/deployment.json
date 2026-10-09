@@ -1,0 +1,48 @@
+{
+  "chain_id": 1,
+  "address": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+  "upstream": "https://github.com/morpho-org/morpho-blue",
+  "tag": "v1.0.0",
+  "commit": "55d2d99304fb3fb930c688462ae2ccabb1d533ad",
+  "verification_url": "https://eth.blockscout.com/api/v2/smart-contracts/0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+  "etherscan_url": "https://etherscan.io/address/0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb#code",
+  "fetched_at": "2026-10-08",
+  "is_fully_verified": true,
+  "compiler_version": "0.8.19+commit.7dd6d404",
+  "compiler_settings": {
+    "evmVersion": "paris",
+    "libraries": {},
+    "metadata": {
+      "bytecodeHash": "ipfs"
+    },
+    "optimizer": {
+      "enabled": true,
+      "runs": 999999
+    },
+    "remappings": [
+      ":ds-test/=lib/forge-std/lib/ds-test/src/",
+      ":forge-std/=lib/forge-std/src/"
+    ],
+    "viaIR": true
+  },
+  "compiler_binary_sha256": "7a5c1d3dc9a8eba62bb2ec37192c9178ae5fe8a54a56e5573fd3c9c17cd9eb48",
+  "constructor_args": "000000000000000000000000937ce2d6c488b361825d2db5e8a70e26d48afed5",
+  "runtime_sha256": "fd5aa16eea01735e0e33e51e913a27f7d5ed998adc0cec2bf1f9ea368d9e1bdf",
+  "creation_sha256": "25cab8422ff1d64749cbcbe6b540177e3a003959818aaa867ebc85097815239f",
+  "source_sha256": {
+    "src/Morpho.sol": "7f66c064ad0bdc046382fa65f449bb5a0b9181d5d03b65e3c8438226d437b9ce",
+    "src/interfaces/IERC20.sol": "6e2b44aa15626cde7e33adc20c8a424ba91aaec47fab9170efaeea54104e565d",
+    "src/interfaces/IIrm.sol": "3ba6e6164cd0ed25d2b1d8d3766667ef016712705fe30094a97fe3801d14e915",
+    "src/interfaces/IMorpho.sol": "24f96c2860c42cd5834c56cdb159c56435acaee0716d34d54ca18bd755edc97c",
+    "src/interfaces/IMorphoCallbacks.sol": "3fa10015bd49e04e3c14e63bcf0abefb3ebac5759b030d32784cb1bd4773e0c4",
+    "src/interfaces/IOracle.sol": "757c9870385af7a880cb12ae47b4aba8a936bab4a7bdeff50647d605237fc178",
+    "src/libraries/ConstantsLib.sol": "d450cc5f56d70f6460ed81c5e2e7a294f5b7644307a4c742754e0d41a8789567",
+    "src/libraries/ErrorsLib.sol": "0a54375182b5cfbb4f1101da4900c45ee96ba74962853168daf0d6281580666c",
+    "src/libraries/EventsLib.sol": "c267b23c5a3086ed00a712b841ef12b674be508ac8b8cf2e3f289ae09bd1677a",
+    "src/libraries/MarketParamsLib.sol": "94af290e2a2094b8547b925449484d247bce87cce4fed8902ecf82dd2b49242e",
+    "src/libraries/MathLib.sol": "2c6728d1bc8f5db81f2a7946f226c3c4a8cffe4134c55450ca445b05727011bc",
+    "src/libraries/SafeTransferLib.sol": "bee3d6375591947edc45a28f46569e969df9ab434b91530e5bb4560aa61e3675",
+    "src/libraries/SharesMathLib.sol": "4580deb1b1a3f2ea0b60f2305708428975613d1e94d404d647bcc573a7b2a2f0",
+    "src/libraries/UtilsLib.sol": "9d0c8a0855b2f9e9f92111cdf32bdbbd1ff97b7584f0f958b695f2c4cb0d1b34"
+  }
+}

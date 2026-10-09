@@ -47,9 +47,9 @@ namespace Benchmarks.Dss.Clipper
 
 theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
     (hcode : patchRuntime clipperBytecode (patches v) = some code) :
-    runtimeRefinementWithWF clipperStorageWF config code contract (immStore v) := by
+    runtimeRefinementWithWF clipperStorageWF noGasBound config code contract (immStore v) := by
   refine runtimeRefinementWithWF.intro ?_
-  intro σ σ₀ g A I hIcode hsize hStorageWF
+  intro σ σ₀ g A I hIcode hsize hStorageWF _
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hactive : selIs I (clipperSelBytes 0)
     · exact clipperActiveBody v hcode hIcode hsize hwv hactive
@@ -166,7 +166,7 @@ theorem restrictImmutables_of_fit {imms : Store} (hfit : immutablesFit contract 
 
 /-- The runtime half for every well-typed immutables store. -/
 theorem clipperRuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
-    runtimeRefinementWithWF clipperStorageWF config
+    runtimeRefinementWithWF clipperStorageWF noGasBound config
       (immutableLayout.deployed clipperBytecode imms) contract
       (restrictImmutables contract imms) := by
   obtain ⟨vat, ilk, hlen, hv⟩ := restrictImmutables_of_fit hfit
@@ -175,7 +175,7 @@ theorem clipperRuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms
   exact clipperCorrect _ (clipperPatchRuntime_eq_ctorPatchedRuntime vat ilk hlen)
 
 theorem clipperContractCorrect :
-    contractRefinementWF clipperStorageWF config clipperCreationBytecode contract :=
+    contractRefinementWF clipperStorageWF noGasBound config clipperCreationBytecode contract :=
   .of_runtime clipperConstructorCorrect clipperRuntimeCorrect
 
 end Benchmarks.Dss.Clipper

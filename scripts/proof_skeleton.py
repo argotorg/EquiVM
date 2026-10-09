@@ -98,6 +98,7 @@ class Contract:
     external_calls: list[dict]
     runtime: bytes
     has_transient: bool = False
+    abicoder_v2: bool = False
 
     @property
     def code_term(self) -> str:
@@ -164,8 +165,15 @@ def load_contract(directory: Path, module: str | None, namespace: str | None, pr
     spec_json = directory / f"{name}.spec.json"
     external_calls = load_json(spec_json).get("externalCalls", []) if spec_json.exists() else []
     runtime = read_bytecode(directory / "runtime.hex")
+    # solc < 0.8 with `pragma abicoder v2` / `pragma experimental ABIEncoderV2` validates calldata
+    # like 0.8 does; the legacy decode mode models the old coder's cleanup instead
+    ast_path = directory / f"{name}.sol.ast.json"
+    abicoder_v2 = False
+    if ast_path.exists():
+        text = ast_path.read_text(encoding="utf-8")
+        abicoder_v2 = '"abicoder", "v2"' in text or '"experimental", "ABIEncoderV2"' in text
     return Contract(directory, name, module, namespace, prefix, transitions, has_fallback, has_receive,
-                    immutables, version, external_calls, runtime, has_transient)
+                    immutables, version, external_calls, runtime, has_transient, abicoder_v2)
 
 
 # --------------------------------------------------------------------------------------------
@@ -258,7 +266,7 @@ def render_spec(c: Contract) -> str:
         abi_name = "externalABI"
     else:
         abi_name = "defaultExternalCallABI"
-    decode_mode = "" if c.version >= (0, 8, 0) else "\n    abiDecodeMode := DecodeMode.legacySolc05"
+    decode_mode = "" if c.version >= (0, 8, 0) or c.abicoder_v2 else "\n    abiDecodeMode := DecodeMode.legacySolc05"
     transient = ("\n    transientBackend := solidityTransientStorage! [contract.structs] [contract.transient]"
                  if c.has_transient else "")
     out += ["/-! ## Config -/", "", "def config : Config :=",
