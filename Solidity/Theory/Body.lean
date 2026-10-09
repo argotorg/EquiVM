@@ -1,13 +1,15 @@
 import Solidity.Semantics
-import EVMReasoning.Storage
+import Reasoning.Storage
+import Solidity.Theory.Backend
 
 /-!
 # Derivation helpers for function bodies
 
 Small rewriting lemmas used when building `EvalExpr`/`ExecStmt`/`CallFn` derivations by hand:
 frame lookups, scalar conversions, zero values, and full-word (`uint256`) storage reads and
-writes through a layout.  `storageLocLoad`/`scalarOfAbi` are eliminated by `rw`, never by
-definitional unfolding (their unfolding on a symbolic state does not terminate quickly).
+writes through the storage backend (`Config.Leaf`).  `storageLocLoad`/`scalarOfAbi` are eliminated
+by `rw`, never by definitional unfolding (their unfolding on a symbolic state does not terminate
+quickly).
 -/
 
 namespace Solidity
@@ -142,58 +144,29 @@ theorem scalarOfAbi_u256_nat (env : TypeEnv) (n : Nat) (hn : n < UInt256.size) :
     implicitConv env h (.bool b) .bool = some (.bool b, h) := by
   simp [implicitConv]
 
-/-! ## Full-word storage reads and writes -/
+/-! ## Storage through the backend
 
-/-- `readScalar` of a `uint256` slot: the stored word. -/
-theorem readScalar_u256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (h : cfg.storage.layout er evm = some (uint256Loc slot)) :
-    readScalar cfg env evm er u256Ty =
-      some (u256Val (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
+The semantics reads and writes storage through `cfg.storageBackend`.  `Config.Leaf cfg er loc`
+(`Theory/Backend.lean`) says the backend treats `er` as the scalar at `loc`; a config built from a
+layout table satisfies it at every leaf of the layout (`Config.leaf_of_table`).  The scalar lemmas
+below are stated on it; dynamically-sized values take the backend's results (`length`, `push`,
+`pop`, `clear`) as hypotheses. -/
+
+theorem readScalar_of_leaf {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
+    {e : ABI.ElemType} {loc : Solm.StorageLoc} {v : Value} (hst : storageTypeOf env ty = some (.elem e))
+    (hl : cfg.Leaf er loc) (hv : scalarOfAbi env ty (Solm.storageLocLoad evm loc) = some v) :
+    readScalar cfg env evm er ty = some v := by
   unfold readScalar
-  rw [h, Opt.some_bind, storageLocLoad_uint256, scalarOfAbi_u256]
+  rw [hst, Opt.some_bind, hl.read e evm]
+  exact hv
 
-theorem loadIfScalar_u256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (h : cfg.storage.layout er evm = some (uint256Loc slot)) :
-    loadIfScalar cfg env evm er u256Ty =
-      some (u256Val (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  unfold loadIfScalar
-  rw [if_pos (by rfl : isValueType env u256Ty = true)]
-  exact readScalar_u256 h
-
-/-- `writeScalar` of a `uint256` slot: the stored word. -/
-theorem writeScalar_u256 {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (h : cfg.storage.layout er evm = some (uint256Loc slot)) (w : UInt256) :
-    writeScalar cfg evm er (u256Val w.toNat) =
-      some (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot w) := by
-  unfold writeScalar
-  rw [h, Opt.some_bind]
-  show (some (ABI.ABIValue.int (Int.ofNat w.toNat)) >>= _) = _
-  rw [Opt.some_bind, storageLocStore_uint256]
-
-/-- `writeStorageDeep` of a `uint256` value into a `uint256` slot. -/
-theorem writeStorageDeep_u256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {h : Heap} {er : Solm.EvaledStorageRef}
-    {slot : UInt256} (hl : cfg.storage.layout er evm = some (uint256Loc slot)) (fuel : Nat) (w : UInt256) :
-    writeStorageDeep cfg env (fuel + 1) evm h er u256Ty (u256Val w.toNat) =
-      some (.ok (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot w)) := by
-  rw [writeStorageDeep]
-  · simp only [implicitConv_uint, Op.ofOpt, writeScalar_u256 hl]
-    rfl
-  all_goals intros; simp_all
-
-/-! ## Scalar slots by location -/
-
-theorem readScalar_of_loc {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
-    {loc : Storage.StorageLoc} {v : Value} (hl : cfg.storage.layout er evm = some loc)
-    (hv : scalarOfAbi env ty (Storage.storageLocLoad evm loc) = some v) : readScalar cfg env evm er ty = some v := by
-  unfold readScalar
-  rw [hl, Opt.some_bind, hv]
-
-theorem loadIfScalar_of_loc {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
-    {loc : Storage.StorageLoc} {v : Value} (hval : isValueType env ty = true) (hl : cfg.storage.layout er evm = some loc)
-    (hv : scalarOfAbi env ty (Storage.storageLocLoad evm loc) = some v) : loadIfScalar cfg env evm er ty = some v := by
+theorem loadIfScalar_of_leaf {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
+    {e : ABI.ElemType} {loc : Solm.StorageLoc} {v : Value} (hval : isValueType env ty = true)
+    (hst : storageTypeOf env ty = some (.elem e)) (hl : cfg.Leaf er loc)
+    (hv : scalarOfAbi env ty (Solm.storageLocLoad evm loc) = some v) : loadIfScalar cfg env evm er ty = some v := by
   unfold loadIfScalar
   rw [if_pos hval]
-  exact readScalar_of_loc hl hv
+  exact readScalar_of_leaf hst hl hv
 
 /-- A reference type is read as a storage reference. -/
 theorem loadIfScalar_ref {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
@@ -201,12 +174,23 @@ theorem loadIfScalar_ref {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : 
   unfold loadIfScalar
   rw [if_neg (by simp [hnv])]
 
-theorem writeScalar_of_loc {cfg : Config} {evm evm' : EVM.State} {er : Solm.EvaledStorageRef} {loc : Storage.StorageLoc}
-    {v : Value} {sv : ABI.ABIValue} (hl : cfg.storage.layout er evm = some loc)
-    (hsv : scalarToAbi v = some sv) (hst : Storage.storageLocStore evm loc sv = some evm') :
-    writeScalar cfg evm er v = some evm' := by
+theorem writeScalar_of_leaf {cfg : Config} {env : TypeEnv} {evm evm' : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
+    {e : ABI.ElemType} {loc : Solm.StorageLoc} {v : Value} {sv : Solm.Value}
+    (hst : storageTypeOf env ty = some (.elem e)) (hl : cfg.Leaf er loc)
+    (hsv : scalarToAbi v = some sv) (hw : Solm.storageLocStore evm loc sv = some evm') :
+    writeScalar cfg env evm er ty v = some evm' := by
   unfold writeScalar
-  rw [hl, Opt.some_bind, hsv, Opt.some_bind, hst]
+  rw [hst, Opt.some_bind, hsv, Opt.some_bind, hl.write e sv evm evm' hw]
+
+/-- A successful `writeScalar` is a successful backend write. -/
+theorem writeScalar_write {cfg : Config} {env : TypeEnv} {evm evm' : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
+    {st : Solm.StorageType} {v : Value} {sv : Solm.Value} (hst : storageTypeOf env ty = some st)
+    (hsv : scalarToAbi v = some sv) (hw : writeScalar cfg env evm er ty v = some evm') :
+    cfg.storageBackend.write er st sv evm = .ok evm' := by
+  unfold writeScalar at hw
+  rw [hst, Opt.some_bind, hsv, Opt.some_bind] at hw
+  revert hw
+  cases cfg.storageBackend.write er st sv evm <;> simp
 
 theorem readLValue_storage_of {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machine} {er : Solm.EvaledStorageRef}
     {ty : Ty} {v : Value} (hload : loadIfScalar cfg env m.evm er ty = some v) :
@@ -219,102 +203,167 @@ theorem assign_storage_of {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machi
     assign cfg env fr m (.storage er ty) v = some (.ok (fr, { m with evm := evm' })) := by
   simp [assign, hw]
 
+/-- Values `storageValueOf` converts with `implicitConv`: neither memory, calldata nor storage objects,
+    nor string literals. -/
+def Value.direct : Value → Prop
+  | .memRef _ | .strLit _ | .raw .. | .storageRef .. | .cdRef .. => False
+  | _ => True
+
+theorem storageValueOf_direct {cfg : Config} {env : TypeEnv} {evm : EVM.State} {h h' : Heap} {ty : Ty} {v v' : Value}
+    {sv : Solm.Value} (fuel : Nat) (hd : v.direct) (hconv : implicitConv env h v ty = some (v', h'))
+    (hsv : scalarToAbi v' = some sv) : storageValueOf cfg env (fuel + 1) evm h ty v = some (.ok sv) := by
+  cases v <;> simp [Value.direct] at hd <;> simp [storageValueOf, toStorage, hconv, hsv]
+
+/-- `writeStorageDeep` when the value's storage value is `sv`: a backend write of `sv`. -/
+theorem writeStorageDeep_of_value {cfg : Config} {env : TypeEnv} {evm evm' : EVM.State} {h : Heap}
+    {er : Solm.EvaledStorageRef} {ty : Ty} {st : Solm.StorageType} {v : Value} {sv : Solm.Value} {fuel : Nat}
+    (hst : storageTypeOf env ty = some st) (hv : storageValueOf cfg env fuel evm h ty v = some (.ok sv))
+    (hw : cfg.storageBackend.write er st sv evm = .ok evm') :
+    writeStorageDeep cfg env fuel evm h er ty v = some (.ok evm') := by
+  simp only [writeStorageDeep, hst, hv, Op.bind_ok, hw, liftStorage, Op.pure_eq]
+
+/-! ### Full-word `uint256` slots -/
+
+/-- `readScalar` of a `uint256` slot: the stored word. -/
+theorem readScalar_u256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
+    (hl : cfg.Leaf er (uint256Loc slot)) :
+    readScalar cfg env evm er u256Ty =
+      some (u256Val (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) :=
+  readScalar_of_leaf (storageTypeOf_uint env _) hl (by rw [storageLocLoad_uint256, scalarOfAbi_u256])
+
+theorem loadIfScalar_u256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
+    (hl : cfg.Leaf er (uint256Loc slot)) :
+    loadIfScalar cfg env evm er u256Ty =
+      some (u256Val (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
+  unfold loadIfScalar
+  rw [if_pos (by rfl : isValueType env u256Ty = true)]
+  exact readScalar_u256 hl
+
+/-- `writeScalar` of a `uint256` slot: the stored word. -/
+theorem writeScalar_u256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
+    (hl : cfg.Leaf er (uint256Loc slot)) (w : UInt256) :
+    writeScalar cfg env evm er u256Ty (u256Val w.toNat) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot w) :=
+  writeScalar_of_leaf (storageTypeOf_uint env _) hl rfl (storageLocStore_uint256 evm slot w)
+
+/-- `writeStorageDeep` of a `uint256` value into a `uint256` slot. -/
+theorem writeStorageDeep_u256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {h : Heap} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} (hl : cfg.Leaf er (uint256Loc slot)) (fuel : Nat) (w : UInt256) :
+    writeStorageDeep cfg env (fuel + 1) evm h er u256Ty (u256Val w.toNat) =
+      some (.ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot w)) :=
+  writeStorageDeep_of_value (storageTypeOf_uint env _)
+    (storageValueOf_direct fuel trivial (implicitConv_uint env h w.toNat) rfl)
+    (hl.write _ _ _ _ (storageLocStore_uint256 evm slot w))
+
 theorem writeStorageDeep_bool {cfg : Config} {env : TypeEnv} {evm evm' : EVM.State} {h : Heap}
-    {er : Solm.EvaledStorageRef} (fuel : Nat) {b : Bool} (hw : writeScalar cfg evm er (.bool b) = some evm') :
-    writeStorageDeep cfg env (fuel + 1) evm h er .bool (.bool b) = some (.ok evm') := by
-  rw [writeStorageDeep]
-  · simp only [implicitConv_bool, Op.ofOpt, hw]
-    rfl
-  all_goals intros; simp_all
+    {er : Solm.EvaledStorageRef} (fuel : Nat) {b : Bool} (hw : writeScalar cfg env evm er .bool (.bool b) = some evm') :
+    writeStorageDeep cfg env (fuel + 1) evm h er .bool (.bool b) = some (.ok evm') :=
+  writeStorageDeep_of_value (storageTypeOf_bool env)
+    (storageValueOf_direct fuel trivial (implicitConv_bool env h b) rfl)
+    (writeScalar_write (storageTypeOf_bool env) rfl hw)
 
 theorem writeStorageDeep_address {cfg : Config} {env : TypeEnv} {evm evm' : EVM.State} {h : Heap}
     {er : Solm.EvaledStorageRef} (fuel : Nat) {a : EVM.Address}
-    (hw : writeScalar cfg evm er (.address a) = some evm') :
-    writeStorageDeep cfg env (fuel + 1) evm h er (.address false) (.address a) = some (.ok evm') := by
-  rw [writeStorageDeep]
-  · simp only [implicitConv_address, Op.ofOpt, hw]
-    rfl
-  all_goals intros; simp_all
+    (hw : writeScalar cfg env evm er (.address false) (.address a) = some evm') :
+    writeStorageDeep cfg env (fuel + 1) evm h er (.address false) (.address a) = some (.ok evm') :=
+  writeStorageDeep_of_value (storageTypeOf_address env false)
+    (storageValueOf_direct fuel trivial (implicitConv_address env h a) rfl)
+    (writeScalar_write (storageTypeOf_address env false) rfl hw)
 
 /-! ### `bool` at offset 0 -/
 
 theorem readScalar_bool_false {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
-    {slot : UInt256} (hl : cfg.storage.layout er evm = some (boolOffset0Loc slot))
-    (hz : UInt256.land (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ = ⟨0⟩) :
+    {slot : UInt256} (hl : cfg.Leaf er (boolOffset0Loc slot))
+    (hz : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ = ⟨0⟩) :
     readScalar cfg env evm er .bool = some (.bool false) :=
-  readScalar_of_loc hl (by rw [storageLocLoad_bool_offset0_false evm slot hz]; rfl)
+  readScalar_of_leaf (storageTypeOf_bool env) hl (by rw [storageLocLoad_bool_offset0_false evm slot hz]; rfl)
 
 theorem readScalar_bool_true {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
-    {slot : UInt256} (hl : cfg.storage.layout er evm = some (boolOffset0Loc slot))
-    (hnz : UInt256.land (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ ≠ ⟨0⟩) :
+    {slot : UInt256} (hl : cfg.Leaf er (boolOffset0Loc slot))
+    (hnz : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ ≠ ⟨0⟩) :
     readScalar cfg env evm er .bool = some (.bool true) :=
-  readScalar_of_loc hl (by rw [storageLocLoad_bool_offset0_true evm slot hnz]; rfl)
+  readScalar_of_leaf (storageTypeOf_bool env) hl (by rw [storageLocLoad_bool_offset0_true evm slot hnz]; rfl)
 
-theorem writeScalar_bool_true {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (hl : cfg.storage.layout er evm = some (boolOffset0Loc slot)) :
-    writeScalar cfg evm er (.bool true) =
-      some (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (UInt256.lor (UInt256.land (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+theorem writeScalar_bool_true {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
+    (hl : cfg.Leaf er (boolOffset0Loc slot)) :
+    writeScalar cfg env evm er .bool (.bool true) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (UInt256.lor (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
           (UInt256.lnot ⟨255⟩)) ⟨1⟩)) :=
-  writeScalar_of_loc hl rfl (storageLocStore_bool_true_offset0 evm slot)
+  writeScalar_of_leaf (storageTypeOf_bool env) hl rfl (storageLocStore_bool_true_offset0 evm slot)
 
-theorem writeScalar_bool_false {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (hl : cfg.storage.layout er evm = some (boolOffset0Loc slot)) :
-    writeScalar cfg evm er (.bool false) =
-      some (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (UInt256.land (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.lnot ⟨255⟩))) :=
-  writeScalar_of_loc hl rfl (storageLocStore_bool_false_offset0 evm slot)
+theorem writeScalar_bool_false {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
+    (hl : cfg.Leaf er (boolOffset0Loc slot)) :
+    writeScalar cfg env evm er .bool (.bool false) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.lnot ⟨255⟩))) :=
+  writeScalar_of_leaf (storageTypeOf_bool env) hl rfl (storageLocStore_bool_false_offset0 evm slot)
 
 /-! ### `address` at offset 0 -/
 
 theorem readScalar_address {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
-    {slot : UInt256} (hl : cfg.storage.layout er evm = some (addressOffset0Loc slot)) :
+    {slot : UInt256} (hl : cfg.Leaf er (addressOffset0Loc slot)) :
     readScalar cfg env evm er (.address false) =
       some (.address (AccountAddress.ofNat
-        (UInt256.land (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) solcAddrMask).toNat)) :=
-  readScalar_of_loc hl (by rw [storageLocLoad_address_offset0]; rfl)
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) solcAddrMask).toNat)) :=
+  readScalar_of_leaf (storageTypeOf_address env false) hl (by rw [storageLocLoad_address_offset0]; rfl)
 
-theorem writeScalar_address {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (hl : cfg.storage.layout er evm = some (addressOffset0Loc slot)) (addr : UInt256)
+theorem writeScalar_address {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
+    (hl : cfg.Leaf er (addressOffset0Loc slot)) (addr : UInt256)
     (hcanon : addr.toNat < EVM.addressModulus) :
-    writeScalar cfg evm er (.address (AccountAddress.ofNat addr.toNat)) =
-      some (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (setAddressOffset0Word (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) addr)) :=
-  writeScalar_of_loc hl rfl (storageLocStore_address_offset0 evm slot addr hcanon)
+    writeScalar cfg env evm er (.address false) (.address (AccountAddress.ofNat addr.toNat)) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) addr)) :=
+  writeScalar_of_leaf (storageTypeOf_address env false) hl rfl (storageLocStore_address_offset0 evm slot addr hcanon)
 
 /-! ### `bytes32` -/
 
 theorem readScalar_bytes32 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
-    {slot : UInt256} (hl : cfg.storage.layout er evm = some (bytes32Loc slot)) :
+    {slot : UInt256} (hl : cfg.Leaf er (bytes32Loc slot)) :
     readScalar cfg env evm er (.fixedBytes ⟨31, by decide⟩) =
       some (.fixedBytes ⟨31, by decide⟩
-        (EVM.Word.toBytesBE (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot))) :=
-  readScalar_of_loc hl (by rw [storageLocLoad_bytes32]; rfl)
+        (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))) :=
+  readScalar_of_leaf (storageTypeOf_fixedBytes env _) hl (by rw [storageLocLoad_bytes32]; rfl)
 
-theorem writeScalar_bytes32 {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot word : UInt256}
-    (hl : cfg.storage.layout er evm = some (bytes32Loc slot)) (bs : List UInt8)
-    (hval : ABI.valueToWord (.fixedBytes ⟨31, by decide⟩ bs) = some word) :
-    writeScalar cfg evm er (.fixedBytes ⟨31, by decide⟩ bs) =
-      some (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot word) :=
-  writeScalar_of_loc hl rfl (storageLocStore_bytes32 evm slot word _ hval)
+theorem writeScalar_bytes32 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot word : UInt256}
+    (hl : cfg.Leaf er (bytes32Loc slot)) (bs : List UInt8)
+    (hval : Solm.valueToWord (.fixedBytes ⟨31, by decide⟩ bs) = some word) :
+    writeScalar cfg env evm er (.fixedBytes ⟨31, by decide⟩) (.fixedBytes ⟨31, by decide⟩ bs) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot word) :=
+  writeScalar_of_leaf (storageTypeOf_fixedBytes env _) hl rfl (storageLocStore_bytes32 evm slot word _ hval)
 
 /-! ## Arrays and structs -/
 
-theorem dynArrayLength_of_loc {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (hl : cfg.storage.layout (lengthRef er) evm = some (uint256Loc slot)) :
-    dynArrayLength cfg evm er = some (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat := by
-  unfold dynArrayLength
-  rw [hl, Opt.some_bind, storageLocLoad_uint256]
-  rfl
+theorem storageLength_of_backend {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
+    {st : Solm.StorageType} {n : ℕ} (hst : storageTypeOf env ty = some st)
+    (hlen : cfg.storageBackend.length er st evm = .ok n) : storageLength cfg env evm er ty = some (.ok n) := by
+  simp only [storageLength, hst, hlen, liftStorage, Op.pure_eq]
+
+theorem dynArrayLength_of_backend {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {e : Ty}
+    {st : Solm.StorageType} {n : ℕ} (hst : storageTypeOf env (.dynArray e) = some st)
+    (hlen : cfg.storageBackend.length er st evm = .ok n) : dynArrayLength cfg env evm er e = some n := by
+  simp only [dynArrayLength, storageLength_of_backend hst hlen]
+
+/-- `arr.length` of a dynamic array whose length is known. -/
+theorem storageLength_dynArray {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {e : Ty} {n : ℕ}
+    (hlen : dynArrayLength cfg env evm er e = some n) : storageLength cfg env evm er (.dynArray e) = some (.ok n) := by
+  unfold dynArrayLength at hlen
+  split at hlen <;> simp_all
+
+theorem storageLength_array {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {e : Ty}
+    {st : Solm.StorageType} {n : ℕ} (hst : storageTypeOf env (.array e n) = some (.array st n))
+    (hlen : cfg.storageBackend.length er (.array st n) evm = .ok n) :
+    storageLength cfg env evm er (.array e n) = some (.ok n) :=
+  storageLength_of_backend hst hlen
 
 theorem storageIndex_dynArray_ok {cfg : Config} {env : TypeEnv} {evm : EVM.State} {h : Heap}
-    {er : Solm.EvaledStorageRef} {e : Ty} {n i : ℕ} (hlen : dynArrayLength cfg evm er = some n) (hi : i < n) :
-    storageIndex cfg env evm h er (.dynArray e) (u256Val i) = some (.ok (elemRef er i, e)) := by
+    {er : Solm.EvaledStorageRef} {e : Ty} {n i : ℕ} (hlen : storageLength cfg env evm er (.dynArray e) = some (.ok n))
+    (hi : i < n) : storageIndex cfg env evm h er (.dynArray e) (u256Val i) = some (.ok (elemRef er i, e)) := by
   simp [storageIndex, natOperand, hlen, hi]
 
 theorem storageIndex_dynArray_oob {cfg : Config} {env : TypeEnv} {evm : EVM.State} {h : Heap}
-    {er : Solm.EvaledStorageRef} {e : Ty} {n i : ℕ} (hlen : dynArrayLength cfg evm er = some n) (hi : n ≤ i) :
-    storageIndex cfg env evm h er (.dynArray e) (u256Val i) = some (.error .outOfBounds) := by
+    {er : Solm.EvaledStorageRef} {e : Ty} {n i : ℕ} (hlen : storageLength cfg env evm er (.dynArray e) = some (.ok n))
+    (hi : n ≤ i) : storageIndex cfg env evm h er (.dynArray e) (u256Val i) = some (.error .outOfBounds) := by
   simp [storageIndex, natOperand, hlen, Nat.not_lt.mpr hi]
   rfl
 
@@ -335,81 +384,63 @@ theorem storageField_of {env : TypeEnv} {er : Solm.EvaledStorageRef} {q : Option
     storageField env er (.user q n) f = some (fieldRef er f, fty) := by
   simp [storageField, hs, hf]
 
-theorem storageLength_dynArray {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStorageRef} {e : Ty} {n : ℕ}
-    (hlen : dynArrayLength cfg evm er = some n) : storageLength cfg evm er (.dynArray e) = some (.ok n) := by
-  simp [storageLength, hlen]
-
-theorem storageLength_array {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStorageRef} {e : Ty} {n : ℕ} :
-    storageLength cfg evm er (.array e n) = some (.ok n) := rfl
-
 theorem readScalar_address_offset1 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
     {slot : UInt256} {hbound : (1 : Fin 32).val + (20 : Fin 33).val - 1 < 32}
-    (hl : cfg.storage.layout er evm =
-      some { slot := slot, offset := 1, size := 20, hbound := hbound, type := .address }) :
+    (hl : cfg.Leaf er { slot := slot, offset := 1, size := 20, hbound := hbound, type := .address }) :
     readScalar cfg env evm er (.address false) =
       some (.address (AccountAddress.ofNat
-        (UInt256.land (UInt256.div (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨256⟩)
+        (UInt256.land (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨256⟩)
           solcAddrMask).toNat)) :=
-  readScalar_of_loc hl (by rw [storageLocLoad_address_offset1]; rfl)
+  readScalar_of_leaf (storageTypeOf_address env false) hl (by rw [storageLocLoad_address_offset1]; rfl)
 
-theorem writeDynArrayLength_of_loc {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (hl : cfg.storage.layout (lengthRef er) evm = some (uint256Loc slot)) (n : ℕ) (hn : n < UInt256.size) :
-    writeDynArrayLength cfg evm er n =
-      some (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot (UInt256.ofNat n)) := by
-  unfold writeDynArrayLength
-  rw [hl, Opt.some_bind]
-  have h := storageLocStore_uint256 evm slot (UInt256.ofNat n)
-  rw [ulit_toNat' n hn] at h
-  exact h
-
-/-- `a.push(v)`: the length slot and the new element. -/
+/-- `a.push(v)`: the backend's `push` of the value's storage value. -/
 theorem storagePush_some {cfg : Config} {env : TypeEnv} {m : Machine} {er : Solm.EvaledStorageRef} {e : Ty}
-    {v : Value} {n : ℕ} {slot : UInt256} {evm₂ : EVM.State}
-    (hlen : dynArrayLength cfg m.evm er = some n)
-    (hl : cfg.storage.layout (lengthRef er) m.evm = some (uint256Loc slot)) (hn : n + 1 < UInt256.size)
-    (hw : writeStorageDeep cfg env fuelDefault
-      (Storage.EVM.storageStore m.evm m.evm.executionEnv.codeOwner slot (UInt256.ofNat (n + 1))) m.heap
-      (elemRef er n) e v = some (.ok evm₂)) :
-    storagePush cfg env m er e (some v) = some (.ok { m with evm := evm₂ }) := by
-  simp [storagePush, hlen, writeDynArrayLength_of_loc hl (n + 1) hn, hw]
+    {st : Solm.StorageType} {v : Value} {sv : Solm.Value} {evm' : EVM.State}
+    (hst : storageTypeOf env (.dynArray e) = some st)
+    (hv : storageValueOf cfg env fuelDefault m.evm m.heap e v = some (.ok sv))
+    (hpush : cfg.storageBackend.push er st (some sv) m.evm = .ok evm') :
+    storagePush cfg env m er e (some v) = some (.ok { m with evm := evm' }) := by
+  simp [storagePush, hst, hv, hpush, liftStorage]
 
-/-- `a.push()`: the length slot only. -/
+/-- `a.push()`: the backend's valueless `push`. -/
 theorem storagePush_none {cfg : Config} {env : TypeEnv} {m : Machine} {er : Solm.EvaledStorageRef} {e : Ty}
-    {n : ℕ} {slot : UInt256}
-    (hlen : dynArrayLength cfg m.evm er = some n)
-    (hl : cfg.storage.layout (lengthRef er) m.evm = some (uint256Loc slot)) (hn : n + 1 < UInt256.size) :
-    storagePush cfg env m er e none =
-      some (.ok { m with
-        evm := Storage.EVM.storageStore m.evm m.evm.executionEnv.codeOwner slot (UInt256.ofNat (n + 1)) }) := by
-  simp [storagePush, hlen, writeDynArrayLength_of_loc hl (n + 1) hn]
+    {st : Solm.StorageType} {evm' : EVM.State} (hst : storageTypeOf env (.dynArray e) = some st)
+    (hpush : cfg.storageBackend.push er st none m.evm = .ok evm') :
+    storagePush cfg env m er e none = some (.ok { m with evm := evm' }) := by
+  simp [storagePush, hst, hpush, liftStorage]
 
 theorem storagePop_empty {cfg : Config} {env : TypeEnv} {m : Machine} {er : Solm.EvaledStorageRef} {e : Ty}
-    (hlen : dynArrayLength cfg m.evm er = some 0) : storagePop cfg env m er e = some (.error .popEmpty) := by
-  simp [storagePop, hlen]
+    (hlen : dynArrayLength cfg env m.evm er e = some 0) : storagePop cfg env m er e = some (.error .popEmpty) := by
+  simp [storagePop, storageLength_dynArray hlen]
   rfl
 
 theorem storagePop_succ {cfg : Config} {env : TypeEnv} {m : Machine} {er : Solm.EvaledStorageRef} {e : Ty}
-    {n : ℕ} {slot : UInt256} {evm₁ : EVM.State}
-    (hlen : dynArrayLength cfg m.evm er = some (n + 1))
-    (hclear : clearStorage cfg env fuelDefault m.evm (elemRef er n) e = some (.ok evm₁))
-    (hl : cfg.storage.layout (lengthRef er) evm₁ = some (uint256Loc slot)) (hn : n < UInt256.size) :
-    storagePop cfg env m er e =
-      some (.ok { m with evm := Storage.EVM.storageStore evm₁ evm₁.executionEnv.codeOwner slot (UInt256.ofNat n) }) := by
-  simp [storagePop, hlen, hclear, writeDynArrayLength_of_loc hl n hn]
+    {st : Solm.StorageType} {n : ℕ} {evm' : EVM.State}
+    (hlen : dynArrayLength cfg env m.evm er e = some (n + 1)) (hst : storageTypeOf env (.dynArray e) = some st)
+    (hpop : cfg.storageBackend.pop er st m.evm = .ok evm') :
+    storagePop cfg env m er e = some (.ok { m with evm := evm' }) := by
+  simp [storagePop, storageLength_dynArray hlen, hst, hpop, liftStorage]
+
+/-- `delete x` through the backend. -/
+theorem clearStorage_of_backend {cfg : Config} {env : TypeEnv} {evm evm' : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
+    {st : Solm.StorageType} (hst : storageTypeOf env ty = some st)
+    (hclear : cfg.storageBackend.clear er st evm = .ok evm') : clearStorage cfg env evm er ty = some (.ok evm') := by
+  simp only [clearStorage, hst, hclear, liftStorage, Op.pure_eq]
+
+/-- `delete` is the backend's `clear`. -/
+theorem clearStorage_eq {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
+    {st : Solm.StorageType} (hst : storageTypeOf env ty = some st) :
+    clearStorage cfg env evm er ty = liftStorage (cfg.storageBackend.clear er st evm) := by
+  simp only [clearStorage, hst]
 
 /-- `delete x` for a `uint256` slot. -/
 theorem clearStorage_u256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (fuel : ℕ) (hl : cfg.storage.layout er evm = some (uint256Loc slot)) :
-    clearStorage cfg env (fuel + 1) evm er u256Ty =
-      some (.ok (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot ⟨0⟩)) := by
-  have hw := writeScalar_u256 hl ⟨0⟩
-  rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl] at hw
-  rw [clearStorage]
-  all_goals first
-    | (simp only [storageTyOf, zeroValue]
-       rw [hw]
-       rfl)
-    | (intros; simp_all)
+    (hl : cfg.Leaf er (uint256Loc slot)) :
+    clearStorage cfg env evm er u256Ty =
+      some (.ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot ⟨0⟩)) := by
+  have hst := storageLocStore_uint256_int evm slot 0
+  rw [show EVM.wordOfInt 0 = (⟨0⟩ : UInt256) by decide] at hst
+  exact clearStorage_of_backend (storageTypeOf_uint env _) (hl.clear _ _ _ hst)
 
 /-! ## Calldata words: values without any -/
 
@@ -801,8 +832,8 @@ theorem ofAbi_fixedBytes (env : TypeEnv) (fuel : Nat) (n : Fin 32) (bs : List UI
   simp [ofAbi, scalarOfAbi]
 
 /-- A dynamic array of scalars decoded into memory: one array object holding the converted elements. -/
-theorem ofAbi_dynArray_map {env : TypeEnv} {fuel : Nat} {e : Ty} {h : Heap} {svs : List ABI.ABIValue}
-    {g : ABI.ABIValue → Value} (hsc : ∀ sv ∈ svs, ofAbi env fuel e sv h = some (g sv, h)) :
+theorem ofAbi_dynArray_map {env : TypeEnv} {fuel : Nat} {e : Ty} {h : Heap} {svs : List Solm.Value}
+    {g : Solm.Value → Value} (hsc : ∀ sv ∈ svs, ofAbi env fuel e sv h = some (g sv, h)) :
     ofAbi env (fuel + 1) (.dynArray e) (.array svs) h =
       some (.memRef (h.alloc (.array e (svs.map g) false)).2, (h.alloc (.array e (svs.map g) false)).1) := by
   rw [ofAbi]
@@ -823,16 +854,16 @@ theorem ofAbi_dynArray_map {env : TypeEnv} {fuel : Nat} {e : Ty} {h : Heap} {svs
   simp [storageIndex, keyOf]
 
 theorem readLValue_storage_u256 {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machine}
-    {er : Solm.EvaledStorageRef} {slot : UInt256} (hl : cfg.storage.layout er m.evm = some (uint256Loc slot)) :
+    {er : Solm.EvaledStorageRef} {slot : UInt256} (hl : cfg.Leaf er (uint256Loc slot)) :
     readLValue cfg env fr m (.storage er u256Ty) =
-      some (.ok (u256Val (Storage.EVM.storageLoad m.evm m.evm.executionEnv.codeOwner slot).toNat)) := by
+      some (.ok (u256Val (Solm.EVM.storageLoad m.evm m.evm.executionEnv.codeOwner slot).toNat)) := by
   simp [readLValue, loadIfScalar_u256 hl]
 
 theorem assign_storage_u256 {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machine}
-    {er : Solm.EvaledStorageRef} {slot : UInt256} (hl : cfg.storage.layout er m.evm = some (uint256Loc slot))
+    {er : Solm.EvaledStorageRef} {slot : UInt256} (hl : cfg.Leaf er (uint256Loc slot))
     (w : UInt256) :
     assign cfg env fr m (.storage er u256Ty) (u256Val w.toNat) =
-      some (.ok (fr, { m with evm := Storage.EVM.storageStore m.evm m.evm.executionEnv.codeOwner slot w })) := by
+      some (.ok (fr, { m with evm := Solm.EVM.storageStore m.evm m.evm.executionEnv.codeOwner slot w })) := by
   simp [assign, fuelDefault, writeStorageDeep_u256 hl]
 
 /-! ## Environment and conversions -/
@@ -1020,16 +1051,15 @@ theorem isValueType_uint (env : TypeEnv) (w : ABI.BitWidth) : isValueType env (.
 /-- A packed `uintN` field at byte `offset` of a slot (`N = 8 * size`). -/
 theorem readScalar_uint_offset {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
     {slot : UInt256} {offset : Fin 32} {size : Fin 33} {w : ABI.BitWidth} {hbound : offset.val + size.val - 1 < 32}
-    (hl : cfg.storage.layout er evm =
-      some { slot := slot, offset := offset, size := size, hbound := hbound, type := .int (.uint w) })
+    (hl : cfg.Leaf er { slot := slot, offset := offset, size := size, hbound := hbound, type := .int (.uint w) })
     (hw : w.val = 8 * size.val) (hoff : 8 * offset.val < 256) :
     readScalar cfg env evm er (.uint w) =
       some (.uint w (UInt256.land
-        (UInt256.div (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.ofNat (256 ^ offset.val)))
+        (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.ofNat (256 ^ offset.val)))
         (UInt256.ofNat (256 ^ size.val - 1))).toNat) := by
   have hsize : 8 * size.val ≤ 256 := by have := size.isLt; omega
-  refine readScalar_of_loc hl ?_
-  rw [storageLocLoad_uint_offset evm slot offset size w hoff hsize]
+  refine readScalar_of_leaf (storageTypeOf_uint env w) hl ?_
+  rw [storageLocLoad_uint_offset evm slot offset size w hw hoff hsize]
   apply scalarOfAbi_uint_of_lt
   rw [hw, show (256 : ℕ) ^ size.val - 1 = 2 ^ (8 * size.val) - 1 by simp [Nat.pow_mul]]
   exact land_mask_toNat_lt _ _ hsize
@@ -1037,72 +1067,48 @@ theorem readScalar_uint_offset {cfg : Config} {env : TypeEnv} {evm : EVM.State} 
 /-- A packed `uintN` field at byte offset 0 of a slot. -/
 theorem readScalar_uint_offset0 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
     {slot : UInt256} {size : Fin 33} {w : ABI.BitWidth} {hbound : (0 : Fin 32).val + size.val - 1 < 32}
-    (hl : cfg.storage.layout er evm =
-      some { slot := slot, offset := 0, size := size, hbound := hbound, type := .int (.uint w) })
+    (hl : cfg.Leaf er { slot := slot, offset := 0, size := size, hbound := hbound, type := .int (.uint w) })
     (hw : w.val = 8 * size.val) :
     readScalar cfg env evm er (.uint w) =
-      some (.uint w (UInt256.land (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+      some (.uint w (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
         (UInt256.ofNat (2 ^ (8 * size.val) - 1))).toNat) := by
   have hsize : 8 * size.val ≤ 256 := by have := size.isLt; omega
-  refine readScalar_of_loc hl ?_
-  rw [storageLocLoad_uint_offset0 evm slot size w hsize]
+  refine readScalar_of_leaf (storageTypeOf_uint env w) hl ?_
+  rw [storageLocLoad_uint_offset0 evm slot size w hw hsize]
   apply scalarOfAbi_uint_of_lt
   rw [hw]
   exact land_mask_toNat_lt _ _ hsize
 
 /-- A packed `uintN` field written in place (`N = 8 * size`); `setPackedWordNat` is the new slot word. -/
-theorem writeScalar_uint_packed {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
+theorem writeScalar_uint_packed {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
     {offset : Fin 32} {size : Fin 33} {w : ABI.BitWidth} {hbound : offset.val + size.val - 1 < 32}
-    (hl : cfg.storage.layout er evm =
-      some { slot := slot, offset := offset, size := size, hbound := hbound, type := .int (.uint w) })
+    (hl : cfg.Leaf er { slot := slot, offset := offset, size := size, hbound := hbound, type := .int (.uint w) })
     (n : ℕ) (hn : n < 2 ^ 256) :
-    writeScalar cfg evm er (.uint w n) =
-      some (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (UInt256.ofNat (setPackedWordNat (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat
+    writeScalar cfg env evm er (.uint w) (.uint w n) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (UInt256.ofNat (setPackedWordNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat
           offset.val size.val n))) :=
-  writeScalar_of_loc hl rfl (storageLocStore_uint_packed evm slot offset size w n hn)
+  writeScalar_of_leaf (storageTypeOf_uint env w) hl rfl (storageLocStore_uint_packed evm slot offset size w n hn)
 
 /-! ## Memory structs written into storage -/
 
-/-- One field of a memory struct written into storage (`writeStorageDeep`'s per-field step). -/
-def writeStructField (cfg : Config) (env : TypeEnv) (fuel : ℕ) (h : Heap) (er : Solm.EvaledStorageRef)
-    (fields : List (Ident × Value)) (evm : EVM.State) : Ty × Ident → Op EVM.State
-  | (fty, fname) =>
-    match fty with
-    | .mapping .. => pure evm
-    | _ =>
-      match fields.find? (·.1 == fname) with
-      | some (_, fv) => writeStorageDeep cfg env fuel evm h (fieldRef er fname) fty fv
-      | none => Op.stuck
+/-- One field of a memory struct copied to storage (`toStorage`'s per-field step). -/
+def structFieldValue (env : TypeEnv) (h : Heap) (fuel : ℕ) (fields : List (Ident × Value)) :
+    Ty × Ident → Op (Ident × Solm.Value)
+  | (fty, fname) => do
+    let some fv := (fields.find? (·.1 == fname)).map (·.2) | Op.stuck
+    let sv ← toStorage env h fuel fty fv
+    pure (fname, sv)
 
-/-- `s = S(...)` for a memory struct: the declared fields are written one by one. -/
-theorem writeStorageDeep_struct {cfg : Config} {env : TypeEnv} {fuel : ℕ} {evm : EVM.State} {h : Heap}
-    {er : Solm.EvaledStorageRef} {q : Option Ident} {n : Ident} {id : ℕ} {sty : Ty} {fields : List (Ident × Value)}
-    {sd : StructInfo} (hget : h.get? id = some (.struct sty fields)) (hs : env.struct? q n = some sd) :
-    writeStorageDeep cfg env (fuel + 1) evm h er (.user q n) (.memRef id) =
-      sd.fields.foldlM (writeStructField cfg env fuel h er fields) evm := by
-  rw [writeStorageDeep.eq_def]
+/-- `s = S(...)` for a memory struct: the declared fields are converted one by one. -/
+theorem toStorage_struct {env : TypeEnv} {fuel : ℕ} {h : Heap} {q : Option Ident} {n : Ident} {id : ℕ} {sty : Ty}
+    {fields : List (Ident × Value)} {sd : StructInfo} (hget : h.get? id = some (.struct sty fields))
+    (hs : env.struct? q n = some sd) :
+    toStorage env h (fuel + 1) (.user q n) (.memRef id) =
+      (sd.fields.mapM (structFieldValue env h fuel fields) >>= fun fvs => pure (.struct sd.name fvs)) := by
+  rw [toStorage.eq_def]
   simp only [hget, hs]
   rfl
-
-theorem writeStructField_u256 (cfg : Config) (env : TypeEnv) (fuel : ℕ) (h : Heap) (er : Solm.EvaledStorageRef)
-    (fields : List (Ident × Value)) (evm : EVM.State) (fname fname' : Ident) (fv : Value)
-    (hfind : fields.find? (·.1 == fname) = some (fname', fv)) :
-    writeStructField cfg env fuel h er fields evm (u256Ty, fname) =
-      writeStorageDeep cfg env fuel evm h (fieldRef er fname) u256Ty fv := by
-  simp [writeStructField, hfind]
-
-theorem writeStructField_mapping (cfg : Config) (env : TypeEnv) (fuel : ℕ) (h : Heap) (er : Solm.EvaledStorageRef)
-    (fields : List (Ident × Value)) (evm : EVM.State) (k v : Ty) (fname : Ident) :
-    writeStructField cfg env fuel h er fields evm (.mapping k v, fname) = pure evm := rfl
-
-theorem writeStructField_scalar (cfg : Config) (env : TypeEnv) (fuel : ℕ) (h : Heap) (er : Solm.EvaledStorageRef)
-    (fields : List (Ident × Value)) (evm : EVM.State) (fty : Ty) (fname fname' : Ident) (fv : Value)
-    (hnm : ∀ k v, fty ≠ .mapping k v) (hfind : fields.find? (·.1 == fname) = some (fname', fv)) :
-    writeStructField cfg env fuel h er fields evm (fty, fname) =
-      writeStorageDeep cfg env fuel evm h (fieldRef er fname) fty fv := by
-  cases fty <;> simp [writeStructField, hfind]
-  exact absurd rfl (hnm _ _)
 
 /-! ## ABI types and values of expression results (`abi.encode*`, `keccak256`) -/
 
@@ -1140,24 +1146,24 @@ theorem toAbi_memBytes {h : Heap} {id : ℕ} {s : Bool} {d : ByteArray} (fuel : 
   simp [toAbi, hget]
 
 theorem encodePackedValue?_u256 (n : ℕ) (hn : n < 2 ^ 256) :
-    ABI.encodePackedValue? (.elem (.int (.uint ⟨256, by decide⟩))) (.int n) = some (EVM.Word.toBytesBE (UInt256.ofNat n)) := by
+    Solm.encodePackedValue? (.elem (.int (.uint ⟨256, by decide⟩))) (.int n) = some (EVM.Word.toBytesBE (UInt256.ofNat n)) := by
   have hn' : n < EVM.twoPow 256 := hn
-  simp [ABI.encodePackedValue?, ABI.encodeABIWord?, hn']
+  simp [Solm.encodePackedValue?, ABI.encodeABIWord?, hn']
   rfl
 
 theorem encodePackedValue?_address (a : EVM.Address) :
-    ABI.encodePackedValue? (.elem .address) (.address a) = some ((EVM.Word.toBytesBE (UInt256.ofNat a.toNat)).drop 12) := by
-  simp [ABI.encodePackedValue?]
+    Solm.encodePackedValue? (.elem .address) (.address a) = some ((EVM.Word.toBytesBE (UInt256.ofNat a.toNat)).drop 12) := by
+  simp [Solm.encodePackedValue?]
   rfl
 
 theorem encodePackedValue?_bytes32 (bs : List UInt8) (h : bs.length = 32) :
-    ABI.encodePackedValue? (.elem (.bytes ⟨31, by decide⟩)) (.fixedBytes ⟨31, by decide⟩ bs) = some bs := by
-  simp [ABI.encodePackedValue?, h]
+    Solm.encodePackedValue? (.elem (.bytes ⟨31, by decide⟩)) (.fixedBytes ⟨31, by decide⟩ bs) = some bs := by
+  simp [Solm.encodePackedValue?, h, Solm.fixedBytesSize]
 
-@[simp] theorem encodePackedValue?_bytes (ba : ByteArray) : ABI.encodePackedValue? .bytes (.bytes ba) = some ba.toList := rfl
-@[simp] theorem encodePackedValue?_string (ba : ByteArray) : ABI.encodePackedValue? .string (.bytes ba) = some ba.toList := rfl
+@[simp] theorem encodePackedValue?_bytes (ba : ByteArray) : Solm.encodePackedValue? .bytes (.bytes ba) = some ba.toList := rfl
+@[simp] theorem encodePackedValue?_string (ba : ByteArray) : Solm.encodePackedValue? .string (.bytes ba) = some ba.toList := rfl
 
-theorem abiArgsAbi_of_mapM {env : TypeEnv} {m : Machine} {tys : List ABI.ABIType} {vs : List Value} {svs : List ABI.ABIValue}
+theorem abiArgsAbi_of_mapM {env : TypeEnv} {m : Machine} {tys : List ABI.ABIType} {vs : List Value} {svs : List Solm.Value}
     (hsvs : vs.mapM (toAbi m.heap fuelDefault) = some svs) (hraw : ∀ v ∈ vs, hasRaw m.heap fuelDefault v = false) :
     abiArgsAbi cfg env m tys vs = some (.ok (svs, m)) := by
   have hf := prepareArgs_of_noRaw (env := env) (cd := m.evm.executionEnv.calldata) (fuel := 1023) hraw
@@ -1453,64 +1459,42 @@ theorem directMember_ident (fc : FlatContract) (fr : Frame) (x : Ident) (henv : 
   · simp [directMember, henv, h, hu]
 
 theorem clearStorage_bool {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (fuel : ℕ) (hl : cfg.storage.layout er evm = some (boolOffset0Loc slot)) :
-    clearStorage cfg env (fuel + 1) evm er .bool =
-      some (.ok (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (UInt256.land (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.lnot ⟨255⟩)))) := by
-  have hw := writeScalar_bool_false hl
-  rw [clearStorage]
-  all_goals first
-    | (simp only [storageTyOf, zeroValue]
-       rw [hw]
-       rfl)
-    | (intros; simp_all)
+    (hl : cfg.Leaf er (boolOffset0Loc slot)) :
+    clearStorage cfg env evm er .bool =
+      some (.ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.lnot ⟨255⟩)))) :=
+  clearStorage_of_backend (storageTypeOf_bool env)
+    (hl.clear _ _ _ (by rw [storageLocStore_int_zero_eq_bool_false]; exact storageLocStore_bool_false_offset0 evm slot))
 
 theorem clearStorage_address {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (fuel : ℕ) (p : Bool) (hl : cfg.storage.layout er evm = some (addressOffset0Loc slot)) :
-    clearStorage cfg env (fuel + 1) evm er (.address p) =
-      some (.ok (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (setAddressOffset0Word (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨0⟩))) := by
-  have hw := writeScalar_address hl ⟨0⟩ (by decide)
-  have hz : EVM.address 0 = AccountAddress.ofNat (⟨0⟩ : UInt256).toNat := by decide
-  rw [clearStorage]
-  all_goals first
-    | (simp only [storageTyOf, zeroValue]
-       rw [hz, hw]
-       rfl)
-    | (intros; simp_all)
-
-theorem clearStorage_struct {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
-    {q : Option Ident} {n : Ident} {s : StructInfo} (fuel : ℕ)
-    (henum : (env.enum? q n).isSome = false) (hcon : (env.contractKind? n).isSome = false)
-    (hs : env.struct? q n = some s) (hvt : env.valueType? q n = none := by rfl) :
-    clearStorage cfg env (fuel + 1) evm er (.user q n) =
-      s.fields.foldlM (fun evm (fty, fname) => clearStorage cfg env fuel evm (fieldRef er fname) fty) evm := by
-  rw [clearStorage]
-  all_goals first
-    | (simp [storageTyOf, zeroValue, henum, hcon, hs, hvt]
-       try rfl)
-    | (intros; simp_all)
+    (p : Bool) (hl : cfg.Leaf er (addressOffset0Loc slot)) :
+    clearStorage cfg env evm er (.address p) =
+      some (.ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨0⟩))) :=
+  clearStorage_of_backend (storageTypeOf_address env p)
+    (hl.clear _ _ _ (by
+      rw [storageLocStore_int_zero_eq_address_zero]
+      exact storageLocStore_address_offset0 evm slot ⟨0⟩ (by decide)))
 
 /-! ## Number literals as right-hand sides, unchecked `+ 1` -/
 
 theorem writeStorageDeep_literal_u256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {h : Heap}
-    {er : Solm.EvaledStorageRef} {slot : UInt256} (hl : cfg.storage.layout er evm = some (uint256Loc slot)) (fuel : ℕ)
+    {er : Solm.EvaledStorageRef} {slot : UInt256} (hl : cfg.Leaf er (uint256Loc slot)) (fuel : ℕ)
     (k : ℕ) (hd : Option Nat) (hk : k < 2 ^ 256) :
     writeStorageDeep cfg env (fuel + 1) evm h er u256Ty (.literal k hd) =
-      some (.ok (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot (UInt256.ofNat k))) := by
-  have hw := writeScalar_u256 hl (UInt256.ofNat k)
-  rw [ulit_toNat' k hk] at hw
-  rw [writeStorageDeep]
-  · simp only [implicitConv_literal_u256 env h k hd (Int.natCast_nonneg k) (by exact_mod_cast hk), Int.toNat_natCast,
-      Op.ofOpt, hw]
-    rfl
-  all_goals (intros; simp_all)
+      some (.ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot (UInt256.ofNat k))) := by
+  have hconv := implicitConv_literal_u256 env h k hd (Int.natCast_nonneg k) (by exact_mod_cast hk)
+  rw [Int.toNat_natCast] at hconv
+  have hst := storageLocStore_uint256 evm slot (UInt256.ofNat k)
+  rw [ulit_toNat' k hk] at hst
+  exact writeStorageDeep_of_value (storageTypeOf_uint env _) (storageValueOf_direct fuel trivial hconv rfl)
+    (hl.write _ _ _ _ hst)
 
 theorem assign_storage_u256_lit {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machine} {er : Solm.EvaledStorageRef}
-    {slot : UInt256} (hl : cfg.storage.layout er m.evm = some (uint256Loc slot)) (k : ℕ) (hd : Option Nat)
+    {slot : UInt256} (hl : cfg.Leaf er (uint256Loc slot)) (k : ℕ) (hd : Option Nat)
     (hk : k < 2 ^ 256) :
     assign cfg env fr m (.storage er u256Ty) (.literal k hd) =
-      some (.ok (fr, { m with evm := Storage.EVM.storageStore m.evm m.evm.executionEnv.codeOwner slot (UInt256.ofNat k) })) := by
+      some (.ok (fr, { m with evm := Solm.EVM.storageStore m.evm m.evm.executionEnv.codeOwner slot (UInt256.ofNat k) })) := by
   simp [assign, fuelDefault, writeStorageDeep_literal_u256 hl 1023 k hd hk]
 
 theorem assign_local_u256_lit {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machine} {x : Ident} (l : Local)
@@ -1545,18 +1529,18 @@ theorem wordNat_eq (n : ℕ) (hn : n < UInt256.size) : wordNat n = u256Val n := 
 @[simp] theorem envMember_origin (m : Machine) : envMember m "tx" "origin" = some (.address m.evm.executionEnv.sender) := rfl
 
 theorem readScalar_bool {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (hl : cfg.storage.layout er evm = some (boolOffset0Loc slot)) :
+    (hl : cfg.Leaf er (boolOffset0Loc slot)) :
     readScalar cfg env evm er .bool =
-      some (.bool (!((UInt256.land (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩).val == 0))) := by
-  refine readScalar_of_loc hl ?_
+      some (.bool (!((UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩).val == 0))) := by
+  refine readScalar_of_leaf (storageTypeOf_bool env) hl ?_
   rw [storageLocLoad_bool_offset0]
-  cases h : (UInt256.land (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩).val == 0 <;>
-    simp [ABI.wordToElem, scalarOfAbi, h]
+  cases h : (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩).val == 0 <;>
+    simp [Solm.wordToElem, scalarOfAbi, h]
 
 theorem loadIfScalar_bool {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (hl : cfg.storage.layout er evm = some (boolOffset0Loc slot)) :
+    (hl : cfg.Leaf er (boolOffset0Loc slot)) :
     loadIfScalar cfg env evm er .bool =
-      some (.bool (!((UInt256.land (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩).val == 0))) := by
+      some (.bool (!((UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩).val == 0))) := by
   unfold loadIfScalar
   rw [if_pos (by rfl : isValueType env .bool = true)]
   exact readScalar_bool hl
@@ -1755,40 +1739,40 @@ theorem scalarOfAbi_s256 (env : TypeEnv) (i : Int) (hlo : -2 ^ 255 ≤ i) (hhi :
 /-! ### `int256` storage slots -/
 
 theorem readScalar_s256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (hl : cfg.storage.layout er evm = some (int256Loc slot)) :
+    (hl : cfg.Leaf er (int256Loc slot)) :
     readScalar cfg env evm er s256Ty =
-      some (s256Val (s256OfWord (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot))) :=
-  readScalar_of_loc hl (by
+      some (s256Val (s256OfWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))) :=
+  readScalar_of_leaf (storageTypeOf_int env _) hl (by
     rw [storageLocLoad_int256]
     exact scalarOfAbi_s256 env _ (s256OfWord_bounds _).1 (s256OfWord_bounds _).2)
 
 theorem loadIfScalar_s256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (hl : cfg.storage.layout er evm = some (int256Loc slot)) :
+    (hl : cfg.Leaf er (int256Loc slot)) :
     loadIfScalar cfg env evm er s256Ty =
-      some (s256Val (s256OfWord (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot))) := by
+      some (s256Val (s256OfWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))) := by
   unfold loadIfScalar
   rw [if_pos (by rfl : isValueType env s256Ty = true)]
   exact readScalar_s256 hl
 
-theorem writeScalar_s256 {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (hl : cfg.storage.layout er evm = some (int256Loc slot)) (i : Int) :
-    writeScalar cfg evm er (s256Val i) =
-      some (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot (EVM.wordOfInt i)) :=
-  writeScalar_of_loc hl rfl (storageLocStore_int256 evm slot i)
+theorem writeScalar_s256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
+    (hl : cfg.Leaf er (int256Loc slot)) (i : Int) :
+    writeScalar cfg env evm er s256Ty (s256Val i) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot (EVM.wordOfInt i)) :=
+  writeScalar_of_leaf (storageTypeOf_int env _) hl rfl (storageLocStore_int256 evm slot i)
 
 theorem writeStorageDeep_s256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {h : Heap} {er : Solm.EvaledStorageRef}
-    {slot : UInt256} (hl : cfg.storage.layout er evm = some (int256Loc slot)) (fuel : Nat) (i : Int) :
+    {slot : UInt256} (hl : cfg.Leaf er (int256Loc slot)) (fuel : Nat) (i : Int) :
     writeStorageDeep cfg env (fuel + 1) evm h er s256Ty (s256Val i) =
-      some (.ok (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot (EVM.wordOfInt i))) := by
-  rw [writeStorageDeep]
-  · simp only [implicitConv, le_refl, if_true, Op.ofOpt, writeScalar_s256 hl]
-    rfl
-  all_goals intros; simp_all
+      some (.ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot (EVM.wordOfInt i))) :=
+  writeStorageDeep_of_value (storageTypeOf_int env _)
+    (storageValueOf_direct fuel trivial
+      (by simp [implicitConv] : implicitConv env h (s256Val i) s256Ty = some (s256Val i, h)) rfl)
+    (hl.write _ _ _ _ (storageLocStore_int256 evm slot i))
 
 theorem assign_storage_s256 {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machine} {er : Solm.EvaledStorageRef}
-    {slot : UInt256} (hl : cfg.storage.layout er m.evm = some (int256Loc slot)) (i : Int) :
+    {slot : UInt256} (hl : cfg.Leaf er (int256Loc slot)) (i : Int) :
     assign cfg env fr m (.storage er s256Ty) (s256Val i) =
-      some (.ok (fr, { m with evm := Storage.EVM.storageStore m.evm m.evm.executionEnv.codeOwner slot (EVM.wordOfInt i) })) := by
+      some (.ok (fr, { m with evm := Solm.EVM.storageStore m.evm m.evm.executionEnv.codeOwner slot (EVM.wordOfInt i) })) := by
   simp [assign, fuelDefault, writeStorageDeep_s256 hl]
 
 /-! ## `ecrecover` arguments, `catch` clause selection -/
@@ -1818,22 +1802,22 @@ theorem accountAddress_ofNat_toNat (a : EVM.Address) : AccountAddress.ofNat a.to
   Fin.ext (Nat.mod_eq_of_lt a.isLt)
 
 theorem loadIfScalar_address {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (hl : cfg.storage.layout er evm = some (addressOffset0Loc slot)) :
+    (hl : cfg.Leaf er (addressOffset0Loc slot)) :
     loadIfScalar cfg env evm er (.address false) =
       some (.address (AccountAddress.ofNat
-        (UInt256.land (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) solcAddrMask).toNat)) := by
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) solcAddrMask).toNat)) := by
   unfold loadIfScalar
   rw [if_pos (by rfl : isValueType env (.address false) = true)]
   exact readScalar_address hl
 
-theorem writeScalar_address' {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
-    (hl : cfg.storage.layout er evm = some (addressOffset0Loc slot)) (a : EVM.Address) :
-    writeScalar cfg evm er (.address a) =
-      some (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (setAddressOffset0Word (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.ofNat a.toNat))) := by
+theorem writeScalar_address' {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
+    (hl : cfg.Leaf er (addressOffset0Loc slot)) (a : EVM.Address) :
+    writeScalar cfg env evm er (.address false) (.address a) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.ofNat a.toNat))) := by
   have ha : a.toNat < 2 ^ 160 := a.isLt
   have hlt : (UInt256.ofNat a.toNat).toNat = a.toNat := ulit_toNat' _ (by change a.toNat < 2 ^ 256; omega)
-  have h := writeScalar_address hl (UInt256.ofNat a.toNat) (by rw [hlt]; exact ha)
+  have h := writeScalar_address (env := env) (evm := evm) hl (UInt256.ofNat a.toNat) (by rw [hlt]; exact ha)
   rw [hlt, accountAddress_ofNat_toNat] at h
   exact h
 
@@ -1845,14 +1829,14 @@ theorem exitScope_get?_of_none {fr fr' : Frame} {k : Ident} (h : fr.get? k = non
 /-! ## `try`/`catch` facts -/
 
 theorem decodeRets_single {cfg : Config} {env : TypeEnv} {m : Machine} {p : Param} {rtys : List ABI.ABIType}
-    {out : ByteArray} {sv : ABI.ABIValue} {v : Value}
+    {out : ByteArray} {sv : Solm.Value} {v : Value}
     (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some [sv])
     (hof : ofAbi env fuelDefault p.ty sv m.heap = some (v, m.heap)) :
     decodeRets cfg env m [p] rtys out = some ([v], m) := by
   simp [decodeRets, hdec, hof]
 
 theorem tryRets_single {cfg : Config} {env : TypeEnv} {m : Machine} {p : Param} {rtys : List ABI.ABIType}
-    {out : ByteArray} {sv : ABI.ABIValue} {v : Value}
+    {out : ByteArray} {sv : Solm.Value} {v : Value}
     (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some [sv])
     (hof : ofAbi env fuelDefault p.ty sv m.heap = some (v, m.heap)) :
     tryRets cfg env m [p] rtys out = some ([v], m) := by
@@ -1913,78 +1897,43 @@ theorem selectCatch_generic_bytes (cfg : Config) (m : Machine) {cs : List CatchC
 
 /-! ## Memory arrays into storage, `delete` of arrays -/
 
-theorem writeElems_eq (cfg : Config) (env : TypeEnv) (fuel : ℕ) (evm : EVM.State) (h : Heap) (er : Solm.EvaledStorageRef)
-    (e : Ty) (elems : List Value) :
-    writeStorageDeep.writeElems cfg env fuel evm h er e elems =
-      (elems.zipIdx).foldlM (fun evm (v, i) => writeStorageDeep cfg env fuel evm h (elemRef er i) e v) evm := by
-  rw [writeStorageDeep.writeElems]
+/-- A memory array is copied element by element. -/
+theorem toStorage_dynArray {env : TypeEnv} {fuel : ℕ} {h : Heap} {e ety : Ty} {id : ℕ} {elems : List Value} {fx : Bool}
+    (hget : h.get? id = some (.array ety elems fx)) :
+    toStorage env h (fuel + 1) (.dynArray e) (.memRef id) = (Solm.Value.array ·) <$> elems.mapM (toStorage env h fuel e) := by
+  rw [toStorage.eq_def]
+  simp only [hget]
 
-/-- `arr = memArr` for a storage dynamic array: new length, the elements in order, the removed tail cleared. -/
-theorem writeStorageDeep_dynArray {cfg : Config} {env : TypeEnv} {fuel : ℕ} {evm evm₁ : EVM.State} {h : Heap}
-    {er : Solm.EvaledStorageRef} {e ety : Ty} {id old : ℕ} {elems : List Value} {fx : Bool}
-    (hget : h.get? id = some (.array ety elems fx)) (hold : dynArrayLength cfg evm er = some old)
-    (hlen : writeDynArrayLength cfg evm er elems.length = some evm₁) :
-    writeStorageDeep cfg env (fuel + 1) evm h er (.dynArray e) (.memRef id) = (do
-      let evm₂ ← writeStorageDeep.writeElems cfg env fuel evm₁ h er e elems
-      (List.range (old - elems.length)).foldlM
-        (fun evm k => clearStorage cfg env fuel evm (elemRef er (elems.length + k)) e) evm₂) := by
-  rw [writeStorageDeep.eq_def]
-  simp [hget, hold, hlen]
+theorem toStorage_array {env : TypeEnv} {fuel : ℕ} {h : Heap} {e ety : Ty} {id n : ℕ} {elems : List Value} {fx : Bool}
+    (hget : h.get? id = some (.array ety elems fx)) :
+    toStorage env h (fuel + 1) (.array e n) (.memRef id) = (Solm.Value.array ·) <$> elems.mapM (toStorage env h fuel e) := by
+  rw [toStorage.eq_def]
+  simp only [hget]
 
-/-- `arr = memArr` for a storage static array of the right length. -/
-theorem writeStorageDeep_array {cfg : Config} {env : TypeEnv} {fuel : ℕ} {evm : EVM.State} {h : Heap}
-    {er : Solm.EvaledStorageRef} {e ety : Ty} {id n : ℕ} {elems : List Value} {fx : Bool}
-    (hget : h.get? id = some (.array ety elems fx)) (hn : elems.length = n) :
-    writeStorageDeep cfg env (fuel + 1) evm h er (.array e n) (.memRef id) =
-      writeStorageDeep.writeElems cfg env fuel evm h er e elems := by
-  rw [writeStorageDeep.eq_def]
-  simp [hget, hn]
-
-theorem clearRange_eq (cfg : Config) (env : TypeEnv) (fuel : ℕ) (evm : EVM.State) (er : Solm.EvaledStorageRef) (e : Ty)
-    (lo hi : ℕ) :
-    clearStorage.clearRange cfg env fuel evm er e lo hi =
-      (List.range (hi - lo)).foldlM (fun evm k => clearStorage cfg env fuel evm (elemRef er (lo + k)) e) evm := by
-  rw [clearStorage.clearRange]
-
-/-- `delete arr` for a storage dynamic array: every element cleared, then the length. -/
-theorem clearStorage_dynArray {cfg : Config} {env : TypeEnv} {fuel : ℕ} {evm : EVM.State} {er : Solm.EvaledStorageRef}
-    {e : Ty} {n : ℕ} (hn : dynArrayLength cfg evm er = some n) :
-    clearStorage cfg env (fuel + 1) evm er (.dynArray e) = (do
-      let evm' ← clearStorage.clearRange cfg env fuel evm er e 0 n
-      Op.ofOpt (writeDynArrayLength cfg evm' er 0)) := by
-  rw [clearStorage]
-  all_goals first
-    | (simp [storageTyOf, zeroValue, hn]
-       try rfl)
-    | (intros; simp_all)
-
-/-- `delete arr` for a storage static array. -/
-theorem clearStorage_array {cfg : Config} {env : TypeEnv} {fuel : ℕ} {evm : EVM.State} {er : Solm.EvaledStorageRef}
-    {e : Ty} {n : ℕ} :
-    clearStorage cfg env (fuel + 1) evm er (.array e n) = clearStorage.clearRange cfg env fuel evm er e 0 n := by
-  rw [clearStorage]
-  all_goals first
-    | (simp [storageTyOf, zeroValue]
-       try rfl)
-    | (intros; simp_all)
+/-- `writeStorageDeep` is a backend write of the value's storage value. -/
+theorem writeStorageDeep_eq {cfg : Config} {env : TypeEnv} {fuel : ℕ} {evm : EVM.State} {h : Heap} {er : Solm.EvaledStorageRef}
+    {ty : Ty} {v : Value} {st : Solm.StorageType} (hst : storageTypeOf env ty = some st) :
+    writeStorageDeep cfg env fuel evm h er ty v =
+      (storageValueOf cfg env fuel evm h ty v >>= fun sv => liftStorage (cfg.storageBackend.write er st sv evm)) := by
+  simp only [writeStorageDeep, hst]
 
 /-! ## `abi.decode` facts -/
 
 theorem ofAbiList_nil (env : TypeEnv) (h : Heap) : ofAbiList env [] [] h = some ([], h) := by simp [ofAbiList]
 
 /-- One step of `ofAbiList` (the fold with a generalised accumulator). -/
-def ofAbiStep (env : TypeEnv) (acch : List Value × Heap) (tsv : Ty × ABI.ABIValue) : Option (List Value × Heap) := do
+def ofAbiStep (env : TypeEnv) (acch : List Value × Heap) (tsv : Ty × Solm.Value) : Option (List Value × Heap) := do
   let r ← ofAbi env fuelDefault tsv.1 tsv.2 acch.2
   pure (acch.1 ++ [r.1], r.2)
 
-theorem ofAbiList_eq_foldlM (env : TypeEnv) (tys : List Ty) (svs : List ABI.ABIValue) (h : Heap)
+theorem ofAbiList_eq_foldlM (env : TypeEnv) (tys : List Ty) (svs : List Solm.Value) (h : Heap)
     (hlen : tys.length = svs.length) :
     ofAbiList env tys svs h = (tys.zip svs).foldlM (ofAbiStep env) ([], h) := by
   simp only [ofAbiList, hlen, ne_eq, not_true_eq_false, if_false]
   rfl
 
 /-- The fold behind `ofAbiList` only appends to its accumulator. -/
-theorem ofAbi_fold_shift (env : TypeEnv) : ∀ (xs : List (Ty × ABI.ABIValue)) (acc : List Value) (h : Heap),
+theorem ofAbi_fold_shift (env : TypeEnv) : ∀ (xs : List (Ty × Solm.Value)) (acc : List Value) (h : Heap),
     xs.foldlM (ofAbiStep env) (acc, h) = (xs.foldlM (ofAbiStep env) ([], h)).map (fun r => (acc ++ r.1, r.2))
   | [], acc, h => by simp
   | (t, sv) :: xs, acc, h => by
@@ -1998,7 +1947,7 @@ theorem ofAbi_fold_shift (env : TypeEnv) : ∀ (xs : List (Ty × ABI.ABIValue)) 
       funext p
       simp [List.append_assoc]
 
-theorem ofAbiList_cons (env : TypeEnv) (t : Ty) (ts : List Ty) (sv : ABI.ABIValue) (svs : List ABI.ABIValue) (h h' h'' : Heap)
+theorem ofAbiList_cons (env : TypeEnv) (t : Ty) (ts : List Ty) (sv : Solm.Value) (svs : List Solm.Value) (h h' h'' : Heap)
     (v : Value) (vs : List Value) (hlen : ts.length = svs.length)
     (hv : ofAbi env fuelDefault t sv h = some (v, h')) (hrest : ofAbiList env ts svs h' = some (vs, h'')) :
     ofAbiList env (t :: ts) (sv :: svs) h = some (v :: vs, h'') := by
@@ -2055,31 +2004,30 @@ theorem TypeEnv.canonTy_user_none {env : TypeEnv} {here n : Ident}
 /-- A packed `int<8·size>` field at byte `offset`, read as a two's-complement value. -/
 theorem readScalar_sint_offset {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
     {slot : UInt256} {offset : Fin 32} {size : Fin 33} {w : ABI.BitWidth} {hbound : offset.val + size.val - 1 < 32}
-    (hl : cfg.storage.layout er evm =
-      some { slot := slot, offset := offset, size := size, hbound := hbound, type := .int (.sint w) })
+    (hl : cfg.Leaf er { slot := slot, offset := offset, size := size, hbound := hbound, type := .int (.sint w) })
     (hoff : 8 * offset.val < 256) :
     readScalar cfg env evm er (.int w) =
       some (.sint w (sextAt w.val (UInt256.land
-        (UInt256.div (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.ofNat (256 ^ offset.val)))
+        (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.ofNat (256 ^ offset.val)))
         (UInt256.ofNat (256 ^ size.val - 1))).toNat)) := by
   have hsize : 8 * size.val ≤ 256 := by have := size.isLt; omega
-  refine readScalar_of_loc hl ?_
+  refine readScalar_of_leaf (storageTypeOf_int env w) hl ?_
   rw [storageLocLoad_sint_offset evm slot offset size w hoff hsize]
   have hb := sextAt_bounds w.val (UInt256.land
-    (UInt256.div (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.ofNat (256 ^ offset.val)))
+    (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.ofNat (256 ^ offset.val)))
     (UInt256.ofNat (256 ^ size.val - 1))).toNat w.property.1
   simp [scalarOfAbi, hb.1, hb.2]
 
 /-- A packed `int<8·size>` field written in place. -/
-theorem writeScalar_sint_packed {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
+theorem writeScalar_sint_packed {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
     {offset : Fin 32} {size : Fin 33} {w : ABI.BitWidth} {hbound : offset.val + size.val - 1 < 32}
-    (hl : cfg.storage.layout er evm =
-      some { slot := slot, offset := offset, size := size, hbound := hbound, type := .int (.sint w) }) (i : Int) :
-    writeScalar cfg evm er (.sint w i) =
-      some (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (UInt256.ofNat (setPackedWordNat (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat
+    (hl : cfg.Leaf er { slot := slot, offset := offset, size := size, hbound := hbound, type := .int (.sint w) })
+    (i : Int) :
+    writeScalar cfg env evm er (.int w) (.sint w i) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (UInt256.ofNat (setPackedWordNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat
           offset.val size.val (EVM.wordOfInt i).toNat))) :=
-  writeScalar_of_loc hl rfl (storageLocStore_int_packed evm slot offset size _ i)
+  writeScalar_of_leaf (storageTypeOf_int env w) hl rfl (storageLocStore_int_packed evm slot offset size _ i)
 
 /-! ## Declarations of value-type locals (the `declare` facts behind `varDecl*`) -/
 
@@ -2116,14 +2064,14 @@ theorem assign_local_address {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Ma
 /-! ## Two decoded return values -/
 
 theorem decodeRets_two {cfg : Config} {env : TypeEnv} {m : Machine} {p1 p2 : Param} {rtys : List ABI.ABIType}
-    {out : ByteArray} {sv1 sv2 : ABI.ABIValue} {v1 v2 : Value} {h1 h2 : Heap}
+    {out : ByteArray} {sv1 sv2 : Solm.Value} {v1 v2 : Value} {h1 h2 : Heap}
     (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some [sv1, sv2])
     (hof1 : ofAbi env fuelDefault p1.ty sv1 m.heap = some (v1, h1)) (hof2 : ofAbi env fuelDefault p2.ty sv2 h1 = some (v2, h2)) :
     decodeRets cfg env m [p1, p2] rtys out = some ([v1, v2], { m with heap := h2 }) := by
   simp [decodeRets, hdec, hof1, hof2]
 
 theorem tryRets_two {cfg : Config} {env : TypeEnv} {m : Machine} {p1 p2 : Param} {rtys : List ABI.ABIType}
-    {out : ByteArray} {sv1 sv2 : ABI.ABIValue} {v1 v2 : Value} {h1 h2 : Heap}
+    {out : ByteArray} {sv1 sv2 : Solm.Value} {v1 v2 : Value} {h1 h2 : Heap}
     (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some [sv1, sv2])
     (hof1 : ofAbi env fuelDefault p1.ty sv1 m.heap = some (v1, h1)) (hof2 : ofAbi env fuelDefault p2.ty sv2 h1 = some (v2, h2)) :
     tryRets cfg env m [p1, p2] rtys out = some ([v1, v2], { m with heap := h2 }) := by
@@ -2303,7 +2251,7 @@ theorem assign_local_uint {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machi
 
 /-- The reconstruction fold of `decodeRets` is `ofAbiList` on the parameter types. -/
 theorem decodeRets_eq_ofAbiList (cfg : Config) (env : TypeEnv) (m : Machine) (rets : List Param) (rtys : List ABI.ABIType)
-    (out : ByteArray) (svs : List ABI.ABIValue)
+    (out : ByteArray) (svs : List Solm.Value)
     (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some svs) (hlen : svs.length = rets.length) :
     decodeRets cfg env m rets rtys out =
       (ofAbiList env (rets.map (·.ty)) svs m.heap).map fun r => (r.1, { m with heap := r.2 }) := by
@@ -2315,14 +2263,14 @@ theorem decodeRets_eq_ofAbiList (cfg : Config) (env : TypeEnv) (m : Machine) (re
   simp [ofAbiStep, Option.map_eq_bind, Function.comp_def]
 
 theorem decodeRets_of_ofAbiList {cfg : Config} {env : TypeEnv} {m : Machine} {rets : List Param} {rtys : List ABI.ABIType}
-    {out : ByteArray} {svs : List ABI.ABIValue} {vs : List Value} {h' : Heap}
+    {out : ByteArray} {svs : List Solm.Value} {vs : List Value} {h' : Heap}
     (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some svs) (hlen : svs.length = rets.length)
     (hof : ofAbiList env (rets.map (·.ty)) svs m.heap = some (vs, h')) :
     decodeRets cfg env m rets rtys out = some (vs, { m with heap := h' }) := by
   rw [decodeRets_eq_ofAbiList cfg env m rets rtys out svs hdec hlen, hof]; rfl
 
 theorem tryRets_of_ofAbiList {cfg : Config} {env : TypeEnv} {m : Machine} {rets : List Param} {rtys : List ABI.ABIType}
-    {out : ByteArray} {svs : List ABI.ABIValue} {vs : List Value} {h' : Heap} (hne : rets ≠ [])
+    {out : ByteArray} {svs : List Solm.Value} {vs : List Value} {h' : Heap} (hne : rets ≠ [])
     (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some svs) (hlen : svs.length = rets.length)
     (hof : ofAbiList env (rets.map (·.ty)) svs m.heap = some (vs, h')) :
     tryRets cfg env m rets rtys out = some (vs, { m with heap := h' }) := by
@@ -2556,12 +2504,12 @@ theorem wrapValue_of_conv {env : TypeEnv} {h h' : Heap} {t : ValueTypeInfo} {v u
   simp [unwrapValue]
 
 /-- On an elementary type the scalar reconstruction is `elemOfAbi`. -/
-theorem scalarOfAbi_elem (env : TypeEnv) {ty : Ty} (h : (elemTypeOf ty).isSome = true) (sv : ABI.ABIValue) :
+theorem scalarOfAbi_elem (env : TypeEnv) {ty : Ty} (h : (elemTypeOf ty).isSome = true) (sv : Solm.Value) :
     scalarOfAbi env ty sv = elemOfAbi ty sv := by
   cases ty <;> first | (simp [elemTypeOf] at h; done) | (cases sv <;> simp [scalarOfAbi, elemOfAbi])
 
 /-- A value type is rebuilt from the ABI/storage value of its underlying type. -/
-theorem scalarOfAbi_valueType {env : TypeEnv} {q : Option Ident} {n : Ident} {t : ValueTypeInfo} {sv : ABI.ABIValue}
+theorem scalarOfAbi_valueType {env : TypeEnv} {q : Option Ident} {n : Ident} {t : ValueTypeInfo} {sv : Solm.Value}
     {u : Value} (he : env.enum? q n = none) (ht : env.valueType? q n = some t)
     (hu : elemOfAbi t.underlying sv = some u) : scalarOfAbi env (.user q n) sv = some (.wrapped q n u) := by
   cases sv <;> simp [scalarOfAbi, wrappedOfAbi, he, ht, hu]
@@ -2584,13 +2532,22 @@ theorem abiTypeOf_valueType {env : TypeEnv} {q : Option Ident} {n : Ident} {t : 
     abiTypeOf env (.user q n) = (elemTypeOf t.underlying).map .elem := by
   simp [abiTypeOf, abiTypeOfFuel, hs, he, ht]
 
+theorem storageTypeOf_of_leafElemType {env : TypeEnv} {ty : Ty} {e : ABI.ElemType} (h : leafElemType env ty = some e) :
+    storageTypeOf env ty = some (.elem e) := by
+  simp only [storageTypeOf, storageTypeOfFuel, h]
+
+theorem leafElemType_of_elemTypeOf {env : TypeEnv} {ty : Ty} {e : ABI.ElemType} (h : elemTypeOf ty = some e) :
+    leafElemType env ty = some e := by
+  cases ty <;> simp_all [elemTypeOf, leafElemType]
+
 /-- A stored value type by location: the underlying value, tagged. -/
-theorem readScalar_valueType_of_loc {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
-    {q : Option Ident} {n : Ident} {t : ValueTypeInfo} {loc : Storage.StorageLoc} {u : Value}
-    (hl : cfg.storage.layout er evm = some loc) (he : env.enum? q n = none) (ht : env.valueType? q n = some t)
-    (hu : elemOfAbi t.underlying (Storage.storageLocLoad evm loc) = some u) :
+theorem readScalar_valueType_of_leaf {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
+    {q : Option Ident} {n : Ident} {t : ValueTypeInfo} {loc : Solm.StorageLoc} {u : Value} {e : ABI.ElemType}
+    (hst : storageTypeOf env (.user q n) = some (.elem e)) (hl : cfg.Leaf er loc)
+    (he : env.enum? q n = none) (ht : env.valueType? q n = some t)
+    (hu : elemOfAbi t.underlying (Solm.storageLocLoad evm loc) = some u) :
     readScalar cfg env evm er (.user q n) = some (.wrapped q n u) :=
-  readScalar_of_loc hl (scalarOfAbi_valueType he ht hu)
+  readScalar_of_leaf hst hl (scalarOfAbi_valueType he ht hu)
 
 /-- A stored value type reads as its underlying type does, tagged (so the `readScalar_*` lemmas of
     the underlying type apply). -/
@@ -2599,12 +2556,23 @@ theorem readScalar_valueType {cfg : Config} {env : TypeEnv} {evm : EVM.State} {e
     (he : env.enum? q n = none) (ht : env.valueType? q n = some t) (hel : (elemTypeOf t.underlying).isSome = true)
     (hu : readScalar cfg env evm er t.underlying = some u) :
     readScalar cfg env evm er (.user q n) = some (.wrapped q n u) := by
-  cases hl : cfg.storage.layout er evm with
-  | none => simp [readScalar, hl] at hu
-  | some loc =>
-    unfold readScalar at hu
-    rw [hl, Opt.some_bind, scalarOfAbi_elem env hel] at hu
-    exact readScalar_valueType_of_loc hl he ht hu
+  obtain ⟨e, he'⟩ := Option.isSome_iff_exists.mp hel
+  have h1 : storageTypeOf env (.user q n) = some (.elem e) :=
+    storageTypeOf_of_leafElemType (by rw [leafElemType_valueType he ht, he'])
+  have h2 : storageTypeOf env t.underlying = some (.elem e) :=
+    storageTypeOf_of_leafElemType (leafElemType_of_elemTypeOf he')
+  unfold readScalar at hu ⊢
+  rw [h1, Opt.some_bind]
+  rw [h2, Opt.some_bind] at hu
+  revert hu
+  cases cfg.storageBackend.read er (.elem e) evm with
+  | ok sv =>
+    intro hu
+    change scalarOfAbi env t.underlying sv = some u at hu
+    rw [scalarOfAbi_elem env hel] at hu
+    exact scalarOfAbi_valueType he ht hu
+  | revert => simp
+  | error _ => simp
 
 theorem loadIfScalar_valueType {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
     {q : Option Ident} {n : Ident} {t : ValueTypeInfo} {u : Value}
@@ -2617,9 +2585,10 @@ theorem loadIfScalar_valueType {cfg : Config} {env : TypeEnv} {evm : EVM.State} 
   exact readScalar_valueType he ht hel hu
 
 /-- A value type is written as its underlying value. -/
-@[simp] theorem writeScalar_wrapped (cfg : Config) (evm : EVM.State) (er : Solm.EvaledStorageRef) (q : Option Ident)
-    (n : Ident) (u : Value) : writeScalar cfg evm er (.wrapped q n u) = writeScalar cfg evm er u := by
-  simp [writeScalar]
+@[simp] theorem writeScalar_wrapped (cfg : Config) (env : TypeEnv) (evm : EVM.State) (er : Solm.EvaledStorageRef) (ty : Ty)
+    (q : Option Ident) (n : Ident) (u : Value) :
+    writeScalar cfg env evm er ty (.wrapped q n u) = writeScalar cfg env evm er ty u := by
+  simp [writeScalar, scalarToAbi]
 
 /-- A value type named in the scope of the running code (`T.wrap`, `T.unwrap`). -/
 theorem valueTypeRecv_ident {fc : FlatContract} {fr : Frame} {x : Ident} {t : ValueTypeInfo}

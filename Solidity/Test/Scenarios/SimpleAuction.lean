@@ -1,6 +1,6 @@
 import Solidity.Test.Harness
 import Solidity.Test.Specs.SimpleAuction
-import Solm.Examples.SimpleAuction.Bytecode
+import Examples.SimpleAuction.Bytecode
 import Solidity.Test.Fixtures.SimpleAuctionSolc
 
 /-! # Differential cases: SimpleAuction (payable, custom errors, events, `.call{value}` to EOAs). -/

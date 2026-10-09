@@ -17,10 +17,10 @@ def runtime : ByteArray := bytesOfHex Fixtures.libsRuntimeHex
 def MAX : Int := 2 ^ 256 - 1
 def WAD : Int := 10 ^ 18
 
-def mk (sig : String) (args : List ABI.ABIValue) (tag : String := "") : Case :=
+def mk (sig : String) (args : List Solm.Value) (tag : String := "") : Case :=
   { name := s!"{sig} {tag}", code := runtime, call := some (sig, args) }
 
-def arr (xs : List Int) : ABI.ABIValue := .array (xs.map (.int ·))
+def arr (xs : List Int) : Solm.Value := .array (xs.map (.int ·))
 
 def call1 (sig : String) (xs : List Int) : List Case := xs.map fun a => mk sig [.int a] s!"{a}"
 def call2 (sig : String) (xs ys : List Int) : List Case :=

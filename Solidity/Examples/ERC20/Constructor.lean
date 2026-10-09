@@ -1,5 +1,5 @@
 import Solidity.Examples.ERC20.Transfer
-import EVMReasoning.Initcode
+import Reasoning.Initcode
 
 /-!
 # ERC20 — the constructor refines its Solidity body
@@ -31,7 +31,7 @@ theorem ctorPayable_erc20 {I : ExecutionEnv} : ctorPayable erc20Flat I ↔ I.wei
 
 /-- Only a single in-range `uint256` deploys; the deployed code is the creation code followed by
     the argument word. -/
-theorem deployment_shape {args : List ABI.ABIValue} {dep : ByteArray}
+theorem deployment_shape {args : List Solm.Value} {dep : ByteArray}
     (h : erc20Cfg.selfDeployment erc20Creation args = some dep) :
     ∃ w : UInt256, args = [.int (Int.ofNat w.toNat)] ∧ dep = erc20Creation ++ UInt256.toByteArray w := by
   have h : (ABI.encodeABIValues? [abiU256] args).bind (fun enc => some (erc20Creation ++ enc.toByteArray)) =
@@ -50,7 +50,7 @@ theorem deployment_shape {args : List ABI.ABIValue} {dep : ByteArray}
           simpa [EVM.twoPow, UInt256.size] using h1
         have hw : (EVM.word i.toNat).toNat = i.toNat := ulit_toNat' _ hlt'
         refine ⟨EVM.word i.toNat, ?_, ?_⟩
-        · rw [hw]; exact congrArg (fun x => [ABI.ABIValue.int x]) (Int.toNat_of_nonneg hbounds.1).symm
+        · rw [hw]; exact congrArg (fun x => [Solm.Value.int x]) (Int.toNat_of_nonneg hbounds.1).symm
         · rw [← h, word_toBytesBE_toByteArray_eq_toByteArray]
       · simp at h
     | _ =>
@@ -98,12 +98,12 @@ macro "ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => do
 theorem write_gap_eq (src base : ByteArray) (srcAddr dest len : ℕ) (hlen : len ≠ 0)
     (hsrc : srcAddr + len ≤ src.size) (hoff : base.size ≤ dest) (_hgap : dest - base.size < USize.size) :
     src.write srcAddr base dest len =
-      base ++ ffi.ByteArray.zeroes (dest - base.size) ++ src.extract srcAddr (srcAddr + len) := by
+      base ++ ByteArray.zeroes (dest - base.size) ++ src.extract srcAddr (srcAddr + len) := by
   have hsd : src.data.size = src.size := rfl
-  have hpz : (ffi.ByteArray.zeroes (dest - base.size)).data.size = dest - base.size := by
-    rw [show (ffi.ByteArray.zeroes (dest - base.size)).data.size = (ffi.ByteArray.zeroes (dest - base.size)).size from rfl,
+  have hpz : (ByteArray.zeroes (dest - base.size)).data.size = dest - base.size := by
+    rw [show (ByteArray.zeroes (dest - base.size)).data.size = (ByteArray.zeroes (dest - base.size)).size from rfl,
       ByteArray_zeroes_size]
-  have hDsz : (base.data ++ (ffi.ByteArray.zeroes (dest - base.size)).data).size = dest := by
+  have hDsz : (base.data ++ (ByteArray.zeroes (dest - base.size)).data).size = dest := by
     rw [Array.size_append, hpz]; show base.size + (dest - base.size) = dest; omega
   apply ByteArray.ext
   unfold ByteArray.write
@@ -111,11 +111,11 @@ theorem write_gap_eq (src base : ByteArray) (srcAddr dest len : ℕ) (hlen : len
   simp only [ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract]
   rw [show min len (src.size - srcAddr) = len from by omega,
     show min base.size (dest + len) - (dest + len) = 0 from by omega,
-    show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by rw [zeroes_zero (n := 0) (by rfl)]; rfl]
+    show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by rw [zeroes_zero (n := 0) (by rfl)]; rfl]
   simp only [Array.append_empty, Nat.add_zero]
   rw [Array.extract_eq_self_of_le (by rw [hDsz]),
     show min len (src.data.size - srcAddr) = len from by omega,
-    Array.extract_eq_empty_of_le (as := base.data ++ (ffi.ByteArray.zeroes (dest - base.size)).data) (i := dest + len)
+    Array.extract_eq_empty_of_le (as := base.data ++ (ByteArray.zeroes (dest - base.size)).data) (i := dest + len)
       (by rw [hDsz]; omega),
     Array.append_empty]
 
@@ -148,7 +148,7 @@ theorem twoWordHashMem_read64_of_le {mem : ByteArray} (key slot : UInt256) (hmem
   rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by omega) (by omega) (by omega)]
 
 theorem twoWordHashMem_slot_of_le (baseSlot key : UInt256) {mem : ByteArray} (hmem : 64 ≤ mem.size) :
-    UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+    UInt256.ofNat (fromByteArrayBigEndian (Ethereum.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   rw [twoWordHashMem_read0_64_of_le key baseSlot hmem]
   unfold solcMappingSlot
@@ -158,7 +158,7 @@ theorem twoWordHashMem_slot_of_le (baseSlot key : UInt256) {mem : ByteArray} (hm
 
 /-- After the argument is copied to `0x80`. -/
 noncomputable abbrev cm1 (w : UInt256) : ByteArray :=
-  solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++ UInt256.toByteArray w
+  solcFreePtrMem ++ ByteArray.zeroes 32 ++ UInt256.toByteArray w
 /-- After the free pointer is set to `0xa0`. -/
 noncomputable abbrev cm2 (w : UInt256) : ByteArray := (UInt256.toByteArray ⟨0xa0⟩).write 0 (cm1 w) 64 32
 /-- The mapping-slot hash input `msg.sender ‖ 0`. -/
@@ -179,7 +179,7 @@ theorem cm1_size (w : UInt256) : (cm1 w).size = 160 := by
     toByteArray_size]
 
 theorem cm1_read128 (w : UInt256) : (cm1 w).readWithPadding 128 32 = UInt256.toByteArray w := by
-  have hX : (solcFreePtrMem ++ ffi.ByteArray.zeroes 32).size = 128 := by
+  have hX : (solcFreePtrMem ++ ByteArray.zeroes 32).size = 128 := by
     rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size _ (by norm_num)]
   rw [readWithPadding_eq_extract _ 128 (by rw [cm1_size]),
     extract_append_right' _ _ _ _ hX.symm (by rw [hX, toByteArray_size])]
@@ -202,7 +202,7 @@ theorem cm4_read64 (I : ExecutionEnv) (w : UInt256) : (cm4 I w).readWithPadding 
   exact cm2_read64 w
 
 theorem cm4_slot (I : ExecutionEnv) (w : UInt256) :
-    UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC ((cm4 I w).readWithPadding 0 64))) =
+    UInt256.ofNat (fromByteArrayBigEndian (Ethereum.KEC ((cm4 I w).readWithPadding 0 64))) =
       solcMappingSlot ⟨0⟩ (callerW I) :=
   twoWordHashMem_slot_of_le ⟨0⟩ (callerW I) (by rw [cm2_size]; omega)
 
@@ -226,32 +226,32 @@ theorem cm6_read (I : ExecutionEnv) (w : UInt256) : (cm6 I w).readWithPadding 0 
 abbrev ctorLog (I : ExecutionEnv) (w : UInt256) : LogEntry :=
   ⟨I.codeOwner, #[transferTopic, ⟨0⟩, callerW I], UInt256.toByteArray w⟩
 
-theorem ctorGuard {cA gh bl σ σ₀ A I} {g : Sat256} {w : UInt256} (hcode : I.code = ctorCode w) :
-    Run (ctorCode w) (initState cA gh bl σ σ₀ g A I)
+theorem ctorGuard {σ σ₀ A I} {g : Sat256} {w : UInt256} (hcode : I.code = ctorCode w) :
+    Run (ctorCode w) (initState σ σ₀ g A I)
       ⟨⟨8⟩, [UInt256.isZero I.weiValue, I.weiValue], solcFreePtrMem, UInt256.ofNat 3, ByteArray.empty,
-        ⟨cA, σ, A.logSeries⟩⟩ 6 26 :=
+        ⟨A.createdAccounts, σ, A.logSeries⟩⟩ 6 26 :=
   Run.solcGuardPrologue hcode (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode)
     (by ctor_decode)
 
-theorem ctorRunNonPayable {cA gh bl σ σ₀ A I} {g : Sat256} {w : UInt256} (hcode : I.code = ctorCode w)
+theorem ctorRunNonPayable {σ σ₀ A I} {g : Sat256} {w : UInt256} (hcode : I.code = ctorCode w)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    Reverted (ctorCode w) (initState cA gh bl σ σ₀ g A I) ByteArray.empty :=
+    Reverted (ctorCode w) (initState σ σ₀ g A I) ByteArray.empty :=
   Run.solcGuardCallvalueNonzeroRevert (ctgt := ⟨0x0e⟩) (wC := 1) (opC := .PUSH1) (ctorGuard hcode) hwv (by decide)
     (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode)
 
-theorem ctorRunOk {cA gh bl σ σ₀ A I} {g : Sat256} {w : UInt256} (hcode : I.code = ctorCode w) (hwv : I.weiValue = ⟨0⟩)
+theorem ctorRunOk {σ σ₀ A I} {g : Sat256} {w : UInt256} (hcode : I.code = ctorCode w) (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) :
-    Returned (ctorCode w) (initState cA gh bl σ σ₀ g A I)
-      ⟨cA, sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨0⟩ (callerW I)) w) ⟨2⟩ w,
+    Returned (ctorCode w) (initState σ σ₀ g A I)
+      ⟨A.createdAccounts, sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨0⟩ (callerW I)) w) ⟨2⟩ w,
         A.logSeries.push (ctorLog I w)⟩ erc20Runtime := by
   obtain ⟨_, _, h0'⟩ := Run.solcGuardCallvalueZero (ctgt := ⟨0x0e⟩) (wC := 1) (opC := .PUSH1) (ctorGuard hcode) hwv
     (by decide) (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_jd)
-  have h0 : Run (ctorCode w) (initState cA gh bl σ σ₀ g A I)
-      ⟨⟨0x10⟩, [], solcFreePtrMem, UInt256.ofNat 3, ByteArray.empty, ⟨cA, σ, A.logSeries⟩⟩ _ _ := h0'
+  have h0 : Run (ctorCode w) (initState σ σ₀ g A I)
+      ⟨⟨0x10⟩, [], solcFreePtrMem, UInt256.ofNat 3, ByteArray.empty, ⟨A.createdAccounts, σ, A.logSeries⟩⟩ _ _ := h0'
   -- the argument word: copied from the code tail to `0x80`, length-checked, loaded
   have h1 := ctor_run h0 with [push1 ⟨0x40⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by ctor_decode) mem_cost
-      (mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide) solcFreePtrMem_read64) (by decide) (by evm_ov),
+      (mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) solcFreePtrMem_read64) (by decide) (by evm_ov),
     push2 ⟨0x5f3⟩, codesize, sub]
   rw [show UInt256.sub (UInt256.ofNat (ctorCode w).size) ⟨0x5f3⟩ = ⟨32⟩ from by rw [ctorCode_size]; decide] at h1
   have h2 := ctor_run h1 with [dup1, push2 ⟨0x5f3⟩, dup4,
@@ -268,7 +268,7 @@ theorem ctorRunOk {cA gh bl σ σ₀ A I} {g : Sat256} {w : UInt256} (hcode : I.
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at h5
   have h6 := ctor_run h5 with [push1 ⟨0x85⟩, jumpiT (by decide) (by ctor_jd), jumpdest, pop,
     raw mload 0 w (UInt256.ofNat 5) (by ctor_decode) mem_cost
-      (mloadWordValue_of_readWithPadding (off := ⟨128⟩) (by rw [cm2_size]; decide) (by decide) (cm2_read128 w))
+      (mloadWordValue_of_readWithPadding (off := ⟨128⟩) (by rw [cm2_size]; decide) (cm2_read128 w))
       (by decide) (by evm_ov),
     swap2, swap1, pop, jump (by ctor_jd)]
   -- `balanceOf[msg.sender] = initialSupply; totalSupply = initialSupply;`
@@ -281,26 +281,26 @@ theorem ctorRunOk {cA gh bl σ σ₀ A I} {g : Sat256} {w : UInt256} (hcode : I.
       (by decide) (by evm_ov),
     dup6, swap1]
   obtain ⟨_, _, h8'⟩ := h7.sstore hperm (by ctor_decode) (by evm_ov)
-  have h8 : Run (ctorCode w) (initState cA gh bl σ σ₀ g A I)
+  have h8 : Run (ctorCode w) (initState σ σ₀ g A I)
       ⟨⟨0x3e⟩, ⟨0x40⟩ :: ⟨0x20⟩ :: ⟨0⟩ :: callerW I :: [w], cm4 I w, UInt256.ofNat 5, ByteArray.empty,
-        ⟨cA, sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨0⟩ (callerW I)) w, A.logSeries⟩⟩ _ _ := h8'
+        ⟨A.createdAccounts, sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨0⟩ (callerW I)) w, A.logSeries⟩⟩ _ _ := h8'
   have h9 := ctor_run h8 with [push1 ⟨2⟩, dup6, swap1]
   obtain ⟨_, _, h10'⟩ := h9.sstore hperm (by ctor_decode) (by evm_ov)
-  have h10 : Run (ctorCode w) (initState cA gh bl σ σ₀ g A I)
+  have h10 : Run (ctorCode w) (initState σ σ₀ g A I)
       ⟨⟨0x43⟩, ⟨0x40⟩ :: ⟨0x20⟩ :: ⟨0⟩ :: callerW I :: [w], cm4 I w, UInt256.ofNat 5, ByteArray.empty,
-        ⟨cA, sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨0⟩ (callerW I)) w) ⟨2⟩ w,
+        ⟨A.createdAccounts, sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨0⟩ (callerW I)) w) ⟨2⟩ w,
           A.logSeries⟩⟩ _ _ := h10'
   -- `emit Transfer(address(0), msg.sender, initialSupply);`
   have h11 := ctor_run h10 with [
     raw mload 0 ⟨0xa0⟩ (UInt256.ofNat 5) (by ctor_decode) mem_cost
-      (mloadWordValue_of_readWithPadding (off := ⟨0x40⟩) (by rw [cm4_size]; decide) (by decide) (cm4_read64 I w))
+      (mloadWordValue_of_readWithPadding (off := ⟨0x40⟩) (by rw [cm4_size]; decide) (cm4_read64 I w))
       (by decide) (by evm_ov),
     dup5, dup2,
     raw mstore 3 (cm5 I w) (UInt256.ofNat 6) (by ctor_decode) mem_cost rfl (by decide) (by evm_ov)]
   have h12 := h11.pushConst (width := 32) (op := .PUSH32) transferTopic (by decide) (by ctor_decode) (by evm_ov)
   have h13 := ctor_run h12 with [swap2, add, push1 ⟨0x40⟩,
     raw mload 0 ⟨0xa0⟩ (UInt256.ofNat 6) (by ctor_decode) mem_cost
-      (mloadWordValue_of_readWithPadding (off := ⟨0x40⟩) (by rw [cm5_size]; decide) (by decide) (cm5_read64 I w))
+      (mloadWordValue_of_readWithPadding (off := ⟨0x40⟩) (by rw [cm5_size]; decide) (cm5_read64 I w))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   rw [show UInt256.sub (⟨0x20⟩ + ⟨0xa0⟩) ⟨0xa0⟩ = ⟨0x20⟩ from by decide] at h13
@@ -351,13 +351,13 @@ theorem ctorBody (o : Oracle) (m : Machine) (w : UInt256) :
       (by frame_simp [bodyFrame, ctorFrame, immStore, initRoot, Std.HashMap.getElem?_filter']))
     (EvalLValue.mappingAddr (by frame_simp [bodyFrame, ctorFrame, immStore, initRoot, Std.HashMap.getElem?_filter'])
       erc20Flat_var_balanceOf rfl rfl EvalExpr.msgSender)
-    (erc20Layout_balanceOf _ m.evm)) ?_
+    (erc20Leaf_balanceOf _)) ?_
   refine ExecBlock.cons (ExecStmt.assignStorageU256 (w := w)
     (EvalExpr.localVal u256 (some .memory)
       (by frame_simp [bodyFrame, ctorFrame, immStore, initRoot, Std.HashMap.getElem?_filter']))
     (EvalLValue.stateVarTy (by frame_simp [bodyFrame, ctorFrame, immStore, initRoot, Std.HashMap.getElem?_filter'])
       erc20Flat_var_totalSupply rfl rfl)
-    (erc20Layout_totalSupply _)) ?_
+    (erc20Leaf_totalSupply)) ?_
   exact ExecBlock.cons (ExecStmt.emitAddrAddrU256 (a := EVM.address 0) (b := (cM2 m w).evm.executionEnv.source) (n := w)
     erc20Flat_eventsNamed_Transfer rfl rfl rfl
     (EvalExprs.three (EvalExpr.convertPlain (EvalExpr.numLit 0 none) (explicitConv_lit0_address _ _))
@@ -365,15 +365,15 @@ theorem ctorBody (o : Oracle) (m : Machine) (w : UInt256) :
       (EvalExpr.localVal u256 (some .memory)
         (by frame_simp [bodyFrame, ctorFrame, immStore, initRoot, Std.HashMap.getElem?_filter'])))) ExecBlock.nil
 
-theorem ctorSpec (o : Oracle) {cA gh bl σ σ₀ g A I} (w : UInt256) (hwv : I.weiValue = ⟨0⟩) :
-    solidityCtorExec erc20Cfg o erc20Flat [.int (Int.ofNat w.toNat)] cA gh bl σ σ₀ g A I
-      (.ok (cFinal (initMachine cA gh bl σ σ₀ g A I) w)
+theorem ctorSpec (o : Oracle) {σ σ₀ g A I} (w : UInt256) (hwv : I.weiValue = ⟨0⟩) :
+    solidityCtorExec erc20Cfg o erc20Flat [.int (Int.ofNat w.toNat)] σ σ₀ g A I
+      (.ok (cFinal (initMachine σ σ₀ g A I ∅) w)
         (immStore ((ctorFrame w).exitScope (bodyFrame (ctorFrame w) ctorStmts)))) := by
   have hargs : ofAbiList erc20Flat.types ((topCtor? erc20Flat).map (·.decl.params.map (·.ty)) |>.getD [])
       [.int (Int.ofNat w.toNat)] {} = some ([u256Val w.toNat], {}) := by
     simp [erc20Flat_topCtor, fnCtor, ofAbiList, fuelDefault]
-  refine solidityCtorExec.run (frI := initRoot erc20Flat ∅) (m1 := initMachine cA gh bl σ σ₀ g A I)
-    (tbl := [("ERC20", [u256Val w.toNat])]) (m2 := initMachine cA gh bl σ σ₀ g A I)
+  refine solidityCtorExec.run (frI := initRoot erc20Flat ∅) (m1 := initMachine σ σ₀ g A I ∅)
+    (tbl := [("ERC20", [u256Val w.toNat])]) (m2 := initMachine σ σ₀ g A I ∅)
     (ctorPayable_erc20.mpr hwv) erc20Flat_immZero hargs ?_ ?_ ?_
   · rw [erc20Flat_initializers]; exact ExecInits.nil
   · rw [erc20Flat_ctorChain]; exact CtorArgsAll.single rfl
@@ -385,16 +385,16 @@ theorem ctorSpec (o : Oracle) {cA gh bl σ σ₀ g A I} (w : UInt256) (hwv : I.w
 
 theorem erc20Constructor : constructorEquivalence erc20Cfg erc20Creation erc20Flat (constCode erc20Runtime) := by
   refine constructorEquivalence.intro ?_
-  intro cA gh bl σ_evm σ_spec σ₀ g A I args dep hdeploy hcode _hcalldata hperm hAccounts
+  intro σ σ₀ g A I args dep hdeploy hcode _hcalldata hperm
   obtain ⟨w, hargs, hdep⟩ := deployment_shape hdeploy
   subst hargs
   rw [hdep] at hcode
   by_cases hwv : I.weiValue = ⟨0⟩
-  · set m0 := initMachine cA gh bl σ_spec σ₀ g A I with hm0
-    have hw0 : WorldEquiv ⟨cA, σ_evm, A.logSeries⟩ m0 := WorldEquiv.init {} hAccounts
+  · set m0 := initMachine σ σ₀ g A I ∅ with hm0
+    have hw0 : WorldEquiv ⟨A.createdAccounts, σ, A.logSeries⟩ m0 := WorldEquiv.init ∅ {}
     have hslot : cSlot m0 = solcMappingSlot ⟨0⟩ (callerW I) := by
       simp only [cSlot, balSlot_eq, hm0, initMachine_executionEnv, callerW]
-    have hw1 : WorldEquiv ⟨cA, sstoreAccountMap I.codeOwner σ_evm (solcMappingSlot ⟨0⟩ (callerW I)) w, A.logSeries⟩
+    have hw1 : WorldEquiv ⟨A.createdAccounts, sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨0⟩ (callerW I)) w, A.logSeries⟩
         (cM1 m0 w) := by
       rw [← hslot]; exact hw0.sstore (owner := I.codeOwner) rfl (cSlot m0) w
     have hown1 : I.codeOwner = (cM1 m0 w).evm.executionEnv.codeOwner := by
@@ -405,7 +405,7 @@ theorem erc20Constructor : constructorEquivalence erc20Cfg erc20Creation erc20Fl
         transferTopic, callerW]
       rfl
     have hw3 := hw2.pushLog (cLe m0 w)
-    have hrun := ctorRunOk (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
+    have hrun := ctorRunOk (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
       hcode hwv hperm
     rw [← hle] at hrun
     exact Returned.specCtorW default hcode hrun (ctorSpec default w hwv) hw3 rfl

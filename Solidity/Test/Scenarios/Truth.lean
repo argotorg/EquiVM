@@ -1,6 +1,6 @@
 import Solidity.Test.Harness
 import Solidity.Test.Specs.Truth
-import Solm.Examples.Truth.Bytecode
+import Examples.Truth.Bytecode
 import Solidity.Test.Fixtures.TruthSolc
 
 /-! # Differential cases: Truth. -/

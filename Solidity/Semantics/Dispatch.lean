@@ -1,5 +1,5 @@
 import Solidity.Semantics.Exec
-import Refinement.Result
+import Solm.Semantics.Dispatch
 
 /-!
 # Message dispatch and constructor execution
@@ -24,12 +24,20 @@ def selectorDispatch (fc : FlatContract) (calldata : ByteArray) : Option Dispatc
     let sel := calldata.extract 0 4
     fc.entries.find? fun e => selectorOf e.sigStr == sel
 
+/-- Positional calldata decoding: `ABI.decodeCalldata` (which binds parameter names) applied to
+    the argument positions as names, read back in order. -/
+def argNames (n : Nat) : List Ident := (List.range n).map fun i => s!"#{i}"
+
+def decodeCalldataValues? (types : List ABIType) (calldata : ByteArray)
+    (mode : ABI.DecodeMode := .modern) : Option (List Solm.Value) :=
+  (ABI.decodeCalldata (argNames types.length) types calldata mode).bind fun st => (argNames types.length).mapM st.get?
+
 /-- ABI-decode the calldata arguments of `d` (positional).  A `calldata` array or struct is
     decoded with its words unvalidated (`paramDecodeTys`): solc validates them when they are
     read. -/
-def decodeArgs (cfg : Config) (env : TypeEnv) (d : FnDecl) (calldata : ByteArray) : Option (List ABIValue) := do
+def decodeArgs (cfg : Config) (env : TypeEnv) (d : FnDecl) (calldata : ByteArray) : Option (List Solm.Value) := do
   let tys ← paramDecodeTys env d.params
-  ABI.decodeCalldataValues? tys calldata cfg.abiDecodeMode
+  decodeCalldataValues? tys calldata cfg.abiDecodeMode
 
 /-- The arguments of `d` as spec values: ABI decoding, then the typed reconstruction, which rejects
     what solc's decoder validates beyond the ABI types (an enum value out of range). -/
@@ -48,7 +56,7 @@ def returnAbiTys (env : TypeEnv) (d : FnDecl) : Option (List ABIType) :=
 
 /-- Outcome of a message call: return values (as ABI values) and the machine, or a revert. -/
 inductive TopResult where
-  | returned (m : Machine) (vs : List ABIValue)
+  | returned (m : Machine) (vs : List Solm.Value)
   | reverted (data : ByteArray)
 
 /-- Whether any entry point accepts the calldata (selector, `receive`, or `fallback`). -/
@@ -58,17 +66,17 @@ def dispatches (fc : FlatContract) (calldata : ByteArray) : Bool :=
 
 def rootFrame (fc : FlatContract) : Frame := { here := fc.name, locals := ∅, retVars := [] }
 
-def initMachine (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
-    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv) (h : Heap := {}) : Machine :=
-  { evm := initEvm createdAccounts genesisBlockHeader blocks σ σ₀ g A I, heap := h, tick := 0 }
+/-- The machine a call starts from: the EVM's initial state, the immutables the contract was
+    deployed with (`∅` while constructing) and the heap of the decoded arguments. -/
+def initMachine (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
+    (I : Ethereum.ExecutionEnv) (immutables : Store := ∅) (h : Heap := {}) : Machine :=
+  { evm := initEvm σ σ₀ g A I, heap := h, immutables := immutables, tick := 0 }
 
 def payableOrNoValue (d : FnDecl) (I : Ethereum.ExecutionEnv) : Prop :=
   d.mutability = .payable ∨ I.weiValue = ⟨0⟩
 
 /-- Convention for `fallback` output: raw bytes when it returns `bytes`, ABI-void otherwise. -/
-def fallbackConvention (d : FnDecl) : Refinement.ReturnConvention :=
+def fallbackConvention (d : FnDecl) : Solm.ReturnConvention :=
   match d.returns with
   | [{ ty := .bytes, .. }] => .rawBytes
   | _ => .abi []
@@ -81,64 +89,63 @@ def fallbackArgs (d : FnDecl) (calldata : ByteArray) (h : Heap) : Option (List V
 
 variable (cfg : Config) (o : Oracle) (fc : FlatContract)
 
-/-- Execution of one message call at fixed transaction inputs. -/
-inductive solidityExec (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
-    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv) : TopResult → Refinement.ReturnConvention → Prop where
+/-- Execution of one message call at fixed transaction inputs, with `immutables` the values the
+    contract was deployed with (`imm_<name>` locals). -/
+inductive solidityExec (immutables : Store) (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
+    (I : Ethereum.ExecutionEnv) : TopResult → Solm.ReturnConvention → Prop where
   | call :
       selectorDispatch fc I.calldata = some e → fc.fns[e.fn]? = some fn →
       payableOrNoValue fn.decl I → returnAbiTys fc.types fn.decl = some retTys →
       decodeArgs cfg fc.types fn.decl I.calldata = some svs →
       ofAbiParams fc.types I.calldata fn.decl.params svs {} = some (vs, h0) →
-      CallFn cfg o fc (rootFrame fc) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0) fn vs (.ok rets m') →
+      CallFn cfg o fc (rootFrame fc) (initMachine σ σ₀ g A I immutables h0) fn vs (.ok rets m') →
       prepareArgs fc.types I.calldata fuelDefault m'.heap rets = some (.ok (rets', h')) →
       rets'.mapM (toAbi h' fuelDefault) = some out →
-      solidityExec createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.returned m' out) (.abi retTys)
+      solidityExec immutables σ σ₀ g A I (.returned m' out) (.abi retTys)
   | callReturnPanic :
       selectorDispatch fc I.calldata = some e → fc.fns[e.fn]? = some fn →
       payableOrNoValue fn.decl I → returnAbiTys fc.types fn.decl = some retTys →
       decodeArgs cfg fc.types fn.decl I.calldata = some svs →
       ofAbiParams fc.types I.calldata fn.decl.params svs {} = some (vs, h0) →
-      CallFn cfg o fc (rootFrame fc) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0) fn vs (.ok rets m') →
+      CallFn cfg o fc (rootFrame fc) (initMachine σ σ₀ g A I immutables h0) fn vs (.ok rets m') →
       prepareArgs fc.types I.calldata fuelDefault m'.heap rets = some (.error p) →
-      solidityExec createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted p.data) (.abi retTys)
+      solidityExec immutables σ σ₀ g A I (.reverted p.data) (.abi retTys)
   | callReverted :
       selectorDispatch fc I.calldata = some e → fc.fns[e.fn]? = some fn →
       payableOrNoValue fn.decl I → returnAbiTys fc.types fn.decl = some retTys →
       decodeArgs cfg fc.types fn.decl I.calldata = some svs →
       ofAbiParams fc.types I.calldata fn.decl.params svs {} = some (vs, h0) →
-      CallFn cfg o fc (rootFrame fc) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0) fn vs (.reverted d) →
-      solidityExec createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted d) (.abi retTys)
+      CallFn cfg o fc (rootFrame fc) (initMachine σ σ₀ g A I immutables h0) fn vs (.reverted d) →
+      solidityExec immutables σ σ₀ g A I (.reverted d) (.abi retTys)
   | nonPayable :
       selectorDispatch fc I.calldata = some e → fc.fns[e.fn]? = some fn →
       fn.decl.mutability ≠ .payable → I.weiValue ≠ ⟨0⟩ → returnAbiTys fc.types fn.decl = some retTys →
-      solidityExec createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted ByteArray.empty) (.abi retTys)
+      solidityExec immutables σ σ₀ g A I (.reverted ByteArray.empty) (.abi retTys)
   | receive :
       I.calldata.size = 0 → fc.receive? = some fid → fc.fns[fid]? = some fn →
-      CallFn cfg o fc (rootFrame fc) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I) fn [] (.ok rets m') →
-      solidityExec createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.returned m' []) (.abi [])
+      CallFn cfg o fc (rootFrame fc) (initMachine σ σ₀ g A I immutables) fn [] (.ok rets m') →
+      solidityExec immutables σ σ₀ g A I (.returned m' []) (.abi [])
   | receiveReverted :
       I.calldata.size = 0 → fc.receive? = some fid → fc.fns[fid]? = some fn →
-      CallFn cfg o fc (rootFrame fc) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I) fn [] (.reverted d) →
-      solidityExec createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted d) (.abi [])
+      CallFn cfg o fc (rootFrame fc) (initMachine σ σ₀ g A I immutables) fn [] (.reverted d) →
+      solidityExec immutables σ σ₀ g A I (.reverted d) (.abi [])
   | fallback :
       selectorDispatch fc I.calldata = none → (fc.receive? = none ∨ I.calldata.size ≠ 0) →
       fc.fallback? = some fid → fc.fns[fid]? = some fn → payableOrNoValue fn.decl I →
       fallbackArgs fn.decl I.calldata {} = some (vs, h0) →
-      CallFn cfg o fc (rootFrame fc) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0) fn vs (.ok rets m') →
+      CallFn cfg o fc (rootFrame fc) (initMachine σ σ₀ g A I immutables h0) fn vs (.ok rets m') →
       rets.mapM (toAbi m'.heap fuelDefault) = some out →
-      solidityExec createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.returned m' out) (fallbackConvention fn.decl)
+      solidityExec immutables σ σ₀ g A I (.returned m' out) (fallbackConvention fn.decl)
   | fallbackReverted :
       selectorDispatch fc I.calldata = none → (fc.receive? = none ∨ I.calldata.size ≠ 0) →
       fc.fallback? = some fid → fc.fns[fid]? = some fn → payableOrNoValue fn.decl I →
       fallbackArgs fn.decl I.calldata {} = some (vs, h0) →
-      CallFn cfg o fc (rootFrame fc) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0) fn vs (.reverted d) →
-      solidityExec createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted d) (fallbackConvention fn.decl)
+      CallFn cfg o fc (rootFrame fc) (initMachine σ σ₀ g A I immutables h0) fn vs (.reverted d) →
+      solidityExec immutables σ σ₀ g A I (.reverted d) (fallbackConvention fn.decl)
   | fallbackNonPayable :
       selectorDispatch fc I.calldata = none → (fc.receive? = none ∨ I.calldata.size ≠ 0) →
       fc.fallback? = some fid → fc.fns[fid]? = some fn → fn.decl.mutability ≠ .payable → I.weiValue ≠ ⟨0⟩ →
-      solidityExec createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted ByteArray.empty) (fallbackConvention fn.decl)
+      solidityExec immutables σ σ₀ g A I (.reverted ByteArray.empty) (fallbackConvention fn.decl)
 
 /-! ## Constructors -/
 
@@ -148,6 +155,10 @@ inductive CtorResult where
   | reverted (data : ByteArray)
 
 def immStore (fr : Frame) : Store := fr.locals.filter fun k _ => k.startsWith "imm_"
+
+/-- The declared immutables, base-first. -/
+def FlatContract.immutableVars (fc : FlatContract) : List FlatVar :=
+  fc.stateVars.filter (·.mutability == .immutable)
 
 /-- All immutables zero-initialised (as `imm_<name>` locals). -/
 def immZero (fc : FlatContract) : Option Store :=
@@ -244,34 +255,31 @@ inductive ExecCtorChain (tbl : List (Ident × List Value)) : Store → Machine �
 
 /-- Construction at fixed inputs, in solc's (legacy) order: the initializers (base-first), the
     arguments of every constructor (most derived first), the constructor bodies (base-first). -/
-inductive solidityCtorExec (args : List ABIValue)
-    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
-    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
+inductive solidityCtorExec (args : List Solm.Value) (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv) : CtorResult → Prop where
   | run :
       ctorPayable fc I → immZero fc = some imms0 →
       ofAbiList fc.types ((topCtor? fc).map (·.decl.params.map (·.ty)) |>.getD []) args {} = some (topArgs, h0) →
-      ExecInits cfg o fc (initRoot fc imms0) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0)
+      ExecInits cfg o fc (initRoot fc imms0) (initMachine σ σ₀ g A I ∅ h0)
         (initializers fc) (.ok () frI m1) →
       CtorArgsAll cfg o fc topArgs (immStore frI) [] m1 fc.ctorChain.reverse (.ok (tbl, m2)) →
       ExecCtorChain cfg o fc tbl (immStore frI) m2 fc.ctorChain r →
-      solidityCtorExec args createdAccounts genesisBlockHeader blocks σ σ₀ g A I r
+      solidityCtorExec args σ σ₀ g A I r
   | initsReverted :
       ctorPayable fc I → immZero fc = some imms0 →
       ofAbiList fc.types ((topCtor? fc).map (·.decl.params.map (·.ty)) |>.getD []) args {} = some (topArgs, h0) →
-      ExecInits cfg o fc (initRoot fc imms0) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0)
+      ExecInits cfg o fc (initRoot fc imms0) (initMachine σ σ₀ g A I ∅ h0)
         (initializers fc) (.reverted d) →
-      solidityCtorExec args createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted d)
+      solidityCtorExec args σ σ₀ g A I (.reverted d)
   | argsReverted :
       ctorPayable fc I → immZero fc = some imms0 →
       ofAbiList fc.types ((topCtor? fc).map (·.decl.params.map (·.ty)) |>.getD []) args {} = some (topArgs, h0) →
-      ExecInits cfg o fc (initRoot fc imms0) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0)
+      ExecInits cfg o fc (initRoot fc imms0) (initMachine σ σ₀ g A I ∅ h0)
         (initializers fc) (.ok () frI m1) →
       CtorArgsAll cfg o fc topArgs (immStore frI) [] m1 fc.ctorChain.reverse (.error d) →
-      solidityCtorExec args createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted d)
+      solidityCtorExec args σ σ₀ g A I (.reverted d)
   | nonPayable :
       ¬ ctorPayable fc I →
-      solidityCtorExec args createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted ByteArray.empty)
+      solidityCtorExec args σ σ₀ g A I (.reverted ByteArray.empty)
 
 end Solidity

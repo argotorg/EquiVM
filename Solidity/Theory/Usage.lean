@@ -34,7 +34,7 @@ example (fr : Frame) (m : Machine) (a b : EVM.Address)
       (.call (.ident "keccak256") [] (.positional
         [.call (.member (.ident "abi") "encodePacked") [] (.positional [.ident "a", .ident "b"])]))
       (.ok (.fixedBytes ⟨31, by decide⟩
-        (ffi.KEC ([(EVM.Word.toBytesBE (UInt256.ofNat a.toNat)).drop 12,
+        (Ethereum.KEC ([(EVM.Word.toBytesBE (UInt256.ofNat a.toNat)).drop 12,
           (EVM.Word.toBytesBE (UInt256.ofNat b.toNat)).drop 12].flatten.toByteArray)).toList)
         fr (allocBytes m false ([(EVM.Word.toBytesBE (UInt256.ofNat a.toNat)).drop 12,
           (EVM.Word.toBytesBE (UInt256.ofNat b.toNat)).drop 12].flatten.toByteArray)).2) :=
@@ -47,7 +47,7 @@ example (fr : Frame) (m : Machine) (v : FlatVar) (bs : List UInt8) (slot : UInt2
     (hroles : fr.get? "roles" = none) (hv : fc.varIn fr.here "roles" = some v) (hmut : v.mutability = .mutable)
     (hty : v.ty = .mapping (.fixedBytes ⟨31, by decide⟩) .bool)
     (hh : fr.get? "h" = some { ty := .fixedBytes ⟨31, by decide⟩, loc := none, val := .fixedBytes ⟨31, by decide⟩ bs })
-    (hl : cfg.storage.layout (keyRef ⟨v.key, []⟩ (.fixedBytes ⟨31, by decide⟩ bs)) m.evm = some (boolOffset0Loc slot)) :
+    (hl : cfg.Leaf (keyRef ⟨v.key, []⟩ (.fixedBytes ⟨31, by decide⟩ bs)) (boolOffset0Loc slot)) :
     ExecStmt cfg o fc fr m (.exprStmt (.assign .assign (.index (.ident "roles") (.ident "h")) (.lit (.bool true))))
       (.normal fr (storeU256 m slot (UInt256.lor (UInt256.land (loadU256 m slot) (UInt256.lnot ⟨255⟩)) ⟨1⟩))) :=
   ExecStmt.exprStmt (EvalExpr.assignPlain rfl (EvalExpr.boolLit true)
@@ -79,7 +79,7 @@ example (fr : Frame) (m : Machine) (l : Local) (n : ℕ)
 /-- `delete owner;` for `owner : address`. -/
 example (fr : Frame) (m : Machine) (v : FlatVar) (slot : UInt256)
     (hx : fr.get? "owner" = none) (hv : fc.varIn fr.here "owner" = some v) (hmut : v.mutability = .mutable)
-    (hty : v.ty = .address false) (hl : cfg.storage.layout ⟨v.key, []⟩ m.evm = some (addressOffset0Loc slot)) :
+    (hty : v.ty = .address false) (hl : cfg.Leaf ⟨v.key, []⟩ (addressOffset0Loc slot)) :
     ExecStmt cfg o fc fr m (.exprStmt (.unary .delete (.ident "owner")))
       (.normal fr (storeU256 m slot (setAddressOffset0Word (loadU256 m slot) ⟨0⟩))) :=
   ExecStmt.deleteStorageAddress (hty ▸ EvalLValue.stateVar hx hv hmut) hl
@@ -142,10 +142,10 @@ example (fr : Frame) (m : Machine)
       { ty := u256Ty, indexed := false, name := some "amount" }])
     (htys : ei.sig.paramTypes = [.elem .address, .elem (.int (.uint ⟨256, by decide⟩))])
     (hanon : ei.decl.anonymous = false)
-    (hlEnd : ∀ evm, cfg.storage.layout ⟨vEnd.key, []⟩ evm = some (uint256Loc slotEnd))
-    (hlBidder : ∀ evm, cfg.storage.layout ⟨vBidder.key, []⟩ evm = some (addressOffset0Loc slotBidder))
-    (hlBid : ∀ evm, cfg.storage.layout ⟨vBid.key, []⟩ evm = some (uint256Loc slotBid))
-    (hlPend : ∀ a evm, cfg.storage.layout (keyRef ⟨vPend.key, []⟩ (.address a)) evm = some (uint256Loc (pendSlot a)))
+    (hlEnd : cfg.Leaf ⟨vEnd.key, []⟩ (uint256Loc slotEnd))
+    (hlBidder : cfg.Leaf ⟨vBidder.key, []⟩ (addressOffset0Loc slotBidder))
+    (hlBid : cfg.Leaf ⟨vBid.key, []⟩ (uint256Loc slotBid))
+    (hlPend : ∀ a, cfg.Leaf (keyRef ⟨vPend.key, []⟩ (.address a)) (uint256Loc (pendSlot a)))
     (hunch : fr.unchecked = false)
     (hts : (EVM.Word.ofNat m.evm.executionEnv.header.timestamp).toNat ≤ (loadU256 m slotEnd).toNat)
     (hval : (loadU256 m slotBid).toNat < m.evm.executionEnv.weiValue.toNat)
@@ -156,33 +156,33 @@ example (fr : Frame) (m : Machine)
   constructor
   have h1 : EvalExpr cfg o fc fr m (.binary .gt (.member (.ident "block") "timestamp") (.ident "auctionEndTime"))
       (.ok (.bool false) fr m) := by
-    have h := EvalExpr.gtU256 (cfg := cfg) (o := o) (fc := fc)
-      (EvalExpr.stateU256 hfrEnd hvEnd hmEnd htEnd (hlEnd m.evm)) EvalExpr.blockTimestamp
+    have h := EvalExpr.gtU256 (cfg := cfg) (o := o) (fc := fc) (m := m)
+      (EvalExpr.stateU256 hfrEnd hvEnd hmEnd htEnd hlEnd) EvalExpr.blockTimestamp
     rwa [decide_eq_false (Nat.not_lt.mpr hts)] at h
   refine ExecBlock.cons (ExecStmt.iteFalseNone h1) ?_
   have h2 : EvalExpr cfg o fc fr m (.binary .le (.member (.ident "msg") "value") (.ident "highestBid"))
       (.ok (.bool false) fr m) := by
-    have h := EvalExpr.leU256 (cfg := cfg) (o := o) (fc := fc)
-      (EvalExpr.stateU256 hfrBid hvBid hmBid htBid (hlBid m.evm)) EvalExpr.msgValue
+    have h := EvalExpr.leU256 (cfg := cfg) (o := o) (fc := fc) (m := m)
+      (EvalExpr.stateU256 hfrBid hvBid hmBid htBid hlBid) EvalExpr.msgValue
     rwa [decide_eq_false (Nat.not_le.mpr hval)] at h
   refine ExecBlock.cons (ExecStmt.iteFalseNone h2) ?_
   have h3 : EvalExpr cfg o fc fr m (.binary .ne (.ident "highestBid") (.lit (.number 0 none none)))
       (.ok (.bool true) fr m) := by
-    have h := EvalExpr.neU256Lit (cfg := cfg) (o := o) (fc := fc) 0 none
-      (EvalExpr.stateU256 hfrBid hvBid hmBid htBid (hlBid m.evm)) (by decide)
+    have h := EvalExpr.neU256Lit (cfg := cfg) (o := o) (fc := fc) (m := m) 0 none
+      (EvalExpr.stateU256 hfrBid hvBid hmBid htBid hlBid) (by decide)
     rwa [decide_eq_true hne] at h
   have hrefund := ExecStmt.addAssignU256 (cfg := cfg) (o := o) (fc := fc) (m := m) (b := loadU256 m slotBid)
-    (EvalExpr.stateU256 hfrBid hvBid hmBid htBid (hlBid m.evm))
+    (EvalExpr.stateU256 hfrBid hvBid hmBid htBid hlBid)
     (EvalLValue.mappingAddr hfrPend hvPend hmPend htPend
-      (EvalExpr.stateAddress hfrBidder hvBidder hmBidder htBidder (hlBidder m.evm)))
-    (hlPend _ m.evm) hunch hfit
+      (EvalExpr.stateAddress hfrBidder hvBidder hmBidder htBidder hlBidder))
+    (hlPend _) hunch hfit
   refine ExecBlock.cons (ExecStmt.iteTrue h3 (ExecStmt.blockNormal (ExecBlock.one hrefund))) ?_
   have hfrBidder' := exitScope_get?_of_none (fr' := fr) hfrBidder
   have hfrBid' := exitScope_get?_of_none (fr' := fr) hfrBid
   refine ExecBlock.cons (ExecStmt.assignStorageAddress EvalExpr.msgSender
-    (EvalLValue.stateVarTy hfrBidder' hvBidder hmBidder htBidder) (hlBidder _)) ?_
+    (EvalLValue.stateVarTy hfrBidder' hvBidder hmBidder htBidder) hlBidder) ?_
   refine ExecBlock.cons (ExecStmt.assignStorageU256 EvalExpr.msgValue
-    (EvalLValue.stateVarTy hfrBid' hvBid hmBid htBid) (hlBid _)) ?_
+    (EvalLValue.stateVarTy hfrBid' hvBid hmBid htBid) hlBid) ?_
   refine ExecBlock.cons (ExecStmt.emitStatic
     [⟨.addr m.evm.executionEnv.source, false, some "bidder"⟩,
      ⟨.u256 m.evm.executionEnv.weiValue.toNat, false, some "amount"⟩] hev (by rw [hparams]; rfl) htys hanon

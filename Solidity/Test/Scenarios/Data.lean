@@ -15,14 +15,14 @@ def creation : ByteArray := bytesOfHex Fixtures.dataCreationHex
 def runtime : ByteArray := bytesOfHex Fixtures.dataRuntimeHex
 def allocRuntime : ByteArray := bytesOfHex Fixtures.allocRuntimeHex
 
-def mk (sig : String) (args : List ABI.ABIValue) (tag : String := "") : Case :=
+def mk (sig : String) (args : List Solm.Value) (tag : String := "") : Case :=
   { name := s!"{sig} {tag}", code := runtime, call := some (sig, args) }
 
-def b4 (n : Nat) : ABI.ABIValue := .fixedBytes ⟨3, by decide⟩ ((wordBytes n).toList.drop 28)
-def b1 (n : Nat) : ABI.ABIValue := .fixedBytes ⟨0, by decide⟩ [UInt8.ofNat n]
+def b4 (n : Nat) : Solm.Value := .fixedBytes ⟨3, by decide⟩ ((wordBytes n).toList.drop 28)
+def b1 (n : Nat) : Solm.Value := .fixedBytes ⟨0, by decide⟩ [UInt8.ofNat n]
 def bytesN (n : Nat) : ByteArray := ⟨((List.range n).map fun i => UInt8.ofNat (i + 1)).toArray⟩
-def str (n : Nat) : ABI.ABIValue := .bytes ⟨((List.range n).map fun i => UInt8.ofNat (97 + i % 26)).toArray⟩
-def A : ABI.ABIValue := .address (addr 0xA11CE)
+def str (n : Nat) : Solm.Value := .bytes ⟨((List.range n).map fun i => UInt8.ofNat (97 + i % 26)).toArray⟩
+def A : Solm.Value := .address (addr 0xA11CE)
 
 def U8 : List Int := [0, 1, 127, 254, 255]
 def U16 : List Int := [0, 1, 65534, 65535]

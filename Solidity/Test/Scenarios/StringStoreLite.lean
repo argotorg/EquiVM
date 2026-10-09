@@ -1,6 +1,6 @@
 import Solidity.Test.Harness
 import Solidity.Test.Specs.StringStoreLite
-import Solm.Examples.StringStoreLite.Bytecode
+import Examples.StringStoreLite.Bytecode
 import Solidity.Test.Fixtures.StringStoreLiteSolc
 
 /-! # Differential cases: StringStoreLite. -/
@@ -9,7 +9,7 @@ namespace Solidity.Test.StringStoreLite
 
 open Solidity.Test
 
-def str (s : String) : ABI.ABIValue := .bytes s.toUTF8
+def str (s : String) : Solm.Value := .bytes s.toUTF8
 def long40 : String := "0123456789012345678901234567890123456789"
 def s31 : String := "0123456789012345678901234567890"
 def s32 : String := "01234567890123456789012345678901"
@@ -18,7 +18,7 @@ def s32 : String := "01234567890123456789012345678901"
 def shortSlot (s : String) : Ethereum.UInt256 :=
   word ((natOfBytes s.toUTF8) <<< (8 * (32 - s.length)) + 2 * s.length)
 /-- Long form: `2·len + 1` in slot 0, data at `keccak(0)`. -/
-def dataBase : Nat := natOfBytes (ffi.KEC (wordBytes 0))
+def dataBase : Nat := natOfBytes (Ethereum.KEC (wordBytes 0))
 def longSlots (s : String) : List (Ethereum.UInt256 × Ethereum.UInt256) :=
   (word 0, word (2 * s.length + 1)) ::
     ((List.range ((s.length + 31) / 32)).map fun i =>

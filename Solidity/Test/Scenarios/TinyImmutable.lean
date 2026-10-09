@@ -1,6 +1,6 @@
 import Solidity.Test.Harness
 import Solidity.Test.Specs.TinyImmutable
-import Solm.Examples.TinyImmutable.Bytecode
+import Examples.TinyImmutable.Bytecode
 
 /-! # Differential cases: TinyImmutable (immutables; the pinned runtime is solc's zero-filled template). -/
 

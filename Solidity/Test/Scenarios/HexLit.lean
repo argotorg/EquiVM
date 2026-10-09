@@ -11,7 +11,7 @@ open Solidity.Test
 def creation : ByteArray := bytesOfHex Fixtures.hexLitCreationHex
 def runtime : ByteArray := bytesOfHex Fixtures.hexLitRuntimeHex
 
-def b2 (hi lo : UInt8) : ABI.ABIValue := .fixedBytes ⟨1, by decide⟩ [hi, lo]
+def b2 (hi lo : UInt8) : Solm.Value := .fixedBytes ⟨1, by decide⟩ [hi, lo]
 
 def rt (name : String) (c : Case) : Case := { c with name := name, code := runtime }
 

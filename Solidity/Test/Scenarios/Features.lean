@@ -21,7 +21,7 @@ def U : Nat := 0x05E7
 /-- The kicker deployed at `K`. -/
 def withKicker : List (EVM.Address × Ethereum.Account) := [(addr K, account (code := kickerRuntime))]
 
-def kA : ABI.ABIValue := .address (addr K)
+def kA : Solm.Value := .address (addr K)
 
 def rt (name : String) (c : Case) : Case :=
   { c with name := name, code := runtime, accounts := withKicker, expect := .success }
@@ -30,7 +30,7 @@ def rt (name : String) (c : Case) : Case :=
 def rv (name : String) (c : Case) : Case :=
   { c with name := name, code := runtime, accounts := withKicker, expect := .revert }
 
-def b32 (n : Nat) : ABI.ABIValue := .fixedBytes ⟨31, by decide⟩ (wordBytes n).toList
+def b32 (n : Nat) : Solm.Value := .fixedBytes ⟨31, by decide⟩ (wordBytes n).toList
 
 /-- `n` distinct bytes `1, 2, …, n`. -/
 def bytesN (n : Nat) : ByteArray := ⟨((List.range n).map fun i => UInt8.ofNat (i + 1)).toArray⟩

@@ -20,7 +20,7 @@ def hexOfBytes (b : ByteArray) : String :=
     let s := Nat.toDigits 16 x.toNat
     String.ofList (if s.length = 1 then '0' :: s else s)
 
-def selectorOfSig (sig : String) : ByteArray := (ffi.KEC sig.toUTF8).extract 0 4
+def selectorOfSig (sig : String) : ByteArray := (Ethereum.KEC sig.toUTF8).extract 0 4
 
 def hexDigit (c : Char) : Nat :=
   if c.isDigit then c.toNat - '0'.toNat
@@ -79,7 +79,7 @@ structure Case where
   value : Nat := 0
   /-- Raw calldata, or an external call `(signature, arguments)` encoded by `runCase`. -/
   calldata : ByteArray := .empty
-  call : Option (String × List ABI.ABIValue) := none
+  call : Option (String × List Solm.Value) := none
   /-- Other accounts (the contract itself is added by `pre`). -/
   accounts : List (EVM.Address × Account) := []
   /-- Storage of the contract under test: raw slots, and layout paths resolved by `runCase`. -/
@@ -91,7 +91,7 @@ structure Case where
   /-- Earlier blocks (`blockhash`). -/
   blocks : ProcessedBlocks := #[]
   /-- Constructor case: ABI arguments; the spec's returned code must be the runtime. -/
-  ctorArgs : Option (List ABI.ABIValue × ByteArray) := none
+  ctorArgs : Option (List Solm.Value × ByteArray) := none
   expect : Expect := .any
   /-- A documented mismatch (e.g. a hand-written pinned initcode); must still mismatch. -/
   known : Option String := none
@@ -110,31 +110,32 @@ def Case.deployedCode (c : Case) (cfg : Config) : Option ByteArray :=
 def Case.env (c : Case) (code : ByteArray) : ExecutionEnv :=
   { codeOwner := c.this, sender := c.origin.getD c.sender, source := c.sender, weiValue := .ofNat c.value,
     calldata := c.calldata, code := code, gasPrice := c.gasPrice, header := c.header, depth := 0,
-    perm := true, blobVersionedHashes := [] }
+    perm := true, blobVersionedHashes := [], blocks := c.blocks }
 
 /-! ## Running both sides -/
 
 def runEVM (c : Case) (code : ByteArray) : EVMResult :=
-  Ethereum.EVM.Ξ ∅ default c.blocks c.pre c.pre (.ofNat c.gas) default (c.env code)
+  Ethereum.EVM.Ξ c.pre c.pre (.ofNat c.gas) default (c.env code)
 
 inductive SpecOutcome where
-  | run (res : TopResult) (conv : Refinement.ReturnConvention)
+  | run (res : TopResult) (conv : Solm.ReturnConvention)
   | ctor (res : CtorResult)
   | rejected
   | stuck
 
-def runSpec (cfg : Config) (fc : FlatContract) (c : Case) (code : ByteArray) (o : Oracle := testOracle) :
-    SpecOutcome :=
+/-- `imms`: the runtime immutables (`imm_<name>` locals, `immutableStore`); ignored by a constructor case. -/
+def runSpec (cfg : Config) (fc : FlatContract) (imms : Store) (c : Case) (code : ByteArray)
+    (o : Oracle := testOracle) : SpecOutcome :=
   let I := c.env code
   match c.ctorArgs with
   | some (args, _) =>
-    match (Interp.interpCtor cfg o fc interpFuel args ∅ default c.blocks c.pre c.pre (.ofNat c.gas) default I).run with
+    match (Interp.interpCtor cfg o fc interpFuel args c.pre c.pre (.ofNat c.gas) default I).run with
     | some (.ok r) => .ctor r
     | some (.error d) => .ctor (.reverted d)
     | none => .stuck
   | none =>
     if Interp.specRejectsB cfg fc I then .rejected
-    else match (Interp.interpExec cfg o fc interpFuel ∅ default c.blocks c.pre c.pre (.ofNat c.gas) default I).run with
+    else match (Interp.interpExec cfg o fc interpFuel imms c.pre c.pre (.ofNat c.gas) default I).run with
     | some (.ok (r, conv)) => .run r conv
     | some (.error d) => .run (.reverted d) .rawBytes
     | none => .stuck
@@ -150,7 +151,7 @@ def accountMapEquivB (σ τ : AccountMap) : Bool :=
   let ys := τ.toList
   xs.length == ys.length && (xs.zip ys).all fun p => p.1.1 == p.2.1 && accountEquivB p.1.2 p.2.2
 
-def returnDataEquivB (out : ByteArray) (vs : List ABI.ABIValue) : Refinement.ReturnConvention → Bool
+def returnDataEquivB (out : ByteArray) (vs : List Solm.Value) : Solm.ReturnConvention → Bool
   | .abi tys => ABI.encodeReturnValues? tys vs == some out
   | .rawBytes => match vs with
     | [.bytes b] => b == out
@@ -172,18 +173,21 @@ def describeLogs (ls : LogSeries) : String :=
   String.intercalate "; " <| ls.toList.map fun l =>
     s!"{l.address.toNat} topics={l.topics.toList.map (·.toNat)} data={hexOfBytes l.data}"
 
-def compareStates (d : Diff) (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
-    (A' : Substate) (m : Machine) : Diff :=
-  d.add (cA'.toList == m.evm.createdAccounts.toList) "created accounts differ"
+def describeAddrs (s : Batteries.RBSet AccountAddress compare) : String :=
+  s!"{s.toList.map (·.toNat)}"
+
+def compareStates (d : Diff) (σ' : AccountMap) (A' : Substate) (m : Machine) : Diff :=
+  d.add (A'.createdAccounts.toList == m.evm.substate.createdAccounts.toList)
+      s!"created accounts differ: evm={describeAddrs A'.createdAccounts} spec={describeAddrs m.evm.substate.createdAccounts}"
     |>.add (accountMapEquivB σ' m.evm.accountMap)
         s!"accounts differ\n    evm:  {describeAccounts σ'}\n    spec: {describeAccounts m.evm.accountMap}"
     |>.add (A'.logSeries == m.evm.substate.logSeries)
         s!"logs differ\n    evm:  {describeLogs A'.logSeries}\n    spec: {describeLogs m.evm.substate.logSeries}"
 
-def compareRun (r : EVMResult) (res : TopResult) (conv : Refinement.ReturnConvention) : Diff :=
+def compareRun (r : EVMResult) (res : TopResult) (conv : Solm.ReturnConvention) : Diff :=
   match r, res with
-  | .ok (.success (cA', σ', _, A') out), .returned m vs =>
-    compareStates {} cA' σ' A' m
+  | .ok (.success (σ', _, A') out), .returned m vs =>
+    compareStates {} σ' A' m
       |>.add (returnDataEquivB out vs conv) s!"return data differ: evm={hexOfBytes out}"
   | .ok (.revert _ out), .reverted d =>
     Diff.add {} (out == d) s!"revert data differ\n    evm:  {hexOfBytes out}\n    spec: {hexOfBytes d}"
@@ -195,8 +199,8 @@ def compareRun (r : EVMResult) (res : TopResult) (conv : Refinement.ReturnConven
 
 def compareCtor (r : EVMResult) (res : CtorResult) (runtime : ByteArray) : Diff :=
   match r, res with
-  | .ok (.success (cA', σ', _, A') out), .ok m _ =>
-    compareStates {} cA' σ' A' m
+  | .ok (.success (σ', _, A') out), .ok m _ =>
+    compareStates {} σ' A' m
       |>.add (out == runtime) s!"deployed code differs ({out.size} bytes vs {runtime.size})"
   | .ok (.revert _ out), .reverted d =>
     Diff.add {} (out == d) s!"revert data differ\n    evm:  {hexOfBytes out}\n    spec: {hexOfBytes d}"
@@ -218,16 +222,19 @@ def Case.resolve (c : Case) (fc : FlatContract) (t : LayoutTable) : Option Case 
       let e ← fc.entries.find? (·.sigStr == sig)
       ABI.encodeCallWithSelector? (selectorOfSig sig) e.sig.paramTypes args
   let storage ← c.refs.foldlM (init := c.storage) fun st (r, v) => do
-    let loc ← layout t r default
-    let packed := v <<< (8 * loc.offset.val)
-    match st.find? (·.1 == loc.slot) with
-    | some (_, w) => pure ((st.filter (·.1 != loc.slot)) ++ [(loc.slot, word (w.toNat ||| packed))])
-    | none => pure (st ++ [(loc.slot, word packed)])
+    -- a scalar is packed at its offset; a dynamic array / bytes header (its length) fills the slot
+    let (slot, packed) ← match layout t r with
+      | some (.leaf loc) => some (loc.slot, v <<< (8 * loc.offset.val))
+      | some (.anchor slot) => some (slot, v)
+      | _ => none
+    match st.find? (·.1 == slot) with
+    | some (_, w) => pure ((st.filter (·.1 != slot)) ++ [(slot, word (w.toNat ||| packed))])
+    | none => pure (st ++ [(slot, word packed)])
   pure { c with calldata := calldata, storage := storage }
 
 /-- Compare both sides; the EVM runs first so that an out-of-gas run (e.g. an unbounded loop)
     never reaches the interpreter.  `skipOOG` treats out-of-gas as a pass (fuzzing). -/
-def runCase (cfg : Config) (fc : FlatContract) (c₀ : Case) (skipOOG : Bool := false) : Diff :=
+def runCase (cfg : Config) (fc : FlatContract) (imms : Store) (c₀ : Case) (skipOOG : Bool := false) : Diff :=
   match c₀.deployedCode cfg, fc.layoutTable?.bind (c₀.resolve fc) with
   | none, _ => { msgs := ["cannot build deployment code"] }
   | _, none => { msgs := ["cannot resolve the case (calldata or storage paths)"] }
@@ -237,11 +244,11 @@ def runCase (cfg : Config) (fc : FlatContract) (c₀ : Case) (skipOOG : Bool := 
     match r with
     | .error .OutOfGass => if skipOOG then {} else d.add false "evm out of gas"
     | _ =>
-      -- a decoder that failed at its allocation is the oracle's choice (`Oracle.allocPanic`)
+      -- the oracle's choices: a decoder that failed at its allocation (`Oracle.allocPanic`), the
       let o := match r with
         | .ok (.revert _ out) => if out == panicData 0x41 then panicOracle else testOracle
         | _ => testOracle
-      match r, runSpec cfg fc c code o with
+      match r, runSpec cfg fc imms c code o with
       | _, .stuck => d.add false "spec stuck"
       | .ok (.revert _ out), .rejected =>
         d.add (out.isEmpty || (Interp.rejectPanicsB fc (c.env code) && out == panicData 0x41))
@@ -254,9 +261,9 @@ def runCase (cfg : Config) (fc : FlatContract) (c₀ : Case) (skipOOG : Bool := 
         { msgs := d.msgs ++ (compareCtor r res runtime).msgs }
 
 /-- `runCase` on a task, giving up after `ms` milliseconds (a spec that fails to terminate). -/
-def runCaseTimeout (cfg : Config) (fc : FlatContract) (c : Case) (skipOOG : Bool := false)
+def runCaseTimeout (cfg : Config) (fc : FlatContract) (imms : Store) (c : Case) (skipOOG : Bool := false)
     (ms : Nat := 20000) : IO Diff := do
-  let t := Task.spawn fun _ => runCase cfg fc c skipOOG
+  let t := Task.spawn fun _ => runCase cfg fc imms c skipOOG
   let mut waited := 0
   while !(← IO.hasFinished t) && waited < ms do
     IO.sleep 5
@@ -276,13 +283,14 @@ structure Scenario where
   runtimes : List (Ident × EVM.Bytes) := []
 
 def runScenario (s : Scenario) : IO Bool := do
-  match setup s.program s.target s.immutables s.creations s.runtimes with
+  match setup s.program s.target s.creations s.runtimes with
   | .error e => IO.println s!"[{s.name}] setup failed: {e}"; return false
   | .ok (fc, cfg) =>
+    let imms := immutableStore fc s.immutables
     let mut ok := true
     let mut known := 0
     for c in s.cases do
-      let d ← runCaseTimeout cfg fc c
+      let d ← runCaseTimeout cfg fc imms c
       match c.known with
       | some why =>
         if d.ok then
@@ -328,7 +336,7 @@ def Rng.word (r : Rng) : Nat × Rng :=
   | _ => r1.pick [0xA11CE, 0xB0B, 0xF00D, 0xBE, 0xC0FFEE] 0
 
 /-- A value that fits a storage location (bools stay 0/1). -/
-def Rng.fitting (r : Rng) (loc : Storage.StorageLoc) : Nat × Rng :=
+def Rng.fitting (r : Rng) (loc : Solm.StorageLoc) : Nat × Rng :=
   let (w, r1) := r.word
   match loc.type with
   | .bool => (w % 2, r1)
@@ -368,8 +376,9 @@ def mutateEnv (r : Rng) (t : LayoutTable) (c : Case) : Case × Rng :=
   let (ts, r6) := if kt == 0 then r5.pick [0, 500, 1000, 1500, 2000, 2 ^ 40] 0 else (c.header.timestamp, r5)
   let (refs, r7) := c.refs.foldl (fun (acc, r) (ref, v) =>
       let (k, r') := r.nat 2
-      match k, layout t ref default with
-      | 0, some loc => let (w, r'') := r'.fitting loc; (acc ++ [(ref, w)], r'')
+      match k, layout t ref with
+      | 0, some (.leaf loc) => let (w, r'') := r'.fitting loc; (acc ++ [(ref, w)], r'')
+      | 0, some (.anchor _) => let (w, r'') := r'.word; (acc ++ [(ref, w)], r'')
       | _, _ => (acc ++ [(ref, v)], r')) ([], r6)
   ({ c with
       value := v, sender := addr snd, header := { c.header with timestamp := ts }, refs := refs,
@@ -380,10 +389,11 @@ def describeCase (c : Case) : String :=
 
 /-- `n` random variants of each runtime case of `s`; out-of-gas EVM runs are skipped. -/
 def fuzzScenario (s : Scenario) (seed n : Nat) : IO Bool := do
-  match setup s.program s.target s.immutables s.creations s.runtimes with
+  match setup s.program s.target s.creations s.runtimes with
   | .error e => IO.println s!"[{s.name}] setup failed: {e}"; return false
   | .ok (fc, cfg) =>
     let some t := fc.layoutTable? | IO.println s!"[{s.name}] no layout"; return false
+    let imms := immutableStore fc s.immutables
     let bases := s.cases.filter (·.ctorArgs.isNone)
     let mut r : Rng := ⟨mkStdGen seed⟩
     let mut ok := true
@@ -403,7 +413,7 @@ def fuzzScenario (s : Scenario) (seed n : Nat) : IO Bool := do
         | .ok (.success _ _) => succ := succ + 1
         | .ok (.revert _ _) => rev := rev + 1
         | _ => pure ()
-        let d ← runCaseTimeout cfg fc c (skipOOG := true)
+        let d ← runCaseTimeout cfg fc imms c (skipOOG := true)
         unless d.ok do
           ok := false
           IO.println s!"[{s.name}] fuzz of {c₀.name}: FAILED\n  {describeCase c}"

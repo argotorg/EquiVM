@@ -1,6 +1,6 @@
 import Solidity.Test.Harness
 import Solidity.Test.Specs.Pausable
-import Solm.Examples.OpenZeppelinBench.Pausable.Bytecode
+import Examples.OpenZeppelinBench.Pausable.Bytecode
 import Solidity.Test.Fixtures.PausableSolc
 
 /-! # Differential cases: Pausable. -/

@@ -40,11 +40,11 @@ theorem retWord {s0 : State} {val ret : UInt256} {R : List UInt256} {mem rdata :
     Returned erc20Runtime s0 w (UInt256.toByteArray val) := by
   obtain ⟨_, _, h1⟩ := Run.solcEncodeWordRoutine h
     (by dsimp only [solcEncodeWordRoutineWf]; repeat' first | apply And.intro | decide)
-    (mloadFreePtrValue (by omega) (by decide) hread) hov
+    (mloadFreePtrValue (by omega) hread) hov
   have h2 := evm_run h1 with [push2 ⟨0x83⟩, jump (by jump_dest)]
   obtain ⟨hsz, hread', hback⟩ := freePtr_after_write128 val hmem hread hgap
   have hret := Run.solcReturnBlock h2 (by dsimp only [solcReturnBlockWf]; repeat' first | apply And.intro | decide)
-    (mloadFreePtrValue hsz (by decide) hread') (by evm_ov)
+    (mloadFreePtrValue hsz hread') (by evm_ov)
   rw [show (UInt256.sub (⟨32⟩ + ⟨128⟩) ⟨128⟩).toNat = 32 from by decide, hback] at hret
   exact hret
 
@@ -190,7 +190,7 @@ theorem hashMem_read0_64 {mem : ByteArray} (key slot : UInt256) (hmem : mem.size
 
 /-- `KECCAK256 0 0x40` over it: the mapping slot `keccak256(key ++ slot)`. -/
 theorem hashMem_keccak {mem : ByteArray} (key slot : UInt256) (hmem : mem.size = 96) :
-    UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC ((hashMem key slot mem).readWithPadding 0 64))) =
+    UInt256.ofNat (fromByteArrayBigEndian (Ethereum.KEC ((hashMem key slot mem).readWithPadding 0 64))) =
       solcMappingSlot slot key := by
   rw [hashMem_read0_64 key slot hmem]
   exact mappingSlot_single key slot
@@ -360,7 +360,7 @@ theorem retBoolTrue {s0 : State} {R : List UInt256} {mem rdata : ByteArray} {w :
     (hgap : 128 - mem.size < USize.size) (hov : R.length + 3 ≤ 1024) :
     Returned erc20Runtime s0 w (UInt256.toByteArray ⟨1⟩) := by
   have h1 := evm_run h with [jumpdest, push1 ⟨0x40⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost (mloadFreePtrValue (by omega) (by decide) hread)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost (mloadFreePtrValue (by omega) hread)
       (by decide) (by evm_ov),
     swap1, iszero, iszero]
   rw [show UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ from by decide] at h1
@@ -370,7 +370,7 @@ theorem retBoolTrue {s0 : State} {R : List UInt256} {mem rdata : ByteArray} {w :
     push1 ⟨0x20⟩, add]
   obtain ⟨hsz, hread', hback⟩ := freePtr_after_write128 ⟨1⟩ hmem hread hgap
   have hret := Run.solcReturnBlock h2 (by dsimp only [solcReturnBlockWf]; repeat' first | apply And.intro | decide)
-    (mloadFreePtrValue hsz (by decide) hread') (by evm_ov)
+    (mloadFreePtrValue hsz hread') (by evm_ov)
   rw [show (UInt256.sub (⟨32⟩ + ⟨128⟩) ⟨128⟩).toNat = 32 from by decide, hback] at hret
   exact hret
 
@@ -459,7 +459,7 @@ theorem errTail {s0 : State} {pc len word : UInt256} {stk : List UInt256} {mem r
     hd26, hd59, hd61, hd62, hd63, hd64, hd66, hd67, hd70⟩
   have h1 := evm_run h with [
     raw push1 ⟨64⟩ hd0 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd2 mem_cost (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd2 mem_cost (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have h2 := h1.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3) (by decide) hd3 (by evm_ov)
   have h3 := evm_run h2 with [

@@ -4,21 +4,22 @@ import Solidity.Semantics.Ops
 # EVM bridges for external calls and creation
 
 Mirrors `Solm.callViaEVM` / `delegateCallViaEVM` / `newViaEVM`, but deterministic given the
-oracle (gas and the non-log substate come from `Oracle`, advancing `tick`) and with the input log
-series pinned to the current one, so the log series threads through sub-calls exactly as in the
-EVM (a failed callee leaves it unchanged, since `Θ` returns its input substate).  The static flag
+oracle (gas and the untracked substate fields come from `Oracle`, advancing `tick`) and with the
+input log series and created accounts pinned to the current ones, so both thread through sub-calls
+exactly as in the EVM (a failed callee leaves them unchanged, since `Θ` returns its input substate).  The static flag
 of the current context is inherited by every callee (`STATICCALL` and view/pure callees clear it).
 -/
 
 namespace Solidity
 
-/-- The substate handed to a sub-call: the oracle's non-log fields with the current logs. -/
+/-- The substate handed to a sub-call: the oracle's fields with the current log series and created
+    accounts (the two the semantics tracks and the refinement relation observes). -/
 def subInput (o : Oracle) (m : Machine) : Ethereum.Substate :=
-  { o.substateIn m.tick with logSeries := m.evm.substate.logSeries }
+  { o.substateIn m.tick with
+      logSeries := m.evm.substate.logSeries, createdAccounts := m.evm.substate.createdAccounts }
 
-def afterCall (m : Machine) (cA' : Batteries.RBSet Ethereum.AccountAddress compare)
-    (σ' : Ethereum.AccountMap) (A' : Ethereum.Substate) : Machine :=
-  { m with evm := { m.evm with accountMap := σ', substate := A', createdAccounts := cA' }, tick := m.tick + 1 }
+def afterCall (m : Machine) (σ' : Ethereum.AccountMap) (A' : Ethereum.Substate) : Machine :=
+  { m with evm := { m.evm with accountMap := σ', substate := A' }, tick := m.tick + 1 }
 
 /-- Gas handed to a callee (EIP-150): the requested amount (`none` = all) capped by the cap `o.callGas`,
     plus the 2300 stipend when value is transferred. -/
@@ -34,14 +35,10 @@ inductive callViaEVM (o : Oracle) (m : Machine) (target : EVM.Address) (value : 
     (calldata : EVM.Bytes) (perm : Bool) (gas : Ethereum.UInt256) : (Bool × Machine × EVM.Bytes) → Prop where
   | callMade :
       valueWord = EVM.Word.ofNat value →
-      valueWord ≤ (m.evm.accountMap.find? m.this |>.getD default).balance →
+      valueWord ≤ (m.evm.accountMap.get? m.this |>.getD default).balance →
       m.evm.executionEnv.depth ≠ 1024 →
-      (cA', σ', g', A', z, out)
+      (σ', g', A', z, out)
         = Ethereum.EVM.Θ
-            m.evm.executionEnv.blobVersionedHashes
-            m.evm.createdAccounts
-            m.evm.genesisBlockHeader
-            m.evm.blocks
             m.evm.accountMap
             m.evm.σ₀
             (subInput o m)
@@ -56,11 +53,13 @@ inductive callViaEVM (o : Oracle) (m : Machine) (target : EVM.Address) (value : 
             calldata
             (m.evm.executionEnv.depth + 1)
             m.evm.executionEnv.header
+            m.evm.executionEnv.blobVersionedHashes
+            m.evm.executionEnv.blocks
             perm →
-      callViaEVM o m target value calldata perm gas (z, afterCall m cA' σ' A', out)
+      callViaEVM o m target value calldata perm gas (z, afterCall m σ' A', out)
   | callNotMade :
       valueWord = EVM.Word.ofNat value →
-      (valueWord > (m.evm.accountMap.find? m.this |>.getD default).balance ∨
+      (valueWord > (m.evm.accountMap.get? m.this |>.getD default).balance ∨
         m.evm.executionEnv.depth = 1024) →
       callViaEVM o m target value calldata perm gas
         (false, { m with evm := m.evm.addAccessedAccount target, tick := m.tick + 1 }, ByteArray.empty)
@@ -70,12 +69,8 @@ inductive delegateCallViaEVM (o : Oracle) (m : Machine) (target : EVM.Address) (
     (gas : Ethereum.UInt256) : (Bool × Machine × EVM.Bytes) → Prop where
   | callMade :
       m.evm.executionEnv.depth ≠ 1024 →
-      (cA', σ', g', A', z, out)
+      (σ', g', A', z, out)
         = Ethereum.EVM.Θ
-            m.evm.executionEnv.blobVersionedHashes
-            m.evm.createdAccounts
-            m.evm.genesisBlockHeader
-            m.evm.blocks
             m.evm.accountMap
             m.evm.σ₀
             (subInput o m)
@@ -90,8 +85,10 @@ inductive delegateCallViaEVM (o : Oracle) (m : Machine) (target : EVM.Address) (
             calldata
             (m.evm.executionEnv.depth + 1)
             m.evm.executionEnv.header
+            m.evm.executionEnv.blobVersionedHashes
+            m.evm.executionEnv.blocks
             m.evm.executionEnv.perm →
-      delegateCallViaEVM o m target calldata gas (z, afterCall m cA' σ' A', out)
+      delegateCallViaEVM o m target calldata gas (z, afterCall m σ' A', out)
   | callNotMade :
       m.evm.executionEnv.depth = 1024 →
       delegateCallViaEVM o m target calldata gas
@@ -99,22 +96,18 @@ inductive delegateCallViaEVM (o : Oracle) (m : Machine) (target : EVM.Address) (
 
 /-- Contract creation (`new`) via `Λ`: `(address, machine, success, returndata)`. -/
 inductive newViaEVM (cfg : Config) (o : Oracle) (m : Machine) (name : Ident) (value : Nat)
-    (args : List ABI.ABIValue) (salt : Option ByteArray) : (EVM.Address × Machine × Bool × EVM.Bytes) → Prop where
+    (args : List Solm.Value) (salt : Option ByteArray) : (EVM.Address × Machine × Bool × EVM.Bytes) → Prop where
   | created :
       cfg.creationCode name args = .some initCode →
       valueWord = EVM.Word.ofNat value →
-      creator = (m.evm.accountMap.find? m.this |>.getD default) →
+      creator = (m.evm.accountMap.get? m.this |>.getD default) →
       valueWord ≤ creator.balance →
       m.evm.executionEnv.depth ≠ 1024 →
       creator.nonce.toNat < 2 ^ 64 - 1 →
       initCode.size ≤ 49152 →
       σStar = m.evm.accountMap.insert m.this { creator with nonce := creator.nonce + ⟨1⟩ } →
-      (addr, cA', σ', g', A', z, out)
+      (addr, σ', g', A', z, out)
         = Ethereum.EVM.Lambda
-            m.evm.executionEnv.blobVersionedHashes
-            m.evm.createdAccounts
-            m.evm.genesisBlockHeader
-            m.evm.blocks
             σStar
             m.evm.σ₀
             (subInput o m)
@@ -127,12 +120,14 @@ inductive newViaEVM (cfg : Config) (o : Oracle) (m : Machine) (name : Ident) (va
             (m.evm.executionEnv.depth + 1)
             salt
             m.evm.executionEnv.header
+            m.evm.executionEnv.blobVersionedHashes
+            m.evm.executionEnv.blocks
             m.evm.executionEnv.perm →
-      newViaEVM cfg o m name value args salt (addr, afterCall m cA' σ' A', z, out)
+      newViaEVM cfg o m name value args salt (addr, afterCall m σ' A', z, out)
   | notCreated :
       cfg.creationCode name args = .some initCode →
       valueWord = EVM.Word.ofNat value →
-      creator = (m.evm.accountMap.find? m.this |>.getD default) →
+      creator = (m.evm.accountMap.get? m.this |>.getD default) →
       (valueWord > creator.balance ∨ m.evm.executionEnv.depth = 1024 ∨
         creator.nonce.toNat ≥ 2 ^ 64 - 1 ∨ initCode.size > 49152) →
       newViaEVM cfg o m name value args salt (EVM.address 0, { m with tick := m.tick + 1 }, false, ByteArray.empty)

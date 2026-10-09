@@ -9,7 +9,8 @@ import ABI.Decode
 # Semantic state
 
 The spec executes directly on the EVM state (`EVM.State`, as Sol⁻ does), so account maps, logs
-and the environment are shared with the bytecode side.  Memory is an abstract heap; locals live
+and the environment are shared with the bytecode side; storage is read and written through the
+Sol⁻ storage backend (`Config.storageBackend`).  Memory is an abstract heap; locals live
 in a per-call `Frame`.  Nondeterminism (`gasleft()`, gas and non-log substate handed to sub-calls)
 is drawn from an explicit `Oracle` through the machine's `tick`, so every rule is deterministic
 given the oracle.
@@ -18,15 +19,13 @@ given the oracle.
 namespace Solidity
 
 structure Config where
-  /-- Storage layout hooks (`storageLayout` of the derived layout table by default). -/
-  storage : Storage.StorageLayout
+  /-- Storage operations (`storageBackend` of the derived layout table by default). -/
+  storageBackend : Solm.StorageBackend
   abiDecodeMode : ABI.DecodeMode := .modern
-  /-- Immutable values baked into the deployed runtime code. -/
-  immutables : List (Ident × Value) := []
   /-- Init code (creation bytecode ++ encoded constructor arguments) for `new C(args)`. -/
-  creationCode : Ident → List ABI.ABIValue → Option EVM.Bytes := fun _ _ => none
+  creationCode : Ident → List Solm.Value → Option EVM.Bytes := fun _ _ => none
   /-- Init code for deploying this contract itself. -/
-  selfDeployment : EVM.Bytes → List ABI.ABIValue → Option EVM.Bytes
+  selfDeployment : EVM.Bytes → List Solm.Value → Option EVM.Bytes
   /-- `type(C).creationCode` and `type(C).runtimeCode`. -/
   typeCreationCode : Ident → Option EVM.Bytes := fun _ => none
   typeRuntimeCode : Ident → Option EVM.Bytes := fun _ => none
@@ -47,6 +46,10 @@ structure Oracle where
 structure Machine where
   evm : EVM.State
   heap : Heap
+  /-- The immutables of the running contract (`imm_<name>` locals): the values its constructor
+      deployed, which solc embeds in the runtime code.  Empty while the constructor runs; it keeps
+      them in its frames instead. -/
+  immutables : Store := ∅
   tick : Nat := 0
 
 structure Frame where
@@ -129,19 +132,14 @@ end Frame
 def retName (i : Nat) (p : Param) : Ident := p.name.getD s!"#ret{i}"
 
 /-- The machine `Ξ` starts from (identical to `solmExec`'s initial state). -/
-def initEvm (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
-    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
+def initEvm (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv) : EVM.State :=
   { (default : EVM.State) with
       accountMap := σ
       σ₀ := σ₀
       executionEnv := I
       substate := A
-      createdAccounts := createdAccounts
-      machineState.gasAvailable := .ofUInt256 g
-      blocks := blocks
-      genesisBlockHeader := genesisBlockHeader }
+      machineState.gasAvailable := .ofUInt256 g }
 
 def Machine.this (m : Machine) : EVM.Address := m.evm.executionEnv.codeOwner
 

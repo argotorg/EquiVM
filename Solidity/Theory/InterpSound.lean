@@ -22,9 +22,9 @@ theorem payableOrNoValue_of {d : FnDecl} {I : Ethereum.ExecutionEnv}
   · exact Or.inl hp
   · exact Or.inr (h hp)
 
-theorem interpExec_sound {fuel cA gh bl σ σ₀ g A I res conv}
-    (h : (interpExec cfg o fc fuel cA gh bl σ σ₀ g A I).run = some (.ok (res, conv))) :
-    solidityExec cfg o fc cA gh bl σ σ₀ g A I res conv := by
+theorem interpExec_sound {fuel immutables σ σ₀ g A I res conv}
+    (h : (interpExec cfg o fc fuel immutables σ σ₀ g A I).run = some (.ok (res, conv))) :
+    solidityExec cfg o fc immutables σ σ₀ g A I res conv := by
   simp only [interpExec] at h
   split at h
   · -- a selector matched
@@ -307,9 +307,9 @@ theorem ctorPayableB_iff {I : Ethereum.ExecutionEnv} : ctorPayableB fc I = true 
   unfold ctorPayableB ctorPayable
   split <;> rename_i heq <;> simp [heq]
 
-theorem interpCtor_sound {fuel args cA gh bl σ σ₀ g A I r}
-    (h : (interpCtor cfg o fc fuel args cA gh bl σ σ₀ g A I).run = some r) :
-    solidityCtorExec cfg o fc args cA gh bl σ σ₀ g A I (ctorOf r) := by
+theorem interpCtor_sound {fuel args σ σ₀ g A I r}
+    (h : (interpCtor cfg o fc fuel args σ σ₀ g A I).run = some r) :
+    solidityCtorExec cfg o fc args σ σ₀ g A I (ctorOf r) := by
   simp only [interpCtor] at h
   split at h
   · rename_i hnp

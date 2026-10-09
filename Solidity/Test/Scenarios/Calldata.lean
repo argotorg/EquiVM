@@ -28,11 +28,11 @@ def enumsRuntime : ByteArray := bytesOfHex Fixtures.enumsRuntimeHex
 
 def M : Nat := 2 ^ 256 - 1
 def TOK : Nat := 0x70C
-def A (n : Nat) : ABI.ABIValue := .address (addr n)
-def arr (xs : List Int) : ABI.ABIValue := .array (xs.map (.int ·))
+def A (n : Nat) : Solm.Value := .address (addr n)
+def arr (xs : List Int) : Solm.Value := .array (xs.map (.int ·))
 def words (ws : List Nat) : ByteArray := ws.foldl (fun b w => b ++ wordBytes w) ByteArray.empty
 
-def mk (code : ByteArray) (sig : String) (args : List ABI.ABIValue) (tag : String := "") : Case :=
+def mk (code : ByteArray) (sig : String) (args : List Solm.Value) (tag : String := "") : Case :=
   { name := s!"{sig} {tag}", code := code, call := some (sig, args) }
 
 /-- A call with the argument words as given (not necessarily canonical). -/
@@ -41,7 +41,7 @@ def rawCall (code : ByteArray) (sig : String) (ws : List Nat) (tag : String := "
 
 /-! ## Attach -/
 
-def mkA (sig : String) (args : List ABI.ABIValue) (tag : String := "") : Case :=
+def mkA (sig : String) (args : List Solm.Value) (tag : String := "") : Case :=
   { mk attachRuntime sig args tag with accounts := [(addr TOK, account (code := tokRuntime))] }
 
 def attachCases : List Case :=
@@ -54,7 +54,7 @@ def attachCases : List Case :=
 
 /-! ## Copies -/
 
-def mkC (sig : String) (args : List ABI.ABIValue) (tag : String := "") : Case := mk copiesRuntime sig args tag
+def mkC (sig : String) (args : List Solm.Value) (tag : String := "") : Case := mk copiesRuntime sig args tag
 def rc (sig : String) (ws : List Nat) (tag : String := "") : Case := rawCall copiesRuntime sig ws tag
 
 /-- A dynamic array of two words, the second one dirty for `uint16`. -/

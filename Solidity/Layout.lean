@@ -1,6 +1,5 @@
 import Solidity.Elab
-import Storage.SolcLayout
-import Solm.Value
+import Solm.SolidityStorage
 
 /-!
 # Canonical Solidity storage layout
@@ -9,9 +8,11 @@ Derives solc's storage layout for the flattened state variables (declaration ord
 items smaller than 32 bytes packed lower-order aligned, moved to the next slot only when they do
 not fit; structs and arrays start on a slot boundary and the following item starts a new slot;
 mappings at `keccak256(h(k) . p)`; dynamic-array data at `keccak256(p)`; `bytes`/`string` in the
-short/long form).  The result is a `Storage.StorageLayout` over `Solm.EvaledStorageRef` paths, so
-`Storage.storageLocLoad`/`storageLocStore` and the `Reasoning/Storage.lean` lemmas apply unchanged.
-Slot tables are keccak-free and can be checked with `#guard`.
+short/long form).  The result is a `Solm.StorageLayout`: a state-independent locator from
+`Solm.EvaledStorageRef` paths to `Solm.StorageAddr` (a leaf location, the header slot of a
+dynamically-sized value, or the symbolic byte of a `bytes`/`string`), which `Solm.solidityStorageBackend`
+turns into the storage operations the semantics uses.  Slot tables are keccak-free and can be
+checked with `#guard`.
 -/
 
 namespace Solidity
@@ -80,7 +81,7 @@ def nodeOfFuel (env : TypeEnv) : Nat → Ty → Option Node
   | 0, _ => none
   | fuel + 1, ty =>
     match leafElemType env ty with
-    | some elem => some (.leaf elem (Storage.elemTypeSoliditySize elem).val)
+    | some elem => some (.leaf elem (Solm.elemTypeSoliditySize elem).val)
     | none =>
       match ty with
       | .bytes | .string => some .bytes
@@ -115,21 +116,18 @@ def uint256Elem : ElemType := .int (.uint ⟨256, by decide⟩)
 /-- Element type of `bytes`/`string` storage data: indexing yields a `bytes1`. -/
 def bytes1Elem : ElemType := .bytes ⟨0, by decide⟩
 
-def mkLoc (slot : EVM.Word) (off size : Nat) (elem : ElemType) : Option Storage.StorageLoc :=
+def mkLoc (slot : EVM.Word) (off size : Nat) (elem : ElemType) : Option Solm.StorageLoc :=
   if h : off + size ≤ 32 ∧ 0 < size then
     some { slot := slot, offset := ⟨off, by omega⟩, size := ⟨size, by omega⟩, hbound := by simp; omega,
            bitOffset := none, type := elem }
   else none
 
-def wordLoc (slot : EVM.Word) : Storage.StorageLoc :=
-  { slot := slot, offset := 0, size := 32, hbound := by decide, bitOffset := none, type := uint256Elem }
-
 /-- `keccak256(h(k) . p)` — key word first, as `Examples/ERC20/Spec.lean`'s `erc20MappingSlot`. -/
 def mappingSlot (k : Solm.KeyValue) (p : EVM.Word) : EVM.Word :=
-  Ethereum.uInt256OfByteArray (ffi.KEC ((Solm.keyValueToWord k).toByteArray ++ p.toByteArray))
+  Ethereum.uInt256OfByteArray (Ethereum.KEC ((Solm.keyValueToWord k).toByteArray ++ p.toByteArray))
 
 /-- `keccak256(p)`: dynamic-array / long-bytes data base. -/
-def dataSlot (p : EVM.Word) : EVM.Word := Storage.solidityBytesDataBaseSlot p
+def dataSlot (p : EVM.Word) : EVM.Word := Solm.solidityBytesDataBaseSlot p
 
 /-- Location of element `i` of an array whose data starts at `base`. -/
 def elemLoc (elem : Node) (base : EVM.Word) (i : Nat) : EVM.Word × Nat :=
@@ -141,32 +139,35 @@ def natOfKey? : Solm.KeyValue → Option Nat
   | .int i => if i < 0 then none else some i.toNat
   | _ => none
 
-/-- Follow an evaluated storage path from a node placed at `(slot, off)`. -/
-def follow (evm : EVM.State) : List Solm.EvaledStorageRefStep → Node → EVM.Word → Nat →
-    Option Storage.StorageLoc
-  | [], .leaf elem size, slot, off => mkLoc slot off size elem
+/-- Follow an evaluated storage path from a node placed at `(slot, off)`: a scalar is a leaf
+    location, a dynamic array or `bytes`/`string` locates its header slot (`anchor`), and the
+    `i`-th byte of a `bytes`/`string` is the symbolic `byte` the backend resolves from its short or
+    long encoding. -/
+def follow : List Solm.EvaledStorageRefStep → Node → EVM.Word → Nat → Option Solm.StorageAddr
+  | [], .leaf elem size, slot, off => (mkLoc slot off size elem).map .leaf
+  | [], .dynArray _, slot, _ => some (.anchor slot)
+  | [], .bytes, slot, _ => some (.anchor slot)
   | [], _, _, _ => none
   | .field f :: rest, .struct _ fields _, slot, _ =>
-    (fields.find? (·.1 == f)).bind fun (_, rel, off', n') => follow evm rest n' (slot + .ofNat rel) off'
-  | .mindex k :: rest, .mapping _ val, slot, _ => follow evm rest val (mappingSlot k slot) 0
+    (fields.find? (·.1 == f)).bind fun (_, rel, off', n') => follow rest n' (slot + .ofNat rel) off'
+  | .mindex k :: rest, .mapping _ val, slot, _ => follow rest val (mappingSlot k slot) 0
   | .aindex k :: rest, .staticArray e _, slot, _ =>
-    (natOfKey? k).bind fun i => let (s, o) := elemLoc e slot i; follow evm rest e s o
+    (natOfKey? k).bind fun i => let (s, o) := elemLoc e slot i; follow rest e s o
   | .aindex k :: rest, .dynArray e, slot, _ =>
-    (natOfKey? k).bind fun i => let (s, o) := elemLoc e (dataSlot slot) i; follow evm rest e s o
-  | [.length], .dynArray _, slot, _ => some (wordLoc slot)
-  | [.length], .bytes, slot, _ => some (Storage.bytesLikeLengthLoc slot evm)
-  | [.aindex k], .bytes, slot, _ =>
-    (natOfKey? k).bind fun i =>
-      if Storage.checkBytesPacked slot evm then mkLoc slot (31 - i) 1 bytes1Elem
-      else mkLoc (dataSlot slot + .ofNat (i / 32)) (31 - i % 32) 1 bytes1Elem
+    (natOfKey? k).bind fun i => let (s, o) := elemLoc e (dataSlot slot) i; follow rest e s o
+  | [.aindex k], .bytes, slot, _ => (natOfKey? k).map fun i => .byte slot i
   | _, _, _, _ => none
 
-def layout (t : LayoutTable) (ref : Solm.EvaledStorageRef) (evm : EVM.State) : Option Storage.StorageLoc :=
-  (t.find? (·.1.key == ref.base)).bind fun (_, slot, off, n) => follow evm ref.steps n (.ofNat slot) off
+/-- The locator of a layout table. -/
+def layout (t : LayoutTable) (ref : Solm.EvaledStorageRef) : Option Solm.StorageAddr :=
+  (t.find? (·.1.key == ref.base)).bind fun (_, slot, off, n) => follow ref.steps n (.ofNat slot) off
 
-/-- The `Storage.StorageLayout` (with the `bytes`/`string` hooks) of a layout table. -/
-def storageLayout (t : LayoutTable) : Storage.StorageLayout :=
-  Storage.solidityStorageLayout (layout t)
+/-- The locator of a layout table, as the `Solm.StorageLayout` a backend is built from. -/
+def storageLayout (t : LayoutTable) : Solm.StorageLayout := layout t
+
+/-- The Solidity storage backend of a layout table. -/
+def storageBackend (t : LayoutTable) : Solm.StorageBackend :=
+  Solm.solidityStorageBackend (storageLayout t)
 
 def FlatContract.layoutTable? (fc : FlatContract) : Option LayoutTable :=
   layoutVars fc.types fc.storageVars

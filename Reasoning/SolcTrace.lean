@@ -1,11 +1,11 @@
-import EVMReasoning.Trace
-import EVMReasoning.Solc
+import Reasoning.Trace
+import Reasoning.Solc
 
 /-!
 # SolcTrace — the solc compiler idioms on `Run`
 
-The compiler-shape lemmas of `EVMReasoning.Solc` restated on the `Run`/`Returned`/`Reverted`
-tracker of `EVMReasoning.Trace`.  The pure facts of `Solc.lean` (bytecode-shape predicates
+The compiler-shape lemmas of `Reasoning.Solc` restated on the `Run`/`Returned`/`Reverted`
+tracker of `Reasoning.Trace`.  The pure facts of `Solc.lean` (bytecode-shape predicates
 `*Wf`, pc arithmetic, memory shapes, mapping slots, the address mask) are reused unchanged; only
 the trace-level lemmas are restated.  Compared with their `RD` originals they
 
@@ -56,8 +56,8 @@ set_option maxRecDepth 10000
 variable {code : ByteArray} {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
   {aw : UInt256} {rdata : ByteArray} {w : World} {k C : ℕ} {R : List UInt256}
 
-@[simp] theorem initState_executionEnv {cA gh bl σ σ₀ A I} {g : Sat256} :
-    (Reasoning.Theory.initState cA gh bl σ σ₀ g A I).executionEnv = I := rfl
+@[simp] theorem initState_executionEnv {σ σ₀ A I} {g : Sat256} :
+    (Reasoning.Theory.initState σ σ₀ g A I).executionEnv = I := rfl
 
 /-! ## `revert(0,0)` stubs -/
 
@@ -91,17 +91,17 @@ theorem Run.solcPush1Dup1Revert0 (h : Run code s0 ⟨pc, stk, mem, aw, rdata, w�
 lemmas after the prologue are stated over an arbitrary run `s0` (the prologue's cursor carries
 `s0.executionEnv.weiValue`; for `s0 = initState … I` that is `I.weiValue` by unfolding). -/
 
-theorem Run.solcGuardPrologue {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = code)
+theorem Run.solcGuardPrologue {σ σ₀ A I} {g : Sat256} (hcode : I.code = code)
     (hd0 : decode code ⟨0⟩ = some (.Push .PUSH1, some (⟨128⟩, 1)))
     (hd2 : decode code ⟨2⟩ = some (.Push .PUSH1, some (⟨64⟩, 1)))
     (hd4 : decode code ⟨4⟩ = some (.MSTORE, .none))
     (hd5 : decode code ⟨5⟩ = some (.CALLVALUE, .none))
     (hd6 : decode code ⟨6⟩ = some (.DUP1, .none))
     (hd7 : decode code ⟨7⟩ = some (.ISZERO, .none)) :
-    Run code (Reasoning.Theory.initState cA gh bl σ σ₀ g A I)
+    Run code (Reasoning.Theory.initState σ σ₀ g A I)
       ⟨⟨8⟩, [UInt256.isZero I.weiValue, I.weiValue], solcFreePtrMem, UInt256.ofNat 3,
-        ByteArray.empty, ⟨cA, σ, A.logSeries⟩⟩ 6 26 :=
-  Run.initState (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (g := g) (A := A) hcode
+        ByteArray.empty, ⟨A.createdAccounts, σ, A.logSeries⟩⟩ 6 26 :=
+  Run.initState (σ := σ) (σ₀ := σ₀) (g := g) (A := A) hcode
     |>.push1 ⟨128⟩ hd0 (by decide)
     |>.push1 ⟨64⟩ hd2 (by decide)
     |>.mstore 9 solcFreePtrMem (UInt256.ofNat 3) hd4 mem_cost
@@ -221,19 +221,19 @@ theorem Run.solcLegacySelectorLoad {loadPc : UInt256}
 
 /-- **Dispatcher prefix**: prologue, callvalue guard, calldata-size guard and selector load, from
     `initState` to the first selector arm with the selector word on the stack. -/
-theorem Run.solcDispatchReachSelector {cA gh bl σ σ₀ A I} {g : Sat256} {firstPc : UInt256}
+theorem Run.solcDispatchReachSelector {σ σ₀ A I} {g : Sat256} {firstPc : UInt256}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hprefix : solcDispatchPrefixWellFormed code firstPc)
     (hguardJd : (D_J code 0).contains (solcGuardTgt code) = true) :
-    ∃ k C, Run code (Reasoning.Theory.initState cA gh bl σ σ₀ g A I)
+    ∃ k C, Run code (Reasoning.Theory.initState σ σ₀ g A I)
       ⟨firstPc, [solcSelectorWord I], solcFreePtrMem, UInt256.ofNat 3, ByteArray.empty,
-        ⟨cA, σ, A.logSeries⟩⟩ k C := by
+        ⟨A.createdAccounts, σ, A.logSeries⟩⟩ k C := by
   obtain ⟨hd0, hd2, hd4, hd5, hd6, hd7,
     hguardOp, hguardPush, hguardJumpi, hguardDest, hguardPop,
     hcdPush4, hcdSize, hcdLt, hcdOp, hcdPushRevert, hcdJumpi,
     hselPush0, hselLoad, hselPush224, hselShr, hfirst⟩ := hprefix
-  have h0 := Run.solcGuardPrologue (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  have h0 := Run.solcGuardPrologue (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode hd0 hd2 hd4 hd5 hd6 hd7
   obtain ⟨_, _, h1⟩ := Run.solcGuardCallvalueZero
     (ctgt := solcGuardTgt code) (opC := solcGuardTgtOp code) (wC := solcGuardTgtWidth code)
@@ -248,7 +248,7 @@ theorem Run.solcDispatchReachSelector {cA gh bl σ σ₀ A I} {g : Sat256} {firs
   exact h3
 
 /-- Legacy dispatcher prefix (`PUSH1 0` selector load, all pcs explicit). -/
-theorem Run.solcLegacyDispatchReachSelector {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem Run.solcLegacyDispatchReachSelector {σ σ₀ A I} {g : Sat256}
     {bodyPc loadPc firstPc guardTgt revertTgt : UInt256}
     {guardWidth revertWidth : ℕ} {guardOp revertOp : Operation.POp}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
@@ -281,10 +281,10 @@ theorem Run.solcLegacyDispatchReachSelector {cA gh bl σ σ₀ A I} {g : Sat256}
         = some (.Push .PUSH1, some (⟨224⟩, 1)))
     (hselShr : decode code (loadPc + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2) = some (.SHR, .none))
     (hfirst : loadPc + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ = firstPc) :
-    ∃ k C, Run code (Reasoning.Theory.initState cA gh bl σ σ₀ g A I)
+    ∃ k C, Run code (Reasoning.Theory.initState σ σ₀ g A I)
       ⟨firstPc, [solcSelectorWord I], solcFreePtrMem, UInt256.ofNat 3, ByteArray.empty,
-        ⟨cA, σ, A.logSeries⟩⟩ k C := by
-  have h0 := Run.solcGuardPrologue (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        ⟨A.createdAccounts, σ, A.logSeries⟩⟩ k C := by
+  have h0 := Run.solcGuardPrologue (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode hd0 hd2 hd4 hd5 hd6 hd7
   obtain ⟨_, _, h1⟩ := Run.solcGuardCallvalueZero
     (ctgt := guardTgt) (opC := guardOp) (wC := guardWidth)
@@ -300,7 +300,7 @@ theorem Run.solcLegacyDispatchReachSelector {cA gh bl σ σ₀ A I} {g : Sat256}
   exact ⟨k3, C3, h3⟩
 
 /-- **Standard dispatcher reach**: prefix plus the linear `EQ` chain to the matched body. -/
-theorem Run.solcDispatchReachBody {cA gh bl σ σ₀ A I} {g : Sat256} {firstArmPc bodyPC : UInt256}
+theorem Run.solcDispatchReachBody {σ σ₀ A I} {g : Sat256} {firstArmPc bodyPC : UInt256}
     {i : ℕ}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -312,15 +312,15 @@ theorem Run.solcDispatchReachBody {cA gh bl σ σ₀ A I} {g : Sat256} {firstArm
     (htake : UInt256.eq (armSelNat code (nthArmPc code firstArmPc i)) (solcSelectorWord I) ≠ ⟨0⟩)
     (hjd : (D_J code 0).contains bodyPC = true)
     (hbody : armTgt code (nthArmPc code firstArmPc i) = bodyPC) :
-    ∃ k C, Run code (Reasoning.Theory.initState cA gh bl σ σ₀ g A I)
+    ∃ k C, Run code (Reasoning.Theory.initState σ σ₀ g A I)
       ⟨bodyPC, [solcSelectorWord I], solcFreePtrMem, UInt256.ofNat 3, ByteArray.empty,
-        ⟨cA, σ, A.logSeries⟩⟩ k C := by
-  obtain ⟨_, _, h3⟩ := Run.solcDispatchReachSelector (cA := cA) (gh := gh) (bl := bl)
+        ⟨A.createdAccounts, σ, A.logSeries⟩⟩ k C := by
+  obtain ⟨_, _, h3⟩ := Run.solcDispatchReachSelector
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hprefix hguardJd
   exact Run.dispatchTo bodyPC i h3 hwf heq0 htake (by rw [hbody]; exact hjd) hbody (by simp)
 
 /-- One-level binary dispatch, **fall-through/high** half. -/
-theorem Run.solcBinaryDispatchReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem Run.solcBinaryDispatchReachHighBody {σ σ₀ A I} {g : Sat256}
     {splitPc bodyPC : UInt256} {i : ℕ}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -340,16 +340,16 @@ theorem Run.solcBinaryDispatchReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hjd : (D_J code 0).contains bodyPC = true)
     (hbody : armTgt code (nthArmPc code (selArmNextPc splitPc (armTgtWidth code splitPc)) i)
         = bodyPC) :
-    ∃ k C, Run code (Reasoning.Theory.initState cA gh bl σ σ₀ g A I)
+    ∃ k C, Run code (Reasoning.Theory.initState σ σ₀ g A I)
       ⟨bodyPC, [solcSelectorWord I], solcFreePtrMem, UInt256.ofNat 3, ByteArray.empty,
-        ⟨cA, σ, A.logSeries⟩⟩ k C := by
-  obtain ⟨_, _, hsplitPc⟩ := Run.solcDispatchReachSelector (cA := cA) (gh := gh) (bl := bl)
+        ⟨A.createdAccounts, σ, A.logSeries⟩⟩ k C := by
+  obtain ⟨_, _, hsplitPc⟩ := Run.solcDispatchReachSelector
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hprefix hguardJd
   have hfirst := hsplitPc.selectorSplitNotTakenAuto hsplit hpivot (by simp)
   exact Run.dispatchTo bodyPC i hfirst hwf heq0 htake (by rw [hbody]; exact hjd) hbody (by simp)
 
 /-- One-level binary dispatch, **taken/low** half. -/
-theorem Run.solcBinaryDispatchReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem Run.solcBinaryDispatchReachLowBody {σ σ₀ A I} {g : Sat256}
     {splitPc bodyPC : UInt256} {i : ℕ}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -367,10 +367,10 @@ theorem Run.solcBinaryDispatchReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (solcSelectorWord I) ≠ ⟨0⟩)
     (hjd : (D_J code 0).contains bodyPC = true)
     (hbody : armTgt code (nthArmPc code (armTgt code splitPc + ⟨1⟩) i) = bodyPC) :
-    ∃ k C, Run code (Reasoning.Theory.initState cA gh bl σ σ₀ g A I)
+    ∃ k C, Run code (Reasoning.Theory.initState σ σ₀ g A I)
       ⟨bodyPC, [solcSelectorWord I], solcFreePtrMem, UInt256.ofNat 3, ByteArray.empty,
-        ⟨cA, σ, A.logSeries⟩⟩ k C := by
-  obtain ⟨_, _, hsplitPc⟩ := Run.solcDispatchReachSelector (cA := cA) (gh := gh) (bl := bl)
+        ⟨A.createdAccounts, σ, A.logSeries⟩⟩ k C := by
+  obtain ⟨_, _, hsplitPc⟩ := Run.solcDispatchReachSelector
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hprefix hguardJd
   have hfirst := (hsplitPc.selectorSplitTakenAuto hsplit hpivot hsplitJd (by simp)).jumpdest
     hlowJumpdest (by simp)
@@ -1070,7 +1070,7 @@ theorem Run.solcSingleMappingLoadToRoutineMem
       hd18, hd20, hd21, hd23, hd24, hd25, hd26, hd29, hd30, hd31, hd36, hd39, hd40⟩
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+          (Ethereum.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot key :=
     twoWordHashMem_solcMappingSlot baseSlot key hmem
   have hMasked := evm_run h with [
@@ -1132,7 +1132,7 @@ theorem Run.solcSingleMappingStoreDebitMem {baseSlot newValue value aux key ret 
     twoWordHashMem_size_96 key baseSlot hmem
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem key baseSlot
+          (Ethereum.KEC ((twoWordHashMem key baseSlot
             (twoWordHashMem key baseSlot mem)).readWithPadding 0 64))) =
         solcMappingSlot baseSlot key :=
     twoWordHashMem_solcMappingSlot baseSlot key hbaseSize
@@ -1180,7 +1180,7 @@ theorem Run.solcSingleMappingStoreCreditMem {baseSlot newValue value key aux ret
     (hwf : solcSingleMappingStoreCreditMemWf code pc baseSlot)
     (hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+          (Ethereum.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot key)
     (hperm : s0.executionEnv.perm = true)
     (hcanonKey : key.toNat < EVM.addressModulus)
@@ -1248,7 +1248,7 @@ theorem Run.solcNestedMappingStoreInnerHash {baseSlot value spender owner ret : 
       hd17, hd19, hd21, hd22, hd23, hd24, hd26, hd27, hd28⟩
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
+          (Ethereum.KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot owner :=
     twoWordHashMem_solcMappingSlot baseSlot owner hmem
   have hMasked := evm_run h with [
@@ -1301,7 +1301,7 @@ theorem Run.solcNestedMappingStoreOuterSstore {innerSlot value spender owner ret
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd12, hd13, hd14, hd15⟩
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem spender innerSlot mem).readWithPadding 0 64))) =
+          (Ethereum.KEC ((twoWordHashMem spender innerSlot mem).readWithPadding 0 64))) =
         solcMappingSlot innerSlot spender :=
     twoWordHashMem_solcMappingSlot innerSlot spender hmem
   have hMasked := evm_run h with [
@@ -1354,14 +1354,14 @@ theorem Run.solcNestedMappingCallerStoreMem
       hd30, hd31, hd32, hd33, hd34, hd35, hd36⟩
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
+          (Ethereum.KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot owner :=
     twoWordHashMem_solcMappingSlot baseSlot owner hmem
   have hinnerSize : (twoWordHashMem owner baseSlot mem).size = 96 :=
     twoWordHashMem_size_96 owner baseSlot hmem
   have houter :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC (ByteArray.readWithPadding
+          (Ethereum.KEC (ByteArray.readWithPadding
             (solcNestedMappingCallerHashMem baseSlot owner s0.executionEnv mem) 0 64))) =
         solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord s0.executionEnv) := by
     unfold solcNestedMappingCallerHashMem
@@ -1434,14 +1434,14 @@ theorem Run.solcNestedMappingCallerLoad {baseSlot value aux owner ret : UInt256}
       hd30, hd31, hd32, hd33, hd34, hd35, hd36⟩
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
+          (Ethereum.KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot owner :=
     twoWordHashMem_solcMappingSlot baseSlot owner hmem
   have hinnerSize : (twoWordHashMem owner baseSlot mem).size = 96 :=
     twoWordHashMem_size_96 owner baseSlot hmem
   have houter :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC (ByteArray.readWithPadding
+          (Ethereum.KEC (ByteArray.readWithPadding
             (solcNestedMappingCallerHashMem baseSlot owner s0.executionEnv mem) 0 64))) =
         solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord s0.executionEnv) := by
     unfold solcNestedMappingCallerHashMem
@@ -1564,14 +1564,14 @@ theorem Run.solcNestedMappingCallerReloadToRoutineMem
       hd32, hd33, hd34, hd35, hd36, hd39, hd40, hd41, hd46, hd49, hd50⟩
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
+          (Ethereum.KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot owner :=
     twoWordHashMem_solcMappingSlot baseSlot owner hmem
   have hinnerSize : (twoWordHashMem owner baseSlot mem).size = 96 :=
     twoWordHashMem_size_96 owner baseSlot hmem
   have houter :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC (ByteArray.readWithPadding
+          (Ethereum.KEC (ByteArray.readWithPadding
             (solcNestedMappingCallerHashMem baseSlot owner s0.executionEnv mem) 0 64))) =
         solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord s0.executionEnv) := by
     unfold solcNestedMappingCallerHashMem
@@ -1640,7 +1640,7 @@ theorem Run.solcPreparedSingleMappingLoadToRoutineMem
     (hwf : solcPreparedSingleMappingLoadToRoutineMemWf code pc afterLoadPc routinePc)
     (hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((wordAt0Mem key mem).readWithPadding 0 64))) =
+          (Ethereum.KEC ((wordAt0Mem key mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot key)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hroutine : (D_J code 0).contains routinePc = true)
@@ -1804,8 +1804,8 @@ theorem Run.solcLockEnterOk {okPc slot unlocked locked : UInt256}
       k' C' := by
   rcases hwf with ⟨hd0, hd1, hd3, hd4, hd6, hd7, hd10, hdOk, hdOk1, hdOk3, hdOk5⟩
   have hunlockedRaw :
-      (w.accounts.find? s0.executionEnv.codeOwner
-        |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = unlocked := hunlocked
+      (w.accounts.get? s0.executionEnv.codeOwner
+        |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) = unlocked := hunlocked
   have h3 := h.jumpdest hd0 (by omega) |>.push1 slot hd1 (by omega)
   obtain ⟨_, _, h4⟩ := h3.sload hd3 (by omega)
   rw [hunlockedRaw] at h4
@@ -1927,7 +1927,7 @@ theorem Run.solcErrorStringRevertTail {len rawWord shift word : UInt256} {op : O
     raw push1 ⟨64⟩ hd0 (by evm_ov),
     raw dup1 hd2 (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd3 mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64) (by decide) (by evm_ov)]
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64) (by decide) (by evm_ov)]
   have hSelectorRaw := hMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4 (by evm_ov)
   have hPrefix := evm_run hSelectorRaw with [
@@ -2114,7 +2114,7 @@ theorem Run.solcPreparedSingleMappingLoadCheckedAddMem
     (hadd : solcCheckedAddSuccessWf code routinePc checkedOkPc)
     (hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((wordAt0Mem key mem).readWithPadding 0 64))) =
+          (Ethereum.KEC ((wordAt0Mem key mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot key)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hfit : (solcSlotWord w.accounts s0.executionEnv (solcMappingSlot baseSlot key)).toNat
@@ -2186,9 +2186,9 @@ theorem toByteArray_write_read_back_ext (base : ByteArray) (word : UInt256) (off
   · exact toByteArray_write32_read_back base word off h
   · have hlt : base.size < off := Nat.lt_of_not_ge h
     rw [toByteArray_write_eq _ _ _ (by omega) (lt_usize _ (by omega))]
-    have hz : (ffi.ByteArray.zeroes (off - base.size)).size = off - base.size :=
+    have hz : (ByteArray.zeroes (off - base.size)).size = off - base.size :=
       zeroes_ofNat_size _ (by omega)
-    have hpre : (base ++ ffi.ByteArray.zeroes (off - base.size)).size = off := by
+    have hpre : (base ++ ByteArray.zeroes (off - base.size)).size = off := by
       rw [ByteArray.size_append, hz]; omega
     rw [readWithPadding_eq_extract _ _ (by rw [ByteArray.size_append, hpre, toByteArray_size]),
       extract_append_right' _ _ _ _ hpre.symm (by rw [hpre, toByteArray_size])]
@@ -2202,14 +2202,13 @@ theorem Run.solcMaskedTransferLog3AndJump {topic value toWord src ret : UInt256}
       mem, UInt256.ofNat 3, rdata, w⟩ k C)
     (hwf : solcMaskedTransferLog3AndJumpWf code pc topic)
     (hmload :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hlogMload :
       (if (⟨64⟩ : UInt256).toNat ≥ ((UInt256.toByteArray value).write 0 mem 128 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (((UInt256.toByteArray value).write 0 mem 128 32).readWithPadding
@@ -2270,14 +2269,13 @@ theorem Run.solcPlainLog3AndJump {topic value topic1 topic2 ret : UInt256}
       mem, UInt256.ofNat 3, rdata, w⟩ k C)
     (hwf : solcPlainLog3AndJumpWf code pc topic)
     (hmload :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hlogMload :
       (if (⟨64⟩ : UInt256).toNat ≥ ((UInt256.toByteArray value).write 0 mem 128 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (((UInt256.toByteArray value).write 0 mem 128 32).readWithPadding
@@ -2328,15 +2326,13 @@ theorem Run.solcReturnWordFromMem {val ret : UInt256} {memout : ByteArray}
     (h : Run code s0 ⟨pc, val :: ret :: R, mem, UInt256.ofNat 3, rdata, w⟩ k C)
     (hwf : solcReturnWordFromMemWf code pc)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hmemout : (UInt256.toByteArray val).write 0 mem 128 32 = memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -2374,15 +2370,13 @@ theorem Run.solcReturnAddressFromMem {val ret : UInt256} {memout : ByteArray}
     (h : Run code s0 ⟨pc, val :: ret :: R, mem, UInt256.ofNat 3, rdata, w⟩ k C)
     (hwf : solcReturnAddressFromMemWf code pc)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hmemout : (UInt256.toByteArray (UInt256.land val solcAddrMask)).write 0 mem 128 32 = memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -2428,15 +2422,13 @@ theorem Run.solcReturnUint8FromMem {val ret : UInt256} {memout : ByteArray}
     (h : Run code s0 ⟨pc, val :: ret :: R, mem, UInt256.ofNat 3, rdata, w⟩ k C)
     (hwf : solcReturnUint8FromMemWf code pc)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hmemout : (UInt256.toByteArray (UInt256.land val ⟨255⟩)).write 0 mem 128 32 = memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -2478,16 +2470,14 @@ theorem Run.solcReturnBoolFromMem {val : UInt256} {memout : ByteArray}
     (h : Run code s0 ⟨pc, val :: R, mem, UInt256.ofNat 5, rdata, w⟩ k C)
     (hwf : solcReturnBoolFromMemWf code pc)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hmemout : (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))).write 0 mem 128 32
         = memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -2612,11 +2602,11 @@ theorem Run.solcUint256ReturnWordDecodeOk {okPc d0 d1 d2 retWord : UInt256}
         s.machineState.stack = (⟨64⟩ : UInt256) :: R → memoryExpansionCost s .MLOAD = 0)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩)
     (hMload128Value :
-      (if (⟨128⟩ : UInt256).toNat ≥ mem.size ∨ (⟨128⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨128⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) = retWord)
     (hMload128Cost : ∀ s : State, s.machineState.activeWords = aw →
@@ -2682,7 +2672,7 @@ theorem Run.solcUint256ReturnWordDecodeShortReverts {okPc d0 d1 d2 : UInt256}
         s.machineState.stack = (⟨64⟩ : UInt256) :: R → memoryExpansionCost s .MLOAD = 0)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩)
     (hPop0 : decode code pc = some (.POP, .none))
@@ -2942,12 +2932,12 @@ Same opaque `Θ` shape as `Run.call`, with `perm := false` and no value. -/
 /-- The `Θ` invocation of a `STATICCALL` from the cursor world `w`. -/
 abbrev staticcallTheta (s0 : State) (w : World) (A_in : Substate) (target callGas : UInt256)
     (input : ByteArray) :=
-  Ethereum.EVM.Θ s0.executionEnv.blobVersionedHashes w.created s0.genesisBlockHeader s0.blocks
-    w.accounts s0.σ₀ A_in (AccountAddress.ofUInt256 (UInt256.ofNat s0.executionEnv.codeOwner))
+  Ethereum.EVM.Θ w.accounts s0.σ₀ A_in
+    (AccountAddress.ofUInt256 (UInt256.ofNat s0.executionEnv.codeOwner))
     s0.executionEnv.sender (AccountAddress.ofUInt256 target)
     (toExecute w.accounts (AccountAddress.ofUInt256 target)) callGas
     (UInt256.ofNat s0.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩ input (s0.executionEnv.depth + 1)
-    s0.executionEnv.header false
+    s0.executionEnv.header s0.executionEnv.blobVersionedHashes s0.executionEnv.blocks false
 
 set_option maxHeartbeats 1000000 in
 theorem Run.solcStaticcall {gasArg target inOffset inSize outOffset outSize : UInt256}
@@ -2956,19 +2946,19 @@ theorem Run.solcStaticcall {gasArg target inOffset inSize outOffset outSize : UI
       mem, aw, rdata, w⟩ k C)
     (hdec : decode code pc = some (.STATICCALL, .none))
     (hdepth : s0.executionEnv.depth.val < 1024) (hov : t.length + 1 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (g'' : UInt256)
+    ∃ (σ' : AccountMap) (g'' : UInt256)
       (A_in A' : Substate) (z : Bool) (o : ByteArray) (callGas : UInt256) (k' C' : ℕ),
       A_in.logSeries = w.logs
-      ∧ (cA', σ', g'', A', z, o) = staticcallTheta s0 w A_in target callGas
+      ∧ (σ', g'', A', z, o) = staticcallTheta s0 w A_in target callGas
           (mem.readWithPadding inOffset.toNat inSize.toNat)
       ∧ Run code s0 (callCursor pc t mem aw inOffset inSize outOffset outSize z o
-          ⟨cA', σ', A'.logSeries⟩) k' C'
+          ⟨A'.createdAccounts, σ', A'.logSeries⟩) k' C'
       ∧ o.size < UInt256.size := by
   rcases h with hoog | ⟨s, hX, hcode, hcur, hgas, hk, hC, hst⟩
-  · exact ⟨_, _, _, { (default : Substate) with logSeries := w.logs }, _, _, _, ⟨0⟩, k, C, rfl, rfl,
+  · exact ⟨_, _, { (default : Substate) with logSeries := w.logs }, _, _, _, ⟨0⟩, k, C, rfl, rfl,
       Or.inl hoog,
-      Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-        (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)⟩
+      Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+        (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize)⟩
   obtain ⟨hpc, hstk, hmem, haw, hrdata, hcA, hσ, hlogs⟩ := cursorOf_eq.mp hcur
   have hee := hst.1
   have hd : decode s.executionEnv.code s.machineState.pc = some (.STATICCALL, .none) := by
@@ -2989,10 +2979,10 @@ theorem Run.solcStaticcall {gasArg target inOffset inSize outOffset outSize : UI
   have hfuel : (budget s0).toNat + 1 - k = ((budget s0).toNat - k) + 1 := by omega
   have hXP := hX.trans (hfuel.symm ▸ X_peel (f := (budget s0).toNat - k) st)
   split at hXP
-  · exact ⟨_, _, _, { (default : Substate) with logSeries := w.logs }, _, _, _, ⟨0⟩, k, C, rfl, rfl,
+  · exact ⟨_, _, { (default : Substate) with logSeries := w.logs }, _, _, _, ⟨0⟩, k, C, rfl, rfl,
       Or.inl hXP,
-      Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-        (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)⟩
+      Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+        (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize)⟩
   · rename_i hP
     set mc := memoryExpansionCost s Operation.STATICCALL with hmc
     set gc := Ccall (AccountAddress.ofUInt256 target) (AccountAddress.ofUInt256 target) { val := 0 }
@@ -3011,26 +3001,25 @@ theorem Run.solcStaticcall {gasArg target inOffset inSize outOffset outSize : UI
         returnData := s.machineState.returnData, H_return := s.machineState.H_return } s.substate
       with hG
     set cg := UInt256.ofNat G with hcg
-    set θs := Θ s.executionEnv.blobVersionedHashes s.createdAccounts s.genesisBlockHeader s.blocks
-      s.accountMap s.σ₀ (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
+    set θs := Θ s.accountMap s.σ₀ (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
       (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner)) s.executionEnv.sender
       (AccountAddress.ofUInt256 target) (toExecute s.accountMap (AccountAddress.ofUInt256 target))
       cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } { val := 0 }
       (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat) (s.executionEnv.depth + 1)
-      s.executionEnv.header false with hθs
-    set gv := (s.machineState.gasAvailable.subNat mc).subNat (gc - θs.2.2.1.toNat) with hgv
+      s.executionEnv.header s.executionEnv.blobVersionedHashes s.executionEnv.blocks false with hθs
+    set gv := (s.machineState.gasAvailable.subNat mc).subNat (gc - θs.2.1.toNat) with hgv
     have hPle : mc + gc ≤ s.machineState.gasAvailable.toNat := Nat.le_of_not_lt hP
     have hmcle : mc ≤ s.machineState.gasAvailable.toNat := by omega
-    have hretle : θs.2.2.1.toNat ≤ cg.toNat := by
+    have hretle : θs.2.1.toNat ≤ cg.toNat := by
       rw [hθs]
-      exact Theta_returnedGas_le s.executionEnv.blobVersionedHashes s.createdAccounts
-        s.genesisBlockHeader s.blocks s.accountMap s.σ₀
+      exact Theta_returnedGas_le s.accountMap s.σ₀
         (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
         (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner)) s.executionEnv.sender
         (AccountAddress.ofUInt256 target) (toExecute s.accountMap (AccountAddress.ofUInt256 target))
         cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } { val := 0 }
         (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
-        (s.executionEnv.depth + 1) s.executionEnv.header false
+        (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.blobVersionedHashes
+        s.executionEnv.blocks false
     have hcgle : cg.toNat ≤ G := by
       have h : cg.toNat = G % UInt256.size := by rw [hcg]; rfl
       rw [h]; exact Nat.mod_le _ _
@@ -3043,41 +3032,40 @@ theorem Run.solcStaticcall {gasArg target inOffset inSize outOffset outSize : UI
       unfold Cextra; omega
     have hgasN : s.machineState.gasAvailable.toNat = (budget s0).toNat - C := by
       rw [hgas, Sat256.subNat_toNat]
-    set callCharge := mc + (gc - θs.2.2.1.toNat) with hcallCharge
+    set callCharge := mc + (gc - θs.2.1.toNat) with hcallCharge
     have hcallChargePos : 1 ≤ callCharge := by rw [hcallCharge]; omega
     have hcallChargeLeGas : callCharge ≤ s.machineState.gasAvailable.toNat := by
       rw [hcallCharge]
-      have hdeltaLe : gc - θs.2.2.1.toNat ≤ gc := Nat.sub_le _ _
+      have hdeltaLe : gc - θs.2.1.toNat ≤ gc := Nat.sub_le _ _
       omega
     have hCcallCharge : C + callCharge ≤ (budget s0).toNat := by
       rw [hgasN] at hcallChargeLeGas; omega
     have hgvGas : gv = (budget s0).subNat (C + callCharge) := by
       rw [hgv, hgas, hcallCharge, Sat256.subNat_subNat, Sat256.subNat_subNat]
     rw [show (budget s0).toNat - k = (budget s0).toNat + 1 - (k + 1) from by omega] at hXP
-    refine ⟨θs.1, θs.2.1, θs.2.2.1, (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate,
-      θs.2.2.2.1, θs.2.2.2.2.1, θs.2.2.2.2.2, cg, k + 1, C + callCharge, hlogs, ?_, ?_, ?_⟩
-    · show _ = Θ s0.executionEnv.blobVersionedHashes w.created s0.genesisBlockHeader s0.blocks
-        w.accounts s0.σ₀ _ _ _ _ _ _ _ _ _ _ _ _ _
-      rw [← hee, ← hcA, ← hσ, ← hmem, ← hst.2.1, ← hst.2.2.1, ← hst.2.2.2, ← hθs]
+    refine ⟨θs.1, θs.2.1, (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate,
+      θs.2.2.1, θs.2.2.2.1, θs.2.2.2.2, cg, k + 1, C + callCharge, hlogs, ?_, ?_, ?_⟩
+    · show _ = Θ w.accounts s0.σ₀ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+      rw [← hee, ← hσ, ← hmem, ← hst.2, ← hθs]
     · refine Or.inr ⟨_, hXP, hcode, cursorOf_eq.mpr ⟨?_, ?_, ?_, ?_, rfl, rfl, rfl, rfl⟩, ?_, ?_,
         hCcallCharge, hst⟩
       · rw [hpc]
-      · cases θs.2.2.2.2.1 <;> rfl
+      · cases θs.2.2.2.1 <;> rfl
       · rw [hmem]
       · rw [haw]
       · exact hgvGas
       · omega
     · rw [hθs]
       exact Ethereum.EVM.theta_projection_output_size_lt_uint256
-        s.executionEnv.blobVersionedHashes s.createdAccounts s.genesisBlockHeader s.blocks
         s.accountMap s.σ₀ (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
         (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner))
         s.executionEnv.sender (AccountAddress.ofUInt256 target)
         (toExecute s.accountMap (AccountAddress.ofUInt256 target))
         (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
         cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } { val := 0 }
-        (s.executionEnv.depth + 1) s.executionEnv.header false
-        (Ethereum.EVM.ByteArray.readWithPadding_size_lt_uint256 _ _ _)
+        (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.blobVersionedHashes
+        s.executionEnv.blocks false
+        (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize)
 
 set_option maxHeartbeats 1000000 in
 /-- `STATICCALL` at the call-depth limit: `Θ` is not invoked, status `0`. -/

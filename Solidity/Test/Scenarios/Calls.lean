@@ -30,12 +30,12 @@ def others : List (EVM.Address × Ethereum.Account) :=
     (addr N, account (code := bytesOfHex Fixtures.callsNoRecvRuntimeHex)),
     (addr R, account (code := bytesOfHex Fixtures.callsRejecterRuntimeHex)) ]
 
-def a (n : Nat) : ABI.ABIValue := .address (addr n)
+def a (n : Nat) : Solm.Value := .address (addr n)
 def MAX : Int := 2 ^ 256 - 1
 
 /-- A call with `value` wei on a contract that already held `funds` wei (the harness starts at the
     code, so the balance includes the value). -/
-def mk (sig : String) (args : List ABI.ABIValue) (tag : String := "") (value : Nat := 0) (funds : Nat := 0) : Case :=
+def mk (sig : String) (args : List Solm.Value) (tag : String := "") (value : Nat := 0) (funds : Nat := 0) : Case :=
   { name := s!"{sig} {tag}", code := runtime, call := some (sig, args), accounts := others, value := value,
     balance := funds + value }
 

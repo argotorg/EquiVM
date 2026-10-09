@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-! Four contracts (`Solidity/Test/Fixtures/Fixes.sol`) pinning legacy-solc behaviours: right-to-left
 binary operands, block scoping, modifier-argument timing and `super` inside modifiers.  Harness input only. -/

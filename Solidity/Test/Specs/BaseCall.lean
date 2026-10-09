@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-! A / B / C (`Solidity/Test/Fixtures/BaseCall.sol`): explicit base calls `A.f()`, `B.f()` beside
 `super.f()` and the own override, with internal and reverting base functions.  Harness input only. -/

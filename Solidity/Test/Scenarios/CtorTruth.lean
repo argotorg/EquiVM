@@ -1,6 +1,6 @@
 import Solidity.Test.Harness
 import Solidity.Test.Specs.CtorTruth
-import Solm.Examples.CtorTruth.Bytecode
+import Examples.CtorTruth.Bytecode
 import Solidity.Test.Fixtures.CtorTruthSolc
 
 /-! # Differential cases: CtorTruth. -/

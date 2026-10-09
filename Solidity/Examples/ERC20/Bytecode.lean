@@ -1,6 +1,6 @@
 import Solidity.Errors
 import Solidity.Events
-import EVMReasoning.JumpDest
+import Reasoning.JumpDest
 
 /-!
 # ERC20 — the optimized runtime and creation bytecode, and the trusted keccak facts

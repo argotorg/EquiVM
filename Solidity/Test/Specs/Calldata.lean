@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-! Calldata (`Solidity/Test/Fixtures/Calldata.sol`).  Harness input only. -/
 

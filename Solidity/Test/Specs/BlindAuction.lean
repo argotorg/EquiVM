@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-! BlindAuction (`Examples/BlindAuction/BlindAuction.sol`, Solidity docs "Blind Auction") in the
 Solidity spec language. -/

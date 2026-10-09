@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-! TryCaller / ICallee / Child (`Solidity/Test/Fixtures/TryCatch.sol`): `try`/`catch` on external
 calls and on `new`.  `Callee` is deployed from its solc bytecode; the spec only needs its interface.

@@ -1,7 +1,7 @@
 # Proving a Solidity contract against its bytecode — the recipe
 
 This is the workflow an agent follows to prove `runtimeEquivalenceFor` (and
-`constructorEquivalenceFor`) for a contract on the trace stack (`EVMReasoning/Trace.lean`,
+`typedConstructorEquivalenceFor`) for a contract on the trace stack (`Reasoning/Trace.lean`,
 `SolcTrace.lean`, `SolcIdioms.lean`) and the Solidity coupling layer (`Solidity/Theory/`).
 `STRUCTURE.md` in this directory lists every lemma by file; this file says in which order to use
 them.  The usage examples in `Usage.lean` (compiled with the library) show the builders applied to
@@ -12,13 +12,13 @@ recipe (six functions, constructor, dispatcher, capstone `erc20Correct`).
 
 | Input | Where it comes from | Form |
 |---|---|---|
-| Spec | `solidity% …` program, `elabProgram program target` | `fc : FlatContract`, `cfg : Config` (layout hooks) |
+| Spec | `solidity% …` program, `elabProgram program target` | `fc : FlatContract`, `cfg : Config` (`defaultConfig fc`: the solc storage backend of the layout table) |
 | Runtime bytecode | `solc` output, pinned in `Bytecode.lean` | `code : ByteArray` with `@[valid_jumps]` |
 | Selectors | keccak of the canonical signatures | per-contract facts `selectorOf sig = …` (keccak is not evaluable in the elaborator: state them once, check with the harness) |
-| Storage layout | the spec's layout hooks | facts `cfg.storage.layout er evm = some (uint256Loc slot)` (or `boolOffset0Loc`, `addressOffset0Loc`, `bytes32Loc`, a packed `{ slot, offset, size, … }`) for every reference the body touches |
+| Storage leaves | the storage backend | facts `cfg.Leaf er (uint256Loc slot)` (or `boolOffset0Loc`, `addressOffset0Loc`, `bytes32Loc`, `int256Loc`, a packed `{ slot, offset, size, … }`) for every scalar reference the body touches, each `Config.leaf_of_table rfl rfl` on a `defaultConfig`; `string`/`bytes` and dynamic arrays name the anchor slot (`layout er = some (.anchor slot)`) instead |
 | Mapping slots | keccak of `key ++ slot` | facts `solcSlotWord …` ↔ `keyRef …` (per contract) |
 
-Never derive these by unfolding: `decodeArgs_eq`, `readScalar_of_loc`, `writeScalar_of_loc` and
+Never derive these by unfolding: `decodeArgs_eq`, `readScalar_of_leaf`, `writeScalar_of_leaf` and
 the builders consume them as hypotheses.
 
 ## 1. One function, one case: the three derivations
@@ -27,7 +27,7 @@ Every case (success, each revert path) of every entry point is one theorem with 
 
 ### 1a. The EVM run
 
-Start from `initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I` and thread a `Run` through:
+Start from `initState σ σ₀ (Sat256.ofUInt256 g) A I` (world `⟨A.createdAccounts, σ, A.logSeries⟩`) and thread a `Run` through:
 
 1. Prologue and guards: `Run.solcGuardPrologue`, `Run.solcGuardCallvalueZero` (or
    `…NonzeroRevert` for the non-payable revert), `Run.solcCalldataOk` / `…ShortRevert`.
@@ -50,8 +50,8 @@ callee's `Θ` result.
 Build `solidityExec … (.returned m vs) conv` (or `(.reverted d)`) with `solidityExec.call` /
 `callReverted` / `nonPayable` / `receive*` / `fallback*`:
 
-- dispatch facts: `selectorDispatch_of_size`, `decodeArgs_eq` + the `EVMReasoning/ABI.lean`
-  decode lemma for the parameter shape, `payableOrNoValue_of_zero`, `ofAbi_*`;
+- dispatch facts: `selectorDispatch_of_size`, `decodeArgs_eq` + the `Theory/Decode.lean`
+  decode lemma for the parameter shape (`decodeCalldataValues_*`), `payableOrNoValue_of_zero`, `ofAbi_*`;
 - the body: `CallFn.plain` (binds parameters and zeroes return slots), then an
   `ExecBlock.cons` chain of statement builders (`ExecStmt.requireTrue`, `subAssignU256`,
   `assignStorageU256[Lit]`, `varDeclU256[Lit]`, `iteTrue/iteFalse`, `emitStatic`, `returnU256`,
@@ -71,7 +71,7 @@ SimpleAuction `bid()` body.
 
 ### 1c. Coupling and the bridge
 
-`WorldEquiv w m` (accounts equal up to `accountMapEquiv`, same created set, same log series) holds
+`WorldEquiv w m` (same account map, same created set, same log series) holds
 at entry by `WorldEquiv.init` and is transported step by step:
 
 | EVM step | Spec step | Lemma |
@@ -79,13 +79,17 @@ at entry by `WorldEquiv.init` and is transported step by step:
 | `SSTORE slot val` | `storeU256 m slot val` | `WorldEquiv.sstore` |
 | `SLOAD slot` | `loadU256 m slot` | `WorldEquiv.sload` (gives the word equality) |
 | `LOGn` | `m.pushLog le` | `WorldEquiv.pushLog` + `mkLogEntry_static` |
-| `CALL` (value 0 / with value) | `callViaEVM` | `WorldEquiv.callMade` / `callMadeValue` / `callNotMade*` |
+| `CALL` (value 0 / with value) | `callViaEVM` | `WorldEquiv.callMadeZero` / `callMade` / `callNotMade*` |
 
 Close the case with `Returned.specExecutionW o hcode h hspec hw henc` (`henc` by the ABI return
 encoding lemma of the return shape) or `Reverted.specRevert o hcode h hspec`.  Dispatch-level
 reverts have their own bridges: `Reverted.specNonPayable`, `specNoDispatch`,
 `specDecodingFailed`, `specFallbackNonPayable`, `specUndispatched`.  Constructors use
-`Returned.specCtorW` / `Reverted.specCtorRevert` with `solidityCtorExec` and `ExecCtorChain.*`.
+`Returned.specCtorW` / `Reverted.specCtorRevert` (conclusion `typedConstructorEquivalenceFor`; the
+immutables' fit is automatic without immutables) with `solidityCtorExec` and `ExecCtorChain.*`.
+The capstone is `contractEquivalence.of_constant hctor hrt` for a contract without immutables
+(`contractEquivalenceWF.of_runtime` otherwise: the runtime proof is stated for every well-typed
+immutables store, `m.immutables` read by `EvalExpr.immutableMachine`).
 
 ## 2. Assembling the contract theorem
 
@@ -111,8 +115,9 @@ guards).  The EVM side of the dispatcher is shared (`Run.dispatchNoMatch`,
   `fr'.hidden = fr.hidden`, by `simp`).  With one shadowing declaration use `exitScope_get?_shadow`.
   State the freshness of a block-local (`fr.get? "t" = none`) as a hypothesis when the frame is
   abstract.
-- `writeStorageDeep`/`clearStorage` are well-founded: `rw [writeStorageDeep.eq_def]` or
-  `rw [clearStorage]` followed by `all_goals first | (simp […]; try rfl) | (intros; simp_all)`.
+- `writeStorageDeep`/`clearStorage`/`readStorageDeep` go through the backend: rewrite with
+  `writeStorageDeep_of_value`, `clearStorage_of_backend`, `readStorageDeep_string` and the
+  backend facts (`cfg.Leaf`, `writeString_*`), never by unfolding the backend.
 - Per-contract keccak facts (selectors, mapping slots, event topics) are hypotheses or
   `native_decide`-checked constants, never unfolded.
 - Check axioms at the end: `#print axioms` must show only `propext`, `Classical.choice`,
@@ -125,7 +130,7 @@ guards).  The EVM side of the dispatcher is shared (`Run.dispatchNoMatch`,
   metavariables.  `ExecCtorChain.topPlain` needs `(step := ⟨…⟩)` explicitly.
 - After `rw [h_size]` a goal `a + b ≤ n` on numerals is often closed by `rw`'s `rfl`; a following
   `omega` then fails with "no goals".
-- Creation code: `I.code = creation ++ args`.  Import `EVMReasoning.Initcode` and discharge decodes
+- Creation code: `I.code = creation ++ args`.  Import `Reasoning.Initcode` and discharge decodes
   with `decode_append_left_window` and jump destinations with `D_J_contains_append_left`
   (ERC20 `Constructor.lean`: `ctor_decode`, `ctor_jd`, `ctor_run`).  The argument copy
   `CODECOPY` lands past the end of memory (`write_gap_eq`); the hash and free-pointer lemmas for a

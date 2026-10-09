@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-! Data and Alloc (`Solidity/Test/Fixtures/Data.sol`, `Alloc.sol`): storage layout, arrays,
 structs, memory references, `delete`, byte arrays; memory allocation limits.  Harness input only. -/

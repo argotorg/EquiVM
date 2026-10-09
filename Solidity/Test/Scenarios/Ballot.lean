@@ -1,6 +1,6 @@
 import Solidity.Test.Harness
 import Solidity.Test.Specs.Ballot
-import Solm.Examples.Ballot.Bytecode
+import Examples.Ballot.Bytecode
 import Solidity.Test.Fixtures.BallotSolc
 
 /-! # Differential cases: Ballot (optimizer ON; structs, storage pointers, dynamic arrays, loops). -/
@@ -21,11 +21,11 @@ def voted (a : Nat) := voter a "voted" 1
 def delegateTo (a b : Nat) := voter a "delegate" b
 def voteOf (a n : Nat) := voter a "vote" n
 def chair (a : Nat) : Solm.EvaledStorageRef × Nat := (⟨"chairperson", []⟩, a)
-def len (n : Nat) : Solm.EvaledStorageRef × Nat := (⟨"proposals", [.length]⟩, n)
+def len (n : Nat) : Solm.EvaledStorageRef × Nat := (⟨"proposals", []⟩, n)
 def pname (i c : Nat) : Solm.EvaledStorageRef × Nat := (⟨"proposals", [.aindex (.int i), .field "name"]⟩, c <<< 248)
 def votes (i n : Nat) : Solm.EvaledStorageRef × Nat := (⟨"proposals", [.aindex (.int i), .field "voteCount"]⟩, n)
 
-def b32 (c : Nat) : ABI.ABIValue := .fixedBytes ⟨31, by decide⟩ (wordBytes (c <<< 248)).toList
+def b32 (c : Nat) : Solm.Value := .fixedBytes ⟨31, by decide⟩ (wordBytes (c <<< 248)).toList
 
 def creation : ByteArray := bytesOfHex Fixtures.ballotCreationHex
 def runtime : ByteArray := bytesOfHex Fixtures.ballotRuntimeHex

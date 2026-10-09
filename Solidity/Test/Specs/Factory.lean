@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-! Factory / Child (`Solidity/Test/Fixtures/Factory.sol`): contract creation with `new`, plain, with
 `value` and with `salt`, and a call on the created contract.  Harness input only. -/

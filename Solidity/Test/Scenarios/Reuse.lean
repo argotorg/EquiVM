@@ -1,6 +1,6 @@
 import Solidity.Test.Harness
 import Solidity.Test.Specs.Reuse
-import Solm.Examples.Reuse.Bytecode
+import Examples.Reuse.Bytecode
 import Solidity.Test.Fixtures.ReuseSolc
 
 /-! # Differential cases: Reuse. -/

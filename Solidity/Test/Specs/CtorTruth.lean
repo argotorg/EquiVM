@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-! CtorTruth (`Examples/CtorTruth/CtorTruth.sol`) in the Solidity spec language. -/
 

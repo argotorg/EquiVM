@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-! Calls (`Solidity/Test/Fixtures/Calls.sol`).  Harness input only. -/
 

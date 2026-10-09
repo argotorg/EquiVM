@@ -92,13 +92,14 @@ def hashValue (f : Ident) (out : ByteArray) : Value :=
 
 def immName (x : Ident) : Ident := "imm_" ++ x
 
-/-- Read of an immutable: the constructor's local, else the deployed value, else zero. -/
-def immutableValue (cfg : Config) (env : TypeEnv) (fr : Frame) (v : FlatVar) : Option Value :=
+/-- Read of an immutable: the constructor's local, else the deployed value (`Machine.immutables`),
+    else zero. -/
+def immutableValue (env : TypeEnv) (fr : Frame) (m : Machine) (v : FlatVar) : Option Value :=
   match fr.get? (immName v.name) with
   | some l => some l.val
   | none =>
-    match cfg.immutables.find? (·.1 == v.name) with
-    | some (_, x) => some x
+    match m.immutables.get? (immName v.name) with
+    | some l => some l.val
     | none => zeroValue env v.ty
 
 /-- Builtin namespaces (`msg.*`, `block.*`, `tx.*`, `abi.*`): never receivers of user calls. -/
@@ -165,7 +166,7 @@ def errorEventSelector (err : Option ErrorInfo) (evs : List EventInfo) : Option 
   | some ei => some (.fixedBytes ⟨3, by decide⟩ (selectorOf ei.sigStr).toList)
   | none =>
     match evs with
-    | [ev] => some (.fixedBytes ⟨31, by decide⟩ (ffi.KEC ev.sigStr.toUTF8).toList)
+    | [ev] => some (.fixedBytes ⟨31, by decide⟩ (Ethereum.KEC ev.sigStr.toUTF8).toList)
     | _ => none
 
 /-- `E.selector` for an error or event `E` named in code of the frame: `e` is no local and no variable. -/
@@ -561,7 +562,7 @@ def structObj (cfg : Config) (env : TypeEnv) (m : Machine) (sd : StructInfo) (vs
     storage is copied to memory first, as solc does; a calldata object is read through the
     encoder's checks (`prepareArgs`). -/
 def abiArgsAbi (cfg : Config) (env : TypeEnv) (m : Machine) (_tys : List ABIType) (vs : List Value) :
-    Op (List ABIValue × Machine) := do
+    Op (List Solm.Value × Machine) := do
   let (vs, h) ← prepareArgs env m.evm.executionEnv.calldata fuelDefault m.heap vs
   let m := { m with heap := h }
   match vs.mapM (toAbi m.heap fuelDefault) with
@@ -582,7 +583,7 @@ def typeArgs : Expr → Option (List Ty)
   | .tuple es => es.mapM fun | some (.typeExpr t) => some t | _ => none
   | _ => none
 
-def ofAbiList (env : TypeEnv) (tys : List Ty) (svs : List ABIValue) (h : Heap) : Option (List Value × Heap) := do
+def ofAbiList (env : TypeEnv) (tys : List Ty) (svs : List Solm.Value) (h : Heap) : Option (List Value × Heap) := do
   if tys.length ≠ svs.length then none
   (tys.zip svs).foldlM (fun (acc, h) (ty, sv) => do
     let (v, h') ← ofAbi env fuelDefault ty sv h
@@ -747,7 +748,7 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       coerce cfg fc.types m1 val v.ty (some .memory) = some (.error p) →
       EvalExpr fr m (.ident x) (.reverted p.data)
   | immutableVar : fr.get? x = none → fc.varIn fr.here x = some v → v.mutability = .immutable →
-      immutableValue cfg fc.types fr v = some val → EvalExpr fr m (.ident x) (.ok val fr m)
+      immutableValue fc.types fr m v = some val → EvalExpr fr m (.ident x) (.ok val fr m)
   | stateVar : fr.get? x = none → fc.varIn fr.here x = some v → v.mutability = .mutable →
       loadIfScalar cfg fc.types m.evm ⟨v.key, []⟩ v.ty = some val → EvalExpr fr m (.ident x) (.ok val fr m)
   -- members
@@ -782,9 +783,9 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m e (.ok (.storageRef er ty) fr1 m1) → storageField fc.types er ty f = some (er', fty) →
       loadIfScalar cfg fc.types m1.evm er' fty = some v → EvalExpr fr m (.member e f) (.ok v fr1 m1)
   | memberStorageLength : directMember fc fr e = false → EvalExpr fr m e (.ok (.storageRef er ty) fr1 m1) →
-      storageLength cfg m1.evm er ty = some (.ok n) → EvalExpr fr m (.member e "length") (.ok (wordNat n) fr1 m1)
+      storageLength cfg fc.types m1.evm er ty = some (.ok n) → EvalExpr fr m (.member e "length") (.ok (wordNat n) fr1 m1)
   | memberStorageLengthPanic : directMember fc fr e = false → EvalExpr fr m e (.ok (.storageRef er ty) fr1 m1) →
-      storageLength cfg m1.evm er ty = some (.error p) → EvalExpr fr m (.member e "length") (.reverted p.data)
+      storageLength cfg fc.types m1.evm er ty = some (.error p) → EvalExpr fr m (.member e "length") (.reverted p.data)
   | memberMemField : directMember fc fr e = false → f ≠ "length" →
       EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → memField m1.heap obj f = some v → isRaw v = false →
       EvalExpr fr m (.member e f) (.ok v fr1 m1)
@@ -945,7 +946,7 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | revertMsgRevert : EvalExpr fr m msg (.reverted d) →
       EvalExpr fr m (.call (.ident "revert") [] (.positional [msg])) (.reverted d)
   | keccak : EvalExpr fr m b (.ok v fr1 m1) → bytesOf cfg m1 v = some (.ok s) →
-      EvalExpr fr m (.call (.ident "keccak256") [] (.positional [b])) (.ok (.fixedBytes ⟨31, by decide⟩ (ffi.KEC s).toList) fr1 m1)
+      EvalExpr fr m (.call (.ident "keccak256") [] (.positional [b])) (.ok (.fixedBytes ⟨31, by decide⟩ (Ethereum.KEC s).toList) fr1 m1)
   | keccakPanic : EvalExpr fr m b (.ok v fr1 m1) → bytesOf cfg m1 v = some (.error p) →
       EvalExpr fr m (.call (.ident "keccak256") [] (.positional [b])) (.reverted p.data)
   | keccakRevert : EvalExpr fr m b (.reverted d) →
@@ -999,7 +1000,7 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.call (.member (.ident "abi") "encode") [] (.positional es)) (.ok v fr1 m3)
   | abiEncodePacked : EvalExprs fr m es (.ok vs fr1 m1) → vs.mapM (abiTyOfValue fc.types m1.heap) = some tys →
       abiArgsAbi cfg fc.types m1 tys vs = some (.ok (svs, m2)) →
-      (tys.zip svs).mapM (fun (t, sv) => ABI.encodePackedValue? t sv) = some parts →
+      (tys.zip svs).mapM (fun (t, sv) => Solm.encodePackedValue? t sv) = some parts →
       allocBytes m2 false parts.flatten.toByteArray = (v, m3) →
       EvalExpr fr m (.call (.member (.ident "abi") "encodePacked") [] (.positional es)) (.ok v fr1 m3)
   | abiEncodeWithSelector : EvalExprs fr m (sel :: es) (.ok (sv :: vs) fr1 m1) → selectorArg fc.types m1.heap sv = some sb →
@@ -1008,7 +1009,7 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.call (.member (.ident "abi") "encodeWithSelector") [] (.positional (sel :: es))) (.ok v fr1 m3)
   | abiEncodeWithSignature : EvalExprs fr m (sig :: es) (.ok (sv :: vs) fr1 m1) → bytesArg m1.heap sv = some s →
       vs.mapM (abiTyOfValue fc.types m1.heap) = some tys → abiArgsAbi cfg fc.types m1 tys vs = some (.ok (svs, m2)) →
-      encodeABIValues? tys svs = some bs → allocBytes m2 false ((ffi.KEC s).extract 0 4 ++ bs.toByteArray) = (v, m3) →
+      encodeABIValues? tys svs = some bs → allocBytes m2 false ((Ethereum.KEC s).extract 0 4 ++ bs.toByteArray) = (v, m3) →
       EvalExpr fr m (.call (.member (.ident "abi") "encodeWithSignature") [] (.positional (sig :: es))) (.ok v fr1 m3)
   | abiDecode : EvalExpr fr m d (.ok dv fr1 m1) → bytesArg m1.heap dv = some s →
       typeArgs tyArg = some tys → (tys.map (fc.types.canonTy fr.here)).mapM (abiTypeOf fc.types) = some atys →
@@ -1167,7 +1168,7 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.call (.member recv "push") [] (.positional [x])) (.reverted p.data)
   -- `a.push()` is the new element (a reference for a reference type)
   | push0 : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1) →
-      storagePush cfg fc.types m1 er e none = some (.ok m2) → dynArrayLength cfg m2.evm er = some n →
+      storagePush cfg fc.types m1 er e none = some (.ok m2) → dynArrayLength cfg fc.types m2.evm er e = some n →
       loadIfScalar cfg fc.types m2.evm (elemRef er (n - 1)) e = some v →
       EvalExpr fr m (.call (.member recv "push") [] (.positional [])) (.ok v fr1 m2)
   | push0Panic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1) →
@@ -1325,10 +1326,10 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       zeroObj fc.types fuelDefault l.ty 0 m1.heap = some (z, h') →
       EvalExpr fr m (.unary .delete e) (.ok .unit (fr1.setVal x z) { m1 with heap := h' })
   | deleteStorage : EvalLValue fr m e (.ok (.storage er ty) fr1 m1) →
-      clearStorage cfg fc.types fuelDefault m1.evm er ty = some (.ok evm') →
+      clearStorage cfg fc.types m1.evm er ty = some (.ok evm') →
       EvalExpr fr m (.unary .delete e) (.ok .unit fr1 { m1 with evm := evm' })
   | deleteStoragePanic : EvalLValue fr m e (.ok (.storage er ty) fr1 m1) →
-      clearStorage cfg fc.types fuelDefault m1.evm er ty = some (.error p) →
+      clearStorage cfg fc.types m1.evm er ty = some (.error p) →
       EvalExpr fr m (.unary .delete e) (.reverted p.data)
   -- a memory element or field gets the zero value of its type (a fresh object for a reference type)
   | deleteMem : EvalLValue fr m e (.ok lv fr1 m1) → memLValue lv = true → lvalueTy fc.types fr1 m1 lv = some ty →
@@ -1446,7 +1447,7 @@ inductive EvalLValue : Frame → Machine → Expr → Res LValue → Prop where
   | indexRevert : EvalExpr fr m e (.ok v fr1 m1) → EvalExpr fr1 m1 i (.reverted d) → EvalLValue fr m (.index e i) (.reverted d)
   -- `a.push() = v`: the new element
   | pushElem : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1) →
-      storagePush cfg fc.types m1 er e none = some (.ok m2) → dynArrayLength cfg m2.evm er = some n →
+      storagePush cfg fc.types m1 er e none = some (.ok m2) → dynArrayLength cfg fc.types m2.evm er e = some n →
       EvalLValue fr m (.call (.member recv "push") [] (.positional [])) (.ok (.storage (elemRef er (n - 1)) e) fr1 m2)
   | pushElemPanic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1) →
       storagePush cfg fc.types m1 er e none = some (.error p) →

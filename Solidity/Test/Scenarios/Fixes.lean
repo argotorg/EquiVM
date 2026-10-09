@@ -10,7 +10,7 @@ open Solidity.Test
 
 def program : Program := _root_.Fixes.SoliditySpec.program
 
-def mk (name target : String) (creation runtime : String) (calls : List (String × List ABI.ABIValue × Expect))
+def mk (name target : String) (creation runtime : String) (calls : List (String × List Solm.Value × Expect))
     (extra : List Case := []) : Scenario :=
   let rt := bytesOfHex runtime
   { name := name, program := program, target := target,

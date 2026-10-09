@@ -1,6 +1,6 @@
 import Solidity.Test.Harness
 import Solidity.Test.Specs.Ownable2Step
-import Solm.Examples.OpenZeppelinBench.Ownable2Step.Bytecode
+import Examples.OpenZeppelinBench.Ownable2Step.Bytecode
 import Solidity.Test.Fixtures.Ownable2StepSolc
 
 /-! # Differential cases: Ownable2Step. -/

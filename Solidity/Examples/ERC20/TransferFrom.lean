@@ -17,11 +17,11 @@ namespace ERC20.Opt
 
 /-! ## The EVM runs -/
 
-theorem tfEntry {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem tfEntry {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (selBytes 2)) :
-    ∃ k C, Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
-      ⟨⟨0x45f⟩, ⟨4⟩ :: UInt256.ofNat (initState cA gh bl σ σ₀ g A I).executionEnv.calldata.size :: ⟨0xb1⟩ :: ⟨0x77⟩ ::
-        [solcSelectorWord I], solcFreePtrMem, UInt256.ofNat 3, ByteArray.empty, ⟨cA, σ, A.logSeries⟩⟩ k C := by
+    ∃ k C, Run erc20Runtime (initState σ σ₀ g A I)
+      ⟨⟨0x45f⟩, ⟨4⟩ :: UInt256.ofNat (initState σ σ₀ g A I).executionEnv.calldata.size :: ⟨0xb1⟩ :: ⟨0x77⟩ ::
+        [solcSelectorWord I], solcFreePtrMem, UInt256.ofNat 3, ByteArray.empty, ⟨A.createdAccounts, σ, A.logSeries⟩⟩ k C := by
   obtain ⟨_, _, h⟩ := reachBodyOf 2 (by omega) ⟨0xa3⟩ hcode hwv hsize hsel (by jump_dest) (by decide)
   exact ⟨_, _, evm_run h with [jumpdest, push2 ⟨0x77⟩, push2 ⟨0xb1⟩, calldatasize, push1 ⟨4⟩, push2 ⟨0x45f⟩,
     jump (by jump_dest)]⟩
@@ -81,7 +81,7 @@ theorem errTailAllowance {s0 : State} {stk : List UInt256} {mem rdata : ByteArra
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) (hov : stk.length + 4 ≤ 1024) :
     Reverted erc20Runtime s0 (solcErrorStringPayload ⟨29⟩ insufficientAllowanceWord mem) := by
   have h1 := evm_run h with [push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have h2 := h1.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
   have h3 := evm_run h2 with [push1 ⟨229⟩, shl, dup2,
@@ -98,18 +98,18 @@ theorem errTailAllowance {s0 : State} {stk : List UInt256} {mem rdata : ByteArra
   exact errBlock h5 (by decide) hmem hread64 hov
 
 /-- Up to the allowance check: `LT alw value` on top. -/
-theorem tfCheckAlw {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem tfCheckAlw {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (selBytes 2))
     (hsz : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hc0 : (tfFrom I).toNat < EVM.addressModulus) (hc1 : (tfTo I).toNat < EVM.addressModulus) :
-    ∃ k C, Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, Run erc20Runtime (initState σ σ₀ g A I)
       ⟨⟨0x1a5⟩, UInt256.lt (tfAlw I σ) (tfValue I) :: tfAlw I σ :: ⟨0⟩ :: tfValue I :: tfTo I :: tfFrom I :: ⟨0x77⟩ ::
-        [solcSelectorWord I], tfMB I, UInt256.ofNat 3, ByteArray.empty, ⟨cA, σ, A.logSeries⟩⟩ k C := by
+        [solcSelectorWord I], tfMB I, UInt256.ofNat 3, ByteArray.empty, ⟨A.createdAccounts, σ, A.logSeries⟩⟩ k C := by
   obtain ⟨_, _, h⟩ := tfEntry hcode hwv hsize hsel
   obtain ⟨_, _, h1'⟩ := decAddrAddrU256Ok h hsz hbig hc0 hc1 (by jump_dest) (by simp)
-  have h1 : Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
+  have h1 : Run erc20Runtime (initState σ σ₀ g A I)
       ⟨⟨0xb1⟩, tfValue I :: tfTo I :: tfFrom I :: ⟨0x77⟩ :: [solcSelectorWord I], solcFreePtrMem, UInt256.ofNat 3,
-        ByteArray.empty, ⟨cA, σ, A.logSeries⟩⟩ _ _ := h1'
+        ByteArray.empty, ⟨A.createdAccounts, σ, A.logSeries⟩⟩ _ _ := h1'
   have hlandF : UInt256.land (tfFrom I) (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) = tfFrom I := by
     rw [solcAddrMask_lit]; exact land_solcAddrMask_of_canon hc0
   have h2 := evm_run h1 with [jumpdest, push2 ⟨0x17e⟩, jump (by jump_dest), jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨0xa0⟩,
@@ -132,39 +132,39 @@ theorem tfCheckAlw {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20R
     raw keccak256 0 (tfSA I) (UInt256.ofNat 3) (by native_decide) mem_cost
       (twoWordHashMem_solcMappingSlot (tfS1 I) (callerW I) (tfMA_size I)) (by decide) (by evm_ov)]
   obtain ⟨_, _, h4'⟩ := h3.sload (by native_decide) (by evm_ov)
-  have h4 : Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
+  have h4 : Run erc20Runtime (initState σ σ₀ g A I)
       ⟨⟨0x1a2⟩, tfAlw I σ :: ⟨0⟩ :: tfValue I :: tfTo I :: tfFrom I :: ⟨0x77⟩ :: [solcSelectorWord I], tfMB I,
-        UInt256.ofNat 3, ByteArray.empty, ⟨cA, σ, A.logSeries⟩⟩ _ _ := h4'
+        UInt256.ofNat 3, ByteArray.empty, ⟨A.createdAccounts, σ, A.logSeries⟩⟩ _ _ := h4'
   exact ⟨_, _, evm_run h4 with [dup3, dup2, lt]⟩
 
-theorem tfRunInsufficientAllowance {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem tfRunInsufficientAllowance {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (selBytes 2))
     (hsz : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hc0 : (tfFrom I).toNat < EVM.addressModulus) (hc1 : (tfTo I).toNat < EVM.addressModulus)
     (hlt : (tfAlw I σ).toNat < (tfValue I).toNat) :
-    Reverted erc20Runtime (initState cA gh bl σ σ₀ g A I) (errorStringData "ERC20: insufficient allowance".toUTF8) := by
+    Reverted erc20Runtime (initState σ σ₀ g A I) (errorStringData "ERC20: insufficient allowance".toUTF8) := by
   obtain ⟨_, _, h⟩ := tfCheckAlw hcode hwv hsize hsel hsz hbig hc0 hc1
   rw [ult_one hlt] at h
   have h1 := evm_run h with [iszero]
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at h1
   have h2' := evm_run h1 with [push2 ⟨0x1f6⟩, jumpiNT rfl]
-  have h2 : Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
+  have h2 : Run erc20Runtime (initState σ σ₀ g A I)
       ⟨⟨0x1aa⟩, tfAlw I σ :: ⟨0⟩ :: tfValue I :: tfTo I :: tfFrom I :: ⟨0x77⟩ :: [solcSelectorWord I], tfMB I, UInt256.ofNat 3,
-        ByteArray.empty, ⟨cA, σ, A.logSeries⟩⟩ _ _ := h2'
+        ByteArray.empty, ⟨A.createdAccounts, σ, A.logSeries⟩⟩ _ _ := h2'
   have hrev := errTailAllowance h2 (tfMB_size I) (tfMB_read64 I) (by simp)
   rw [solcErrorStringPayload_eq (msg := "ERC20: insufficient allowance".toUTF8) (by native_decide) (by native_decide)
     (by rw [tfMB_size]; omega) (by native_decide) (by native_decide)] at hrev
   exact hrev
 
 /-- After the allowance check: `GT value balF` on top. -/
-theorem tfCheckBal {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem tfCheckBal {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (selBytes 2))
     (hsz : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hc0 : (tfFrom I).toNat < EVM.addressModulus) (hc1 : (tfTo I).toNat < EVM.addressModulus)
     (hleA : (tfValue I).toNat ≤ (tfAlw I σ).toNat) :
-    ∃ k C, Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, Run erc20Runtime (initState σ σ₀ g A I)
       ⟨⟨0x211⟩, UInt256.gt (tfValue I) (tfBalF I σ) :: tfAlw I σ :: ⟨0⟩ :: tfValue I :: tfTo I :: tfFrom I :: ⟨0x77⟩ ::
-        [solcSelectorWord I], tfMC I, UInt256.ofNat 3, ByteArray.empty, ⟨cA, σ, A.logSeries⟩⟩ k C := by
+        [solcSelectorWord I], tfMC I, UInt256.ofNat 3, ByteArray.empty, ⟨A.createdAccounts, σ, A.logSeries⟩⟩ k C := by
   obtain ⟨_, _, h⟩ := tfCheckAlw hcode hwv hsize hsel hsz hbig hc0 hc1
   rw [ult_zero hleA] at h
   have h1 := evm_run h with [iszero]
@@ -182,17 +182,17 @@ theorem tfCheckBal {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20R
     raw keccak256 0 (tfSF I) (UInt256.ofNat 3) (by native_decide) mem_cost
       (twoWordHashMem_solcMappingSlot ⟨0⟩ (tfFrom I) (tfMB_size I)) (by decide) (by evm_ov)]
   obtain ⟨_, _, h4'⟩ := h3.sload (by native_decide) (by evm_ov)
-  have h4 : Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
+  have h4 : Run erc20Runtime (initState σ σ₀ g A I)
       ⟨⟨0x20f⟩, tfBalF I σ :: tfAlw I σ :: ⟨0⟩ :: tfValue I :: tfTo I :: tfFrom I :: ⟨0x77⟩ :: [solcSelectorWord I], tfMC I,
-        UInt256.ofNat 3, ByteArray.empty, ⟨cA, σ, A.logSeries⟩⟩ _ _ := h4'
+        UInt256.ofNat 3, ByteArray.empty, ⟨A.createdAccounts, σ, A.logSeries⟩⟩ _ _ := h4'
   exact ⟨_, _, evm_run h4 with [dup4, gt]⟩
 
-theorem tfRunInsufficientBalance {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem tfRunInsufficientBalance {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (selBytes 2))
     (hsz : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hc0 : (tfFrom I).toNat < EVM.addressModulus) (hc1 : (tfTo I).toNat < EVM.addressModulus)
     (hleA : (tfValue I).toNat ≤ (tfAlw I σ).toNat) (hlt : (tfBalF I σ).toNat < (tfValue I).toNat) :
-    Reverted erc20Runtime (initState cA gh bl σ σ₀ g A I) (errorStringData "ERC20: insufficient balance".toUTF8) := by
+    Reverted erc20Runtime (initState σ σ₀ g A I) (errorStringData "ERC20: insufficient balance".toUTF8) := by
   obtain ⟨_, _, h⟩ := tfCheckBal hcode hwv hsize hsel hsz hbig hc0 hc1 hleA
   rw [ugt_one hlt] at h
   have h1 := evm_run h with [iszero]
@@ -205,14 +205,14 @@ theorem tfRunInsufficientBalance {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I
   exact hrev
 
 /-- After both checks: the allowance stored, `balanceOf[from]` re-read, the debit's `checked_sub` entered. -/
-theorem tfDebit {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem tfDebit {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true) (hsel : selIs I (selBytes 2))
     (hsz : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hc0 : (tfFrom I).toNat < EVM.addressModulus) (hc1 : (tfTo I).toNat < EVM.addressModulus)
     (hleA : (tfValue I).toNat ≤ (tfAlw I σ).toNat) (hleB : (tfValue I).toNat ≤ (tfBalF I σ).toNat) :
-    ∃ k C, Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, Run erc20Runtime (initState σ σ₀ g A I)
       ⟨⟨0x4fe⟩, tfBalF1 I σ :: tfValue I :: ⟨0x2a7⟩ :: ⟨0⟩ :: tfSF I :: tfValue I :: tfAlw I σ :: ⟨0⟩ :: tfValue I :: tfTo I ::
-        tfFrom I :: ⟨0x77⟩ :: [solcSelectorWord I], tfMF I, UInt256.ofNat 3, ByteArray.empty, ⟨cA, tfW1 I σ, A.logSeries⟩⟩
+        tfFrom I :: ⟨0x77⟩ :: [solcSelectorWord I], tfMF I, UInt256.ofNat 3, ByteArray.empty, ⟨A.createdAccounts, tfW1 I σ, A.logSeries⟩⟩
       k C := by
   obtain ⟨_, _, h⟩ := tfCheckBal hcode hwv hsize hsel hsz hbig hc0 hc1 hleA
   rw [ugt_zero hleB] at h
@@ -242,9 +242,9 @@ theorem tfDebit {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runt
       (twoWordHashMem_solcMappingSlot (tfS1 I) (callerW I) (tfMD_size I)) (by decide) (by evm_ov),
     swap5, swap1, swap5]
   obtain ⟨_, _, h6'⟩ := h5.sstore hperm (by native_decide) (by evm_ov)
-  have h6 : Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
+  have h6 : Run erc20Runtime (initState σ σ₀ g A I)
       ⟨⟨0x28e⟩, ⟨0x20⟩ :: ⟨0⟩ :: tfFrom I :: ⟨0x40⟩ :: tfAlw I σ :: ⟨0⟩ :: tfValue I :: tfTo I :: tfFrom I :: ⟨0x77⟩ ::
-        [solcSelectorWord I], tfME I, UInt256.ofNat 3, ByteArray.empty, ⟨cA, tfW1 I σ, A.logSeries⟩⟩ _ _ := h6'
+        [solcSelectorWord I], tfME I, UInt256.ofNat 3, ByteArray.empty, ⟨A.createdAccounts, tfW1 I σ, A.logSeries⟩⟩ _ _ := h6'
   have h7 := evm_run h6 with [swap2, dup2,
     raw mstore 0 (wordAt0Mem (tfFrom I) (tfME I)) (UInt256.ofNat 3) (by native_decide) mem_cost rfl (by decide) (by evm_ov),
     swap1, dup2, swap1,
@@ -254,41 +254,41 @@ theorem tfDebit {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runt
       (twoWordHashMem_solcMappingSlot ⟨0⟩ (tfFrom I) (tfME_size I)) (by decide) (by evm_ov),
     dup1]
   obtain ⟨_, _, h8'⟩ := h7.sload (by native_decide) (by evm_ov)
-  have h8 : Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
+  have h8 : Run erc20Runtime (initState σ σ₀ g A I)
       ⟨⟨0x29a⟩, tfBalF1 I σ :: tfSF I :: ⟨0⟩ :: tfAlw I σ :: ⟨0⟩ :: tfValue I :: tfTo I :: tfFrom I :: ⟨0x77⟩ ::
-        [solcSelectorWord I], tfMF I, UInt256.ofNat 3, ByteArray.empty, ⟨cA, tfW1 I σ, A.logSeries⟩⟩ _ _ := h8'
+        [solcSelectorWord I], tfMF I, UInt256.ofNat 3, ByteArray.empty, ⟨A.createdAccounts, tfW1 I σ, A.logSeries⟩⟩ _ _ := h8'
   exact ⟨_, _, evm_run h8 with [dup6, swap3, swap1, push2 ⟨0x2a7⟩, swap1, dup5, swap1, push2 ⟨0x4fe⟩, jump (by jump_dest)]⟩
 
-theorem tfRunUnderflow {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem tfRunUnderflow {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true) (hsel : selIs I (selBytes 2))
     (hsz : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hc0 : (tfFrom I).toNat < EVM.addressModulus) (hc1 : (tfTo I).toNat < EVM.addressModulus)
     (hleA : (tfValue I).toNat ≤ (tfAlw I σ).toNat) (hleB : (tfValue I).toNat ≤ (tfBalF I σ).toNat)
     (hlt : (tfBalF1 I σ).toNat < (tfValue I).toNat) :
-    Reverted erc20Runtime (initState cA gh bl σ σ₀ g A I) (panicData 0x11) := by
+    Reverted erc20Runtime (initState σ σ₀ g A I) (panicData 0x11) := by
   obtain ⟨_, _, h⟩ := tfDebit hcode hwv hsize hperm hsel hsz hbig hc0 hc1 hleA hleB
   have hrev := checkedSubUnderflow h hlt (by simp)
   rw [solcPanicPayload_eq] at hrev
   exact hrev
 
 /-- After the debit: the credit's `checked_add` entered. -/
-theorem tfCredit {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem tfCredit {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true) (hsel : selIs I (selBytes 2))
     (hsz : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hc0 : (tfFrom I).toNat < EVM.addressModulus) (hc1 : (tfTo I).toNat < EVM.addressModulus)
     (hleA : (tfValue I).toNat ≤ (tfAlw I σ).toNat) (hleB : (tfValue I).toNat ≤ (tfBalF I σ).toNat)
     (hleF : (tfValue I).toNat ≤ (tfBalF1 I σ).toNat) :
-    ∃ k C, Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, Run erc20Runtime (initState σ σ₀ g A I)
       ⟨⟨0x511⟩, tfBalT I σ :: tfValue I :: ⟨0x2d3⟩ :: ⟨0⟩ :: tfST I :: tfValue I :: tfAlw I σ :: ⟨0⟩ :: tfValue I :: tfTo I ::
-        tfFrom I :: ⟨0x77⟩ :: [solcSelectorWord I], tfMG I, UInt256.ofNat 3, ByteArray.empty, ⟨cA, tfW2 I σ, A.logSeries⟩⟩
+        tfFrom I :: ⟨0x77⟩ :: [solcSelectorWord I], tfMG I, UInt256.ofNat 3, ByteArray.empty, ⟨A.createdAccounts, tfW2 I σ, A.logSeries⟩⟩
       k C := by
   obtain ⟨_, _, h⟩ := tfDebit hcode hwv hsize hperm hsel hsz hbig hc0 hc1 hleA hleB
   obtain ⟨_, _, h1⟩ := checkedSubOk h hleF (by jump_dest) (by simp)
   have h2 := evm_run h1 with [jumpdest, swap1, swap2]
   obtain ⟨_, _, h3'⟩ := h2.sstore hperm (by native_decide) (by evm_ov)
-  have h3 : Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
+  have h3 : Run erc20Runtime (initState σ σ₀ g A I)
       ⟨⟨0x2ab⟩, ⟨0⟩ :: tfValue I :: tfAlw I σ :: ⟨0⟩ :: tfValue I :: tfTo I :: tfFrom I :: ⟨0x77⟩ :: [solcSelectorWord I],
-        tfMF I, UInt256.ofNat 3, ByteArray.empty, ⟨cA, tfW2 I σ, A.logSeries⟩⟩ _ _ := h3'
+        tfMF I, UInt256.ofNat 3, ByteArray.empty, ⟨A.createdAccounts, tfW2 I σ, A.logSeries⟩⟩ _ _ := h3'
   have hlandT : UInt256.land (tfTo I) (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) = tfTo I := by
     rw [solcAddrMask_lit]; exact land_solcAddrMask_of_canon hc1
   have h4 := evm_run h3 with [pop, pop, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨0xa0⟩, shl, sub, dup5, and]
@@ -302,41 +302,41 @@ theorem tfCredit {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Run
       (twoWordHashMem_solcMappingSlot ⟨0⟩ (tfTo I) (tfMF_size I)) (by decide) (by evm_ov),
     dup1]
   obtain ⟨_, _, h6'⟩ := h5.sload (by native_decide) (by evm_ov)
-  have h6 : Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
+  have h6 : Run erc20Runtime (initState σ σ₀ g A I)
       ⟨⟨0x2c6⟩, tfBalT I σ :: tfST I :: ⟨0⟩ :: tfAlw I σ :: ⟨0⟩ :: tfValue I :: tfTo I :: tfFrom I :: ⟨0x77⟩ ::
-        [solcSelectorWord I], tfMG I, UInt256.ofNat 3, ByteArray.empty, ⟨cA, tfW2 I σ, A.logSeries⟩⟩ _ _ := h6'
+        [solcSelectorWord I], tfMG I, UInt256.ofNat 3, ByteArray.empty, ⟨A.createdAccounts, tfW2 I σ, A.logSeries⟩⟩ _ _ := h6'
   exact ⟨_, _, evm_run h6 with [dup6, swap3, swap1, push2 ⟨0x2d3⟩, swap1, dup5, swap1, push2 ⟨0x511⟩, jump (by jump_dest)]⟩
 
-theorem tfRunOverflow {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem tfRunOverflow {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true) (hsel : selIs I (selBytes 2))
     (hsz : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hc0 : (tfFrom I).toNat < EVM.addressModulus) (hc1 : (tfTo I).toNat < EVM.addressModulus)
     (hleA : (tfValue I).toNat ≤ (tfAlw I σ).toNat) (hleB : (tfValue I).toNat ≤ (tfBalF I σ).toNat)
     (hleF : (tfValue I).toNat ≤ (tfBalF1 I σ).toNat) (hover : UInt256.size ≤ (tfValue I).toNat + (tfBalT I σ).toNat) :
-    Reverted erc20Runtime (initState cA gh bl σ σ₀ g A I) (panicData 0x11) := by
+    Reverted erc20Runtime (initState σ σ₀ g A I) (panicData 0x11) := by
   obtain ⟨_, _, h⟩ := tfCredit hcode hwv hsize hperm hsel hsz hbig hc0 hc1 hleA hleB hleF
   have hrev := checkedAddOverflow h hover (by simp)
   rw [solcPanicPayload_eq] at hrev
   exact hrev
 
-theorem tfRunOk {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem tfRunOk {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true) (hsel : selIs I (selBytes 2))
     (hsz : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hc0 : (tfFrom I).toNat < EVM.addressModulus) (hc1 : (tfTo I).toNat < EVM.addressModulus)
     (hleA : (tfValue I).toNat ≤ (tfAlw I σ).toNat) (hleB : (tfValue I).toNat ≤ (tfBalF I σ).toNat)
     (hleF : (tfValue I).toNat ≤ (tfBalF1 I σ).toNat) (hfit : (tfValue I).toNat + (tfBalT I σ).toNat < UInt256.size) :
-    Returned erc20Runtime (initState cA gh bl σ σ₀ g A I)
-      ⟨cA, sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ (tfSA I) (tfNewAlw I σ))
+    Returned erc20Runtime (initState σ σ₀ g A I)
+      ⟨A.createdAccounts, sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ (tfSA I) (tfNewAlw I σ))
         (tfSF I) (tfDiff I σ)) (tfST I) (tfSum I σ), A.logSeries.push (tfLog I)⟩
       (UInt256.toByteArray ⟨1⟩) := by
   obtain ⟨_, _, h⟩ := tfCredit hcode hwv hsize hperm hsel hsz hbig hc0 hc1 hleA hleB hleF
   obtain ⟨_, _, h1⟩ := checkedAddOk h hfit (by jump_dest) (by simp)
   have h2 := evm_run h1 with [jumpdest, swap3, pop, pop, dup2, swap1]
   obtain ⟨_, _, h3'⟩ := h2.sstore hperm (by native_decide) (by evm_ov)
-  have h3 : Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
+  have h3 : Run erc20Runtime (initState σ σ₀ g A I)
       ⟨⟨0x2da⟩, tfSum I σ :: tfAlw I σ :: ⟨0⟩ :: tfValue I :: tfTo I :: tfFrom I :: ⟨0x77⟩ :: [solcSelectorWord I], tfMG I,
         UInt256.ofNat 3, ByteArray.empty,
-        ⟨cA, sstoreAccountMap I.codeOwner (tfW2 I σ) (tfST I) (tfSum I σ), A.logSeries⟩⟩ _ _ := h3'
+        ⟨A.createdAccounts, sstoreAccountMap I.codeOwner (tfW2 I σ) (tfST I) (tfSum I σ), A.logSeries⟩⟩ _ _ := h3'
   have hlandF : UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) (tfFrom I) = tfFrom I := by
     rw [u256_land_comm, solcAddrMask_lit]; exact land_solcAddrMask_of_canon hc0
   have hlandT : UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) (tfTo I) = tfTo I := by
@@ -350,12 +350,12 @@ theorem tfRunOk {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runt
   obtain ⟨hszH, hrH, hbH⟩ := freePtr_after_write128 (tfValue I) hm (tfMG_read64 I) (tfMG_gap I)
   have hsH : 128 + 32 ≤ (tfMH I).size := toByteArray_write_size_ge_off_add32 _ _ 128 (tfMG_gap I)
   have h7 := evm_run h6 with [dup6, push1 ⟨0x40⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost (mloadFreePtrValue (by omega) (by decide) (tfMG_read64 I))
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost (mloadFreePtrValue (by omega) (tfMG_read64 I))
       (by decide) (by evm_ov),
     push2 ⟨0x31f⟩, swap2, dup2,
     raw mstore 6 (tfMH I) (UInt256.ofNat 5) (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
     push1 ⟨0x20⟩, add, swap1, jump (by jump_dest), jumpdest, push1 ⟨0x40⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost (mloadFreePtrValue hszH (by decide) hrH) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost (mloadFreePtrValue hszH hrH) (by decide)
       (by evm_ov),
     dup1, swap2, sub, swap1]
   rw [show UInt256.sub (⟨32⟩ + ⟨128⟩) ⟨128⟩ = ⟨32⟩ from by decide] at h7
@@ -364,30 +364,30 @@ theorem tfRunOk {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runt
   have h9 := evm_run h8 with [pop, push1 ⟨1⟩, swap5, swap4, pop, pop, pop, pop, jump (by jump_dest)]
   exact retBoolTrue (R := [solcSelectorWord I]) (mem := tfMH I) h9 (by omega) hrH (lt_usize _ (by omega)) (by simp)
 
-theorem tfRunShort {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem tfRunShort {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (selBytes 2)) (hshort : I.calldata.size < 100) :
-    Reverted erc20Runtime (initState cA gh bl σ σ₀ g A I) ByteArray.empty := by
+    Reverted erc20Runtime (initState σ σ₀ g A I) ByteArray.empty := by
   obtain ⟨_, _, h⟩ := tfEntry hcode hwv hsize hsel
   exact decAddrAddrU256LenRevert h (lenCheck_short (by norm_num) (size_ge_of_sel rfl hsel) hshort) (by simp)
 
-theorem tfRunHuge {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem tfRunHuge {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (selBytes 2)) (hhuge : 2 ^ 255 + 4 ≤ I.calldata.size) :
-    Reverted erc20Runtime (initState cA gh bl σ σ₀ g A I) ByteArray.empty := by
+    Reverted erc20Runtime (initState σ σ₀ g A I) ByteArray.empty := by
   obtain ⟨_, _, h⟩ := tfEntry hcode hwv hsize hsel
   exact decAddrAddrU256LenRevert h (lenCheck_huge (by norm_num) hhuge hsize) (by simp)
 
-theorem tfRunDirty0 {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem tfRunDirty0 {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (selBytes 2))
     (hsz : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4) (hnc0 : ¬ (tfFrom I).toNat < EVM.addressModulus) :
-    Reverted erc20Runtime (initState cA gh bl σ σ₀ g A I) ByteArray.empty := by
+    Reverted erc20Runtime (initState σ σ₀ g A I) ByteArray.empty := by
   obtain ⟨_, _, h⟩ := tfEntry hcode hwv hsize hsel
   exact decAddrAddrU256Dirty0Revert h hsz hbig hnc0 (by simp)
 
-theorem tfRunDirty1 {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem tfRunDirty1 {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (selBytes 2))
     (hsz : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hc0 : (tfFrom I).toNat < EVM.addressModulus) (hnc1 : ¬ (tfTo I).toNat < EVM.addressModulus) :
-    Reverted erc20Runtime (initState cA gh bl σ σ₀ g A I) ByteArray.empty := by
+    Reverted erc20Runtime (initState σ σ₀ g A I) ByteArray.empty := by
   obtain ⟨_, _, h⟩ := tfEntry hcode hwv hsize hsel
   exact decAddrAddrU256Dirty1Revert h hsz hbig hc0 hnc1 (by simp)
 
@@ -441,7 +441,7 @@ theorem tfDecl (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256) :
       (.normal (tfFr1 m f t w) m) :=
   ExecStmt.varDeclU256 (EvalExpr.mapping2AddrU256 (by frame_simp [bodyFrame, tfFrame]) erc20Flat_var_allowance rfl rfl
     (EvalExpr.localVal addrTy (some .memory) (by frame_simp [bodyFrame, tfFrame])) EvalExpr.msgSender
-    (erc20Layout_allowance f _ m.evm))
+    (erc20Leaf_allowance f _))
 
 theorem tfCondA (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256) :
     EvalExpr erc20Cfg o erc20Flat (tfFr1 m f t w) m (.binary .ge (.ident "currentAllowance") (.ident "value"))
@@ -454,7 +454,7 @@ theorem tfCondB (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256) :
       (.ok (.bool (decide (w.toNat ≤ (loadU256 m (balSlot f)).toNat))) (tfFr1 m f t w) m) :=
   EvalExpr.geU256 (EvalExpr.localVal u256 (some .memory) (by frame_simp [bodyFrame, tfFrame]))
     (EvalExpr.mappingAddrU256 (by frame_simp [bodyFrame, tfFrame]) erc20Flat_var_balanceOf rfl rfl
-      (EvalExpr.localVal addrTy (some .memory) (by frame_simp [bodyFrame, tfFrame])) (erc20Layout_balanceOf f m.evm))
+      (EvalExpr.localVal addrTy (some .memory) (by frame_simp [bodyFrame, tfFrame])) (erc20Leaf_balanceOf f))
 
 theorem tfBodyInsufficientAllowance (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256)
     (hlt : (loadU256 m (aSlot m f)).toNat < w.toNat) :
@@ -491,7 +491,7 @@ theorem tfStoreAlw (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256)
   exact ExecStmt.assignStorageU256 (w := UInt256.ofNat ((loadU256 m (aSlot m f)).toNat - w.toNat)) hsub
     (EvalLValue.mapping2Addr (by frame_simp [bodyFrame, tfFrame]) erc20Flat_var_allowance rfl rfl
       (EvalExpr.localVal addrTy (some .memory) (by frame_simp [bodyFrame, tfFrame])) EvalExpr.msgSender)
-    (erc20Layout_allowance f _ m.evm)
+    (erc20Leaf_allowance f _)
 
 /-- The common prefix of the three later outcomes: declaration, both checks, the allowance store. -/
 theorem tfPrefix (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256) {r : ExecResult}
@@ -513,7 +513,7 @@ theorem tfBodyUnderflow (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt
     (EvalExpr.localVal u256 (some .memory) (by frame_simp [bodyFrame, tfFrame]))
     (EvalLValue.mappingAddr (by frame_simp [bodyFrame, tfFrame]) erc20Flat_var_balanceOf rfl rfl
       (EvalExpr.localVal addrTy (some .memory) (by frame_simp [bodyFrame, tfFrame])))
-    (erc20Layout_balanceOf f _) (by frame_simp [bodyFrame, tfFrame]) hlt))
+    (erc20Leaf_balanceOf f) (by frame_simp [bodyFrame, tfFrame]) hlt))
 
 theorem tfDebitStmt (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256)
     (hleF : w.toNat ≤ (loadU256 (tfM1 m f w) (balSlot f)).toNat) :
@@ -524,7 +524,7 @@ theorem tfDebitStmt (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256)
     (EvalExpr.localVal u256 (some .memory) (by frame_simp [bodyFrame, tfFrame]))
     (EvalLValue.mappingAddr (by frame_simp [bodyFrame, tfFrame]) erc20Flat_var_balanceOf rfl rfl
       (EvalExpr.localVal addrTy (some .memory) (by frame_simp [bodyFrame, tfFrame])))
-    (erc20Layout_balanceOf f _) (by frame_simp [bodyFrame, tfFrame]) hleF
+    (erc20Leaf_balanceOf f) (by frame_simp [bodyFrame, tfFrame]) hleF
 
 theorem tfBodyOverflow (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256)
     (hleA : w.toNat ≤ (loadU256 m (aSlot m f)).toNat) (hleB : w.toNat ≤ (loadU256 m (balSlot f)).toNat)
@@ -536,7 +536,7 @@ theorem tfBodyOverflow (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt2
       (EvalExpr.localVal u256 (some .memory) (by frame_simp [bodyFrame, tfFrame]))
       (EvalLValue.mappingAddr (by frame_simp [bodyFrame, tfFrame]) erc20Flat_var_balanceOf rfl rfl
         (EvalExpr.localVal addrTy (some .memory) (by frame_simp [bodyFrame, tfFrame])))
-      (erc20Layout_balanceOf t _) (by frame_simp [bodyFrame, tfFrame]) hover)))
+      (erc20Leaf_balanceOf t) (by frame_simp [bodyFrame, tfFrame]) hover)))
 
 theorem tfBodyOk (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256)
     (hleA : w.toNat ≤ (loadU256 m (aSlot m f)).toNat) (hleB : w.toNat ≤ (loadU256 m (balSlot f)).toNat)
@@ -549,7 +549,7 @@ theorem tfBodyOk (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256)
     (EvalExpr.localVal u256 (some .memory) (by frame_simp [bodyFrame, tfFrame]))
     (EvalLValue.mappingAddr (by frame_simp [bodyFrame, tfFrame]) erc20Flat_var_balanceOf rfl rfl
       (EvalExpr.localVal addrTy (some .memory) (by frame_simp [bodyFrame, tfFrame])))
-    (erc20Layout_balanceOf t _) (by frame_simp [bodyFrame, tfFrame]) hfit) ?_
+    (erc20Leaf_balanceOf t) (by frame_simp [bodyFrame, tfFrame]) hfit) ?_
   refine ExecBlock.cons (ExecStmt.emitAddrAddrU256 (a := f) (b := t) (n := w) erc20Flat_eventsNamed_Transfer rfl rfl rfl
     (EvalExprs.three (EvalExpr.localVal addrTy (some .memory) (by frame_simp [bodyFrame, tfFrame]))
       (EvalExpr.localVal addrTy (some .memory) (by frame_simp [bodyFrame, tfFrame]))
@@ -587,52 +587,52 @@ theorem tfBind (I : ExecutionEnv) :
       some ([.address (tfFromA I), .address (tfToA I), u256Val (tfValue I).toNat], {}) := by
   simp [ofAbiParams, fnTransferFrom, fuelDefault, calldataRef]
 
-theorem tfSpecOk (o : Oracle) {cA gh bl σ σ₀ g A I} (hsel : selIs I (selBytes 2)) (hwv : I.weiValue = ⟨0⟩)
+theorem tfSpecOk (o : Oracle) {σ σ₀ g A I} (hsel : selIs I (selBytes 2)) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hc0 : (tfFrom I).toNat < EVM.addressModulus) (hc1 : (tfTo I).toNat < EVM.addressModulus)
-    (hleA : (tfValue I).toNat ≤ (loadU256 (initMachine cA gh bl σ σ₀ g A I) (aSlot (initMachine cA gh bl σ σ₀ g A I) (tfFromA I))).toNat)
-    (hleB : (tfValue I).toNat ≤ (loadU256 (initMachine cA gh bl σ σ₀ g A I) (balSlot (tfFromA I))).toNat)
-    (hleF : (tfValue I).toNat ≤ (loadU256 (tfM1 (initMachine cA gh bl σ σ₀ g A I) (tfFromA I) (tfValue I)) (balSlot (tfFromA I))).toNat)
-    (hfit : (loadU256 (tfM2 (initMachine cA gh bl σ σ₀ g A I) (tfFromA I) (tfValue I)) (balSlot (tfToA I))).toNat +
+    (hleA : (tfValue I).toNat ≤ (loadU256 (initMachine σ σ₀ g A I ∅) (aSlot (initMachine σ σ₀ g A I ∅) (tfFromA I))).toNat)
+    (hleB : (tfValue I).toNat ≤ (loadU256 (initMachine σ σ₀ g A I ∅) (balSlot (tfFromA I))).toNat)
+    (hleF : (tfValue I).toNat ≤ (loadU256 (tfM1 (initMachine σ σ₀ g A I ∅) (tfFromA I) (tfValue I)) (balSlot (tfFromA I))).toNat)
+    (hfit : (loadU256 (tfM2 (initMachine σ σ₀ g A I ∅) (tfFromA I) (tfValue I)) (balSlot (tfToA I))).toNat +
       (tfValue I).toNat < UInt256.size) :
-    solidityExec erc20Cfg o erc20Flat cA gh bl σ σ₀ g A I
-      (.returned (tfFinal (initMachine cA gh bl σ σ₀ g A I) (tfFromA I) (tfToA I) (tfValue I)) [.bool true])
+    solidityExec erc20Cfg o erc20Flat ∅ σ σ₀ g A I
+      (.returned (tfFinal (initMachine σ σ₀ g A I ∅) (tfFromA I) (tfToA I) (tfValue I)) [.bool true])
       (.abi [.elem .bool]) := by
   have hprep : prepareArgs erc20Flat.types I.calldata fuelDefault
-      (tfFinal (initMachine cA gh bl σ σ₀ g A I) (tfFromA I) (tfToA I) (tfValue I)).heap [.bool true] =
-      some (.ok ([.bool true], (tfFinal (initMachine cA gh bl σ σ₀ g A I) (tfFromA I) (tfToA I) (tfValue I)).heap)) :=
+      (tfFinal (initMachine σ σ₀ g A I ∅) (tfFromA I) (tfToA I) (tfValue I)).heap [.bool true] =
+      some (.ok ([.bool true], (tfFinal (initMachine σ σ₀ g A I ∅) (tfFromA I) (tfToA I) (tfValue I)).heap)) :=
     prepareArgs_of_noRaw (fuel := 1023) (by simp)
   exact solidityExec.call (erc20Dispatch_transferFrom hsel) erc20Flat_fns3 (Or.inr hwv) rfl (tfArgs hsz hbig hc0 hc1)
-    (tfBind I) (tfCallOk o (initMachine cA gh bl σ σ₀ g A I) (tfFromA I) (tfToA I) (tfValue I) hleA hleB hleF hfit) hprep
+    (tfBind I) (tfCallOk o (initMachine σ σ₀ g A I ∅) (tfFromA I) (tfToA I) (tfValue I) hleA hleB hleF hfit) hprep
     (by simp [fuelDefault])
 
-theorem tfSpecRevert (o : Oracle) {cA gh bl σ σ₀ g A I} {d : ByteArray} (hsel : selIs I (selBytes 2)) (hwv : I.weiValue = ⟨0⟩)
+theorem tfSpecRevert (o : Oracle) {σ σ₀ g A I} {d : ByteArray} (hsel : selIs I (selBytes 2)) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hc0 : (tfFrom I).toNat < EVM.addressModulus) (hc1 : (tfTo I).toNat < EVM.addressModulus)
     (hb : ExecBlock erc20Cfg o erc20Flat (bodyFrame (tfFrame (tfFromA I) (tfToA I) (tfValue I)) tfStmts)
-      (initMachine cA gh bl σ σ₀ g A I) tfStmts (.reverted d)) :
-    solidityExec erc20Cfg o erc20Flat cA gh bl σ σ₀ g A I (.reverted d) (.abi [.elem .bool]) :=
+      (initMachine σ σ₀ g A I ∅) tfStmts (.reverted d)) :
+    solidityExec erc20Cfg o erc20Flat ∅ σ σ₀ g A I (.reverted d) (.abi [.elem .bool]) :=
   solidityExec.callReverted (erc20Dispatch_transferFrom hsel) erc20Flat_fns3 (Or.inr hwv) rfl (tfArgs hsz hbig hc0 hc1)
     (tfBind I) (tfCallRevert o _ _ _ _ hb)
 
 /-! ## The coupled result -/
 
-theorem transferFromCorrect {cA gh bl σ_evm σ_spec σ₀ A I} {g : UInt256}
+theorem transferFromCorrect {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Runtime) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
-    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I (selBytes 2)) (hAccounts : Refinement.accountMapEquiv σ_evm σ_spec) :
-    runtimeEquivalenceFor erc20Cfg erc20Flat cA gh bl σ_evm σ_spec σ₀ g A I := by
+    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I (selBytes 2)) :
+    runtimeEquivalenceFor erc20Cfg erc20Flat σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size := size_ge_of_sel rfl hsel
   have hdec : decodeArgs erc20Cfg erc20Flat.types fnTransferFrom.decl I.calldata = none →
-      Reverted erc20Runtime (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ByteArray.empty →
-      runtimeEquivalenceFor erc20Cfg erc20Flat cA gh bl σ_evm σ_spec σ₀ g A I := fun hd h =>
+      Reverted erc20Runtime (initState σ σ₀ (Sat256.ofUInt256 g) A I) ByteArray.empty →
+      runtimeEquivalenceFor erc20Cfg erc20Flat σ σ₀ g A I := fun hd h =>
     Reverted.specDecodingFailed hcode h (erc20Dispatch_transferFrom hsel) erc20Flat_fns3 (Or.inr hwv)
       (decodeCallArgs_none_of_decodeArgs hd)
   by_cases hsz : 100 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hc0 : (tfFrom I).toNat < EVM.addressModulus
       · by_cases hc1 : (tfTo I).toNat < EVM.addressModulus
-        · set m0 := initMachine cA gh bl σ_spec σ₀ g A I with hm0
-          have hw0 : WorldEquiv ⟨cA, σ_evm, A.logSeries⟩ m0 := WorldEquiv.init {} hAccounts
+        · set m0 := initMachine σ σ₀ g A I ∅ with hm0
+          have hw0 : WorldEquiv ⟨A.createdAccounts, σ, A.logSeries⟩ m0 := WorldEquiv.init ∅ {}
           have hslotA : aSlot m0 (tfFromA I) = tfSA I := by
             rw [aSlot, alwSlot_eq, hm0, initMachine_executionEnv]
             show solcMappingSlot (solcMappingSlot ⟨1⟩ (UInt256.ofNat (AccountAddress.ofNat (tfFrom I).toNat).toNat))
@@ -646,46 +646,46 @@ theorem transferFromCorrect {cA gh bl σ_evm σ_spec σ₀ A I} {g : UInt256}
             rw [balSlot_eq]
             show solcMappingSlot ⟨0⟩ (UInt256.ofNat (AccountAddress.ofNat (tfTo I).toNat).toNat) = _
             rw [addrWord_canon hc1]
-          have halw : tfAlw I σ_evm = loadU256 m0 (aSlot m0 (tfFromA I)) := by rw [hslotA]; exact hw0.sload rfl _
-          have hbalF : tfBalF I σ_evm = loadU256 m0 (balSlot (tfFromA I)) := by rw [hslotF]; exact hw0.sload rfl _
-          by_cases hleA : (tfValue I).toNat ≤ (tfAlw I σ_evm).toNat
+          have halw : tfAlw I σ = loadU256 m0 (aSlot m0 (tfFromA I)) := by rw [hslotA]; exact hw0.sload rfl _
+          have hbalF : tfBalF I σ = loadU256 m0 (balSlot (tfFromA I)) := by rw [hslotF]; exact hw0.sload rfl _
+          by_cases hleA : (tfValue I).toNat ≤ (tfAlw I σ).toNat
           · have hleA' : (tfValue I).toNat ≤ (loadU256 m0 (aSlot m0 (tfFromA I))).toNat := by rw [← halw]; exact hleA
-            by_cases hleB : (tfValue I).toNat ≤ (tfBalF I σ_evm).toNat
+            by_cases hleB : (tfValue I).toNat ≤ (tfBalF I σ).toNat
             · have hleB' : (tfValue I).toNat ≤ (loadU256 m0 (balSlot (tfFromA I))).toNat := by rw [← hbalF]; exact hleB
-              have hnew : UInt256.ofNat ((loadU256 m0 (aSlot m0 (tfFromA I))).toNat - (tfValue I).toNat) = tfNewAlw I σ_evm := by
-                have hb : (tfAlw I σ_evm).toNat < UInt256.size := (tfAlw I σ_evm).val.isLt
+              have hnew : UInt256.ofNat ((loadU256 m0 (aSlot m0 (tfFromA I))).toNat - (tfValue I).toNat) = tfNewAlw I σ := by
+                have hb : (tfAlw I σ).toNat < UInt256.size := (tfAlw I σ).val.isLt
                 rw [← halw]; apply u256_inj; rw [ulit_toNat' _ (by omega), usub_toNat hleA]
-              have hw1 : WorldEquiv ⟨cA, tfW1 I σ_evm, A.logSeries⟩ (tfM1 m0 (tfFromA I) (tfValue I)) := by
-                show WorldEquiv ⟨cA, sstoreAccountMap I.codeOwner σ_evm (tfSA I) (tfNewAlw I σ_evm), A.logSeries⟩ _
+              have hw1 : WorldEquiv ⟨A.createdAccounts, tfW1 I σ, A.logSeries⟩ (tfM1 m0 (tfFromA I) (tfValue I)) := by
+                show WorldEquiv ⟨A.createdAccounts, sstoreAccountMap I.codeOwner σ (tfSA I) (tfNewAlw I σ), A.logSeries⟩ _
                 rw [← hnew, ← hslotA]
                 exact hw0.sstore (owner := I.codeOwner) rfl (aSlot m0 (tfFromA I)) _
               have hown1 : I.codeOwner = (tfM1 m0 (tfFromA I) (tfValue I)).evm.executionEnv.codeOwner := by
                 rw [storeU256_executionEnv, hm0, initMachine_executionEnv]
-              have hbalF1 : tfBalF1 I σ_evm = loadU256 (tfM1 m0 (tfFromA I) (tfValue I)) (balSlot (tfFromA I)) := by
+              have hbalF1 : tfBalF1 I σ = loadU256 (tfM1 m0 (tfFromA I) (tfValue I)) (balSlot (tfFromA I)) := by
                 rw [hslotF]; exact hw1.sload (I := I) hown1 (tfSF I)
-              by_cases hleF : (tfValue I).toNat ≤ (tfBalF1 I σ_evm).toNat
+              by_cases hleF : (tfValue I).toNat ≤ (tfBalF1 I σ).toNat
               · have hleF' : (tfValue I).toNat ≤ (loadU256 (tfM1 m0 (tfFromA I) (tfValue I)) (balSlot (tfFromA I))).toNat := by
                   rw [← hbalF1]; exact hleF
                 have hdiff : UInt256.ofNat ((loadU256 (tfM1 m0 (tfFromA I) (tfValue I)) (balSlot (tfFromA I))).toNat -
-                    (tfValue I).toNat) = tfDiff I σ_evm := by
-                  have hb : (tfBalF1 I σ_evm).toNat < UInt256.size := (tfBalF1 I σ_evm).val.isLt
+                    (tfValue I).toNat) = tfDiff I σ := by
+                  have hb : (tfBalF1 I σ).toNat < UInt256.size := (tfBalF1 I σ).val.isLt
                   rw [← hbalF1]; apply u256_inj; rw [ulit_toNat' _ (by omega), usub_toNat hleF]
-                have hw2 : WorldEquiv ⟨cA, tfW2 I σ_evm, A.logSeries⟩ (tfM2 m0 (tfFromA I) (tfValue I)) := by
-                  show WorldEquiv ⟨cA, sstoreAccountMap I.codeOwner (tfW1 I σ_evm) (tfSF I) (tfDiff I σ_evm), A.logSeries⟩ _
+                have hw2 : WorldEquiv ⟨A.createdAccounts, tfW2 I σ, A.logSeries⟩ (tfM2 m0 (tfFromA I) (tfValue I)) := by
+                  show WorldEquiv ⟨A.createdAccounts, sstoreAccountMap I.codeOwner (tfW1 I σ) (tfSF I) (tfDiff I σ), A.logSeries⟩ _
                   rw [← hdiff, ← hslotF]
                   exact hw1.sstore (owner := I.codeOwner) hown1 (balSlot (tfFromA I)) _
                 have hown2 : I.codeOwner = (tfM2 m0 (tfFromA I) (tfValue I)).evm.executionEnv.codeOwner := by
                   rw [storeU256_executionEnv, storeU256_executionEnv, hm0, initMachine_executionEnv]
-                have hbalT : tfBalT I σ_evm = loadU256 (tfM2 m0 (tfFromA I) (tfValue I)) (balSlot (tfToA I)) := by
+                have hbalT : tfBalT I σ = loadU256 (tfM2 m0 (tfFromA I) (tfValue I)) (balSlot (tfToA I)) := by
                   rw [hslotT]; exact hw2.sload (I := I) hown2 (tfST I)
-                by_cases hfit : (tfValue I).toNat + (tfBalT I σ_evm).toNat < UInt256.size
+                by_cases hfit : (tfValue I).toNat + (tfBalT I σ).toNat < UInt256.size
                 · have hfit' : (loadU256 (tfM2 m0 (tfFromA I) (tfValue I)) (balSlot (tfToA I))).toNat + (tfValue I).toNat <
                       UInt256.size := by rw [← hbalT]; omega
                   have hsum : UInt256.ofNat ((loadU256 (tfM2 m0 (tfFromA I) (tfValue I)) (balSlot (tfToA I))).toNat +
-                      (tfValue I).toNat) = tfSum I σ_evm := by
+                      (tfValue I).toNat) = tfSum I σ := by
                     rw [← hbalT]; apply u256_inj
                     rw [ulit_toNat' _ (by omega), uadd_toNat, Nat.add_comm, Nat.mod_eq_of_lt (by omega)]
-                  have hw3 : WorldEquiv ⟨cA, sstoreAccountMap I.codeOwner (tfW2 I σ_evm) (tfST I) (tfSum I σ_evm), A.logSeries⟩
+                  have hw3 : WorldEquiv ⟨A.createdAccounts, sstoreAccountMap I.codeOwner (tfW2 I σ) (tfST I) (tfSum I σ), A.logSeries⟩
                       (tfM3 m0 (tfFromA I) (tfToA I) (tfValue I)) := by
                     rw [← hsum, ← hslotT]
                     exact hw2.sstore (owner := I.codeOwner) hown2 (balSlot (tfToA I)) _
@@ -693,7 +693,7 @@ theorem transferFromCorrect {cA gh bl σ_evm σ_spec σ₀ A I} {g : UInt256}
                     simp only [tfLe, Machine.this, tfM2, tfM1, storeU256, storageStore_executionEnv, hm0,
                       initMachine_executionEnv, evTransfer_topic, addrWord_canon hc0, addrWord_canon hc1, tfLog, transferTopic]
                   have hw4 := hw3.pushLog (tfLe m0 (tfFromA I) (tfToA I) (tfValue I))
-                  have hrun := tfRunOk (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
+                  have hrun := tfRunOk (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
                     hcode hwv hsize hperm hsel hsz hbig hc0 hc1 hleA hleB hleF hfit
                   rw [← hle3] at hrun
                   exact Returned.specExecutionW default hcode hrun (tfSpecOk default hsel hwv hsz hbig hc0 hc1 hleA' hleB' hleF' hfit')

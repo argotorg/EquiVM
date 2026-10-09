@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-!
 # Ballot in the Solidity spec language

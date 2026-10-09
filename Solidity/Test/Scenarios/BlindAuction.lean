@@ -1,6 +1,6 @@
 import Solidity.Test.Harness
 import Solidity.Test.Specs.BlindAuction
-import Solm.Examples.BlindAuction.Bytecode
+import Examples.BlindAuction.Bytecode
 import Solidity.Test.Fixtures.BlindAuctionSolc
 
 /-! # Differential cases: BlindAuction. -/
@@ -18,15 +18,15 @@ def stamp (t : Nat) : Ethereum.BlockHeader := { (default : Ethereum.BlockHeader)
 
 def sv (n : String) (v : Nat) : Solm.EvaledStorageRef × Nat := (⟨n, []⟩, v)
 def pend (a n : Nat) : Solm.EvaledStorageRef × Nat := (⟨"pendingReturns", [.mindex (.address (addr a))]⟩, n)
-def bidsLen (a n : Nat) : Solm.EvaledStorageRef × Nat := (⟨"bids", [.mindex (.address (addr a)), .length]⟩, n)
+def bidsLen (a n : Nat) : Solm.EvaledStorageRef × Nat := (⟨"bids", [.mindex (.address (addr a))]⟩, n)
 def bidField (a i : Nat) (f : String) (v : Nat) : Solm.EvaledStorageRef × Nat :=
   (⟨"bids", [.mindex (.address (addr a)), .aindex (.int i), .field f]⟩, v)
 
 /-- `keccak256(abi.encodePacked(value, fake, secret))` as a word. -/
 def blinded (value : Nat) (fake : Bool) (secret : Nat) : Nat :=
-  natOfBytes (ffi.KEC (wordBytes value ++ ⟨#[if fake then 1 else 0]⟩ ++ wordBytes secret))
+  natOfBytes (Ethereum.KEC (wordBytes value ++ ⟨#[if fake then 1 else 0]⟩ ++ wordBytes secret))
 
-def b32 (n : Nat) : ABI.ABIValue := .fixedBytes ⟨31, by decide⟩ (wordBytes n).toList
+def b32 (n : Nat) : Solm.Value := .fixedBytes ⟨31, by decide⟩ (wordBytes n).toList
 
 /-- One placed bid of `S`: `bids[S] = [(blinded(value, fake, secret), deposit)]`. -/
 def oneBid (value : Nat) (fake : Bool) (secret deposit : Nat) : List (Solm.EvaledStorageRef × Nat) :=
@@ -35,7 +35,7 @@ def oneBid (value : Nat) (fake : Bool) (secret deposit : Nat) : List (Solm.Evale
 def times : List (Solm.EvaledStorageRef × Nat) := [sv "beneficiary" B, sv "biddingEnd" 1000, sv "revealEnd" 2000]
 
 def revealSig := "reveal(uint256[],bool[],bytes32[])"
-def revealArgs (vs : List Nat) (fs : List Bool) (ss : List Nat) : Option (String × List ABI.ABIValue) :=
+def revealArgs (vs : List Nat) (fs : List Bool) (ss : List Nat) : Option (String × List Solm.Value) :=
   some (revealSig, [.array (vs.map (.int ·)), .array (fs.map (.bool ·)), .array (ss.map b32)])
 
 /-- Hand-encoded `reveal` calldata with raw `bool` words (dirty values are validated on access). -/

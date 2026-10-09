@@ -61,7 +61,7 @@ theorem callViaEVM_det {o m t v cd perm gas res} (h : callViaEVM o m t v cd perm
     rw [if_neg]
     rintro ⟨h1, h2⟩
     rcases hor with h | h
-    · exact absurd (show (EVM.Word.ofNat v).val ≤ ((m.evm.accountMap.find? m.this).getD default).balance.val from h1)
+    · exact absurd (show (EVM.Word.ofNat v).val ≤ ((m.evm.accountMap.get? m.this).getD default).balance.val from h1)
         (not_le.mpr h)
     · exact h2 h
 
@@ -92,7 +92,7 @@ theorem newViaEVM_det {cfg o m c v args salt res} (h : newViaEVM cfg o m c v arg
     rw [if_neg]
     rintro ⟨h1, h2, h3, h4⟩
     rcases hor with h | h | h | h
-    · exact absurd (show (EVM.Word.ofNat v).val ≤ ((m.evm.accountMap.find? m.this).getD default).balance.val from h1)
+    · exact absurd (show (EVM.Word.ofNat v).val ≤ ((m.evm.accountMap.get? m.this).getD default).balance.val from h1)
         (not_le.mpr h)
     · exact h2 h
     · exact absurd h3 (not_lt.mpr h)

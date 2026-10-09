@@ -1,7 +1,9 @@
 import Solidity.Test.Specs.ERC20
 import Solidity.Examples.ERC20.Bytecode
 import Solidity.Theory.Derivations
-import EVMReasoning.SolcTrace
+import Solidity.Setup
+import Solidity.Theory.Decode
+import Reasoning.SolcTrace
 
 /-!
 # ERC20 — the elaborated Solidity spec, its static facts, and the dispatcher of the bytecode
@@ -50,7 +52,7 @@ def erc20Table : LayoutTable :=
     (varTotalSupply, 2, 0, .leaf uint256Elem 32) ]
 
 def erc20Cfg : Config :=
-  { storage := storageLayout erc20Table, selfDeployment := solcDeployment erc20Flat }
+  { storageBackend := storageBackend erc20Table, selfDeployment := solcDeployment erc20Flat }
 
 theorem erc20Cfg_eq : defaultConfig erc20Flat = some erc20Cfg := rfl
 
@@ -67,15 +69,18 @@ def balSlot (a : EVM.Address) : UInt256 := mappingSlot (.address a) ⟨0⟩
 /-- The slot of `allowance[a][b]`. -/
 def alwSlot (a b : EVM.Address) : UInt256 := mappingSlot (.address b) (mappingSlot (.address a) ⟨1⟩)
 
-theorem erc20Layout_totalSupply (evm : EVM.State) :
-    erc20Cfg.storage.layout ⟨"totalSupply", []⟩ evm = some (uint256Loc ⟨2⟩) := rfl
+/-- The storage leaves of the three state variables (`Config.Leaf`: the backend reads, writes and
+    clears them at the given location). -/
+theorem erc20Leaf_totalSupply : erc20Cfg.Leaf ⟨"totalSupply", []⟩ (uint256Loc ⟨2⟩) :=
+  Config.leaf_of_table rfl rfl
 
-theorem erc20Layout_balanceOf (a : EVM.Address) (evm : EVM.State) :
-    erc20Cfg.storage.layout ⟨"balanceOf", [.mindex (.address a)]⟩ evm = some (uint256Loc (balSlot a)) := rfl
+theorem erc20Leaf_balanceOf (a : EVM.Address) :
+    erc20Cfg.Leaf ⟨"balanceOf", [.mindex (.address a)]⟩ (uint256Loc (balSlot a)) :=
+  Config.leaf_of_table rfl rfl
 
-theorem erc20Layout_allowance (a b : EVM.Address) (evm : EVM.State) :
-    erc20Cfg.storage.layout ⟨"allowance", [.mindex (.address a), .mindex (.address b)]⟩ evm =
-      some (uint256Loc (alwSlot a b)) := rfl
+theorem erc20Leaf_allowance (a b : EVM.Address) :
+    erc20Cfg.Leaf ⟨"allowance", [.mindex (.address a), .mindex (.address b)]⟩ (uint256Loc (alwSlot a b)) :=
+  Config.leaf_of_table rfl rfl
 
 @[simp] theorem keyRef_balanceOf (a : EVM.Address) :
     keyRef ⟨"balanceOf", []⟩ (.address a) = ⟨"balanceOf", [.mindex (.address a)]⟩ := rfl
@@ -350,23 +355,23 @@ theorem erc20Dispatches_false {cd : ByteArray} (hsel : selectorDispatch erc20Fla
   rfl
 
 theorem decodeArgs_approve (cd : ByteArray) :
-    decodeArgs erc20Cfg erc20Flat.types fnApprove.decl cd = ABI.decodeCalldataValues? [abiAddr, abiU256] cd .modern :=
+    decodeArgs erc20Cfg erc20Flat.types fnApprove.decl cd = decodeCalldataValues? [abiAddr, abiU256] cd .modern :=
   decodeArgs_eq rfl
 theorem decodeArgs_transfer (cd : ByteArray) :
-    decodeArgs erc20Cfg erc20Flat.types fnTransfer.decl cd = ABI.decodeCalldataValues? [abiAddr, abiU256] cd .modern :=
+    decodeArgs erc20Cfg erc20Flat.types fnTransfer.decl cd = decodeCalldataValues? [abiAddr, abiU256] cd .modern :=
   decodeArgs_eq rfl
 theorem decodeArgs_transferFrom (cd : ByteArray) :
     decodeArgs erc20Cfg erc20Flat.types fnTransferFrom.decl cd =
-      ABI.decodeCalldataValues? [abiAddr, abiAddr, abiU256] cd .modern :=
+      decodeCalldataValues? [abiAddr, abiAddr, abiU256] cd .modern :=
   decodeArgs_eq rfl
 theorem decodeArgs_balanceOf (cd : ByteArray) :
-    decodeArgs erc20Cfg erc20Flat.types fnBalanceOf.decl cd = ABI.decodeCalldataValues? [abiAddr] cd .modern :=
+    decodeArgs erc20Cfg erc20Flat.types fnBalanceOf.decl cd = decodeCalldataValues? [abiAddr] cd .modern :=
   decodeArgs_eq rfl
 theorem decodeArgs_allowance (cd : ByteArray) :
-    decodeArgs erc20Cfg erc20Flat.types fnAllowance.decl cd = ABI.decodeCalldataValues? [abiAddr, abiAddr] cd .modern :=
+    decodeArgs erc20Cfg erc20Flat.types fnAllowance.decl cd = decodeCalldataValues? [abiAddr, abiAddr] cd .modern :=
   decodeArgs_eq rfl
 theorem decodeArgs_totalSupply (cd : ByteArray) :
-    decodeArgs erc20Cfg erc20Flat.types fnTotalSupply.decl cd = ABI.decodeCalldataValues? [] cd .modern :=
+    decodeArgs erc20Cfg erc20Flat.types fnTotalSupply.decl cd = decodeCalldataValues? [] cd .modern :=
   decodeArgs_eq rfl
 
 /-! ## The dispatcher of the bytecode -/
@@ -400,7 +405,7 @@ theorem armMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 6) (hsz : 4 ≤ I.call
     interval_cases i <;> decide
 
 /-- From `initState` to the body entry of arm `i`, the selector word on the stack. -/
-theorem reachBody {cA gh bl σ σ₀ A I} {g : Sat256} (i : ℕ) (hi5 : i ≤ 5) (bodyPC : UInt256)
+theorem reachBody {σ σ₀ A I} {g : Sat256} (i : ℕ) (hi5 : i ≤ 5) (bodyPC : UInt256)
     (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (heq0 : ∀ j, j < i →
@@ -408,42 +413,42 @@ theorem reachBody {cA gh bl σ σ₀ A I} {g : Sat256} (i : ℕ) (hi5 : i ≤ 5)
     (htake : UInt256.eq (armSelNat erc20Runtime (nthArmPc erc20Runtime firstArmPc i)) (solcSelectorWord I) ≠ ⟨0⟩)
     (hjd : (D_J erc20Runtime 0).contains bodyPC = true)
     (hbody : armTgt erc20Runtime (nthArmPc erc20Runtime firstArmPc i) = bodyPC) :
-    ∃ k C, Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
-      ⟨bodyPC, [solcSelectorWord I], solcFreePtrMem, UInt256.ofNat 3, ByteArray.empty, ⟨cA, σ, A.logSeries⟩⟩ k C := by
-  obtain ⟨_, _, h⟩ := Run.solcDispatchReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    ∃ k C, Run erc20Runtime (initState σ σ₀ g A I)
+      ⟨bodyPC, [solcSelectorWord I], solcFreePtrMem, UInt256.ofNat 3, ByteArray.empty, ⟨A.createdAccounts, σ, A.logSeries⟩⟩ k C := by
+  obtain ⟨_, _, h⟩ := Run.solcDispatchReachSelector (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) hcode hwv hsz hsize prefixWf (by jump_dest)
   obtain ⟨_, _, h'⟩ := Run.dispatchNoMatch i h (fun j hj => armsWf j (by omega)) heq0 (by simp)
   subst hbody
   exact ⟨_, _, h'.selectorArmTakenAuto (armsWf i hi5) htake hjd (by simp)⟩
 
 /-- The run to a body, from the selector match alone. -/
-theorem reachBodyOf {cA gh bl σ σ₀ A I} {g : Sat256} (i : ℕ) (hi : i < 6) (bodyPC : UInt256)
+theorem reachBodyOf {σ σ₀ A I} {g : Sat256} (i : ℕ) (hi : i < 6) (bodyPC : UInt256)
     (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (selBytes i))
     (hjd : (D_J erc20Runtime 0).contains bodyPC = true)
     (hbody : armTgt erc20Runtime (nthArmPc erc20Runtime firstArmPc i) = bodyPC) :
-    ∃ k C, Run erc20Runtime (initState cA gh bl σ σ₀ g A I)
-      ⟨bodyPC, [solcSelectorWord I], solcFreePtrMem, UInt256.ofNat 3, ByteArray.empty, ⟨cA, σ, A.logSeries⟩⟩ k C := by
+    ∃ k C, Run erc20Runtime (initState σ σ₀ g A I)
+      ⟨bodyPC, [solcSelectorWord I], solcFreePtrMem, UInt256.ofNat 3, ByteArray.empty, ⟨A.createdAccounts, σ, A.logSeries⟩⟩ k C := by
   have hsz : 4 ≤ I.calldata.size := size_ge_of_sel (by interval_cases i <;> rfl) hsel
   obtain ⟨heq0, htake⟩ := armMatches i hi hsz hsel
   exact reachBody i (by omega) bodyPC hcode hwv hsz hsize heq0 htake hjd hbody
 
 /-! ### The dispatcher's reverts -/
 
-theorem revertNonPayable {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue ≠ ⟨0⟩) :
-    Reverted erc20Runtime (initState cA gh bl σ σ₀ g A I) ByteArray.empty :=
+theorem revertNonPayable {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue ≠ ⟨0⟩) :
+    Reverted erc20Runtime (initState σ σ₀ g A I) ByteArray.empty :=
   Run.solcDispatchNonPayableRevert hcode hwv prefixWf (by decide) (by decide) (by decide)
 
-theorem revertShort {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem revertShort {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hshort : I.calldata.size < 4) :
-    Reverted erc20Runtime (initState cA gh bl σ σ₀ g A I) ByteArray.empty :=
+    Reverted erc20Runtime (initState σ σ₀ g A I) ByteArray.empty :=
   Run.solcDispatchShortRevert hcode hwv hshort prefixWf (by jump_dest) (by decide) (by jump_dest) (by decide)
     (by decide) (by decide)
 
-theorem revertNoMatch {cA gh bl σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
+theorem revertNoMatch {σ σ₀ A I} {g : Sat256} (hcode : I.code = erc20Runtime) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 6 → (selBytes i == I.calldata.extract 0 4) = false) :
-    Reverted erc20Runtime (initState cA gh bl σ σ₀ g A I) ByteArray.empty := by
+    Reverted erc20Runtime (initState σ σ₀ g A I) ByteArray.empty := by
   have heq0 : ∀ j, j < 6 →
       UInt256.eq (armSelNat erc20Runtime (nthArmPc erc20Runtime firstArmPc j)) (solcSelectorWord I) = ⟨0⟩ := by
     intro j hj

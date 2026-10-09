@@ -14,11 +14,11 @@ open Solidity.Test
 def creation : ByteArray := bytesOfHex Fixtures.arithCreationHex
 def runtime : ByteArray := bytesOfHex Fixtures.arithRuntimeHex
 
-def mk (sig : String) (args : List ABI.ABIValue) (tag : String := "") : Case :=
+def mk (sig : String) (args : List Solm.Value) (tag : String := "") : Case :=
   { name := s!"{sig} {tag}", code := runtime, call := some (sig, args) }
 
-def b4 (n : Nat) : ABI.ABIValue := .fixedBytes ⟨3, by decide⟩ ((wordBytes n).toList.drop 28)
-def b32 (n : Nat) : ABI.ABIValue := .fixedBytes ⟨31, by decide⟩ (wordBytes n).toList
+def b4 (n : Nat) : Solm.Value := .fixedBytes ⟨3, by decide⟩ ((wordBytes n).toList.drop 28)
+def b32 (n : Nat) : Solm.Value := .fixedBytes ⟨31, by decide⟩ (wordBytes n).toList
 
 def call1 (sig : String) (xs : List Int) : List Case := xs.map fun a => mk sig [.int a] s!"{a}"
 def call2 (sig : String) (xs ys : List Int) : List Case :=
@@ -142,7 +142,7 @@ uses the type of the branch taken.  The spec must state the conversion (`c ? uin
 
 def condRuntime : ByteArray := bytesOfHex Fixtures.condRuntimeHex
 
-def mkCond (sig : String) (args : List ABI.ABIValue) (tag : String) (known : Bool) : Case :=
+def mkCond (sig : String) (args : List Solm.Value) (tag : String) (known : Bool) : Case :=
   { name := s!"{sig} {tag}", code := condRuntime, call := some (sig, args),
     known := if known then some "conditional typed by the branch taken, not the common type" else none }
 

@@ -20,7 +20,7 @@ def MAX : Int := 2 ^ 256 - 1
 def st (lg : Nat) (a := 5) (l := 14) (r := 10) (d := 4) : List (Solm.EvaledStorageRef × Nat) :=
   [(⟨"a", []⟩, a), (⟨"log", []⟩, lg), (⟨"l", []⟩, l), (⟨"r", []⟩, r), (⟨"sides", []⟩, 4), (⟨"d", []⟩, d)]
 
-def mk (sig : String) (args : List ABI.ABIValue) (tag : String := "") (lg : Nat := 0) : Case :=
+def mk (sig : String) (args : List Solm.Value) (tag : String := "") (lg : Nat := 0) : Case :=
   { name := s!"{sig} {tag}", code := runtime, call := some (sig, args), refs := st lg }
 
 def ctor (x y : Int) (value : Nat := 0) : Case :=

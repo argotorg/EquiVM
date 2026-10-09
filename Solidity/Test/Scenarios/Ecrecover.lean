@@ -11,14 +11,14 @@ open Solidity.Test
 def creation : ByteArray := bytesOfHex Fixtures.ecrecoverCreationHex
 def runtime : ByteArray := bytesOfHex Fixtures.ecrecoverRuntimeHex
 
-def b32 (n : Nat) : ABI.ABIValue := .fixedBytes ⟨31, by decide⟩ (wordBytes n).toList
+def b32 (n : Nat) : Solm.Value := .fixedBytes ⟨31, by decide⟩ (wordBytes n).toList
 
 /-- A valid secp256k1 signature (go-ethereum's `TestRecoverSanity` vector, recovery id 1). -/
 def msgHash : Nat := 0xce0677bb30baa8cf067c88db9811f4333d131bf8bcf12fe7065d211dce971008
 def sigR : Nat := 0x90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e54998
 def sigS : Nat := 0x4a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc93
 
-def args (h v r s : Nat) : List ABI.ABIValue := [b32 h, .int v, b32 r, b32 s]
+def args (h v r s : Nat) : List Solm.Value := [b32 h, .int v, b32 r, b32 s]
 
 def rt (name : String) (c : Case) : Case := { c with name := name, code := runtime }
 

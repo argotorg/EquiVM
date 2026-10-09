@@ -1,6 +1,6 @@
 import Solidity.Test.Harness
 import Solidity.Test.Specs.Pow
-import Solm.Examples.Pow.Bytecode
+import Examples.Pow.Bytecode
 import Solidity.Test.Fixtures.PowSolc
 
 /-! # Differential cases: Pow. -/

@@ -1,6 +1,6 @@
 import Solidity.Test.Harness
 import Solidity.Test.Specs.ERC20
-import Solm.Examples.ERC20.Bytecode
+import Examples.ERC20.Bytecode
 import Solidity.Test.Fixtures.ERC20Solc
 import Solidity.Examples.ERC20.Bytecode
 

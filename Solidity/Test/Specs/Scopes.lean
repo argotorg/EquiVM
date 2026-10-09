@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-! Scopes (`Solidity/Test/Fixtures/Scopes.sol`).  Harness input only. -/
 

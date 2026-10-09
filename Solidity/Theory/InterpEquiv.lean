@@ -40,24 +40,24 @@ theorem ctorPayableB_false {I : Ethereum.ExecutionEnv} (h : ¬ ctorPayable fc I)
 
 /-! ## Completeness of the message-call entry point -/
 
-theorem interpExec_complete {cA gh bl σ σ₀ g A I res conv}
-    (h : solidityExec cfg o fc cA gh bl σ σ₀ g A I res conv) :
-    ∃ n, ∀ k, n ≤ k → (interpExec cfg o fc k cA gh bl σ σ₀ g A I).run = some (.ok (res, conv)) := by
+theorem interpExec_complete {immutables σ σ₀ g A I res conv}
+    (h : solidityExec cfg o fc immutables σ σ₀ g A I res conv) :
+    ∃ n, ∀ k, n ≤ k → (interpExec cfg o fc k immutables σ σ₀ g A I).run = some (.ok (res, conv)) := by
   cases h with
   | call he hfn hpay hret hsvs hvs hc hprep hout =>
     obtain ⟨n, ih⟩ := callFn_complete hc
     refine ⟨n, fun k hk => ?_⟩
-    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine cA gh bl σ σ₀ g A I _) _ _ = some (.ok (_, _)) := ih k hk
+    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine σ σ₀ g A I immutables _) _ _ = some (.ok (_, _)) := ih k hk
     interp_simp [interpExec, he, hfn, hret, hsvs, hvs, hprep, hout, ih', payableOrNoValue_false hpay]
   | callReturnPanic he hfn hpay hret hsvs hvs hc hprep =>
     obtain ⟨n, ih⟩ := callFn_complete hc
     refine ⟨n, fun k hk => ?_⟩
-    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine cA gh bl σ σ₀ g A I _) _ _ = some (.ok (_, _)) := ih k hk
+    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine σ σ₀ g A I immutables _) _ _ = some (.ok (_, _)) := ih k hk
     interp_simp [interpExec, he, hfn, hret, hsvs, hvs, hprep, ih', payableOrNoValue_false hpay]
   | callReverted he hfn hpay hret hsvs hvs hc =>
     obtain ⟨n, ih⟩ := callFn_complete hc
     refine ⟨n, fun k hk => ?_⟩
-    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine cA gh bl σ σ₀ g A I _) _ _ = some (.error _) := ih k hk
+    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine σ σ₀ g A I immutables _) _ _ = some (.error _) := ih k hk
     interp_simp [interpExec, he, hfn, hret, hsvs, hvs, ih', payableOrNoValue_false hpay]
   | nonPayable he hfn h1 h2 hret =>
     refine ⟨0, fun k _ => ?_⟩
@@ -65,22 +65,22 @@ theorem interpExec_complete {cA gh bl σ σ₀ g A I res conv}
   | receive hsz hrec hfn hc =>
     obtain ⟨n, ih⟩ := callFn_complete hc
     refine ⟨n, fun k hk => ?_⟩
-    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine cA gh bl σ σ₀ g A I) _ [] = some (.ok (_, _)) := ih k hk
+    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine σ σ₀ g A I immutables) _ [] = some (.ok (_, _)) := ih k hk
     interp_simp [interpExec, selectorDispatch_empty hsz, hsz, hrec, hfn, ih']
   | receiveReverted hsz hrec hfn hc =>
     obtain ⟨n, ih⟩ := callFn_complete hc
     refine ⟨n, fun k hk => ?_⟩
-    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine cA gh bl σ σ₀ g A I) _ [] = some (.error _) := ih k hk
+    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine σ σ₀ g A I immutables) _ [] = some (.error _) := ih k hk
     interp_simp [interpExec, selectorDispatch_empty hsz, hsz, hrec, hfn, ih']
   | fallback he hrec hfb hfn hpay hargs hc hout =>
     obtain ⟨n, ih⟩ := callFn_complete hc
     refine ⟨n, fun k hk => ?_⟩
-    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine cA gh bl σ σ₀ g A I _) _ _ = some (.ok (_, _)) := ih k hk
+    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine σ σ₀ g A I immutables _) _ _ = some (.ok (_, _)) := ih k hk
     interp_simp [interpExec, he, noReceive_false hrec, hfb, hfn, hargs, hout, ih', payableOrNoValue_false hpay]
   | fallbackReverted he hrec hfb hfn hpay hargs hc =>
     obtain ⟨n, ih⟩ := callFn_complete hc
     refine ⟨n, fun k hk => ?_⟩
-    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine cA gh bl σ σ₀ g A I _) _ _ = some (.error _) := ih k hk
+    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine σ σ₀ g A I immutables _) _ _ = some (.error _) := ih k hk
     interp_simp [interpExec, he, noReceive_false hrec, hfb, hfn, hargs, ih', payableOrNoValue_false hpay]
   | fallbackNonPayable he hrec hfb hfn h1 h2 =>
     refine ⟨0, fun k _ => ?_⟩
@@ -182,9 +182,9 @@ theorem chainFold_complete {tbl imms m steps r} (h : ExecCtorChain cfg o fc tbl 
     refine ⟨0, fun k _ => ?_⟩
     interp_simp [List.foldlM_cons, ctorStep, toChain, hfid, hfn, hvs, henter]
 
-theorem interpCtor_complete {args cA gh bl σ σ₀ g A I r}
-    (h : solidityCtorExec cfg o fc args cA gh bl σ σ₀ g A I r) :
-    ∃ n, ∀ k, n ≤ k → ((interpCtor cfg o fc k args cA gh bl σ σ₀ g A I).run).map ctorOf = some r := by
+theorem interpCtor_complete {args σ σ₀ g A I r}
+    (h : solidityCtorExec cfg o fc args σ σ₀ g A I r) :
+    ∃ n, ∀ k, n ≤ k → ((interpCtor cfg o fc k args σ σ₀ g A I).run).map ctorOf = some r := by
   cases h with
   | run hpay himms hargs hinits hav hchain =>
     obtain ⟨ni, ihi⟩ := initsFold_complete hinits
@@ -210,14 +210,14 @@ theorem interpCtor_complete {args cA gh bl σ σ₀ g A I r}
 
 /-! ## The relations are exactly what the interpreter computes -/
 
-theorem solidityExec_iff {cA gh bl σ σ₀ g A I res conv} :
-    solidityExec cfg o fc cA gh bl σ σ₀ g A I res conv ↔
-      ∃ k, (interpExec cfg o fc k cA gh bl σ σ₀ g A I).run = some (.ok (res, conv)) :=
+theorem solidityExec_iff {immutables σ σ₀ g A I res conv} :
+    solidityExec cfg o fc immutables σ σ₀ g A I res conv ↔
+      ∃ k, (interpExec cfg o fc k immutables σ σ₀ g A I).run = some (.ok (res, conv)) :=
   ⟨fun h => let ⟨n, hn⟩ := interpExec_complete h; ⟨n, hn n (Nat.le_refl n)⟩, fun ⟨_, hk⟩ => interpExec_sound hk⟩
 
-theorem solidityCtorExec_iff {args cA gh bl σ σ₀ g A I r} :
-    solidityCtorExec cfg o fc args cA gh bl σ σ₀ g A I r ↔
-      ∃ k, ((interpCtor cfg o fc k args cA gh bl σ σ₀ g A I).run).map ctorOf = some r := by
+theorem solidityCtorExec_iff {args σ σ₀ g A I r} :
+    solidityCtorExec cfg o fc args σ σ₀ g A I r ↔
+      ∃ k, ((interpCtor cfg o fc k args σ σ₀ g A I).run).map ctorOf = some r := by
   refine ⟨fun h => let ⟨n, hn⟩ := interpCtor_complete h; ⟨n, hn n (Nat.le_refl n)⟩, fun ⟨k, hk⟩ => ?_⟩
   obtain ⟨x, hx, rfl⟩ := Option.map_eq_some_iff.mp hk
   exact interpCtor_sound hx
@@ -267,17 +267,17 @@ theorem callFn_det {fr m fn args r r'} (h : CallFn cfg o fc fr m fn args r) (h' 
   have := (hn (n + n') (by omega)).symm.trans (hn' (n + n') (by omega))
   exact toFn_inj (Option.some.inj this)
 
-theorem solidityExec_det {cA gh bl σ σ₀ g A I res conv res' conv'}
-    (h : solidityExec cfg o fc cA gh bl σ σ₀ g A I res conv)
-    (h' : solidityExec cfg o fc cA gh bl σ σ₀ g A I res' conv') : res = res' ∧ conv = conv' := by
+theorem solidityExec_det {immutables σ σ₀ g A I res conv res' conv'}
+    (h : solidityExec cfg o fc immutables σ σ₀ g A I res conv)
+    (h' : solidityExec cfg o fc immutables σ σ₀ g A I res' conv') : res = res' ∧ conv = conv' := by
   obtain ⟨n, hn⟩ := interpExec_complete h
   obtain ⟨n', hn'⟩ := interpExec_complete h'
   have := (hn (n + n') (by omega)).symm.trans (hn' (n + n') (by omega))
   simpa using this
 
-theorem solidityCtorExec_det {args cA gh bl σ σ₀ g A I r r'}
-    (h : solidityCtorExec cfg o fc args cA gh bl σ σ₀ g A I r)
-    (h' : solidityCtorExec cfg o fc args cA gh bl σ σ₀ g A I r') : r = r' := by
+theorem solidityCtorExec_det {args σ σ₀ g A I r r'}
+    (h : solidityCtorExec cfg o fc args σ σ₀ g A I r)
+    (h' : solidityCtorExec cfg o fc args σ σ₀ g A I r') : r = r' := by
   obtain ⟨n, hn⟩ := interpCtor_complete h
   obtain ⟨n', hn'⟩ := interpCtor_complete h'
   exact Option.some.inj ((hn (n + n') (by omega)).symm.trans (hn' (n + n') (by omega)))

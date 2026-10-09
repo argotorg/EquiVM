@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-!
 # ERC20 in the Solidity spec language

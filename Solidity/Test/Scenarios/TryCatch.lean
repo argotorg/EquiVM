@@ -19,7 +19,7 @@ def E : Nat := 0xE0A
 /-- The callee deployed at `C`. -/
 def withCallee : List (EVM.Address × Ethereum.Account) := [(addr C, account (code := calleeRuntime))]
 
-def cA : ABI.ABIValue := .address (addr C)
+def cA : Solm.Value := .address (addr C)
 
 def rt (name : String) (c : Case) : Case := { c with name := name, code := runtime, accounts := withCallee }
 

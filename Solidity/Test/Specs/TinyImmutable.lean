@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-! TinyImmutable (`Examples/TinyImmutable/TinyImmutable.sol`) in the Solidity spec language. -/
 

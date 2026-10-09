@@ -22,7 +22,7 @@ def topRuntime : ByteArray := bytesOfHex Fixtures.pTopRuntimeHex
 
 def MAX : Int := 2 ^ 256 - 1
 
-def mk (sig : String) (args : List ABI.ABIValue) (tag : String := "") : Case :=
+def mk (sig : String) (args : List Solm.Value) (tag : String := "") : Case :=
   { name := s!"{sig} {tag}", code := runtime, call := some (sig, args) }
 
 def call1 (sig : String) (xs : List Int) : List Case := xs.map fun a => mk sig [.int a] s!"{a}"
@@ -92,7 +92,7 @@ def nestCases : List Case :=
 
 def qualRuntime : ByteArray := bytesOfHex Fixtures.sTopRuntimeHex
 
-def mkQ (sig : String) (args : List ABI.ABIValue) (tag : String := "") : Case :=
+def mkQ (sig : String) (args : List Solm.Value) (tag : String := "") : Case :=
   { name := s!"{sig} {tag}", code := qualRuntime, call := some (sig, args), refs := [(⟨"bx", []⟩, 4)] }
 
 def qualCases : List Case :=

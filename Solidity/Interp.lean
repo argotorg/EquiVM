@@ -36,50 +36,50 @@ def guard' (b : Bool) : IM Unit := if b then pure () else failure
 def callViaEVM (o : Oracle) (m : Machine) (target : EVM.Address) (value : Nat) (calldata : EVM.Bytes)
     (perm : Bool) (gas : Ethereum.UInt256) : Bool × Machine × EVM.Bytes :=
   let valueWord := EVM.Word.ofNat value
-  let bal := (m.evm.accountMap.find? m.this |>.getD default).balance
+  let bal := (m.evm.accountMap.get? m.this |>.getD default).balance
   if valueWord ≤ bal ∧ m.evm.executionEnv.depth ≠ 1024 then
-    let (cA', σ', _, A', z, out) :=
-      Ethereum.EVM.Θ m.evm.executionEnv.blobVersionedHashes m.evm.createdAccounts
-        m.evm.genesisBlockHeader m.evm.blocks m.evm.accountMap m.evm.σ₀ (subInput o m)
+    let (σ', _, A', z, out) :=
+      Ethereum.EVM.Θ m.evm.accountMap m.evm.σ₀ (subInput o m)
         m.this m.evm.executionEnv.sender target (Ethereum.toExecute m.evm.accountMap target)
         gas (.ofNat m.evm.executionEnv.gasPrice) valueWord valueWord calldata
-        (m.evm.executionEnv.depth + 1) m.evm.executionEnv.header perm
-    (z, afterCall m cA' σ' A', out)
+        (m.evm.executionEnv.depth + 1) m.evm.executionEnv.header
+        m.evm.executionEnv.blobVersionedHashes m.evm.executionEnv.blocks perm
+    (z, afterCall m σ' A', out)
   else
     (false, { m with evm := m.evm.addAccessedAccount target, tick := m.tick + 1 }, ByteArray.empty)
 
 def delegateCallViaEVM (o : Oracle) (m : Machine) (target : EVM.Address) (calldata : EVM.Bytes)
     (gas : Ethereum.UInt256) : Bool × Machine × EVM.Bytes :=
   if m.evm.executionEnv.depth ≠ 1024 then
-    let (cA', σ', _, A', z, out) :=
-      Ethereum.EVM.Θ m.evm.executionEnv.blobVersionedHashes m.evm.createdAccounts
-        m.evm.genesisBlockHeader m.evm.blocks m.evm.accountMap m.evm.σ₀ (subInput o m)
+    let (σ', _, A', z, out) :=
+      Ethereum.EVM.Θ m.evm.accountMap m.evm.σ₀ (subInput o m)
         m.evm.executionEnv.source m.evm.executionEnv.sender m.this
         (Ethereum.toExecute m.evm.accountMap target) gas
         (.ofNat m.evm.executionEnv.gasPrice) ⟨0⟩ m.evm.executionEnv.weiValue calldata
-        (m.evm.executionEnv.depth + 1) m.evm.executionEnv.header m.evm.executionEnv.perm
-    (z, afterCall m cA' σ' A', out)
+        (m.evm.executionEnv.depth + 1) m.evm.executionEnv.header
+        m.evm.executionEnv.blobVersionedHashes m.evm.executionEnv.blocks m.evm.executionEnv.perm
+    (z, afterCall m σ' A', out)
   else
     (false, { m with evm := m.evm.addAccessedAccount target, tick := m.tick + 1 }, ByteArray.empty)
 
 /-- Creation (`new C(...)`) via `Λ`: `(address, machine, success, returndata)`; `none` without
     creation code for `name`. -/
-def newViaEVM (cfg : Config) (o : Oracle) (m : Machine) (name : Ident) (value : Nat) (args : List ABI.ABIValue)
+def newViaEVM (cfg : Config) (o : Oracle) (m : Machine) (name : Ident) (value : Nat) (args : List Solm.Value)
     (salt : Option ByteArray) : Option (EVM.Address × Machine × Bool × EVM.Bytes) :=
   match cfg.creationCode name args with
   | none => none
   | some initCode =>
     let valueWord := EVM.Word.ofNat value
-    let creator := m.evm.accountMap.find? m.this |>.getD default
+    let creator := m.evm.accountMap.get? m.this |>.getD default
     if valueWord ≤ creator.balance ∧ m.evm.executionEnv.depth ≠ 1024 ∧ creator.nonce.toNat < 2 ^ 64 - 1 ∧
         initCode.size ≤ 49152 then
       let σStar := m.evm.accountMap.insert m.this { creator with nonce := creator.nonce + ⟨1⟩ }
-      let (addr, cA', σ', _, A', z, out) :=
-        Ethereum.EVM.Lambda m.evm.executionEnv.blobVersionedHashes m.evm.createdAccounts
-          m.evm.genesisBlockHeader m.evm.blocks σStar m.evm.σ₀ (subInput o m) m.this
+      let (addr, σ', _, A', z, out) :=
+        Ethereum.EVM.Lambda σStar m.evm.σ₀ (subInput o m) m.this
           m.evm.executionEnv.sender (o.callGas m.tick) (.ofNat m.evm.executionEnv.gasPrice) valueWord initCode
-          (m.evm.executionEnv.depth + 1) salt m.evm.executionEnv.header m.evm.executionEnv.perm
-      some (addr, afterCall m cA' σ' A', z, out)
+          (m.evm.executionEnv.depth + 1) salt m.evm.executionEnv.header
+          m.evm.executionEnv.blobVersionedHashes m.evm.executionEnv.blocks m.evm.executionEnv.perm
+      some (addr, afterCall m σ' A', z, out)
     else
       some (EVM.address 0, { m with tick := m.tick + 1 }, false, ByteArray.empty)
 
@@ -119,7 +119,7 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
             let (val, _, m1) ← evalExpr fuel (constFrame fr v.declaredIn) m e
             let (val', m2) ← liftOp (coerce cfg fc.types m1 val v.ty (some .memory))
             pure (val', fr, m2)
-          | .immutable => do let val ← liftOpt (immutableValue cfg fc.types fr v); pure (val, fr, m)
+          | .immutable => do let val ← liftOpt (immutableValue fc.types fr m v); pure (val, fr, m)
           | .mutable => do let val ← liftOpt (loadIfScalar cfg fc.types m.evm ⟨v.key, []⟩ v.ty); pure (val, fr, m)
         | none => failure
     | .member e f =>
@@ -212,7 +212,7 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
           let some (z, h') := zeroObj fc.types fuelDefault l.ty 0 m1.heap | failure
           pure (.unit, fr1.setVal x z, { m1 with heap := h' })
         | .storage er ty =>
-          let evm' ← liftOp (clearStorage cfg fc.types fuelDefault m1.evm er ty)
+          let evm' ← liftOp (clearStorage cfg fc.types m1.evm er ty)
           pure (.unit, fr1, { m1 with evm := evm' })
         | .memField obj g => deleteMemLv cfg fc (.memField obj g) fr1 m1
         | .memIndex obj i => deleteMemLv cfg fc (.memIndex obj i) fr1 m1
@@ -299,7 +299,7 @@ def evalMember : Nat → Frame → Machine → Expr → Ident → EV
     match v with
     | .storageRef er ty =>
       if f == "length" then
-        let n ← liftOp (storageLength cfg m1.evm er ty)
+        let n ← liftOp (storageLength cfg fc.types m1.evm er ty)
         pure (wordNat n, fr1, m1)
       else
         let (er', fty) ← liftOpt (storageField fc.types er ty f)
@@ -500,7 +500,7 @@ def evalBuiltin : Nat → Frame → Machine → Ident → Args → EV
     | "keccak256", .positional [b] => do
       let (v, fr1, m1) ← evalExpr fuel fr m b
       let s ← liftOp (bytesOf cfg m1 v)
-      pure (.fixedBytes ⟨31, by decide⟩ (ffi.KEC s).toList, fr1, m1)
+      pure (.fixedBytes ⟨31, by decide⟩ (Ethereum.KEC s).toList, fr1, m1)
     | "gasleft", .positional [] =>
       pure (.uint ⟨256, by decide⟩ (o.gasleft m.tick).toNat, fr, { m with tick := m.tick + 1 })
     | "ecrecover", .positional [hsh, v, r, s] => do
@@ -610,7 +610,7 @@ def evalAbi : Nat → Frame → Machine → Ident → List Expr → EV
         let tys ← liftOpt (vs.mapM (abiTyOfValue fc.types m1.heap))
         let (svs, m2) ← liftOp (abiArgsAbi cfg fc.types m1 tys vs)
         let bs ← liftOpt (ABI.encodeABIValues? tys svs)
-        let (v, m3) := allocBytes m2 false ((ffi.KEC s).extract 0 4 ++ bs.toByteArray)
+        let (v, m3) := allocBytes m2 false ((Ethereum.KEC s).extract 0 4 ++ bs.toByteArray)
         pure (v, fr1, m3)
       | _ => failure
     | "encode" =>
@@ -624,7 +624,7 @@ def evalAbi : Nat → Frame → Machine → Ident → List Expr → EV
       let (vs, fr1, m1) ← evalExprs fuel fr m es
       let tys ← liftOpt (vs.mapM (abiTyOfValue fc.types m1.heap))
       let (svs, m2) ← liftOp (abiArgsAbi cfg fc.types m1 tys vs)
-      let parts ← liftOpt ((tys.zip svs).mapM fun (t, sv) => ABI.encodePackedValue? t sv)
+      let parts ← liftOpt ((tys.zip svs).mapM fun (t, sv) => Solm.encodePackedValue? t sv)
       let (v, m3) := allocBytes m2 false parts.flatten.toByteArray
       pure (v, fr1, m3)
     | _ => failure
@@ -646,7 +646,7 @@ def evalMemberCall : Nat → Frame → Machine → Expr → Ident → List CallO
           pure (.unit, fr2, m3)
         | .positional [] =>
           let m2 ← liftOp (storagePush cfg fc.types m1 er e none)
-          let n ← liftOpt (dynArrayLength cfg m2.evm er)
+          let n ← liftOpt (dynArrayLength cfg fc.types m2.evm er e)
           let v ← liftOpt (loadIfScalar cfg fc.types m2.evm (elemRef er (n - 1)) e)
           pure (v, fr1, m2)
         | _ => failure
@@ -816,7 +816,7 @@ def evalLValue : Nat → Frame → Machine → Expr → IM (LValue × Frame × M
       match rv with
       | .storageRef er (.dynArray e) =>
         let m2 ← liftOp (storagePush cfg fc.types m1 er e none)
-        let n ← liftOpt (dynArrayLength cfg m2.evm er)
+        let n ← liftOpt (dynArrayLength cfg fc.types m2.evm er e)
         pure (.storage (elemRef er (n - 1)) e, fr1, m2)
       | _ => failure
     | _ => failure
@@ -1060,10 +1060,9 @@ end
 /-! ## Entry points -/
 
 /-- One message call (mirrors `solidityExec`). -/
-def interpExec (fuel : Nat) (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
+def interpExec (fuel : Nat) (immutables : Store)
     (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv) : IM (TopResult × Refinement.ReturnConvention) := do
+    (I : Ethereum.ExecutionEnv) : IM (TopResult × Solm.ReturnConvention) := do
   match selectorDispatch fc I.calldata with
   | some e =>
     let fn ← liftOpt fc.fns[e.fn]?
@@ -1072,7 +1071,7 @@ def interpExec (fuel : Nat) (createdAccounts : Batteries.RBSet Ethereum.AccountA
       return (.reverted ByteArray.empty, .abi retTys)
     let svs ← liftOpt (decodeArgs cfg fc.types fn.decl I.calldata)
     let (vs, h0) ← liftOpt (ofAbiParams fc.types I.calldata fn.decl.params svs {})
-    let m0 := initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0
+    let m0 := initMachine σ σ₀ g A I immutables h0
     match (callFn cfg o fc fuel (rootFrame fc) m0 fn vs : Option (Except ByteArray _)) with
     | some (.ok (rets, m')) =>
       match prepareArgs fc.types I.calldata fuelDefault m'.heap rets with
@@ -1087,7 +1086,7 @@ def interpExec (fuel : Nat) (createdAccounts : Batteries.RBSet Ethereum.AccountA
     if I.calldata.size == 0 && fc.receive?.isSome then
       let fid ← liftOpt fc.receive?
       let fn ← liftOpt fc.fns[fid]?
-      let m0 := initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+      let m0 := initMachine σ σ₀ g A I immutables
       match (callFn cfg o fc fuel (rootFrame fc) m0 fn [] : Option (Except ByteArray _)) with
       | some (.ok (_, m')) => pure (.returned m' [], .abi [])
       | some (.error d) => pure (.reverted d, .abi [])
@@ -1098,7 +1097,7 @@ def interpExec (fuel : Nat) (createdAccounts : Batteries.RBSet Ethereum.AccountA
       if fn.decl.mutability != .payable && I.weiValue != ⟨0⟩ then
         return (.reverted ByteArray.empty, fallbackConvention fn.decl)
       let (vs, h0) ← liftOpt (fallbackArgs fn.decl I.calldata {})
-      let m0 := initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0
+      let m0 := initMachine σ σ₀ g A I immutables h0
       match (callFn cfg o fc fuel (rootFrame fc) m0 fn vs : Option (Except ByteArray _)) with
       | some (.ok (rets, m')) =>
         let out ← liftOpt (rets.mapM (toAbi m'.heap fuelDefault))
@@ -1178,16 +1177,14 @@ def ctorPayableB (fc : FlatContract) (I : Ethereum.ExecutionEnv) : Bool :=
   | none => I.weiValue == ⟨0⟩
 
 /-- Construction (mirrors `solidityCtorExec`). -/
-def interpCtor (fuel : Nat) (args : List ABI.ABIValue)
-    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
+def interpCtor (fuel : Nat) (args : List Solm.Value)
     (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv) : IM CtorResult := do
   if !ctorPayableB fc I then return .reverted ByteArray.empty
   let imms0 ← liftOpt (immZero fc)
   let ptys := ((topCtor? fc).map (·.decl.params.map (·.ty))).getD []
   let (topArgs, h0) ← liftOpt (ofAbiList fc.types ptys args {})
-  let m0 := initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0
+  let m0 := initMachine σ σ₀ g A I ∅ h0
   let (frI, m1) ← (initializers fc).foldlM (initStep cfg o fc fuel) (initRoot fc imms0, m0)
   let (tbl, m2) ← fc.ctorChain.reverse.foldlM (argsStep cfg o fc fuel topArgs (immStore frI)) ([], m1)
   let (m3, imms) ← fc.ctorChain.foldlM (ctorStep cfg o fc fuel tbl) (m2, immStore frI)

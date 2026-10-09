@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-! Lazy (`Solidity/Test/Fixtures/Lazy.sol`).  Harness input only. -/
 

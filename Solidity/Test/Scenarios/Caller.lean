@@ -1,7 +1,7 @@
 import Solidity.Test.Harness
 import Solidity.Test.Specs.Caller
-import Solm.Examples.Caller.Bytecode
-import Solm.Examples.Pow.Bytecode
+import Examples.Caller.Bytecode
+import Examples.Pow.Bytecode
 import Solidity.Test.Fixtures.CallerSolc
 
 /-! # Differential cases: Caller. -/

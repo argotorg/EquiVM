@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-! Flow (`Solidity/Test/Fixtures/Flow.sol`): control flow.  Harness input only.  `i--` and `--i`
 are spliced as AST terms (`--` starts a Lean comment). -/

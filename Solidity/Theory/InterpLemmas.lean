@@ -49,15 +49,15 @@ theorem callViaEVM_sound (o : Oracle) (m : Machine) (t : EVM.Address) (v : Nat) 
   dsimp only [Interp.callViaEVM]
   split
   · rename_i hc
-    rcases hΘ : Ethereum.EVM.Θ m.evm.executionEnv.blobVersionedHashes m.evm.createdAccounts
-        m.evm.genesisBlockHeader m.evm.blocks m.evm.accountMap m.evm.σ₀ (subInput o m) m.this
+    rcases hΘ : Ethereum.EVM.Θ m.evm.accountMap m.evm.σ₀ (subInput o m) m.this
         m.evm.executionEnv.sender t (Ethereum.toExecute m.evm.accountMap t) gas
         (.ofNat m.evm.executionEnv.gasPrice) (EVM.Word.ofNat v) (EVM.Word.ofNat v) cd
-        (m.evm.executionEnv.depth + 1) m.evm.executionEnv.header perm with ⟨cA', σ', g', A', z, out⟩
+        (m.evm.executionEnv.depth + 1) m.evm.executionEnv.header
+        m.evm.executionEnv.blobVersionedHashes m.evm.executionEnv.blocks perm with ⟨σ', g', A', z, out⟩
     exact .callMade rfl hc.1 hc.2 hΘ.symm
   · rename_i hc
     refine .callNotMade rfl ?_
-    rcases Decidable.em (EVM.Word.ofNat v ≤ (m.evm.accountMap.find? m.this |>.getD default).balance) with h1 | h1
+    rcases Decidable.em (EVM.Word.ofNat v ≤ (m.evm.accountMap.get? m.this |>.getD default).balance) with h1 | h1
     · exact Or.inr (by_contra fun h2 => hc ⟨h1, h2⟩)
     · exact Or.inl (lt_of_not_ge (α := Fin Ethereum.UInt256.size) h1)
 
@@ -66,17 +66,17 @@ theorem delegateCallViaEVM_sound (o : Oracle) (m : Machine) (t : EVM.Address) (c
   dsimp only [Interp.delegateCallViaEVM]
   split
   · rename_i hc
-    rcases hΘ : Ethereum.EVM.Θ m.evm.executionEnv.blobVersionedHashes m.evm.createdAccounts
-        m.evm.genesisBlockHeader m.evm.blocks m.evm.accountMap m.evm.σ₀ (subInput o m)
+    rcases hΘ : Ethereum.EVM.Θ m.evm.accountMap m.evm.σ₀ (subInput o m)
         m.evm.executionEnv.source m.evm.executionEnv.sender m.this
         (Ethereum.toExecute m.evm.accountMap t) gas
         (.ofNat m.evm.executionEnv.gasPrice) ⟨0⟩ m.evm.executionEnv.weiValue cd
-        (m.evm.executionEnv.depth + 1) m.evm.executionEnv.header m.evm.executionEnv.perm with ⟨cA', σ', g', A', z, out⟩
+        (m.evm.executionEnv.depth + 1) m.evm.executionEnv.header
+        m.evm.executionEnv.blobVersionedHashes m.evm.executionEnv.blocks m.evm.executionEnv.perm with ⟨σ', g', A', z, out⟩
     exact .callMade hc hΘ.symm
   · rename_i hc
     exact .callNotMade (by_contra hc)
 
-theorem newViaEVM_sound (cfg : Config) (o : Oracle) (m : Machine) (c : Ident) (v : Nat) (args : List ABI.ABIValue)
+theorem newViaEVM_sound (cfg : Config) (o : Oracle) (m : Machine) (c : Ident) (v : Nat) (args : List Solm.Value)
     (salt : Option ByteArray) {r} (h : Interp.newViaEVM cfg o m c v args salt = some r) :
     newViaEVM cfg o m c v args salt r := by
   dsimp only [Interp.newViaEVM] at h
@@ -90,10 +90,10 @@ theorem newViaEVM_sound (cfg : Config) (o : Oracle) (m : Machine) (c : Ident) (v
     · rename_i hc
       cases h
       refine .notCreated hcc rfl rfl ?_
-      rcases Decidable.em (EVM.Word.ofNat v ≤ ((m.evm.accountMap.find? m.this).getD default).balance) with h1 | h1
+      rcases Decidable.em (EVM.Word.ofNat v ≤ ((m.evm.accountMap.get? m.this).getD default).balance) with h1 | h1
       · rcases Decidable.em (m.evm.executionEnv.depth = 1024) with h2 | h2
         · exact Or.inr (Or.inl h2)
-        · rcases Decidable.em (((m.evm.accountMap.find? m.this).getD default).nonce.toNat < 2 ^ 64 - 1) with h3 | h3
+        · rcases Decidable.em (((m.evm.accountMap.get? m.this).getD default).nonce.toNat < 2 ^ 64 - 1) with h3 | h3
           · rcases Decidable.em (initCode.size ≤ 49152) with h4 | h4
             · exact absurd ⟨h1, h2, h3, h4⟩ hc
             · exact Or.inr (Or.inr (Or.inr (Nat.lt_of_not_le h4)))

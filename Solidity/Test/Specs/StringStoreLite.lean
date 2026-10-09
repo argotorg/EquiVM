@@ -1,4 +1,4 @@
-import Solidity
+import Solidity.Notation
 
 /-! StringStoreLite (`Examples/StringStoreLite/StringStoreLite.sol`) in the Solidity spec
 language. -/

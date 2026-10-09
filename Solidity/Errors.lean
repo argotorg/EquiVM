@@ -27,10 +27,10 @@ def Panic.data (p : Panic) : ByteArray :=
 def errorStringData (msg : ByteArray) : ByteArray :=
   errorStringSelector ++ ((ABI.encodeABIValues? [.string] [.bytes msg]).getD []).toByteArray
 
-def selectorOf (sigStr : String) : ByteArray := (ffi.KEC sigStr.toUTF8).extract 0 4
+def selectorOf (sigStr : String) : ByteArray := (Ethereum.KEC sigStr.toUTF8).extract 0 4
 
 /-- `abi.encodeWithSelector(E.selector, args)` for a custom error. -/
-def customErrorData (sigStr : String) (tys : List ABI.ABIType) (args : List ABI.ABIValue) :
+def customErrorData (sigStr : String) (tys : List ABI.ABIType) (args : List Solm.Value) :
     Option ByteArray :=
   ABI.encodeCallWithSelector? (selectorOf sigStr) tys args
 
