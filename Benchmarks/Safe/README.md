@@ -29,9 +29,10 @@ Artifacts:
 - `Spec.lean`: Solm AST with ABI surface, solc 0.8.35 decoding, and physical storage layout
 - `SpecSyntax.lean`: syntax-side wrapper checked definitionally against the AST scaffold
 - `Bytecode.lean`: optimized bytecode embedded as `ByteArray`, with `valid_jumps` facts
-- `Constructor.lean`: constructor equivalence target, currently `sorry`
-- `Correct.lean`: runtime and top-level contract equivalence targets, currently `sorry`
-- `Runtime.lean`: 33 unproved entrypoint obligations (31 selectors, receive, fallback)
+- `Constructor.lean`: proved constructor equivalence
+- `Correct.lean`: proved runtime and whole-contract refinement
+- `CorrectProofAudit.lean`: checks the constructor, runtime, and whole-contract axiom footprints
+- `Runtime.lean`: 33 proved entrypoint obligations (31 selectors, receive, fallback)
 - `Blocks.lean`, `Blocks/`: generated runtime and constructor instruction summaries and PC indexes
 - `ArtifactChecks.lean`: executable checks of every ABI signature, selector, and return type
 - `Audit.lean`, `AuditSupport.lean`: differential regressions against the actual EVM interpreter
@@ -47,10 +48,11 @@ halts, and static-mode violations. Gas exhaustion has its own refinement case. G
 and call gas/substate inputs are existential witnesses. Log contents and revert payloads are not
 observed. Consequently this is not a claim of equivalence for all observables of a production EVM.
 
-The refinement obligations remain `sorry`, as requested. The audit and executable checks provide
-evidence for their statements; they do not establish a universal proof or certify “100% provable.”
-No well-formed-storage, successful-decoding, nonstatic, or restricted-callee assumptions have been
-added to the runtime targets.
+The constructor and all runtime obligations are proved. The proofs handle gas exhaustion through
+the refinement relation's out-of-gas cases and use the actual EVM call result for external calls.
+No additional well-formed-storage, successful-decoding, nonstatic, or restricted-callee assumptions
+were needed. The trusted base consists of Lean's standard axioms and concrete `native_decide`
+evaluation facts; selector identities use kernel evaluation.
 
 Corrections made during the audit:
 
@@ -84,11 +86,11 @@ contract signatures, P-256 results, token return conventions, refunds, delegatec
 depth limits, and construction. It compares success return bytes and the entire final account map.
 Call replay also checks opcode, target, value, calldata, and the account map before every call.
 The harness reports out-of-gas separately and fails on test-fuel exhaustion or unsupported AST
-forms. It is deliberately independent of the unproved refinement scaffolds.
+forms. It is independent of the refinement proofs.
 
-The final regression run passed all 408 cases: 104 successes, 292 reverts, 11 static-mode
+The recorded regression run passed all 408 cases: 104 successes, 292 reverts, 11 static-mode
 violations, and one separately classified out-of-gas result. The targeted Lake build includes
-the specification equality check, ABI checks, refinement scaffolds, and all generated summaries.
+the specification equality check, ABI checks, refinement proofs, and all generated summaries.
 
 ## Generated summaries and proof obligations
 
@@ -106,8 +108,8 @@ Every analyzed instruction is accounted for by a summary or a recorded boundary.
 summaries cover only PCs 0–32; the runtime at offset 33 is copied data. They quantify an arbitrary
 constructor-argument tail against the full creation bytecode. Solidity CBOR metadata is excluded
 from runtime instruction analysis. Summary hypotheses such as valid jump destinations, stack
-bounds, and static permission still need to be discharged when proving the entrypoint obligations.
-No hand-written refinement proof has been filled.
+bounds, and static permission are discharged in the entrypoint proofs. Shared routine proofs
+compose the summaries, with separate proofs for internal callees and source-level call wrappers.
 
 ## Reproduction and validation
 
@@ -117,6 +119,7 @@ From the repository root, using the pinned compiler:
 python3 -B scripts/audit_safe.py --solc /path/to/solc-0.8.35
 lake build Benchmarks.Safe.ArtifactChecks Benchmarks.Safe.SpecSyntax
 lake build Benchmarks.Safe.Correct Benchmarks.Safe.Audit
+lake build Benchmarks.Safe.CorrectProofAudit Benchmarks.Safe.GetOwnersModelAudit
 lake env lean Benchmarks/Safe/Audit.lean
 ```
 
