@@ -1,0 +1,97 @@
+{
+  "contract": "Morpho",
+  "externalCalls": [
+    {
+      "name": "borrowRate",
+      "params": [
+        "(address,address,address,address,uint256)",
+        "(uint128,uint128,uint128,uint128,uint128,uint128)"
+      ],
+      "returns": [
+        "uint256"
+      ],
+      "view": false
+    },
+    {
+      "name": "onMorphoLiquidate",
+      "params": [
+        "uint256",
+        "bytes"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "onMorphoRepay",
+      "params": [
+        "uint256",
+        "bytes"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "onMorphoSupply",
+      "params": [
+        "uint256",
+        "bytes"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "onMorphoSupplyCollateral",
+      "params": [
+        "uint256",
+        "bytes"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "onMorphoFlashLoan",
+      "params": [
+        "uint256",
+        "bytes"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "price",
+      "params": [],
+      "returns": [
+        "uint256"
+      ],
+      "view": true
+    },
+    {
+      "name": "transfer",
+      "params": [
+        "address",
+        "uint256"
+      ],
+      "returns": [
+        "bool"
+      ],
+      "view": false
+    },
+    {
+      "name": "transferFrom",
+      "params": [
+        "address",
+        "address",
+        "uint256"
+      ],
+      "returns": [
+        "bool"
+      ],
+      "view": false
+    }
+  ],
+  "holes": [],
+  "notes": [
+    "Configuration lives in SpecSyntax.lean; raw calls also include precompile 1.",
+    "Selector 0x8069218f uses the raw fallback to delay signature.v decoding."
+  ]
+}
