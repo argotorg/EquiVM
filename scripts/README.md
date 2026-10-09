@@ -72,6 +72,11 @@ files unless `--force` is given.
 - Internal `storage` parameters and returns keep their source types, including mappings and
   library structs. Named storage returns and local pointer assignments bind aliases. Library
   extension calls include their receiver; colliding struct names are qualified by their owner.
+- Memory structs, arrays, `bytes` and `string` are passed to internal functions by reference in
+  Solidity but by value in Solm. A callee that may modify one (directly, or through a callee)
+  returns its final value after the declared results, and the caller assigns it back to the
+  argument's path. Overlapping arguments, a parameter that is reassigned and modified, and a
+  modification through a local alias of a parameter are holes.
 - Contracts with a `fallback`/`receive` get `sorry` stubs for the Solm dispatch facts: the
   unmatched-selector path then runs the fallback instead of reverting.
 

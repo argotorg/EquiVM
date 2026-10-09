@@ -46,6 +46,8 @@ def contractGen : ContractDecl := solidity% contract WETH9 {
   `Expr.var`, and to resolve the callee's storage paths. Reference returns (including components
   of multiple returns) keep their aliases. These annotations are frontend information;
   the core binder passes `Value`s unchanged, with no passing-mode field or memory model.
+  Assigning to a storage pointer (`p = path;`, including a storage parameter) rebinds it,
+  as in Solidity; it never copies storage.
 * **Payability is implicit, as in Solidity.**  Transitions, constructors, and fallbacks that are
   not marked `payable` get the leading `require(msg.value == 0)` guard solc compiles in;
   `receive` and internal functions never do.
@@ -92,6 +94,8 @@ private structure Env where
   constants : List String := []
   /-- params, lets, call binders, and storage aliases in scope -/
   locals : List String := []
+  /-- storage pointers (aliases and storage parameters); assigning one rebinds it -/
+  aliases : List String := []
 
 private def Env.isLocal (env : Env) (s : String) : Bool := env.locals.contains s
 private def Env.isImmutable (env : Env) (s : String) : Bool :=
@@ -100,6 +104,10 @@ private def Env.isConstant (env : Env) (s : String) : Bool :=
   !env.isLocal s && env.constants.contains s
 private def Env.storageTy? (env : Env) (s : String) : Option STy :=
   if env.isLocal s then none else env.storage.lookup s
+
+/-- A storage pointer in scope that a later value local has not shadowed. -/
+private def Env.isAlias (env : Env) (s : String) : Bool :=
+  !env.isLocal s && env.aliases.contains s
 
 private def Env.transientTy? (env : Env) (s : String) : Option STy :=
   if env.isLocal s then none else env.transient.lookup s
@@ -758,23 +766,28 @@ private structure ScopeAdditions where
   locals : List String
   storage : List (String × STy)
   refTuples : List (String × Array (Option STy))
+  aliases : List String
 
 private def Env.additionsFrom (start finish : Env) : ScopeAdditions :=
   ⟨finish.locals.filter (fun n => !start.locals.contains n),
    finish.storage.filter (fun p => (start.storage.lookup p.1).isNone),
-   finish.refTuples.filter (fun p => (start.refTuples.lookup p.1).isNone)⟩
+   finish.refTuples.filter (fun p => (start.refTuples.lookup p.1).isNone),
+   finish.aliases.filter (fun n => !start.aliases.contains n)⟩
 
 private def Env.withAdditions (base : Env) (adds : List ScopeAdditions) : Env :=
   let ls := (adds.flatMap (·.locals)).eraseDups
   let ss := adds.flatMap (·.storage)
   let rs := adds.flatMap (·.refTuples)
+  let als := (adds.flatMap (·.aliases)).eraseDups
   { base with locals := ls.filter (fun n => !base.locals.contains n) ++ base.locals
               storage := ss.filter (fun p => (base.storage.lookup p.1).isNone) ++ base.storage
-              refTuples := rs.filter (fun p => (base.refTuples.lookup p.1).isNone) ++ base.refTuples }
+              refTuples := rs.filter (fun p => (base.refTuples.lookup p.1).isNone) ++ base.refTuples
+              aliases := als.filter (fun n => !base.aliases.contains n) ++ base.aliases }
 
 private def Env.withStorageAlias (env : Env) (name : String) (ty : STy) : Env :=
   { env with storage := (name,ty) :: env.storage
-             locals := env.locals.filter (· != name) }
+             locals := env.locals.filter (· != name)
+             aliases := name :: env.aliases.filter (· != name) }
 
 /-- A component of an internal multiple return can itself be a storage reference. -/
 private def returnedRefType? (env : Env) (e : TSyntax `solExpr) : Option STy := do
@@ -814,6 +827,20 @@ private def elabReferenceArgs (env : Env) (args : Array (TSyntax `solExpr))
       values := values.push value
     else values := values.push (← elabExpr env arg)
   return (pre, values)
+
+/-- `p = path;` on a storage pointer rebinds it, as in Solidity; it never copies storage. -/
+private def elabRebind (env : Env) (name : String) (rhs : TSyntax `solExpr) : MacroM Term := do
+  let some expected := env.storage.lookup name
+    | Macro.throwErrorAt rhs "solm: cannot type the storage pointer"
+  if let some actual := returnedRefType? env rhs then
+    unless actual == expected do Macro.throwErrorAt rhs "solm: storage alias type mismatch"
+    return ← `(Solm.Stmt.letDecl $(quote name) none $(← elabExpr env rhs))
+  let r ← resolveRefOrThrow env rhs
+  unless r.origin matches .storage do
+    Macro.throwErrorAt rhs "solm: storage alias must reference storage"
+  unless r.ty == some expected do
+    Macro.throwErrorAt rhs "solm: storage alias type mismatch"
+  `(Solm.Stmt.letStorage $(quote name) $(← refTerm r))
 
 private def elabInternalDecl (env : Env) (t : TSyntax `solTy) (loc : Option LIdent)
     (x f : LIdent) (args : Array (TSyntax `solExpr)) : MacroM (Array Term × Env) := do
@@ -1111,6 +1138,9 @@ private partial def elabAssign (env : Env) (lhs rhs : TSyntax `solExpr) (op : Op
             `(Solm.Expr.binary $(mkIdent (`Solm.BinaryOp ++ o)) (Solm.Expr.immutable $(quote name))
               $(← elabExpr env rhs))
       return (← `(Solm.Stmt.setImmutable $(quote name) $rhsT), env)
+    if env.isAlias name then
+      if op.isSome then Macro.throwErrorAt lhs "solm: arithmetic on a storage pointer"
+      return (← elabRebind env name rhs, env)
   let r ← resolveRefOrThrow env lhs
   let rhsT ← match op with
     | none => elabExpr env rhs
@@ -1197,6 +1227,7 @@ private def fnBodyTerm (env : Env) (fn : FnInfo) : MacroM Term := do
   let env := { env with
     storage := fn.storageParams ++ env.storage
     locals := (fn.params.toList.map (·.1) ++ env.locals).filter (fun n => !names.contains n)
+    aliases := names ++ env.aliases
     returnRefs := fn.returnRefs }
   let body ← elabStmts' env fn.bodyStx.toList
   -- Non-payable entry points get solc's callvalue guard; internal functions and receive don't.
