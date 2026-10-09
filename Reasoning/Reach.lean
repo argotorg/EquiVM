@@ -4524,6 +4524,24 @@ theorem RD.sstoreStatic {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
     · exact Or.inl (hX.trans h)
     · exact Or.inr (hX.trans h)
 
+/-- A transient store in a static context terminates with out-of-gas or a static-mode halt. -/
+theorem RD.tstoreStatic {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {σ : AccountMap} {k C : ℕ} {slot val : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (slot :: val :: t) mem aw rdata σ k C)
+    (hperm : ee.perm = false)
+    (hdec : decode code pc = some (.TSTORE, .none))
+    (hov : t.length ≤ 1024) :
+    RDstatic code g s0 := by
+  unfold RD at h
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, _, hk, hC, _, _, _, _, hee, _⟩
+  · exact Or.inl hoog
+  · have hperms : s.executionEnv.perm = false := by rw [hee]; exact hperm
+    have st := tstore_xstep_static hcode hpc hdec hperms hstk hov
+    rcases stepStatic (g := g) st hk hC with h | h
+    · exact Or.inl (hX.trans h)
+    · exact Or.inr (hX.trans h)
+
 theorem RD.log1Static {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap} {k C : ℕ} {a b c : UInt256} {t : List UInt256}

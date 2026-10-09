@@ -2604,6 +2604,24 @@ theorem sstore_xstep_static {s : State} {code : ByteArray} {pcv slot val : UInt2
   have hg3 : (¬ (s.executionEnv.perm = true)) = True := eq_true (by simp [hperm])
   simp only [hg2, hg3, if_false, if_true]
 
+/-- `TSTORE` in static mode checks its fixed gas cost before raising the permission error. -/
+theorem tstore_xstep_static {s : State} {code : ByteArray} {pcv slot val : UInt256}
+    {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.TSTORE, .none))
+    (hperm : s.executionEnv.perm = false)
+    (hstk : s.machineState.stack = slot :: val :: t) (hov : t.length ≤ 1024) :
+    Xstep (D_J code 0) s =
+      (if s.machineState.gasAvailable.toNat < Ctstore
+       then .error .OutOfGass else .error .StaticModeViolation) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.TSTORE, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_tstore s hd, hstk]
+  have hg2 : ((slot :: val :: t).length - 2 + 0 > 1024) = False :=
+    eq_false (by simp only [List.length_cons]; omega)
+  have hg3 : (¬ (s.executionEnv.perm = true)) = True := eq_true (by simp [hperm])
+  simp only [hg2, hg3, if_false, if_true]
+
 theorem log1_xstep_static {s : State} {code : ByteArray} {pcv a b c : UInt256}
     {t : List UInt256}
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)

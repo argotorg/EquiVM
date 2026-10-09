@@ -18,6 +18,7 @@ All proofs are complete.
 | `VyperERC20` | Hand-written Vyper version of the minimal ERC20 | vyper 0.4.3 | `runtimeCorrect` |
 | `StringStoreLite` | Hand-written string-storage contract | solc 0.8.35, optimizer off, Shanghai | `stringStoreLiteCorrect` |
 | `TinyImmutable` | Hand-written immutables contract | solc 0.8.35, standard-json | `tinyImmutableCorrect` |
+| `TransientFlag` | Transient `uint256` setter/getter, including static calls | solc 0.8.35, optimizer on (0 runs), Cancun | `transientFlagCorrect` |
 | `Reuse` | Two functions sharing a code block | solc 0.8.35, optimizer on, Shanghai | `cCorrect` |
 | `Ballot` | [Solidity docs: Voting](https://docs.soliditylang.org/en/latest/solidity-by-example.html#voting) | solc 0.8.35, optimizer on, Shanghai | `ballotCorrect` |
 | `SimpleAuction` | [Solidity docs: Simple Open Auction](https://docs.soliditylang.org/en/latest/solidity-by-example.html#simple-open-auction) | solc 0.8.35, optimizer on, Shanghai | `simpleAuctionCorrect` |

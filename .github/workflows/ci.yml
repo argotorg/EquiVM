@@ -56,7 +56,8 @@ jobs:
             Examples.OpenZeppelinBench.ERC6909.Correct \
             Examples.UniswapV2Pair.Correct \
             Examples.Reuse.Correct \
-            Examples.VyperERC20.Correct
+            Examples.VyperERC20.Correct \
+            Examples.TransientFlag.Correct
 
       - name: Compile generated large benchmark blocks
         run: |

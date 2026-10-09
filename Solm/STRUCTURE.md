@@ -49,6 +49,8 @@ the existing EVM call semantics, including account ownership and rollback; trans
 state is cleared by the EVM transaction boundary, not between message calls. Solm also
 supports transient aggregates as a specification extension. This does not imply Solidity
 compiler support for transient arrays, mappings, or structs, or for local transient aliases.
+`Examples/TransientFlag` proves runtime refinement for a compiled scalar setter/getter,
+including static calls, using a generated layout.
 
 Currently, Sol⁻ does not currently model events, error payloads, or gas.
 ```
