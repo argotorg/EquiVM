@@ -354,7 +354,8 @@ partial def randomStorage (cfg : Config) (contract : ContractDecl) (pools : Pool
   let written := Pools.ofValues trail
   return (evm, { written with words := written.words ++ written.words.map (· / 2) }.dedup, r)
 where
-  /-- Walk through mappings with random keys until a non-mapping type is reached. -/
+  /-- Walk through mappings with random keys, and through static arrays too large to write
+      whole (one random element, biased to the first ones), until a leaf type is reached. -/
   path (pools : Pools) : StorageType → List EvaledStorageRefStep → List Value → Rng →
       List EvaledStorageRefStep × List Value × StorageType × Rng
     | .mapping k v, steps, keys, r =>
@@ -362,6 +363,11 @@ where
         match valueToKey? key with
         | some kv => path pools v (steps ++ [.mindex kv]) (keys ++ [key]) r
         | none => (steps, keys, .mapping k v, r)
+    | .array t n, steps, keys, r =>
+        if n ≤ 8 then (steps, keys, .array t n, r) else
+          let (small, r) := r.chance 70
+          let (i, r) := if small then r.nat 0 3 else r.nat 0 (n - 1)
+          path pools t (steps ++ [.aindex (.int i)]) (keys ++ [.int i]) r
     | ty, steps, keys, r => (steps, keys, ty, r)
 
 /-! ## Messages -/
