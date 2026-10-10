@@ -486,7 +486,12 @@ theorem initializeEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
 
 /-- The immutables a contract deployed with `v` runs with. -/
 def immStore (v : UniswapV3PoolImmutables) : Store :=
-  ((((((((∅ : Store).insert "factory" (.address v.factory)).insert "token0" (.address v.token0)).insert "token1" (.address v.token1)).insert "fee" (.int (Int.ofNat v.fee.toNat))).insert "tickSpacing" (.int (Int.ofNat v.tickSpacing.toNat))).insert "maxLiquidityPerTick" (.int (Int.ofNat v.maxLiquidityPerTick.toNat))).insert "original" (.address v.original))
+  -- Match the declaration order used by `restrictImmutables`.
+  (((((((∅ : Store).insert "original" (.address v.original)).insert
+    "factory" (.address v.factory)).insert "token0" (.address v.token0)).insert
+    "token1" (.address v.token1)).insert "fee" (.int (Int.ofNat v.fee.toNat))).insert
+    "tickSpacing" (.int (Int.ofNat v.tickSpacing.toNat))).insert
+    "maxLiquidityPerTick" (.int (Int.ofNat v.maxLiquidityPerTick.toNat))
 
 @[simp] theorem immStore_get_factory (v : UniswapV3PoolImmutables) :
     (immStore v).get? "factory" = some (.address v.factory) := by
@@ -602,10 +607,41 @@ theorem immutableLayout_keys :
     ∀ site ∈ immutableLayout.sites, site.2.2 ∈ contract.immutables.map (·.name) := by
   decide
 
+-- LIBRARY CANDIDATE: Reasoning.Immutables, recover a word from a fitted uint256 value.
+theorem fitted_uint256_word {value : Value}
+    (h : elemValueFits (.int (.uint ⟨256, by decide⟩)) value = true) :
+    ∃ w : EVM.Word, value = .int (Int.ofNat w.toNat) := by
+  cases value <;> simp [elemValueFits] at h
+  rename_i i
+  refine ⟨EVM.word i.toNat, ?_⟩
+  rw [constructorUInt256Word_toNat i h.1 (by simpa [EVM.twoPow] using h.2)]
+  exact congrArg Value.int (Int.toNat_of_nonneg h.1).symm
+
 /-- A well-typed immutables store runs as the store of some valuation. -/
 theorem restrictImmutables_of_fit {imms : Store} (h : immutablesFit contract imms) :
     ∃ v, restrictImmutables contract imms = immStore v := by
-  sorry  -- TODO: case on each immutable's value as in Examples/TinyImmutable/Common.lean
+  obtain ⟨vo, hvo, hfo⟩ := h ⟨"original", .address⟩ (by decide)
+  obtain ⟨vf, hvf, hff⟩ := h ⟨"factory", .address⟩ (by decide)
+  obtain ⟨v0, hv0, hf0⟩ := h ⟨"token0", .address⟩ (by decide)
+  obtain ⟨v1, hv1, hf1⟩ := h ⟨"token1", .address⟩ (by decide)
+  obtain ⟨vfee, hvfee, hffee⟩ := h ⟨"fee", .int (.uint ⟨256, by decide⟩)⟩ (by decide)
+  obtain ⟨vs, hvs, hfs⟩ := h ⟨"tickSpacing", .int (.uint ⟨256, by decide⟩)⟩ (by decide)
+  obtain ⟨vm, hvm, hfm⟩ := h ⟨"maxLiquidityPerTick", .int (.uint ⟨256, by decide⟩)⟩ (by decide)
+  cases vo <;> simp only [elemValueFits, Bool.false_eq_true] at hfo
+  rename_i original
+  cases vf <;> simp only [elemValueFits, Bool.false_eq_true] at hff
+  rename_i factory
+  cases v0 <;> simp only [elemValueFits, Bool.false_eq_true] at hf0
+  rename_i token0
+  cases v1 <;> simp only [elemValueFits, Bool.false_eq_true] at hf1
+  rename_i token1
+  obtain ⟨fee, rfl⟩ := fitted_uint256_word hffee
+  obtain ⟨spacing, rfl⟩ := fitted_uint256_word hfs
+  obtain ⟨maxLiquidity, rfl⟩ := fitted_uint256_word hfm
+  simp only at hvo hvf hv0 hv1 hvfee hvs hvm
+  refine ⟨⟨factory, token0, token1, fee, spacing, maxLiquidity, original⟩, ?_⟩
+  simp only [restrictImmutables, contract, Syntax.contractSyntax, List.foldl,
+    hvo, hvf, hv0, hv1, hvfee, hvs, hvm, immStore]
 
 /-- The patched runtime has the template's jump destinations (patch sites are push payloads). -/
 theorem uniswapV3PoolPatchedValidJumps (v : UniswapV3PoolImmutables) :

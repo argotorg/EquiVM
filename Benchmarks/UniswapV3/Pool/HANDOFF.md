@@ -1,9 +1,25 @@
 # UniswapV3Pool hand-off
 
-The scaffold is ready for the proving session. The semantic audit is complete, the correctness
-module builds, and the full differential gate reports no disagreement or stuck case. Random
-coverage limitations and the successful supplemental replay are recorded below. No contract
-proofs have been written.
+All 26 public-function proofs, the constructor proof, and the immutable-restriction helper are
+complete. The final contract refinement theorem is `uniswapV3PoolContractCorrect` in
+[Correct.lean](Correct.lean). The proof session did not modify or rerun the differential suite;
+the differential results below are the original scaffold audit.
+
+Final proof validation:
+
+- `lake build Benchmarks.UniswapV3.Pool.Correct`: `Build completed successfully (4505 jobs).`
+  The complete output is in [build-Correct-final.log](build-Correct-final.log).
+- Lean source placeholder scan: zero matches. Axiom-declaration scan: zero matches.
+  The unrestricted directory scan only finds historical warnings in four earlier build logs.
+- `git diff --check`: clean.
+- `uniswapV3PoolCorrect`: `propext`, `Classical.choice`, `Quot.sound`, and 21,865 concrete
+  native evaluation axioms; no unexpected axioms.
+- `uniswapV3PoolContractCorrect`: `propext`, `Classical.choice`, `Quot.sound`, and 23,432 concrete
+  native evaluation axioms; no unexpected axioms.
+  The complete, verbatim footprint of both theorems is in
+  [audit-Correct-final.log](audit-Correct-final.log).
+
+The bytecode, Solidity source, specification, and generated block summaries were preserved.
 
 ## Compiler settings and provenance
 
@@ -207,10 +223,11 @@ The generated external-call ABI table contains `uniswapV3MintCallback(uint256,ui
 calls use the explicit legacy decoding described above. Public calldata decoding uses
 `legacySolc05`.
 
-Expected difficult proof areas are swap's tick-crossing loop, the oracle ring and timestamp
+The completed proofs cover swap's tick-crossing loop, the oracle ring and timestamp
 wraparound, FullMath's 512-bit arithmetic, packed storage updates, and callback account effects.
-The generated proof skeleton retains 28 `sorry` stubs: 26 functions, the constructor, and the
-immutable-restriction lemma.
+All 28 original generated proof stubs have been discharged: 26 functions, the constructor,
+and the immutable-restriction lemma. Final proof validation is recorded at the top of this file.
 
-`lake build Benchmarks.UniswapV3.Pool.Correct solm-difftest` succeeds on the audited specification
-(7,264 jobs); only the generated stubs use `sorry`. All seven artifact checks report `ok`.
+At scaffold hand-off, the combined correctness and differential-test executable build succeeded
+(7,264 jobs), and all seven artifact checks reported `ok`. These are historical scaffold results;
+only the correctness target was built for the final proof validation.
