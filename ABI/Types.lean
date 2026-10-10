@@ -53,6 +53,8 @@ inductive DecodeMode where
   | modern : DecodeMode
   | legacySolc05 : DecodeMode
   | vyper : DecodeMode
+  /-- Solidity 0.8.15 calldata wrappers, including deferred address-array validation. -/
+  | solc0815 : DecodeMode
   deriving DecidableEq, Repr, Inhabited
 
 /-- ABI types for parameters, locals, and return values. -/

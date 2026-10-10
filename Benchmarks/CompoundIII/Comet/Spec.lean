@@ -136,6 +136,7 @@ def externalABI : ExternalCallABI where
 def config : Config :=
   { storageBackend := storageBackend
     externalABI := externalABI
+    abiDecodeMode := .solc0815
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 
 end Benchmarks.CompoundIII.Comet

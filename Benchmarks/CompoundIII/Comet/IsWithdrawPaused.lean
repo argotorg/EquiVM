@@ -1,4 +1,7 @@
 import Benchmarks.CompoundIII.Comet.Dispatch
+import Benchmarks.CompoundIII.Comet.PauseCommon
+import Benchmarks.CompoundIII.Comet.RuntimeBlocks_009
+import Benchmarks.CompoundIII.Comet.RuntimeBlocks_022
 
 /-!
 # CometWithExtendedAssetList `isWithdrawPaused()`
@@ -11,10 +14,42 @@ Dispatcher arm entry: pc 1123; reach lemma `cometWithExtendedAssetListReachIsWit
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
 open Benchmarks.CompoundIII.Comet.Immutables
+open cometWithExtendedAssetListBlocks
 
 namespace Benchmarks.CompoundIII.Comet
 
 set_option maxRecDepth 2000000
+
+theorem isWithdrawPausedX {σ σ₀ A I} {g : Sat256} (v : CometWithExtendedAssetListImmutables)
+    (hcode : I.code = deployedRuntime v) (hsz : 4 ≤ I.calldata.size)
+    (hsize : I.calldata.size < UInt256.size)
+    (hsel : selIs I (cometWithExtendedAssetListSelBytes 29)) :
+    GetterResult (deployedRuntime v) I g (initState σ σ₀ g A I) σ
+      (pauseReturnWord σ I ⟨2, by decide⟩).toByteArray := by
+  obtain ⟨k, C, rd⟩ := cometWithExtendedAssetListReachIsWithdrawPausedBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) v hcode hsz hsize hsel
+  have rd1 := cometWithExtendedAssetList_block_1123 (immWords := wordsOf (immStore v))
+    (by decide) (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd
+  by_cases hvalue : I.weiValue = ⟨0⟩
+  · have rd2 := cometWithExtendedAssetList_block_3960_fallthrough
+      (immWords := wordsOf (immStore v)) (by decide) hvalue rd1
+    by_cases hhi : I.calldata.size < 2 ^ 255 + 4
+    · simp only [GetterResult, hvalue, hhi, and_self, if_true]
+      have rd3 := cometWithExtendedAssetList_block_3967_fallthrough
+        (immWords := wordsOf (immStore v)) (by decide) (getterLength_ok hsz hhi hsize) rd2
+      have rd4 := cometWithExtendedAssetList_block_3979
+        (immWords := wordsOf (immStore v)) (by decide) rd3
+      exact (getterReturnData (pauseReturnWord σ I ⟨2, by decide⟩)) ▸ rd4
+    · simp only [GetterResult, hvalue, hhi, and_false, if_false]
+      have rd3 := cometWithExtendedAssetList_block_3967_taken
+        (immWords := wordsOf (immStore v)) (by decide) (getterLength_huge (by omega) hsize)
+        (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd2
+      exact cometRevert1410 (by decide) rd3
+  · simp only [GetterResult, hvalue, false_and, if_false]
+    have rd2 := cometWithExtendedAssetList_block_3960_taken
+      (immWords := wordsOf (immStore v)) (by decide) hvalue
+      (by rw [cometWithExtendedAssetListPatchedValidJumpsRuntime v]; jump_dest) rd1
+    exact cometRevert1410 (by decide) rd2
 
 /-- `isWithdrawPaused()`: the theorem `Correct.lean` routes selector 29 to. -/
 theorem cometWithExtendedAssetListIsWithdrawPausedBody {σ σ₀ A I} {g : UInt256} (v : CometWithExtendedAssetListImmutables)
@@ -22,6 +57,8 @@ theorem cometWithExtendedAssetListIsWithdrawPausedBody {σ σ₀ A I} {g : UInt2
     (hsel : selIs I (cometWithExtendedAssetListSelBytes 29)) :
     runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (cometWithExtendedAssetListSelBytes 29) rfl hsel
-  sorry
+  exact pauseGetter_refines (t := isWithdrawPausedTransition) ⟨2, by decide⟩ hcode hsz
+    (cometSelectorDispatch ⟨29, by decide⟩ hsel) rfl rfl rfl
+    (isWithdrawPausedX v hcode hsz hsize hsel)
 
 end Benchmarks.CompoundIII.Comet

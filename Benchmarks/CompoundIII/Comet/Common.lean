@@ -1,4 +1,5 @@
 import Benchmarks.CompoundIII.Comet.Spec
+import Benchmarks.CompoundIII.Comet.ImmutableValues
 import Benchmarks.CompoundIII.Comet.Bytecode
 import Benchmarks.CompoundIII.Comet.Selectors
 import Reasoning.ABI
@@ -1589,7 +1590,188 @@ theorem immutableLayout_keys :
 /-- A well-typed immutables store runs as the store of some valuation. -/
 theorem restrictImmutables_of_fit {imms : Store} (h : immutablesFit contract imms) :
     ∃ v, restrictImmutables contract imms = immStore v := by
-  sorry  -- TODO: case on each immutable's value as in Examples/TinyImmutable/Common.lean
+  obtain ⟨governor,
+    h_governor⟩ :=
+    immutablesFit_address (name := "governor") h (by decide +kernel)
+  obtain ⟨pauseGuardian,
+    h_pauseGuardian⟩ :=
+    immutablesFit_address (name := "pauseGuardian") h (by decide +kernel)
+  obtain ⟨baseToken,
+    h_baseToken⟩ :=
+    immutablesFit_address (name := "baseToken") h (by decide +kernel)
+  obtain ⟨baseTokenPriceFeed,
+    h_baseTokenPriceFeed⟩ :=
+    immutablesFit_address (name := "baseTokenPriceFeed") h (by decide +kernel)
+  obtain ⟨extensionDelegate,
+    h_extensionDelegate⟩ :=
+    immutablesFit_address (name := "extensionDelegate") h (by decide +kernel)
+  obtain ⟨supplyKink,
+    h_supplyKink, _⟩ :=
+    immutablesFit_uint (name := "supplyKink") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨supplyPerSecondInterestRateSlopeLow,
+    h_supplyPerSecondInterestRateSlopeLow, _⟩ :=
+    immutablesFit_uint (name := "supplyPerSecondInterestRateSlopeLow") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨supplyPerSecondInterestRateSlopeHigh,
+    h_supplyPerSecondInterestRateSlopeHigh, _⟩ :=
+    immutablesFit_uint (name := "supplyPerSecondInterestRateSlopeHigh") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨supplyPerSecondInterestRateBase,
+    h_supplyPerSecondInterestRateBase, _⟩ :=
+    immutablesFit_uint (name := "supplyPerSecondInterestRateBase") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨borrowKink,
+    h_borrowKink, _⟩ :=
+    immutablesFit_uint (name := "borrowKink") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨borrowPerSecondInterestRateSlopeLow,
+    h_borrowPerSecondInterestRateSlopeLow, _⟩ :=
+    immutablesFit_uint (name := "borrowPerSecondInterestRateSlopeLow") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨borrowPerSecondInterestRateSlopeHigh,
+    h_borrowPerSecondInterestRateSlopeHigh, _⟩ :=
+    immutablesFit_uint (name := "borrowPerSecondInterestRateSlopeHigh") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨borrowPerSecondInterestRateBase,
+    h_borrowPerSecondInterestRateBase, _⟩ :=
+    immutablesFit_uint (name := "borrowPerSecondInterestRateBase") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨storeFrontPriceFactor,
+    h_storeFrontPriceFactor, _⟩ :=
+    immutablesFit_uint (name := "storeFrontPriceFactor") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨baseScale,
+    h_baseScale, _⟩ :=
+    immutablesFit_uint (name := "baseScale") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨trackingIndexScale,
+    h_trackingIndexScale, _⟩ :=
+    immutablesFit_uint (name := "trackingIndexScale") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨baseTrackingSupplySpeed,
+    h_baseTrackingSupplySpeed, _⟩ :=
+    immutablesFit_uint (name := "baseTrackingSupplySpeed") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨baseTrackingBorrowSpeed,
+    h_baseTrackingBorrowSpeed, _⟩ :=
+    immutablesFit_uint (name := "baseTrackingBorrowSpeed") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨baseMinForRewards,
+    h_baseMinForRewards, _⟩ :=
+    immutablesFit_uint (name := "baseMinForRewards") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨baseBorrowMin,
+    h_baseBorrowMin, _⟩ :=
+    immutablesFit_uint (name := "baseBorrowMin") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨targetReserves,
+    h_targetReserves, _⟩ :=
+    immutablesFit_uint (name := "targetReserves") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨decimals,
+    h_decimals,
+    h_decimals_lt⟩ :=
+    immutablesFit_uint (name := "decimals") (bits := ⟨8, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨numAssets,
+    h_numAssets,
+    h_numAssets_lt⟩ :=
+    immutablesFit_uint (name := "numAssets") (bits := ⟨8, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨accrualDescaleFactor,
+    h_accrualDescaleFactor, _⟩ :=
+    immutablesFit_uint (name := "accrualDescaleFactor") (bits := ⟨256, by decide⟩) h
+      (by decide +kernel)
+  obtain ⟨assetList,
+    h_assetList⟩ :=
+    immutablesFit_address (name := "assetList") h (by decide +kernel)
+  let v : CometWithExtendedAssetListImmutables := {
+    governor := governor
+    pauseGuardian := pauseGuardian
+    baseToken := baseToken
+    baseTokenPriceFeed := baseTokenPriceFeed
+    extensionDelegate := extensionDelegate
+    supplyKink := supplyKink
+    supplyPerSecondInterestRateSlopeLow := supplyPerSecondInterestRateSlopeLow
+    supplyPerSecondInterestRateSlopeHigh := supplyPerSecondInterestRateSlopeHigh
+    supplyPerSecondInterestRateBase := supplyPerSecondInterestRateBase
+    borrowKink := borrowKink
+    borrowPerSecondInterestRateSlopeLow := borrowPerSecondInterestRateSlopeLow
+    borrowPerSecondInterestRateSlopeHigh := borrowPerSecondInterestRateSlopeHigh
+    borrowPerSecondInterestRateBase := borrowPerSecondInterestRateBase
+    storeFrontPriceFactor := storeFrontPriceFactor
+    baseScale := baseScale
+    trackingIndexScale := trackingIndexScale
+    baseTrackingSupplySpeed := baseTrackingSupplySpeed
+    baseTrackingBorrowSpeed := baseTrackingBorrowSpeed
+    baseMinForRewards := baseMinForRewards
+    baseBorrowMin := baseBorrowMin
+    targetReserves := targetReserves
+    decimals := decimals
+    numAssets := numAssets
+    accrualDescaleFactor := accrualDescaleFactor
+    assetList := assetList
+    decimals_lt := h_decimals_lt
+    numAssets_lt := h_numAssets_lt }
+  refine ⟨v, ?_⟩
+  change ([
+    ({ name := "governor", ty := .address } : ImmutableDecl),
+    ({ name := "pauseGuardian", ty := .address } : ImmutableDecl),
+    ({ name := "baseToken", ty := .address } : ImmutableDecl),
+    ({ name := "baseTokenPriceFeed", ty := .address } : ImmutableDecl),
+    ({ name := "extensionDelegate", ty := .address } : ImmutableDecl),
+    ({ name := "supplyKink", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "supplyPerSecondInterestRateSlopeLow", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "supplyPerSecondInterestRateSlopeHigh", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "supplyPerSecondInterestRateBase", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "borrowKink", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "borrowPerSecondInterestRateSlopeLow", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "borrowPerSecondInterestRateSlopeHigh", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "borrowPerSecondInterestRateBase", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "storeFrontPriceFactor", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "baseScale", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "trackingIndexScale", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "baseTrackingSupplySpeed", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "baseTrackingBorrowSpeed", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "baseMinForRewards", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "baseBorrowMin", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "targetReserves", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "decimals", ty := .int (.uint ⟨8, by decide⟩) } : ImmutableDecl),
+    ({ name := "numAssets", ty := .int (.uint ⟨8, by decide⟩) } : ImmutableDecl),
+    ({ name := "accrualDescaleFactor", ty := .int (.uint ⟨256, by decide⟩) } : ImmutableDecl),
+    ({ name := "assetList", ty := .address } : ImmutableDecl)
+  ]).foldl (fun acc d ↦
+    match imms.get? d.name with
+    | some value => acc.insert d.name value
+    | none => acc) ∅ = immStore v
+  simp only [List.foldl,
+    h_governor,
+    h_pauseGuardian,
+    h_baseToken,
+    h_baseTokenPriceFeed,
+    h_extensionDelegate,
+    h_supplyKink,
+    h_supplyPerSecondInterestRateSlopeLow,
+    h_supplyPerSecondInterestRateSlopeHigh,
+    h_supplyPerSecondInterestRateBase,
+    h_borrowKink,
+    h_borrowPerSecondInterestRateSlopeLow,
+    h_borrowPerSecondInterestRateSlopeHigh,
+    h_borrowPerSecondInterestRateBase,
+    h_storeFrontPriceFactor,
+    h_baseScale,
+    h_trackingIndexScale,
+    h_baseTrackingSupplySpeed,
+    h_baseTrackingBorrowSpeed,
+    h_baseMinForRewards,
+    h_baseBorrowMin,
+    h_targetReserves,
+    h_decimals,
+    h_numAssets,
+    h_accrualDescaleFactor,
+    h_assetList,
+    immStore, v]
 
 /-- The patched runtime has the template's jump destinations (patch sites are push payloads). -/
 theorem cometWithExtendedAssetListPatchedValidJumps (v : CometWithExtendedAssetListImmutables) :

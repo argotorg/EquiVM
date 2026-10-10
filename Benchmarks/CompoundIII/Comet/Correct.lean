@@ -1,4 +1,5 @@
 import Benchmarks.CompoundIII.Comet.Constructor
+import Benchmarks.CompoundIII.Comet.Fallback
 import Benchmarks.CompoundIII.Comet.IsLiquidatable
 import Benchmarks.CompoundIII.Comet.GetReserves
 import Benchmarks.CompoundIII.Comet.IsSupplyPaused
@@ -89,7 +90,7 @@ theorem cometWithExtendedAssetListNoDispatch {σ σ₀ A I} {g : UInt256} (v : C
     (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 68 → (cometWithExtendedAssetListSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
-  sorry  -- TODO: refine the fallback/receive execution for unmatched calldata
+  exact cometFallbackRefines v hcode hsize hnm
 
 theorem cometWithExtendedAssetListNoSelectorMatches {I : ExecutionEnv}
     (h0 : ¬ selIs I (cometWithExtendedAssetListSelBytes 0)) (h1 : ¬ selIs I (cometWithExtendedAssetListSelBytes 1)) (h2 : ¬ selIs I (cometWithExtendedAssetListSelBytes 2)) (h3 : ¬ selIs I (cometWithExtendedAssetListSelBytes 3)) (h4 : ¬ selIs I (cometWithExtendedAssetListSelBytes 4)) (h5 : ¬ selIs I (cometWithExtendedAssetListSelBytes 5)) (h6 : ¬ selIs I (cometWithExtendedAssetListSelBytes 6)) (h7 : ¬ selIs I (cometWithExtendedAssetListSelBytes 7)) (h8 : ¬ selIs I (cometWithExtendedAssetListSelBytes 8)) (h9 : ¬ selIs I (cometWithExtendedAssetListSelBytes 9)) (h10 : ¬ selIs I (cometWithExtendedAssetListSelBytes 10)) (h11 : ¬ selIs I (cometWithExtendedAssetListSelBytes 11)) (h12 : ¬ selIs I (cometWithExtendedAssetListSelBytes 12)) (h13 : ¬ selIs I (cometWithExtendedAssetListSelBytes 13)) (h14 : ¬ selIs I (cometWithExtendedAssetListSelBytes 14)) (h15 : ¬ selIs I (cometWithExtendedAssetListSelBytes 15)) (h16 : ¬ selIs I (cometWithExtendedAssetListSelBytes 16)) (h17 : ¬ selIs I (cometWithExtendedAssetListSelBytes 17)) (h18 : ¬ selIs I (cometWithExtendedAssetListSelBytes 18)) (h19 : ¬ selIs I (cometWithExtendedAssetListSelBytes 19)) (h20 : ¬ selIs I (cometWithExtendedAssetListSelBytes 20)) (h21 : ¬ selIs I (cometWithExtendedAssetListSelBytes 21)) (h22 : ¬ selIs I (cometWithExtendedAssetListSelBytes 22)) (h23 : ¬ selIs I (cometWithExtendedAssetListSelBytes 23)) (h24 : ¬ selIs I (cometWithExtendedAssetListSelBytes 24)) (h25 : ¬ selIs I (cometWithExtendedAssetListSelBytes 25)) (h26 : ¬ selIs I (cometWithExtendedAssetListSelBytes 26)) (h27 : ¬ selIs I (cometWithExtendedAssetListSelBytes 27)) (h28 : ¬ selIs I (cometWithExtendedAssetListSelBytes 28)) (h29 : ¬ selIs I (cometWithExtendedAssetListSelBytes 29)) (h30 : ¬ selIs I (cometWithExtendedAssetListSelBytes 30)) (h31 : ¬ selIs I (cometWithExtendedAssetListSelBytes 31)) (h32 : ¬ selIs I (cometWithExtendedAssetListSelBytes 32)) (h33 : ¬ selIs I (cometWithExtendedAssetListSelBytes 33)) (h34 : ¬ selIs I (cometWithExtendedAssetListSelBytes 34)) (h35 : ¬ selIs I (cometWithExtendedAssetListSelBytes 35)) (h36 : ¬ selIs I (cometWithExtendedAssetListSelBytes 36)) (h37 : ¬ selIs I (cometWithExtendedAssetListSelBytes 37)) (h38 : ¬ selIs I (cometWithExtendedAssetListSelBytes 38)) (h39 : ¬ selIs I (cometWithExtendedAssetListSelBytes 39)) (h40 : ¬ selIs I (cometWithExtendedAssetListSelBytes 40)) (h41 : ¬ selIs I (cometWithExtendedAssetListSelBytes 41)) (h42 : ¬ selIs I (cometWithExtendedAssetListSelBytes 42)) (h43 : ¬ selIs I (cometWithExtendedAssetListSelBytes 43)) (h44 : ¬ selIs I (cometWithExtendedAssetListSelBytes 44)) (h45 : ¬ selIs I (cometWithExtendedAssetListSelBytes 45)) (h46 : ¬ selIs I (cometWithExtendedAssetListSelBytes 46)) (h47 : ¬ selIs I (cometWithExtendedAssetListSelBytes 47)) (h48 : ¬ selIs I (cometWithExtendedAssetListSelBytes 48)) (h49 : ¬ selIs I (cometWithExtendedAssetListSelBytes 49)) (h50 : ¬ selIs I (cometWithExtendedAssetListSelBytes 50)) (h51 : ¬ selIs I (cometWithExtendedAssetListSelBytes 51)) (h52 : ¬ selIs I (cometWithExtendedAssetListSelBytes 52)) (h53 : ¬ selIs I (cometWithExtendedAssetListSelBytes 53)) (h54 : ¬ selIs I (cometWithExtendedAssetListSelBytes 54)) (h55 : ¬ selIs I (cometWithExtendedAssetListSelBytes 55)) (h56 : ¬ selIs I (cometWithExtendedAssetListSelBytes 56)) (h57 : ¬ selIs I (cometWithExtendedAssetListSelBytes 57)) (h58 : ¬ selIs I (cometWithExtendedAssetListSelBytes 58)) (h59 : ¬ selIs I (cometWithExtendedAssetListSelBytes 59)) (h60 : ¬ selIs I (cometWithExtendedAssetListSelBytes 60)) (h61 : ¬ selIs I (cometWithExtendedAssetListSelBytes 61)) (h62 : ¬ selIs I (cometWithExtendedAssetListSelBytes 62)) (h63 : ¬ selIs I (cometWithExtendedAssetListSelBytes 63)) (h64 : ¬ selIs I (cometWithExtendedAssetListSelBytes 64)) (h65 : ¬ selIs I (cometWithExtendedAssetListSelBytes 65)) (h66 : ¬ selIs I (cometWithExtendedAssetListSelBytes 66)) (h67 : ¬ selIs I (cometWithExtendedAssetListSelBytes 67)) :
@@ -166,8 +167,9 @@ theorem cometWithExtendedAssetListNoSelectorMatches {I : ExecutionEnv}
   · simpa [selIs] using h67
 
 theorem cometWithExtendedAssetListCorrect (v : CometWithExtendedAssetListImmutables) :
-    runtimeRefinement config (deployedRuntime v) contract (immStore v) := by
-  refine ⟨fun σ σ₀ g A I hcode hsize ↦ ?_⟩
+    runtimeRefinementWithWF trivialStorageWF cometGasBound config
+      (deployedRuntime v) contract (immStore v) := by
+  refine ⟨fun σ σ₀ g A I hcode hsize _hwf hgas ↦ ?_⟩
   by_cases h0 : selIs I (cometWithExtendedAssetListSelBytes 0)
   · exact cometWithExtendedAssetListIsLiquidatableBody v hcode hsize h0
   · by_cases h1 : selIs I (cometWithExtendedAssetListSelBytes 1)
@@ -245,7 +247,7 @@ theorem cometWithExtendedAssetListCorrect (v : CometWithExtendedAssetListImmutab
                                                                           · by_cases h37 : selIs I (cometWithExtendedAssetListSelBytes 37)
                                                                             · exact cometWithExtendedAssetListSupplyFromBody v hcode hsize h37
                                                                             · by_cases h38 : selIs I (cometWithExtendedAssetListSelBytes 38)
-                                                                              · exact cometWithExtendedAssetListAbsorbBody v hcode hsize h38
+                                                                              · exact cometWithExtendedAssetListAbsorbBody v hcode hsize h38 hgas
                                                                               · by_cases h39 : selIs I (cometWithExtendedAssetListSelBytes 39)
                                                                                 · exact cometWithExtendedAssetListBorrowKinkBody v hcode hsize h39
                                                                                 · by_cases h40 : selIs I (cometWithExtendedAssetListSelBytes 40)
@@ -307,14 +309,16 @@ theorem cometWithExtendedAssetListCorrect (v : CometWithExtendedAssetListImmutab
                                                                                                                                         · exact cometWithExtendedAssetListNoDispatch v hcode hsize (cometWithExtendedAssetListNoSelectorMatches h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 h25 h26 h27 h28 h29 h30 h31 h32 h33 h34 h35 h36 h37 h38 h39 h40 h41 h42 h43 h44 h45 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67)
 
 theorem cometWithExtendedAssetListRuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
-    runtimeRefinement config (immutableLayout.deployed cometWithExtendedAssetListBytecode imms) contract
+    runtimeRefinementWithWF trivialStorageWF cometGasBound config
+      (immutableLayout.deployed cometWithExtendedAssetListBytecode imms) contract
       (restrictImmutables contract imms) := by
   obtain ⟨v, hv⟩ := restrictImmutables_of_fit hfit
   rw [← Reasoning.Immutables.Layout.deployed_restrict immutableLayout_keys, hv]
   exact cometWithExtendedAssetListCorrect v
 
 theorem cometWithExtendedAssetListContractCorrect :
-    contractRefinement config cometWithExtendedAssetListCreationBytecode contract :=
+    contractRefinementWFWithCodeBound trivialStorageWF cometGasBound config
+      cometWithExtendedAssetListCreationBytecode contract :=
   .of_runtime cometWithExtendedAssetListConstructorCorrect cometWithExtendedAssetListRuntimeCorrect
 
 end Benchmarks.CompoundIII.Comet

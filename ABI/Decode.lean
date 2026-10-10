@@ -17,7 +17,7 @@ def solcMaxU64 : Nat := 18446744073709551615
 def solcMaxLenV1 : Nat := 4294967296  -- 2^32
 
 def solcMaxLen : DecodeMode → Nat
-  | DecodeMode.modern       => solcMaxU64
+  | DecodeMode.modern | DecodeMode.solc0815 => solcMaxU64
   | DecodeMode.vyper        => solcMaxU64
   | DecodeMode.legacySolc05 => solcMaxLenV1
 
@@ -30,7 +30,7 @@ def solcMaxLen : DecodeMode → Nat
     the target. `legacySolc05` keeps the inclusive `2^32` offset cap. -/
 def solcRejectsDynamicArrayElementOffset (mode : DecodeMode) (relativeOffset : Nat) : Bool :=
   match mode with
-  | DecodeMode.modern => false
+  | DecodeMode.modern | DecodeMode.solc0815 => false
   | DecodeMode.vyper => false
   | DecodeMode.legacySolc05 => decide (solcMaxLen mode < relativeOffset)
 
@@ -40,7 +40,7 @@ def solcRejectsDynamicArrayElementOffset (mode : DecodeMode) (relativeOffset : N
     by attempting to read a mathematical-natural address beyond the input. -/
 def solcDynamicArrayElementTarget (mode : DecodeMode) (base relativeOffset : Nat) : Nat :=
   match mode with
-  | DecodeMode.modern => (base + relativeOffset) % EVM.wordModulus
+  | DecodeMode.modern | DecodeMode.solc0815 => (base + relativeOffset) % EVM.wordModulus
   | _ => base + relativeOffset
 
 -- A nested offset of -96 aliases a preceding array instead of addressing an enormous Nat.
@@ -84,6 +84,28 @@ def decodeABIRawBoolArrayElems? (n : Nat) (bytes : List UInt8) (start : Nat) :
       let (values, restEnd) <- decodeABIRawBoolArrayElems? n bytes (start + 32)
       some (rawBoolWordValue word :: values, restEnd)
 
+namespace Solc0815
+
+/-- Canonical addresses are ordinary values. A noncanonical word uses the existing deferred
+index-failure representation: it is at least `2^160`, so array access rejects it as neither 0 nor 1.
+The raw word is retained and the shared evaluator is unchanged. -/
+def addressArrayWord (n : Nat) : Solm.Value :=
+  if n < EVM.addressModulus then .address (Ethereum.AccountAddress.ofNat n)
+  else rawBoolWordValue n
+
+/-- Solidity 0.8.15 validates address-array elements on calldata access. Bounds are still checked
+while decoding; only the element's canonical-address failure is deferred. -/
+def decodeAddressArrayElems? (n : Nat) (bytes : List UInt8) (start : Nat) :
+    Option (List Solm.Value × Nat) :=
+  match n with
+  | 0 => some ([], start)
+  | n + 1 => do
+      let word ← readNat? bytes start
+      let (values, restEnd) ← decodeAddressArrayElems? n bytes (start + 32)
+      some (addressArrayWord word :: values, restEnd)
+
+end Solc0815
+
 def zeroPadding? (bytes : List UInt8) (offset size : Nat) : Option Unit := do
   let padding <- readBytes? bytes offset size
   if padding.all (· == 0) then some () else none
@@ -94,7 +116,7 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
   match ty with
   | .elem .bool =>
       match mode with
-      | DecodeMode.modern =>
+      | DecodeMode.modern | DecodeMode.solc0815 =>
           if n = 0 then
             some (.bool false)
           else if n = 1 then
@@ -115,7 +137,7 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
             some (.bool true)
   | .elem .address =>
       match mode with
-      | DecodeMode.modern =>
+      | DecodeMode.modern | DecodeMode.solc0815 =>
           if n < EVM.addressModulus then
             some (.address (Ethereum.AccountAddress.ofNat n))
           else
@@ -129,7 +151,7 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
           some (.address (Ethereum.AccountAddress.ofNat n))
   | .elem (.int (.uint bits)) =>
       match mode with
-      | DecodeMode.modern =>
+      | DecodeMode.modern | DecodeMode.solc0815 =>
           if bits.val = 0 then
             none
           else if n < EVM.twoPow bits.val then
@@ -154,7 +176,7 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
             some (.int (Solm.normalizeInt (.uint bits) (Int.ofNat n)))
   | .elem (.int (.sint bits)) =>
       match mode with
-      | DecodeMode.modern =>
+      | DecodeMode.modern | DecodeMode.solc0815 =>
           if bits.val = 0 then
             none
           else
@@ -200,7 +222,7 @@ mutual
             let wordBytes <- readBytes? bytes start 32
             let size := n.val + 1
             match mode with
-            | DecodeMode.modern => do
+            | DecodeMode.modern | DecodeMode.solc0815 => do
                 zeroPadding? wordBytes size (32 - size)
                 some (.fixedBytes n (wordBytes.take size), start + 32)
             | DecodeMode.vyper => do
@@ -262,11 +284,14 @@ mutual
           none
         else
         let elemsStart := start + 32
-        match elemTy with
-        | .elem .bool => do
+        match mode, elemTy with
+        | DecodeMode.solc0815, .elem .address => do
+          let (values, endOffset) ← Solc0815.decodeAddressArrayElems? size bytes elemsStart
+          some (.array values, endOffset)
+        | _, .elem .bool => do
           let (values, endOffset) <- decodeABIRawBoolArrayElems? size bytes elemsStart
           some (.array values, endOffset)
-        | elemTy' =>
+        | _, elemTy' =>
         if isDynamicABIType elemTy' then do
           let (values, endOffset) <- decodeABIArrayDynamicElems? elemTy' size bytes elemsStart mode
           some (.array values, endOffset)
@@ -394,7 +419,7 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
     -- accepting any dynamic tail. Legacy solc 0.5.x optimized wrappers use unsigned checks.
     if types.any isDynamicABIType = true ∧ 2 ^ 255 ≤ calldata.toList.length then
       match mode with
-      | DecodeMode.modern => none
+      | DecodeMode.modern | DecodeMode.solc0815 => none
       | DecodeMode.vyper =>
           let decoded := decodeArgs names types argsArray ∅
           match decoded with
@@ -411,7 +436,7 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
     -- two's-complement word (i.e. `>= 2^255`). The legacySolc05 mode instead uses an unsigned
     -- minimum-length check.
     match mode with
-    | DecodeMode.modern =>
+    | DecodeMode.modern | DecodeMode.solc0815 =>
         if types.isEmpty = false ∧ 2 ^ 255 ≤ argsArray.length then
           none
         else if solcTotalSizeDynamicGuard types = true ∧ 2 ^ 255 ≤ calldata.toList.length then
@@ -477,7 +502,7 @@ def decodeReturnValues? (types : List ABIType) (returndata : ByteArray) :
 def decodeReturnValuesWithMode? (mode : DecodeMode) (types : List ABIType) (returndata : ByteArray) :
     Option (List Solm.Value) :=
   match mode with
-  | DecodeMode.modern => decodeReturnValues? types returndata
+  | DecodeMode.modern | DecodeMode.solc0815 => decodeReturnValues? types returndata
   | DecodeMode.vyper => do
       let bytes := returndata.toList
       let headSize <- abiTupleHeadSize? types
@@ -502,7 +527,7 @@ def decodeReturnValue? (ty : ABIType) (returndata : ByteArray) : Option Solm.Val
 def decodeReturnValueWithMode? (mode : DecodeMode) (ty : ABIType) (returndata : ByteArray) :
     Option Solm.Value :=
   match mode with
-  | DecodeMode.modern => decodeReturnValue? ty returndata
+  | DecodeMode.modern | DecodeMode.solc0815 => decodeReturnValue? ty returndata
   | DecodeMode.vyper => do
       match decodeReturnValuesWithMode? DecodeMode.vyper [ty] returndata with
       | some [value] => some value
