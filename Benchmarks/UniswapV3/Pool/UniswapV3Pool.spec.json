@@ -1,0 +1,73 @@
+{
+  "contract": "UniswapV3Pool",
+  "externalCalls": [
+    {
+      "name": "uniswapV3MintCallback",
+      "params": [
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "uniswapV3SwapCallback",
+      "params": [
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "uniswapV3FlashCallback",
+      "params": [
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "returns": [],
+      "view": false
+    },
+    {
+      "name": "balanceOf",
+      "params": [
+        "address"
+      ],
+      "returns": [
+        "uint256"
+      ],
+      "view": true
+    },
+    {
+      "name": "transfer",
+      "params": [
+        "address",
+        "uint256"
+      ],
+      "returns": [
+        "bool"
+      ],
+      "view": false
+    }
+  ],
+  "holes": [],
+  "notes": [
+    "`_slot0` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 7648:27:1",
+    "`slot0Start` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 23197:31:1",
+    "constant MIN_SQRT_RATIO = 4295128739 inlined",
+    "constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342 inlined",
+    "constant MIN_TICK = -887272 inlined",
+    "constant MAX_TICK = int24(0 - -887272) inlined",
+    "constant Q128 = 340282366920938463463374607431768211456 inlined",
+    "`last` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 12994:37:21",
+    "`_slot0` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 12055:27:1",
+    "`last` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 4730:37:21",
+    "mulmod translated as (a * b) % n: differs for n == 0 (EVM gives 0)",
+    "constant RESOLUTION = 96 inlined",
+    "constant Q96 = 79228162514264337593543950336 inlined",
+    "`_self` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 2185:24:22"
+  ]
+}

@@ -1,0 +1,4 @@
+mint token0 overflow: agree (revert); calls=4; unconsumed=0; mismatches=0
+mint token1 overflow: agree (revert); calls=5; unconsumed=0; mismatches=0
+swap token0 overflow: agree (revert); calls=4; unconsumed=0; mismatches=0
+swap token1 overflow: agree (revert); calls=4; unconsumed=0; mismatches=0

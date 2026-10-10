@@ -1,0 +1,116 @@
+{
+  "upstream": "https://github.com/Uniswap/v3-core",
+  "commit": "e3589b192d0be27e100cd0daaf6c97204fdb1899",
+  "tag": "v1.0.0",
+  "compiler": {
+    "version": "0.7.6+commit.7338295f.Linux.g++",
+    "path": "/tmp/solc-0.7.6"
+  },
+  "solcBinarySha256": "bd69ea85427bf2f4da74cb426ad951dd78db9dfdd01d791208eccc2d4958a6bb",
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 800
+    },
+    "metadata": {
+      "bytecodeHash": "none"
+    }
+  },
+  "settingsAuthorityRequested": "https://etherscan.io/address/0x1F98431c8aD98523631AE4a59f267346ea31F984#code",
+  "etherscanAccess": "HTML endpoints HTTP 403; public API requires API key. Direct Etherscan verification remains unverified.",
+  "comparisonSource": [
+    "https://eth.blockscout.com/api/v2/smart-contracts/0x1F98431c8aD98523631AE4a59f267346ea31F984",
+    "https://eth.blockscout.com/api/v2/smart-contracts/0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"
+  ],
+  "factorySettings": {
+    "evmVersion": "istanbul",
+    "libraries": {},
+    "metadata": {
+      "bytecodeHash": "none"
+    },
+    "optimizer": {
+      "enabled": true,
+      "runs": 800
+    },
+    "remappings": []
+  },
+  "runtimeBytes": 22142,
+  "creationBytes": 22728,
+  "immutableValues": {
+    "factory": {
+      "type": "address",
+      "value": "0x1f98431c8ad98523631ae4a59f267346ea31f984",
+      "sites": [
+        8315,
+        8829,
+        10457
+      ]
+    },
+    "token0": {
+      "type": "address",
+      "value": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "sites": [
+        2258,
+        4853,
+        6740,
+        7822,
+        9150,
+        15650
+      ]
+    },
+    "token1": {
+      "type": "address",
+      "value": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "sites": [
+        4551,
+        6789,
+        7924,
+        9284,
+        10529,
+        15979
+      ]
+    },
+    "fee": {
+      "type": "uint24",
+      "value": "0x1f4",
+      "sites": [
+        3311,
+        6603,
+        6658,
+        10565
+      ]
+    },
+    "tickSpacing": {
+      "type": "int24",
+      "value": "0xa",
+      "sites": [
+        3072,
+        10493,
+        19402,
+        19452
+      ]
+    },
+    "maxLiquidityPerTick": {
+      "type": "uint128",
+      "value": "0x5e8b2285f864419ac400be907196",
+      "sites": [
+        8174,
+        19295,
+        19350
+      ]
+    },
+    "original": {
+      "type": "address",
+      "value": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+      "sites": [
+        11259
+      ]
+    }
+  },
+  "patchedMatchesDeployed": true,
+  "creationInDeployedFactoryOffset": 1795,
+  "runtimeTemplateSha256": "3ef71385c2a22b945bead7904f24b25db877de9db51d1401f2f9daea07ea5c0c",
+  "patchedRuntimeSha256": "92ba07e5b9a121271e3cb6ff1984114eab00dd64f05bd5701682da1a0f3d6afb",
+  "creationSha256": "f8165e94f91d71d983d5453de1d50437c070acfe59a24b78e42c447744dee98b",
+  "settingsAuthorityAccepted": "User approved Blockscout verification corroborated by exact deployed-runtime and factory creation-code matches on 2026-10-08."
+}

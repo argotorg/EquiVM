@@ -74,23 +74,36 @@ instance : Append Pools where
   append a b := { addresses := a.addresses ++ b.addresses, words := a.words ++ b.words,
                   fixedBytes := a.fixedBytes ++ b.fixedBytes, bytes := a.bytes ++ b.bytes }
 
-def Pools.dedup (p : Pools) : Pools :=
-  { addresses := p.addresses.eraseDups, words := p.words.eraseDups,
-    fixedBytes := p.fixedBytes.eraseDups, bytes := p.bytes.eraseDups }
-
-/-- The pools some values contribute: their addresses, their non-negative integers, the last
-    index of every array, and their byte constants. -/
-partial def Pools.ofValues (vs : List Value) : Pools := vs.foldl (fun p v => p ++ ofValue v) {}
+/-- Gather value pools in their original encounter order using reverse accumulators. -/
+partial def Pools.ofValues (vs : List Value) : Pools :=
+  let p := vs.foldl visit {}
+  { addresses := p.addresses.reverse, words := p.words.reverse,
+    fixedBytes := p.fixedBytes.reverse, bytes := p.bytes.reverse }
 where
-  ofValue : Value → Pools
-    | .address a => { addresses := [a] }
-    | .int i => if 0 ≤ i ∧ i < 2 ^ 256 then { words := [i.toNat] } else {}
-    | .fixedBytes n bs => { fixedBytes := [(n, bs)] }
-    | .bytes b => { bytes := [b] }
-    | .array vs => (if vs.isEmpty then {} else { words := [vs.length - 1] }) ++ Pools.ofValues vs
-    | .tuple vs => Pools.ofValues vs
-    | .struct _ fields => Pools.ofValues (fields.map (·.2))
-    | _ => {}
+  visit (p : Pools) : Value → Pools
+    | .address a => { p with addresses := a :: p.addresses }
+    | .int i => if 0 ≤ i ∧ i < 2 ^ 256 then { p with words := i.toNat :: p.words } else p
+    | .fixedBytes n bs => { p with fixedBytes := (n, bs) :: p.fixedBytes }
+    | .bytes b => { p with bytes := b :: p.bytes }
+    | .array vs =>
+        let p := if vs.isEmpty then p else { p with words := (vs.length - 1) :: p.words }
+        vs.foldl visit p
+    | .tuple vs => vs.foldl visit p
+    | .struct _ fields => fields.foldl (fun p (_, v) => visit p v) p
+    | _ => p
+
+private def stableDedup [BEq α] [Hashable α] (xs : List α) : List α := Id.run do
+  let mut seen : Std.HashSet α := {}
+  let mut out := []
+  for x in xs do
+    if !seen.contains x then
+      seen := seen.insert x
+      out := x :: out
+  return out.reverse
+
+def Pools.dedup (p : Pools) : Pools :=
+  { addresses := stableDedup p.addresses, words := stableDedup p.words,
+    fixedBytes := stableDedup p.fixedBytes, bytes := stableDedup p.bytes }
 
 /-! ## The literal dictionary -/
 
@@ -261,25 +274,25 @@ partial def genStorageValue (pools : Pools) (structs : List StructDecl) (ty : St
         let (v?, r') := genStorageValue pools structs fty r
         r := r'
         match v? with
-        | some v => vs := vs ++ [(f, v)]
+        | some v => vs := (f, v) :: vs
         | none => pure ()
-      return (some (.struct name vs), r)
+      return (some (.struct name vs.reverse), r)
   | .tuple ts => Id.run do
       let mut r := r
       let mut vs : List Value := []
       for t in ts do
         let (v?, r') := genStorageValue pools structs t r
         r := r'
-        vs := vs ++ [v?.getD (.int 0)]
-      return (some (.tuple vs), r)
+        vs := v?.getD (.int 0) :: vs
+      return (some (.tuple vs.reverse), r)
   | .array t n => Id.run do
       let mut r := r
       let mut vs : List Value := []
       for _ in [:n] do
         let (v?, r') := genStorageValue pools structs t r
         r := r'
-        vs := vs ++ [v?.getD (.int 0)]
-      return (some (.array vs), r)
+        vs := v?.getD (.int 0) :: vs
+      return (some (.array vs.reverse), r)
   | .dynamicArray t => Id.run do
       -- long enough for the small indices the case refers to
       let (len, r0) := r.pick ([0, 1, 2, 3] ++ (pools.words.filter (· < 8)).map (· + 1)) 0
@@ -288,8 +301,8 @@ partial def genStorageValue (pools : Pools) (structs : List StructDecl) (ty : St
       for _ in [:len] do
         let (v?, r') := genStorageValue pools structs t r
         r := r'
-        vs := vs ++ [v?.getD (.int 0)]
-      return (some (.array vs), r)
+        vs := v?.getD (.int 0) :: vs
+      return (some (.array vs.reverse), r)
   | .bytes | .string =>
       let (len, r) := r.pick [0, 1, 31, 32, 33, 70] 0
       let (bs, r) := r.bytes len
