@@ -4,9 +4,11 @@ Shared, contract-agnostic infrastructure for proving that compiled EVM bytecode 
 specification. Every per-contract proof in `Examples/` and `Benchmarks/` is assembled from these
 files plus contract-specific facts (bytecode literals, selectors, storage layout).
 
-Most declarations are in `Reasoning.Theory`. The EVM trace layer (`RD`, `evm_run`,
+Most declarations are in `Reasoning.Theory`. The older EVM trace layer (`RD`, `evm_run`,
 `SolcRoutines.lean`, and the `RD.*` lemma halves of `Solc.lean` and `Dispatch.lean`) is in
-`Reasoning.Reach`. `SolmArithmetic.lean` includes the nested `Reasoning.Theory.RpowB` and
+`Reasoning.Reach`; its successor `Run`/`Returned`/`Reverted` (`Trace.lean`, `SolcTrace.lean`,
+`SolcIdioms.lean`) is in `Reasoning.Trace` and covers everything `RD` covers plus the event log,
+exact revert data and the opcodes listed below. `SolmArithmetic.lean` includes the nested `Reasoning.Theory.RpowB` and
 `Reasoning.Theory.RpowBase` namespaces for the two source-variable conventions.
 `Immutables.lean` uses `Reasoning.Immutables` for immutable layouts and decoding.
 `JumpDest.lean` has no namespace (it defines a tactic and an attribute).
@@ -42,6 +44,9 @@ dependencies.
 | `StorageLoops.lean` | Index and account-map facts for sequential storage clearing and copying, including prefix composition and repeated stores. |
 | `BytecodePatching.lean` | Immutable-word encoding, bytecode splicing, preserved decode windows, and jump destinations. |
 | `Immutables.lean` | Named immutable layouts, runtime construction, preserved decode windows, and decoding of patched PUSH20/PUSH32 operands for generated block summaries. |
+| `Trace.lean` | The EVM trace tracker `Run code s0 cur k C` (cursor = pc, stack, memory, active words, return data, world `⟨created, accounts, logs⟩`; the environment and the initial accounts are read from `s0`), the terminals `Returned`/`Reverted` (exact data)/`StaticViolation`/`Invalid` with their `Ξ` bridges (`Returned.xi`, `Reverted.xi`, `StaticViolation.xi`, `Invalid.xi`), the generic steps `Run.step`/`stepVar`/`stepVarMono`/`stepStatic` with the `trace_succ` discharger, the counter utilities (`pack`, `cast`, `normalizeCounters`, `startWith`), and one forward rule per opcode: every stack op (`PUSH0`–`PUSH32` via `pushConst` and the fixed widths, `DUP1`–`DUP16`, `SWAP1`–`SWAP16`, `POP`), arithmetic/bitwise/comparison (`ADD … SIGNEXTEND`, `ADDMOD`, `MULMOD`, `SDIV`, `SMOD`, `SAR`, `BYTE`, `EXP`, `KECCAK256`), environment and block reads (`ADDRESS`, `CALLER`, `ORIGIN`, `CALLVALUE`, `CALLDATALOAD/SIZE/COPY`, `CODESIZE/COPY`, `EXTCODESIZE/HASH/COPY`, `RETURNDATASIZE/COPY`, `BALANCE`, `SELFBALANCE`, `GASPRICE`, `GAS`, `PC`, `MSIZE`, `TIMESTAMP`, `NUMBER`, `COINBASE`, `GASLIMIT`, `CHAINID`, `BASEFEE`, `PREVRANDAO`, `BLOCKHASH`, `BLOBHASH`, `BLOBBASEFEE`), memory (`MLOAD`, `MSTORE`, `MSTORE8`, `MCOPY`; fixed-cost, `*Var` and `gen*`/`*Symbolic` forms), `SLOAD`/`SSTORE`/`TLOAD`/`TSTORE`, `LOG0`–`LOG4` (fixed and `*Var` forms, exposing the `LogEntry`), `JUMP`/`JUMPI`/`JUMPDEST`, the selector dispatch arms and splits, `CALL` (value-free, with value, the `Or` forms for value-free static calls, depth limit, insufficient balance, empty in/out), `DELEGATECALL` (`delegatecallTheta`), `CREATE`/`CREATE2` (`createLambda`, `createCursor`), the static-mode violations (`sstoreStatic`, `tstoreStatic`, `log*Static`, `callValueStatic`, `createStatic`), `INVALID`, `STOP`/`RETURN`/`REVERT`, the loop combinators (`whileLoop`, `countingLoop`, `whileLoopAt[Exit]`) and the Sol⁻-coupled `for` loops (`execForLoopOrRevert[OrStatic]`). |
+| `SolcTrace.lean` | The solc compiler idioms of `Solc.lean` and `SolcRoutines.lean` restated on `Run` (every `RD.solc*` has a `Run.solc*`), including the permission-split forms (`*Split`: `(perm = true ∧ P) ∨ (perm = false ∧ StaticViolation …)`), `STATICCALL` (`solcStaticcall`), `revertData`. |
+| `SolcIdioms.lean` | Generalised solc shapes on `Run`: `Panic(code)` tails, checked add/sub with `Panic(0x11)`, custom-error reverts, array index guards, byte-array lengths, counting loops, the return block. |
 | `SolcRoutines.lean` | Bytecode-parameterized getter, authorization, storage-update, checked-arithmetic, and revert routines. |
 | `SolmArithmetic.lean` | Source arithmetic expressions, checked and wrapping operations, local-variable frames, and exponentiation-frame evaluation facts. |
 
@@ -67,6 +72,8 @@ Stepping   EVMWord ── SolmBody
              └── ExternalCall  (also SolmBody)
 
 Constructor ← Reach, SolmBody     Initcode ← EVMWord     JumpDest ← (Ethereum only)
+
+Trace ← Reach        SolcTrace ← Trace, Solc, SolcRoutines        SolcIdioms ← SolcTrace
 ```
 
 The remaining extension modules have distinct responsibilities:

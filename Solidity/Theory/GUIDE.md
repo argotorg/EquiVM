@@ -39,11 +39,18 @@ Start from `initState σ σ₀ (Sat256.ofUInt256 g) A I` (world `⟨A.createdAcc
    guards, loops via `Run.countingLoop`/`Run.whileLoop`, custom errors, return block).
 5. Terminal: `Returned code s0 w out` (`Run.solcReturnBlock`, `retVar`) or `Reverted code s0 d`
    (`Run.solcPanicTail`, `Run.solcErrorStringRevertTail`, `Run.solcCustomErrorRevert[U256]`,
-   `Run.solcRevertBlock`).
+   `Run.solcRevertBlock`); a write under `perm = false` is `StaticViolation code s0`
+   (`Run.sstoreStatic`, `Run.log*Static`, `Run.callValueStatic`, the `*Split` idioms) and a
+   stray `0xfe` is `Invalid code s0` (`Run.invalid`); both have `Ξ` bridges (`StaticViolation.xi`,
+   `Invalid.xi`).
 
 Keep the world `w` explicit: every `SSTORE` gives
-`{ w with accounts := sstoreAccountMap … }`, every `LOG` a `w.logs.push …`, every `CALL` the
-callee's `Θ` result.
+`{ w with accounts := sstoreAccountMap … }` (`TSTORE`: `tstoreAccountMap`), every `LOG` a
+`w.logs.push …`, every `CALL`/`STATICCALL`/`DELEGATECALL` the callee's `Θ` result
+(`callTheta`, `staticcallTheta`, `delegatecallTheta`), every `CREATE`/`CREATE2` the `Λ` result
+(`createLambda`, `createCursor`).  Every opcode solc emits has a `Run.*` rule (see
+`Reasoning/STRUCTURE.md`, row `Trace.lean`); the `*Var` forms read the memory-expansion cost
+from the reached state, the `gen*` forms state it as `memExpansionCost aw off len`.
 
 ### 1b. The spec derivation
 

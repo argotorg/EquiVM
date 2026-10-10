@@ -1,5 +1,6 @@
 import Reasoning.Trace
 import Reasoning.Solc
+import Reasoning.SolcRoutines
 
 /-!
 # SolcTrace — the solc compiler idioms on `Run`
@@ -3130,5 +3131,1665 @@ theorem Run.solcStaticcallDepthLimit {gasArg target inOffset inSize outOffset ou
     exact Run.callNoCallMade hXP hgas hk hC (Nat.le_of_not_lt hP) hGltgc hcode
       (cursorOf_eq.mpr ⟨by rw [hpc], rfl, by rw [hmem], by rw [haw], rfl, hcA, hσ, hlogs⟩)
       hgv hst
+
+/-! ## Routines ported from Reasoning.SolcRoutines and the permission-split forms -/
+
+open Reasoning.Reach (solcZeroSlotMappingGetterWf solcNoArgsExternalEntryWf
+  solcWordSlotGetterSwapJumpWf solcCheckedAddEmptyRevertWf solcCheckedSubEmptyRevertWf revertDataWf
+  SolcErrorStringCopyWf solcUint48Offset0SlotGetterWf solcUint48Offset6SlotGetterWf
+  solcReturnUint48FromMemWf solcAuthTailPc solcAuthCheckWf solcMapping0StoreZeroWf
+  solcMapping0StoreOneWf solcErrorStringRevertTailDirectWf solcSlotWordAt permSplit_true)
+
+/-- A 32-byte `MLOAD`/`MSTORE` at an offset already inside the active words costs no expansion. -/
+theorem memExpWordCost0 {off : UInt256} {t : List UInt256}
+    (hM : UInt256.ofNat (MachineState.M aw.toNat off.toNat 32) = aw) (op : Operation)
+    (hop : op = .MLOAD ∨ op = .MSTORE) :
+    ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = off :: t →
+      memoryExpansionCost s op = 0 := by
+  intro s haws hstks
+  rcases hop with rfl | rfl <;>
+    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
+      List.getElem!_cons_zero, hM, Nat.sub_self]
+
+/-- `REVERT`/`RETURN` of a range already inside the active words costs no expansion. -/
+theorem memExpRangeCost0 {off len : UInt256} {t : List UInt256}
+    (hM : UInt256.ofNat (MachineState.M aw.toNat off.toNat len.toNat) = aw) (op : Operation)
+    (hop : op = .REVERT ∨ op = .RETURN) :
+    ∀ s : State, s.machineState.activeWords = aw →
+      s.machineState.stack = off :: len :: t → memoryExpansionCost s op = 0 := by
+  intro s haws hstks
+  rcases hop with rfl | rfl <;>
+    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
+      List.getElem!_cons_zero, List.getElem!_cons_succ, hM, Nat.sub_self]
+
+/-- Mapping getter at base slot `0` over the free-pointer memory: hash `key ‖ 0` in scratch
+    memory, `SLOAD`, return to `ret`. -/
+theorem Run.solcZeroSlotMappingGetter {key ret : UInt256}
+    (h : Run code s0 ⟨pc, key :: ret :: R, solcFreePtrMem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcZeroSlotMappingGetterWf code pc)
+    (hret : (D_J code 0).contains ret = true)
+    (hov : R.length + 5 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨ret,
+      solcSlotWord w.accounts s0.executionEnv (solcMappingSlot ⟨0⟩ key) :: ret :: R,
+      solcMappingHashMem ⟨0⟩ key, UInt256.ofNat 3, rdata, w⟩ k' C' := by
+  rcases hwf with
+    ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15, hd16, hd17⟩
+  have h7 := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw push1 ⟨0⟩ hd1 (by evm_ov),
+    raw push1 ⟨32⟩ hd3 (by evm_ov),
+    raw dup2 hd5 (by evm_ov),
+    raw swap1 hd6 (by evm_ov)]
+  have h8 := h7.mstore 0 (solcMappingBaseSlotMem ⟨0⟩) (UInt256.ofNat 3) hd7 mem_cost (by rfl)
+    (by decide) (by evm_ov)
+  have h10 := evm_run h8 with [raw swap1 hd8 (by evm_ov), raw dup2 hd9 (by evm_ov)]
+  have h11 := h10.mstore 0 (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) hd10 mem_cost (by rfl)
+    (by decide) (by evm_ov)
+  have h14 := evm_run h11 with [raw push1 ⟨64⟩ hd11 (by evm_ov), raw swap1 hd13 (by evm_ov)]
+  have hslot := solcMappingKeccakSlot ⟨0⟩ key
+  have h15 := h14.keccak256 0 (solcMappingSlot ⟨0⟩ key) (UInt256.ofNat 3) hd14 mem_cost
+    (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
+      show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
+    (by decide) (by evm_ov)
+  obtain ⟨_, _, h16⟩ := h15.sload hd15 (by evm_ov)
+  exact ⟨_, _, h16.dup2 hd16 (by evm_ov) |>.jump hd17 hret (by evm_ov)⟩
+
+/-- No-argument external entry: `JUMPDEST; PUSH2 ret; PUSH2 routine; JUMP`. -/
+theorem Run.solcNoArgsExternalEntry {ret routine sel : UInt256}
+    (h : Run code s0 ⟨pc, [sel], mem, aw, rdata, w⟩ k C)
+    (hwf : solcNoArgsExternalEntryWf code pc ret routine)
+    (hroutine : (D_J code 0).contains routine = true) :
+    ∃ k' C', Run code s0 ⟨routine, [ret, sel], mem, aw, rdata, w⟩ k' C' := by
+  rcases hwf with ⟨hd0, hd1, hd4, hd7⟩
+  exact ⟨_, _, h.jumpdest hd0 (by evm_ov) |>.push2 ret hd1 (by evm_ov)
+    |>.push2 routine hd4 (by evm_ov) |>.jump hd7 hroutine (by evm_ov)⟩
+
+/-- Word getter routine returning through `SWAP1; JUMP`: the return address is consumed. -/
+theorem Run.solcWordSlotGetterSwapJump {slot ret : UInt256}
+    (h : Run code s0 ⟨pc, ret :: R, mem, aw, rdata, w⟩ k C)
+    (hwf : solcWordSlotGetterSwapJumpWf code pc slot)
+    (hret : (D_J code 0).contains ret = true)
+    (hov : R.length + 3 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨ret, solcSlotWord w.accounts s0.executionEnv slot :: R, mem, aw, rdata, w⟩
+      k' C' := by
+  rcases hwf with ⟨hd0, hd1, hd2, hd3, hd4⟩
+  have h3 := h.jumpdest hd0 (by evm_ov) |>.push1 slot hd1 (by evm_ov)
+  obtain ⟨_, _, h4⟩ := h3.sload hd2 (by evm_ov)
+  exact ⟨_, _, h4.swap1 hd3 (by evm_ov) |>.jump hd4 hret (by evm_ov)⟩
+
+/-- Shanghai `PUSH0; DUP1; REVERT`: `revert(0,0)`. -/
+theorem Run.solcPush0Dup1Revert0 (h : Run code s0 ⟨pc, stk, mem, aw, rdata, w⟩ k C)
+    (hd0 : decode code pc = some (.PUSH0, .none))
+    (hd1 : decode code (pc + ⟨1⟩) = some (.DUP1, .none))
+    (hd2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.REVERT, .none))
+    (hov : stk.length + 2 ≤ 1024) : Reverted code s0 ByteArray.empty :=
+  h.push0 hd0 (by omega)
+    |>.dup1 hd1 (by omega)
+    |>.rev 0 ByteArray.empty hd2 (fun s _ hstks => memExpRevert0 s hstks)
+      (byteArray_readWithPadding_zero _ _) (by omega)
+
+/-- Checked addition overflow with the legacy `PUSH1 0; DUP1; REVERT` tail, over any active
+    words: `revert(0,0)`. -/
+theorem Run.solcCheckedAddEmptyRevertAnyWords {okPc a b ret : UInt256}
+    (h : Run code s0 ⟨pc, b :: a :: ret :: R, mem, aw, rdata, w⟩ k C)
+    (hwf : solcCheckedAddEmptyRevertWf code pc okPc)
+    (hover : UInt256.size ≤ a.toNat + b.toNat)
+    (hov : R.length + 9 ≤ 1024) :
+    Reverted code s0 ByteArray.empty := by
+  rcases hwf with ⟨hadd, hdRev0, hdRev2, hdRev3⟩
+  rcases hadd with ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
+  have hmod : (a.toNat + b.toNat) % UInt256.size = a.toNat + b.toNat - UInt256.size := by
+    have ha : a.toNat < UInt256.size := a.val.isLt
+    have hb : b.toNat < UInt256.size := b.val.isLt
+    rw [Nat.mod_eq_sub_mod hover]
+    exact Nat.mod_eq_of_lt (by omega)
+  have haddNat : (a + b).toNat = a.toNat + b.toNat - UInt256.size := by rw [uadd_toNat, hmod]
+  have hlt : UInt256.lt (a + b) a = ⟨1⟩ := by
+    apply ult_one
+    rw [haddNat]
+    have hb : b.toNat < UInt256.size := b.val.isLt
+    omega
+  have h7 := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw dup1 hd1 (by evm_ov),
+    raw dup3 hd2 (by evm_ov),
+    raw add hd3 (by evm_ov),
+    raw dup3 hd4 (by evm_ov),
+    raw dup2 hd5 (by evm_ov),
+    raw lt hd6 (by evm_ov)]
+  rw [hlt] at h7
+  have h8 := h7.iszero hd7 (by evm_ov)
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at h8
+  have hTail := (h8.push2 okPc hd8 (by evm_ov)).jumpiNT hd11 rfl (by evm_ov)
+  exact hTail.solcPush1Dup1Revert0 hdRev0 hdRev2 hdRev3 (by evm_ov)
+
+/-- `Run.solcCheckedAddEmptyRevertAnyWords` over the scratch active words. -/
+theorem Run.solcCheckedAddEmptyRevert {okPc a b ret : UInt256}
+    (h : Run code s0 ⟨pc, b :: a :: ret :: R, mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcCheckedAddEmptyRevertWf code pc okPc)
+    (hover : UInt256.size ≤ a.toNat + b.toNat)
+    (hov : R.length + 9 ≤ 1024) :
+    Reverted code s0 ByteArray.empty :=
+  h.solcCheckedAddEmptyRevertAnyWords hwf hover hov
+
+/-- Checked subtraction underflow with the legacy `PUSH1 0; DUP1; REVERT` tail, over any active
+    words: `revert(0,0)`. -/
+theorem Run.solcCheckedSubEmptyRevertAnyWords {okPc a b ret : UInt256}
+    (h : Run code s0 ⟨pc, b :: a :: ret :: R, mem, aw, rdata, w⟩ k C)
+    (hwf : solcCheckedSubEmptyRevertWf code pc okPc)
+    (hlt : a.toNat < b.toNat)
+    (hov : R.length + 9 ≤ 1024) :
+    Reverted code s0 ByteArray.empty := by
+  rcases hwf with ⟨hsub, hdRev0, hdRev2, hdRev3⟩
+  rcases hsub with ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
+  have hsubNat : (UInt256.sub a b).toNat = UInt256.size + a.toNat - b.toNat :=
+    usub_toNat_underflow hlt
+  have hgt : UInt256.gt (UInt256.sub a b) a = ⟨1⟩ := by
+    show UInt256.fromBool (decide (UInt256.sub a b > a)) = ⟨1⟩
+    rw [decide_eq_true]
+    · rfl
+    · show (UInt256.sub a b).toNat > a.toNat
+      rw [hsubNat]
+      have hb : b.toNat < UInt256.size := b.val.isLt
+      omega
+  have h7 := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw dup1 hd1 (by evm_ov),
+    raw dup3 hd2 (by evm_ov),
+    raw sub hd3 (by evm_ov),
+    raw dup3 hd4 (by evm_ov),
+    raw dup2 hd5 (by evm_ov),
+    raw gt hd6 (by evm_ov)]
+  rw [hgt] at h7
+  have h8 := h7.iszero hd7 (by evm_ov)
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at h8
+  have hTail := (h8.push2 okPc hd8 (by evm_ov)).jumpiNT hd11 rfl (by evm_ov)
+  exact hTail.solcPush1Dup1Revert0 hdRev0 hdRev2 hdRev3 (by evm_ov)
+
+/-- `Run.solcCheckedSubEmptyRevertAnyWords` over the scratch active words. -/
+theorem Run.solcCheckedSubEmptyRevert {okPc a b ret : UInt256}
+    (h : Run code s0 ⟨pc, b :: a :: ret :: R, mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcCheckedSubEmptyRevertWf code pc okPc)
+    (hlt : a.toNat < b.toNat)
+    (hov : R.length + 9 ≤ 1024) :
+    Reverted code s0 ByteArray.empty :=
+  h.solcCheckedSubEmptyRevertAnyWords hwf hlt hov
+
+/-- Checked-`sub` underflow → `revert(0,0)`: solc 0.6.12 compiles the DSMath `sub` guard's false
+    branch as `PUSH1 0; DUP1; REVERT` (no error string, unlike
+    `Run.solcCheckedSubStringRevertGrown`); the three tail decodes are given separately. -/
+theorem Run.solcCheckedSubEmptyRevertFromDecodes {okPc a b ret : UInt256}
+    (h : Run code s0 ⟨pc, b :: a :: ret :: R, mem, aw, rdata, w⟩ k C)
+    (hsub : solcCheckedSubSuccessWf code pc okPc)
+    (hd0 : decode code (solcCheckedArithmeticRevertPc pc) = some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hd1 : decode code (solcCheckedArithmeticRevertPc pc + UInt256.ofNat 2) = some (.DUP1, .none))
+    (hd2 : decode code (solcCheckedArithmeticRevertPc pc + UInt256.ofNat 2 + ⟨1⟩) =
+      some (.REVERT, .none))
+    (hlt : a.toNat < b.toNat) (hov : R.length + 9 ≤ 1024) :
+    Reverted code s0 ByteArray.empty :=
+  h.solcCheckedSubEmptyRevertAnyWords ⟨hsub, hd0, hd1, hd2⟩ hlt hov
+
+/-- The revert-bubbling tail `RETURNDATASIZE; PUSH0; DUP1; RETURNDATACOPY; RETURNDATASIZE; PUSH0;
+    REVERT`, with the revert data as the EVM builds it. -/
+theorem Run.revertDataRaw (h : Run code s0 ⟨pc, R, mem, aw, rdata, w⟩ k C)
+    (hwf : revertDataWf code pc) (hov : R.length + 3 ≤ 1024) :
+    Reverted code s0 ((rdata.write 0 mem 0 (UInt256.ofNat rdata.size).toNat).readWithPadding 0
+      (UInt256.ofNat rdata.size).toNat) := by
+  obtain ⟨h0, h1, h2, h3, h4, h5, h6⟩ := hwf
+  have hp2 : pc + ⟨1⟩ + ⟨1⟩ = pc + ⟨2⟩ := by rw [u256_add_assoc]; rfl
+  have hp3 : pc + ⟨2⟩ + ⟨1⟩ = pc + ⟨3⟩ := by rw [u256_add_assoc]; rfl
+  have hp4 : pc + ⟨3⟩ + ⟨1⟩ = pc + ⟨4⟩ := by rw [u256_add_assoc]; rfl
+  have hp5 : pc + ⟨4⟩ + ⟨1⟩ = pc + ⟨5⟩ := by rw [u256_add_assoc]; rfl
+  have hp6 : pc + ⟨5⟩ + ⟨1⟩ = pc + ⟨6⟩ := by rw [u256_add_assoc]; rfl
+  have h2' := h.returndatasize h0 (by evm_ov) |>.push0 h1 (by evm_ov)
+  rw [hp2] at h2'
+  have h3' := h2'.dup1 h2 (by evm_ov)
+  rw [hp3] at h3'
+  obtain ⟨_, _, h4'⟩ := h3'.returndatacopyVar h3
+    (by show 0 + (UInt256.ofNat rdata.size).toNat ≤ rdata.size
+        simp only [Nat.zero_add]; exact Nat.mod_le _ _)
+    (by evm_ov)
+  rw [hp4] at h4'
+  have h5' := h4'.returndatasize h4 (by evm_ov)
+  rw [hp5] at h5'
+  have h6' := h5'.push0 h5 (by evm_ov)
+  rw [hp6] at h6'
+  exact h6'.rev _ _ h6 (fun s haw hstk => by rw [memExpRevertZeroOff s hstk, haw]) rfl (by evm_ov)
+
+/-- The revert-bubbling tail reverts with exactly the carried return data. -/
+theorem Run.revertData (h : Run code s0 ⟨pc, R, mem, aw, rdata, w⟩ k C)
+    (hwf : revertDataWf code pc) (hrdata64 : rdata.size < 2 ^ 64) (hov : R.length + 3 ≤ 1024) :
+    Reverted code s0 rdata := by
+  have hraw := h.revertDataRaw hwf hov
+  rwa [solcBubbledRevertData_eq mem rdata hrdata64] at hraw
+
+/-- The memory the code-copy `Error(string)` tail (`SolcErrorStringCopyWf`) builds over `mem`, with
+    `ptr = mem[0x40]`: the selector at `ptr`, the offset `32` at `ptr+4`, `len` at `ptr+36` and
+    the string bytes copied from `code[source ..]` at `ptr+68`. -/
+noncomputable def solcErrorStringCopyMem (code mem : ByteArray) (source len : UInt256) :
+    ByteArray :=
+  let ptr := memoryWordLoad mem ⟨64⟩
+  let p4 := ⟨4⟩ + ptr
+  let p36 := ⟨32⟩ + p4
+  let p68 := ⟨32⟩ + p36
+  code.write source.toNat
+    (len.toByteArray.write 0
+      ((UInt256.sub p36 p4).toByteArray.write 0
+        (solcErrorStringSelector.toByteArray.write 0 mem ptr.toNat 32) p4.toNat 32)
+      p36.toNat 32)
+    p68.toNat len.toNat
+
+/-- The bytes that tail reverts with: `mem'[ptr' .. ptr' + ((ptr + 100) - ptr'))` where `mem'` is
+    the built memory and `ptr' = mem'[0x40]` is the free pointer re-read from it. -/
+noncomputable def solcErrorStringCopyPayload (code mem : ByteArray) (source len : UInt256) :
+    ByteArray :=
+  let mem' := solcErrorStringCopyMem code mem source len
+  let ptr' := memoryWordLoad mem' ⟨64⟩
+  mem'.readWithPadding ptr'.toNat
+    (UInt256.sub (⟨64⟩ + (⟨32⟩ + (⟨32⟩ + (⟨4⟩ + memoryWordLoad mem ⟨64⟩)))) ptr').toNat
+
+set_option maxHeartbeats 1000000 in
+/-- The code-copy `Error(string)` tail: build the encoding at the free pointer (the string bytes
+    via `CODECOPY`) and revert with `solcErrorStringCopyPayload`. -/
+theorem Run.solcErrorStringCopyReverts {source len : UInt256}
+    (h : Run code s0 ⟨pc, R, mem, aw, rdata, w⟩ k C)
+    (hwf : SolcErrorStringCopyWf code pc source len)
+    (hov : R.length + 10 ≤ 1024) :
+    Reverted code s0 (solcErrorStringCopyPayload code mem source len) := by
+  have hLoad := evm_run h with [raw push1 ⟨64⟩ hwf.d0 (by evm_ov)]
+  obtain ⟨_, _, hSelector⟩ := hLoad.mloadWord hwf.d2 (by evm_ov)
+  have hRaw := hSelector.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
+    (by decide) (by simpa only [u256_add_assoc] using hwf.d3) (by evm_ov)
+  have hStore0 := evm_run hRaw with [
+    raw push1 ⟨229⟩ (by simpa only [u256_add_assoc] using hwf.d7) (by evm_ov),
+    raw shl (by simpa only [u256_add_assoc] using hwf.d9) (by evm_ov),
+    raw dup2 (by simpa only [u256_add_assoc] using hwf.d10) (by evm_ov)]
+  obtain ⟨_, _, hHeader⟩ := hStore0.mstoreWord (by simpa only [u256_add_assoc] using hwf.d11)
+    (by evm_ov)
+  have hStore1 := evm_run hHeader with [
+    raw push1 ⟨4⟩ (by simpa only [u256_add_assoc] using hwf.d12) (by evm_ov),
+    raw add (by simpa only [u256_add_assoc] using hwf.d14) (by evm_ov),
+    raw dup1 (by simpa only [u256_add_assoc] using hwf.d15) (by evm_ov),
+    raw dup1 (by simpa only [u256_add_assoc] using hwf.d16) (by evm_ov),
+    raw push1 ⟨32⟩ (by simpa only [u256_add_assoc] using hwf.d17) (by evm_ov),
+    raw add (by simpa only [u256_add_assoc] using hwf.d19) (by evm_ov),
+    raw dup3 (by simpa only [u256_add_assoc] using hwf.d20) (by evm_ov),
+    raw dup2 (by simpa only [u256_add_assoc] using hwf.d21) (by evm_ov),
+    raw sub (by simpa only [u256_add_assoc] using hwf.d22) (by evm_ov),
+    raw dup3 (by simpa only [u256_add_assoc] using hwf.d23) (by evm_ov)]
+  obtain ⟨_, _, hLength⟩ := hStore1.mstoreWord (by simpa only [u256_add_assoc] using hwf.d24)
+    (by evm_ov)
+  have hStore2 := evm_run hLength with [
+    raw push1 len (by simpa only [u256_add_assoc] using hwf.d25) (by evm_ov),
+    raw dup2 (by simpa only [u256_add_assoc] using hwf.d27) (by evm_ov)]
+  obtain ⟨_, _, hPayload⟩ := hStore2.mstoreWord (by simpa only [u256_add_assoc] using hwf.d28)
+    (by evm_ov)
+  have hCopy := evm_run hPayload with [
+    raw push1 ⟨32⟩ (by simpa only [u256_add_assoc] using hwf.d29) (by evm_ov),
+    raw add (by simpa only [u256_add_assoc] using hwf.d31) (by evm_ov),
+    raw dup1 (by simpa only [u256_add_assoc] using hwf.d32) (by evm_ov),
+    raw push2 source (by simpa only [u256_add_assoc] using hwf.d33) (by evm_ov),
+    raw push1 len (by simpa only [u256_add_assoc] using hwf.d36) (by evm_ov),
+    raw swap2 (by simpa only [u256_add_assoc] using hwf.d38) (by evm_ov)]
+  obtain ⟨_, _, hEnd⟩ := hCopy.codecopyVar (by simpa only [u256_add_assoc] using hwf.d39)
+    (by evm_ov)
+  have hLoadFinal := evm_run hEnd with [
+    raw push1 ⟨64⟩ (by simpa only [u256_add_assoc] using hwf.d40) (by evm_ov),
+    raw add (by simpa only [u256_add_assoc] using hwf.d42) (by evm_ov),
+    raw swap2 (by simpa only [u256_add_assoc] using hwf.d43) (by evm_ov),
+    raw pop (by simpa only [u256_add_assoc] using hwf.d44) (by evm_ov),
+    raw pop (by simpa only [u256_add_assoc] using hwf.d45) (by evm_ov),
+    raw push1 ⟨64⟩ (by simpa only [u256_add_assoc] using hwf.d46) (by evm_ov)]
+  obtain ⟨_, _, hTail⟩ := hLoadFinal.mloadWord (by simpa only [u256_add_assoc] using hwf.d48)
+    (by evm_ov)
+  have hRev := evm_run hTail with [
+    raw dup1 (by simpa only [u256_add_assoc] using hwf.d49) (by evm_ov),
+    raw swap2 (by simpa only [u256_add_assoc] using hwf.d50) (by evm_ov),
+    raw sub (by simpa only [u256_add_assoc] using hwf.d51) (by evm_ov),
+    raw swap1 (by simpa only [u256_add_assoc] using hwf.d52) (by evm_ov)]
+  exact hRev.revVar (by simpa only [u256_add_assoc] using hwf.d53) (by evm_ov)
+
+/-- Packed `uint48` getter at byte offset `0`: `SLOAD slot`, mask with `uint48Mask`, return. -/
+theorem Run.solcUint48Offset0SlotGetter {slot ret : UInt256}
+    (h : Run code s0 ⟨pc, ret :: R, mem, aw, rdata, w⟩ k C)
+    (hwf : solcUint48Offset0SlotGetterWf code pc slot)
+    (hret : (D_J code 0).contains ret = true)
+    (hov : R.length + 4 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨ret,
+      UInt256.land (solcSlotWord w.accounts s0.executionEnv slot) uint48Mask :: ret :: R,
+      mem, aw, rdata, w⟩ k' C' := by
+  rcases hwf with ⟨hd0, hd1, hd3, hd4, hd11, hd12, hd13⟩
+  have h3 := h.jumpdest hd0 (by evm_ov) |>.push1 slot hd1 (by evm_ov)
+  obtain ⟨_, _, h4⟩ := h3.sload hd3 (by evm_ov)
+  have h12 := h4.pushConst uint48Mask (width := 6) (op := .PUSH6) (by decide) hd4 (by evm_ov)
+    |>.and hd11 (by evm_ov)
+  rw [u256_land_comm uint48Mask] at h12
+  exact ⟨_, _, h12.dup2 hd12 (by evm_ov) |>.jump hd13 hret (by evm_ov)⟩
+
+/-- Packed `uint48` getter at byte offset `6`: `SLOAD slot`, divide by `256^6`, mask, return. -/
+theorem Run.solcUint48Offset6SlotGetter {slot ret : UInt256}
+    (h : Run code s0 ⟨pc, ret :: R, mem, aw, rdata, w⟩ k C)
+    (hwf : solcUint48Offset6SlotGetterWf code pc slot)
+    (hret : (D_J code 0).contains ret = true)
+    (hov : R.length + 7 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨ret,
+      UInt256.land uint48Mask
+        (UInt256.div (solcSlotWord w.accounts s0.executionEnv slot) (UInt256.ofNat (256 ^ 6))) ::
+        ret :: R, mem, aw, rdata, w⟩ k' C' := by
+  rcases hwf with ⟨hd0, hd1, hd3, hd4, hd6, hd8, hd9, hd10, hd11, hd18, hd19, hd20⟩
+  have h3 := h.jumpdest hd0 (by evm_ov) |>.push1 slot hd1 (by evm_ov)
+  obtain ⟨_, _, h4⟩ := h3.sload hd3 (by evm_ov)
+  have h11 := evm_run h4 with [
+    raw push1 ⟨1⟩ hd4 (by evm_ov),
+    raw push1 ⟨48⟩ hd6 (by evm_ov),
+    raw shl hd8 (by evm_ov),
+    raw swap1 hd9 (by evm_ov),
+    raw div hd10 (by evm_ov)]
+  rw [show UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨48⟩ = UInt256.ofNat (256 ^ 6) from by decide] at h11
+  have h19 := h11.pushConst uint48Mask (width := 6) (op := .PUSH6) (by decide) hd11 (by evm_ov)
+    |>.and hd18 (by evm_ov)
+  exact ⟨_, _, h19.dup2 hd19 (by evm_ov) |>.jump hd20 hret (by evm_ov)⟩
+
+/-- `uint48` return wrapper: re-mask `val`, store it at `0x80` and return the 32 bytes. -/
+theorem Run.solcReturnUint48FromMem {val ret : UInt256} {memout : ByteArray}
+    (h : Run code s0 ⟨pc, val :: ret :: R, mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcReturnUint48FromMemWf code pc)
+    (hmload64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
+       else UInt256.ofNat
+         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+        = ⟨128⟩)
+    (hmemout : (UInt256.toByteArray (UInt256.land val uint48Mask)).write 0 mem 128 32 = memout)
+    (hmemoutLoad64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
+       else UInt256.ofNat
+         (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+        = ⟨128⟩)
+    (hread128 : memout.readWithPadding 128 32 = UInt256.toByteArray (UInt256.land val uint48Mask))
+    (hov : R.length + 9 ≤ 1024) :
+    Returned code s0 w (UInt256.toByteArray (UInt256.land val uint48Mask)) := by
+  rcases hwf with
+    ⟨hd0, hd1, hd3, hd4, hd5, hd12, hd13, hd14, hd15, hd16, hd17, hd18, hd19, hd20, hd21, hd22,
+      hd24, hd25, hd26⟩
+  have h4 := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw push1 ⟨64⟩ hd1 (by evm_ov),
+    raw dup1 hd3 (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd4 mem_cost hmload64 (by decide) (by evm_ov)]
+  have h12 := h4.pushConst uint48Mask (width := 6) (op := .PUSH6) (by decide) hd5 (by evm_ov)
+  have h16 := evm_run h12 with [
+    raw swap1 hd12 (by evm_ov),
+    raw swap3 hd13 (by evm_ov),
+    raw and hd14 (by evm_ov),
+    raw dup3 hd15 (by evm_ov)]
+  have h17 := h16.mstore 6 memout (UInt256.ofNat 5) hd16 mem_cost
+    (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; exact hmemout)
+    (by decide) (by evm_ov)
+  exact evm_run h17 with [
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) hd17 mem_cost hmemoutLoad64 (by decide) (by evm_ov),
+    raw swap1 hd18 (by evm_ov),
+    raw dup2 hd19 (by evm_ov),
+    raw swap1 hd20 (by evm_ov),
+    raw sub hd21 (by evm_ov),
+    raw push1 ⟨32⟩ hd22 (by evm_ov),
+    raw add hd24 (by evm_ov),
+    raw swap1 hd25 (by evm_ov),
+    raw ret 0 (UInt256.toByteArray (UInt256.land val uint48Mask)) hd26 mem_cost
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+            show ((⟨32⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 32
+              from by decide]
+          exact hread128)
+      (by evm_ov)]
+
+/-- Whole external `uint48` getter at byte offset `0`: thunk, routine, return wrapper. -/
+theorem Run.solcUint48Offset0GetterExternal {sel entry routine slot returnPc : UInt256}
+    (h : Run code s0 ⟨entry, [sel], solcFreePtrMem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hentry : solcGetterEntryWf code entry returnPc routine)
+    (hgetter : solcUint48Offset0SlotGetterWf code routine slot)
+    (hroutine : (D_J code 0).contains routine = true)
+    (hreturnJd : (D_J code 0).contains returnPc = true)
+    (hreturn : solcReturnUint48FromMemWf code returnPc) :
+    Returned code s0 w (UInt256.toByteArray (uint48Offset0Word slot w.accounts s0.executionEnv)) := by
+  obtain ⟨_, _, hRoutine⟩ := h.solcGetterThunk hentry hroutine (by simp)
+  obtain ⟨_, _, hReturn⟩ := hRoutine.solcUint48Offset0SlotGetter hgetter hreturnJd (by simp)
+  have hret := hReturn.solcReturnUint48FromMem hreturn solcFreePtrMem_mload64 rfl
+    (solcReturnMem_mload64
+      (UInt256.land (UInt256.land (solcSlotWord w.accounts s0.executionEnv slot) uint48Mask)
+        uint48Mask))
+    (solcReturnMem_read128
+      (UInt256.land (UInt256.land (solcSlotWord w.accounts s0.executionEnv slot) uint48Mask)
+        uint48Mask))
+    (by simp)
+  rw [uint48Mask_clean] at hret
+  exact hret
+
+/-- Whole external `uint48` getter at byte offset `6`: thunk, routine, return wrapper. -/
+theorem Run.solcUint48Offset6GetterExternal {sel entry routine slot returnPc : UInt256}
+    (h : Run code s0 ⟨entry, [sel], solcFreePtrMem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hentry : solcGetterEntryWf code entry returnPc routine)
+    (hgetter : solcUint48Offset6SlotGetterWf code routine slot)
+    (hroutine : (D_J code 0).contains routine = true)
+    (hreturnJd : (D_J code 0).contains returnPc = true)
+    (hreturn : solcReturnUint48FromMemWf code returnPc) :
+    Returned code s0 w (UInt256.toByteArray (uint48Offset6Word slot w.accounts s0.executionEnv)) := by
+  obtain ⟨_, _, hRoutine⟩ := h.solcGetterThunk hentry hroutine (by simp)
+  obtain ⟨_, _, hReturn⟩ := hRoutine.solcUint48Offset6SlotGetter hgetter hreturnJd (by simp)
+  have hret := hReturn.solcReturnUint48FromMem hreturn solcFreePtrMem_mload64 rfl
+    (solcReturnMem_mload64
+      (UInt256.land (UInt256.land uint48Mask
+        (UInt256.div (solcSlotWord w.accounts s0.executionEnv slot) (UInt256.ofNat (256 ^ 6))))
+        uint48Mask))
+    (solcReturnMem_read128
+      (UInt256.land (UInt256.land uint48Mask
+        (UInt256.div (solcSlotWord w.accounts s0.executionEnv slot) (UInt256.ofNat (256 ^ 6))))
+        uint48Mask))
+    (by simp)
+  have hclean :
+      UInt256.land (UInt256.land uint48Mask
+          (UInt256.div (solcSlotWord w.accounts s0.executionEnv slot) (UInt256.ofNat (256 ^ 6))))
+          uint48Mask =
+        UInt256.land uint48Mask
+          (UInt256.div (solcSlotWord w.accounts s0.executionEnv slot) (UInt256.ofNat (256 ^ 6))) := by
+    rw [u256_land_comm uint48Mask
+      (UInt256.div (solcSlotWord w.accounts s0.executionEnv slot) (UInt256.ofNat (256 ^ 6)))]
+    exact uint48Mask_clean _
+  rw [hclean] at hret
+  exact hret
+
+/-- `auth` check (`wards[msg.sender] == 1`): hash `caller ‖ 0` over the free-pointer memory,
+    `SLOAD`, compare with `1` and jump to `okPc`. -/
+theorem Run.solcAuthCheckOk {okPc key ret : UInt256}
+    (h : Run code s0 ⟨pc, key :: ret :: R, solcFreePtrMem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcAuthCheckWf code pc okPc)
+    (hauth : solcSlotWord w.accounts s0.executionEnv
+      (solcMappingSlot ⟨0⟩ (solcSourceWord s0.executionEnv)) = ⟨1⟩)
+    (hok : (D_J code 0).contains okPc = true)
+    (hov : R.length + 7 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨okPc, key :: ret :: R,
+      twoWordHashMem (solcSourceWord s0.executionEnv) ⟨0⟩ solcFreePtrMem, UInt256.ofNat 3, rdata, w⟩
+      k' C' := by
+  rcases hwf with
+    ⟨hd0, hd1, hd2, hd4, hd5, hd6, hd7, hd9, hd10, hd11, hd12, hd14, hd15, hd16, hd17, hd19, hd20,
+      hd23⟩
+  have h6 := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw caller hd1 (by evm_ov),
+    raw push1 ⟨0⟩ hd2 (by evm_ov),
+    raw swap1 hd4 (by evm_ov),
+    raw dup2 hd5 (by evm_ov)]
+  have h7 := h6.mstore 0 (wordAt0Mem (solcSourceWord s0.executionEnv) solcFreePtrMem)
+    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by decide) (by evm_ov)
+  have h11 := evm_run h7 with [
+    raw push1 ⟨32⟩ hd7 (by evm_ov),
+    raw dup2 hd9 (by evm_ov),
+    raw swap1 hd10 (by evm_ov)]
+  have h12 := h11.mstore 0 (twoWordHashMem (solcSourceWord s0.executionEnv) ⟨0⟩ solcFreePtrMem)
+    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by decide) (by evm_ov)
+  have h15 := evm_run h12 with [raw push1 ⟨64⟩ hd12 (by evm_ov), raw swap1 hd14 (by evm_ov)]
+  have h16 := h15.keccak256 0 (solcMappingSlot ⟨0⟩ (solcSourceWord s0.executionEnv))
+    (UInt256.ofNat 3) hd15 mem_cost
+    (twoWordHashMem_solcMappingSlot ⟨0⟩ (solcSourceWord s0.executionEnv) solcFreePtrMem_size)
+    (by decide) (by evm_ov)
+  obtain ⟨_, _, h17⟩ := h16.sload hd16 (by evm_ov)
+  have h20 := h17.push1 ⟨1⟩ hd17 (by evm_ov) |>.eq hd19 (by evm_ov)
+  have hauthRaw :
+      (w.accounts.get? s0.executionEnv.codeOwner |>.option ⟨0⟩
+        (fun ac => ac.storage.getD
+          (solcMappingSlot ⟨0⟩ (UInt256.ofNat s0.executionEnv.source.val)) ⟨0⟩)) = ⟨1⟩ := hauth
+  rw [hauthRaw, uInt256_eq_self] at h20
+  exact ⟨_, _, h20.push2 okPc hd20 (by evm_ov) |>.jumpiT hd23 one_ne_zero_uint hok (by evm_ov)⟩
+
+set_option maxHeartbeats 1000000 in
+/-- `auth` check failing (`wards[msg.sender] ≠ 1`): the `Error(string)` tail with the 18-byte
+    message word `rawWord << 114`. -/
+theorem Run.solcAuthCheckRevert18 {rawWord okPc key ret : UInt256}
+    (h : Run code s0 ⟨pc, key :: ret :: R, solcFreePtrMem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcAuthCheckWf code pc okPc)
+    (htail : solcErrorStringRevertTailWf code (solcAuthTailPc pc) ⟨18⟩ rawWord ⟨114⟩ .PUSH18 18)
+    (hauth : solcSlotWord w.accounts s0.executionEnv
+      (solcMappingSlot ⟨0⟩ (solcSourceWord s0.executionEnv)) ≠ ⟨1⟩)
+    (hov : R.length + 7 ≤ 1024) :
+    Reverted code s0 (solcErrorStringPayload ⟨18⟩ (UInt256.shiftLeft rawWord ⟨114⟩)
+      (twoWordHashMem (solcSourceWord s0.executionEnv) ⟨0⟩ solcFreePtrMem)) := by
+  rcases hwf with
+    ⟨hd0, hd1, hd2, hd4, hd5, hd6, hd7, hd9, hd10, hd11, hd12, hd14, hd15, hd16, hd17, hd19, hd20,
+      hd23⟩
+  have h6 := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw caller hd1 (by evm_ov),
+    raw push1 ⟨0⟩ hd2 (by evm_ov),
+    raw swap1 hd4 (by evm_ov),
+    raw dup2 hd5 (by evm_ov)]
+  have h7 := h6.mstore 0 (wordAt0Mem (solcSourceWord s0.executionEnv) solcFreePtrMem)
+    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by decide) (by evm_ov)
+  have h11 := evm_run h7 with [
+    raw push1 ⟨32⟩ hd7 (by evm_ov),
+    raw dup2 hd9 (by evm_ov),
+    raw swap1 hd10 (by evm_ov)]
+  have h12 := h11.mstore 0 (twoWordHashMem (solcSourceWord s0.executionEnv) ⟨0⟩ solcFreePtrMem)
+    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by decide) (by evm_ov)
+  have h15 := evm_run h12 with [raw push1 ⟨64⟩ hd12 (by evm_ov), raw swap1 hd14 (by evm_ov)]
+  have h16 := h15.keccak256 0 (solcMappingSlot ⟨0⟩ (solcSourceWord s0.executionEnv))
+    (UInt256.ofNat 3) hd15 mem_cost
+    (twoWordHashMem_solcMappingSlot ⟨0⟩ (solcSourceWord s0.executionEnv) solcFreePtrMem_size)
+    (by decide) (by evm_ov)
+  obtain ⟨_, _, h17⟩ := h16.sload hd16 (by evm_ov)
+  have h20 := h17.push1 ⟨1⟩ hd17 (by evm_ov) |>.eq hd19 (by evm_ov)
+  have heq0 :
+      UInt256.eq ⟨1⟩
+        (w.accounts.get? s0.executionEnv.codeOwner |>.option ⟨0⟩
+          (fun ac => ac.storage.getD
+            (solcMappingSlot ⟨0⟩ (UInt256.ofNat s0.executionEnv.source.val)) ⟨0⟩)) = ⟨0⟩ :=
+    u256_eq_of_ne (fun h1 => hauth h1.symm)
+  rw [heq0] at h20
+  have hTail := h20.push2 okPc hd20 (by evm_ov) |>.jumpiNT hd23 rfl (by evm_ov)
+  exact hTail.solcErrorStringRevertTail htail (by decide) rfl
+    (twoWordHashMem_size_96 _ _ solcFreePtrMem_size)
+    (twoWordHashMem_read64 _ _ solcFreePtrMem_size solcFreePtrMem_read64) (by evm_ov)
+
+/-- `mapping0[key] := 0` (e.g. `deny`): hash `key ‖ 0` in scratch memory and `SSTORE`, split on
+    the permission flag. -/
+theorem Run.solcMapping0StoreZeroSplit {key ret : UInt256}
+    (h : Run code s0 ⟨pc, key :: ret :: R, mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcMapping0StoreZeroWf code pc)
+    (hret : (D_J code 0).contains ret = true)
+    (hmem : mem.size = 96)
+    (hcanonKey : key.toNat < EVM.addressModulus)
+    (hov : R.length + 6 ≤ 1024) :
+    (s0.executionEnv.perm = true ∧
+      ∃ k' C', Run code s0 ⟨ret, R, twoWordHashMem key ⟨0⟩ mem, UInt256.ofNat 3, rdata,
+        { w with
+            accounts := sstoreAccountMap s0.executionEnv.codeOwner w.accounts
+              (solcMappingSlot ⟨0⟩ key) ⟨0⟩ }⟩ k' C') ∨
+    (s0.executionEnv.perm = false ∧ StaticViolation code s0) := by
+  rcases hwf with
+    ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd12, hd13, hd14, hd15, hd17, hd18, hd19, hd20,
+      hd22, hd23, hd24, hd25⟩
+  have hMasked := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw push1 ⟨1⟩ hd1 (by evm_ov),
+    raw push1 ⟨1⟩ hd3 (by evm_ov),
+    raw push1 ⟨160⟩ hd5 (by evm_ov),
+    raw shl hd7 (by evm_ov),
+    raw sub hd8 (by evm_ov),
+    raw and hd9 (by evm_ov)]
+  rw [solcAddrMask_lit, solcAddrMask_clean_left hcanonKey] at hMasked
+  have hMstore0Prefix := evm_run hMasked with [
+    raw push1 ⟨0⟩ hd10 (by evm_ov),
+    raw swap1 hd12 (by evm_ov),
+    raw dup2 hd13 (by evm_ov)]
+  have hAfterKey := hMstore0Prefix.mstore 0 (wordAt0Mem key mem)
+    (UInt256.ofNat 3) hd14 mem_cost (by rfl) (by decide) (by evm_ov)
+  have hMstoreSlotPrefix := evm_run hAfterKey with [
+    raw push1 ⟨32⟩ hd15 (by evm_ov),
+    raw dup2 hd17 (by evm_ov),
+    raw swap1 hd18 (by evm_ov)]
+  have hHashMem := hMstoreSlotPrefix.mstore 0 (twoWordHashMem key ⟨0⟩ mem)
+    (UInt256.ofNat 3) hd19 mem_cost (by rfl) (by decide) (by evm_ov)
+  have hKeccakPrefix := evm_run hHashMem with [
+    raw push1 ⟨64⟩ hd20 (by evm_ov),
+    raw dup2 hd22 (by evm_ov)]
+  have hSlot := hKeccakPrefix.keccak256 0 (solcMappingSlot ⟨0⟩ key)
+    (UInt256.ofNat 3) hd23 mem_cost (twoWordHashMem_solcMappingSlot ⟨0⟩ key hmem) (by decide)
+    (by evm_ov)
+  by_cases hperm : s0.executionEnv.perm = true
+  · refine Or.inl ⟨hperm, ?_⟩
+    obtain ⟨_, _, hOut⟩ := hSlot.sstore hperm hd24 (by evm_ov)
+    exact ⟨_, _, hOut.jump hd25 hret (by evm_ov)⟩
+  · exact Or.inr ⟨by simpa using hperm, hSlot.sstoreStatic (by simpa using hperm) hd24 (by evm_ov)⟩
+
+/-- `mapping0[key] := 0` with the permission flag set. -/
+theorem Run.solcMapping0StoreZero {key ret : UInt256}
+    (h : Run code s0 ⟨pc, key :: ret :: R, mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcMapping0StoreZeroWf code pc)
+    (hret : (D_J code 0).contains ret = true)
+    (hperm : s0.executionEnv.perm = true)
+    (hmem : mem.size = 96)
+    (hcanonKey : key.toNat < EVM.addressModulus)
+    (hov : R.length + 6 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨ret, R, twoWordHashMem key ⟨0⟩ mem, UInt256.ofNat 3, rdata,
+      { w with
+          accounts := sstoreAccountMap s0.executionEnv.codeOwner w.accounts
+            (solcMappingSlot ⟨0⟩ key) ⟨0⟩ }⟩ k' C' :=
+  permSplit_true hperm (h.solcMapping0StoreZeroSplit hwf hret hmem hcanonKey hov)
+
+/-- `mapping0[key] := 1` (e.g. `rely`): hash `key ‖ 0` in scratch memory and `SSTORE`, split on
+    the permission flag. -/
+theorem Run.solcMapping0StoreOneSplit {key ret : UInt256}
+    (h : Run code s0 ⟨pc, key :: ret :: R, mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcMapping0StoreOneWf code pc)
+    (hret : (D_J code 0).contains ret = true)
+    (hmem : mem.size = 96)
+    (hcanonKey : key.toNat < EVM.addressModulus)
+    (hov : R.length + 6 ≤ 1024) :
+    (s0.executionEnv.perm = true ∧
+      ∃ k' C', Run code s0 ⟨ret, R, twoWordHashMem key ⟨0⟩ mem, UInt256.ofNat 3, rdata,
+        { w with
+            accounts := sstoreAccountMap s0.executionEnv.codeOwner w.accounts
+              (solcMappingSlot ⟨0⟩ key) ⟨1⟩ }⟩ k' C') ∨
+    (s0.executionEnv.perm = false ∧ StaticViolation code s0) := by
+  rcases hwf with
+    ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd12, hd13, hd14, hd15, hd17, hd18, hd19, hd20,
+      hd22, hd23, hd24, hd26, hd27, hd28⟩
+  have hMasked := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw push1 ⟨1⟩ hd1 (by evm_ov),
+    raw push1 ⟨1⟩ hd3 (by evm_ov),
+    raw push1 ⟨160⟩ hd5 (by evm_ov),
+    raw shl hd7 (by evm_ov),
+    raw sub hd8 (by evm_ov),
+    raw and hd9 (by evm_ov)]
+  rw [solcAddrMask_lit, solcAddrMask_clean_left hcanonKey] at hMasked
+  have hMstore0Prefix := evm_run hMasked with [
+    raw push1 ⟨0⟩ hd10 (by evm_ov),
+    raw swap1 hd12 (by evm_ov),
+    raw dup2 hd13 (by evm_ov)]
+  have hAfterKey := hMstore0Prefix.mstore 0 (wordAt0Mem key mem)
+    (UInt256.ofNat 3) hd14 mem_cost (by rfl) (by decide) (by evm_ov)
+  have hMstoreSlotPrefix := evm_run hAfterKey with [
+    raw push1 ⟨32⟩ hd15 (by evm_ov),
+    raw dup2 hd17 (by evm_ov),
+    raw swap1 hd18 (by evm_ov)]
+  have hHashMem := hMstoreSlotPrefix.mstore 0 (twoWordHashMem key ⟨0⟩ mem)
+    (UInt256.ofNat 3) hd19 mem_cost (by rfl) (by decide) (by evm_ov)
+  have hKeccakPrefix := evm_run hHashMem with [
+    raw push1 ⟨64⟩ hd20 (by evm_ov),
+    raw swap1 hd22 (by evm_ov)]
+  have hSlot := hKeccakPrefix.keccak256 0 (solcMappingSlot ⟨0⟩ key)
+    (UInt256.ofNat 3) hd23 mem_cost (twoWordHashMem_solcMappingSlot ⟨0⟩ key hmem) (by decide)
+    (by evm_ov)
+  have hBeforeStore := evm_run hSlot with [
+    raw push1 ⟨1⟩ hd24 (by evm_ov),
+    raw swap1 hd26 (by evm_ov)]
+  by_cases hperm : s0.executionEnv.perm = true
+  · refine Or.inl ⟨hperm, ?_⟩
+    obtain ⟨_, _, hOut⟩ := hBeforeStore.sstore hperm hd27 (by evm_ov)
+    exact ⟨_, _, hOut.jump hd28 hret (by evm_ov)⟩
+  · exact Or.inr ⟨by simpa using hperm,
+      hBeforeStore.sstoreStatic (by simpa using hperm) hd27 (by evm_ov)⟩
+
+/-- `mapping0[key] := 1` with the permission flag set. -/
+theorem Run.solcMapping0StoreOne {key ret : UInt256}
+    (h : Run code s0 ⟨pc, key :: ret :: R, mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcMapping0StoreOneWf code pc)
+    (hret : (D_J code 0).contains ret = true)
+    (hperm : s0.executionEnv.perm = true)
+    (hmem : mem.size = 96)
+    (hcanonKey : key.toNat < EVM.addressModulus)
+    (hov : R.length + 6 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨ret, R, twoWordHashMem key ⟨0⟩ mem, UInt256.ofNat 3, rdata,
+      { w with
+          accounts := sstoreAccountMap s0.executionEnv.codeOwner w.accounts
+            (solcMappingSlot ⟨0⟩ key) ⟨1⟩ }⟩ k' C' :=
+  permSplit_true hperm (h.solcMapping0StoreOneSplit hwf hret hmem hcanonKey hov)
+
+set_option maxHeartbeats 1000000 in
+/-- `Error(string)` tail whose message word is pushed directly (no `SHL`): reverts with the
+    payload built at `0x80`. -/
+theorem Run.solcErrorStringRevertTailDirect {len word : UInt256} {op : Operation.POp} {width : ℕ}
+    (h : Run code s0 ⟨pc, stk, mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcErrorStringRevertTailDirectWf code pc len word op width)
+    (hpush : op ≠ .PUSH0)
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : stk.length + 5 ≤ 1024) :
+    Reverted code s0 (solcErrorStringPayload len word mem) := by
+  rcases hwf with
+    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18, hd19, hd20, hd22, hd24,
+      hd25, hd26, hd27, hd68, hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2,
+      hdSwap3, hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
+  have hMload := evm_run h with [
+    raw push1 ⟨64⟩ hd0 (by evm_ov),
+    raw dup1 hd2 (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd3 mem_cost
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64) (by decide) (by evm_ov)]
+  have hSelectorRaw := hMload.pushConst (⟨4594637⟩ : UInt256)
+    (width := 3) (op := .PUSH3) (by decide) hd4 (by evm_ov)
+  have hPrefix := evm_run hSelectorRaw with [
+    raw push1 ⟨229⟩ hd8 (by evm_ov),
+    raw shl hd10 (by evm_ov),
+    raw dup2 hd11 (by evm_ov),
+    raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5) hd12 mem_cost (by rfl) (by decide)
+      (by evm_ov),
+    raw push1 ⟨32⟩ hd13 (by evm_ov),
+    raw push1 ⟨4⟩ hd15 (by evm_ov),
+    raw dup3 hd17 (by evm_ov),
+    raw add hd18 (by evm_ov),
+    raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6) hd19 mem_cost (by rfl) (by decide)
+      (by evm_ov),
+    raw push1 len hd20 (by evm_ov),
+    raw push1 ⟨36⟩ hd22 (by evm_ov),
+    raw dup3 hd24 (by evm_ov),
+    raw add hd25 (by evm_ov),
+    raw mstore 3 (solcErrorStringMem2 len mem) (UInt256.ofNat 7) hd26 mem_cost (by rfl)
+      (by decide) (by evm_ov)]
+  have hWord := hPrefix.pushConst word (width := width) (op := op) hpush hd27 (by evm_ov)
+  exact evm_run hWord with [
+    raw push1 ⟨68⟩ hd68 (by evm_ov),
+    raw dup3 hdDup3 (by evm_ov),
+    raw add hdAdd (by evm_ov),
+    raw mstore 3 (solcErrorStringMem3 len word mem) (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl)
+      (by decide) (by evm_ov),
+    raw swap1 hdSwap (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload mem_cost
+      (solcErrorStringMem3_mload64 len word hmem hread64) (by decide) (by evm_ov),
+    raw swap1 hdSwap2 (by evm_ov),
+    raw dup2 hdDup2 (by evm_ov),
+    raw swap1 hdSwap3 (by evm_ov),
+    raw sub hdSub (by evm_ov),
+    raw push1 ⟨100⟩ hd100 (by evm_ov),
+    raw add hdAdd2 (by evm_ov),
+    raw swap1 hdSwap4 (by evm_ov),
+    raw rev 0 (solcErrorStringPayload len word mem) hdRev mem_cost
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+            show ((⟨100⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 100
+              from by decide]
+          rfl)
+      (by evm_ov)]
+
+/-- Whole external getter of an address constant: thunk, constant routine, address return
+    wrapper. -/
+theorem Run.solcAddressConstGetterExternal {sel entry routine returnPc val : UInt256} {width : ℕ}
+    {op : Operation.POp}
+    (h : Run code s0 ⟨entry, [sel], solcFreePtrMem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hentry : solcGetterEntryWf code entry returnPc routine)
+    (hgetter : solcConstGetterWf code routine val width op)
+    (hroutine : (D_J code 0).contains routine = true)
+    (hret : (D_J code 0).contains returnPc = true)
+    (hreturn : solcReturnAddressFromMemWf code returnPc) :
+    Returned code s0 w (UInt256.toByteArray (UInt256.land val solcAddrMask)) := by
+  obtain ⟨_, _, hRoutine⟩ := h.solcGetterThunk hentry hroutine (by simp)
+  obtain ⟨_, _, hReturn⟩ := hRoutine.solcConstGetter hgetter hret (by simp)
+  exact hReturn.solcReturnAddressFromMem hreturn solcFreePtrMem_mload64 rfl
+    (solcReturnMem_mload64 (UInt256.land val solcAddrMask))
+    (solcReturnMem_read128 (UInt256.land val solcAddrMask)) (by simp)
+
+/-- One-word external decoder tail: `JUMPDEST; POP; CALLDATALOAD; PUSH2 routine; JUMP` pushes
+    `calldata[4..36)`. -/
+theorem Run.solcOneWordExternalJump {decoded ret routine de : UInt256}
+    (h : Run code s0 ⟨decoded, de :: ⟨4⟩ :: ret :: R, mem, aw, rdata, w⟩ k C)
+    (hd0 : decode code decoded = some (.JUMPDEST, .none))
+    (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
+    (hd2 : decode code (decoded + ⟨1⟩ + ⟨1⟩) = some (.CALLDATALOAD, .none))
+    (hd3 : decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.Push .PUSH2, some (routine, 2)))
+    (hd6 : decode code ((decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) = some (.JUMP, .none))
+    (hroutine : (D_J code 0).contains routine = true)
+    (hov : R.length + 3 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨routine, calldataWord s0.executionEnv.calldata 4 :: ret :: R,
+      mem, aw, rdata, w⟩ k' C' := by
+  have h6 := h.jumpdest hd0 (by evm_ov) |>.pop hd1 (by evm_ov) |>.calldataload hd2 (by evm_ov)
+    |>.push2 routine hd3 (by evm_ov) |>.jump hd6 hroutine (by evm_ov)
+  exact ⟨_, _, h6.cast (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by decide])⟩
+
+/-- One-`bytes32` external decoder tail (same shape as `Run.solcOneWordExternalJump`). -/
+theorem Run.solcOneBytes32ExternalJump {decoded ret routine de : UInt256}
+    (h : Run code s0 ⟨decoded, de :: ⟨4⟩ :: ret :: R, mem, aw, rdata, w⟩ k C)
+    (hd0 : decode code decoded = some (.JUMPDEST, .none))
+    (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
+    (hd2 : decode code (decoded + ⟨1⟩ + ⟨1⟩) = some (.CALLDATALOAD, .none))
+    (hd3 : decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.Push .PUSH2, some (routine, 2)))
+    (hd6 : decode code ((decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) = some (.JUMP, .none))
+    (hroutine : (D_J code 0).contains routine = true)
+    (hov : R.length + 4 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨routine, calldataWord s0.executionEnv.calldata 4 :: ret :: R,
+      mem, aw, rdata, w⟩ k' C' :=
+  h.solcOneWordExternalJump hd0 hd1 hd2 hd3 hd6 hroutine (by omega)
+
+/-- `(bytes32, address)` external decoder tail: pushes `calldata[4..36)` and the masked
+    `calldata[36..68)`. -/
+theorem Run.solcBytes32AddressExternalMaskAndJump {decoded ret routine de : UInt256}
+    (h : Run code s0 ⟨decoded, de :: ⟨4⟩ :: ret :: R, mem, aw, rdata, w⟩ k C)
+    (hd0 : decode code decoded = some (.JUMPDEST, .none))
+    (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
+    (hd2 : decode code (decoded + ⟨1⟩ + ⟨1⟩) = some (.DUP1, .none))
+    (hd3 : decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.CALLDATALOAD, .none))
+    (hd4 : decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.SWAP1, .none))
+    (hd5 : decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+        some (.Push .PUSH1, some (⟨32⟩, 1)))
+    (hd7 : decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) =
+        some (.ADD, .none))
+    (hd8 : decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) =
+        some (.CALLDATALOAD, .none))
+    (hd9 : decode code (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
+        some (.Push .PUSH1, some (⟨1⟩, 1)))
+    (hd11 : decode code
+        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) =
+        some (.Push .PUSH1, some (⟨1⟩, 1)))
+    (hd13 : decode code
+        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 +
+          UInt256.ofNat 2) =
+        some (.Push .PUSH1, some (⟨160⟩, 1)))
+    (hd15 : decode code
+        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 +
+          UInt256.ofNat 2 + UInt256.ofNat 2) =
+        some (.SHL, .none))
+    (hd16 : decode code
+        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 +
+          UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩) =
+        some (.SUB, .none))
+    (hd17 : decode code
+        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 +
+          UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) =
+        some (.AND, .none))
+    (hd18 : decode code
+        (decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 +
+          UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
+        some (.Push .PUSH2, some (routine, 2)))
+    (hd21 : decode code
+        ((decoded + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 +
+          UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) + UInt256.ofNat 3) =
+        some (.JUMP, .none))
+    (hroutine : (D_J code 0).contains routine = true)
+    (hov : R.length + 7 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨routine,
+      UInt256.land solcAddrMask (calldataWord s0.executionEnv.calldata 36) ::
+        calldataWord s0.executionEnv.calldata 4 :: ret :: R, mem, aw, rdata, w⟩ k' C' := by
+  have h21 := h.jumpdest hd0 (by evm_ov) |>.pop hd1 (by evm_ov) |>.dup1 hd2 (by evm_ov)
+    |>.calldataload hd3 (by evm_ov) |>.swap1 hd4 (by evm_ov) |>.push1 ⟨32⟩ hd5 (by evm_ov)
+    |>.add hd7 (by evm_ov) |>.calldataload hd8 (by evm_ov) |>.push1 ⟨1⟩ hd9 (by evm_ov)
+    |>.push1 ⟨1⟩ hd11 (by evm_ov) |>.push1 ⟨160⟩ hd13 (by evm_ov) |>.shl hd15 (by evm_ov)
+    |>.sub hd16 (by evm_ov) |>.and hd17 (by evm_ov) |>.push2 routine hd18 (by evm_ov)
+    |>.jump hd21 hroutine (by evm_ov)
+  rw [solcAddrMask_lit] at h21
+  exact ⟨_, _, h21.cast (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by decide,
+    show ((⟨32⟩ : UInt256) + ⟨4⟩).toNat = 36 from by decide])⟩
+
+/-- Whole nested-mapping getter (`allowance`-style) over the free-pointer memory. -/
+theorem Run.solcNestedMappingGetter {baseSlot owner spender ret : UInt256}
+    (h : Run code s0 ⟨pc, spender :: owner :: ret :: R, solcFreePtrMem, UInt256.ofNat 3, rdata, w⟩
+      k C)
+    (hwf : solcNestedMappingGetterWf code pc baseSlot)
+    (hret : (D_J code 0).contains ret = true)
+    (hov : R.length + 7 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨ret,
+      solcSlotWord w.accounts s0.executionEnv
+        (solcMappingSlot (solcMappingSlot baseSlot owner) spender) :: ret :: R,
+      solcNestedMappingHashMem baseSlot owner spender, UInt256.ofNat 3, rdata, w⟩ k' C' := by
+  obtain ⟨_, _, hInner⟩ := h.solcNestedMappingInnerHash hwf hov
+  obtain ⟨_, _, hOuter⟩ := hInner.solcNestedMappingOuterHash hwf hov
+  exact hOuter.solcNestedMappingLoadAndJump hwf hret (by omega)
+
+/-- `CALL` at the maximal depth: no call is made, `0` is pushed, the output area is cleared and
+    the return data emptied. -/
+theorem Run.solcCallDepthLimit {gasArg target inOffset inSize outOffset outSize : UInt256}
+    (h : Run code s0 ⟨pc,
+      gasArg :: target :: ⟨0⟩ :: inOffset :: inSize :: outOffset :: outSize :: R,
+      mem, aw, rdata, w⟩ k C)
+    (hdec : decode code pc = some (.CALL, .none))
+    (hdepth : s0.executionEnv.depth = 1024)
+    (hov : R.length + 1 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨pc + ⟨1⟩, ⟨0⟩ :: R,
+      ByteArray.empty.write 0 mem outOffset.toNat
+        (min outSize (UInt256.ofNat ByteArray.empty.size)).toNat,
+      UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
+        outOffset.toNat outSize.toNat),
+      ByteArray.empty, w⟩ k' C' :=
+  h.callDepthLimit hdec hdepth hov
+
+set_option maxHeartbeats 1000000 in
+/-- Grown analogue of `Run.solcErrorStringRevertTail`: the same tail over already-grown memory
+    (`228 ≤ mem.size`, `8 ≤ aw`), where none of the accesses expands memory. -/
+theorem Run.solcErrorStringRevertTailGrown {len rawWord shift word : UInt256}
+    {op : Operation.POp} {width : ℕ}
+    (h : Run code s0 ⟨pc, stk, mem, aw, rdata, w⟩ k C)
+    (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
+    (hpush : op ≠ .PUSH0)
+    (hword : UInt256.shiftLeft rawWord shift = word)
+    (hmemsz : 228 ≤ mem.size)
+    (haw : 8 ≤ aw.toNat)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : stk.length + 5 ≤ 1024) :
+    Reverted code s0 (solcErrorStringPayload len word mem) := by
+  rcases hwf with
+    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
+      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
+      hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
+      hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
+  have hM64 : UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32) = aw :=
+    awInv32 aw (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; omega)
+  have hM128 : UInt256.ofNat (MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat 32) = aw :=
+    awInv32 aw (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; omega)
+  have hM132 : UInt256.ofNat (MachineState.M aw.toNat ((⟨128⟩ : UInt256) + ⟨4⟩).toNat 32) = aw :=
+    awInv32 aw (by rw [show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 from by decide]; omega)
+  have hM164 : UInt256.ofNat (MachineState.M aw.toNat ((⟨128⟩ : UInt256) + ⟨36⟩).toNat 32) = aw :=
+    awInv32 aw (by rw [show ((⟨128⟩ : UInt256) + ⟨36⟩).toNat = 164 from by decide]; omega)
+  have hM196 : UInt256.ofNat (MachineState.M aw.toNat ((⟨128⟩ : UInt256) + ⟨68⟩).toNat 32) = aw :=
+    awInv32 aw (by rw [show ((⟨128⟩ : UInt256) + ⟨68⟩).toNat = 196 from by decide]; omega)
+  have hMrev : UInt256.ofNat (MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat
+      ((⟨100⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat) = aw := by
+    rw [show ((⟨100⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 100 from by decide]
+    exact UInt256_M_same_of_cover_len aw ⟨128⟩ 100
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; omega)
+  have hMload := evm_run h with [
+    raw push1 ⟨64⟩ hd0 (by evm_ov),
+    raw dup1 hd2 (by evm_ov),
+    raw mload 0 ⟨128⟩ aw hd3 (memExpWordCost0 hM64 .MLOAD (Or.inl rfl))
+      (mloadFreePtrValue (by omega) hread64) hM64 (by evm_ov)]
+  have hSelectorRaw := hMload.pushConst (⟨4594637⟩ : UInt256)
+    (width := 3) (op := .PUSH3) (by decide) hd4 (by evm_ov)
+  have hPrefix := evm_run hSelectorRaw with [
+    raw push1 ⟨229⟩ hd8 (by evm_ov),
+    raw shl hd10 (by evm_ov),
+    raw dup2 hd11 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem0 mem) aw hd12 (memExpWordCost0 hM128 .MSTORE (Or.inr rfl))
+      (by rfl) hM128 (by evm_ov),
+    raw push1 ⟨32⟩ hd13 (by evm_ov),
+    raw push1 ⟨4⟩ hd15 (by evm_ov),
+    raw dup3 hd17 (by evm_ov),
+    raw add hd18 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem1 mem) aw hd19 (memExpWordCost0 hM132 .MSTORE (Or.inr rfl))
+      (by rfl) hM132 (by evm_ov),
+    raw push1 len hd20 (by evm_ov),
+    raw push1 ⟨36⟩ hd22 (by evm_ov),
+    raw dup3 hd24 (by evm_ov),
+    raw add hd25 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem2 len mem) aw hd26
+      (memExpWordCost0 hM164 .MSTORE (Or.inr rfl)) (by rfl) hM164 (by evm_ov)]
+  have hRaw := hPrefix.pushConst rawWord (width := width) (op := op) hpush hd27 (by evm_ov)
+  have hWord := evm_run hRaw with [
+    raw push1 shift hdRawOut (by evm_ov),
+    raw shl hdShl (by evm_ov)]
+  rw [hword] at hWord
+  exact evm_run hWord with [
+    raw push1 ⟨68⟩ hd68 (by evm_ov),
+    raw dup3 hdDup3 (by evm_ov),
+    raw add hdAdd (by evm_ov),
+    raw mstore 0 (solcErrorStringMem3 len word mem) aw hdMstore3
+      (memExpWordCost0 hM196 .MSTORE (Or.inr rfl)) (by rfl) hM196 (by evm_ov),
+    raw swap1 hdSwap (by evm_ov),
+    raw mload 0 ⟨128⟩ aw hdMload (memExpWordCost0 hM64 .MLOAD (Or.inl rfl))
+      (solcErrorStringMem3_mload64_grown len word hmemsz hread64) hM64 (by evm_ov),
+    raw swap1 hdSwap2 (by evm_ov),
+    raw dup2 hdDup2 (by evm_ov),
+    raw swap1 hdSwap3 (by evm_ov),
+    raw sub hdSub (by evm_ov),
+    raw push1 ⟨100⟩ hd100 (by evm_ov),
+    raw add hdAdd2 (by evm_ov),
+    raw swap1 hdSwap4 (by evm_ov),
+    raw rev 0 (solcErrorStringPayload len word mem) hdRev
+      (memExpRangeCost0 hMrev .REVERT (Or.inl rfl))
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+            show ((⟨100⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 100
+              from by decide]
+          rfl)
+      (by evm_ov)]
+
+set_option maxHeartbeats 1000000 in
+/-- Grown analogue of `Run.solcCheckedSubStringRevert`: checked-subtraction underflow into the
+    `Error(string)` tail over already-grown memory. -/
+theorem Run.solcCheckedSubStringRevertGrown {okPc len rawWord shift word a b ret : UInt256}
+    {op : Operation.POp} {width : ℕ}
+    (h : Run code s0 ⟨pc, b :: a :: ret :: R, mem, aw, rdata, w⟩ k C)
+    (hsub : solcCheckedSubSuccessWf code pc okPc)
+    (htail : solcErrorStringRevertTailWf code (solcCheckedArithmeticRevertPc pc)
+      len rawWord shift op width)
+    (hpush : op ≠ .PUSH0)
+    (hlt : a.toNat < b.toNat)
+    (hword : UInt256.shiftLeft rawWord shift = word)
+    (hmemsz : 228 ≤ mem.size)
+    (haw : 8 ≤ aw.toNat)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : R.length + 9 ≤ 1024) :
+    Reverted code s0 (solcErrorStringPayload len word mem) := by
+  rcases hsub with ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
+  have hsubNat : (UInt256.sub a b).toNat = UInt256.size + a.toNat - b.toNat :=
+    usub_toNat_underflow hlt
+  have hgt : UInt256.gt (UInt256.sub a b) a = ⟨1⟩ := by
+    show UInt256.fromBool (decide (UInt256.sub a b > a)) = ⟨1⟩
+    rw [decide_eq_true]
+    · rfl
+    · show (UInt256.sub a b).toNat > a.toNat
+      rw [hsubNat]
+      have hb : b.toNat < UInt256.size := b.val.isLt
+      omega
+  have h7 := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw dup1 hd1 (by evm_ov),
+    raw dup3 hd2 (by evm_ov),
+    raw sub hd3 (by evm_ov),
+    raw dup3 hd4 (by evm_ov),
+    raw dup2 hd5 (by evm_ov),
+    raw gt hd6 (by evm_ov)]
+  rw [hgt] at h7
+  have h8 := h7.iszero hd7 (by evm_ov)
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at h8
+  have hTail := (h8.push2 okPc hd8 (by evm_ov)).jumpiNT hd11 rfl (by evm_ov)
+  exact hTail.solcErrorStringRevertTailGrown htail hpush hword hmemsz haw hread64 (by evm_ov)
+
+set_option maxHeartbeats 1000000 in
+/-- `uint256` return decoder after a successful call whose free pointer `ptr` is symbolic (the
+    heap has grown): with at least 32 bytes of return data, pushes the word at `ptr`. -/
+theorem Run.solcUint256ReturnWordDecodeDynamicOk {okPc ptr d0 d1 d2 retWord : UInt256}
+    (h : Run code s0 ⟨pc, d0 :: d1 :: d2 :: R, mem, aw, rdata, w⟩ k C)
+    (hlo : 32 ≤ rdata.size) (hhi : rdata.size < UInt256.size)
+    (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
+    (hMload64Value :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
+       else UInt256.ofNat
+         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ptr)
+    (hMloadPtrValue :
+      (if ptr.toNat ≥ mem.size then ⟨0⟩
+       else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding ptr.toNat 32))) = retWord)
+    (hMloadPtrAw : UInt256.ofNat (MachineState.M aw.toNat ptr.toNat 32) = aw)
+    (hPop0 : decode code pc = some (.POP, .none))
+    (hPop1 : decode code (pc + ⟨1⟩) = some (.POP, .none))
+    (hPop2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.POP, .none))
+    (hPush64 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.Push .PUSH1, some (⟨64⟩, 1)))
+    (hMload64 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) = some (.MLOAD, .none))
+    (hReturndatasize : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩)
+        = some (.RETURNDATASIZE, .none))
+    (hPush32 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩)
+        = some (.Push .PUSH1, some (⟨32⟩, 1)))
+    (hDup2 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2)
+        = some (.DUP2, .none))
+    (hLt : decode code
+        (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩)
+        = some (.LT, .none))
+    (hIszero : decode code
+        (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩)
+        = some (.ISZERO, .none))
+    (hPushOk : decode code
+        (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
+        = some (.Push .PUSH2, some (okPc, 2)))
+    (hJumpi : decode code
+        ((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
+          + UInt256.ofNat 3)
+        = some (.JUMPI, .none))
+    (hjd : (D_J code 0).contains okPc = true)
+    (hJumpdest : decode code okPc = some (.JUMPDEST, .none))
+    (hPopLen : decode code (okPc + ⟨1⟩) = some (.POP, .none))
+    (hMloadPtr : decode code (okPc + ⟨1⟩ + ⟨1⟩) = some (.MLOAD, .none))
+    (hov : R.length + 4 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨okPc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩, retWord :: R, mem, aw, rdata, w⟩ k' C' := by
+  change memoryWordActiveWords aw ⟨64⟩ = aw at hMload64Aw
+  change memoryWordLoad mem ⟨64⟩ = ptr at hMload64Value
+  change memoryWordLoad mem ptr = retWord at hMloadPtrValue
+  change memoryWordActiveWords aw ptr = aw at hMloadPtrAw
+  have hlt : UInt256.lt (UInt256.ofNat rdata.size) (⟨32⟩ : UInt256) = ⟨0⟩ := by
+    apply ult_zero
+    rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide, ulit_toNat' rdata.size hhi]
+    exact hlo
+  have hcond : UInt256.isZero (UInt256.lt (UInt256.ofNat rdata.size) (⟨32⟩ : UInt256)) ≠ ⟨0⟩ := by
+    rw [hlt]; decide
+  have hPush64' := h.pop hPop0 (by evm_ov) |>.pop hPop1 (by evm_ov) |>.pop hPop2 (by evm_ov)
+    |>.push1 ⟨64⟩ hPush64 (by evm_ov)
+  obtain ⟨_, _, hMl64⟩ := hPush64'.mloadWord hMload64 (by evm_ov)
+  rw [hMload64Value, hMload64Aw] at hMl64
+  have hPopLen' := hMl64.returndatasize hReturndatasize (by evm_ov)
+    |>.push1 ⟨32⟩ hPush32 (by evm_ov)
+    |>.dup2 hDup2 (by evm_ov)
+    |>.lt hLt (by evm_ov)
+    |>.iszero hIszero (by evm_ov)
+    |>.push2 okPc hPushOk (by evm_ov)
+    |>.jumpiT hJumpi hcond hjd (by evm_ov)
+    |>.jumpdest hJumpdest (by evm_ov)
+    |>.pop hPopLen (by evm_ov)
+  obtain ⟨_, _, hMlPtr⟩ := hPopLen'.mloadWord hMloadPtr (by evm_ov)
+  rw [hMloadPtrValue, hMloadPtrAw] at hMlPtr
+  exact ⟨_, _, hMlPtr⟩
+
+set_option maxHeartbeats 1000000 in
+/-- The same dynamic decoder with fewer than 32 bytes of return data: `revert(0,0)`. -/
+theorem Run.solcUint256ReturnWordDecodeDynamicShortReverts {okPc ptr d0 d1 d2 : UInt256}
+    (h : Run code s0 ⟨pc, d0 :: d1 :: d2 :: R, mem, aw, rdata, w⟩ k C)
+    (hshort : rdata.size < 32) (hhi : rdata.size < UInt256.size)
+    (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
+    (hMload64Value :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
+       else UInt256.ofNat
+         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ptr)
+    (hPop0 : decode code pc = some (.POP, .none))
+    (hPop1 : decode code (pc + ⟨1⟩) = some (.POP, .none))
+    (hPop2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.POP, .none))
+    (hPush64 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.Push .PUSH1, some (⟨64⟩, 1)))
+    (hMload64 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) = some (.MLOAD, .none))
+    (hReturndatasize : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩)
+        = some (.RETURNDATASIZE, .none))
+    (hPush32 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩)
+        = some (.Push .PUSH1, some (⟨32⟩, 1)))
+    (hDup2 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2)
+        = some (.DUP2, .none))
+    (hLt : decode code
+        (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩)
+        = some (.LT, .none))
+    (hIszero : decode code
+        (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩)
+        = some (.ISZERO, .none))
+    (hPushOk : decode code
+        (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
+        = some (.Push .PUSH2, some (okPc, 2)))
+    (hJumpi : decode code
+        ((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
+          + UInt256.ofNat 3)
+        = some (.JUMPI, .none))
+    (hPush0 : decode code
+        (((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
+          + UInt256.ofNat 3) + ⟨1⟩)
+        = some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hDupZero : decode code
+        ((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
+          + UInt256.ofNat 3) + ⟨1⟩) + UInt256.ofNat 2)
+        = some (.DUP1, .none))
+    (hRevert : decode code
+        (((((pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩)
+          + UInt256.ofNat 3) + ⟨1⟩) + UInt256.ofNat 2) + ⟨1⟩)
+        = some (.REVERT, .none))
+    (hov : R.length + 4 ≤ 1024) :
+    Reverted code s0 ByteArray.empty := by
+  change memoryWordActiveWords aw ⟨64⟩ = aw at hMload64Aw
+  change memoryWordLoad mem ⟨64⟩ = ptr at hMload64Value
+  have hlt : UInt256.lt (UInt256.ofNat rdata.size) (⟨32⟩ : UInt256) = ⟨1⟩ := by
+    apply ult_one
+    rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide, ulit_toNat' rdata.size hhi]
+    exact hshort
+  have hcond : UInt256.isZero (UInt256.lt (UInt256.ofNat rdata.size) (⟨32⟩ : UInt256)) = ⟨0⟩ := by
+    rw [hlt]; decide
+  have hPush64' := h.pop hPop0 (by evm_ov) |>.pop hPop1 (by evm_ov) |>.pop hPop2 (by evm_ov)
+    |>.push1 ⟨64⟩ hPush64 (by evm_ov)
+  obtain ⟨_, _, hMl64⟩ := hPush64'.mloadWord hMload64 (by evm_ov)
+  rw [hMload64Value, hMload64Aw] at hMl64
+  have hFall := hMl64.returndatasize hReturndatasize (by evm_ov)
+    |>.push1 ⟨32⟩ hPush32 (by evm_ov)
+    |>.dup2 hDup2 (by evm_ov)
+    |>.lt hLt (by evm_ov)
+    |>.iszero hIszero (by evm_ov)
+    |>.push2 okPc hPushOk (by evm_ov)
+    |>.jumpiNT hJumpi hcond (by evm_ov)
+  exact hFall.solcPush1Dup1Revert0 hPush0 hDupZero hRevert (by evm_ov)
+
+set_option maxHeartbeats 1000000 in
+/-- `Error(string)` tail at a symbolic free pointer `ptr = mem[0x40]` (grown heap): reverts with
+    the 100 bytes built at `ptr`. -/
+theorem Run.solcErrorStringRevertTail_dynamic {len rawWord shift word ptr : UInt256}
+    {op : Operation.POp} {width : ℕ}
+    (h : Run code s0 ⟨pc, R, mem, aw, rdata, w⟩ k C)
+    (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
+    (hpush : op ≠ .PUSH0) (hword : UInt256.shiftLeft rawWord shift = word)
+    (hin : 96 ≤ mem.size) (hlo : 96 ≤ ptr.toNat) (hgap : ptr.toNat - mem.size < USize.size)
+    (hfit : ptr.toNat + 131 < UInt256.size) (haw : aw.toNat * 32 < UInt256.size)
+    (hawLo : 96 ≤ aw.toNat * 32) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
+    (hov : R.length + 5 ≤ 1024) :
+    Reverted code s0 ((solcErrorDynamicMem3 mem ptr len word).readWithPadding ptr.toNat 100) := by
+  rcases hwf with
+    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
+      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
+      hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
+      hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
+  have hload : memoryWordLoad mem ⟨64⟩ = ptr :=
+    mloadWordValue_of_readWithPadding (by change 64 < mem.size; omega) hread
+  have hw64 : memoryWordActiveWords aw ⟨64⟩ = aw := UInt256_M_same_of_cover aw ⟨64⟩ haw hawLo
+  have hLoad := evm_run h with [raw push1 ⟨64⟩ hd0 (by evm_ov), raw dup1 hd2 (by evm_ov)]
+  obtain ⟨_, _, hSelector⟩ := hLoad.mloadWord hd3 (by evm_ov)
+  rw [hload, hw64] at hSelector
+  have hRawSelector := hSelector.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
+    (by decide) hd4 (by evm_ov)
+  have hStore0 := evm_run hRawSelector with [
+    raw push1 ⟨229⟩ hd8 (by evm_ov),
+    raw shl hd10 (by evm_ov),
+    raw dup2 hd11 (by evm_ov)]
+  obtain ⟨_, _, hHeader⟩ := hStore0.mstoreWord hd12 (by evm_ov)
+  have hStore1 := evm_run hHeader with [
+    raw push1 ⟨32⟩ hd13 (by evm_ov),
+    raw push1 ⟨4⟩ hd15 (by evm_ov),
+    raw dup3 hd17 (by evm_ov),
+    raw add hd18 (by evm_ov)]
+  obtain ⟨_, _, hLength⟩ := hStore1.mstoreWord hd19 (by evm_ov)
+  have hStore2 := evm_run hLength with [
+    raw push1 len hd20 (by evm_ov),
+    raw push1 ⟨36⟩ hd22 (by evm_ov),
+    raw dup3 hd24 (by evm_ov),
+    raw add hd25 (by evm_ov)]
+  obtain ⟨_, _, hLiteral⟩ := hStore2.mstoreWord hd26 (by evm_ov)
+  have hRaw := hLiteral.pushConst rawWord (width := width) (op := op) hpush hd27 (by evm_ov)
+  have hWord := evm_run hRaw with [
+    raw push1 shift hdRawOut (by evm_ov),
+    raw shl hdShl (by evm_ov)]
+  rw [hword] at hWord
+  have hStore3 := evm_run hWord with [
+    raw push1 ⟨68⟩ hd68 (by evm_ov),
+    raw dup3 hdDup3 (by evm_ov),
+    raw add hdAdd (by evm_ov)]
+  obtain ⟨_, _, hSwap⟩ := hStore3.mstoreWord hdMstore3 (by evm_ov)
+  have hLoadFinal := evm_run hSwap with [raw swap1 hdSwap (by evm_ov)]
+  have hLoadFinal' : Run code s0 ⟨_, _, solcErrorDynamicMem3 mem ptr len word,
+      solcErrorDynamicWords3 aw ptr, rdata, w⟩ _ _ := hLoadFinal
+  obtain ⟨hm3, hw3⟩ := solcErrorDynamicMem3_mload64 aw ptr len word hin hlo hgap hfit haw hread
+  obtain ⟨_, _, hTail⟩ := hLoadFinal'.mloadWord hdMload (by evm_ov)
+  rw [hm3, hw3] at hTail
+  have hRev := evm_run hTail with [
+    raw swap1 hdSwap2 (by evm_ov),
+    raw dup2 hdDup2 (by evm_ov),
+    raw swap1 hdSwap3 (by evm_ov),
+    raw sub hdSub (by evm_ov),
+    raw push1 ⟨100⟩ hd100 (by evm_ov),
+    raw add hdAdd2 (by evm_ov),
+    raw swap1 hdSwap4 (by evm_ov)]
+  rw [u256_sub_self, show (⟨100⟩ : UInt256) + ⟨0⟩ = ⟨100⟩ by decide] at hRev
+  have hOut := hRev.revVar hdRev (by evm_ov)
+  rwa [show (⟨100⟩ : UInt256).toNat = 100 from by decide] at hOut
+
+/-! ### Permission-split forms of the storing / logging routines
+
+`(perm = true ∧ ordinary conclusion) ∨ (perm = false ∧ StaticViolation)`: the live side is the
+existing lemma, the static side runs the shape's prefix to its `SSTORE`/`LOG3` and aborts there. -/
+
+set_option maxHeartbeats 1000000 in
+/-- `Run.solcSingleMappingStoreDebitMem`, split on the permission flag. -/
+theorem Run.solcSingleMappingStoreDebitMemSplit {baseSlot newValue value aux key ret : UInt256}
+    (h : Run code s0 ⟨pc, newValue :: value :: aux :: key :: ret :: R,
+      twoWordHashMem key baseSlot mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcSingleMappingStoreDebitMemWf code pc baseSlot)
+    (hmem : mem.size = 96)
+    (hcanonKey : key.toNat < EVM.addressModulus)
+    (hov : R.length + 16 ≤ 1024) :
+    (s0.executionEnv.perm = true ∧
+      ∃ k' C', Run code s0 ⟨solcSingleMappingStoreDebitOutPc pc,
+        ⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: value :: aux :: key :: ret :: R,
+        twoWordHashMem key baseSlot (twoWordHashMem key baseSlot mem), UInt256.ofNat 3, rdata,
+        { w with
+            accounts := sstoreAccountMap s0.executionEnv.codeOwner w.accounts
+              (solcMappingSlot baseSlot key) newValue }⟩ k' C') ∨
+    (s0.executionEnv.perm = false ∧ StaticViolation code s0) := by
+  by_cases hperm : s0.executionEnv.perm = true
+  · exact Or.inl ⟨hperm, h.solcSingleMappingStoreDebitMem hwf hmem hperm hcanonKey hov⟩
+  refine Or.inr ⟨by simpa using hperm, ?_⟩
+  rcases hwf with
+    ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd11, hd12, hd14, hd15, hd16,
+      hd17, hd19, hd21, hd22, hd24, hd25, hd26, hd27, hd28, hd29, hd30⟩
+  have hbaseSize : (twoWordHashMem key baseSlot mem).size = 96 :=
+    twoWordHashMem_size_96 key baseSlot hmem
+  have hslot :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (Ethereum.KEC ((twoWordHashMem key baseSlot
+            (twoWordHashMem key baseSlot mem)).readWithPadding 0 64))) =
+        solcMappingSlot baseSlot key :=
+    twoWordHashMem_solcMappingSlot baseSlot key hbaseSize
+  have hMasked := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw push1 ⟨1⟩ hd1 (by evm_ov),
+    raw push1 ⟨1⟩ hd3 (by evm_ov),
+    raw push1 ⟨160⟩ hd5 (by evm_ov),
+    raw shl hd7 (by evm_ov),
+    raw sub hd8 (by evm_ov),
+    raw dup1 hd9 (by evm_ov),
+    raw dup6 hd10 (by evm_ov),
+    raw and hd11 (by evm_ov)]
+  rw [solcAddrMask_lit, solcAddrMask_clean hcanonKey] at hMasked
+  have hMstore0Prefix := evm_run hMasked with [
+    raw push1 ⟨0⟩ hd12 (by evm_ov),
+    raw swap1 hd14 (by evm_ov),
+    raw dup2 hd15 (by evm_ov)]
+  have hAfterKey := hMstore0Prefix.mstore 0
+    (wordAt0Mem key (twoWordHashMem key baseSlot mem))
+    (UInt256.ofNat 3) hd16 mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have hMstoreSlotPrefix := evm_run hAfterKey with [
+    raw push1 baseSlot hd17 (by evm_ov),
+    raw push1 ⟨32⟩ hd19 (by evm_ov)]
+  have hHashMem := hMstoreSlotPrefix.mstore 0
+    (twoWordHashMem key baseSlot (twoWordHashMem key baseSlot mem))
+    (UInt256.ofNat 3) hd21 mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have hKeccakPrefix := evm_run hHashMem with [
+    raw push1 ⟨64⟩ hd22 (by evm_ov),
+    raw dup1 hd24 (by evm_ov),
+    raw dup3 hd25 (by evm_ov)]
+  have hSlot := hKeccakPrefix.keccak256 0 (solcMappingSlot baseSlot key)
+    (UInt256.ofNat 3) hd26 mem_cost hslot (by native_decide) (by evm_ov)
+  have hBeforeStore := evm_run hSlot with [
+    raw swap4 hd27 (by evm_ov),
+    raw swap1 hd28 (by evm_ov),
+    raw swap4 hd29 (by evm_ov)]
+  exact hBeforeStore.sstoreStatic (by simpa using hperm) hd30 (by evm_ov)
+
+set_option maxHeartbeats 1000000 in
+/-- `Run.solcSingleMappingStoreCreditMem`, split on the permission flag. -/
+theorem Run.solcSingleMappingStoreCreditMemSplit {baseSlot newValue value key aux ret : UInt256}
+    (h : Run code s0 ⟨pc, newValue :: value :: key :: aux :: ret :: R, mem, UInt256.ofNat 3,
+      rdata, w⟩ k C)
+    (hwf : solcSingleMappingStoreCreditMemWf code pc baseSlot)
+    (hslot :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (Ethereum.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        solcMappingSlot baseSlot key)
+    (hcanonKey : key.toNat < EVM.addressModulus)
+    (hov : R.length + 16 ≤ 1024) :
+    (s0.executionEnv.perm = true ∧
+      ∃ k' C', Run code s0 ⟨solcSingleMappingStoreCreditOutPc pc,
+        ⟨64⟩ :: key :: solcAddrMask :: ⟨32⟩ :: value :: key :: aux :: ret :: R,
+        twoWordHashMem key baseSlot mem, UInt256.ofNat 3, rdata,
+        { w with
+            accounts := sstoreAccountMap s0.executionEnv.codeOwner w.accounts
+              (solcMappingSlot baseSlot key) newValue }⟩ k' C') ∨
+    (s0.executionEnv.perm = false ∧ StaticViolation code s0) := by
+  by_cases hperm : s0.executionEnv.perm = true
+  · exact Or.inl ⟨hperm, h.solcSingleMappingStoreCreditMem hwf hslot hperm hcanonKey hov⟩
+  refine Or.inr ⟨by simpa using hperm, ?_⟩
+  rcases hwf with
+    ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd11, hd12, hd14, hd15, hd16,
+      hd17, hd19, hd21, hd22, hd23, hd24, hd26, hd27, hd28, hd29, hd30, hd31, hd32, hd33⟩
+  have hMasked := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw push1 ⟨1⟩ hd1 (by evm_ov),
+    raw push1 ⟨1⟩ hd3 (by evm_ov),
+    raw push1 ⟨160⟩ hd5 (by evm_ov),
+    raw shl hd7 (by evm_ov),
+    raw sub hd8 (by evm_ov),
+    raw dup1 hd9 (by evm_ov),
+    raw dup5 hd10 (by evm_ov),
+    raw and hd11 (by evm_ov)]
+  rw [solcAddrMask_lit, solcAddrMask_clean hcanonKey] at hMasked
+  have hMstore0Prefix := evm_run hMasked with [
+    raw push1 ⟨0⟩ hd12 (by evm_ov),
+    raw dup2 hd14 (by evm_ov),
+    raw dup2 hd15 (by evm_ov)]
+  have hAfterKey := hMstore0Prefix.mstore 0 (wordAt0Mem key mem)
+    (UInt256.ofNat 3) hd16 mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have hMstoreSlotPrefix := evm_run hAfterKey with [
+    raw push1 baseSlot hd17 (by evm_ov),
+    raw push1 ⟨32⟩ hd19 (by evm_ov),
+    raw swap1 hd21 (by evm_ov),
+    raw dup2 hd22 (by evm_ov)]
+  have hHashMem := hMstoreSlotPrefix.mstore 0 (twoWordHashMem key baseSlot mem)
+    (UInt256.ofNat 3) hd23 mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have hKeccakPrefix := evm_run hHashMem with [
+    raw push1 ⟨64⟩ hd24 (by evm_ov),
+    raw swap2 hd26 (by evm_ov),
+    raw dup3 hd27 (by evm_ov),
+    raw swap1 hd28 (by evm_ov)]
+  have hSlot := hKeccakPrefix.keccak256 0 (solcMappingSlot baseSlot key)
+    (UInt256.ofNat 3) hd29 mem_cost hslot (by native_decide) (by evm_ov)
+  have hBeforeStore := evm_run hSlot with [
+    raw swap5 hd30 (by evm_ov),
+    raw swap1 hd31 (by evm_ov),
+    raw swap5 hd32 (by evm_ov)]
+  exact hBeforeStore.sstoreStatic (by simpa using hperm) hd33 (by evm_ov)
+
+/-- `Run.solcNestedMappingStoreOuterSstore`, split on the permission flag. -/
+theorem Run.solcNestedMappingStoreOuterSstoreSplit {innerSlot value spender owner ret : UInt256}
+    (h : Run code s0 ⟨pc,
+      innerSlot :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner :: solcAddrMask ::
+        value :: spender :: owner :: ret :: R, mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcNestedMappingStoreOuterSstoreWf code pc)
+    (hmem : mem.size = 96)
+    (hcanonSpender : spender.toNat < EVM.addressModulus)
+    (hov : R.length + 13 ≤ 1024) :
+    (s0.executionEnv.perm = true ∧
+      ∃ k' C', Run code s0 ⟨solcNestedMappingStoreOuterSstoreOutPc pc,
+        ⟨32⟩ :: ⟨64⟩ :: owner :: spender :: value :: spender :: owner :: ret :: R,
+        twoWordHashMem spender innerSlot mem, UInt256.ofNat 3, rdata,
+        { w with
+            accounts := sstoreAccountMap s0.executionEnv.codeOwner w.accounts
+              (solcMappingSlot innerSlot spender) value }⟩ k' C') ∨
+    (s0.executionEnv.perm = false ∧ StaticViolation code s0) := by
+  by_cases hperm : s0.executionEnv.perm = true
+  · exact Or.inl ⟨hperm, h.solcNestedMappingStoreOuterSstore hwf hmem hperm hcanonSpender hov⟩
+  refine Or.inr ⟨by simpa using hperm, ?_⟩
+  rcases hwf with
+    ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd12, hd13, hd14, hd15⟩
+  have hslot :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (Ethereum.KEC ((twoWordHashMem spender innerSlot mem).readWithPadding 0 64))) =
+        solcMappingSlot innerSlot spender :=
+    twoWordHashMem_solcMappingSlot innerSlot spender hmem
+  have hMasked := evm_run h with [
+    raw swap5 hd0 (by evm_ov),
+    raw dup8 hd1 (by evm_ov),
+    raw and hd2 (by evm_ov)]
+  rw [solcAddrMask_clean hcanonSpender] at hMasked
+  have hOuterKeyPrefix := evm_run hMasked with [
+    raw dup1 hd3 (by evm_ov),
+    raw dup5 hd4 (by evm_ov)]
+  have hOuterKey := hOuterKeyPrefix.mstore 0 (wordAt0Mem spender mem)
+    (UInt256.ofNat 3) hd5 mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have hOuterMemPrefix := evm_run hOuterKey with [
+    raw swap5 hd6 (by evm_ov),
+    raw dup3 hd7 (by evm_ov)]
+  have hOuterMem := hOuterMemPrefix.mstore 0 (twoWordHashMem spender innerSlot mem)
+    (UInt256.ofNat 3) hd8 mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have hHashPrefix := evm_run hOuterMem with [
+    raw swap2 hd9 (by evm_ov),
+    raw dup3 hd10 (by evm_ov),
+    raw swap1 hd11 (by evm_ov)]
+  have hSlot := hHashPrefix.keccak256 0 (solcMappingSlot innerSlot spender)
+    (UInt256.ofNat 3) hd12 mem_cost hslot (by native_decide) (by evm_ov)
+  have hBeforeStore := evm_run hSlot with [
+    raw dup6 hd13 (by evm_ov),
+    raw swap1 hd14 (by evm_ov)]
+  exact hBeforeStore.sstoreStatic (by simpa using hperm) hd15 (by evm_ov)
+
+set_option maxHeartbeats 1000000 in
+/-- `Run.solcNestedMappingCallerStoreMem`, split on the permission flag. -/
+theorem Run.solcNestedMappingCallerStoreMemSplit
+    {baseSlot newValue discard value aux owner ret : UInt256}
+    (h : Run code s0 ⟨pc, newValue :: discard :: value :: aux :: owner :: ret :: R, mem,
+      UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcNestedMappingCallerStoreMemWf code pc baseSlot)
+    (hmem : mem.size = 96)
+    (hcanonOwner : owner.toNat < EVM.addressModulus)
+    (hov : R.length + 16 ≤ 1024) :
+    (s0.executionEnv.perm = true ∧
+      ∃ k' C', Run code s0 ⟨solcNestedMappingCallerStoreMemOutPc pc,
+        discard :: value :: aux :: owner :: ret :: R,
+        solcNestedMappingCallerHashMem baseSlot owner s0.executionEnv mem, UInt256.ofNat 3, rdata,
+        { w with
+            accounts := sstoreAccountMap s0.executionEnv.codeOwner w.accounts
+              (solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord s0.executionEnv))
+              newValue }⟩ k' C') ∨
+    (s0.executionEnv.perm = false ∧ StaticViolation code s0) := by
+  by_cases hperm : s0.executionEnv.perm = true
+  · exact Or.inl ⟨hperm, h.solcNestedMappingCallerStoreMem hwf hmem hperm hcanonOwner hov⟩
+  refine Or.inr ⟨by simpa using hperm, ?_⟩
+  rcases hwf with
+    ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
+      hd16, hd18, hd20, hd21, hd22, hd23, hd25, hd26, hd27, hd28, hd29,
+      hd30, hd31, hd32, hd33, hd34, hd35, hd36⟩
+  have hinner :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (Ethereum.KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
+        solcMappingSlot baseSlot owner :=
+    twoWordHashMem_solcMappingSlot baseSlot owner hmem
+  have hinnerSize : (twoWordHashMem owner baseSlot mem).size = 96 :=
+    twoWordHashMem_size_96 owner baseSlot hmem
+  have houter :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (Ethereum.KEC (ByteArray.readWithPadding
+            (solcNestedMappingCallerHashMem baseSlot owner s0.executionEnv mem) 0 64))) =
+        solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord s0.executionEnv) := by
+    unfold solcNestedMappingCallerHashMem
+    exact twoWordHashMem_solcMappingSlot (solcMappingSlot baseSlot owner)
+      (solcSourceWord s0.executionEnv) hinnerSize
+  have hMasked := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw push1 ⟨1⟩ hd1 (by evm_ov),
+    raw push1 ⟨1⟩ hd3 (by evm_ov),
+    raw push1 ⟨160⟩ hd5 (by evm_ov),
+    raw shl hd7 (by evm_ov),
+    raw sub hd8 (by evm_ov),
+    raw dup6 hd9 (by evm_ov),
+    raw and hd10 (by evm_ov)]
+  rw [solcAddrMask_lit, solcAddrMask_clean hcanonOwner] at hMasked
+  have hMstore0Prefix := evm_run hMasked with [
+    raw push1 ⟨0⟩ hd11 (by evm_ov),
+    raw swap1 hd13 (by evm_ov),
+    raw dup2 hd14 (by evm_ov)]
+  have hInnerKey := hMstore0Prefix.mstore 0 (wordAt0Mem owner mem)
+    (UInt256.ofNat 3) hd15 mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have hInnerMemPrefix := evm_run hInnerKey with [
+    raw push1 baseSlot hd16 (by evm_ov),
+    raw push1 ⟨32⟩ hd18 (by evm_ov),
+    raw swap1 hd20 (by evm_ov),
+    raw dup2 hd21 (by evm_ov)]
+  have hInnerMem := hInnerMemPrefix.mstore 0 (twoWordHashMem owner baseSlot mem)
+    (UInt256.ofNat 3) hd22 mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have hInnerHashPrefix := evm_run hInnerMem with [
+    raw push1 ⟨64⟩ hd23 (by evm_ov),
+    raw dup1 hd25 (by evm_ov),
+    raw dup4 hd26 (by evm_ov)]
+  have hInnerHash := hInnerHashPrefix.keccak256 0 (solcMappingSlot baseSlot owner)
+    (UInt256.ofNat 3) hd27 mem_cost hinner (by native_decide) (by evm_ov)
+  have hCaller := evm_run hInnerHash with [
+    raw caller hd28 (by evm_ov),
+    raw dup5 hd29 (by evm_ov)]
+  have hOuterKey := hCaller.mstore 0
+    (wordAt0Mem (solcSourceWord s0.executionEnv) (twoWordHashMem owner baseSlot mem))
+    (UInt256.ofNat 3) hd30 mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have hOuterMemPrefix := evm_run hOuterKey with [
+    raw swap1 hd31 (by evm_ov),
+    raw swap2 hd32 (by evm_ov)]
+  have hOuterMem := hOuterMemPrefix.mstore 0
+    (solcNestedMappingCallerHashMem baseSlot owner s0.executionEnv mem)
+    (UInt256.ofNat 3) hd33 mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have hOuterHashPrefix := evm_run hOuterMem with [raw swap1 hd34 (by evm_ov)]
+  have hOuterHash := hOuterHashPrefix.keccak256 0
+    (solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord s0.executionEnv))
+    (UInt256.ofNat 3) hd35 mem_cost houter (by native_decide) (by evm_ov)
+  exact hOuterHash.sstoreStatic (by simpa using hperm) hd36 (by evm_ov)
+
+/-- `Run.solcLockEnterOk`, split on the permission flag. -/
+theorem Run.solcLockEnterOkSplit {okPc slot unlocked locked : UInt256}
+    (h : Run code s0 ⟨pc, R, mem, aw, rdata, w⟩ k C)
+    (hwf : solcLockEnterOkWf code pc okPc slot unlocked locked)
+    (hunlocked : solcSlotWord w.accounts s0.executionEnv slot = unlocked)
+    (hok : (D_J code 0).contains okPc = true)
+    (hov : R.length + 2 ≤ 1024) :
+    (s0.executionEnv.perm = true ∧
+      ∃ k' C', Run code s0 ⟨okPc + UInt256.ofNat 6, R, mem, aw, rdata,
+        { w with accounts := sstoreAccountMap s0.executionEnv.codeOwner w.accounts slot locked }⟩
+        k' C') ∨
+    (s0.executionEnv.perm = false ∧ StaticViolation code s0) := by
+  by_cases hperm : s0.executionEnv.perm = true
+  · exact Or.inl ⟨hperm, h.solcLockEnterOk hwf hperm hunlocked hok hov⟩
+  refine Or.inr ⟨by simpa using hperm, ?_⟩
+  rcases hwf with ⟨hd0, hd1, hd3, hd4, hd6, hd7, hd10, hdOk, hdOk1, hdOk3, hdOk5⟩
+  have hunlockedRaw :
+      (w.accounts.get? s0.executionEnv.codeOwner
+        |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) = unlocked := hunlocked
+  have h3 := h.jumpdest hd0 (by omega) |>.push1 slot hd1 (by omega)
+  obtain ⟨_, _, h4⟩ := h3.sload hd3 (by omega)
+  rw [hunlockedRaw] at h4
+  have h7 := h4.push1 unlocked hd4 (by evm_ov) |>.eq hd6 (by omega)
+  rw [uInt256_eq_self] at h7
+  have hOk5 := h7.push2 okPc hd7 (by evm_ov)
+    |>.jumpiT hd10 one_ne_zero_uint hok (by omega)
+    |>.jumpdest hdOk (by omega)
+    |>.push1 locked hdOk1 (by omega)
+    |>.push1 slot hdOk3 (by evm_ov)
+  exact hOk5.sstoreStatic (by simpa using hperm) hdOk5 (by omega)
+
+set_option maxHeartbeats 1000000 in
+/-- `Run.solcMaskedTransferLog3AndJump`, split on the permission flag. -/
+theorem Run.solcMaskedTransferLog3AndJumpSplit {topic value toWord src ret : UInt256}
+    (h : Run code s0 ⟨pc,
+      ⟨64⟩ :: toWord :: solcAddrMask :: ⟨32⟩ :: value :: toWord :: src :: ret :: R,
+      mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcMaskedTransferLog3AndJumpWf code pc topic)
+    (hmload :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+        = ⟨128⟩)
+    (hlogMload :
+      (if (⟨64⟩ : UInt256).toNat ≥ ((UInt256.toByteArray value).write 0 mem 128 32).size
+          then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian
+          (((UInt256.toByteArray value).write 0 mem 128 32).readWithPadding
+            (⟨64⟩ : UInt256).toNat 32)))
+        = ⟨128⟩)
+    (hcanonSrc : src.toNat < EVM.addressModulus)
+    (hret : (D_J code 0).contains ret = true)
+    (hov : R.length + 16 ≤ 1024) :
+    (s0.executionEnv.perm = true ∧
+      ∃ k' C', Run code s0 ⟨ret, R, (UInt256.toByteArray value).write 0 mem 128 32,
+        UInt256.ofNat 5, rdata,
+        { w with logs := w.logs.push ⟨s0.executionEnv.codeOwner, #[topic, src, toWord],
+                                       UInt256.toByteArray value⟩ }⟩ k' C') ∨
+    (s0.executionEnv.perm = false ∧ StaticViolation code s0) := by
+  by_cases hperm : s0.executionEnv.perm = true
+  · exact Or.inl ⟨hperm, h.solcMaskedTransferLog3AndJump hwf hmload hlogMload hperm hcanonSrc hret hov⟩
+  refine Or.inr ⟨by simpa using hperm, ?_⟩
+  rcases hwf with
+    ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd12,
+      hd13, hd46, hd47, hd48, hd49, hd50, hd51, hd52, hd53, _, _, _, _⟩
+  have h2 := evm_run h with [
+    raw dup1 hd0 (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd1 mem_cost hmload (by decide) (by evm_ov)]
+  have h4 := evm_run h2 with [raw dup6 hd2 (by evm_ov), raw dup2 hd3 (by evm_ov)]
+  have h5 := h4.mstore 6 ((UInt256.toByteArray value).write 0 mem 128 32)
+    (UInt256.ofNat 5) hd4 mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have h12 := evm_run h5 with [
+    raw swap1 hd5 (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) hd6 mem_cost hlogMload (by decide) (by evm_ov),
+    raw swap2 hd7 (by evm_ov),
+    raw swap4 hd8 (by evm_ov),
+    raw swap3 hd9 (by evm_ov),
+    raw dup8 hd10 (by evm_ov),
+    raw and hd11 (by evm_ov)]
+  rw [solcAddrMask_clean hcanonSrc] at h12
+  have h13 := evm_run h12 with [raw swap3 hd12 (by evm_ov)]
+  have h46 := h13.pushConst topic (width := 32) (op := .PUSH32) (by decide) hd13 (by evm_ov)
+  have h53 := evm_run h46 with [
+    raw swap3 hd46 (by evm_ov),
+    raw swap2 hd47 (by evm_ov),
+    raw dup3 hd48 (by evm_ov),
+    raw swap1 hd49 (by evm_ov),
+    raw sub hd50 (by evm_ov),
+    raw add hd51 (by evm_ov),
+    raw swap1 hd52 (by evm_ov)]
+  exact h53.log3Static (by simpa using hperm) hd53 (by evm_ov)
+
+set_option maxHeartbeats 1000000 in
+/-- `Run.solcPlainLog3AndJump`, split on the permission flag. -/
+theorem Run.solcPlainLog3AndJumpSplit {topic value topic1 topic2 ret : UInt256}
+    (h : Run code s0 ⟨pc,
+      ⟨32⟩ :: ⟨64⟩ :: topic1 :: topic2 :: value :: topic2 :: topic1 :: ret :: R,
+      mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcPlainLog3AndJumpWf code pc topic)
+    (hmload :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+        = ⟨128⟩)
+    (hlogMload :
+      (if (⟨64⟩ : UInt256).toNat ≥ ((UInt256.toByteArray value).write 0 mem 128 32).size
+          then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian
+          (((UInt256.toByteArray value).write 0 mem 128 32).readWithPadding
+            (⟨64⟩ : UInt256).toNat 32)))
+        = ⟨128⟩)
+    (hret : (D_J code 0).contains ret = true)
+    (hov : R.length + 11 ≤ 1024) :
+    (s0.executionEnv.perm = true ∧
+      ∃ k' C', Run code s0 ⟨ret, R, (UInt256.toByteArray value).write 0 mem 128 32,
+        UInt256.ofNat 5, rdata,
+        { w with logs := w.logs.push ⟨s0.executionEnv.codeOwner, #[topic, topic1, topic2],
+                                       UInt256.toByteArray value⟩ }⟩ k' C') ∨
+    (s0.executionEnv.perm = false ∧ StaticViolation code s0) := by
+  by_cases hperm : s0.executionEnv.perm = true
+  · exact Or.inl ⟨hperm, h.solcPlainLog3AndJump hwf hmload hlogMload hperm hret hov⟩
+  refine Or.inr ⟨by simpa using hperm, ?_⟩
+  rcases hwf with
+    ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd40, hd41, hd42, hd43, hd44,
+      hd45, hd46, hd47, hd48, _, _, _, _⟩
+  have h2 := evm_run h with [
+    raw dup2 hd0 (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd1 mem_cost hmload (by decide) (by evm_ov)]
+  have h4 := evm_run h2 with [raw dup6 hd2 (by evm_ov), raw dup2 hd3 (by evm_ov)]
+  have h5 := h4.mstore 6 ((UInt256.toByteArray value).write 0 mem 128 32)
+    (UInt256.ofNat 5) hd4 mem_cost (by rfl) (by native_decide) (by evm_ov)
+  have h7 := evm_run h5 with [
+    raw swap2 hd5 (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) hd6 mem_cost hlogMload (by decide) (by evm_ov)]
+  have h40 := h7.pushConst topic (width := 32) (op := .PUSH32) (by decide) hd7 (by evm_ov)
+  have h48 := evm_run h40 with [
+    raw swap3 hd40 (by evm_ov),
+    raw dup2 hd41 (by evm_ov),
+    raw swap1 hd42 (by evm_ov),
+    raw sub hd43 (by evm_ov),
+    raw swap1 hd44 (by evm_ov),
+    raw swap2 hd45 (by evm_ov),
+    raw add hd46 (by evm_ov),
+    raw swap1 hd47 (by evm_ov)]
+  exact h48.log3Static (by simpa using hperm) hd48 (by evm_ov)
 
 end Reasoning.Trace
