@@ -1,5 +1,6 @@
 import Benchmarks.Morpho.MetaMorphoV1_1.Arithmetic
 import Benchmarks.Morpho.MetaMorphoV1_1.RuntimeBlocks_060
+import Benchmarks.Morpho.MetaMorphoV1_1.RuntimeBlocks_061
 import Benchmarks.Morpho.MetaMorphoV1_1.RuntimeBlocks_046
 import Benchmarks.Morpho.MetaMorphoV1_1.RuntimeBlocks_074
 
@@ -110,5 +111,42 @@ theorem checkedDivRevert {I : ExecutionEnv} {g : Sat256} {s0 : State}
     (by rw [metaMorphoV1_1PatchedValidJumpsRuntime v]; jump_dest) rd
   exact metaMorphoV1_1Blocks.metaMorphoV1_1_block_16378
     (immWords := wordsOf (immStore v)) (by simpa using hstack) rd16378
+
+theorem checkedSubReturn {I : ExecutionEnv} {g : Sat256} {s0 : State}
+    {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
+    {k C : Nat} {a b ret : UInt256} {R : List UInt256}
+    (v : MetaMorphoV1_1Immutables) (hstack : R.length + 4 ≤ 1024)
+    (hfit : b.toNat ≤ a.toNat)
+    (hvalid : (D_J (deployedRuntime v) 0).contains ret = true)
+    (rd : RD (deployedRuntime v) I g s0 ⟨12234⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    ∃ k' C', RD (deployedRuntime v) I g s0 ret (UInt256.sub a b :: R)
+      mem aw rdata σ k' C' := by
+  have hnext := metaMorphoV1_1Blocks.metaMorphoV1_1_block_12234_fallthrough
+    (immWords := wordsOf (immStore v)) hstack
+    (ugt_zero (by rw [usub_toNat hfit]; omega)) rd
+  have hdone := metaMorphoV1_1Blocks.metaMorphoV1_1_block_12246
+    (immWords := wordsOf (immStore v)) (by simp only [List.length_cons]; omega) hvalid hnext
+  exact ⟨_, _, hdone⟩
+
+set_option maxRecDepth 2000 in
+theorem checkedSubRevert {I : ExecutionEnv} {g : Sat256} {s0 : State}
+    {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {σ : AccountMap}
+    {k C : Nat} {a b ret : UInt256} {R : List UInt256}
+    (v : MetaMorphoV1_1Immutables) (hstack : R.length + 4 ≤ 1024)
+    (hunder : a.toNat < b.toNat)
+    (rd : RD (deployedRuntime v) I g s0 ⟨12234⟩ (a :: b :: ret :: R) mem aw rdata σ k C) :
+    RDrev (deployedRuntime v) g s0 := by
+  have hgt : a.toNat < (UInt256.sub a b).toNat := by
+    rw [usub_toNat_underflow hunder]
+    have hb := b.val.isLt
+    change b.toNat < UInt256.size at hb
+    omega
+  have hpanic := metaMorphoV1_1Blocks.metaMorphoV1_1_block_12234_taken
+    (immWords := wordsOf (immStore v)) hstack (by rw [ugt_one hgt]; decide)
+    (by rw [metaMorphoV1_1PatchedValidJumpsRuntime v]; jump_dest) rd
+  exact metaMorphoV1_1Blocks.metaMorphoV1_1_block_9453
+    (immWords := wordsOf (immStore v))
+    (by simp only [metaMorphoV1_1Blocks.metaMorphoV1_1_block_12234_taken_stack,
+      List.length_cons]; omega) hpanic
 
 end Benchmarks.Morpho.MetaMorphoV1_1

@@ -48,6 +48,14 @@ theorem evalExpr_addressToUint {cfg : Config} {frame : Frame} {evm : EVM.State}
   simp only [evalExpr?, heval, bind, EvalResult.bind, castValue?,
     hfit, ↓reduceIte, EvalResult.ofOption]
 
+theorem evalExpr_addressToWord {cfg : Config} {frame : Frame} {evm : EVM.State}
+    {expr : Expr} {address : AccountAddress}
+    (heval : evalExpr? cfg frame evm expr = .ok (.address address)) :
+    evalExpr? cfg frame evm (.cast expr (.elem (.int (.uint ⟨256, by decide⟩)))) =
+      .ok (uint256Value (UInt256.ofNat address.toNat)) := by
+  have hfit : address.toNat < UInt256.size := lt_trans address.isLt (by decide)
+  simpa only [uint256Value, UInt256.toNat_ofNat_of_lt hfit] using evalExpr_addressToUint heval
+
 -- LIBRARY CANDIDATE: cast an unsigned word to bytes32.
 theorem evalExpr_uintToBytes32 {cfg : Config} {frame : Frame} {evm : EVM.State}
     {expr : Expr} {value : UInt256}

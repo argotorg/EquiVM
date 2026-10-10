@@ -135,4 +135,85 @@ theorem oversizedCalleeXi (σ σ₀ : AccountMap) (A : Substate) (I : ExecutionE
     exact r8
   exact ⟨_, Xi_success_of_X hrun⟩
 
+def oversizedCalleeAddress : AccountAddress := AccountAddress.ofNat 0x6000
+
+def oversizedCallerAddress : AccountAddress := AccountAddress.ofNat 0x6001
+
+def oversizedCalleeAccounts : AccountMap :=
+  (∅ : AccountMap).insert oversizedCalleeAddress
+    { (default : Account) with code := oversizedCalleeCode }
+
+theorem oversizedCalleeToExecute :
+    toExecute oversizedCalleeAccounts oversizedCalleeAddress =
+      .Code oversizedCalleeCode := by
+  rfl
+
+set_option maxRecDepth 2000 in
+theorem oversizedCalleeTheta (σ₀ : AccountMap) (A : Substate) (I : ExecutionEnv)
+    (input : ByteArray) :
+    ∃ gasOut, Θ oversizedCalleeAccounts σ₀ A oversizedCallerAddress I.sender
+      oversizedCalleeAddress (toExecute oversizedCalleeAccounts oversizedCalleeAddress)
+      (UInt256.ofNat (2 ^ 120)) (.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩ input (I.depth + 1)
+      I.header I.blobVersionedHashes I.blocks false =
+      (oversizedCalleeAccounts, gasOut, A, true, oversizedReturn) := by
+  let calleeEnv : ExecutionEnv :=
+    { codeOwner := oversizedCalleeAddress, sender := I.sender,
+      gasPrice := (UInt256.ofNat I.gasPrice).toNat, calldata := input,
+      source := oversizedCallerAddress, weiValue := ⟨0⟩, depth := I.depth + 1,
+      perm := false, code := oversizedCalleeCode, header := I.header,
+      blobVersionedHashes := I.blobVersionedHashes, blocks := I.blocks }
+  obtain ⟨gasOut, hrun⟩ := oversizedCalleeXi oversizedCalleeAccounts σ₀ A calleeEnv rfl
+  refine ⟨gasOut, ?_⟩
+  rw [oversizedCalleeToExecute]
+  unfold Θ
+  change (let result : AccountMap × UInt256 × Substate × ByteArray :=
+      match Ξ oversizedCalleeAccounts σ₀ (UInt256.ofNat (2 ^ 120)) A calleeEnv with
+      | .error _ => (∅, ⟨0⟩, A, ByteArray.empty)
+      | .ok (.revert g out) => (∅, g, A, out)
+      | .ok (.success (accounts, g, substate) out) => (accounts, g, substate, out)
+    (if result.1 == ∅ then oversizedCalleeAccounts else result.1,
+      result.2.1, if result.1 == ∅ then A else result.2.2.1,
+      if result.1 == ∅ then false else true, result.2.2.2)) = _
+  rw [hrun]
+  rfl
+
+def oversizedCallerState : State :=
+  initState oversizedCalleeAccounts oversizedCalleeAccounts
+    (Sat256.ofUInt256 (UInt256.ofNat (2 ^ 122))) default
+    { (default : ExecutionEnv) with codeOwner := oversizedCallerAddress }
+
+theorem oversizedCalleeTypedCall (slot : UInt256) :
+    typedCallViaEVM config oversizedCallerState oversizedCalleeAddress "extSloads" 0
+      [.array [wordBytes32Value slot]] (true, oversizedCallerState, oversizedReturn) false := by
+  refine ⟨extSloadsCalldata slot, extSloadsEncode slot, ?_⟩
+  obtain ⟨gasOut, hcall⟩ := oversizedCalleeTheta oversizedCalleeAccounts default
+    oversizedCallerState.executionEnv (extSloadsCalldata slot)
+  refine callViaEVM.callMade (σ' := oversizedCalleeAccounts) (g' := gasOut)
+    (A' := default) (valueWord := ⟨0⟩) rfl ?_ rfl (by decide +kernel) (by decide +kernel)
+  exact ⟨UInt256.ofNat (2 ^ 120), default, hcall.symm⟩
+
+/-- A real typed call can return an accepted array beyond solc's allocation limit. -/
+theorem oversizedCalleeCallAccepted (slot : UInt256) :
+    ∃ values,
+      typedCallViaEVM config oversizedCallerState oversizedCalleeAddress "extSloads" 0
+        [.array [wordBytes32Value slot]] (true, oversizedCallerState, oversizedReturn) false ∧
+      config.externalABI.decode? "extSloads" oversizedReturn = some [.array values] ∧
+      values.length = 1 ∧ oversizedReturn.size = 2 ^ 64 := by
+  obtain ⟨values, hdecode, hlen⟩ := oversizedReturn_sourceAccepts
+  exact ⟨values, oversizedCalleeTypedCall slot, hdecode, hlen, oversizedReturn_size⟩
+
+/-- Successful calls and valid ABI decoding do not imply the missing allocation bound. -/
+theorem acceptedCallDoesNotBoundReturnSize :
+    ¬ (∀ (evm evm' : State) (target : AccountAddress) (args values : List Value)
+        (out : ByteArray),
+      typedCallViaEVM config evm target "extSloads" 0 args (true, evm', out) false →
+      config.externalABI.decode? "extSloads" out = some [.array values] →
+      out.size < 2 ^ 64) := by
+  intro hbound
+  obtain ⟨values, hcall, hdecode, _, hsize⟩ := oversizedCalleeCallAccepted ⟨0⟩
+  have hlt := hbound oversizedCallerState oversizedCallerState oversizedCalleeAddress
+    [.array [wordBytes32Value ⟨0⟩]] values oversizedReturn hcall hdecode
+  rw [hsize] at hlt
+  exact (Nat.lt_irrefl _) hlt
+
 end Benchmarks.Morpho.MetaMorphoV1_1.ExtSloadsAllocationRegression

@@ -42,14 +42,22 @@ theorem calldataBytes32Key {cd : ByteArray} (hlen : 36 ≤ cd.size) :
   convert decode_word_at_eq cd 4 (by omega) (by decide) using 1
   simp [bytesToWord, EVM.Word.ofNat, fromByteArrayBigEndian, byteArray_toList_eq]
 
--- LIBRARY CANDIDATE: resolve a struct field after a bytes32 mapping index from a local variable.
+-- LIBRARY CANDIDATE: resolve a struct field after a bytes32-valued mapping-key expression.
+theorem evalStorageRef_bytes32FieldExpr {cfg : Config} {solm : Frame} {evm : EVM.State}
+    (base field : Ident) (key : Expr) (bs : List UInt8) (hlen : bs.length = 32)
+    (hkey : evalExpr? cfg solm evm key = .ok (.fixedBytes abiBytes32Width bs)) :
+    evalStorageRef cfg solm evm ⟨base, [.mindex key, .field field]⟩ =
+      .ok ⟨base, [.mindex (.fixedBytes abiBytes32Width bs), .field field]⟩ := by
+  simp only [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, hkey,
+    valueToKey_bytes32_of_length hlen, EvalResult.ofOption, EvalResult.bind, bind, pure]
+
 theorem evalStorageRef_bytes32Field {cfg : Config} {solm : Frame} {evm : EVM.State}
     (base name field : Ident) (bs : List UInt8) (hlen : bs.length = 32)
     (hget : solm.locals.get? name = some (.fixedBytes abiBytes32Width bs)) :
     evalStorageRef cfg solm evm ⟨base, [.mindex (.var name), .field field]⟩ =
       .ok ⟨base, [.mindex (.fixedBytes abiBytes32Width bs), .field field]⟩ := by
-  simp only [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?, hget,
-    valueToKey_bytes32_of_length hlen, EvalResult.ofOption, EvalResult.bind, bind, pure]
+  exact evalStorageRef_bytes32FieldExpr base field (.var name) bs hlen
+    (by simp only [evalExpr?, hget, EvalResult.ofOption])
 
 theorem evalStorage_pendingCapValue (evm : EVM.State) (locals imms : Store)
     (bs : List UInt8) (w : UInt256) (hlen : bs.length = 32)

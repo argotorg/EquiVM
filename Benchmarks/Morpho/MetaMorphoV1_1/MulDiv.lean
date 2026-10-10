@@ -57,6 +57,45 @@ theorem mulDivDownBodyReverts (evm : EVM.State) (imms : Store) (a b d : UInt256)
       (checkedMulSourceOverflow (mulDivFrame_x evm imms a b d) (mulDivFrame_y evm imms a b d)
         (Nat.le_of_not_gt hprod))
 
+theorem mulDivDownCall (evm : EVM.State) (locals imms : Store) (a b d : UInt256)
+    (retVar : Ident) (lhs rhs den : Expr)
+    (hfit : a.toNat * b.toNat < UInt256.size) (hden : d ≠ ⟨0⟩)
+    (ha : evalExpr? config { contract := contract, locals := locals, immutables := imms }
+      evm lhs = .ok (uint256Value a))
+    (hb : evalExpr? config { contract := contract, locals := locals, immutables := imms }
+      evm rhs = .ok (uint256Value b))
+    (hd : evalExpr? config { contract := contract, locals := locals, immutables := imms }
+      evm den = .ok (uint256Value d)) :
+    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+      (.internalCall "MathLib_mulDivDown" [lhs, rhs, den] retVar)
+      (.ok
+        { contract := contract
+          locals := locals.insert retVar (uint256Value (UInt256.div (UInt256.mul a b) d))
+          immutables := imms } evm) := by
+  exact internalCallFunctionReturn
+    (caller := { contract := contract, locals := locals, immutables := imms })
+    (callee := mulDivDownFunction)
+    (value := some [uint256Value (UInt256.div (UInt256.mul a b) d)])
+    (argVals := [uint256Value a, uint256Value b, uint256Value d])
+    (by simp only [evalExprs?, ha, hb, hd, bind, EvalResult.bind, pure]) rfl rfl
+    (mulDivDownBody evm imms a b d hfit hden)
+
+theorem mulDivDownCallReverts (evm : EVM.State) (locals imms : Store) (a b d : UInt256)
+    (retVar : Ident) (lhs rhs den : Expr)
+    (hfail : ¬ (a.toNat * b.toNat < UInt256.size ∧ d ≠ ⟨0⟩))
+    (ha : evalExpr? config { contract := contract, locals := locals, immutables := imms }
+      evm lhs = .ok (uint256Value a))
+    (hb : evalExpr? config { contract := contract, locals := locals, immutables := imms }
+      evm rhs = .ok (uint256Value b))
+    (hd : evalExpr? config { contract := contract, locals := locals, immutables := imms }
+      evm den = .ok (uint256Value d)) :
+    ExecStmt config { contract := contract, locals := locals, immutables := imms } evm
+      (.internalCall "MathLib_mulDivDown" [lhs, rhs, den] retVar) .reverted := by
+  exact internalCallFunctionRevert (callee := mulDivDownFunction)
+    (argVals := [uint256Value a, uint256Value b, uint256Value d])
+    (by simp only [evalExprs?, ha, hb, hd, bind, EvalResult.bind, pure]) rfl rfl
+    (mulDivDownBodyReverts evm imms a b d hfail)
+
 def mulDivUpFits (a b d : UInt256) : Prop :=
   a.toNat * b.toNat < UInt256.size ∧ d ≠ ⟨0⟩ ∧
     (UInt256.mul a b).toNat + (UInt256.sub d ⟨1⟩).toNat < UInt256.size

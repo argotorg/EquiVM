@@ -46,6 +46,7 @@ set_option maxRecDepth 1000000 in
 theorem totalAssetsSelectorOf : selectorOf totalAssetsTransition = metaMorphoV1_1SelBytes 0 := by
   have hsig : transitionSigStr totalAssetsTransition = "totalAssets()" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, totalAssetsTransition, contract,
+      SourceMemory.allocatedTotalAssetsTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -58,6 +59,7 @@ set_option maxRecDepth 1000000 in
 theorem nameSelectorOf : selectorOf nameTransition = metaMorphoV1_1SelBytes 1 := by
   have hsig : transitionSigStr nameTransition = "name()" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, nameTransition, contract,
+      SourceMemory.allocatedNameTransition, SourceMemory.allocatedStringViewTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -70,6 +72,7 @@ set_option maxRecDepth 1000000 in
 theorem convertToAssetsSelectorOf : selectorOf convertToAssetsTransition = metaMorphoV1_1SelBytes 2 := by
   have hsig : transitionSigStr convertToAssetsTransition = "convertToAssets(uint256)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, convertToAssetsTransition, contract,
+      SourceMemory.allocatedConvertToAssetsTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -94,6 +97,7 @@ set_option maxRecDepth 1000000 in
 theorem previewWithdrawSelectorOf : selectorOf previewWithdrawTransition = metaMorphoV1_1SelBytes 4 := by
   have hsig : transitionSigStr previewWithdrawTransition = "previewWithdraw(uint256)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, previewWithdrawTransition, contract,
+      SourceMemory.allocatedPreviewWithdrawTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -262,6 +266,7 @@ set_option maxRecDepth 1000000 in
 theorem submitCapSelectorOf : selectorOf submitCapTransition = metaMorphoV1_1SelBytes 18 := by
   have hsig : transitionSigStr submitCapTransition = "submitCap((address,address,address,address,uint256),uint256)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, submitCapTransition, contract,
+      SourceMemory.allocatedSubmitCapTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -274,6 +279,7 @@ set_option maxRecDepth 1000000 in
 theorem maxDepositSelectorOf : selectorOf maxDepositTransition = metaMorphoV1_1SelBytes 19 := by
   have hsig : transitionSigStr maxDepositTransition = "maxDeposit(address)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, maxDepositTransition, contract,
+      SourceMemory.allocatedMaxDepositTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -286,6 +292,7 @@ set_option maxRecDepth 1000000 in
 theorem updateWithdrawQueueSelectorOf : selectorOf updateWithdrawQueueTransition = metaMorphoV1_1SelBytes 20 := by
   have hsig : transitionSigStr updateWithdrawQueueTransition = "updateWithdrawQueue(uint256[])" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, updateWithdrawQueueTransition, contract,
+      SourceMemory.allocatedUpdateWithdrawQueueTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -334,6 +341,7 @@ set_option maxRecDepth 1000000 in
 theorem previewRedeemSelectorOf : selectorOf previewRedeemTransition = metaMorphoV1_1SelBytes 24 := by
   have hsig : transitionSigStr previewRedeemTransition = "previewRedeem(uint256)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, previewRedeemTransition, contract,
+      SourceMemory.allocatedPreviewRedeemTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -382,6 +390,7 @@ set_option maxRecDepth 1000000 in
 theorem setFeeSelectorOf : selectorOf setFeeTransition = metaMorphoV1_1SelBytes 28 := by
   have hsig : transitionSigStr setFeeTransition = "setFee(uint256)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, setFeeTransition, contract,
+      SourceMemory.allocatedSetFeeTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -406,6 +415,7 @@ set_option maxRecDepth 1000000 in
 theorem acceptCapSelectorOf : selectorOf acceptCapTransition = metaMorphoV1_1SelBytes 30 := by
   have hsig : transitionSigStr acceptCapTransition = "acceptCap((address,address,address,address,uint256))" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, acceptCapTransition, contract,
+      SourceMemory.allocatedAcceptCapTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -526,6 +536,7 @@ set_option maxRecDepth 1000000 in
 theorem eip712DomainSelectorOf : selectorOf eip712DomainTransition = metaMorphoV1_1SelBytes 40 := by
   have hsig : transitionSigStr eip712DomainTransition = "eip712Domain()" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, eip712DomainTransition, contract,
+      SourceMemory.allocatedEip712DomainTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -574,6 +585,7 @@ set_option maxRecDepth 1000000 in
 theorem symbolSelectorOf : selectorOf symbolTransition = metaMorphoV1_1SelBytes 44 := by
   have hsig : transitionSigStr symbolTransition = "symbol()" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, symbolTransition, contract,
+      SourceMemory.allocatedSymbolTransition, SourceMemory.allocatedStringViewTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -646,7 +658,9 @@ set_option maxRecDepth 1000000 in
 theorem multicallSelectorOf : selectorOf multicallTransition = metaMorphoV1_1SelBytes 50 := by
   have hsig : transitionSigStr multicallTransition = "multicall(bytes[])" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, multicallTransition, contract,
-      Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
+      SourceMemory.allocatedMulticallTransition, Syntax.contractSyntax, ABI.abiToSigStr,
+      ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel,
+      show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
   rw [hsig]
@@ -682,6 +696,7 @@ set_option maxRecDepth 1000000 in
 theorem previewMintSelectorOf : selectorOf previewMintTransition = metaMorphoV1_1SelBytes 53 := by
   have hsig : transitionSigStr previewMintTransition = "previewMint(uint256)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, previewMintTransition, contract,
+      SourceMemory.allocatedPreviewMintTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -706,6 +721,7 @@ set_option maxRecDepth 1000000 in
 theorem setSymbolSelectorOf : selectorOf setSymbolTransition = metaMorphoV1_1SelBytes 55 := by
   have hsig : transitionSigStr setSymbolTransition = "setSymbol(string)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, setSymbolTransition, contract,
+      SourceMemory.allocatedSetSymbolTransition, SourceMemory.allocatedStringSetTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -730,6 +746,7 @@ set_option maxRecDepth 1000000 in
 theorem skimSelectorOf : selectorOf skimTransition = metaMorphoV1_1SelBytes 57 := by
   have hsig : transitionSigStr skimTransition = "skim(address)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, skimTransition, contract,
+      SourceMemory.allocatedSkimTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -742,6 +759,7 @@ set_option maxRecDepth 1000000 in
 theorem setNameSelectorOf : selectorOf setNameTransition = metaMorphoV1_1SelBytes 58 := by
   have hsig : transitionSigStr setNameTransition = "setName(string)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, setNameTransition, contract,
+      SourceMemory.allocatedSetNameTransition, SourceMemory.allocatedStringSetTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -754,6 +772,7 @@ set_option maxRecDepth 1000000 in
 theorem maxMintSelectorOf : selectorOf maxMintTransition = metaMorphoV1_1SelBytes 59 := by
   have hsig : transitionSigStr maxMintTransition = "maxMint(address)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, maxMintTransition, contract,
+      SourceMemory.allocatedMaxMintTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -766,6 +785,7 @@ set_option maxRecDepth 1000000 in
 theorem convertToSharesSelectorOf : selectorOf convertToSharesTransition = metaMorphoV1_1SelBytes 60 := by
   have hsig : transitionSigStr convertToSharesTransition = "convertToShares(uint256)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, convertToSharesTransition, contract,
+      SourceMemory.allocatedConvertToSharesTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -802,6 +822,7 @@ set_option maxRecDepth 1000000 in
 theorem maxWithdrawSelectorOf : selectorOf maxWithdrawTransition = metaMorphoV1_1SelBytes 63 := by
   have hsig : transitionSigStr maxWithdrawTransition = "maxWithdraw(address)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, maxWithdrawTransition, contract,
+      SourceMemory.allocatedMaxWithdrawTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -838,6 +859,7 @@ set_option maxRecDepth 1000000 in
 theorem maxRedeemSelectorOf : selectorOf maxRedeemTransition = metaMorphoV1_1SelBytes 66 := by
   have hsig : transitionSigStr maxRedeemTransition = "maxRedeem(address)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, maxRedeemTransition, contract,
+      SourceMemory.allocatedMaxRedeemTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -898,6 +920,7 @@ set_option maxRecDepth 1000000 in
 theorem setFeeRecipientSelectorOf : selectorOf setFeeRecipientTransition = metaMorphoV1_1SelBytes 71 := by
   have hsig : transitionSigStr setFeeRecipientTransition = "setFeeRecipient(address)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, setFeeRecipientTransition, contract,
+      SourceMemory.allocatedSetFeeRecipientTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf
@@ -922,6 +945,7 @@ set_option maxRecDepth 1000000 in
 theorem previewDepositSelectorOf : selectorOf previewDepositTransition = metaMorphoV1_1SelBytes 73 := by
   have hsig : transitionSigStr previewDepositTransition = "previewDeposit(uint256)" := by
     simp [transitionSigStr, ABI.printSignature, transitionSignature, previewDepositTransition, contract,
+      SourceMemory.allocatedPreviewDepositTransition,
       Syntax.contractSyntax, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, show Nat.repr 8 = "8" by decide +kernel, show Nat.repr 32 = "32" by decide +kernel, show Nat.repr 256 = "256" by decide +kernel]
       <;> decide +kernel
   unfold selectorOf

@@ -85,19 +85,20 @@ theorem evalStorage_supplyQueue (evm : EVM.State) (locals imms : Store) (i : UIn
     rfl
   · exact storageLocLoad_bytes32 evm _
 
-theorem evalStorage_withdrawQueue (evm : EVM.State) (locals imms : Store) (i : UInt256)
+theorem evalStorage_withdrawQueue_local (evm : EVM.State) (locals imms : Store)
+    (name : Ident) (i : UInt256)
     (hbase : locals.get? "withdrawQueue" = none)
-    (hget : locals.get? "arg0" = some (.int (Int.ofNat i.toNat)))
+    (hget : locals.get? name = some (.int (Int.ofNat i.toNat)))
     (hbound : i.toNat < (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨21⟩).toNat) :
     evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
-      (.storage ⟨"withdrawQueue", [.aindex (.var "arg0")]⟩) =
+      (.storage ⟨"withdrawQueue", [.aindex (.var name)]⟩) =
       .ok (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (uInt256OfByteArray (KEC (UInt256.toByteArray ⟨21⟩)) + i)))) := by
   apply evalExpr_storage_scalar_value
     (er := ⟨"withdrawQueue", [.aindex (.int (Int.ofNat i.toNat))]⟩)
     (t := .bytes ⟨31, by decide⟩) hbase
-    (evalStorageRef_arrayIndex "withdrawQueue" "arg0" _ hget
+    (evalStorageRef_arrayIndex "withdrawQueue" name _ hget
       (by rw [withdrawQueueBounds, if_pos hbound])) rfl rfl
     (loc := bytes32Loc (uInt256OfByteArray (KEC (UInt256.toByteArray ⟨21⟩)) + i))
   · change some (StorageAddr.leaf
@@ -109,5 +110,16 @@ theorem evalStorage_withdrawQueue (evm : EVM.State) (locals imms : Store) (i : U
       u256_ofNat_toNat]
     rfl
   · exact storageLocLoad_bytes32 evm _
+
+theorem evalStorage_withdrawQueue (evm : EVM.State) (locals imms : Store) (i : UInt256)
+    (hbase : locals.get? "withdrawQueue" = none)
+    (hget : locals.get? "arg0" = some (.int (Int.ofNat i.toNat)))
+    (hbound : i.toNat < (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨21⟩).toNat) :
+    evalExpr? config { contract := contract, locals := locals, immutables := imms } evm
+      (.storage ⟨"withdrawQueue", [.aindex (.var "arg0")]⟩) =
+      .ok (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+          (uInt256OfByteArray (KEC (UInt256.toByteArray ⟨21⟩)) + i)))) := by
+  exact evalStorage_withdrawQueue_local evm locals imms "arg0" i hbase hget hbound
 
 end Benchmarks.Morpho.MetaMorphoV1_1
