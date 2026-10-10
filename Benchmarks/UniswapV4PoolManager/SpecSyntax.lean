@@ -190,7 +190,7 @@ def contractSyntax : ContractDecl := solidity% contract PoolManager {
     while (j < 32) {
       word = word * 256;
       if (offset + j < data.length) {
-        word = word + uint256(data[offset + j]);
+        word = word + uint256(uint8(data[offset + j]));
       }
       j = j + 1;
     }

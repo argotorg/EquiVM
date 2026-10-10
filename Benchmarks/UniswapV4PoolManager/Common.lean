@@ -634,7 +634,11 @@ theorem immutableLayout_keys :
 /-- A well-typed immutables store runs as the store of some valuation. -/
 theorem restrictImmutables_of_fit {imms : Store} (h : immutablesFit contract imms) :
     ∃ v, restrictImmutables contract imms = immStore v := by
-  sorry  -- TODO: case on each immutable's value as in Examples/TinyImmutable/Common.lean
+  have hdecl : contract.immutables = [⟨"original", .address⟩] := rfl
+  obtain ⟨value, hget, hfit⟩ := h ⟨"original", .address⟩ (by simp only [hdecl, List.mem_singleton])
+  cases value <;> simp only [elemValueFits, Bool.false_eq_true] at hfit
+  rename_i original
+  exact ⟨⟨original⟩, by simp only [restrictImmutables, hdecl, List.foldl, hget, immStore]⟩
 
 /-- The patched runtime has the template's jump destinations (patch sites are push payloads). -/
 theorem poolManagerPatchedValidJumps (v : PoolManagerImmutables) :
