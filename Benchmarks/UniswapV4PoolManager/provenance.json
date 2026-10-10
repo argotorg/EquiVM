@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/Uniswap/v4-core",
+  "ref": "main",
+  "commit": "46c6834698c48bc4a463a86d8420f4eb1d7f3b75",
+  "solmate_commit": "4b47a19038b798b4a33d9749d25e570443520647",
+  "compiler_url": "https://github.com/ethereum/solidity/releases/download/v0.8.26/solc-static-linux",
+  "compiler_sha256": "d5f23436f443edb85d8e76906d12f0a86ce0490e7663a9e608efeb7a93f149ef",
+  "profile": "default",
+  "source_units": 45,
+  "fetched_on": "2026-10-09"
+}
