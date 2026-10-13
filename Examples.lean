@@ -16,3 +16,4 @@ import Examples.OpenZeppelinBench.ERC6909.Correct
 import Examples.UniswapV2Pair.Correct
 import Examples.Reuse.Correct
 import Examples.VyperERC20.Correct
+import Examples.TransientFlag.Correct
