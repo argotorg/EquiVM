@@ -183,6 +183,36 @@ class StorageReferences(unittest.TestCase):
         elaborate(self, draft, CHECK)
 
 
+# A library function with the same name/signature as a contract function used to
+# resolve to the contract's own function (virtual-dispatch lookup ran across the
+# linearization) and emit a self-recursive stub instead of the library body.
+LIBRARY_SAME_NAME_SOURCE = """
+pragma solidity ^0.8.23;
+library L {
+    function bump(uint256 a) internal pure returns (uint256) { return a + 1; }
+}
+contract References {
+    using L for uint256;
+    function bump(uint256 a) public pure returns (uint256) { return L.bump(a); }
+    function twice(uint256 a) external pure returns (uint256) {
+        return a.bump() + L.bump(a);
+    }
+}
+"""
+
+
+@unittest.skipUnless(SOLC, "set SOLC to a Solidity 0.8.23+ compiler")
+class LibraryCalls(unittest.TestCase):
+    def test_library_same_name_not_virtual_dispatch(self):
+        translator = translate(self, LIBRARY_SAME_NAME_SOURCE)
+        draft = translator.render("LibDraft", "source")
+        self.assertIn("function L_bump(uint256 a) internal returns (uint256) {", draft)
+        self.assertIn("return (a + 1) as uint256;", draft)
+        self.assertIn("L_bump(a)", draft)
+        self.assertNotIn("var __c0 = bump_body(a);", draft)
+        self.assertNotIn("var __c0 = bump_body(", draft)
+
+
 @unittest.skipUnless(SOLC, "set SOLC to a Solidity 0.8.23+ compiler")
 class MemoryReferences(unittest.TestCase):
     def test_writeback_to_execution(self):

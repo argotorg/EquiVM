@@ -211,6 +211,11 @@ class Translator:
 
     def effective(self, fn: dict, from_contract: dict | None = None, use_super: bool = False) -> dict:
         """The most derived implementation of `fn` for this contract (virtual dispatch)."""
+        owner = self.owner_contract(fn["id"])
+        if owner is None or owner["id"] not in {c["id"] for c in self.linear}:
+            # not reached through inheritance (library or free function): no virtual dispatch,
+            # and a signature lookup would collide with same-named contract functions
+            return fn
         key = self.signature_key(fn)
         chain = self.linear
         if use_super and from_contract is not None:
