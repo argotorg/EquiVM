@@ -1,0 +1,10 @@
+{
+  "contract": "TickLibWrapper",
+  "externalCalls": [],
+  "holes": [],
+  "notes": [
+    "constant LN_ONE_PLUS_DELTA = 4987541511039073 inlined",
+    "constant MAX_TICK = 6744 inlined",
+    "constant PRICE_ROUNDING_STEP = 100000000000 inlined"
+  ]
+}

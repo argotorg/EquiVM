@@ -108,6 +108,13 @@ inductive execResultsEquiv
     evmRes = .error .InvalidInstruction →
     steleRes = .reverted →
     execResultsEquiv evmRes steleRes returnConvention
+  -- `StackOverflow` refines a Stele `.reverted`: it arises from unbounded recursion, where the
+  -- spec models the divergent input as a revert (e.g. `TickLib.wExp(-2^255)`, whose `unchecked`
+  -- negation of `INT256_MIN` wraps to itself and recurses forever).
+  | stackOverflowHalt :
+    evmRes = .error .StackOverflow →
+    steleRes = .reverted →
+    execResultsEquiv evmRes steleRes returnConvention
   -- Static mode (`I.perm = false`, the contract was entered through `STATICCALL`): the EVM's
   -- `StaticModeViolation` at a forbidden opcode refines a Stele `.staticViolation`, which only a
   -- state-changing statement can produce.  A body without one (a view function) can never match
