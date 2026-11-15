@@ -204,8 +204,8 @@ theorem erc20Dispatch_totalSupply {cd : ByteArray}
     (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split (contract := erc20Contract)
     (pre := [ERC20.approveTransition])
-    (post := [ERC20.transferFromTransition, ERC20.balanceOfTransition,
-      ERC20.transferTransition, ERC20.allowanceTransition])
+    (post := [transferFromTransition, ERC20.balanceOfTransition,
+      transferTransition, ERC20.allowanceTransition])
     (hfallback := rfl) (htr := rfl) ?_
     (by rw [selectorOf, vyperERC20TotalSupplySelectorBytes]; exact hsel)
   · intro t ht
@@ -235,7 +235,7 @@ theorem erc20TotalSupplyBodyCore
         (ERC20.totalSupplyTransition.params.map Param.name)
         (transitionSignature ERC20.totalSupplyTransition).paramTypes I.calldata =
           some ∅ := by
-    simpa [vyperERC20Config, erc20Contract, ERC20.erc20Contract, ERC20.totalSupplyTransition]
+    simpa [vyperERC20Config, erc20Contract, ERC20.totalSupplyTransition]
       using
       (decodeCalldataWithMode_empty_ok (mode := DecodeMode.vyper) (cd := I.calldata) hsz)
   have hbody :

@@ -78,7 +78,7 @@ theorem vyperERC20TotalSupplySelectorBytes :
       = ⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ := erc20TotalSupplySelectorBytes
 
 theorem vyperERC20TransferFromSelectorBytes :
-    (KEC (String.toByteArray (Stele.transitionSigStr ERC20.transferFromTransition))).extract 0 4
+    (KEC (String.toByteArray (Stele.transitionSigStr VyperERC20.transferFromTransition))).extract 0 4
       = ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ := erc20TransferFromSelectorBytes
 
 theorem vyperERC20BalanceOfSelectorBytes :
@@ -86,7 +86,7 @@ theorem vyperERC20BalanceOfSelectorBytes :
       = ⟨#[0x70, 0xa0, 0x82, 0x31]⟩ := erc20BalanceOfSelectorBytes
 
 theorem vyperERC20TransferSelectorBytes :
-    (KEC (String.toByteArray (Stele.transitionSigStr ERC20.transferTransition))).extract 0 4
+    (KEC (String.toByteArray (Stele.transitionSigStr VyperERC20.transferTransition))).extract 0 4
       = ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ := erc20TransferSelectorBytes
 
 theorem vyperERC20AllowanceSelectorBytes :

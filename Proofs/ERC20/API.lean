@@ -39,39 +39,27 @@ theorem transfer_block_inv (hcs : BalClean evm.executionEnv.source)
   -- require(msg.value == 0)
   rcases execBlock_require_cons h with rfl | ⟨-, h⟩
   · simp at hr
-  -- uint256 fromBalance = balanceOf[msg.sender]
-  rcases execBlock_letDecl_cons h with rfl | ⟨v₁, hv₁, h⟩
-  · simp at hr
-  cases (evalExpr_transfer_sender_balance evm I).symm.trans hv₁
-  -- require(fromBalance >= value)
+  -- require(balanceOf[...] >= value)
   rcases execBlock_require_cons h with rfl | ⟨hc, h⟩
   · simp at hr
   by_cases henough : (transferValueWord I).toNat ≤ (transferFromBalanceWord evm).toNat
   swap
   · cases (evalExpr_transfer_require_from_false evm I (by omega)).symm.trans hc
-  -- balanceOf[msg.sender] = fromBalance - value
+  -- balanceOf[msg.sender] -= value
   rcases execBlock_assign_cons h with rfl | rfl | ⟨v₂, fr₂, evm₂, hv₂, ha₂, h⟩
   · simp at hr
   · simp at hr
   cases (evalExpr_transfer_debit evm I henough).symm.trans hv₂
   cases (transferAssignSender evm I).symm.trans ha₂
-  -- uint256 toBalance = balanceOf[to]
-  rcases execBlock_letDecl_cons h with rfl | ⟨v₃, hv₃, h⟩
+  -- balanceOf[to] = (balanceOf[to] + value) as uint256
+  rcases execBlock_assign_cons h with rfl | rfl | ⟨v, fr, evmNext, hv, ha, h⟩
   · simp at hr
-  cases (evalExpr_transfer_to_balance evm I).symm.trans hv₃
-  -- uint256 newToBalance = toBalance + value   (checked)
-  rcases execBlock_letDecl_cons h with rfl | ⟨v₄, hv₄, h⟩
   · simp at hr
   by_cases hfit : transferNewToNat evm I < UInt256.size
   swap
-  · cases (evalExpr_transfer_newToBalance_revert evm I (by omega)).symm.trans hv₄
-  cases (evalExpr_transfer_newToBalance evm I hfit).symm.trans hv₄
-  -- balanceOf[to] = newToBalance
-  rcases execBlock_assign_cons h with rfl | rfl | ⟨v₅, fr₅, evm₅, hv₅, ha₅, h⟩
-  · simp at hr
-  · simp at hr
-  cases (evalExpr_transfer_newToBalance_var evm I).symm.trans hv₅
-  cases (transferAssignTo evm I hfit).symm.trans ha₅
+  · cases (evalExpr_transfer_newToBalance_revert evm I (by omega)).symm.trans hv
+  cases (evalExpr_transfer_newToBalance evm I hfit).symm.trans hv
+  cases (transferAssignTo evm I hfit).symm.trans ha
   -- emit Transfer(msg.sender, to, value)
   rcases execBlock_emit_cons h with rfl | rfl | h
   · simp at hr
@@ -107,11 +95,7 @@ theorem transferFrom_block_inv
   by_cases hallow : (transferFromValueWord I).toNat ≤ (transferFromCurrentAllowanceWord evm I).toNat
   swap
   · cases (evalExpr_transferFrom_require_allowance_false evm I (by omega)).symm.trans hc₁
-  -- uint256 fromBalance = balanceOf[from]
-  rcases execBlock_letDecl_cons h with rfl | ⟨v₂, hv₂, h⟩
-  · simp at hr
-  cases (evalExpr_transferFrom_from_balance evm I).symm.trans hv₂
-  -- require(fromBalance >= value)
+  -- require(balanceOf[...] >= value)
   rcases execBlock_require_cons h with rfl | ⟨hc₂, h⟩
   · simp at hr
   by_cases hbal : (transferFromValueWord I).toNat ≤ (transferFromFromBalanceWord evm I).toNat
@@ -135,23 +119,15 @@ theorem transferFrom_block_inv
   cases (evalExpr_transferFrom_balance_debit evm (transferFromAfterAllowanceState evm I) I
     hdebit).symm.trans hv₄
   cases (transferFromAssignFrom evm I).symm.trans ha₄
-  -- uint256 toBalance = balanceOf[to]
-  rcases execBlock_letDecl_cons h with rfl | ⟨v₅, hv₅, h⟩
+  -- balanceOf[to] = (balanceOf[to] + value) as uint256
+  rcases execBlock_assign_cons h with rfl | rfl | ⟨v, fr, evmNext, hv, ha, h⟩
   · simp at hr
-  cases (evalExpr_transferFrom_to_balance evm I).symm.trans hv₅
-  -- uint256 newToBalance = toBalance + value   (checked)
-  rcases execBlock_letDecl_cons h with rfl | ⟨v₆, hv₆, h⟩
   · simp at hr
   by_cases hfit : transferFromNewToNat evm I < UInt256.size
   swap
-  · cases (evalExpr_transferFrom_newToBalance_revert evm I (by omega)).symm.trans hv₆
-  cases (evalExpr_transferFrom_newToBalance evm I hfit).symm.trans hv₆
-  -- balanceOf[to] = newToBalance
-  rcases execBlock_assign_cons h with rfl | rfl | ⟨v₇, fr₇, evm₇, hv₇, ha₇, h⟩
-  · simp at hr
-  · simp at hr
-  cases (evalExpr_transferFrom_newToBalance_var evm I).symm.trans hv₇
-  cases (transferFromAssignTo evm I hfit).symm.trans ha₇
+  · cases (evalExpr_transferFrom_newToBalance_revert evm I (by omega)).symm.trans hv
+  cases (evalExpr_transferFrom_newToBalance evm I hfit).symm.trans hv
+  cases (transferFromAssignTo evm I hfit).symm.trans ha
   -- emit Transfer(from, to, value)
   rcases execBlock_emit_cons h with rfl | rfl | h
   · simp at hr
@@ -231,6 +207,10 @@ theorem ctor_block_inv (hsup : SupplyClean) (hcd : BalClean evm.executionEnv.sou
   · simp at hr
   cases (hvar _).symm.trans hv₂
   cases (erc20CtorAssignTotalSupply _ i h0 hlt).symm.trans ha₂
+  -- emit Transfer(address(0), msg.sender, initialSupply)
+  rcases execBlock_emit_cons h with rfl | rfl | h
+  · simp at hr
+  · simp at hr
   cases h
   simp only [resultState?_ok, Option.some.injEq] at hr
   subst hr
@@ -397,14 +377,14 @@ theorem calldata_size_of_selectorDispatch {t : TransitionDecl}
   have hmatch := dispatchList_some_selIs hsel
   simp [erc20Contract] at hmem
   rcases hmem with rfl | rfl | rfl | rfl | rfl | rfl
+  · rw [selectorOf, erc20TransferSelectorBytes] at hmatch; exact erc20TransferSelector_size hmatch
   · rw [selectorOf, erc20ApproveSelectorBytes] at hmatch; exact erc20ApproveSelector_size hmatch
-  · rw [selectorOf, erc20TotalSupplySelectorBytes] at hmatch
-    exact erc20TotalSupplySelector_size hmatch
   · rw [selectorOf, erc20TransferFromSelectorBytes] at hmatch
     exact erc20TransferFromSelector_size hmatch
   · rw [selectorOf, erc20BalanceOfSelectorBytes] at hmatch; exact erc20BalanceOfSelector_size hmatch
-  · rw [selectorOf, erc20TransferSelectorBytes] at hmatch; exact erc20TransferSelector_size hmatch
   · rw [selectorOf, erc20AllowanceSelectorBytes] at hmatch; exact erc20AllowanceSelector_size hmatch
+  · rw [selectorOf, erc20TotalSupplySelectorBytes] at hmatch
+    exact erc20TotalSupplySelector_size hmatch
 
 end Decode
 
@@ -449,18 +429,18 @@ theorem erc20_steleExec_preserves_inv
     have hmem := dispatchList_some_mem hsel
     simp [erc20Contract] at hmem
     rcases hmem with rfl | rfl | rfl | rfl | rfl | rfl
+    · obtain rfl := decode_transfer_eq hsz4 hdec
+      exact transfer_returned_inv hclean.caller hclean.arg₁ hbody hInv
     · obtain rfl := decode_approve_eq hsz4 hdec
       exact approve_returned_inv hclean.callerArg₁ hbody hInv
-    · obtain rfl := decode_totalSupply_eq hsz4 hdec
-      exact totalSupply_returned_inv hbody hInv
     · obtain rfl := decode_transferFrom_eq hsz4 hdec
       exact transferFrom_returned_inv hclean.arg₁Caller hclean.arg₁ hclean.arg₂ hbody hInv
     · obtain rfl := decode_balanceOf_eq hsz4 hdec
       exact balanceOf_returned_inv hbody hInv
-    · obtain rfl := decode_transfer_eq hsz4 hdec
-      exact transfer_returned_inv hclean.caller hclean.arg₁ hbody hInv
     · obtain rfl := decode_allowance_eq hsz4 hdec
       exact allowance_returned_inv hbody hInv
+    · obtain rfl := decode_totalSupply_eq hsz4 hdec
+      exact totalSupply_returned_inv hbody hInv
   | fallback _ _ hfb _ _ _ _ =>
     rw [show erc20Contract.fallback = none from rfl] at hfb
     cases hfb

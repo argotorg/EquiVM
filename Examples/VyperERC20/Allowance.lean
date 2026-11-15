@@ -122,7 +122,7 @@ theorem erc20AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
         steps := [.mindex (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat)),
                   .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat))] } =
       some (.elem (.int uint256Int)) := by
-    simp [storageTypeAt?, erc20Contract, ERC20.erc20Contract, ERC20.erc20StorageDecls,
+    simp [storageTypeAt?, erc20Contract, ERC20.erc20StorageDecls,
       uint256Storage, ERC20.uint256Storage, List.find?, List.foldlM, storageTypeStep?]
   have hloc : vyperERC20Config.storageBackend.locate?
       { base := "allowance",
@@ -756,8 +756,8 @@ theorem erc20Dispatch_allowance {cd : ByteArray}
   have hcd : cd.extract 0 4 = (⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split (contract := erc20Contract)
-    (pre := [ERC20.approveTransition, ERC20.totalSupplyTransition, ERC20.transferFromTransition,
-      ERC20.balanceOfTransition, ERC20.transferTransition])
+    (pre := [ERC20.approveTransition, ERC20.totalSupplyTransition, transferFromTransition,
+      ERC20.balanceOfTransition, transferTransition])
     (post := [])
     (hfallback := rfl) (htr := rfl) ?_
     (by rw [selectorOf, vyperERC20AllowanceSelectorBytes]; exact hsel)

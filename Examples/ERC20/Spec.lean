@@ -8,9 +8,9 @@ import Stele.MetaSolidityLayout
 
 This is the Stele-level specification for the core ERC20 surface:
 `totalSupply`, `balanceOf`, `allowance`, `approve`, `transfer`, and `transferFrom`.
-The mutating transitions `emit` the standard events where the runtime bytecode logs them; the log
-itself is not modelled.  The compiled constructor prefix used here logs nothing, so the spec
-constructor has no `emit`.
+The bodies follow `ERC20.sol`, including its constructor event and fresh storage reads at each
+compound assignment. Logs and revert messages are not compared by the refinement relation.
+The checked-in creation wrapper is hand assembled and does not emit the constructor event.
 -/
 
 open Stele ABI
@@ -107,7 +107,8 @@ def constructorDecl : ConstructorDecl :=
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .assign .storage (balanceOfRef sender) (.var "initialSupply"),
-        .assign .storage totalSupplyRef (.var "initialSupply") ] }
+        .assign .storage totalSupplyRef (.var "initialSupply"),
+        .emit "Transfer" [.cast (.intLit 0) (.elem .address), sender, .var "initialSupply"] ] }
 
 def totalSupplyTransition : TransitionDecl :=
   { name := "totalSupply"
@@ -149,13 +150,11 @@ def transferTransition : TransitionDecl :=
     returnType := [(.elem .bool)]
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef sender)),
-        .require (.binary .ge (.var "fromBalance") (.var "value")),
-        .assign .storage (balanceOfRef sender) (.binary .sub (.var "fromBalance") (.var "value")),
-        .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
-        .letDecl "newToBalance" (some uint256)
-          (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
-        .assign .storage (balanceOfRef (.var "to")) (.var "newToBalance"),
+        .require (.binary .ge (.storage (balanceOfRef sender)) (.var "value")),
+        .assign .storage (balanceOfRef sender)
+          (.binary .sub (.storage (balanceOfRef sender)) (.var "value")),
+        .assign .storage (balanceOfRef (.var "to"))
+          (valueInUInt256 (.binary .add (.storage (balanceOfRef (.var "to"))) (.var "value"))),
         .emit "Transfer" [sender, .var "to", .var "value"],
         .return [(.boolLit true)] ] }
 
@@ -168,17 +167,14 @@ def transferFromTransition : TransitionDecl :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "currentAllowance" (some uint256) (.storage (allowanceRef (.var "from") sender)),
         .require (.binary .ge (.var "currentAllowance") (.var "value")),
-        .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
-        .require (.binary .ge (.var "fromBalance") (.var "value")),
+        .require (.binary .ge (.storage (balanceOfRef (.var "from"))) (.var "value")),
         .assign .storage (allowanceRef (.var "from") sender)
           (.binary .sub (.var "currentAllowance") (.var "value")),
         .assign .storage (balanceOfRef (.var "from"))
           (valueInUInt256
             (.binary .sub (.storage (balanceOfRef (.var "from"))) (.var "value"))),
-        .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
-        .letDecl "newToBalance" (some uint256)
-          (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
-        .assign .storage (balanceOfRef (.var "to")) (.var "newToBalance"),
+        .assign .storage (balanceOfRef (.var "to"))
+          (valueInUInt256 (.binary .add (.storage (balanceOfRef (.var "to"))) (.var "value"))),
         .emit "Transfer" [.var "from", .var "to", .var "value"],
         .return [(.boolLit true)] ] }
 
@@ -187,12 +183,12 @@ def erc20Contract : ContractDecl :=
     storage := erc20StorageDecls
     ctor := constructorDecl
     transitions :=
-      [ approveTransition,
-        totalSupplyTransition,
+      [ transferTransition,
+        approveTransition,
         transferFromTransition,
         balanceOfTransition,
-        transferTransition,
-        allowanceTransition ] }
+        allowanceTransition,
+        totalSupplyTransition ] }
 
 end ERC20
 

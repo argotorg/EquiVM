@@ -80,7 +80,7 @@ theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           simp [evalStorageRef, evalStorageRefStep, balanceOfRef, ERC20.balanceOfRef,
             balanceOfStore, balanceOfOwnerValue, valueToKey?, EvalResult.seqList,
             EvalResult.bind, EvalResult.ofOption, bind, pure, evalExpr?])
-        (hty := by simp [storageTypeAt?, erc20Contract, ERC20.erc20Contract,
+        (hty := by simp [storageTypeAt?, erc20Contract,
           ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage, storageTypeStep?])
         (hloc := vyperERC20Config_storage_balanceOf
           (.address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat)))]
@@ -414,8 +414,8 @@ theorem erc20Dispatch_balanceOf {cd : ByteArray}
   have hcd : cd.extract 0 4 = (⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split (contract := erc20Contract)
-    (pre := [ERC20.approveTransition, ERC20.totalSupplyTransition, ERC20.transferFromTransition])
-    (post := [ERC20.transferTransition, ERC20.allowanceTransition])
+    (pre := [ERC20.approveTransition, ERC20.totalSupplyTransition, transferFromTransition])
+    (post := [transferTransition, ERC20.allowanceTransition])
     (hfallback := rfl) (htr := rfl) ?_
     (by rw [selectorOf, vyperERC20BalanceOfSelectorBytes]; exact hsel)
   · intro t ht

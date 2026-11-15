@@ -82,14 +82,20 @@ theorem erc20TotalSupplySelector_size {I : ExecutionEnv}
 theorem erc20Dispatch_totalSupply {cd : ByteArray}
     (hsel : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg erc20Contract cd = some totalSupplyTransition := by
-  have hcd : cd.extract 0 4 = (⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) :=
-    (byteArray_eq_of_beq hsel).symm
-  refine dispatchMsg_eq_some_of_split (pre := [approveTransition])
-    (post := [transferFromTransition, balanceOfTransition, transferTransition, allowanceTransition])
+  have hcd := (byteArray_eq_of_beq hsel).symm
+  refine dispatchMsg_eq_some_of_split
+    (pre := [transferTransition, approveTransition, transferFromTransition,
+      balanceOfTransition, allowanceTransition])
+    (post := [])
     rfl rfl ?_ (by rw [selectorOf, erc20TotalSupplySelectorBytes]; exact hsel)
   intro t ht
-  simp only [List.mem_singleton] at ht; subst ht
-  rw [selectorOf, erc20ApproveSelectorBytes, hcd]; decide
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
+  rcases ht with rfl | rfl | rfl | rfl | rfl
+  · rw [selectorOf, erc20TransferSelectorBytes, hcd]; decide
+  · rw [selectorOf, erc20ApproveSelectorBytes, hcd]; decide
+  · rw [selectorOf, erc20TransferFromSelectorBytes, hcd]; decide
+  · rw [selectorOf, erc20BalanceOfSelectorBytes, hcd]; decide
+  · rw [selectorOf, erc20AllowanceSelectorBytes, hcd]; decide
 
 theorem erc20Decode_totalSupply {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldata (totalSupplyTransition.params.map Param.name)

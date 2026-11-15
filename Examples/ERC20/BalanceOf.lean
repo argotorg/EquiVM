@@ -456,17 +456,16 @@ theorem erc20BalanceOfSelector_size {I : ExecutionEnv}
 theorem erc20Dispatch_balanceOf {cd : ByteArray}
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg erc20Contract cd = some balanceOfTransition := by
-  have hcd : cd.extract 0 4 = (⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) :=
-    (byteArray_eq_of_beq hsel).symm
+  have hcd := (byteArray_eq_of_beq hsel).symm
   refine dispatchMsg_eq_some_of_split
-    (pre := [approveTransition, totalSupplyTransition, transferFromTransition])
-    (post := [transferTransition, allowanceTransition])
+    (pre := [transferTransition, approveTransition, transferFromTransition])
+    (post := [allowanceTransition, totalSupplyTransition])
     rfl rfl ?_ (by rw [selectorOf, erc20BalanceOfSelectorBytes]; exact hsel)
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl | rfl
+  · rw [selectorOf, erc20TransferSelectorBytes, hcd]; decide
   · rw [selectorOf, erc20ApproveSelectorBytes, hcd]; decide
-  · rw [selectorOf, erc20TotalSupplySelectorBytes, hcd]; decide
   · rw [selectorOf, erc20TransferFromSelectorBytes, hcd]; decide
 
 theorem erc20BalanceOfBodyCore

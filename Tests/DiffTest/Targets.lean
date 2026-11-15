@@ -246,7 +246,7 @@ def uniswapV2Pair : Target :=
 
 /-- The ERC20 specification against Vyper's compiler output. -/
 def vyperERC20 : Target :=
-  { name := "VyperERC20", contract := ERC20.erc20Contract, config := vyperERC20Config,
+  { name := "VyperERC20", contract := VyperERC20.erc20Contract, config := vyperERC20Config,
     runtime := vyperERC20Bytecode, initcode := some vyperERC20Initcode,
     words := [10 ^ 18, 10 ^ 6] }
 

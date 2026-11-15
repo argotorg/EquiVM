@@ -114,7 +114,7 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256Storage)
       (hbase := approveStore_allowance I)
       (her := evalStorageRef_approve_allowance evm I)
-      (hty := by simp [storageTypeAt?, approveEvaledRef, erc20Contract, ERC20.erc20Contract,
+      (hty := by simp [storageTypeAt?, approveEvaledRef, erc20Contract,
                        ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage,
                        storageTypeStep?])
       (hloc := vyperERC20Config_storage_allowance (.address evm.executionEnv.source)
@@ -632,8 +632,8 @@ theorem erc20Dispatch_approve {cd : ByteArray}
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == cd.extract 0 4) = true) :
     dispatchMsg erc20Contract cd = some ERC20.approveTransition :=
   dispatchMsg_eq_some_of_split (contract := erc20Contract)
-    (pre := []) (post := [ERC20.totalSupplyTransition, ERC20.transferFromTransition,
-      ERC20.balanceOfTransition, ERC20.transferTransition, ERC20.allowanceTransition])
+    (pre := []) (post := [ERC20.totalSupplyTransition, transferFromTransition,
+      ERC20.balanceOfTransition, transferTransition, ERC20.allowanceTransition])
     rfl rfl (by simp) (by rw [selectorOf, vyperERC20ApproveSelectorBytes]; exact hsel)
 
 theorem erc20ApproveBodyCore

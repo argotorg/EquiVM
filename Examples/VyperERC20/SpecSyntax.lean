@@ -4,9 +4,9 @@ import Stele.Notation
 /-!
 # Vyper ERC20 spec in the Solidity-faithful Stele frontend
 
-The Vyper ERC20 behavior spec is the language-agnostic ERC20 Stele AST
-(`VyperERC20.erc20Contract` is `ERC20.erc20Contract`; only the storage layout is
-Vyper-specific).  Written here with `solidity%` and proven definitionally equal.
+The Vyper ERC20 behavior spec keeps its existing explicit local bindings and Vyper storage
+layout. It is written here with `solidity%` and proven definitionally equal to
+`VyperERC20.erc20Contract`, independently of the Solidity example's presentation.
 
 `from`/`to` are Lean keywords, so those parameter names are guillemet-escaped.
 Transition order matches `erc20Contract.transitions` exactly.

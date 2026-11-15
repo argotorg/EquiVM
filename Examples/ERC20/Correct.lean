@@ -1,5 +1,6 @@
 import Examples.ERC20.Bytecode
 import Examples.ERC20.Spec
+import Examples.ERC20.SpecSyntax
 import Examples.ERC20.TotalSupply
 import Examples.ERC20.BalanceOf
 import Examples.ERC20.Allowance
@@ -108,18 +109,18 @@ theorem erc20Dispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg erc20Contract cd = none := by
   rw [dispatchMsg_eq_dispatchList erc20Contract cd (by rfl)]
   change dispatchList
-    [approveTransition, totalSupplyTransition, transferFromTransition, balanceOfTransition,
-      transferTransition, allowanceTransition] cd = none
+    [transferTransition, approveTransition, transferFromTransition, balanceOfTransition,
+      allowanceTransition, totalSupplyTransition] cd = none
   exact dispatchList_none_short _ (by
     intro t ht
     simp at ht
     rcases ht with rfl | rfl | rfl | rfl | rfl | rfl
+    · rw [selectorOf, erc20TransferSelectorBytes]; rfl
     · rw [selectorOf, erc20ApproveSelectorBytes]; rfl
-    · rw [selectorOf, erc20TotalSupplySelectorBytes]; rfl
     · rw [selectorOf, erc20TransferFromSelectorBytes]; rfl
     · rw [selectorOf, erc20BalanceOfSelectorBytes]; rfl
-    · rw [selectorOf, erc20TransferSelectorBytes]; rfl
-    · rw [selectorOf, erc20AllowanceSelectorBytes]; rfl) h
+    · rw [selectorOf, erc20AllowanceSelectorBytes]; rfl
+    · rw [selectorOf, erc20TotalSupplySelectorBytes]; rfl) h
 
 theorem erc20Dispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 6 → (erc20SelBytes i == cd.extract 0 4) = false) :
@@ -128,12 +129,12 @@ theorem erc20Dispatch_none_nomatch {cd : ByteArray}
   intro t ht
   simp [erc20Contract] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl
+  · rw [selectorOf, erc20TransferSelectorBytes]; simpa [erc20SelBytes] using hnm 4 (by omega)
   · rw [selectorOf, erc20ApproveSelectorBytes]; simpa [erc20SelBytes] using hnm 0 (by omega)
-  · rw [selectorOf, erc20TotalSupplySelectorBytes]; simpa [erc20SelBytes] using hnm 1 (by omega)
   · rw [selectorOf, erc20TransferFromSelectorBytes]; simpa [erc20SelBytes] using hnm 2 (by omega)
   · rw [selectorOf, erc20BalanceOfSelectorBytes]; simpa [erc20SelBytes] using hnm 3 (by omega)
-  · rw [selectorOf, erc20TransferSelectorBytes]; simpa [erc20SelBytes] using hnm 4 (by omega)
   · rw [selectorOf, erc20AllowanceSelectorBytes]; simpa [erc20SelBytes] using hnm 5 (by omega)
+  · rw [selectorOf, erc20TotalSupplySelectorBytes]; simpa [erc20SelBytes] using hnm 1 (by omega)
 
 theorem erc20BodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ erc20Contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
@@ -731,6 +732,16 @@ theorem erc20CtorLocals_get_initialSupply (initialSupply : Int) :
   unfold erc20CtorLocals
   simp [erc20Contract, constructorDecl]
 
+theorem evalExprs_erc20Ctor_event (evm : EVM.State) (initialSupply : Int) :
+    evalExprs? erc20Config
+      { contract := erc20Contract, locals := erc20CtorLocals initialSupply } evm
+      [.cast (.intLit 0) (.elem .address), sender, .var "initialSupply"] =
+      .ok [.address (AccountAddress.ofNat 0), .address evm.executionEnv.source,
+        .int initialSupply] := by
+  simp only [evalExprs?, evalExpr?, erc20CtorLocals_get_initialSupply,
+    sender, envValue, EvalResult.bind, EvalResult.ofOption, bind, pure]
+  simp [castValue?]
+
 theorem erc20CtorLocals_get_balanceOf (initialSupply : Int) :
     (erc20CtorLocals initialSupply).get? "balanceOf" = none := by
   unfold erc20CtorLocals
@@ -872,7 +883,12 @@ theorem erc20SteleCtorExecSuccess
           exact erc20CtorAssignBalance
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             initialSupply h0 hlt)
-    · refine ExecBlock.consNormal ?_ ExecBlock.nil
+    · refine ExecBlock.consNormal ?_
+        (ExecBlock.consNormal (ExecStmt.emit
+          (by simpa only [erc20CtorPostState, erc20CtorBalancePostState,
+            storageStore_executionEnv_eq, initState] using hperm)
+          (evalExprs_erc20Ctor_event _ initialSupply))
+          ExecBlock.nil)
       exact ExecStmt.assign (value := .int initialSupply)
         (Or.inr (by simpa only [evm1, evm0, erc20CtorBalancePostState,
           storageStore_executionEnv_eq, initState] using hperm))
@@ -937,5 +953,11 @@ theorem erc20ConstructorCorrect :
 theorem erc20ContractCorrect :
     contractRefinement erc20Config erc20Initcode erc20Contract :=
   contractRefinement.of_constant erc20ConstructorCorrect erc20Correct
+
+/-- The creation and runtime bytecode refine the Solidity-style surface specification. -/
+theorem erc20ContractSyntaxCorrect :
+    contractRefinement erc20Config erc20Initcode Syntax.contractSyntax := by
+  rw [Syntax.contractSyntax_eq]
+  exact erc20ContractCorrect
 
 end ERC20

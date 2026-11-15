@@ -286,7 +286,7 @@ theorem erc20TransferFromBodyCore
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
-    (hd : dispatchMsg erc20Contract I.calldata = some ERC20.transferFromTransition)
+    (hd : dispatchMsg erc20Contract I.calldata = some transferFromTransition)
     (hsel : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD vyperERC20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨331⟩

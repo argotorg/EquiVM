@@ -782,10 +782,17 @@ theorem erc20ApproveSelector_size {I : ExecutionEnv}
 
 theorem erc20Dispatch_approve {cd : ByteArray}
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == cd.extract 0 4) = true) :
-    dispatchMsg erc20Contract cd = some approveTransition :=
-  dispatchMsg_eq_some_of_split (pre := []) (post := [totalSupplyTransition,
-      transferFromTransition, balanceOfTransition, transferTransition, allowanceTransition])
-    rfl rfl (by simp) (by rw [selectorOf, erc20ApproveSelectorBytes]; exact hsel)
+    dispatchMsg erc20Contract cd = some approveTransition := by
+  have hcd := (byteArray_eq_of_beq hsel).symm
+  refine dispatchMsg_eq_some_of_split
+    (pre := [transferTransition])
+    (post := [transferFromTransition, balanceOfTransition,
+      allowanceTransition, totalSupplyTransition])
+    rfl rfl ?_ (by rw [selectorOf, erc20ApproveSelectorBytes]; exact hsel)
+  intro t ht
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
+  subst ht
+  rw [selectorOf, erc20TransferSelectorBytes, hcd]; decide
 
 theorem erc20ApproveBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
