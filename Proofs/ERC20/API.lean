@@ -6,9 +6,11 @@ import Proofs.ERC20.Invariant
 `Inv` is preserved by every call and established by the constructor:
 
 * `erc20_steleExec_preserves_inv`: whatever the Stele dispatcher (`steleExec`) returns for any
-  calldata, environment and state, the returned state satisfies `Inv` if the initial one did;
+  calldata, environment and state, the returned state satisfies `Inv` if the initial one did and
+  the slots the call writes are unshared (`CallClean`);
 * `erc20_steleCtorExec_establishes_inv` / `erc20_deployment_establishes_inv`: whatever the
-  constructor returns from a fresh (all-balances-zero) state satisfies `Inv`.
+  constructor returns from a fresh (all-balances-zero) state satisfies `Inv`, assuming
+  `SupplyClean` and `BalClean` for the deployer.
 
 Each public function's body is taken apart statement by statement with the `execBlock_*_cons`
 inversion lemmas of `Reasoning.SteleBody`, so the theorems cover *every* derivation of the
@@ -28,7 +30,8 @@ section Bodies
 variable {evm evm' : EVM.State} {I : ExecutionEnv} {r : ExecResult}
 
 /-- `transfer`: every run that reaches a state preserves `Inv`. -/
-theorem transfer_block_inv (hinj : InjectiveLayout erc20Config)
+theorem transfer_block_inv (hcs : BalClean evm.executionEnv.source)
+    (hct : BalClean (AccountAddress.ofNat (transferToWord I).toNat))
     (h : ExecBlock erc20Config { contract := erc20Contract, locals := transferStore I } evm
       transferTransition.body r)
     (hInv : Inv evm) (hr : resultState? r = some evm') :
@@ -78,10 +81,15 @@ theorem transfer_block_inv (hinj : InjectiveLayout erc20Config)
   · simp at hr
   simp only [resultState?_returned, Option.some.injEq] at hr
   subst hr
-  exact ⟨transferPostState_executionEnv evm I, transfer_preserves_inv evm I hinj henough hfit hInv⟩
+  exact ⟨transferPostState_executionEnv evm I,
+    transfer_preserves_inv evm I hcs hct henough hfit hInv⟩
 
 /-- `transferFrom`: every run that reaches a state preserves `Inv`. -/
-theorem transferFrom_block_inv (hinj : InjectiveLayout erc20Config)
+theorem transferFrom_block_inv
+    (hca : AllowClean (AccountAddress.ofNat (transferFromFromWord I).toNat)
+      evm.executionEnv.source)
+    (hcf : BalClean (AccountAddress.ofNat (transferFromFromWord I).toNat))
+    (hct : BalClean (AccountAddress.ofNat (transferFromToWord I).toNat))
     (h : ExecBlock erc20Config { contract := erc20Contract, locals := transferFromStore I } evm
       transferFromTransition.body r)
     (hInv : Inv evm) (hr : resultState? r = some evm') :
@@ -154,10 +162,11 @@ theorem transferFrom_block_inv (hinj : InjectiveLayout erc20Config)
   simp only [resultState?_returned, Option.some.injEq] at hr
   subst hr
   exact ⟨transferFromPostState_executionEnv evm I,
-    transferFrom_preserves_inv evm I hinj hbal hfit hInv⟩
+    transferFrom_preserves_inv evm I hca hcf hct hbal hfit hInv⟩
 
 /-- `approve`: every run that reaches a state preserves `Inv`. -/
-theorem approve_block_inv (hinj : InjectiveLayout erc20Config)
+theorem approve_block_inv
+    (hca : AllowClean evm.executionEnv.source (AccountAddress.ofNat (approveSpenderWord I).toNat))
     (h : ExecBlock erc20Config { contract := erc20Contract, locals := approveStore I } evm
       approveTransition.body r)
     (hInv : Inv evm) (hr : resultState? r = some evm') :
@@ -180,7 +189,7 @@ theorem approve_block_inv (hinj : InjectiveLayout erc20Config)
   · simp at hr
   simp only [resultState?_returned, Option.some.injEq] at hr
   subst hr
-  exact ⟨approvePostState_executionEnv evm I, approve_preserves_inv evm I hinj hInv⟩
+  exact ⟨approvePostState_executionEnv evm I, approve_preserves_inv evm I hca hInv⟩
 
 /-- A view body (`require(msg.value == 0); return …`) returns its initial state. -/
 theorem view_block_inv {stele : Frame} {c : Expr} {es : List Expr}
@@ -197,7 +206,7 @@ theorem view_block_inv {stele : Frame} {c : Expr} {es : List Expr}
 
 /-- The constructor body, run on well-typed `initialSupply`: every run that reaches a state from
     an all-balances-zero state establishes `Inv`. -/
-theorem ctor_block_inv (hinj : InjectiveLayout erc20Config) {i : Int}
+theorem ctor_block_inv (hsup : SupplyClean) (hcd : BalClean evm.executionEnv.source) {i : Int}
     (h0 : 0 ≤ i) (hlt : i < Int.ofNat (EVM.twoPow 256))
     (h : ExecBlock erc20Config { contract := erc20Contract, locals := erc20CtorLocals i } evm
       erc20Contract.ctor.body r)
@@ -226,7 +235,7 @@ theorem ctor_block_inv (hinj : InjectiveLayout erc20Config) {i : Int}
   simp only [resultState?_ok, Option.some.injEq] at hr
   subst hr
   exact ⟨erc20CtorPostState_executionEnv evm (EVM.word i.toNat),
-    constructor_establishes_inv evm (EVM.word i.toNat) hinj hzero⟩
+    constructor_establishes_inv evm (EVM.word i.toNat) hsup hcd hzero⟩
 
 end Bodies
 
@@ -236,26 +245,32 @@ section Transitions
 
 variable {evm evm' : EVM.State} {I : ExecutionEnv} {fr : Frame} {ret : Option (List Value)}
 
-theorem transfer_returned_inv (hinj : InjectiveLayout erc20Config)
+theorem transfer_returned_inv (hcs : BalClean evm.executionEnv.source)
+    (hct : BalClean (AccountAddress.ofNat (transferToWord I).toNat))
     (h : ExecTransitionBody erc20Config erc20Contract evm (transferStore I)
       transferTransition.body (.returned fr evm' ret))
     (hInv : Inv evm) : evm'.executionEnv = evm.executionEnv ∧ Inv evm' := by
   obtain ⟨r, hb, hr⟩ := execFuncBody_block h
-  exact transfer_block_inv hinj hb hInv (hr.trans (resultState?_returned fr evm' ret))
+  exact transfer_block_inv hcs hct hb hInv (hr.trans (resultState?_returned fr evm' ret))
 
-theorem transferFrom_returned_inv (hinj : InjectiveLayout erc20Config)
+theorem transferFrom_returned_inv
+    (hca : AllowClean (AccountAddress.ofNat (transferFromFromWord I).toNat)
+      evm.executionEnv.source)
+    (hcf : BalClean (AccountAddress.ofNat (transferFromFromWord I).toNat))
+    (hct : BalClean (AccountAddress.ofNat (transferFromToWord I).toNat))
     (h : ExecTransitionBody erc20Config erc20Contract evm (transferFromStore I)
       transferFromTransition.body (.returned fr evm' ret))
     (hInv : Inv evm) : evm'.executionEnv = evm.executionEnv ∧ Inv evm' := by
   obtain ⟨r, hb, hr⟩ := execFuncBody_block h
-  exact transferFrom_block_inv hinj hb hInv (hr.trans (resultState?_returned fr evm' ret))
+  exact transferFrom_block_inv hca hcf hct hb hInv (hr.trans (resultState?_returned fr evm' ret))
 
-theorem approve_returned_inv (hinj : InjectiveLayout erc20Config)
+theorem approve_returned_inv
+    (hca : AllowClean evm.executionEnv.source (AccountAddress.ofNat (approveSpenderWord I).toNat))
     (h : ExecTransitionBody erc20Config erc20Contract evm (approveStore I)
       approveTransition.body (.returned fr evm' ret))
     (hInv : Inv evm) : evm'.executionEnv = evm.executionEnv ∧ Inv evm' := by
   obtain ⟨r, hb, hr⟩ := execFuncBody_block h
-  exact approve_block_inv hinj hb hInv (hr.trans (resultState?_returned fr evm' ret))
+  exact approve_block_inv hca hb hInv (hr.trans (resultState?_returned fr evm' ret))
 
 theorem totalSupply_returned_inv
     (h : ExecTransitionBody erc20Config erc20Contract evm ∅
@@ -395,12 +410,34 @@ end Decode
 
 /-! ## The whole ABI -/
 
+/-- The calldata argument at byte `4 + off`, read as an address. -/
+abbrev callArg (I : ExecutionEnv) (off : UInt256) : AccountAddress :=
+  AccountAddress.ofNat
+    (uInt256OfByteArray (I.calldata.readBytes ((⟨4⟩ : UInt256) + off).toNat 32)).toNat
+
+/-- The slots a call can write are unshared.  The first argument (`callArg I ⟨0⟩`) is `transfer`'s
+    `to`, `approve`'s `spender` and `transferFrom`'s `from`; the second (`callArg I ⟨32⟩`) is
+    `transferFrom`'s `to`.  Each function uses only the fields for the slots it writes. -/
+structure CallClean (I : ExecutionEnv) : Prop where
+  /-- `balanceOf[caller]` (`transfer`). -/
+  caller : BalClean I.source
+  /-- `balanceOf[arg₁]` (`transfer`'s `to`, `transferFrom`'s `from`). -/
+  arg₁ : BalClean (callArg I ⟨0⟩)
+  /-- `balanceOf[arg₂]` (`transferFrom`'s `to`). -/
+  arg₂ : BalClean (callArg I ⟨32⟩)
+  /-- `allowance[caller][arg₁]` (`approve`). -/
+  callerArg₁ : AllowClean I.source (callArg I ⟨0⟩)
+  /-- `allowance[arg₁][caller]` (`transferFrom`). -/
+  arg₁Caller : AllowClean (callArg I ⟨0⟩) I.source
+
 /-- **Every call preserves the supply invariant.**  Whatever the ERC20 spec returns for a call —
-    any calldata, caller, value, and pre-state satisfying `Inv` — the returned state satisfies
-    `Inv` (and belongs to the same contract: its environment is the call's). -/
-theorem erc20_steleExec_preserves_inv (hinj : InjectiveLayout erc20Config)
+    any calldata, caller, value, and pre-state satisfying `Inv`, whose written slots are unshared
+    (`CallClean`) — the returned state satisfies `Inv` (and belongs to the same contract: its
+    environment is the call's). -/
+theorem erc20_steleExec_preserves_inv
     {σ σ₀ : AccountMap} {g : UInt256} {A : Substate} {I : ExecutionEnv} {rc : ReturnConvention}
     {fr : Frame} {evm' : EVM.State} {ret : Option (List Value)}
+    (hclean : CallClean I)
     (hInv : Inv (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hexec : steleExec erc20Config erc20Contract ∅ σ σ₀ g A I (.returned fr evm' ret) rc) :
     evm'.executionEnv = I ∧ Inv evm' := by
@@ -413,15 +450,15 @@ theorem erc20_steleExec_preserves_inv (hinj : InjectiveLayout erc20Config)
     simp [erc20Contract] at hmem
     rcases hmem with rfl | rfl | rfl | rfl | rfl | rfl
     · obtain rfl := decode_approve_eq hsz4 hdec
-      exact approve_returned_inv hinj hbody hInv
+      exact approve_returned_inv hclean.callerArg₁ hbody hInv
     · obtain rfl := decode_totalSupply_eq hsz4 hdec
       exact totalSupply_returned_inv hbody hInv
     · obtain rfl := decode_transferFrom_eq hsz4 hdec
-      exact transferFrom_returned_inv hinj hbody hInv
+      exact transferFrom_returned_inv hclean.arg₁Caller hclean.arg₁ hclean.arg₂ hbody hInv
     · obtain rfl := decode_balanceOf_eq hsz4 hdec
       exact balanceOf_returned_inv hbody hInv
     · obtain rfl := decode_transfer_eq hsz4 hdec
-      exact transfer_returned_inv hinj hbody hInv
+      exact transfer_returned_inv hclean.caller hclean.arg₁ hbody hInv
     · obtain rfl := decode_allowance_eq hsz4 hdec
       exact allowance_returned_inv hbody hInv
   | fallback _ _ hfb _ _ _ _ =>
@@ -435,10 +472,11 @@ theorem erc20_steleExec_preserves_inv (hinj : InjectiveLayout erc20Config)
 
 /-- **The constructor establishes the supply invariant.**  Whatever the ERC20 constructor returns
     for a well-typed `initialSupply` from a state without balances, the returned state satisfies
-    `Inv`. -/
-theorem erc20_steleCtorExec_establishes_inv (hinj : InjectiveLayout erc20Config)
+    `Inv`, assuming no balance slot is the `totalSupply` slot and the deployer's is unshared. -/
+theorem erc20_steleCtorExec_establishes_inv (hsup : SupplyClean)
     {σ σ₀ : AccountMap} {g : UInt256} {A : Substate} {I : ExecutionEnv} {i : Int}
     {fr : Frame} {evm' : EVM.State} {ret : Option (List Value)}
+    (hcd : BalClean I.source)
     (h0 : 0 ≤ i) (hlt : i < Int.ofNat (EVM.twoPow 256))
     (hzero : ∀ a, balOf (initState σ σ₀ (Sat256.ofUInt256 g) A I) a = 0)
     (hexec : steleCtorExec erc20Config erc20Contract [.int i] σ σ₀ g A I (.returned fr evm' ret)) :
@@ -449,19 +487,20 @@ theorem erc20_steleCtorExec_establishes_inv (hinj : InjectiveLayout erc20Config)
     obtain ⟨r, hb, hr⟩ := execFuncBody_block hbody
     have hb' : ExecBlock erc20Config { contract := erc20Contract, locals := erc20CtorLocals i }
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) erc20Contract.ctor.body r := hb
-    exact ctor_block_inv hinj h0 hlt hb' hzero (hr.trans (resultState?_returned fr evm' ret))
+    exact ctor_block_inv hsup hcd h0 hlt hb' hzero (hr.trans (resultState?_returned fr evm' ret))
 
 /-- The constructor, for any arguments the deployment relation admits
     (`erc20Config.selfDeployment`), establishes `Inv`. -/
-theorem erc20_deployment_establishes_inv (hinj : InjectiveLayout erc20Config)
+theorem erc20_deployment_establishes_inv (hsup : SupplyClean)
     {σ σ₀ : AccountMap} {g : UInt256} {A : Substate} {I : ExecutionEnv}
     {args : List Value} {code : ByteArray}
     {fr : Frame} {evm' : EVM.State} {ret : Option (List Value)}
+    (hcd : BalClean I.source)
     (hdeploy : erc20Config.selfDeployment erc20Initcode args = some code)
     (hzero : ∀ a, balOf (initState σ σ₀ (Sat256.ofUInt256 g) A I) a = 0)
     (hexec : steleCtorExec erc20Config erc20Contract args σ σ₀ g A I (.returned fr evm' ret)) :
     evm'.executionEnv = I ∧ Inv evm' := by
   obtain ⟨i, rfl, h0, hlt, -⟩ := erc20Deployment_shape hdeploy
-  exact erc20_steleCtorExec_establishes_inv hinj h0 hlt hzero hexec
+  exact erc20_steleCtorExec_establishes_inv hsup hcd h0 hlt hzero hexec
 
 end ERC20

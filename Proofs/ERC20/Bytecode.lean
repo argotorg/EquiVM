@@ -9,9 +9,11 @@ compiled code with such a run ending in the same account map, so the invariant t
 bytecode:
 
 * `erc20_bytecode_preserves_inv`: a call to the runtime bytecode (`Ethereum.EVM.Ξ`) that succeeds
-  returns an account map satisfying `Inv` at the contract's address if the initial one did;
+  returns an account map satisfying `Inv` at the contract's address if the initial one did and the
+  slots the call writes are unshared (`CallClean`);
 * `erc20_initcode_establishes_inv`: a deployment that succeeds, from a state without balances,
-  returns an account map satisfying `Inv` and deploys `erc20Bytecode`.
+  returns an account map satisfying `Inv` and deploys `erc20Bytecode`, assuming `SupplyClean`
+  and `BalClean` for the deployer.
 
 A call that reverts or runs out of gas returns no account map, so there is nothing to show.
 -/
@@ -49,10 +51,12 @@ theorem balOf_initState (σ σ₀ : AccountMap) (g : Sat256) (A : Substate) (I :
 /-! ## Runtime -/
 
 /-- **Every call to the ERC20 bytecode preserves the supply invariant.**  If the EVM runs
-    `erc20Bytecode` — any accounts, gas, substate, caller, value and calldata — and succeeds, the
-    account map it returns satisfies `Inv` at the contract's address if the initial one did. -/
-theorem erc20_bytecode_preserves_inv (hinj : InjectiveLayout erc20Config)
+    `erc20Bytecode` — any accounts, gas, substate, caller, value and calldata whose written slots
+    are unshared (`CallClean`) — and succeeds, the account map it returns satisfies `Inv` at the
+    contract's address if the initial one did. -/
+theorem erc20_bytecode_preserves_inv
     {σ σ₀ σ' : AccountMap} {g g' : UInt256} {A A' : Substate} {I : ExecutionEnv} {o : ByteArray}
+    (hclean : CallClean I)
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hInv : InvAt σ I.codeOwner)
     (hΞ : Ξ σ σ₀ g A I = .ok (.success (σ', g', A') o)) :
@@ -66,7 +70,7 @@ theorem erc20_bytecode_preserves_inv (hinj : InjectiveLayout erc20Config)
       cases h1
       subst h2 h3
       obtain ⟨henv, hInv'⟩ :=
-        erc20_steleExec_preserves_inv hinj ((inv_initState σ σ₀ _ A I).mpr hInv) hstele
+        erc20_steleExec_preserves_inv hclean ((inv_initState σ σ₀ _ A I).mpr hInv) hstele
       rw [inv_iff_invAt, henv] at hInv'
       exact hInv'
     | revert h1 _ => cases h1
@@ -82,10 +86,12 @@ theorem erc20_bytecode_preserves_inv (hinj : InjectiveLayout erc20Config)
     deployment (`erc20Initcode` followed by the encoded constructor argument, as
     `erc20Config.selfDeployment` produces it) from a state in which the contract has no balances
     and succeeds, the account map it returns satisfies `Inv` at the contract's address, and the
-    code it deploys is `erc20Bytecode`. -/
-theorem erc20_initcode_establishes_inv (hinj : InjectiveLayout erc20Config)
+    code it deploys is `erc20Bytecode`.  Assumes no balance slot is the `totalSupply` slot
+    (`SupplyClean`) and the deployer's balance slot is unshared (`BalClean I.source`). -/
+theorem erc20_initcode_establishes_inv (hsup : SupplyClean)
     {σ σ₀ σ' : AccountMap} {g g' : UInt256} {A A' : Substate} {I : ExecutionEnv}
     {args : List Value} {deployedInitcode o : ByteArray}
+    (hcd : BalClean I.source)
     (hdeploy : erc20Config.selfDeployment erc20Initcode args = some deployedInitcode)
     (hcode : I.code = deployedInitcode) (hcalldata : I.calldata = .empty) (hperm : I.perm = true)
     (hzero : ∀ a, balOfAt σ I.codeOwner a = 0)
@@ -98,7 +104,7 @@ theorem erc20_initcode_establishes_inv (hinj : InjectiveLayout erc20Config)
     | success h1 h2 h3 h4 | successVoidReturn h1 h2 h3 h4 =>
       cases h1
       subst h2 h3
-      obtain ⟨henv, hInv⟩ := erc20_deployment_establishes_inv hinj hdeploy
+      obtain ⟨henv, hInv⟩ := erc20_deployment_establishes_inv hsup hcd hdeploy
         (fun a => (balOf_initState σ σ₀ _ A I a).trans (hzero a)) hstele
       rw [inv_iff_invAt, henv] at hInv
       exact ⟨hInv, h4⟩

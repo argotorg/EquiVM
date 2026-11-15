@@ -2,7 +2,7 @@ import Examples.ERC20.Spec
 import Reasoning.Storage
 
 /-!
-# ERC20 invariant — balance / totalSupply readers, storage frame, layout injectivity
+# ERC20 invariant — balance / totalSupply readers, storage frame, slot assumptions
 
 This is the foundation for the *spec-level* ERC20 contract invariant
 `totalSupply = Σ balances` (see `Proofs.ERC20.Invariant`).  Unlike the equivalence proofs in
@@ -14,11 +14,9 @@ It provides:
 * `balOf evm a` / `totalSupplyVal evm` — the contract's own-account storage read of `balanceOf[a]`
   and `totalSupply`, as `ℕ`.
 * Raw load-after-store frame lemmas for `Stele.EVM.storageStore` (same slot / different slot).
-* `InjectiveLayout cfg` — the *explicit* hypothesis that the storage layout maps distinct storage
-  references to distinct slots.  This is the one assumption a `Σ balances` argument cannot avoid
-  (distinct mapping keys must land in distinct slots); for Solidity's layout it is discharged by
-  Keccak collision-freedom, which this repo deliberately does **not** axiomatize.  Keeping it a
-  named hypothesis on the theorems makes the dependency visible rather than trusted.
+* `BalClean a`, `AllowClean o s`, `SupplyClean` — the slot assumptions.  Keccak collision-freedom
+  is not axiomatized; instead each invariant theorem assumes that the slots its call writes are not
+  shared with another balance or with `totalSupply`.
 -/
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory
@@ -76,91 +74,28 @@ theorem storageStore_find_codeOwner (evm : EVM.State) (a : AccountAddress) (k v 
   simp only [Stele.EVM.storageStore, State.lookupAccount, State.setAccount, hex, Option.option]
   simp [Std.ExtTreeMap.get?_eq_getElem?]
 
-/-! ## Layout injectivity (explicit hypothesis) -/
+/-! ## Slot assumptions
 
-/-- The storage layout sends distinct storage references to distinct slots.  For Solidity's layout
-    this is exactly Keccak collision-freedom on the mapping-slot derivation; we keep it as a named
-    hypothesis on the invariant theorems instead of axiomatizing it. -/
-def InjectiveLayout (cfg : Config) : Prop :=
-  ∀ (r₁ r₂ : EvaledStorageRef) (l₁ l₂ : StorageLoc),
-    cfg.storageBackend.locate? r₁ = some (.leaf l₁) →
-    cfg.storageBackend.locate? r₂ = some (.leaf l₂) →
-    r₁ ≠ r₂ → l₁.slot ≠ l₂.slot
+The invariant reads the `totalSupply` slot (`2`) and the `balanceOf` slot of every address.  A call
+can only break it through the slots it writes, so each call assumes only that those slots are not
+shared.  No global injectivity is assumed: over all keys it is false (`allowance` alone has `2^320`
+address pairs and only `2^256` slots). -/
 
-variable {cfg : Config}
+/-- `balanceOf[a]`'s slot is used by `a` alone and is not the `totalSupply` slot. -/
+structure BalClean (a : AccountAddress) : Prop where
+  ne_supply : erc20BalanceOfSlot (.address a) ≠ (⟨2⟩ : UInt256)
+  unshared : ∀ b : AccountAddress, b ≠ a →
+    erc20BalanceOfSlot (.address b) ≠ erc20BalanceOfSlot (.address a)
 
-/-- Helper: the ERC20 layout's slot for a resolved reference, when injectivity holds, is determined
-    by the reference. -/
-theorem InjectiveLayout.slot_ne (hinj : InjectiveLayout erc20Config)
-    {r₁ r₂ : EvaledStorageRef} {l₁ l₂ : StorageLoc}
-    (h₁ : erc20Config.storageBackend.locate? r₁ = some (.leaf l₁))
-    (h₂ : erc20Config.storageBackend.locate? r₂ = some (.leaf l₂))
-    (hr : r₁ ≠ r₂) : l₁.slot ≠ l₂.slot :=
-  hinj r₁ r₂ l₁ l₂ h₁ h₂ hr
+/-- `allowance[o][s]`'s slot is neither the `totalSupply` slot nor any `balanceOf` slot. -/
+structure AllowClean (o s : AccountAddress) : Prop where
+  ne_supply : erc20AllowanceSlot (.address o) (.address s) ≠ (⟨2⟩ : UInt256)
+  ne_balanceOf : ∀ a : AccountAddress,
+    erc20AllowanceSlot (.address o) (.address s) ≠ erc20BalanceOfSlot (.address a)
 
-/-- Distinct holders ⇒ distinct `balanceOf` slots. -/
-theorem balanceOf_slot_ne (hinj : InjectiveLayout erc20Config) {a b : AccountAddress} (h : a ≠ b) :
-    erc20BalanceOfSlot (.address a) ≠ erc20BalanceOfSlot (.address b) := by
-  have hL₁ : erc20Config.storageBackend.locate?
-      { base := "balanceOf", steps := [.mindex (.address a)] } =
-        some (.leaf (erc20Uint256Loc (erc20BalanceOfSlot (.address a)))) := by
-    rw [erc20Config_storage_balanceOf]
-  have hL₂ : erc20Config.storageBackend.locate?
-      { base := "balanceOf", steps := [.mindex (.address b)] } =
-        some (.leaf (erc20Uint256Loc (erc20BalanceOfSlot (.address b)))) := by
-    rw [erc20Config_storage_balanceOf]
-  have hr : ({ base := "balanceOf", steps := [.mindex (.address a)] } : EvaledStorageRef) ≠
-      { base := "balanceOf", steps := [.mindex (.address b)] } := by
-    intro he
-    have hsteps := congrArg EvaledStorageRef.steps he
-    simp only [List.cons.injEq, EvaledStorageRefStep.mindex.injEq, KeyValue.address.injEq,
-      and_true] at hsteps
-    exact h hsteps
-  simpa [erc20Uint256Loc] using hinj.slot_ne hL₁ hL₂ hr
-
-/-- A `balanceOf` slot is never the `totalSupply` slot. -/
-theorem balanceOf_slot_ne_totalSupply (hinj : InjectiveLayout erc20Config) (a : AccountAddress) :
-    erc20BalanceOfSlot (.address a) ≠ (⟨2⟩ : UInt256) := by
-  have hL₁ : erc20Config.storageBackend.locate?
-      { base := "balanceOf", steps := [.mindex (.address a)] } =
-        some (.leaf (erc20Uint256Loc (erc20BalanceOfSlot (.address a)))) := by
-    rw [erc20Config_storage_balanceOf]
-  have hL₂ : erc20Config.storageBackend.locate?
-      { base := "totalSupply", steps := [] } =
-        some (.leaf (erc20Uint256Loc ⟨2⟩)) := by rw [erc20Config_storage_totalSupply]
-  have hr : ({ base := "balanceOf", steps := [.mindex (.address a)] } : EvaledStorageRef) ≠
-      { base := "totalSupply", steps := [] } := by
-    intro he; simp at he
-  simpa [erc20Uint256Loc] using hinj.slot_ne hL₁ hL₂ hr
-
-/-- An `allowance` slot is never a `balanceOf` slot. -/
-theorem allowance_slot_ne_balanceOf (hinj : InjectiveLayout erc20Config)
-    (o s a : AccountAddress) :
-    erc20AllowanceSlot (.address o) (.address s) ≠ erc20BalanceOfSlot (.address a) := by
-  have hL₁ : erc20Config.storageBackend.locate?
-      { base := "allowance", steps := [.mindex (.address o), .mindex (.address s)] }
-        = some (.leaf (erc20Uint256Loc (erc20AllowanceSlot (.address o) (.address s)))) := by
-    rw [erc20Config_storage_allowance]
-  have hL₂ : erc20Config.storageBackend.locate?
-      { base := "balanceOf", steps := [.mindex (.address a)] } =
-        some (.leaf (erc20Uint256Loc (erc20BalanceOfSlot (.address a)))) := by
-    rw [erc20Config_storage_balanceOf]
-  have hr : ({ base := "allowance", steps := [.mindex (.address o), .mindex (.address s)] } : EvaledStorageRef) ≠ { base := "balanceOf", steps := [.mindex (.address a)] } := by
-    intro he; simp at he
-  simpa [erc20Uint256Loc] using hinj.slot_ne hL₁ hL₂ hr
-
-/-- An `allowance` slot is never the `totalSupply` slot. -/
-theorem allowance_slot_ne_totalSupply (hinj : InjectiveLayout erc20Config) (o s : AccountAddress) :
-    erc20AllowanceSlot (.address o) (.address s) ≠ (⟨2⟩ : UInt256) := by
-  have hL₁ : erc20Config.storageBackend.locate?
-      { base := "allowance", steps := [.mindex (.address o), .mindex (.address s)] }
-        = some (.leaf (erc20Uint256Loc (erc20AllowanceSlot (.address o) (.address s)))) := by
-    rw [erc20Config_storage_allowance]
-  have hL₂ : erc20Config.storageBackend.locate?
-      { base := "totalSupply", steps := [] } =
-        some (.leaf (erc20Uint256Loc ⟨2⟩)) := by rw [erc20Config_storage_totalSupply]
-  have hr : ({ base := "allowance", steps := [.mindex (.address o), .mindex (.address s)] } : EvaledStorageRef) ≠ { base := "totalSupply", steps := [] } := by
-    intro he; simp at he
-  simpa [erc20Uint256Loc] using hinj.slot_ne hL₁ hL₂ hr
+/-- No `balanceOf` slot is the `totalSupply` slot.  The one global assumption; only the
+    constructor needs it. -/
+def SupplyClean : Prop :=
+  ∀ a : AccountAddress, erc20BalanceOfSlot (.address a) ≠ (⟨2⟩ : UInt256)
 
 end ERC20
