@@ -1,0 +1,3047 @@
+{
+  "scope": "Physical block index for the manual audit in HANDOFF.md; not a proof or call graph.",
+  "runtimeBlocksIncludingInvalid": 1233,
+  "runtimeRegions": [
+    {
+      "entry": 0,
+      "name": "dispatcher",
+      "note": "Short calldata and unmatched selector revert; 57 linear comparisons; no global value guard.",
+      "lastByte": 657,
+      "blocks": [
+        0,
+        15,
+        18,
+        40,
+        51,
+        62,
+        73,
+        84,
+        95,
+        106,
+        117,
+        128,
+        139,
+        150,
+        161,
+        172,
+        183,
+        194,
+        205,
+        216,
+        227,
+        238,
+        249,
+        260,
+        271,
+        282,
+        293,
+        304,
+        315,
+        326,
+        337,
+        348,
+        359,
+        370,
+        381,
+        392,
+        403,
+        414,
+        425,
+        436,
+        447,
+        458,
+        469,
+        480,
+        491,
+        502,
+        513,
+        524,
+        535,
+        546,
+        557,
+        568,
+        579,
+        590,
+        601,
+        612,
+        623,
+        634,
+        645,
+        655
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 658,
+      "name": "continuousFeeCredit",
+      "signature": "continuousFeeCredit(bytes32)",
+      "selector": "0xfd2ff327",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 718,
+      "blocks": [
+        658,
+        664,
+        676,
+        712
+      ],
+      "effects": {
+        "SLOAD": [
+          701
+        ]
+      }
+    },
+    {
+      "entry": 719,
+      "name": "toMarket",
+      "signature": "toMarket(bytes32)",
+      "selector": "0xfc20106c",
+      "note": "EXTCODECOPY of the ID address, closed size guards, strict Market value decode, tuple return.",
+      "lastByte": 1295,
+      "blocks": [
+        719,
+        725,
+        737,
+        751,
+        851,
+        870,
+        884,
+        920,
+        936,
+        949,
+        961,
+        980,
+        997,
+        1022,
+        1040,
+        1051,
+        1065,
+        1088,
+        1092,
+        1100,
+        1148,
+        1159,
+        1184,
+        1188,
+        1202,
+        1218,
+        1227,
+        1259,
+        1275
+      ],
+      "effects": {
+        "SLOAD": [
+          841
+        ]
+      }
+    },
+    {
+      "entry": 1296,
+      "name": "setTickSpacingSetter",
+      "signature": "setTickSpacingSetter(address)",
+      "selector": "0xf3ad575e",
+      "note": "Configurator read/guard; low-160-bit role write preserving upper bits; event.",
+      "lastByte": 1435,
+      "blocks": [
+        1296,
+        1302,
+        1314,
+        1321,
+        1340,
+        1415
+      ],
+      "effects": {
+        "SLOAD": [
+          1332,
+          1361
+        ],
+        "SSTORE": [
+          1366
+        ],
+        "LOG2": [
+          1408
+        ]
+      }
+    },
+    {
+      "entry": 1436,
+      "name": "setMarketTickSpacing",
+      "signature": "setMarketTickSpacing(bytes32,uint256)",
+      "selector": "0xf37e9ba4",
+      "note": "Tick-spacing setter; uint8 range; initialized market; packed uint8 update; event.",
+      "lastByte": 1695,
+      "blocks": [
+        1436,
+        1442,
+        1450,
+        1469,
+        1502,
+        1510,
+        1516,
+        1610,
+        1631,
+        1669,
+        1675
+      ],
+      "effects": {
+        "SLOAD": [
+          1461,
+          1492,
+          1543,
+          1660
+        ],
+        "SSTORE": [
+          1564
+        ],
+        "LOG2": [
+          1603
+        ]
+      }
+    },
+    {
+      "entry": 1696,
+      "name": "setConsumed",
+      "signature": "setConsumed(bytes32,uint128,address)",
+      "selector": "0xf01fc06c",
+      "note": "Authorization short circuit; uint128 monotonic consumed write; event.",
+      "lastByte": 2009,
+      "blocks": [
+        1696,
+        1702,
+        1714,
+        1739,
+        1754,
+        1766,
+        1772,
+        1822,
+        1922,
+        1943,
+        1963
+      ],
+      "effects": {
+        "SLOAD": [
+          1814,
+          1867,
+          2004
+        ],
+        "SSTORE": [
+          1871
+        ],
+        "LOG4": [
+          1915
+        ]
+      }
+    },
+    {
+      "entry": 2010,
+      "name": "collateral",
+      "signature": "collateral(bytes32,address,uint256)",
+      "selector": "0xecdcc72d",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 2116,
+      "blocks": [
+        2010,
+        2016,
+        2028,
+        2035,
+        2101
+      ],
+      "effects": {
+        "SLOAD": [
+          2103
+        ]
+      }
+    },
+    {
+      "entry": 2117,
+      "name": "marketState",
+      "signature": "marketState(bytes32)",
+      "selector": "0xead29b0b",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 2338,
+      "blocks": [
+        2117,
+        2123,
+        2135
+      ],
+      "effects": {
+        "SLOAD": [
+          2161,
+          2169,
+          2172
+        ]
+      }
+    },
+    {
+      "entry": 2339,
+      "name": "consumed",
+      "signature": "consumed(address,bytes32)",
+      "selector": "0xe29dfba8",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 2427,
+      "blocks": [
+        2339,
+        2345,
+        2357,
+        2372
+      ],
+      "effects": {
+        "SLOAD": [
+          2419
+        ]
+      }
+    },
+    {
+      "entry": 2428,
+      "name": "lastAccrual",
+      "signature": "lastAccrual(bytes32,address)",
+      "selector": "0xe20e9a64",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 2510,
+      "blocks": [
+        2428,
+        2434,
+        2446,
+        2453
+      ],
+      "effects": {
+        "SLOAD": [
+          2500
+        ]
+      }
+    },
+    {
+      "entry": 2511,
+      "name": "tickSpacing",
+      "signature": "tickSpacing(bytes32)",
+      "selector": "0xdb94c029",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 2567,
+      "blocks": [
+        2511,
+        2517,
+        2529
+      ],
+      "effects": {
+        "SLOAD": [
+          2556
+        ]
+      }
+    },
+    {
+      "entry": 2568,
+      "name": "updatePositionView",
+      "signature": "updatePositionView((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),bytes32,address)",
+      "selector": "0xd4de4974",
+      "note": "Entry decode; shared view helper; uint128 triple return.",
+      "lastByte": 2637,
+      "blocks": [
+        2568,
+        2574,
+        2588,
+        2594
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 2638,
+      "name": "credit",
+      "signature": "credit(bytes32,address)",
+      "selector": "0xca286bb9",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 2723,
+      "blocks": [
+        2638,
+        2644,
+        2656,
+        2663
+      ],
+      "effects": {
+        "SLOAD": [
+          2715
+        ]
+      }
+    },
+    {
+      "entry": 2724,
+      "name": "pendingFee",
+      "signature": "pendingFee(bytes32,address)",
+      "selector": "0xc60c6271",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 2803,
+      "blocks": [
+        2724,
+        2730,
+        2742,
+        2749
+      ],
+      "effects": {
+        "SLOAD": [
+          2793
+        ]
+      }
+    },
+    {
+      "entry": 2804,
+      "name": "setFeeClaimer",
+      "signature": "setFeeClaimer(address)",
+      "selector": "0xc3accd48",
+      "note": "Configurator read/guard; low-160-bit role write preserving upper bits; event.",
+      "lastByte": 2922,
+      "blocks": [
+        2804,
+        2810,
+        2822,
+        2829,
+        2848
+      ],
+      "effects": {
+        "SLOAD": [
+          2840,
+          2869
+        ],
+        "SSTORE": [
+          2874
+        ],
+        "LOG2": [
+          2916
+        ]
+      }
+    },
+    {
+      "entry": 2923,
+      "name": "defaultSettlementFeeCbp",
+      "signature": "defaultSettlementFeeCbp(address,uint256)",
+      "selector": "0xc18f47da",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 3002,
+      "blocks": [
+        2923,
+        2929,
+        2941,
+        2948,
+        2989
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 3003,
+      "name": "continuousFee",
+      "signature": "continuousFee(bytes32)",
+      "selector": "0xc04e7898",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 3062,
+      "blocks": [
+        3003,
+        3009,
+        3021
+      ],
+      "effects": {
+        "SLOAD": [
+          3051
+        ]
+      }
+    },
+    {
+      "entry": 3063,
+      "name": "setIsAuthorized",
+      "signature": "setIsAuthorized(address,bool,address)",
+      "selector": "0xb78212ab",
+      "note": "Self/authorized caller short circuit; byte bool update preserving other bits; event.",
+      "lastByte": 3286,
+      "blocks": [
+        3063,
+        3069,
+        3081,
+        3088,
+        3103,
+        3118,
+        3130,
+        3136,
+        3240
+      ],
+      "effects": {
+        "SLOAD": [
+          3179,
+          3281
+        ],
+        "SSTORE": [
+          3187
+        ],
+        "LOG4": [
+          3233
+        ]
+      }
+    },
+    {
+      "entry": 3287,
+      "name": "collateralBitmap",
+      "signature": "collateralBitmap(bytes32,address)",
+      "selector": "0xb502e1f9",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 3369,
+      "blocks": [
+        3287,
+        3293,
+        3305,
+        3312
+      ],
+      "effects": {
+        "SLOAD": [
+          3359
+        ]
+      }
+    },
+    {
+      "entry": 3370,
+      "name": "isLltvEnabled",
+      "signature": "isLltvEnabled(uint256)",
+      "selector": "0xb485f3b8",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 3422,
+      "blocks": [
+        3370,
+        3376,
+        3388
+      ],
+      "effects": {
+        "SLOAD": [
+          3412
+        ]
+      }
+    },
+    {
+      "entry": 3423,
+      "name": "setFeeSetter",
+      "signature": "setFeeSetter(address)",
+      "selector": "0xb19805af",
+      "note": "Configurator read/guard; low-160-bit role write preserving upper bits; event.",
+      "lastByte": 3541,
+      "blocks": [
+        3423,
+        3429,
+        3441,
+        3448,
+        3467
+      ],
+      "effects": {
+        "SLOAD": [
+          3459,
+          3488
+        ],
+        "SSTORE": [
+          3493
+        ],
+        "LOG2": [
+          3535
+        ]
+      }
+    },
+    {
+      "entry": 3542,
+      "name": "multicall",
+      "signature": "multicall(bytes[])",
+      "selector": "0xac9650d8",
+      "note": "Lazy nested calldata bytes with wrapping signed bounds; sequential delegatecalls; raw return-size guard; failure reverts whole call.",
+      "lastByte": 3729,
+      "blocks": [
+        3542,
+        3548,
+        3560,
+        3577,
+        3590,
+        3605,
+        3614,
+        3630,
+        3649,
+        3662,
+        3700,
+        3707,
+        3715,
+        3723
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 3730,
+      "name": "settlementFee",
+      "signature": "settlementFee(bytes32,uint256)",
+      "selector": "0xa9bef809",
+      "note": "Shared initialized-market fee interpolation helper; uint256 return.",
+      "lastByte": 3762,
+      "blocks": [
+        3730,
+        3736,
+        3749,
+        3755
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 3763,
+      "name": "withdraw",
+      "signature": "withdraw((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),uint256,address,address)",
+      "selector": "0xa6db1750",
+      "note": "Authorization; touchMarket/updatePosition; conditional pending-fee decrease; credit/withdrawable/total updates; event; safeTransfer.",
+      "lastByte": 4302,
+      "blocks": [
+        3763,
+        3769,
+        3781,
+        3798,
+        3811,
+        3822,
+        3830,
+        3851,
+        3857,
+        3881,
+        3909,
+        3971,
+        3993,
+        4002,
+        4027,
+        4052,
+        4088,
+        4177,
+        4204,
+        4209,
+        4216,
+        4248,
+        4256
+      ],
+      "effects": {
+        "SLOAD": [
+          3954,
+          3996,
+          4014,
+          4046,
+          4064,
+          4100,
+          4218,
+          4297
+        ],
+        "SSTORE": [
+          4018,
+          4068,
+          4104,
+          4246
+        ],
+        "LOG4": [
+          4169
+        ]
+      }
+    },
+    {
+      "entry": 4303,
+      "name": "touchMarket",
+      "signature": "touchMarket((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address))",
+      "selector": "0xa3330aa3",
+      "note": "Entry Market validation and call to shared touchMarket_body; return ID.",
+      "lastByte": 4360,
+      "blocks": [
+        4303,
+        4309,
+        4321,
+        4338,
+        4356
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 4361,
+      "name": "withdrawCollateral",
+      "signature": "withdrawCollateral((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),uint256,uint256,address,address)",
+      "selector": "0xa121e2a9",
+      "note": "Authorization; touchMarket; checked collateral decrease; conditional bitmap clear; health/lock short circuit; event; safeTransfer.",
+      "lastByte": 4857,
+      "blocks": [
+        4361,
+        4367,
+        4379,
+        4396,
+        4409,
+        4423,
+        4432,
+        4454,
+        4460,
+        4472,
+        4496,
+        4560,
+        4573,
+        4587,
+        4593,
+        4624,
+        4631,
+        4636,
+        4643,
+        4649,
+        4721,
+        4742,
+        4795,
+        4802,
+        4811
+      ],
+      "effects": {
+        "SLOAD": [
+          4562,
+          4607,
+          4762,
+          4780,
+          4852
+        ],
+        "SSTORE": [
+          4622,
+          4793
+        ],
+        "LOG4": [
+          4716
+        ]
+      }
+    },
+    {
+      "entry": 4858,
+      "name": "setConfigurator",
+      "signature": "setConfigurator(address)",
+      "selector": "0x9f5f86ae",
+      "note": "Configurator read/guard; low-160-bit role write preserving upper bits; event.",
+      "lastByte": 4976,
+      "blocks": [
+        4858,
+        4864,
+        4876,
+        4883,
+        4904
+      ],
+      "effects": {
+        "SLOAD": [
+          4886
+        ],
+        "SSTORE": [
+          4928
+        ],
+        "LOG2": [
+          4970
+        ]
+      }
+    },
+    {
+      "entry": 4977,
+      "name": "liquidate",
+      "signature": "liquidate((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),uint256,uint256,uint256,address,bool,address,address,bytes)",
+      "selector": "0x9e580092",
+      "note": "Materialize Market before touchMarket; debt/gate; descending bitmap oracle loop; lock/health/maturity modes; collateral/bad-debt arithmetic and ordered writes; event; transfer/callback/repayment.",
+      "lastByte": 8462,
+      "blocks": [
+        4977,
+        4983,
+        4996,
+        5012,
+        5029,
+        5036,
+        5050,
+        5070,
+        5095,
+        5113,
+        5126,
+        5161,
+        5248,
+        5254,
+        5275,
+        5296,
+        5305,
+        5311,
+        5340,
+        5358,
+        5442,
+        5457,
+        5463,
+        5468,
+        5475,
+        5480,
+        5503,
+        5508,
+        5534,
+        5543,
+        5548,
+        5734,
+        5750,
+        5755,
+        5773,
+        5791,
+        5803,
+        5824,
+        5902,
+        5931,
+        5961,
+        5988,
+        6004,
+        6038,
+        6050,
+        6114,
+        6136,
+        6199,
+        6234,
+        6243,
+        6265,
+        6274,
+        6295,
+        6308,
+        6321,
+        6330,
+        6350,
+        6354,
+        6362,
+        6376,
+        6416,
+        6445,
+        6470,
+        6477,
+        6502,
+        6532,
+        6540,
+        6547,
+        6565,
+        6586,
+        6603,
+        6630,
+        6639,
+        6648,
+        6682,
+        6687,
+        6693,
+        6704,
+        6721,
+        6726,
+        6731,
+        6739,
+        6744,
+        6775,
+        6795,
+        6801,
+        6820,
+        6828,
+        6833,
+        6845,
+        6873,
+        6914,
+        6925,
+        6952,
+        7002,
+        7014,
+        7040,
+        7047,
+        7074,
+        7108,
+        7118,
+        7134,
+        7150,
+        7159,
+        7167,
+        7188,
+        7240,
+        7253,
+        7276,
+        7302,
+        7322,
+        7339,
+        7360,
+        7396,
+        7405,
+        7414,
+        7420,
+        7431,
+        7454,
+        7523,
+        7530,
+        7536,
+        7541,
+        7571,
+        7591,
+        7603,
+        7650,
+        7694,
+        7727,
+        7735,
+        7768,
+        7774,
+        7787,
+        7808,
+        7816,
+        7829,
+        7846,
+        7873,
+        7891,
+        7896,
+        7940,
+        7949,
+        7967,
+        7988,
+        8015,
+        8047,
+        8069,
+        8079,
+        8088,
+        8129,
+        8139,
+        8153,
+        8165,
+        8207,
+        8216,
+        8230,
+        8243,
+        8252,
+        8259,
+        8267,
+        8288,
+        8315,
+        8349,
+        8358,
+        8364,
+        8380,
+        8390,
+        8398,
+        8404,
+        8411,
+        8432,
+        8453
+      ],
+      "effects": {
+        "SLOAD": [
+          5258,
+          5554,
+          5565,
+          6777,
+          6867,
+          6885,
+          6919,
+          6939,
+          6958,
+          7034,
+          7242,
+          7469,
+          7481,
+          7556,
+          7597,
+          7618,
+          7657,
+          7666,
+          7753,
+          7990
+        ],
+        "SSTORE": [
+          6889,
+          6944,
+          6997,
+          7476,
+          7569,
+          7625,
+          7766
+        ],
+        "TLOAD": [
+          5450
+        ],
+        "CALL": [
+          6227
+        ],
+        "STATICCALL": [
+          7932,
+          8341
+        ],
+        "LOG4": [
+          5704
+        ]
+      }
+    },
+    {
+      "entry": 8463,
+      "name": "setMarketSettlementFee",
+      "signature": "setMarketSettlementFee(bytes32,uint256,uint256)",
+      "selector": "0x9e3ff40a",
+      "note": "Same fee guards; initialized market; packed uint16 update selected by index; event.",
+      "lastByte": 9003,
+      "blocks": [
+        8463,
+        8469,
+        8481,
+        8527,
+        8535,
+        8543,
+        8550,
+        8562,
+        8578,
+        8632,
+        8646,
+        8660,
+        8669,
+        8697,
+        8706,
+        8738,
+        8747,
+        8783,
+        8792,
+        8832,
+        8841,
+        8871,
+        8880,
+        8887,
+        8920,
+        8941,
+        8962,
+        8983
+      ],
+      "effects": {
+        "SLOAD": [
+          8519,
+          8568,
+          8641,
+          8670,
+          8707,
+          8748,
+          8793,
+          8842,
+          8889
+        ],
+        "SSTORE": [
+          8645,
+          8692,
+          8733,
+          8778,
+          8827,
+          8866,
+          8913
+        ],
+        "LOG3": [
+          8653
+        ]
+      }
+    },
+    {
+      "entry": 9004,
+      "name": "tickSpacingSetter",
+      "signature": "tickSpacingSetter()",
+      "selector": "0x98285e82",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 9044,
+      "blocks": [
+        9004,
+        9010,
+        9024
+      ],
+      "effects": {
+        "SLOAD": [
+          9036
+        ]
+      }
+    },
+    {
+      "entry": 9045,
+      "name": "position",
+      "signature": "position(bytes32,address)",
+      "selector": "0x93c52062",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 9198,
+      "blocks": [
+        9045,
+        9051,
+        9063,
+        9070
+      ],
+      "effects": {
+        "SLOAD": [
+          9115,
+          9123,
+          9126
+        ]
+      }
+    },
+    {
+      "entry": 9199,
+      "name": "debt",
+      "signature": "debt(bytes32,address)",
+      "selector": "0x93af51c2",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 9287,
+      "blocks": [
+        9199,
+        9205,
+        9217,
+        9224
+      ],
+      "effects": {
+        "SLOAD": [
+          9279
+        ]
+      }
+    },
+    {
+      "entry": 9288,
+      "name": "enableLiquidationCursor",
+      "signature": "enableLiquidationCursor(uint256)",
+      "selector": "0x8fd76a21",
+      "note": "Configurator; strict below-WAD cap; bool byte write; event.",
+      "lastByte": 9440,
+      "blocks": [
+        9288,
+        9294,
+        9306,
+        9327,
+        9343,
+        9420
+      ],
+      "effects": {
+        "SLOAD": [
+          9319,
+          9402
+        ],
+        "SSTORE": [
+          9406
+        ],
+        "LOG1": [
+          9413
+        ]
+      }
+    },
+    {
+      "entry": 9441,
+      "name": "isLiquidationCursorEnabled",
+      "signature": "isLiquidationCursorEnabled(uint256)",
+      "selector": "0x8d2ba1d6",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 9493,
+      "blocks": [
+        9441,
+        9447,
+        9459
+      ],
+      "effects": {
+        "SLOAD": [
+          9483
+        ]
+      }
+    },
+    {
+      "entry": 9494,
+      "name": "lastLossFactor",
+      "signature": "lastLossFactor(bytes32,address)",
+      "selector": "0x8c366a0a",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 9582,
+      "blocks": [
+        9494,
+        9500,
+        9512,
+        9519
+      ],
+      "effects": {
+        "SLOAD": [
+          9574
+        ]
+      }
+    },
+    {
+      "entry": 9583,
+      "name": "feeSetter",
+      "signature": "feeSetter()",
+      "selector": "0x87cf3ef4",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 9623,
+      "blocks": [
+        9583,
+        9589,
+        9603
+      ],
+      "effects": {
+        "SLOAD": [
+          9615
+        ]
+      }
+    },
+    {
+      "entry": 9624,
+      "name": "feeClaimer",
+      "signature": "feeClaimer()",
+      "selector": "0x81cbd3ea",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 9664,
+      "blocks": [
+        9624,
+        9630,
+        9644
+      ],
+      "effects": {
+        "SLOAD": [
+          9656
+        ]
+      }
+    },
+    {
+      "entry": 9665,
+      "name": "withdrawable",
+      "signature": "withdrawable(bytes32)",
+      "selector": "0x7cf43d8c",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 9724,
+      "blocks": [
+        9665,
+        9671,
+        9683
+      ],
+      "effects": {
+        "SLOAD": [
+          9716
+        ]
+      }
+    },
+    {
+      "entry": 9725,
+      "name": "repay",
+      "signature": "repay((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),uint256,address,address,bytes)",
+      "selector": "0x6b210f9e",
+      "note": "Authorization; touchMarket; debt then withdrawable updates; payer default; event; optional callback; transferFrom.",
+      "lastByte": 10406,
+      "blocks": [
+        9725,
+        9731,
+        9743,
+        9760,
+        9773,
+        9784,
+        9792,
+        9811,
+        9832,
+        9847,
+        9853,
+        9861,
+        9871,
+        9925,
+        9950,
+        9992,
+        10033,
+        10034,
+        10100,
+        10127,
+        10183,
+        10212,
+        10228,
+        10237,
+        10259,
+        10268,
+        10289,
+        10302,
+        10315,
+        10324,
+        10344,
+        10352,
+        10360
+      ],
+      "effects": {
+        "SLOAD": [
+          9919,
+          9937,
+          9986,
+          9994,
+          10401
+        ],
+        "SSTORE": [
+          9941,
+          10009
+        ],
+        "CALL": [
+          10221
+        ],
+        "LOG4": [
+          10095
+        ]
+      }
+    },
+    {
+      "entry": 10407,
+      "name": "take",
+      "signature": "take(((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),bool,address,uint256,uint256,uint256,bytes32,address,bytes,address,address,bool,uint128,uint128,uint256),bytes,uint256,address,address,address,bytes)",
+      "selector": "0x6a14c9ef",
+      "note": "Offer decode/authorization; market/offer guards; ratifier; price/fees/caps; conditional accrual/gates; ordered position/market/consumed writes; event; lock; callbacks/transfers; unlock/health.",
+      "lastByte": 15106,
+      "blocks": [
+        10407,
+        10413,
+        10425,
+        10442,
+        10457,
+        10493,
+        10515,
+        10530,
+        10547,
+        10567,
+        10639,
+        10669,
+        10687,
+        10709,
+        10731,
+        10753,
+        10775,
+        10795,
+        10833,
+        10846,
+        10854,
+        10866,
+        10895,
+        10911,
+        10925,
+        10951,
+        10957,
+        10969,
+        11009,
+        11051,
+        11080,
+        11103,
+        11108,
+        11122,
+        11136,
+        11171,
+        11184,
+        11203,
+        11209,
+        11276,
+        11338,
+        11356,
+        11385,
+        11391,
+        11413,
+        11430,
+        11467,
+        11514,
+        11556,
+        11575,
+        11583,
+        11585,
+        11591,
+        11610,
+        11630,
+        11636,
+        11655,
+        11675,
+        11681,
+        11710,
+        11785,
+        11794,
+        11826,
+        11851,
+        11880,
+        11961,
+        11966,
+        12021,
+        12026,
+        12118,
+        12138,
+        12144,
+        12150,
+        12164,
+        12183,
+        12187,
+        12206,
+        12212,
+        12228,
+        12234,
+        12261,
+        12268,
+        12275,
+        12302,
+        12309,
+        12316,
+        12353,
+        12386,
+        12399,
+        12408,
+        12437,
+        12469,
+        12482,
+        12491,
+        12505,
+        12517,
+        12561,
+        12566,
+        12598,
+        12638,
+        12728,
+        12746,
+        12753,
+        12757,
+        12773,
+        12775,
+        12785,
+        12792,
+        12824,
+        12838,
+        12921,
+        12970,
+        13223,
+        13252,
+        13295,
+        13304,
+        13329,
+        13336,
+        13343,
+        13359,
+        13366,
+        13372,
+        13392,
+        13407,
+        13429,
+        13434,
+        13450,
+        13456,
+        13477,
+        13482,
+        13539,
+        13626,
+        13637,
+        13643,
+        13665,
+        13670,
+        13685,
+        13698,
+        13711,
+        13720,
+        13740,
+        13748,
+        13759,
+        13774,
+        13795,
+        13805,
+        13868,
+        13931,
+        13943,
+        13949,
+        13971,
+        13976,
+        13991,
+        14004,
+        14017,
+        14026,
+        14046,
+        14054,
+        14064,
+        14090,
+        14097,
+        14101,
+        14107,
+        14113,
+        14136,
+        14145,
+        14160,
+        14213,
+        14219,
+        14226,
+        14242,
+        14251,
+        14257,
+        14266,
+        14281,
+        14334,
+        14340,
+        14347,
+        14363,
+        14372,
+        14378,
+        14387,
+        14402,
+        14417,
+        14423,
+        14430,
+        14445,
+        14453,
+        14463,
+        14484,
+        14492,
+        14513,
+        14521,
+        14545,
+        14579,
+        14594,
+        14604,
+        14672,
+        14703,
+        14717,
+        14729,
+        14738,
+        14750,
+        14759,
+        14766,
+        14781,
+        14796,
+        14809,
+        14822,
+        14831,
+        14851,
+        14859,
+        14874,
+        14889,
+        14908,
+        14923,
+        14938,
+        14953,
+        14968,
+        14983,
+        14998,
+        15013,
+        15028,
+        15059,
+        15087
+      ],
+      "effects": {
+        "SLOAD": [
+          10999,
+          11055,
+          11269,
+          11767,
+          11939,
+          12015,
+          12039,
+          12054,
+          12129,
+          12360,
+          12374,
+          12402,
+          12413,
+          12425,
+          12439,
+          12485,
+          12496,
+          12511,
+          12529,
+          12555,
+          12578,
+          12633,
+          12691,
+          14535,
+          14662,
+          15081
+        ],
+        "SSTORE": [
+          12366,
+          12417,
+          12467,
+          12500,
+          12533,
+          12582,
+          12640,
+          12716
+        ],
+        "TLOAD": [
+          13235
+        ],
+        "TSTORE": [
+          13237
+        ],
+        "CALL": [
+          13630,
+          13936
+        ],
+        "STATICCALL": [
+          11378,
+          14205,
+          14326
+        ],
+        "LOG4": [
+          13140
+        ]
+      }
+    },
+    {
+      "entry": 15107,
+      "name": "isAuthorized",
+      "signature": "isAuthorized(address,address)",
+      "selector": "0x65e4ad9e",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 15195,
+      "blocks": [
+        15107,
+        15113,
+        15125,
+        15132,
+        15148
+      ],
+      "effects": {
+        "SLOAD": [
+          15185
+        ]
+      }
+    },
+    {
+      "entry": 15196,
+      "name": "setDefaultSettlementFee",
+      "signature": "setDefaultSettlementFee(address,uint256,uint256)",
+      "selector": "0x5f59ebd8",
+      "note": "Fee setter; index <= 6; constant cap; CBP divisibility; packed uint16 update; event.",
+      "lastByte": 15445,
+      "blocks": [
+        15196,
+        15202,
+        15214,
+        15221,
+        15248,
+        15256,
+        15264,
+        15271,
+        15283,
+        15348,
+        15386,
+        15401,
+        15416,
+        15431
+      ],
+      "effects": {
+        "SLOAD": [
+          15240,
+          15350
+        ],
+        "SSTORE": [
+          15377
+        ],
+        "LOG3": [
+          15384
+        ]
+      }
+    },
+    {
+      "entry": 15446,
+      "name": "isHealthy",
+      "signature": "isHealthy((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),bytes32,address)",
+      "selector": "0x5ce648dc",
+      "note": "Shared debt/bitmap/oracle helper; bool return.",
+      "lastByte": 15480,
+      "blocks": [
+        15446,
+        15452,
+        15465,
+        15471
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 15481,
+      "name": "claimContinuousFee",
+      "signature": "claimContinuousFee((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),uint256,address)",
+      "selector": "0x575272a8",
+      "note": "touchMarket; fee claimer; sequential credit/total/withdrawable uint128 decreases; event; token call.",
+      "lastByte": 15801,
+      "blocks": [
+        15481,
+        15487,
+        15499,
+        15516,
+        15529,
+        15540,
+        15549,
+        15580,
+        15604,
+        15626,
+        15658,
+        15678,
+        15714,
+        15786,
+        15788
+      ],
+      "effects": {
+        "SLOAD": [
+          15572,
+          15618,
+          15628,
+          15690,
+          15726
+        ],
+        "SSTORE": [
+          15656,
+          15694,
+          15730
+        ],
+        "LOG4": [
+          15778
+        ]
+      }
+    },
+    {
+      "entry": 15802,
+      "name": "lossFactor",
+      "signature": "lossFactor(bytes32)",
+      "selector": "0x570b935f",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 15846,
+      "blocks": [
+        15802,
+        15808,
+        15820
+      ],
+      "effects": {
+        "SLOAD": [
+          15836
+        ]
+      }
+    },
+    {
+      "entry": 15847,
+      "name": "updatePosition",
+      "signature": "updatePosition((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),address)",
+      "selector": "0x545e513a",
+      "note": "Entry decode; touchMarket; shared accrual helper; uint128 triple return.",
+      "lastByte": 15924,
+      "blocks": [
+        15847,
+        15853,
+        15865,
+        15882,
+        15901,
+        15909,
+        15919
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 15925,
+      "name": "totalUnits",
+      "signature": "totalUnits(bytes32)",
+      "selector": "0x53a6332b",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 15975,
+      "blocks": [
+        15925,
+        15931,
+        15943
+      ],
+      "effects": {
+        "SLOAD": [
+          15967
+        ]
+      }
+    },
+    {
+      "entry": 15976,
+      "name": "claimableSettlementFee",
+      "signature": "claimableSettlementFee(address)",
+      "selector": "0x5308a18f",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 16031,
+      "blocks": [
+        15976,
+        15982,
+        15994,
+        16009
+      ],
+      "effects": {
+        "SLOAD": [
+          16024
+        ]
+      }
+    },
+    {
+      "entry": 16032,
+      "name": "flashLoan",
+      "signature": "flashLoan(address[],uint256[],address,bytes)",
+      "selector": "0x4f80fe10",
+      "note": "Equal array lengths; address validation while encoding event; transfer loop; magic callback; repayment loop.",
+      "lastByte": 16607,
+      "blocks": [
+        16032,
+        16038,
+        16050,
+        16067,
+        16080,
+        16099,
+        16112,
+        16121,
+        16140,
+        16153,
+        16162,
+        16237,
+        16253,
+        16258,
+        16266,
+        16326,
+        16345,
+        16363,
+        16374,
+        16380,
+        16402,
+        16403,
+        16411,
+        16412,
+        16432,
+        16443,
+        16453,
+        16459,
+        16474,
+        16487,
+        16500,
+        16509,
+        16529,
+        16537,
+        16561,
+        16573,
+        16580,
+        16593
+      ],
+      "effects": {
+        "CALL": [
+          16367
+        ],
+        "LOG3": [
+          16256
+        ]
+      }
+    },
+    {
+      "entry": 16608,
+      "name": "enableLltv",
+      "signature": "enableLltv(uint256)",
+      "selector": "0x4d98a93b",
+      "note": "Configurator; WAD-inclusive cap; bool byte write; event.",
+      "lastByte": 16757,
+      "blocks": [
+        16608,
+        16614,
+        16626,
+        16647,
+        16662,
+        16728,
+        16743
+      ],
+      "effects": {
+        "SLOAD": [
+          16639,
+          16715
+        ],
+        "SSTORE": [
+          16719
+        ],
+        "LOG1": [
+          16726
+        ]
+      }
+    },
+    {
+      "entry": 16758,
+      "name": "setMarketContinuousFee",
+      "signature": "setMarketContinuousFee(bytes32,uint256)",
+      "selector": "0x462e59b4",
+      "note": "Fee setter; cap; initialized tick-spacing guard; uint32 packed update; event.",
+      "lastByte": 16933,
+      "blocks": [
+        16758,
+        16764,
+        16772,
+        16803,
+        16814,
+        16830,
+        16904,
+        16919
+      ],
+      "effects": {
+        "SLOAD": [
+          16795,
+          16820,
+          16831
+        ],
+        "SSTORE": [
+          16858
+        ],
+        "LOG2": [
+          16902
+        ]
+      }
+    },
+    {
+      "entry": 16934,
+      "name": "supplyCollateral",
+      "signature": "supplyCollateral((uint256,address,address,(address,uint256,uint256,address)[],uint256,uint256,address,address),uint256,uint256,address)",
+      "selector": "0x32292d96",
+      "note": "Authorization; touchMarket; index; prior collateral; conditional oracle/bitmap/popcount; collateral update; event; transferFrom.",
+      "lastByte": 17599,
+      "blocks": [
+        16934,
+        16940,
+        16952,
+        16969,
+        16982,
+        17004,
+        17015,
+        17021,
+        17031,
+        17053,
+        17102,
+        17119,
+        17124,
+        17152,
+        17211,
+        17240,
+        17270,
+        17274,
+        17385,
+        17462,
+        17470,
+        17485,
+        17498,
+        17511,
+        17520,
+        17528,
+        17536,
+        17545,
+        17559
+      ],
+      "effects": {
+        "SLOAD": [
+          17104,
+          17336,
+          17370,
+          17594
+        ],
+        "SSTORE": [
+          17383
+        ],
+        "STATICCALL": [
+          17263
+        ],
+        "LOG4": [
+          17202
+        ]
+      }
+    },
+    {
+      "entry": 17600,
+      "name": "configurator",
+      "signature": "configurator()",
+      "selector": "0x2b507df8",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 17637,
+      "blocks": [
+        17600,
+        17606,
+        17617
+      ],
+      "effects": {
+        "SLOAD": [
+          17629
+        ]
+      }
+    },
+    {
+      "entry": 17638,
+      "name": "claimSettlementFee",
+      "signature": "claimSettlementFee(address,uint256,address)",
+      "selector": "0x2abdc15e",
+      "note": "Fee claimer; checked subtraction/write before event and safeTransfer.",
+      "lastByte": 17791,
+      "blocks": [
+        17638,
+        17644,
+        17656,
+        17663,
+        17674,
+        17693,
+        17729
+      ],
+      "effects": {
+        "SLOAD": [
+          17685,
+          17724
+        ],
+        "SSTORE": [
+          17731
+        ],
+        "LOG4": [
+          17787
+        ]
+      }
+    },
+    {
+      "entry": 17792,
+      "name": "settlementFeeCbps",
+      "signature": "settlementFeeCbps(bytes32)",
+      "selector": "0x2a7c7c09",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 17988,
+      "blocks": [
+        17792,
+        17798,
+        17810,
+        17827,
+        17843,
+        17950,
+        17959,
+        17963
+      ],
+      "effects": {
+        "SLOAD": [
+          17863
+        ]
+      }
+    },
+    {
+      "entry": 17989,
+      "name": "defaultContinuousFee",
+      "signature": "defaultContinuousFee(address)",
+      "selector": "0x265d32c1",
+      "note": "Getter: exact mapping hashes/array index checks/packed field masks; canonical ABI result; no writes.",
+      "lastByte": 18050,
+      "blocks": [
+        17989,
+        17995,
+        18007,
+        18022
+      ],
+      "effects": {
+        "SLOAD": [
+          18042
+        ]
+      }
+    },
+    {
+      "entry": 18051,
+      "name": "setDefaultContinuousFee",
+      "signature": "setDefaultContinuousFee(address,uint256)",
+      "selector": "0x21559e6b",
+      "note": "Fee setter; 317097919 cap; uint32 packed update; event.",
+      "lastByte": 18193,
+      "blocks": [
+        18051,
+        18057,
+        18069,
+        18076,
+        18099,
+        18110
+      ],
+      "effects": {
+        "SLOAD": [
+          18091,
+          18181
+        ],
+        "SSTORE": [
+          18185
+        ],
+        "LOG2": [
+          18192
+        ]
+      }
+    },
+    {
+      "entry": 18194,
+      "name": "liquidationLocked",
+      "signature": "liquidationLocked(bytes32,address)",
+      "selector": "0x1b14c072",
+      "note": "Shared full-word transient hash/read; normalize to bool.",
+      "lastByte": 18231,
+      "blocks": [
+        18194,
+        18200,
+        18212,
+        18224
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18232,
+      "name": "abi_decode_address_44120",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 18253,
+      "blocks": [
+        18232,
+        18253
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18254,
+      "name": "abi_decode_address_44122",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 18275,
+      "blocks": [
+        18254,
+        18275
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18276,
+      "name": "abi_decode_address_44128",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 18297,
+      "blocks": [
+        18276,
+        18297
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18298,
+      "name": "abi_decode_address_44129",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 18319,
+      "blocks": [
+        18298,
+        18319
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18320,
+      "name": "abi_decode_address_44141",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 18341,
+      "blocks": [
+        18320,
+        18341
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18342,
+      "name": "abi_decode_address",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 18361,
+      "blocks": [
+        18342,
+        18361
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18362,
+      "name": "finalize_allocation_44126",
+      "note": "Explicit input/return/code size guards; remaining capacity arithmetic discharged by the gas condition.",
+      "lastByte": 18388,
+      "blocks": [
+        18362,
+        18385
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18389,
+      "name": "finalize_allocation_44208",
+      "note": "Explicit input/return/code size guards; remaining capacity arithmetic discharged by the gas condition.",
+      "lastByte": 18416,
+      "blocks": [
+        18389,
+        18413
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18417,
+      "name": "finalize_allocation_44210",
+      "note": "Explicit input/return/code size guards; remaining capacity arithmetic discharged by the gas condition.",
+      "lastByte": 18443,
+      "blocks": [
+        18417,
+        18440
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18444,
+      "name": "finalize_allocation",
+      "note": "Explicit input/return/code size guards; remaining capacity arithmetic discharged by the gas condition.",
+      "lastByte": 18476,
+      "blocks": [
+        18444,
+        18473
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18477,
+      "name": "array_allocation_size_array_struct_CollateralParams_dyn",
+      "note": "Explicit input/return/code size guards; remaining capacity arithmetic discharged by the gas condition.",
+      "lastByte": 18499,
+      "blocks": [
+        18477,
+        18492
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18500,
+      "name": "abi_decode_struct_CollateralParams",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 18573,
+      "blocks": [
+        18500,
+        18513,
+        18524,
+        18541,
+        18569
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18574,
+      "name": "abi_decode_struct_Market",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 18818,
+      "blocks": [
+        18574,
+        18589,
+        18601,
+        18619,
+        18636,
+        18661,
+        18674,
+        18684,
+        18698,
+        18722,
+        18726,
+        18734,
+        18782,
+        18793,
+        18808
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18819,
+      "name": "abi_decode_bytes32t_uint256",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 18840,
+      "blocks": [
+        18819,
+        18832
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18841,
+      "name": "abi_decode_array_address_dyn_calldata",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 18888,
+      "blocks": [
+        18841,
+        18854,
+        18871,
+        18888
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18889,
+      "name": "abi_decode_bytes_calldata",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 18933,
+      "blocks": [
+        18889,
+        18902,
+        18919,
+        18933
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 18934,
+      "name": "abi_decode_struct_Markett_bytes32t_address",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 19002,
+      "blocks": [
+        18934,
+        18947,
+        18965,
+        18976,
+        19001
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19003,
+      "name": "abi_decode_bool",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 19015,
+      "blocks": [
+        19003,
+        19015
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19016,
+      "name": "array_allocation_size_bytes",
+      "note": "Explicit input/return/code size guards; remaining capacity arithmetic discharged by the gas condition.",
+      "lastByte": 19042,
+      "blocks": [
+        19016,
+        19031
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19043,
+      "name": "abi_decode_bytes",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 19112,
+      "blocks": [
+        19043,
+        19055,
+        19066,
+        19080,
+        19095
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19113,
+      "name": "abi_decode_uint128",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 19132,
+      "blocks": [
+        19113,
+        19132
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19133,
+      "name": "storage_array_index_access_uint",
+      "note": "Value indexing, length and canonicality guards; Solidity packed-array slot/byte offset.",
+      "lastByte": 19180,
+      "blocks": [
+        19133,
+        19146,
+        19161
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19181,
+      "name": "abi_encode_struct_Market",
+      "note": "Value ABI encoding for returns, events, hashing, or call payloads; no separate memory operation in spec.",
+      "lastByte": 19390,
+      "blocks": [
+        19181,
+        19261,
+        19269,
+        19324
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19391,
+      "name": "checked_div_uint256",
+      "note": "Checked-width arithmetic and zero-divisor guards; panic payload abstracted to revert.",
+      "lastByte": 19420,
+      "blocks": [
+        19391,
+        19398,
+        19401
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19421,
+      "name": "checked_sub_uint256_44174",
+      "note": "Checked-width arithmetic and zero-divisor guards; panic payload abstracted to revert.",
+      "lastByte": 19446,
+      "blocks": [
+        19421,
+        19446
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19447,
+      "name": "checked_sub_uint256",
+      "note": "Checked-width arithmetic and zero-divisor guards; panic payload abstracted to revert.",
+      "lastByte": 19459,
+      "blocks": [
+        19447,
+        19459
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19460,
+      "name": "memory_array_index_access_struct_CollateralParams_dyn",
+      "note": "Value indexing, length and canonicality guards; Solidity packed-array slot/byte offset.",
+      "lastByte": 19479,
+      "blocks": [
+        19460,
+        19470
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19480,
+      "name": "storage_array_index_access_uint128_",
+      "note": "Value indexing, length and canonicality guards; Solidity packed-array slot/byte offset.",
+      "lastByte": 19507,
+      "blocks": [
+        19480,
+        19493
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19508,
+      "name": "checked_add_uint256_44170",
+      "note": "Checked-width arithmetic and zero-divisor guards; panic payload abstracted to revert.",
+      "lastByte": 19535,
+      "blocks": [
+        19508,
+        19535
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19536,
+      "name": "checked_add_uint256",
+      "note": "Checked-width arithmetic and zero-divisor guards; panic payload abstracted to revert.",
+      "lastByte": 19548,
+      "blocks": [
+        19536,
+        19548
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19549,
+      "name": "abi_encode_array_address_dyn_calldata",
+      "note": "Value ABI encoding for returns, events, hashing, or call payloads; no separate memory operation in spec.",
+      "lastByte": 19613,
+      "blocks": [
+        19549,
+        19561,
+        19569,
+        19574,
+        19600
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19614,
+      "name": "abi_encode_array_uint256_dyn_calldata",
+      "note": "Value ABI encoding for returns, events, hashing, or call payloads; no separate memory operation in spec.",
+      "lastByte": 19674,
+      "blocks": [
+        19614,
+        19659
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19675,
+      "name": "calldata_array_index_access_address_dyn_calldata",
+      "note": "Value indexing, length and canonicality guards; Solidity packed-array slot/byte offset.",
+      "lastByte": 19690,
+      "blocks": [
+        19675,
+        19685
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19691,
+      "name": "read_from_calldatat_address",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 19710,
+      "blocks": [
+        19691,
+        19709
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19711,
+      "name": "abi_encode_bytes_calldata",
+      "note": "Value ABI encoding for returns, events, hashing, or call payloads; no separate memory operation in spec.",
+      "lastByte": 19742,
+      "blocks": [
+        19711
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19743,
+      "name": "checked_sub_uint128",
+      "note": "Checked-width arithmetic and zero-divisor guards; panic payload abstracted to revert.",
+      "lastByte": 19774,
+      "blocks": [
+        19743,
+        19774
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 19775,
+      "name": "fun_isHealthy",
+      "note": "isHealthy_body: debt first; descending bitmap; oracle; rounded collateral capacity; compare debt.",
+      "lastByte": 20084,
+      "blocks": [
+        19775,
+        19831,
+        19839,
+        19847,
+        19863,
+        19885,
+        19931,
+        19940,
+        20001,
+        20011,
+        20018,
+        20030,
+        20045,
+        20058,
+        20067,
+        20077
+      ],
+      "effects": {
+        "SLOAD": [
+          19811
+        ],
+        "STATICCALL": [
+          19923
+        ]
+      }
+    },
+    {
+      "entry": 20085,
+      "name": "mod_uint256",
+      "note": "Checked-width arithmetic and zero-divisor guards; panic payload abstracted to revert.",
+      "lastByte": 20094,
+      "blocks": [
+        20085,
+        20092
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 20095,
+      "name": "abi_encode_bytes",
+      "note": "Value ABI encoding for returns, events, hashing, or call payloads; no separate memory operation in spec.",
+      "lastByte": 20130,
+      "blocks": [
+        20095
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 20131,
+      "name": "abi_encode_struct_Offer",
+      "note": "Value ABI encoding for returns, events, hashing, or call payloads; no separate memory operation in spec.",
+      "lastByte": 20376,
+      "blocks": [
+        20131,
+        20160,
+        20270
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 20377,
+      "name": "checked_mul_uint256_44172",
+      "note": "Checked-width arithmetic and zero-divisor guards; panic payload abstracted to revert.",
+      "lastByte": 20412,
+      "blocks": [
+        20377,
+        20412
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 20413,
+      "name": "checked_mul_uint256",
+      "note": "Checked-width arithmetic and zero-divisor guards; panic payload abstracted to revert.",
+      "lastByte": 20431,
+      "blocks": [
+        20413,
+        20431
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 20432,
+      "name": "abi_decode_bool_fromMemory",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 20455,
+      "blocks": [
+        20432,
+        20444,
+        20454
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 20456,
+      "name": "checked_add_uint128",
+      "note": "Checked-width arithmetic and zero-divisor guards; panic payload abstracted to revert.",
+      "lastByte": 20487,
+      "blocks": [
+        20456,
+        20487
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 20488,
+      "name": "access_calldata_tail_array_struct_CollateralParams_calldata_dyn_calldata",
+      "note": "Value indexing, length and canonicality guards; Solidity packed-array slot/byte offset.",
+      "lastByte": 20540,
+      "blocks": [
+        20488,
+        20506,
+        20524,
+        20540
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 20541,
+      "name": "calldata_array_index_access_struct_CollateralParams_calldata_dyn_calldata",
+      "note": "Value indexing, length and canonicality guards; Solidity packed-array slot/byte offset.",
+      "lastByte": 20556,
+      "blocks": [
+        20541,
+        20551
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 20557,
+      "name": "fun_touchMarket",
+      "note": "touchMarket_body and IdLib helpers: exact hashes; first-initialization checks; ordered packed writes; CREATE2; event.",
+      "lastByte": 21834,
+      "blocks": [
+        20557,
+        20572,
+        20604,
+        20659,
+        20728,
+        20760,
+        20764,
+        20773,
+        20789,
+        20809,
+        20814,
+        20827,
+        20837,
+        20840,
+        20852,
+        20870,
+        20883,
+        20895,
+        20920,
+        20932,
+        20957,
+        20966,
+        20982,
+        21000,
+        21008,
+        21018,
+        21033,
+        21061,
+        21070,
+        21085,
+        21100,
+        21115,
+        21130,
+        21305,
+        21556,
+        21583,
+        21601,
+        21662,
+        21682,
+        21739,
+        21745,
+        21760,
+        21775,
+        21790,
+        21805,
+        21820
+      ],
+      "effects": {
+        "SLOAD": [
+          20750,
+          20913,
+          20950,
+          21164,
+          21199,
+          21308,
+          21344,
+          21373,
+          21406,
+          21443,
+          21470,
+          21518,
+          21520
+        ],
+        "SSTORE": [
+          21168,
+          21341,
+          21370,
+          21403,
+          21440,
+          21467,
+          21494,
+          21548
+        ],
+        "UNSUPPORTED_F5": [
+          21667
+        ],
+        "LOG2": [
+          21742
+        ]
+      }
+    },
+    {
+      "entry": 21835,
+      "name": "fun_settlementFee",
+      "note": "settlementFee_body: packed fee snapshot; seven knots; checked interpolation; upper saturation.",
+      "lastByte": 22727,
+      "blocks": [
+        21835,
+        21863,
+        21875,
+        21886,
+        21919,
+        21955,
+        21993,
+        22009,
+        22015,
+        22021,
+        22027,
+        22033,
+        22036,
+        22048,
+        22084,
+        22120,
+        22161,
+        22170,
+        22182,
+        22218,
+        22253,
+        22293,
+        22302,
+        22314,
+        22350,
+        22386,
+        22427,
+        22436,
+        22448,
+        22484,
+        22520,
+        22561,
+        22570,
+        22607,
+        22643,
+        22689,
+        22726
+      ],
+      "effects": {
+        "SLOAD": [
+          21850
+        ]
+      }
+    },
+    {
+      "entry": 22728,
+      "name": "extract_returndata",
+      "note": "Raw call-result bytes; empty result; uint64 size guard; capacity under gas bound.",
+      "lastByte": 22774,
+      "blocks": [
+        22728,
+        22735,
+        22745,
+        22759,
+        22770
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 22775,
+      "name": "fun_updatePositionView",
+      "note": "updatePositionView_body: packed snapshots, loss factor, conditional fee arithmetic, truncations and checked uint128 differences.",
+      "lastByte": 23129,
+      "blocks": [
+        22775,
+        22854,
+        22893,
+        22917,
+        22946,
+        22948,
+        22959,
+        22978,
+        22984,
+        22990,
+        22992,
+        23008,
+        23043,
+        23050,
+        23057,
+        23063,
+        23069,
+        23076,
+        23080,
+        23097,
+        23108
+      ],
+      "effects": {
+        "SLOAD": [
+          22811,
+          22826,
+          22865
+        ]
+      }
+    },
+    {
+      "entry": 23130,
+      "name": "abi_decode_address_fromMemory",
+      "note": "ABI validation and value representation; canonical scalar checks and signed bounds; Model.lean/Spec.lean.",
+      "lastByte": 23149,
+      "blocks": [
+        23130,
+        23149
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 23150,
+      "name": "fun_tGet",
+      "note": "One keccak of key1/address/base; full-word TLOAD; nonzero truth.",
+      "lastByte": 23235,
+      "blocks": [
+        23150,
+        23229
+      ],
+      "effects": {
+        "TLOAD": [
+          23233
+        ]
+      }
+    },
+    {
+      "entry": 23236,
+      "name": "fun_safeTransfer",
+      "note": "Code-presence guard; transfer payload; CALL; raw failure/strict bool acceptance.",
+      "lastByte": 23402,
+      "blocks": [
+        23236,
+        23247,
+        23307,
+        23319,
+        23326,
+        23338,
+        23346,
+        23347,
+        23362,
+        23381,
+        23388
+      ],
+      "effects": {
+        "CALL": [
+          23311
+        ]
+      }
+    },
+    {
+      "entry": 23403,
+      "name": "fun_toUint128",
+      "note": "Explicit uint128 maximum require, then narrowing cast.",
+      "lastByte": 23443,
+      "blocks": [
+        23403,
+        23418,
+        23429
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 23444,
+      "name": "fun_safeTransferFrom",
+      "note": "Code-presence guard; transferFrom payload; CALL; raw failure/strict bool acceptance.",
+      "lastByte": 23598,
+      "blocks": [
+        23444,
+        23453,
+        23518,
+        23530,
+        23537,
+        23549,
+        23557,
+        23558,
+        23573,
+        23592
+      ],
+      "effects": {
+        "CALL": [
+          23522
+        ]
+      }
+    },
+    {
+      "entry": 23599,
+      "name": "fun_updatePosition",
+      "note": "Shared view result; credit write before market loss re-read; ordered packed writes; continuous fee credit; event.",
+      "lastByte": 23966,
+      "blocks": [
+        23599,
+        23680,
+        23714,
+        23723,
+        23825,
+        23855,
+        23879,
+        23908,
+        23940
+      ],
+      "effects": {
+        "SLOAD": [
+          23687,
+          23745,
+          23766,
+          23795,
+          23810,
+          23827,
+          23900,
+          23910
+        ],
+        "SSTORE": [
+          23749,
+          23799,
+          23823,
+          23853,
+          23938
+        ],
+        "LOG3": [
+          23962
+        ]
+      }
+    },
+    {
+      "entry": 23967,
+      "name": "fun_maxSettlementFee",
+      "note": "Seven literal fee caps and bounded value indexing.",
+      "lastByte": 24081,
+      "blocks": [
+        23967,
+        23980,
+        24075
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 24082,
+      "name": "fun_mulDivUp_44146",
+      "note": "Checked multiply, checked WAD-1 addition, divide by WAD.",
+      "lastByte": 24123,
+      "blocks": [
+        24082,
+        24092,
+        24111
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 24124,
+      "name": "fun_mulDivUp",
+      "note": "Checked multiply; checked divisor-1; checked addition; checked divide.",
+      "lastByte": 24159,
+      "blocks": [
+        24124,
+        24134,
+        24148
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 24160,
+      "name": "fun_tExchange",
+      "note": "Same three-word transient hash; TLOAD then TSTORE zero; previous value returned.",
+      "lastByte": 24249,
+      "blocks": [
+        24160,
+        24239
+      ],
+      "effects": {
+        "TLOAD": [
+          24246
+        ],
+        "TSTORE": [
+          24248
+        ]
+      }
+    },
+    {
+      "entry": 24250,
+      "name": "fun_maxLif",
+      "note": "Checked WAD subtraction/multiply/subtraction/division; nonzero denominator.",
+      "lastByte": 24346,
+      "blocks": [
+        24250,
+        24277,
+        24295,
+        24322,
+        24344
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 24347,
+      "name": "copy_literal_to_memory_a55ffd6cc2b0b507f8827f3c680fa2adb9285b64bf7fb098798ce57c2156693f",
+      "note": "Value bytes11 SSTORE2 constructor prefix; no memory model in spec.",
+      "lastByte": 24387,
+      "blocks": [
+        24347,
+        24362
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 24388,
+      "name": "fun_wExp",
+      "note": "Unchecked signed/word arithmetic, recursive negative branch, signed divides, shift, and reciprocal guard.",
+      "lastByte": 24511,
+      "blocks": [
+        24388,
+        24397,
+        24407,
+        24414,
+        24433
+      ],
+      "effects": {}
+    },
+    {
+      "entry": 24512,
+      "name": "unreachable INVALID",
+      "note": "Executable routines terminate before this data separator; callback constant and metadata follow.",
+      "lastByte": 24512,
+      "blocks": [
+        24512
+      ],
+      "effects": {}
+    }
+  ],
+  "constructorBlocks": [
+    {
+      "entry": 0,
+      "lastByte": 9
+    },
+    {
+      "entry": 10,
+      "lastByte": 77
+    },
+    {
+      "entry": 78,
+      "lastByte": 81
+    },
+    {
+      "entry": 82,
+      "lastByte": 82
+    }
+  ],
+  "constructorNote": "0..9 nonpayable guard; 10..77 configurator packed store, Constructor event, exact runtime return; 78..81 revert; 82 INVALID.",
+  "data": [
+    {
+      "start": 24513,
+      "end": 24544,
+      "kind": "callback magic"
+    },
+    {
+      "start": 24545,
+      "end": 24556,
+      "kind": "metadata"
+    }
+  ]
+}
