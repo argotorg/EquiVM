@@ -633,19 +633,15 @@ theorem dogDecodePatchedEqTemplateDisjoint {v : DogImmutables} {code : ByteArray
           · simp [harg]
             have hargpos : 0 < argOnNBytesOfInstr instr := Nat.pos_of_ne_zero harg
             have hargle := argOnNBytesOfInstr_le_32 instr
-            rw [patchRuntime_extract'_eq (template := dogBytecode) (out := code)
-              (ps := patches v) (start := pc.toNat.succ)
-              (stop := pc.toNat.succ + argOnNBytesOfInstr instr)]
-            · omega
-            · omega
-            · omega
-            · omega
-            · intro p hp
-              rcases hdisj p hp with hbefore | hafter
-              · exact Or.inl (by
-                  omega)
-              · exact Or.inr (by omega)
-            · exact hpatch
+            have hi64 : pc.toNat + 1 < 2 ^ 64 := by omega
+            have hj64 : pc.toNat + 1 + argOnNBytesOfInstr instr < 2 ^ 64 := by omega
+            rw [patchRuntime_readWithPadding_disjoint hpatch
+              (by
+                intro p hp
+                rcases hdisj p hp with hbefore | hafter
+                · exact Or.inr (by omega)
+                · exact Or.inl (by omega))
+              hi64 hj64]
 
 def dogPatchOffsets : List Nat :=
   [1405, 2890, 3170, 3965]

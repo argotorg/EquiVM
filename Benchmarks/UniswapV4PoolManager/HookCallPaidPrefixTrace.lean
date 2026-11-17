@@ -59,7 +59,7 @@ theorem hookCallPaidPrefixTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
       ⟨callGas, Ain, ?_⟩ rfl (Fin.zero_le _) (by rw [hI]; exact hd)
     simpa only [post, hI, hσ0, accountWord, accountAddress_roundtrip, Bool.true_and] using hθ
   have ho : out.size < 2^138 :=
-    Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hθ hsmall
+    Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  _ hθ hsmall
   change RD _ _ _ _ ⟨16184⟩
     ((if z then ⟨1⟩ else ⟨0⟩) :: ptr :: accountWord hook :: ret :: (ptr+⟨32⟩) :: R)
     (callOutputMem mem out ⟨0⟩ ⟨0⟩) _ _ _ _ _ at rd2

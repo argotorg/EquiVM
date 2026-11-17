@@ -38,7 +38,7 @@ theorem ownable2StepArmsWellFormed :
       (nthArmPc ownable2StepBenchBytecode ownable2StepFirstArmPc j) := by
   intro j hj
   interval_cases j <;>
-    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+    exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 /-- Arm `j`'s selector equality agrees with the calldata byte comparison. -/
 theorem ownable2StepArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
@@ -48,7 +48,7 @@ theorem ownable2StepArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
           (nthArmPc ownable2StepBenchBytecode ownable2StepFirstArmPc j))
         (ownable2StepSelWord I)
       = if (ownable2StepSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
 /-- Selector identification for the linear dispatcher. -/
 theorem ownable2StepMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 5)
@@ -67,9 +67,9 @@ theorem ownable2StepMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 5)
     (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [ownable2StepArmEq I hsz j (by omega), hci]
-    interval_cases i <;> interval_cases j <;> decide
+    interval_cases i <;> interval_cases j <;> native_decide
   · rw [ownable2StepArmEq I hsz i hi, hci]
-    interval_cases i <;> decide
+    interval_cases i <;> native_decide
 
 /-- Standard solc prologue/guards/selector-load, then linear dispatch to a body entry. -/
 theorem ownable2StepReachBody {σ σ₀ A I} {g : Sat256}
@@ -143,28 +143,28 @@ theorem ownable2StepX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (ctgt := solcGuardTgt ownable2StepBenchBytecode)
     (opC := solcGuardTgtOp ownable2StepBenchBytecode)
     (wC := solcGuardTgtWidth ownable2StepBenchBytecode)
-    (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
-      (by decide) (by decide))
-    hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (solcGuardPrologueRD hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide))
+    hwv (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
 theorem ownable2StepX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ownable2StepBenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
     RDrev ownable2StepBenchBytecode g (initState σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt ownable2StepBenchBytecode)
     (opC := solcGuardTgtOp ownable2StepBenchBytecode)
     (wC := solcGuardTgtWidth ownable2StepBenchBytecode) h0 hwv
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by jump_dest)
   exact solcCalldataShortRevert
     (bodyPc := solcDispatchBodyPc ownable2StepBenchBytecode)
     (rtgt := solcCalldataRevertTgt ownable2StepBenchBytecode)
     (opR := solcCalldataRevertTgtOp ownable2StepBenchBytecode)
     (wR := solcCalldataRevertTgtWidth ownable2StepBenchBytecode)
-    h1 hsz (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by jump_dest) (by decide) (by decide) (by decide)
+    h1 hsz (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by jump_dest) (by native_decide) (by native_decide) (by native_decide)
 
 theorem ownable2StepX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ownable2StepBenchBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -181,26 +181,24 @@ theorem ownable2StepX_noMatch {σ σ₀ A I} {g : Sat256}
     rw [hnm j hj]
     rfl
   have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt ownable2StepBenchBytecode)
     (opC := solcGuardTgtOp ownable2StepBenchBytecode)
     (wC := solcGuardTgtWidth ownable2StepBenchBytecode) h0 hwv
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by jump_dest)
   obtain ⟨_, _, h2⟩ := solcCalldataOk
     (bodyPc := solcDispatchBodyPc ownable2StepBenchBytecode)
     (selLoadTgt := solcCalldataRevertTgt ownable2StepBenchBytecode)
     (opR := solcCalldataRevertTgtOp ownable2StepBenchBytecode)
     (wR := solcCalldataRevertTgtWidth ownable2StepBenchBytecode)
-    h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    h1 hsz hsize (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨k3, C3, h3⟩ :=
-    solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
+    solcSelectorLoad h2 (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by simp)
   have h4 : RD ownable2StepBenchBytecode I g (initState σ σ₀ g A I)
       ownable2StepFirstArmPc [ownable2StepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ k3 C3 := by
-    simpa [ownable2StepFirstArmPc, ownable2StepSelWord, solcFirstArmPcFromPrefix,
-      solcSelectorWord, solcSelectorLoadPc, solcCalldataJumpiPc, solcCalldataRevertPushPc,
-      solcDispatchBodyPc] using h3
+    convert h3 using 1 <;> native_decide
   have h5 := h4
     |>.selectorArmNotTakenAuto (ownable2StepArmsWellFormed 0 (by omega)) (heq0 0 (by omega))
         (by simp)
@@ -220,7 +218,7 @@ theorem ownable2StepX_noMatch {σ σ₀ A I} {g : Sat256}
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using h5
   obtain ⟨_, _, h85rd⟩ := h85
   exact evm_run h85rd with [
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem ownable2StepNonPayable {σ σ₀ A I}
     {g : UInt256}
@@ -280,7 +278,7 @@ theorem ownable2StepSourceWord_toNat (I : ExecutionEnv) :
     (ownable2StepSourceWord I).toNat = I.source.val := by
   unfold ownable2StepSourceWord
   exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
-    (show AccountAddress.size ≤ UInt256.size from by decide))
+    (show AccountAddress.size ≤ UInt256.size from by native_decide))
 
 theorem ownable2StepSourceWord_canonical (I : ExecutionEnv) :
     (ownable2StepSourceWord I).toNat < EVM.addressModulus := by
@@ -353,7 +351,7 @@ theorem ownable2StepUnauthorizedMem_mload64 (caller : UInt256) :
      else UInt256.ofNat
        (fromByteArrayBigEndian ((ownable2StepUnauthorizedMem caller).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [ownable2StepUnauthorizedMem_size]; decide)
+  mloadFreePtrValue (by rw [ownable2StepUnauthorizedMem_size]; native_decide)
     (ownable2StepUnauthorizedMem_read64 caller)
 
 end OpenZeppelinBench.Ownable2Step
@@ -382,26 +380,26 @@ theorem RD.ownable2StepReturnAddress119 {g : Sat256} {s0 : State} {ee : Executio
       (UInt256.toByteArray (UInt256.land val solcAddrMask)) := by
   exact evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost solcFreePtrMem_mload64 (by native_decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     swap1, swap2, and, dup2,
     raw mstore 6 (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5)
-      (by decide) mem_cost
+      (by native_decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-          solcAddrMask from by decide]
+          solcAddrMask from by native_decide]
         rfl)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push1 ⟨32⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost (solcReturnMem_mload64 (UInt256.land val solcAddrMask))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (UInt256.land val solcAddrMask)) (by decide)
+    raw ret 0 (UInt256.toByteArray (UInt256.land val solcAddrMask)) (by native_decide)
       mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
           _root_.OpenZeppelinBench.Ownable2Step.ownable2StepSubRet32_toNat]
         simpa using solcReturnMem_read128 (UInt256.land val solcAddrMask))
       (by evm_ov) ]
@@ -422,7 +420,7 @@ theorem RD.ownable2StepOnlyOwnerPass {g : Sat256} {s0 : State} {ee : ExecutionEn
     ∃ k' C', RD _root_.OpenZeppelinBench.Ownable2Step.ownable2StepBenchBytecode ee g s0 ret R
       mem aw rdata σ k' C' := by
   have rd389 := evm_run h with [jumpdest, push0]
-  obtain ⟨_, _, rd390₀⟩ := rd389.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd390₀⟩ := rd389.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd390⟩ : ∃ k' C',
       RD _root_.OpenZeppelinBench.Ownable2Step.ownable2StepBenchBytecode ee g s0 ⟨390⟩
         (ownable2StepOnlyOwnerWord σ ee :: ret :: R) mem aw rdata σ k' C' := by
@@ -443,7 +441,7 @@ theorem RD.ownable2StepOnlyOwnerPass {g : Sat256} {s0 : State} {ee : ExecutionEn
     rw [hmask, u256_eq_refl]
   have rd401 := rd401₀
   rw [heq] at rd401
-  have rd200 := evm_run rd401 with [push2 ⟨200⟩, jumpiT (by decide) (by jump_dest)]
+  have rd200 := evm_run rd401 with [push2 ⟨200⟩, jumpiT (by native_decide) (by jump_dest)]
   exact ⟨_, _, evm_run rd200 with [jumpdest, jump hret]⟩
 
 set_option maxHeartbeats 1000000 in
@@ -458,7 +456,7 @@ theorem RD.ownable2StepOnlyOwnerRevert {g : Sat256} {s0 : State} {ee : Execution
     (hov : R.length + 8 ≤ 1024) :
     RDrev _root_.OpenZeppelinBench.Ownable2Step.ownable2StepBenchBytecode g s0 := by
   have rd389 := evm_run h with [jumpdest, push0]
-  obtain ⟨_, _, rd390₀⟩ := rd389.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd390₀⟩ := rd389.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd390⟩ : ∃ k' C',
       RD _root_.OpenZeppelinBench.Ownable2Step.ownable2StepBenchBytecode ee g s0 ⟨390⟩
         (ownable2StepOnlyOwnerWord σ ee :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata
@@ -489,28 +487,28 @@ theorem RD.ownable2StepOnlyOwnerRevert {g : Sat256} {s0 : State} {ee : Execution
     exact u256_eq_of_ne hneq
   have rd401 := rd401₀
   rw [heq] at rd401
-  have rd405 := evm_run rd401 with [push2 ⟨200⟩, jumpiNT (by decide)]
+  have rd405 := evm_run rd401 with [push2 ⟨200⟩, jumpiNT (by native_decide)]
   have rd418 := evm_run rd405 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost solcFreePtrMem_mload64 (by native_decide) (by evm_ov),
     push4 ⟨0x118cdaa7⟩, push1 ⟨224⟩, shl, dup2,
     raw mstore 6
       (solcReturnMem _root_.OpenZeppelinBench.Ownable2Step.ownable2StepUnauthorizedSelector)
-      (UInt256.ofNat 5) (by decide) mem_cost
+      (UInt256.ofNat 5) (by native_decide) mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by native_decide]
         rfl)
-      (by decide) (by evm_ov)]
+      (by native_decide) (by evm_ov)]
   have rd423 := evm_run rd418 with [caller, push1 ⟨4⟩, dup3, add]
   have rd426 := evm_run rd423 with [
     raw mstore 3
       (_root_.OpenZeppelinBench.Ownable2Step.ownable2StepUnauthorizedMem
         (_root_.OpenZeppelinBench.Ownable2Step.ownable2StepSourceWord ee))
-      (UInt256.ofNat 6) (by decide) mem_cost
+      (UInt256.ofNat 6) (by native_decide) mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256) + ⟨4⟩ = ⟨132⟩ from by decide]
-        rw [show (⟨132⟩ : UInt256).toNat = 132 from by decide]
+        rw [show (⟨128⟩ : UInt256) + ⟨4⟩ = ⟨132⟩ from by native_decide]
+        rw [show (⟨132⟩ : UInt256).toNat = 132 from by native_decide]
         unfold _root_.OpenZeppelinBench.Ownable2Step.ownable2StepUnauthorizedMem
           _root_.OpenZeppelinBench.Ownable2Step.ownable2StepSourceWord
         rw [show UInt256.land solcAddrMask (UInt256.ofNat ee.source.val) =
@@ -518,17 +516,17 @@ theorem RD.ownable2StepOnlyOwnerRevert {g : Sat256} {s0 : State} {ee : Execution
           rw [Reasoning.Theory.u256_land_comm]
           exact solcAddrMask_clean
             (_root_.OpenZeppelinBench.Ownable2Step.ownable2StepSourceWord_canonical ee)])
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push1 ⟨36⟩, add]
   have rd254 := evm_run rd426 with [push2 ⟨254⟩, jump (by jump_dest)]
   have rd262 := evm_run rd254 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
       mem_cost
       (_root_.OpenZeppelinBench.Ownable2Step.ownable2StepUnauthorizedMem_mload64
         (_root_.OpenZeppelinBench.Ownable2Step.ownable2StepSourceWord ee))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1]
-  exact rd262.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd262.rev 0 (by native_decide) mem_cost (by evm_ov)
 
 end Reasoning.Reach

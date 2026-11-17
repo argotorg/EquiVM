@@ -89,7 +89,7 @@ theorem multiAttestExternalCorrect (imms : Store) (hfit : immutablesFit contract
           ≤ maxReturnDataSizeByGas := by
         apply ByteArray.readWithPadding_size_le_maxReturnDataSizeByGas
         rw [ulit_toNat' _ (by omega)]; exact hcb.2
-      have hout := Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hθ
+      have hout := Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  _ hθ
           hsmall
       have houtput : out.write 0 (multiAttestEncodedMemory I.calldata)
           (UInt256.ofNat (multiAttestBuiltFree I.calldata)).toNat

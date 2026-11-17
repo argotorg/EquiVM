@@ -25,8 +25,7 @@ theorem staticCallBridge {code I g s0 pc R mem aw rdata σ k C evm}
           outOffset.toNat outSize.toNat)) out σ' k' C' ∧ out.size < 2^138 := by
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', rd⟩ := h.solcStaticcallDepthLimit hdec hd hov
-    let evm' := { evm with substate := (evm.addAccessedAccount
-      (AccountAddress.ofUInt256 target)).substate }
+    let evm' := { evm with substate := (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate }
     have hc : callViaEVM evm (AccountAddress.ofUInt256 target) 0 calldata
         (false, evm', ByteArray.empty) false := by
       apply callViaEVM.callNotMade rfl rfl
@@ -42,7 +41,7 @@ theorem staticCallBridge {code I g s0 pc R mem aw rdata σ k C evm}
       h.solcStaticcall hdec hdepth hov
     rw [hcd] at hθ
     have ho : out.size < 2^138 :=
-      Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hθ hsmall
+      Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  _ hθ hsmall
     let evm' := { evm with accountMap := σ', substate := As }
     have hc : callViaEVM evm (AccountAddress.ofUInt256 target) 0 calldata
         (z, evm', out) false := by

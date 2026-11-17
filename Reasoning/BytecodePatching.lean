@@ -236,6 +236,63 @@ theorem patchRuntime_extract'_left {template out : ByteArray} {ps : List (Nat ×
       · rw [if_neg hsz] at hpatch
         simp at hpatch
 
+theorem spliceBytes_size_eq {template value out : ByteArray} {off : Nat}
+    (hsp : spliceBytes? template off value = some out) :
+    out.size = template.size := by
+  unfold spliceBytes? at hsp
+  split at hsp
+  · rename_i hle
+    cases hsp
+    rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+      ByteArray.size_extract]
+    omega
+  · cases hsp
+
+theorem patchRuntime_size_eq {template out : ByteArray} {ps : List (Nat × ByteArray)}
+    (hpatch : patchRuntime template ps = some out) :
+    out.size = template.size := by
+  induction ps generalizing template with
+  | nil =>
+      simp [patchRuntime] at hpatch
+      cases hpatch
+      rfl
+  | cons p ps ih =>
+      unfold patchRuntime at hpatch
+      simp only [List.foldlM_cons, Option.bind_eq_bind] at hpatch
+      by_cases hsz : p.2.size = 32
+      · rw [if_pos hsz] at hpatch
+        cases hsp : spliceBytes? template p.1 p.2 with
+        | none =>
+            simp [hsp] at hpatch
+        | some mid =>
+            simp [hsp] at hpatch
+            rw [ih hpatch, spliceBytes_size_eq hsp]
+      · rw [if_neg hsz] at hpatch
+        simp at hpatch
+
+
+/-- Equal slices below the `extract'` address limit give equal padded reads. -/
+theorem readWithPadding_congr_extract' (a b : ByteArray) (addr len : Nat)
+    (hi : addr < 2 ^ 64) (hj : addr + len < 2 ^ 64)
+    (hsz : a.size = b.size)
+    (hextract : a.extract' addr (addr + len) = b.extract' addr (addr + len)) :
+    a.readWithPadding addr len = b.readWithPadding addr len := by
+  unfold ByteArray.extract' at hextract
+  have hguard : (decide (addr < 2 ^ 64) && decide (addr + len < 2 ^ 64)) = true := by
+    rw [decide_eq_true hi, decide_eq_true hj]
+    rfl
+  rw [if_pos hguard, if_pos hguard] at hextract
+  exact readWithPadding_congr_extract a b addr len hsz hextract
+
+theorem patchRuntime_readWithPadding_left {template out : ByteArray}
+    {ps : List (Nat × ByteArray)} {n addr len : Nat}
+    (hpatch : patchRuntime template ps = some out) (hps : PatchesStartAt n ps)
+    (hi : addr < 2 ^ 64) (hj : addr + len < 2 ^ 64)
+    (hjn : addr + len ≤ n) :
+    out.readWithPadding addr len = template.readWithPadding addr len :=
+  readWithPadding_congr_extract' out template addr len hi hj
+    (patchRuntime_size_eq hpatch) (patchRuntime_extract'_left hpatch hps hi hj hjn)
+
 theorem patchRuntime_decode_left {template out : ByteArray} {ps : List (Nat × ByteArray)}
     {n : Nat} (hpatch : patchRuntime template ps = some out)
     (hps : PatchesStartAt n ps) (pc : UInt256) (hwin : pc.toNat + 33 ≤ n)
@@ -257,7 +314,7 @@ theorem patchRuntime_decode_left {template out : ByteArray} {ps : List (Nat × B
             have hi64 : pc.toNat + 1 < 2 ^ 64 := by omega
             have hj64 : pc.toNat + 1 + argOnNBytesOfInstr instr < 2 ^ 64 := by omega
             have hjn : pc.toNat + 1 + argOnNBytesOfInstr instr ≤ n := by omega
-            rw [patchRuntime_extract'_left (n := n) hpatch hps hi64 hj64 hjn]
+            rw [patchRuntime_readWithPadding_left (n := n) hpatch hps hi64 hj64 hjn]
 
 theorem patchRuntime_decode_left_precise {template out : ByteArray}
     {ps : List (Nat × ByteArray)} {n : Nat}
@@ -285,7 +342,7 @@ theorem patchRuntime_decode_left_precise {template out : ByteArray}
               omega
             have hjn : pc.toNat + 1 + argOnNBytesOfInstr instr ≤ n :=
               hwin byte instr hget hinstr
-            rw [patchRuntime_extract'_left (n := n) hpatch hps hi64 hj64 hjn]
+            rw [patchRuntime_readWithPadding_left (n := n) hpatch hps hi64 hj64 hjn]
 
 theorem patchRuntime_decode_left_of_decode {template out : ByteArray}
     {ps : List (Nat × ByteArray)} {n : Nat}
@@ -314,7 +371,7 @@ theorem patchRuntime_decode_left_of_decode {template out : ByteArray}
             have hi64 : pc.toNat + 1 < 2 ^ 64 := by omega
             have hj64 : pc.toNat + 1 + argOnNBytesOfInstr instr < 2 ^ 64 := by omega
             simp [hinstr, harg]
-            rw [patchRuntime_extract'_left (n := n) hpatch hps hi64 hj64 hjn]
+            rw [patchRuntime_readWithPadding_left (n := n) hpatch hps hi64 hj64 hjn]
 
 @[simp] theorem wordBytes_address (a : EVM.Address) :
     wordBytes? (.address a) = some { data := (EVM.Word.ofNat ↑a).toBytesBE.toArray } := by
@@ -329,6 +386,7 @@ theorem uInt256OfByteArray_word_toBytesBE (w : UInt256) :
 
 theorem decode_push32_of_get?_extract' {code : ByteArray} {pc w : UInt256}
     (hget : code.get? pc.toNat = some 0x7f)
+    (h64 : pc.toNat + 33 < 2 ^ 64)
     (hpayload : code.extract' (pc.toNat + 1) (pc.toNat + 33)
         = ({ data := (EVM.Word.toBytesBE w).toArray } : ByteArray)) :
     decode code pc = some (.Push .PUSH32, some (w, 32)) := by
@@ -336,6 +394,19 @@ theorem decode_push32_of_get?_extract' {code : ByteArray} {pc w : UInt256}
   rw [hget]
   have hparse : parseInstr 0x7f = some (.Push .PUSH32) := by decide
   simp [hparse, argOnNBytesOfInstr]
+  have hsize : (code.extract' (pc.toNat + 1) (pc.toNat + 33)).size = 32 := by
+    rw [hpayload]
+    simpa using word_toBytesBE_toByteArray_size w
+  have hguard :
+      (decide (pc.toNat + 1 < 2 ^ 64) && decide (pc.toNat + 33 < 2 ^ 64)) = true := by
+    rw [decide_eq_true (by omega : pc.toNat + 1 < 2 ^ 64), decide_eq_true h64]
+    rfl
+  unfold ByteArray.extract' at hpayload hsize
+  rw [if_pos hguard] at hpayload hsize
+  rw [ByteArray.size_extract] at hsize
+  have hbound : pc.toNat + 1 + 32 ≤ code.size := by omega
+  rw [readWithPadding_eq_extract' code (pc.toNat + 1) 32
+    (by omega) (by omega) hbound]
   rw [show pc.toNat + 1 + 32 = pc.toNat + 33 by omega]
   rw [hpayload]
   rw [uInt256OfByteArray_word_toBytesBE]
@@ -646,6 +717,15 @@ theorem patchRuntime_extract'_disjoint {template out : ByteArray}
   rw [if_pos hguard, if_pos hguard]
   exact patchRuntime_extract_disjoint hpatch hps
 
+theorem patchRuntime_readWithPadding_disjoint {template out : ByteArray}
+    {ps : List (Nat × ByteArray)} {addr len : Nat}
+    (hpatch : patchRuntime template ps = some out)
+    (hps : PatchesWindowDisjoint32 addr (addr + len) ps)
+    (hi : addr < 2 ^ 64) (hj : addr + len < 2 ^ 64) :
+    out.readWithPadding addr len = template.readWithPadding addr len :=
+  readWithPadding_congr_extract' out template addr len hi hj
+    (patchRuntime_size_eq hpatch) (patchRuntime_extract'_disjoint hpatch hps hi hj)
+
 theorem patchRuntime_decode_disjoint_of_decode {template out : ByteArray}
     {ps : List (Nat × ByteArray)} {pc : UInt256}
     {res : Operation × Option (UInt256 × Nat)}
@@ -677,7 +757,7 @@ theorem patchRuntime_decode_disjoint_of_decode {template out : ByteArray}
             have hps := hargs byte instr hget hinstr
             have hj64 := harg64 byte instr hget hinstr
             simp [hinstr, harg]
-            rw [patchRuntime_extract'_disjoint hpatch hps hi64 hj64]
+            rw [patchRuntime_readWithPadding_disjoint hpatch hps hi64 hj64]
 
 theorem patchRuntime_decode_disjoint_of_decode_res {template out : ByteArray}
     {ps : List (Nat × ByteArray)} {pc : UInt256}
@@ -706,42 +786,7 @@ theorem patchRuntime_decode_disjoint_of_decode_res {template out : ByteArray}
           · simp [hinstr, harg] at hdec
             cases hdec
             simp [hinstr, harg]
-            rw [patchRuntime_extract'_disjoint hpatch hargs hi64 (by simpa using harg64)]
-
-theorem spliceBytes_size_eq {template value out : ByteArray} {off : Nat}
-    (hsp : spliceBytes? template off value = some out) :
-    out.size = template.size := by
-  unfold spliceBytes? at hsp
-  split at hsp
-  · rename_i hle
-    cases hsp
-    rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-      ByteArray.size_extract]
-    omega
-  · cases hsp
-
-theorem patchRuntime_size_eq {template out : ByteArray} {ps : List (Nat × ByteArray)}
-    (hpatch : patchRuntime template ps = some out) :
-    out.size = template.size := by
-  induction ps generalizing template with
-  | nil =>
-      simp [patchRuntime] at hpatch
-      cases hpatch
-      rfl
-  | cons p ps ih =>
-      unfold patchRuntime at hpatch
-      simp only [List.foldlM_cons, Option.bind_eq_bind] at hpatch
-      by_cases hsz : p.2.size = 32
-      · rw [if_pos hsz] at hpatch
-        cases hsp : spliceBytes? template p.1 p.2 with
-        | none =>
-            simp [hsp] at hpatch
-        | some mid =>
-            simp [hsp] at hpatch
-            rw [ih hpatch, spliceBytes_size_eq hsp]
-      · rw [if_neg hsz] at hpatch
-        simp at hpatch
-
+            rw [patchRuntime_readWithPadding_disjoint hpatch hargs hi64 (by simpa using harg64)]
 
 theorem byteArray_prefix_suffix (b : ByteArray) (n : Nat) (hn : n ≤ b.size) :
     b.extract 0 n ++ b.extract n b.size = b := by
@@ -1169,6 +1214,9 @@ theorem get?_eq_of_extract_one' (a b : ByteArray) (i : Nat) (ha : i < a.size) (h
 
 theorem decode_eq_of_get?_arg_eq (a b : ByteArray) (pc : UInt256)
     (hget : a.get? pc.toNat = b.get? pc.toNat)
+    (hsz : a.size = b.size)
+    (hi64 : pc.toNat + 1 < 2 ^ 64)
+    (hj : ∀ instr, pc.toNat + 1 + argOnNBytesOfInstr instr < 2 ^ 64)
     (harg : ∀ byte instr,
       b.get? pc.toNat = some byte → parseInstr byte = some instr →
       a.extract' (pc.toNat + 1) (pc.toNat + 1 + argOnNBytesOfInstr instr) =
@@ -1186,6 +1234,7 @@ theorem decode_eq_of_get?_arg_eq (a b : ByteArray) (pc : UInt256)
           by_cases hn : argOnNBytesOfInstr instr = 0
           · simp [hn]
           · simp [hn]
-            rw [harg byte instr hb hi]
+            rw [readWithPadding_congr_extract' a b _ _ hi64 (hj instr) hsz
+              (harg byte instr hb hi)]
 
 end Reasoning.Theory

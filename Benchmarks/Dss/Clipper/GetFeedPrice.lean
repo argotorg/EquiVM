@@ -1683,6 +1683,7 @@ theorem clipperGetFeedPriceIlkPush32Decode8746 (v : ClipperImmutables)
       rw [patchRuntime_get?_disjoint hpatch
         (by apply clipperRuntimePatchesWindowDisjoint32Bool v; native_decide)]
       native_decide)
+    (by native_decide)
     (by
       rw [show (⟨8746⟩ : UInt256).toNat + 1 = 8747 by native_decide]
       rw [show (⟨8746⟩ : UInt256).toNat + 33 = 8779 by native_decide]

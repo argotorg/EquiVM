@@ -40,9 +40,9 @@ theorem typedCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 :
         out σ' k' C' ∧
       out.size < 2 ^ 138 ∧
       (σ' = σ ∨ ∃ (A_in : Substate) (callGas g' : UInt256) (A' : Substate),
-        (σ', g', A', z, out) = Ethereum.EVM.Θ σ s0.σ₀ A_in
+        (σ', g', A', z, out) = Ethereum.EVM.Θ I.fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-          (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute I.fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOffset.toNat inSize.toNat) (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm) := by
   by_cases hd : I.depth = 1024
@@ -59,14 +59,14 @@ theorem typedCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 :
     obtain ⟨σ', z, out, A_in, callGas, k', C', ⟨g'', A', hΘ⟩, rd, _⟩ := h.call hdec hdlt hov
     have hΘ0 := hΘ
     have hsize : out.size < 2 ^ 138 :=
-      Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ
+      Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ
         (le_trans (Ethereum.EVM.ByteArray.readWithPadding_size_le mem inOffset.toNat inSize.toNat)
           (le_trans hsmall Ethereum.EVM.pow_two_64_le_maxReturnDataSizeByGas))
     rw [hs.accounts, ← hs.world, ← hs.env] at hΘ
     have hΘ' : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
+        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner)) evm.executionEnv.sender
-          (AccountAddress.ofUInt256 target) (toExecute evm.accountMap (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOffset.toNat inSize.toNat) (evm.executionEnv.depth + 1)
           evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks
@@ -108,14 +108,14 @@ theorem typedStaticCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256}
       omega
     obtain ⟨σ', z, out, A_in, callGas, k', C', ⟨g'', A', hΘ⟩, rd, _⟩ := RD.solcStaticcall h hdec hdlt hov
     have hsize : out.size < 2 ^ 138 :=
-      Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ
+      Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ
         (le_trans (Ethereum.EVM.ByteArray.readWithPadding_size_le mem inOffset.toNat inSize.toNat)
           (le_trans hsmall Ethereum.EVM.pow_two_64_le_maxReturnDataSizeByGas))
     rw [hs.accounts, ← hs.world, ← hs.env] at hΘ
     have hΘ' : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
+        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner)) evm.executionEnv.sender
-          (AccountAddress.ofUInt256 target) (toExecute evm.accountMap (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOffset.toNat inSize.toNat) (evm.executionEnv.depth + 1)
           evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks

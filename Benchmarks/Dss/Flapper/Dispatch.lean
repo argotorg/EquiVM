@@ -473,10 +473,12 @@ theorem flapperReachLowSplit {σ σ₀ A I} {g : Sat256}
   obtain ⟨k32, C32, h32⟩ :=
     flapperReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
+  have hrootTgt : armTgt flapperBytecode flapperRootSplitPc = flapperLowSplitJumpdestPc :=
+    by native_decide
   have h173 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperLowSplitJumpdestPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
-    simpa [flapperRootSplitPc, flapperLowSplitJumpdestPc] using
+    simpa [flapperRootSplitPc, flapperLowSplitJumpdestPc, hrootTgt] using
       RD.selectorSplitTakenAuto h32 flapperRootSplitWellFormed hroot (by jump_dest) (by simp)
   have h174 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperLowSplitPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
@@ -516,10 +518,12 @@ theorem flapperReachLowLowFirstArm {σ σ₀ A I} {g : Sat256}
   obtain ⟨k174, C174, h174⟩ :=
     flapperReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
+  have hlowTgt : armTgt flapperBytecode flapperLowSplitPc = flapperLowLowJumpdestPc :=
+    by native_decide
   have h244 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperLowLowJumpdestPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k174 + 5) (C174 + 22) := by
-    simpa [flapperLowSplitPc, flapperLowLowJumpdestPc] using
+    simpa [flapperLowSplitPc, flapperLowLowJumpdestPc, hlowTgt] using
       RD.selectorSplitTakenAuto h174 flapperLowSplitWellFormed hlow (by jump_dest) (by simp)
   have h245 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperLowLowFirstArmPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
@@ -561,10 +565,12 @@ theorem flapperReachHighLowFirstArm {σ σ₀ A I} {g : Sat256}
   obtain ⟨k43, C43, h43⟩ :=
     flapperReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
+  have hhighTgt : armTgt flapperBytecode flapperHighSplitPc = flapperHighLowJumpdestPc :=
+    by native_decide
   have h113 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperHighLowJumpdestPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5) (C43 + 22) := by
-    simpa [flapperHighSplitPc, flapperHighLowJumpdestPc] using
+    simpa [flapperHighSplitPc, flapperHighLowJumpdestPc, hhighTgt] using
       RD.selectorSplitTakenAuto h43 flapperHighSplitWellFormed hhigh (by jump_dest) (by simp)
   have h114 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperHighLowFirstArmPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)

@@ -80,7 +80,7 @@ theorem accessControlCorrect :
               (by simpa [selIs, accessControlLowSelBytes] using h0)).1
             (accessControlLowMatches 0 (by omega) hsz
               (by simpa [selIs, accessControlLowSelBytes] using h0)).2
-            (by jump_dest) (by decide))
+            (by jump_dest) (by native_decide))
       · by_cases h1 : selIs I ⟨#[0x24, 0x8a, 0x9c, 0xa3]⟩
         · exact accessControlGetRoleAdminBody hcode hsize hwv h1
             (accessControlReachLowBody 1 (by omega) ⟨166⟩ hcode hwv hsz hsize
@@ -90,7 +90,7 @@ theorem accessControlCorrect :
                 (by simpa [selIs, accessControlLowSelBytes] using h1)).1
               (accessControlLowMatches 1 (by omega) hsz
                 (by simpa [selIs, accessControlLowSelBytes] using h1)).2
-              (by jump_dest) (by decide))
+              (by jump_dest) (by native_decide))
         · by_cases h2 : selIs I ⟨#[0x2f, 0x2f, 0xf1, 0x5d]⟩
           · exact accessControlGrantRoleBody hcode hsize hwv h2
               (accessControlReachLowBody 2 (by omega) ⟨214⟩ hcode hwv hsz hsize
@@ -100,7 +100,7 @@ theorem accessControlCorrect :
                   (by simpa [selIs, accessControlLowSelBytes] using h2)).1
                 (accessControlLowMatches 2 (by omega) hsz
                   (by simpa [selIs, accessControlLowSelBytes] using h2)).2
-                (by jump_dest) (by decide))
+                (by jump_dest) (by native_decide))
           · by_cases h3 : selIs I ⟨#[0x36, 0x56, 0x8a, 0xbe]⟩
             · exact accessControlRenounceRoleBody hcode hsize hwv h3
                 (accessControlReachHighBody 0 (by omega) ⟨235⟩ hcode hwv hsz hsize
@@ -110,7 +110,7 @@ theorem accessControlCorrect :
                     (by simpa [selIs, accessControlHighSelBytes] using h3)).1
                   (accessControlHighMatches 0 (by omega) hsz
                     (by simpa [selIs, accessControlHighSelBytes] using h3)).2
-                  (by jump_dest) (by decide))
+                  (by jump_dest) (by native_decide))
             · by_cases h4 : selIs I ⟨#[0x91, 0xd1, 0x48, 0x54]⟩
               · exact accessControlHasRoleBody hcode hsize hwv h4
                   (accessControlReachHighBody 1 (by omega) ⟨254⟩ hcode hwv hsz hsize
@@ -120,7 +120,7 @@ theorem accessControlCorrect :
                       (by simpa [selIs, accessControlHighSelBytes] using h4)).1
                     (accessControlHighMatches 1 (by omega) hsz
                       (by simpa [selIs, accessControlHighSelBytes] using h4)).2
-                    (by jump_dest) (by decide))
+                    (by jump_dest) (by native_decide))
               · by_cases h5 : selIs I ⟨#[0xa2, 0x17, 0xfd, 0xdf]⟩
                 · exact accessControlDefaultAdminRoleBody hcode hsize hwv h5
                     (accessControlReachHighBody 2 (by omega) ⟨273⟩ hcode hwv hsz hsize
@@ -130,7 +130,7 @@ theorem accessControlCorrect :
                         (by simpa [selIs, accessControlHighSelBytes] using h5)).1
                       (accessControlHighMatches 2 (by omega) hsz
                         (by simpa [selIs, accessControlHighSelBytes] using h5)).2
-                      (by jump_dest) (by decide))
+                      (by jump_dest) (by native_decide))
                 · by_cases h6 : selIs I ⟨#[0xd5, 0x47, 0x74, 0x1f]⟩
                   · exact accessControlRevokeRoleBody hcode hsize hwv h6
                       (accessControlReachHighBody 3 (by omega) ⟨280⟩ hcode hwv hsz hsize
@@ -140,7 +140,7 @@ theorem accessControlCorrect :
                           (by simpa [selIs, accessControlHighSelBytes] using h6)).1
                         (accessControlHighMatches 3 (by omega) hsz
                           (by simpa [selIs, accessControlHighSelBytes] using h6)).2
-                        (by jump_dest) (by decide))
+                        (by jump_dest) (by native_decide))
                   · refine accessControlNoDispatch hcode hsize hwv ?_
                     intro i hi
                     interval_cases i

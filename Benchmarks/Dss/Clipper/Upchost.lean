@@ -1195,6 +1195,7 @@ theorem clipperUpchostVatPush32Decode (v : ClipperImmutables) {code : ByteArray}
       rw [patchRuntime_get?_disjoint hpatch
         (by apply clipperUpchostPatchesWindowDisjoint32Bool v; native_decide)]
       native_decide)
+    (by native_decide)
     (by
       rw [show (⟨1462⟩ : UInt256).toNat + 1 = 1463 by native_decide]
       rw [show (⟨1462⟩ : UInt256).toNat + 33 = 1495 by native_decide]
@@ -1212,6 +1213,7 @@ theorem clipperUpchostIlkPush32Decode (v : ClipperImmutables) {code : ByteArray}
       rw [patchRuntime_get?_disjoint hpatch
         (by apply clipperUpchostPatchesWindowDisjoint32Bool v; native_decide)]
       native_decide)
+    (by native_decide)
     (by
       rw [show (⟨1509⟩ : UInt256).toNat + 1 = 1510 by native_decide]
       rw [show (⟨1509⟩ : UInt256).toNat + 33 = 1542 by native_decide]
@@ -1229,6 +1231,7 @@ theorem clipperUpchostIlkPush32Decode1660 (v : ClipperImmutables) {code : ByteAr
       rw [patchRuntime_get?_disjoint hpatch
         (by apply clipperUpchostPatchesWindowDisjoint32Bool v; native_decide)]
       native_decide)
+    (by native_decide)
     (by
       rw [show (⟨1660⟩ : UInt256).toNat + 1 = 1661 by native_decide]
       rw [show (⟨1660⟩ : UInt256).toNat + 33 = 1693 by native_decide]

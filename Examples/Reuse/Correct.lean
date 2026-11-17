@@ -81,29 +81,33 @@ theorem cArmsWellFormed :
     ∀ j, j ≤ 1 → armWellFormed cBytecode (nthArmPc cBytecode cFirstArmPc j) := by
   intro j hj
   interval_cases j
-  all_goals exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+  all_goals exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 /-- EVM selector coupling for `f(uint256)`. -/
 theorem cFEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
     UInt256.eq ⟨3017696395⟩
         (UInt256.shiftRight (uInt256OfByteArray (cd.readBytes 0 32)) ⟨224⟩)
       = if ((⟨#[0xb3, 0xde, 0x64, 0x8b]⟩ : ByteArray) == cd.extract 0 4) then ⟨1⟩ else ⟨0⟩ :=
-  evmSelectorDecode hsz 0xb3 0xde 0x64 0x8b ⟨3017696395⟩ (by decide)
+  evmSelectorDecode hsz 0xb3 0xde 0x64 0x8b ⟨3017696395⟩ (by native_decide)
 
 /-- EVM selector coupling for `g(uint256)`. -/
 theorem cGEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
     UInt256.eq ⟨3827312202⟩
         (UInt256.shiftRight (uInt256OfByteArray (cd.readBytes 0 32)) ⟨224⟩)
       = if ((⟨#[0xe4, 0x20, 0x26, 0x4a]⟩ : ByteArray) == cd.extract 0 4) then ⟨1⟩ else ⟨0⟩ :=
-  evmSelectorDecode hsz 0xe4 0x20 0x26 0x4a ⟨3827312202⟩ (by decide)
+  evmSelectorDecode hsz 0xe4 0x20 0x26 0x4a ⟨3827312202⟩ (by native_decide)
 
 /-- Per-arm selector coupling. -/
 theorem cArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size) (j : ℕ) (hj : j < 2) :
     UInt256.eq (armSelNat cBytecode (nthArmPc cBytecode cFirstArmPc j)) (cSelWord I)
       = if (cSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
   interval_cases j
-  · exact cFEvmSelector hsz
-  · exact cGEvmSelector hsz
+  · have hsel : armSelNat cBytecode (nthArmPc cBytecode cFirstArmPc 0) = ⟨3017696395⟩ :=
+      by native_decide
+    simpa [hsel, cSelBytes, cSelWord] using cFEvmSelector hsz
+  · have hsel : armSelNat cBytecode (nthArmPc cBytecode cFirstArmPc 1) = ⟨3827312202⟩ :=
+      by native_decide
+    simpa [hsel, cSelBytes, cSelWord] using cGEvmSelector hsz
 
 /-- Selector identification for the two-arm dispatcher. -/
 theorem cMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 2) (hsz : 4 ≤ I.calldata.size)
@@ -121,7 +125,7 @@ theorem cMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 2) (hsz : 4 ≤ I.callda
       interval_cases j
       decide
   · rw [cArmEq I hsz i hi, hci]
-    interval_cases i <;> decide
+    interval_cases i <;> native_decide
 
 /-- Generic dispatcher driver: reaches the selected external wrapper body. -/
 theorem cReachBody {σ σ₀ A I} {g : Sat256} (i : ℕ) (hi1 : i ≤ 1)
@@ -195,26 +199,26 @@ theorem cX_callvalue_ne {σ σ₀ A I} {g : Sat256}
   exact solcGuardCallvalueNonzeroRevert
     (ctgt := solcGuardTgt cBytecode) (opC := solcGuardTgtOp cBytecode)
     (wC := solcGuardTgtWidth cBytecode)
-    (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
-      (by decide) (by decide))
-    hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (solcGuardPrologueRD hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide))
+    hwv (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
 theorem cX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     RDrev cBytecode g (initState σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt cBytecode) (opC := solcGuardTgtOp cBytecode)
     (wC := solcGuardTgtWidth cBytecode) h0 hwv
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by jump_dest)
   exact solcCalldataShortRevert
     (bodyPc := solcDispatchBodyPc cBytecode)
     (rtgt := solcCalldataRevertTgt cBytecode)
     (opR := solcCalldataRevertTgtOp cBytecode)
     (wR := solcCalldataRevertTgtWidth cBytecode)
-    h1 hsz (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by jump_dest) (by decide) (by decide) (by decide)
+    h1 hsz (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by jump_dest) (by native_decide) (by native_decide) (by native_decide)
 
 /-- With calldata long enough for a selector but no selector match, the dispatcher reverts. -/
 theorem cX_noMatch {σ σ₀ A I} {g : Sat256}
@@ -229,33 +233,31 @@ theorem cX_noMatch {σ σ₀ A I} {g : Sat256}
     rw [cArmEq I hsz j hj, hnm j hj]
     rfl
   have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt cBytecode) (opC := solcGuardTgtOp cBytecode)
     (wC := solcGuardTgtWidth cBytecode) h0 hwv
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by jump_dest)
   obtain ⟨k2, C2, h2⟩ := solcCalldataOk
     (bodyPc := solcDispatchBodyPc cBytecode)
     (selLoadTgt := solcCalldataRevertTgt cBytecode)
     (opR := solcCalldataRevertTgtOp cBytecode)
     (wR := solcCalldataRevertTgtWidth cBytecode)
-    h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
+    h1 hsz hsize (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by simp)
   have h4 : RD cBytecode I g (initState σ σ₀ g A I) cFirstArmPc
       [cSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k3 C3 := by
-    simpa [cFirstArmPc, cSelWord, solcFirstArmPcFromPrefix, solcSelectorLoadPc,
-      solcCalldataJumpiPc, solcCalldataRevertPushPc, solcDispatchBodyPc] using h3
+    convert h3 using 1 <;> native_decide
   have h5 := h4
     |>.selectorArmNotTakenAuto (cArmsWellFormed 0 (by omega)) (heq0 0 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (cArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
   have h48 : ∃ k C, RD cBytecode I g (initState σ σ₀ g A I) ⟨48⟩
       [cSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     refine ⟨k3 + 5 + 5, C3 + 22 + 22, ?_⟩
-    simpa [cFirstArmPc, nthArmPc, selArmNextPc, armTgtWidth, selArmJumpiPc,
-      selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using h5
+    convert h5 using 1 <;> native_decide
   obtain ⟨_, _, h48rd⟩ := h48
   exact evm_run h48rd with [
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 /-- Calldata decode for `f(uint256)` succeeds when the one word argument is present. -/
 theorem cDecode_f_ok {I : ExecutionEnv}
@@ -329,15 +331,15 @@ theorem RD.cPanicOverflowRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k
   rw [hsel] at rd168
   have rd171 := evm_run rd168 with [
     raw mstore 0 (cPanicMem0 mem) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨17⟩, push1 ⟨4⟩ ]
   have rd176 := evm_run rd171 with [
     raw mstore 0 (cPanicMem mem) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨36⟩, push0 ]
-  exact rd176.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd176.rev 0 (by native_decide) mem_cost (by evm_ov)
 
 /-- Reuse's solc checked multiply routine at pc 181, specialized to `v * 2`. -/
 theorem RD.cCheckedMul2 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
@@ -378,7 +380,7 @@ theorem RD.cCheckedMul2_overflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {
     jumpdest, dup1, dup3, mul, dup2, iszero, dup3, dup3, div, dup5, eq, or ]
   have rd193 := rd193₀
   rw [hcond] at rd193
-  have rd196 := evm_run rd193 with [ push1 ⟨121⟩, jumpiNT (by decide) ]
+  have rd196 := evm_run rd193 with [ push1 ⟨121⟩, jumpiNT (by native_decide) ]
   have rd161 := evm_run rd196 with [ push1 ⟨121⟩, push1 ⟨161⟩, jump (by jump_dest) ]
   exact RD.cPanicOverflowRevert rd161 (by evm_ov)
 
@@ -420,8 +422,8 @@ theorem RD.cCheckedAdd1_overflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {
   rw [hgt] at rd208
   have rd209₀ := evm_run rd208 with [ iszero ]
   have rd209 := rd209₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd209
-  have rd212 := evm_run rd209 with [ push1 ⟨121⟩, jumpiNT (by decide) ]
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd209
+  have rd212 := evm_run rd209 with [ push1 ⟨121⟩, jumpiNT (by native_decide) ]
   have rd161 := evm_run rd212 with [ push1 ⟨121⟩, push1 ⟨161⟩, jump (by jump_dest) ]
   exact RD.cPanicOverflowRevert rd161 (by evm_ov)
 
@@ -481,21 +483,21 @@ theorem RD.cEncodeReturn {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : �
     RDret cBytecode g s0 acc (UInt256.toByteArray val) :=
   evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
       solcFreePtrMem_mload64
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     swap1, dup2,
-    raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide) mem_cost
-      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
-      (by decide) (by evm_ov),
+    raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by native_decide) mem_cost
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by native_decide]; rfl)
+      (by native_decide) (by evm_ov),
     push1 ⟨32⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide) mem_cost
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost
       (solcReturnMem_mload64 val)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray val) (by decide) mem_cost
-      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
-        show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32 from by decide,
+    raw ret 0 (UInt256.toByteArray val) (by native_decide) mem_cost
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+        show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32 from by native_decide,
         solcReturnMem_read128])
       (by evm_ov) ]
 
@@ -511,7 +513,7 @@ theorem RD.cDecodeUint256 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : �
       mem aw rdata acc k' C' := by
   exact ⟨_, _, evm_run h with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push1 ⟨154⟩,
-    jumpiT (by rw [hsltval]; decide) (by jump_dest),
+    jumpiT (by rw [hsltval]; native_decide) (by jump_dest),
     jumpdest, pop, calldataload, swap2, swap1, pop, jump hret ]⟩
 
 /-- Reuse's ABI decoder failure path at pc 139 (`calldata` too short or huge). -/
@@ -524,8 +526,8 @@ theorem RD.cDecodeUint256_revert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {
     RDrev cBytecode g s0 :=
   evm_run h with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push1 ⟨154⟩,
-    jumpiNT (by rw [hsltval]; decide),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpiNT (by rw [hsltval]; native_decide),
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 end Reasoning.Reach
 
@@ -542,7 +544,7 @@ theorem cX_f_to102 {σ σ₀ A I} {g : Sat256}
   obtain ⟨k, C, rd52⟩ :=
     cReachBody (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) 0 (by omega) ⟨52⟩ hcode hwv (by omega)
-      hsize heq0 htake (by jump_dest) (by decide)
+      hsize heq0 htake (by jump_dest) (by native_decide)
   have rd139 := evm_run rd52 with [
     jumpdest, push1 ⟨67⟩, push1 ⟨63⟩, calldatasize, push1 ⟨4⟩, push1 ⟨139⟩,
     jump (by jump_dest) ]
@@ -567,7 +569,7 @@ theorem cX_g_to127 {σ σ₀ A I} {g : Sat256}
   obtain ⟨k, C, rd85⟩ :=
     cReachBody (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) 1 (by omega) ⟨85⟩ hcode hwv (by omega)
-      hsize heq0 htake (by jump_dest) (by decide)
+      hsize heq0 htake (by jump_dest) (by native_decide)
   have rd139 := evm_run rd85 with [
     jumpdest, push1 ⟨100⟩, push1 ⟨96⟩, calldatasize, push1 ⟨4⟩, push1 ⟨139⟩,
     jump (by jump_dest) ]
@@ -632,11 +634,11 @@ theorem cX_g_success {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd134⟩ := RD.cFRoutine rd102 hbound (by jump_dest) (by evm_ov)
   have rd136 := evm_run rd134 with [ jumpdest, push0 ]
   by_cases hp : I.perm = true
-  · obtain ⟨_, _, rd137⟩ := RD.sstore rd136 hp (by decide) (by evm_ov)
+  · obtain ⟨_, _, rd137⟩ := RD.sstore rd136 hp (by native_decide) (by evm_ov)
     have rd100 := evm_run rd137 with [ pop, jump (by jump_dest), jumpdest ]
-    exact Or.inl ⟨hp, rd100.stop (by decide) (by evm_ov)⟩
+    exact Or.inl ⟨hp, rd100.stop (by native_decide) (by evm_ov)⟩
   · have hpf : I.perm = false := by simpa using hp
-    exact Or.inr ⟨hpf, RD.sstoreStatic rd136 hpf (by decide) (by evm_ov)⟩
+    exact Or.inr ⟨hpf, RD.sstoreStatic rd136 hpf (by native_decide) (by evm_ov)⟩
 
 /-- External `g(uint256)` overflow path: the internal call to `f` panics before storage writes. -/
 theorem cX_g_overflow {σ σ₀ A I} {g : Sat256}
@@ -666,7 +668,7 @@ theorem cX_f_shortarg {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd52⟩ :=
     cReachBody (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) 0 (by omega) ⟨52⟩ hcode hwv hsz4
-      hsize heq0 htake (by jump_dest) (by decide)
+      hsize heq0 htake (by jump_dest) (by native_decide)
   have rd139 := evm_run rd52 with [
     jumpdest, push1 ⟨67⟩, push1 ⟨63⟩, calldatasize, push1 ⟨4⟩, push1 ⟨139⟩,
     jump (by jump_dest) ]
@@ -686,7 +688,7 @@ theorem cX_f_hugearg {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd52⟩ :=
     cReachBody (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) 0 (by omega) ⟨52⟩ hcode hwv hsz4
-      hsize heq0 htake (by jump_dest) (by decide)
+      hsize heq0 htake (by jump_dest) (by native_decide)
   have rd139 := evm_run rd52 with [
     jumpdest, push1 ⟨67⟩, push1 ⟨63⟩, calldatasize, push1 ⟨4⟩, push1 ⟨139⟩,
     jump (by jump_dest) ]
@@ -707,7 +709,7 @@ theorem cX_g_shortarg {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd85⟩ :=
     cReachBody (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) 1 (by omega) ⟨85⟩ hcode hwv hsz4
-      hsize heq0 htake (by jump_dest) (by decide)
+      hsize heq0 htake (by jump_dest) (by native_decide)
   have rd139 := evm_run rd85 with [
     jumpdest, push1 ⟨100⟩, push1 ⟨96⟩, calldatasize, push1 ⟨4⟩, push1 ⟨139⟩,
     jump (by jump_dest) ]
@@ -728,7 +730,7 @@ theorem cX_g_hugearg {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd85⟩ :=
     cReachBody (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) 1 (by omega) ⟨85⟩ hcode hwv hsz4
-      hsize heq0 htake (by jump_dest) (by decide)
+      hsize heq0 htake (by jump_dest) (by native_decide)
   have rd139 := evm_run rd85 with [
     jumpdest, push1 ⟨100⟩, push1 ⟨96⟩, calldatasize, push1 ⟨4⟩, push1 ⟨139⟩,
     jump (by jump_dest) ]
@@ -1126,7 +1128,7 @@ theorem cFinal_read :
     cInitReturnMem.readWithPadding 0 271 = cBytecode := by
   unfold cInitReturnMem
   rw [write0_read_back_from_gen cInitcode ByteArray.empty 12 271
-    (by decide) (by native_decide) (by decide)]
+    (by native_decide) (by native_decide) (by native_decide)]
   exact cInitcode_runtime_window
 
 set_option maxHeartbeats 400000 in
@@ -1147,7 +1149,7 @@ theorem cInitcodeRun {σ σ₀ A I} {g : Sat256}
     raw codecopy 27 cInitReturnMem (UInt256.ofNat 9) cInitcodeDecode6
       mem_cost
       rfl
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     raw push2 ⟨271⟩ cInitcodeDecode7 (by evm_ov),
     raw push0 cInitcodeDecode10 (by evm_ov),
     raw ret 0 cBytecode cInitcodeDecode11

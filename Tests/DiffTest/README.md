@@ -46,8 +46,8 @@ call boundary (`CALL`, `CALLCODE`, `DELEGATECALL`, `STATICCALL`, `CREATE`, `CREA
 result) and every `GAS` result. The interpreter then replays them through an `Oracle`
 (`Stele/Interp.lean`): each external call of the specification is matched against the next
 recorded boundary (kind, target, value, calldata, incoming accounts) and receives the result the
-EVM got. Unmatched or leftover boundaries are disagreements. The EVM runs with a fixed budget
-(`Target.gas`, 3,000,000); out-of-gas cases are inconclusive.
+EVM got. Unmatched or leftover boundaries are disagreements. The EVM runs at the Osaka fork with
+a fixed budget (`Target.gas`, 3,000,000); out-of-gas cases are inconclusive.
 
 ## Case families
 

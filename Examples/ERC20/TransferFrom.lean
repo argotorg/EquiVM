@@ -195,12 +195,12 @@ theorem erc20Decode_transferFrom_none_huge {I : ExecutionEnv}
 
 theorem transferFromStore_from (I : ExecutionEnv) :
     (transferFromStore I).get? "from" = some (transferFromFromValue I) := by
-  rw [transferFromStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
+  rw [transferFromStore, store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
     store_get_self]
 
 theorem transferFromStore_to (I : ExecutionEnv) :
     (transferFromStore I).get? "to" = some (transferFromToValue I) := by
-  rw [transferFromStore, store_get_ne _ _ (by decide), store_get_self]
+  rw [transferFromStore, store_get_ne _ _ (by native_decide), store_get_self]
 
 theorem transferFromStore_value (I : ExecutionEnv) :
     (transferFromStore I).get? "value" = some (transferFromValueValue I) := by
@@ -208,14 +208,14 @@ theorem transferFromStore_value (I : ExecutionEnv) :
 
 theorem transferFromStore_allowance (I : ExecutionEnv) :
     (transferFromStore I).get? "allowance" = none := by
-  rw [transferFromStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
-    store_get_ne _ _ (by decide)]
+  rw [transferFromStore, store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
+    store_get_ne _ _ (by native_decide)]
   simp
 
 theorem transferFromStore_balanceOf (I : ExecutionEnv) :
     (transferFromStore I).get? "balanceOf" = none := by
-  rw [transferFromStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
-    store_get_ne _ _ (by decide)]
+  rw [transferFromStore, store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
+    store_get_ne _ _ (by native_decide)]
   simp
 
 theorem transferFromStoreCurrentAllowance_currentAllowance (evm : EVM.State) (I : ExecutionEnv) :
@@ -226,20 +226,20 @@ theorem transferFromStoreCurrentAllowance_currentAllowance (evm : EVM.State) (I 
 theorem transferFromStoreCurrentAllowance_value (evm : EVM.State) (I : ExecutionEnv) :
     (transferFromStoreCurrentAllowance evm I).get? "value" =
       some (transferFromValueValue I) := by
-  rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide), transferFromStore_value]
+  rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by native_decide), transferFromStore_value]
 
 theorem transferFromStoreCurrentAllowance_from (evm : EVM.State) (I : ExecutionEnv) :
     (transferFromStoreCurrentAllowance evm I).get? "from" =
       some (transferFromFromValue I) := by
-  rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide), transferFromStore_from]
+  rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by native_decide), transferFromStore_from]
 
 theorem transferFromStoreCurrentAllowance_to (evm : EVM.State) (I : ExecutionEnv) :
     (transferFromStoreCurrentAllowance evm I).get? "to" = some (transferFromToValue I) := by
-  rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide), transferFromStore_to]
+  rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by native_decide), transferFromStore_to]
 
 theorem transferFromStoreCurrentAllowance_allowance (evm : EVM.State) (I : ExecutionEnv) :
     (transferFromStoreCurrentAllowance evm I).get? "allowance" = none := by
-  rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide),
+  rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by native_decide),
     transferFromStore_allowance]
 
 theorem transferFromStoreFromBalance_currentAllowance (evm : EVM.State) (I : ExecutionEnv) :
@@ -267,7 +267,7 @@ theorem transferFromStoreFromBalance_allowance (evm : EVM.State) (I : ExecutionE
 
 theorem transferFromStoreFromBalance_balanceOf (evm : EVM.State) (I : ExecutionEnv) :
     (transferFromStoreFromBalance evm I).get? "balanceOf" = none := by
-  rw [transferFromStoreFromBalance, transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide),
+  rw [transferFromStoreFromBalance, transferFromStoreCurrentAllowance, store_get_ne _ _ (by native_decide),
     transferFromStore_balanceOf]
 
 theorem transferFromStoreToBalance_value (evm : EVM.State) (I : ExecutionEnv) :
@@ -282,7 +282,7 @@ theorem transferFromStoreToBalance_to (evm : EVM.State) (I : ExecutionEnv) :
 
 theorem transferFromStoreToBalance_balanceOf (evm : EVM.State) (I : ExecutionEnv) :
     (transferFromStoreToBalance evm I).get? "balanceOf" = none := by
-  rw [transferFromStoreToBalance, transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide),
+  rw [transferFromStoreToBalance, transferFromStoreCurrentAllowance, store_get_ne _ _ (by native_decide),
     transferFromStore_balanceOf]
 
 theorem transferFromStoreNewToBalance_to (evm : EVM.State) (I : ExecutionEnv) :
@@ -303,7 +303,7 @@ theorem transferFromStoreNewToBalance_value (evm : EVM.State) (I : ExecutionEnv)
 theorem transferFromStoreNewToBalance_balanceOf (evm : EVM.State) (I : ExecutionEnv) :
     (transferFromStoreNewToBalance evm I).get? "balanceOf" = none := by
   rw [transferFromStoreNewToBalance, transferFromStoreCurrentAllowance,
-    store_get_ne _ _ (by decide),
+    store_get_ne _ _ (by native_decide),
     transferFromStore_balanceOf]
 
 theorem evalExpr_transferFrom_from (evm : EVM.State) (I : ExecutionEnv) :
@@ -441,7 +441,7 @@ theorem evalExpr_transferFrom_from_balance (evm : EVM.State) (I : ExecutionEnv) 
   rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
     (hbase := by
       simp only [balanceOfRef]
-      rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide),
+      rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by native_decide),
         transferFromStore_balanceOf])
     (her := evalStorageRef_transferFrom_from_balance_currentAllowance evm evm I)
     (hty := by simp [storageTypeAt?, transferFromFromBalanceEvaledRef, erc20Contract,
@@ -1287,7 +1287,7 @@ theorem erc20TransferFromX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, push2 ⟨204⟩, push1 ⟨4⟩, dup1, calldatasize, sub, dup2, add, swap1,
     push2 ⟨199⟩, swap2, swap1, push2 ⟨2098⟩, jump erc20_jd ]
   rw [uadd_word_usub_ofNat_word (c := (⟨4⟩ : UInt256))
-    (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by decide]; exact hsz4) hsize] at rd'
+    (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by native_decide]; exact hsz4) hsize] at rd'
   exact ⟨_, _, rd'⟩
 
 theorem erc20TransferFromX_dec1874_from {σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -1467,7 +1467,7 @@ theorem erc20TransferFromX_afterAllowance {σ σ₀ A I} {g : Sat256} {sel : UIn
     (by rfl)
     (approveOuterSpenderMem_writeSlot (transferFromFromWord I) (transferFromSenderWord I))
     hslot (by evm_ov)
-  obtain ⟨k1, C1, rd736₀⟩ := rd735.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd736₀⟩ := rd735.sload (by native_decide) (by evm_ov)
   have rd737 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨737⟩
       [transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩, ⟨0⟩,
         transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
@@ -1517,7 +1517,7 @@ theorem erc20TransferFromX_afterBalance {σ σ₀ A I} {g : Sat256} {sel : UInt2
     (by rfl)
     (allowanceOuterHashMem_writeBalanceSlot (transferFromFromWord I) (transferFromSenderWord I))
     hslot (by evm_ov)
-  obtain ⟨k1, C1, rd868₀⟩ := rd867.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd868₀⟩ := rd867.sload (by native_decide) (by evm_ov)
   have rd868 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨868⟩
       [transferFromFromBalanceWord (initState σ σ₀ g A I) I,
         transferFromValueWord I,
@@ -1602,10 +1602,10 @@ theorem erc20TransferFromX_afterAllowanceStore {σ σ₀ A I}
     hslot (by evm_ov)
   have rd1067 := evm_run rd1065 with [ dup2, swap1 ]
   by_cases hp : I.perm = true
-  · obtain ⟨k2, C2, rd1067s⟩ := rd1067.sstore hp (by decide) (by evm_ov)
+  · obtain ⟨k2, C2, rd1067s⟩ := rd1067.sstore hp (by native_decide) (by evm_ov)
     exact Or.inl ⟨hp, _, _, evm_run rd1067s with [ pop ]⟩
   · have hpf : I.perm = false := by simpa using hp
-    exact Or.inr ⟨hpf, rd1067.sstoreStatic hpf (by decide) (by evm_ov)⟩
+    exact Or.inr ⟨hpf, rd1067.sstoreStatic hpf (by native_decide) (by evm_ov)⟩
 
 theorem erc20TransferFromX_afterFromStore {σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
@@ -1649,7 +1649,7 @@ theorem erc20TransferFromX_afterFromStore {σ σ₀ A I}
     (allowanceOuterHashMem_writeBalanceSlot (transferFromFromWord I) (transferFromSenderWord I))
     hslot (by evm_ov)
   have rd1130 := evm_run rd1130₀ with [ push0, dup3, dup3 ]
-  obtain ⟨k1, C1, rd1134₀⟩ := rd1130.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1134₀⟩ := rd1130.sload (by native_decide) (by evm_ov)
   have rd1134 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1134⟩
       [transferFromFromBalanceWord
           (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I,
@@ -1690,7 +1690,7 @@ theorem erc20TransferFromX_afterFromStore {σ σ₀ A I}
   rw [hdebit] at rd1143
   have rd1149 := evm_run rd1143 with [
     jumpdest, swap3, pop, pop, dup2, swap1 ]
-  obtain ⟨k3, C3, rd1149s⟩ := rd1149.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨k3, C3, rd1149s⟩ := rd1149.sstore hperm (by native_decide) (by evm_ov)
   exact ⟨_, _, evm_run rd1149s with [ pop ]⟩
 
 theorem erc20TransferFromX_balanceDebitUnderflow {σ σ₀ A I}
@@ -1726,7 +1726,7 @@ theorem erc20TransferFromX_balanceDebitUnderflow {σ σ₀ A I}
     (allowanceOuterHashMem_writeBalanceSlot (transferFromFromWord I) (transferFromSenderWord I))
     hslot (by evm_ov)
   have rd1130 := evm_run rd1130₀ with [ push0, dup3, dup3 ]
-  obtain ⟨k1, C1, rd1134₀⟩ := rd1130.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1134₀⟩ := rd1130.sload (by native_decide) (by evm_ov)
   have rd1134 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1134⟩
       [transferFromFromBalanceWord
           (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I,
@@ -1792,7 +1792,7 @@ theorem erc20TransferFromX_afterToStore {σ σ₀ A I}
     (balanceOfHashMem_writeOwner (transferFromFromWord I) (transferFromToWord I))
     (balanceOfHashMem_writeSlot_self (transferFromToWord I)) hslot (by evm_ov)
   have rd1215 := evm_run rd1215₀ with [ push0, dup3, dup3 ]
-  obtain ⟨k1, C1, rd1216₀⟩ := rd1215.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1216₀⟩ := rd1215.sload (by native_decide) (by evm_ov)
   have rd1216 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1216⟩
       [transferFromToBalanceWord (initState σ σ₀ g A I) I,
         transferFromValueWord I, ⟨0⟩, transferFromToSlot I, transferFromValueWord I,
@@ -1828,7 +1828,7 @@ theorem erc20TransferFromX_afterToStore {σ σ₀ A I}
   rw [hnew] at rd1225
   have rd1231 := evm_run rd1225 with [
     jumpdest, swap3, pop, pop, dup2, swap1 ]
-  obtain ⟨k3, C3, rd1231s⟩ := rd1231.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨k3, C3, rd1231s⟩ := rd1231.sstore hperm (by native_decide) (by evm_ov)
   exact ⟨_, _, evm_run rd1231s with [ pop ]⟩
 
 theorem erc20X_transferFrom {σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -1871,13 +1871,13 @@ theorem erc20X_transferFrom {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd1279 := rd1279₀
   rw [htoCleanL, hfromCleanL] at rd1279
   have rd1312₀ := rd1279.pushConst transferTransferTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd2073 := evm_run rd1312₀ with [
     dup6, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
       (balanceOfHashMem_mload64 (transferFromToWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push2 ⟨1325⟩, swap2, swap1, push2 ⟨2073⟩, jump erc20_jd ]
   obtain ⟨k1, C1, rd1325⟩ := erc20RoutineEncodeUint256FromMem
     (val := transferFromValueWord I) (ret := ⟨1325⟩)
@@ -1887,39 +1887,39 @@ theorem erc20X_transferFrom {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rd2073 (by rfl) erc20_jd (by simp only [List.length_cons, List.length_nil]; omega)
   have rd1333 := evm_run rd1325 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (balanceOfReturnMem_mload64 (transferFromToWord I) (transferFromValueWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  have rd1334 := rd1333.log3 0 (UInt256.ofNat 5) (by decide) hperm mem_cost
-    (by decide) (by evm_ov)
+  have rd1334 := rd1333.log3 0 (UInt256.ofNat 5) (by native_decide) hperm mem_cost
+    (by native_decide) (by evm_ov)
   have rd204 := evm_run rd1334 with [
     push1 ⟨1⟩, swap2, pop, pop, swap4, swap3, pop, pop, pop, jump erc20_jd ]
   have rd2033 := evm_run rd204 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (balanceOfReturnMem_mload64 (transferFromToWord I) (transferFromValueWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push2 ⟨217⟩, swap2, swap1, push2 ⟨2033⟩, jump erc20_jd ]
   obtain ⟨k2, C2, rd217⟩ := erc20RoutineEncodeBoolFromMem
     (val := (⟨1⟩ : UInt256)) (ret := ⟨217⟩) (R := [sel])
     rd2033
     (by
-      rw [show UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ from by decide])
+      rw [show UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ from by native_decide])
     erc20_jd (by simp only [List.length_cons, List.length_nil]; omega)
   exact evm_run rd217 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (transferReturnMem_mload64 (transferFromToWord I) (transferFromValueWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
+    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by native_decide)
       mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, erc20SubRet32_toNat]
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by native_decide, erc20SubRet32_toNat]
         exact transferReturnMem_read128 (transferFromToWord I) (transferFromValueWord I))
       (by evm_ov) ]
 
@@ -1955,7 +1955,7 @@ theorem erc20TransferFromX_overflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (balanceOfHashMem_writeOwner (transferFromFromWord I) (transferFromToWord I))
     (balanceOfHashMem_writeSlot_self (transferFromToWord I)) hslot (by evm_ov)
   have rd1215 := evm_run rd1215₀ with [ push0, dup3, dup3 ]
-  obtain ⟨k1, C1, rd1216₀⟩ := rd1215.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1216₀⟩ := rd1215.sload (by native_decide) (by evm_ov)
   have rd1216 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1216⟩
       [transferFromToBalanceWord (initState σ σ₀ g A I) I,
         transferFromValueWord I, ⟨0⟩, transferFromToSlot I, transferFromValueWord I,
@@ -1995,7 +1995,7 @@ theorem erc20TransferFromX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
     push2 ⟨2121⟩, jumpiNT (by rw [hslt]; decide),
     push2 ⟨2120⟩, push2 ⟨1800⟩, jump erc20_jd,
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem erc20TransferFromX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -2012,7 +2012,7 @@ theorem erc20TransferFromX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
     push2 ⟨2121⟩, jumpiNT (by rw [hslt]; decide),
     push2 ⟨2120⟩, push2 ⟨1800⟩, jump erc20_jd,
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem erc20TransferFromX_noncanon_from {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -2100,7 +2100,7 @@ theorem erc20TransferFromX_insufficientAllowance {σ σ₀ A I}
     (by rfl)
     (approveOuterSpenderMem_writeSlot (transferFromFromWord I) (transferFromSenderWord I))
     hslot (by evm_ov)
-  obtain ⟨k1, C1, rd736₀⟩ := rd735.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd736₀⟩ := rd735.sload (by native_decide) (by evm_ov)
   have rd737 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨737⟩
       [transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩, ⟨0⟩,
         transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
@@ -2117,24 +2117,24 @@ theorem erc20TransferFromX_insufficientAllowance {σ σ₀ A I}
   rw [hltw] at rd742
   have rd743₀ := evm_run rd742 with [ iszero ]
   have rd743 := rd743₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd743
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd743
   have rd747 := evm_run rd743 with [
-    push2 ⟨805⟩, jumpiNT (by decide) ]
+    push2 ⟨805⟩, jumpiNT (by native_decide) ]
   have rd750 := evm_run rd747 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
       (allowanceOuterHashMem_mload64 (transferFromFromWord I) (transferFromSenderWord I))
-      (by decide) (by evm_ov) ]
+      (by native_decide) (by evm_ov) ]
   have rd783 := rd750.pushConst transferErrorSelector (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd785 := evm_run rd783 with [
     dup2,
     raw mstore 6
       (transferFromInsufficientAllowanceSelectorMem (transferFromFromWord I)
         (transferFromSenderWord I))
-      (UInt256.ofNat 5) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov) ]
+      (UInt256.ofNat 5) (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov) ]
   have rd2373 := evm_run rd785 with [
     push1 ⟨4⟩, add, push2 ⟨796⟩, swap1, push2 ⟨2373⟩, jump erc20_jd ]
   have rd2388 := evm_run rd2373 with [
@@ -2143,8 +2143,8 @@ theorem erc20TransferFromX_insufficientAllowance {σ σ₀ A I}
     raw mstore 3
       (transferFromInsufficientAllowanceOffsetMem (transferFromFromWord I)
         (transferFromSenderWord I))
-      (UInt256.ofNat 6) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov) ]
+      (UInt256.ofNat 6) (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov) ]
   have rd2339 := evm_run rd2388 with [
     push2 ⟨2396⟩, dup2, push2 ⟨2339⟩, jump erc20_jd ]
   have rd2283 := evm_run rd2339 with [
@@ -2155,22 +2155,22 @@ theorem erc20TransferFromX_insufficientAllowance {σ σ₀ A I}
     raw mstore 3
       (transferFromInsufficientAllowanceLengthMem (transferFromFromWord I)
         (transferFromSenderWord I))
-      (UInt256.ofNat 7) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 7) (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, dup3, add, swap1, pop, swap3, swap2, pop, pop,
     jump erc20_jd ]
   have rd2299 := evm_run rd2351 with [
     jumpdest, swap2, pop, push2 ⟨2362⟩, dup3, push2 ⟨2299⟩, jump erc20_jd ]
   have rd2300 := evm_run rd2299 with [ jumpdest ]
   have rd2333 := rd2300.pushConst transferFromInsufficientAllowanceWord
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
   have rd2362 := evm_run rd2333 with [
     push0, dup3, add,
     raw mstore 3
       (transferFromInsufficientAllowanceStringMem (transferFromFromWord I)
         (transferFromSenderWord I))
-      (UInt256.ofNat 8) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 8) (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     pop, jump erc20_jd ]
   have rd2396 := evm_run rd2362 with [
     jumpdest, push1 ⟨32⟩, dup3, add, swap1, pop, swap2, swap1, pop,
@@ -2179,13 +2179,13 @@ theorem erc20TransferFromX_insufficientAllowance {σ σ₀ A I}
     jumpdest, swap1, pop, swap2, swap1, pop, jump erc20_jd ]
   have rd796 := evm_run rd796ret with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
       mem_cost
       (transferFromInsufficientAllowanceStringMem_mload64 (transferFromFromWord I)
         (transferFromSenderWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  exact rd796.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd796.rev 0 (by native_decide) mem_cost (by evm_ov)
 
 /-- ERC20-local trace fact for the `require(balanceOf[from] >= value)` failure path.
     The branch builds `Error("ERC20: insufficient balance")` and reverts. -/
@@ -2217,7 +2217,7 @@ theorem erc20TransferFromX_insufficientBalance {σ σ₀ A I}
     (by rfl)
     (allowanceOuterHashMem_writeBalanceSlot (transferFromFromWord I) (transferFromSenderWord I))
     hslot (by evm_ov)
-  obtain ⟨k1, C1, rd868₀⟩ := rd867.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd868₀⟩ := rd867.sload (by native_decide) (by evm_ov)
   have rd868 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨868⟩
       [transferFromFromBalanceWord (initState σ σ₀ g A I) I,
         transferFromValueWord I,
@@ -2236,30 +2236,30 @@ theorem erc20TransferFromX_insufficientBalance {σ σ₀ A I}
   rw [hltw] at rd869
   have rd870₀ := evm_run rd869 with [ iszero ]
   have rd870 := rd870₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd870
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd870
   have rd874 := evm_run rd870 with [
-    push2 ⟨932⟩, jumpiNT (by decide) ]
+    push2 ⟨932⟩, jumpiNT (by native_decide) ]
   have rd877 := evm_run rd874 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
       (balanceOfHashMem_mload64 (transferFromFromWord I))
-      (by decide) (by evm_ov) ]
+      (by native_decide) (by evm_ov) ]
   have rd910 := rd877.pushConst transferErrorSelector (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd912 := evm_run rd910 with [
     dup2,
     raw mstore 6 (transferInsufficientSelectorMem (transferFromFromWord I)) (UInt256.ofNat 5)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov) ]
+      (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov) ]
   have rd2477 := evm_run rd912 with [
     push1 ⟨4⟩, add, push2 ⟨923⟩, swap1, push2 ⟨2477⟩, jump erc20_jd ]
   have rd2492 := evm_run rd2477 with [
     jumpdest, push0, push1 ⟨32⟩, dup3, add, swap1, pop, dup2, dup2, sub,
     push0, dup4, add,
     raw mstore 3 (transferInsufficientOffsetMem (transferFromFromWord I)) (UInt256.ofNat 6)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov) ]
+      (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov) ]
   have rd2443 := evm_run rd2492 with [
     push2 ⟨2500⟩, dup2, push2 ⟨2443⟩, jump erc20_jd ]
   have rd2283 := evm_run rd2443 with [
@@ -2268,20 +2268,20 @@ theorem erc20TransferFromX_insufficientBalance {σ σ₀ A I}
   have rd2455 := evm_run rd2283 with [
     jumpdest, push0, dup3, dup3,
     raw mstore 3 (transferInsufficientLengthMem (transferFromFromWord I)) (UInt256.ofNat 7)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, dup3, add, swap1, pop, swap3, swap2, pop, pop,
     jump erc20_jd ]
   have rd2403 := evm_run rd2455 with [
     jumpdest, swap2, pop, push2 ⟨2466⟩, dup3, push2 ⟨2403⟩, jump erc20_jd ]
   have rd2404 := evm_run rd2403 with [ jumpdest ]
   have rd2437 := rd2404.pushConst transferInsufficientBalanceWord
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
   have rd2466 := evm_run rd2437 with [
     push0, dup3, add,
     raw mstore 3 (transferInsufficientStringMem (transferFromFromWord I)) (UInt256.ofNat 8)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     pop, jump erc20_jd ]
   have rd2500 := evm_run rd2466 with [
     jumpdest, push1 ⟨32⟩, dup3, add, swap1, pop, swap2, swap1, pop,
@@ -2290,12 +2290,12 @@ theorem erc20TransferFromX_insufficientBalance {σ σ₀ A I}
     jumpdest, swap1, pop, swap2, swap1, pop, jump erc20_jd ]
   have rd923 := evm_run rd923ret with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
       mem_cost
       (transferInsufficientStringMem_mload64 (transferFromFromWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  exact rd923.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd923.rev 0 (by native_decide) mem_cost (by evm_ov)
 
 theorem erc20TransferFromBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}

@@ -86,14 +86,14 @@ def thetaCall (gas : UInt256) (substate : Substate) (req : CallRequest) (evm : E
   let env := evm.executionEnv
   match req.kind with
   | .delegatecall =>
-      let (σ', _, A', z, o) := Θ evm.accountMap evm.σ₀ substate env.source env.sender env.codeOwner
-        (toExecute evm.accountMap req.target) gas (.ofNat env.gasPrice) ⟨0⟩ env.weiValue
+      let (σ', _, A', z, o) := Θ env.fork evm.accountMap evm.σ₀ substate env.source env.sender env.codeOwner
+        (toExecute env.fork evm.accountMap req.target) gas (.ofNat env.gasPrice) ⟨0⟩ env.weiValue
         req.calldata (env.depth + 1) env.header env.blobVersionedHashes env.blocks env.perm
       ⟨z, σ', A', o⟩
   | _ =>
       let valueWord := EVM.wordOfInt req.value
-      let (σ', _, A', z, o) := Θ evm.accountMap evm.σ₀ substate env.codeOwner env.sender req.target
-        (toExecute evm.accountMap req.target) gas (.ofNat env.gasPrice) valueWord valueWord
+      let (σ', _, A', z, o) := Θ env.fork evm.accountMap evm.σ₀ substate env.codeOwner env.sender req.target
+        (toExecute env.fork evm.accountMap req.target) gas (.ofNat env.gasPrice) valueWord valueWord
         req.calldata (env.depth + 1) env.header env.blobVersionedHashes env.blocks req.calleePerm
       ⟨z, σ', A', o⟩
 
@@ -104,7 +104,7 @@ def lambdaCreate (gas : UInt256) (substate : Substate) (req : CreateRequest) (ev
   let env := evm.executionEnv
   let creator := evm.accountMap.get? env.codeOwner |>.getD default
   let σStar := evm.accountMap.insert env.codeOwner { creator with nonce := creator.nonce + ⟨1⟩ }
-  let (addr, σ', _, A', z, _) := Lambda σStar evm.σ₀ substate env.codeOwner env.sender gas
+  let (addr, σ', _, A', z, _) := Lambda env.fork σStar evm.σ₀ substate env.codeOwner env.sender gas
     (.ofNat env.gasPrice) (EVM.wordOfInt req.value) req.initCode (env.depth + 1) req.salt
     env.header env.blobVersionedHashes env.blocks env.perm
   ⟨addr, σ', A', z⟩

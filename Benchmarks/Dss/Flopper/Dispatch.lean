@@ -473,10 +473,12 @@ theorem flopperReachLowSplit {σ σ₀ A I} {g : Sat256}
   obtain ⟨k32, C32, h32⟩ :=
     flopperReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
+  have hrootTgt : armTgt flopperBytecode flopperRootSplitPc = flopperLowSplitJumpdestPc :=
+    by native_decide
   have h173 : RD flopperBytecode I g (initState σ σ₀ g A I)
       flopperLowSplitJumpdestPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
-    simpa [flopperRootSplitPc, flopperLowSplitJumpdestPc] using
+    simpa [flopperRootSplitPc, flopperLowSplitJumpdestPc, hrootTgt] using
       RD.selectorSplitTakenAuto h32 flopperRootSplitWellFormed hroot (by jump_dest) (by simp)
   have h174 : RD flopperBytecode I g (initState σ σ₀ g A I)
       flopperLowSplitPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
@@ -516,10 +518,12 @@ theorem flopperReachLowLowFirstArm {σ σ₀ A I} {g : Sat256}
   obtain ⟨k174, C174, h174⟩ :=
     flopperReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
+  have hlowTgt : armTgt flopperBytecode flopperLowSplitPc = flopperLowLowJumpdestPc :=
+    by native_decide
   have h244 : RD flopperBytecode I g (initState σ σ₀ g A I)
       flopperLowLowJumpdestPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k174 + 5) (C174 + 22) := by
-    simpa [flopperLowSplitPc, flopperLowLowJumpdestPc] using
+    simpa [flopperLowSplitPc, flopperLowLowJumpdestPc, hlowTgt] using
       RD.selectorSplitTakenAuto h174 flopperLowSplitWellFormed hlow (by jump_dest) (by simp)
   have h245 : RD flopperBytecode I g (initState σ σ₀ g A I)
       flopperLowLowFirstArmPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
@@ -561,10 +565,12 @@ theorem flopperReachHighLowFirstArm {σ σ₀ A I} {g : Sat256}
   obtain ⟨k43, C43, h43⟩ :=
     flopperReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
+  have hhighTgt : armTgt flopperBytecode flopperHighSplitPc = flopperHighLowJumpdestPc :=
+    by native_decide
   have h113 : RD flopperBytecode I g (initState σ σ₀ g A I)
       flopperHighLowJumpdestPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5) (C43 + 22) := by
-    simpa [flopperHighSplitPc, flopperHighLowJumpdestPc] using
+    simpa [flopperHighSplitPc, flopperHighLowJumpdestPc, hhighTgt] using
       RD.selectorSplitTakenAuto h43 flopperHighSplitWellFormed hhigh (by jump_dest) (by simp)
   have h114 : RD flopperBytecode I g (initState σ σ₀ g A I)
       flopperHighLowFirstArmPc [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3)

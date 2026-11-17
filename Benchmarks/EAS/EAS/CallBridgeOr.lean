@@ -8,9 +8,9 @@ theorem callStateMadeAny {s0 I σ evm} (hs : SourceState s0 I σ evm)
     {σ' : AccountMap} {gasLeft callGas : UInt256} {AS' AIn : Substate} {z : Bool} {out : ByteArray}
     (hbalance : value ≤ (σ.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024)
-    (hΘ : (σ', gasLeft, AS', z, out) = Θ σ s0.σ₀ AIn
+    (hΘ : (σ', gasLeft, AS', z, out) = Θ I.fork σ s0.σ₀ AIn
       (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-      (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+      (AccountAddress.ofUInt256 target) (toExecute I.fork σ (AccountAddress.ofUInt256 target))
       callGas (UInt256.ofNat I.gasPrice) value value calldata (I.depth + 1) I.header
       I.blobVersionedHashes I.blocks I.perm) :
     callViaEVM (callState evm σ) (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
@@ -68,7 +68,7 @@ theorem callBridgeOr {code I g s0 pc R mem aw rdata σ k C evm}
         h.callValueMadeOr hdec hperm hb hdlt hov
       rw [hcd] at hΘ
       have ho : out.size < 2 ^ 138 :=
-        Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ hsmall
+        Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  _ hΘ hsmall
       have hraw := callStateMadeAny hs hb hdlt hΘ
       obtain ⟨evm', hcall, hs'⟩ := hs.callTransport hraw
       exact ⟨evm', σ', z, out, k', C', hcall, hs', rd, ho⟩

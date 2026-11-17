@@ -206,12 +206,12 @@ theorem endCageCallMadeBridge {evmE evmS : EVM.State} {slot : UInt256}
     {A' Ain : Substate} {z : Bool} {out : ByteArray} {g'' callGas : UInt256}
     (hdepth : evmE.executionEnv.depth ≠ 1024)
     (hΘ : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evmE.accountMap evmE.σ₀ Ain
+        Ethereum.EVM.Θ evmE.executionEnv.fork evmE.accountMap evmE.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
           evmE.executionEnv.sender
           (AccountAddress.ofUInt256
             (endCageCallTargetWord slot evmE.accountMap evmE.executionEnv))
-          (toExecute evmE.accountMap
+          (toExecute evmE.executionEnv.fork evmE.accountMap
             (AccountAddress.ofUInt256
               (endCageCallTargetWord slot evmE.accountMap evmE.executionEnv)))
           callGas (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
@@ -243,12 +243,12 @@ theorem endCageCallMadeBridge {evmE evmS : EVM.State} {slot : UInt256}
     exact endCageCallTargetAddr_source_eq_evmWord slot hAccounts
   have hΘS :
       (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evmS.accountMap evmS.σ₀ Ain
+        Ethereum.EVM.Θ evmS.executionEnv.fork evmS.accountMap evmS.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmS.executionEnv.codeOwner))
           evmS.executionEnv.sender
           (AccountAddress.ofUInt256
             (endCageCallTargetWord slot evmS.accountMap evmS.executionEnv))
-          (toExecute evmS.accountMap
+          (toExecute evmS.executionEnv.fork evmS.accountMap
             (AccountAddress.ofUInt256
               (endCageCallTargetWord slot evmS.accountMap evmS.executionEnv)))
           callGas (UInt256.ofNat evmS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
@@ -837,10 +837,10 @@ theorem endCageX_vatPostCall {σ σ₀ A I} {g : UInt256}
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ acc σ₀ Ain
+          Ethereum.EVM.Θ I.fork acc σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨1⟩ acc I))
-          (toExecute acc
+          (toExecute I.fork acc
             (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨1⟩ acc I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
@@ -1141,10 +1141,10 @@ theorem endCageX_catPostCall {σ σ₀ A I} {g : UInt256}
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ acc σ₀ Ain
+          Ethereum.EVM.Θ I.fork acc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨2⟩ acc I))
-            (toExecute acc
+            (toExecute I.fork acc
               (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨2⟩ acc I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
@@ -1442,10 +1442,10 @@ theorem endCageX_dogPostCall {σ σ₀ A I} {g : UInt256}
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ acc σ₀ Ain
+          Ethereum.EVM.Θ I.fork acc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨3⟩ acc I))
-            (toExecute acc
+            (toExecute I.fork acc
               (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨3⟩ acc I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
@@ -1736,10 +1736,10 @@ theorem endCageX_vowPostCall {σ σ₀ A I} {g : UInt256}
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ acc σ₀ Ain
+          Ethereum.EVM.Θ I.fork acc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨4⟩ acc I))
-            (toExecute acc
+            (toExecute I.fork acc
               (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨4⟩ acc I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
@@ -2037,10 +2037,10 @@ theorem endCageX_spotPostCall {σ σ₀ A I} {g : UInt256}
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ acc σ₀ Ain
+          Ethereum.EVM.Θ I.fork acc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨6⟩ acc I))
-            (toExecute acc
+            (toExecute I.fork acc
               (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨6⟩ acc I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
@@ -2338,10 +2338,10 @@ theorem endCageX_potPostCall {σ σ₀ A I} {g : UInt256}
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ acc σ₀ Ain
+          Ethereum.EVM.Θ I.fork acc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨5⟩ acc I))
-            (toExecute acc
+            (toExecute I.fork acc
               (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨5⟩ acc I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
@@ -2639,10 +2639,10 @@ theorem endCageX_curePostCall {σ σ₀ A I} {g : UInt256}
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ acc σ₀ Ain
+          Ethereum.EVM.Θ I.fork acc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨7⟩ acc I))
-            (toExecute acc
+            (toExecute I.fork acc
               (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨7⟩ acc I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
@@ -3252,12 +3252,12 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
           let evmE1 := { evmE0 with accountMap := σ1, substate := A1 }
           have hΘ1bridge :
               (σ1, g1'', A1, z1, out1) =
-                Ethereum.EVM.Θ evmE0.accountMap evmE0.σ₀ Ain1
+                Ethereum.EVM.Θ evmE0.executionEnv.fork evmE0.accountMap evmE0.σ₀ Ain1
                   (AccountAddress.ofUInt256 (UInt256.ofNat evmE0.executionEnv.codeOwner))
                   evmE0.executionEnv.sender
                   (AccountAddress.ofUInt256
                     (endCageCallTargetWord ⟨1⟩ evmE0.accountMap evmE0.executionEnv))
-                  (toExecute evmE0.accountMap
+                  (toExecute evmE0.executionEnv.fork evmE0.accountMap
                     (AccountAddress.ofUInt256
                       (endCageCallTargetWord ⟨1⟩ evmE0.accountMap evmE0.executionEnv)))
                   callGas1 (UInt256.ofNat evmE0.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
@@ -3398,12 +3398,12 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                 simpa [evmE1] using hdepthNe0
               have hΘ2bridge :
                   (σ2, g2'', A2, z2, out2) =
-                    Ethereum.EVM.Θ evmE1.accountMap evmE1.σ₀ Ain2
+                    Ethereum.EVM.Θ evmE1.executionEnv.fork evmE1.accountMap evmE1.σ₀ Ain2
                       (AccountAddress.ofUInt256 (UInt256.ofNat evmE1.executionEnv.codeOwner))
                       evmE1.executionEnv.sender
                       (AccountAddress.ofUInt256
                         (endCageCallTargetWord ⟨2⟩ evmE1.accountMap evmE1.executionEnv))
-                      (toExecute evmE1.accountMap
+                      (toExecute evmE1.executionEnv.fork evmE1.accountMap
                         (AccountAddress.ofUInt256
                           (endCageCallTargetWord ⟨2⟩ evmE1.accountMap evmE1.executionEnv)))
                       callGas2 (UInt256.ofNat evmE1.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
@@ -3552,14 +3552,14 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                     simpa [evmE2, evmE1] using hdepthNe0
                   have hΘ3bridge :
                       (σ3, g3'', A3, z3, out3) =
-                        Ethereum.EVM.Θ evmE2.accountMap evmE2.σ₀ Ain3
+                        Ethereum.EVM.Θ evmE2.executionEnv.fork evmE2.accountMap evmE2.σ₀ Ain3
                           (AccountAddress.ofUInt256
                             (UInt256.ofNat evmE2.executionEnv.codeOwner))
                           evmE2.executionEnv.sender
                           (AccountAddress.ofUInt256
                             (endCageCallTargetWord ⟨3⟩ evmE2.accountMap
                               evmE2.executionEnv))
-                          (toExecute evmE2.accountMap
+                          (toExecute evmE2.executionEnv.fork evmE2.accountMap
                             (AccountAddress.ofUInt256
                               (endCageCallTargetWord ⟨3⟩ evmE2.accountMap
                                 evmE2.executionEnv)))
@@ -3707,14 +3707,14 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                         simpa [evmE3, evmE2, evmE1] using hdepthNe0
                       have hΘ4bridge :
                           (σ4, g4'', A4, z4, out4) =
-                            Ethereum.EVM.Θ evmE3.accountMap evmE3.σ₀ Ain4
+                            Ethereum.EVM.Θ evmE3.executionEnv.fork evmE3.accountMap evmE3.σ₀ Ain4
                               (AccountAddress.ofUInt256
                                 (UInt256.ofNat evmE3.executionEnv.codeOwner))
                               evmE3.executionEnv.sender
                               (AccountAddress.ofUInt256
                                 (endCageCallTargetWord ⟨4⟩ evmE3.accountMap
                                   evmE3.executionEnv))
-                              (toExecute evmE3.accountMap
+                              (toExecute evmE3.executionEnv.fork evmE3.accountMap
                                 (AccountAddress.ofUInt256
                                   (endCageCallTargetWord ⟨4⟩ evmE3.accountMap
                                     evmE3.executionEnv)))
@@ -3867,14 +3867,14 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                             simpa [evmE4, evmE3, evmE2, evmE1] using hdepthNe0
                           have hΘ5bridge :
                               (σ5, g5'', A5, z5, out5) =
-                                Ethereum.EVM.Θ evmE4.accountMap evmE4.σ₀ Ain5
+                                Ethereum.EVM.Θ evmE4.executionEnv.fork evmE4.accountMap evmE4.σ₀ Ain5
                                   (AccountAddress.ofUInt256
                                     (UInt256.ofNat evmE4.executionEnv.codeOwner))
                                   evmE4.executionEnv.sender
                                   (AccountAddress.ofUInt256
                                     (endCageCallTargetWord ⟨6⟩ evmE4.accountMap
                                       evmE4.executionEnv))
-                                  (toExecute evmE4.accountMap
+                                  (toExecute evmE4.executionEnv.fork evmE4.accountMap
                                     (AccountAddress.ofUInt256
                                       (endCageCallTargetWord ⟨6⟩ evmE4.accountMap
                                         evmE4.executionEnv)))
@@ -4035,14 +4035,14 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                                 simpa [evmE5, evmE4, evmE3, evmE2, evmE1] using hdepthNe0
                               have hΘ6bridge :
                                   (σ6, g6'', A6, z6, out6) =
-                                    Ethereum.EVM.Θ evmE5.accountMap evmE5.σ₀ Ain6
+                                    Ethereum.EVM.Θ evmE5.executionEnv.fork evmE5.accountMap evmE5.σ₀ Ain6
                                       (AccountAddress.ofUInt256
                                         (UInt256.ofNat evmE5.executionEnv.codeOwner))
                                       evmE5.executionEnv.sender
                                       (AccountAddress.ofUInt256
                                         (endCageCallTargetWord ⟨5⟩ evmE5.accountMap
                                           evmE5.executionEnv))
-                                      (toExecute evmE5.accountMap
+                                      (toExecute evmE5.executionEnv.fork evmE5.accountMap
                                         (AccountAddress.ofUInt256
                                           (endCageCallTargetWord ⟨5⟩ evmE5.accountMap
                                             evmE5.executionEnv)))
@@ -4219,7 +4219,7 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                                       using hdepthNe0
                                   have hΘ7bridge :
                                       (σ7, g7'', A7, z7, out7) =
-                                        Ethereum.EVM.Θ evmE6.accountMap evmE6.σ₀ Ain7
+                                        Ethereum.EVM.Θ evmE6.executionEnv.fork evmE6.accountMap evmE6.σ₀ Ain7
                                           (AccountAddress.ofUInt256
                                             (UInt256.ofNat
                                               evmE6.executionEnv.codeOwner))
@@ -4227,7 +4227,7 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                                           (AccountAddress.ofUInt256
                                             (endCageCallTargetWord ⟨7⟩
                                               evmE6.accountMap evmE6.executionEnv))
-                                          (toExecute evmE6.accountMap
+                                          (toExecute evmE6.executionEnv.fork evmE6.accountMap
                                             (AccountAddress.ofUInt256
                                               (endCageCallTargetWord ⟨7⟩
                                                 evmE6.accountMap evmE6.executionEnv)))

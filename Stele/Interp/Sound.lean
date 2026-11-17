@@ -36,8 +36,8 @@ theorem thetaCall_call (gas : UInt256) (A_in : Substate) (kind : CallKind)
     (calleePerm : Bool) (evm : EVM.State) :
     ∃ σ' g' A' z o,
       thetaCall gas A_in ⟨kind, target, value, calldata, calleePerm⟩ evm = ⟨z, σ', A', o⟩ ∧
-      (σ', g', A', z, o) = Θ evm.accountMap evm.σ₀ A_in evm.executionEnv.codeOwner
-        evm.executionEnv.sender target (toExecute evm.accountMap target) gas
+      (σ', g', A', z, o) = Θ evm.executionEnv.fork evm.accountMap evm.σ₀ A_in evm.executionEnv.codeOwner
+        evm.executionEnv.sender target (toExecute evm.executionEnv.fork evm.accountMap target) gas
         (.ofNat evm.executionEnv.gasPrice) (EVM.wordOfInt value) (EVM.wordOfInt value) calldata
         (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes
         evm.executionEnv.blocks calleePerm := by
@@ -53,8 +53,9 @@ theorem thetaCall_delegatecall (gas : UInt256) (A_in : Substate) (target : EVM.A
     (calldata : ByteArray) (calleePerm : Bool) (evm : EVM.State) :
     ∃ σ' g' A' z o,
       thetaCall gas A_in ⟨.delegatecall, target, 0, calldata, calleePerm⟩ evm = ⟨z, σ', A', o⟩ ∧
-      (σ', g', A', z, o) = Θ evm.accountMap evm.σ₀ A_in evm.executionEnv.source
-        evm.executionEnv.sender evm.executionEnv.codeOwner (toExecute evm.accountMap target) gas
+      (σ', g', A', z, o) = Θ evm.executionEnv.fork evm.accountMap evm.σ₀ A_in evm.executionEnv.source
+        evm.executionEnv.sender evm.executionEnv.codeOwner
+        (toExecute evm.executionEnv.fork evm.accountMap target) gas
         (.ofNat evm.executionEnv.gasPrice) ⟨0⟩ evm.executionEnv.weiValue calldata
         (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes
         evm.executionEnv.blocks evm.executionEnv.perm := by
@@ -67,7 +68,7 @@ theorem lambdaCreate_spec (gas : UInt256) (A_in : Substate) (value : Int) (initC
     (salt : Option ByteArray) (evm : EVM.State) :
     ∃ addr σ' g' A' z o,
       lambdaCreate gas A_in ⟨value, initCode, salt⟩ evm = ⟨addr, σ', A', z⟩ ∧
-      (addr, σ', g', A', z, o) = Lambda
+      (addr, σ', g', A', z, o) = Lambda evm.executionEnv.fork
         (evm.accountMap.insert evm.executionEnv.codeOwner
           { (evm.accountMap.get? evm.executionEnv.codeOwner |>.getD default) with
               nonce := (evm.accountMap.get? evm.executionEnv.codeOwner |>.getD default).nonce + ⟨1⟩ })

@@ -307,6 +307,7 @@ theorem clipperRedoVatPush32Decode7935 (v : ClipperImmutables) {code : ByteArray
       rw [patchRuntime_get?_disjoint hpatch
         (by apply clipperRuntimePatchesWindowDisjoint32Bool v; native_decide)]
       native_decide)
+    (by native_decide)
     (by
       rw [show (⟨7935⟩ : UInt256).toNat + 1 = 7936 by native_decide]
       rw [show (⟨7935⟩ : UInt256).toNat + 33 = 7968 by native_decide]

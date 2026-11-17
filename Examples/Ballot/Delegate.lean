@@ -225,7 +225,7 @@ theorem delegateSourceWord_toNat (I : ExecutionEnv) :
     (delegateSourceWord I).toNat = I.source.val := by
   unfold delegateSourceWord
   exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
-    (show AccountAddress.size ≤ UInt256.size from by decide))
+    (show AccountAddress.size ≤ UInt256.size from by native_decide))
 
 theorem delegateSourceWord_canonical (I : ExecutionEnv) :
     (delegateSourceWord I).toNat < EVM.addressModulus := by
@@ -261,13 +261,13 @@ theorem delegateWithSenderStore_to (I : ExecutionEnv) :
     (delegateWithSenderStore I).get? "to" = some (delegateToValue I) := by
   unfold delegateWithSenderStore
   rw [store_get_ne (delegateStore I) (.storageRef (delegateSenderRef I) voterStructTy)
-    (by decide), delegateStore_to]
+    (by native_decide), delegateStore_to]
 
 theorem delegateWithDelegateStore_to (I : ExecutionEnv) :
     (delegateWithDelegateStore I).get? "to" = some (delegateToValue I) := by
   unfold delegateWithDelegateStore
   rw [store_get_ne (delegateWithSenderStore I) (.storageRef (delegateVoterRef I) voterStructTy)
-    (by decide), delegateWithSenderStore_to]
+    (by native_decide), delegateWithSenderStore_to]
 
 /-! ### ABI decode -/
 
@@ -649,7 +649,7 @@ theorem resolveStorageRef_delegate_senderField_afterDelegate (evm : EVM.State) (
     unfold delegateWithDelegateStore delegateWithSenderStore
     rw [store_get_ne ((delegateStore I).insert "sender"
       (.storageRef (delegateSenderRef I) voterStructTy))
-      (.storageRef (delegateVoterRef I) voterStructTy) (by decide)]
+      (.storageRef (delegateVoterRef I) voterStructTy) (by native_decide)]
     exact store_get_self (delegateStore I) "sender"
       (.storageRef (delegateSenderRef I) voterStructTy)
   change
@@ -713,7 +713,7 @@ theorem delegateAssignVoted (evm : EVM.State) (I : ExecutionEnv) :
     (by rfl), bind, EvalResult.bind, EvalResult.ofOption, pure]
   rw [show ballotConfig.storageBackend = solidityStorageBackend ballotStorageLayout from rfl]
   rw [solidityStorageBackend_write_elem
-    (loc := { slot := delegateSenderPackedSlot I, offset := 0, size := 1, hbound := by decide, type := .bool })
+    (loc := { slot := delegateSenderPackedSlot I, offset := 0, size := 1, hbound := by native_decide, type := .bool })
     (hloc := by rfl)
     (hstore := by
       change storageLocStore evm (boolOffset0Loc (delegateSenderPackedSlot I)) (.bool true) = _
@@ -734,7 +734,7 @@ theorem delegateAssignDelegate (evm : EVM.State) (I : ExecutionEnv)
     "delegate" (.elem .address) (by rfl), bind, EvalResult.bind, EvalResult.ofOption, pure]
   rw [show ballotConfig.storageBackend = solidityStorageBackend ballotStorageLayout from rfl]
   rw [solidityStorageBackend_write_elem
-    (loc := { slot := delegateSenderPackedSlot I, offset := 1, size := 20, hbound := by decide, type := .address })
+    (loc := { slot := delegateSenderPackedSlot I, offset := 1, size := 20, hbound := by native_decide, type := .address })
     (evm' := delegateAfterSenderState evm I)
     (hloc := by rfl)
     (hstore := by
@@ -2398,7 +2398,7 @@ theorem RD.ballotDelegateDecodeAddrLenRevert1770 {g : Sat256} {s0 : State} {ee :
   evm_run h with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨1786⟩,
     jumpiNT (by rw [hslt]; decide),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem RD.ballotDelegateDecodeAddrNoncanonRevert1770 {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {off csize ret : UInt256} {R : List UInt256}
@@ -2422,7 +2422,7 @@ theorem RD.ballotDelegateDecodeAddrNoncanonRevert1770 {g : Sat256} {s0 : State}
           (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
             solcAddrMask) = ⟨0⟩
       exact hnc),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ] :
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ] :
     RDrev ballotBytecode g s0)
 
 end Reasoning.Reach
@@ -2513,15 +2513,15 @@ theorem ballotDelegateX_afterWeight {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd729 := evm_run rd715 with [
     jumpdest, caller, push0, swap1, dup2,
     raw mstore 0 (delegateKeyMem (delegateSourceWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩,
     raw mstore 0 (delegateHashMem (delegateSourceWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨64⟩, dup2,
-    raw keccak256 0 (delegateSenderSlot I) (UInt256.ofNat 3) (by decide)
-      mem_cost hslot (by decide) (by evm_ov),
+    raw keccak256 0 (delegateSenderSlot I) (UInt256.ofNat 3) (by native_decide)
+      mem_cost hslot (by native_decide) (by evm_ov),
     dup1 ]
-  obtain ⟨_, _, rd732₀⟩ := rd729.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd732₀⟩ := rd729.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd732⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨732⟩
       [delegateSenderWeightWord σ I, delegateSenderSlot I, ⟨0⟩, delegateToWord I, ⟨156⟩, sel]
@@ -2550,15 +2550,15 @@ theorem ballotDelegateX_weightRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd729 := evm_run rd715 with [
     jumpdest, caller, push0, swap1, dup2,
     raw mstore 0 (delegateKeyMem (delegateSourceWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩,
     raw mstore 0 (delegateHashMem (delegateSourceWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨64⟩, dup2,
-    raw keccak256 0 (delegateSenderSlot I) (UInt256.ofNat 3) (by decide)
-      mem_cost hslot (by decide) (by evm_ov),
+    raw keccak256 0 (delegateSenderSlot I) (UInt256.ofNat 3) (by native_decide)
+      mem_cost hslot (by native_decide) (by evm_ov),
     dup1 ]
-  obtain ⟨_, _, rd732₀⟩ := rd729.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd732₀⟩ := rd729.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd732⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨732⟩
       [delegateSenderWeightWord σ I, delegateSenderSlot I, ⟨0⟩, delegateToWord I, ⟨156⟩, sel]
@@ -2572,35 +2572,35 @@ theorem ballotDelegateX_weightRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     decide
   have rd735' := rd735
   rw [hsubzero] at rd735'
-  have rd739 := evm_run rd735' with [push2 ⟨810⟩, jumpiNT (by decide)]
+  have rd739 := evm_run rd735' with [push2 ⟨810⟩, jumpiNT (by native_decide)]
   have rd742 := evm_run rd739 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost (delegateHashMem_mload64 (delegateSourceWord I)) (by decide) (by evm_ov) ]
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost (delegateHashMem_mload64 (delegateSourceWord I)) (by native_decide) (by evm_ov) ]
   have rd746 := rd742.pushConst ⟨0x461bcd⟩ (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd765 := evm_run rd746 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (delegateWeightErrorMem0 (delegateSourceWord I)) (UInt256.ofNat 5)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
     raw mstore 3 (delegateWeightErrorMem1 (delegateSourceWord I)) (UInt256.ofNat 6)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨25⟩, push1 ⟨36⟩, dup3, add,
     raw mstore 3 (delegateWeightErrorMem2 (delegateSourceWord I)) (UInt256.ofNat 7)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov) ]
   have rd798 := rd765.pushConst delegateWeightStringWord (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd507 := evm_run rd798 with [
     push1 ⟨68⟩, dup3, add,
     raw mstore 3 (delegateWeightErrorMem3 (delegateSourceWord I)) (UInt256.ofNat 8)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨100⟩, add, push2 ⟨507⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
-      mem_cost (delegateWeightErrorMem3_mload64 (delegateSourceWord I)) (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      mem_cost (delegateWeightErrorMem3_mload64 (delegateSourceWord I)) (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rev 0 (by native_decide) mem_cost (by evm_ov) ]
   exact rd507
 
 theorem ballotDelegateX_afterNotVoted {σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -2618,7 +2618,7 @@ theorem ballotDelegateX_afterNotVoted {σ σ₀ A I} {g : Sat256} {sel : UInt256
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
     hsz36 hsize hszhi hcanon hweight hreach
   have rd815₀ := evm_run rd810 with [jumpdest, push1 ⟨1⟩, dup2, add]
-  obtain ⟨_, _, rd816₀⟩ := rd815₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd816₀⟩ := rd815₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd816⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨816⟩
       [delegateSenderPackedWord σ I, delegateSenderSlot I, delegateToWord I, ⟨156⟩, sel]
@@ -2634,7 +2634,7 @@ theorem ballotDelegateX_afterNotVoted {σ σ₀ A I} {g : Sat256} {sel : UInt256
     decide
   have rd819' := rd819
   rw [hzero] at rd819'
-  exact ⟨_, _, evm_run rd819' with [push2 ⟨884⟩, jumpiT (by decide) (by jump_dest)]⟩
+  exact ⟨_, _, evm_run rd819' with [push2 ⟨884⟩, jumpiT (by native_decide) (by jump_dest)]⟩
 
 theorem ballotDelegateX_votedRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -2649,7 +2649,7 @@ theorem ballotDelegateX_votedRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
     hsz36 hsize hszhi hcanon hweight hreach
   have rd815₀ := evm_run rd810 with [jumpdest, push1 ⟨1⟩, dup2, add]
-  obtain ⟨_, _, rd816₀⟩ := rd815₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd816₀⟩ := rd815₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd816⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨816⟩
       [delegateSenderPackedWord σ I, delegateSenderSlot I, delegateToWord I, ⟨156⟩, sel]
@@ -2664,35 +2664,35 @@ theorem ballotDelegateX_votedRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     exact isZero_eq_zero_of_ne hvoted
   have rd819' := rd819
   rw [hzero] at rd819'
-  have rd824 := evm_run rd819' with [push2 ⟨884⟩, jumpiNT (by decide)]
+  have rd824 := evm_run rd819' with [push2 ⟨884⟩, jumpiNT (by native_decide)]
   have rd827 := evm_run rd824 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost (delegateHashMem_mload64 (delegateSourceWord I)) (by decide) (by evm_ov) ]
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost (delegateHashMem_mload64 (delegateSourceWord I)) (by native_decide) (by evm_ov) ]
   have rd831 := rd827.pushConst ⟨0x461bcd⟩ (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd850 := evm_run rd831 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (delegateWeightErrorMem0 (delegateSourceWord I)) (UInt256.ofNat 5)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
     raw mstore 3 (delegateWeightErrorMem1 (delegateSourceWord I)) (UInt256.ofNat 6)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨18⟩, push1 ⟨36⟩, dup3, add,
     raw mstore 3 (delegateVotedErrorMem2 (delegateSourceWord I)) (UInt256.ofNat 7)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov) ]
   have rd869 := rd850.pushConst delegateVotedStringRaw (width := 18) (op := .PUSH18)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd507 := evm_run rd869 with [
     push1 ⟨113⟩, shl, push1 ⟨68⟩, dup3, add,
     raw mstore 3 (delegateVotedErrorMem3 (delegateSourceWord I)) (UInt256.ofNat 8)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨100⟩, add, push2 ⟨507⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
-      mem_cost (delegateVotedErrorMem3_mload64 (delegateSourceWord I)) (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      mem_cost (delegateVotedErrorMem3_mload64 (delegateSourceWord I)) (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rev 0 (by native_decide) mem_cost (by evm_ov) ]
   exact rd507
 
 theorem ballotDelegateX_selfRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -2721,35 +2721,35 @@ theorem ballotDelegateX_selfRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, caller, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and, sub ]
   have rd897' := rd897
   rw [hdiff] at rd897'
-  have rd901 := evm_run rd897' with [push2 ⟨972⟩, jumpiNT (by decide)]
+  have rd901 := evm_run rd897' with [push2 ⟨972⟩, jumpiNT (by native_decide)]
   have rd904 := evm_run rd901 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost (delegateHashMem_mload64 (delegateSourceWord I)) (by decide) (by evm_ov) ]
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost (delegateHashMem_mload64 (delegateSourceWord I)) (by native_decide) (by evm_ov) ]
   have rd908 := rd904.pushConst ⟨0x461bcd⟩ (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd927 := evm_run rd908 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (delegateWeightErrorMem0 (delegateSourceWord I)) (UInt256.ofNat 5)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
     raw mstore 3 (delegateWeightErrorMem1 (delegateSourceWord I)) (UInt256.ofNat 6)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨30⟩, push1 ⟨36⟩, dup3, add,
     raw mstore 3 (delegateSelfErrorMem2 (delegateSourceWord I)) (UInt256.ofNat 7)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov) ]
   have rd960 := rd927.pushConst delegateSelfStringWord (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd507 := evm_run rd960 with [
     push1 ⟨68⟩, dup3, add,
     raw mstore 3 (delegateSelfErrorMem3 (delegateSourceWord I)) (UInt256.ofNat 8)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨100⟩, add, push2 ⟨507⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
-      mem_cost (delegateSelfErrorMem3_mload64 (delegateSourceWord I)) (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      mem_cost (delegateSelfErrorMem3_mload64 (delegateSourceWord I)) (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rev 0 (by native_decide) mem_cost (by evm_ov) ]
   exact rd507
 
 theorem ballotDelegateX_afterNotSelf {σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -2802,23 +2802,23 @@ theorem ballotDelegateX_loopExit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     push0, swap1, dup2 ]
   have rd995 := evm_run rd987 with [
     raw mstore 0 (delegateLoopKeyMem (delegateToWord I) (delegateSourceWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost (by
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by
         change (UInt256.toByteArray (UInt256.land solcAddrMask (delegateToWord I))).write 0
             (delegateHashMem (delegateSourceWord I)) 0 32 =
           delegateLoopKeyMem (delegateToWord I) (delegateSourceWord I)
         rw [u256_land_comm solcAddrMask (delegateToWord I)]
         rw [solcAddrMask_clean hcanon]
-        rfl) (by decide) (by evm_ov),
+        rfl) (by native_decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
     raw mstore 0 (delegateLoopHashMem (delegateToWord I) (delegateSourceWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
     raw keccak256 0 (delegateVoterSlot (delegateToWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost
+      (by native_decide) mem_cost
       (delegateLoopVoterKeccakSlot (delegateToWord I) (delegateSourceWord I) hcanon)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     add ]
-  obtain ⟨_, _, rd1002₀⟩ := rd995.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1002₀⟩ := rd995.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1002⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨1002⟩
       [delegateVoterPackedWord σ I (delegateToWord I),
@@ -2842,7 +2842,7 @@ theorem ballotDelegateX_loopExit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     decide
   have rd1008' := rd1008
   rw [hzero] at rd1008'
-  exact ⟨_, _, evm_run rd1008' with [push2 ⟨1134⟩, jumpiT (by decide) (by jump_dest)]⟩
+  exact ⟨_, _, evm_run rd1008' with [push2 ⟨1134⟩, jumpiT (by native_decide) (by jump_dest)]⟩
 
 theorem ballotDelegateX_afterDelegateWeight {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -2867,23 +2867,23 @@ theorem ballotDelegateX_afterDelegateWeight {σ σ₀ A I} {g : Sat256} {sel : U
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and,
     push0, swap1, dup2,
     raw mstore 0 (delegateLoopHashMem (delegateToWord I) (delegateSourceWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost (by
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by
         change (UInt256.toByteArray (UInt256.land (delegateToWord I) solcAddrMask)).write 0
             (delegateLoopHashMem (delegateToWord I) (delegateSourceWord I)) 0 32 =
           delegateLoopHashMem (delegateToWord I) (delegateSourceWord I)
         rw [solcAddrMask_clean hcanon]
         exact delegateLoopHashMem_writeKey (delegateToWord I) (delegateSourceWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
     raw mstore 0 (delegateLoopHashMem (delegateToWord I) (delegateSourceWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost
+      (UInt256.ofNat 3) (by native_decide) mem_cost
       (delegateLoopHashMem_writeBase (delegateToWord I) (delegateSourceWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
     raw keccak256 0 (delegateVoterSlot (delegateToWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov) ]
+      (by native_decide) mem_cost hslot (by native_decide) (by evm_ov) ]
   have rd1162 := evm_run rd1160 with [dup1]
-  obtain ⟨_, _, rd1163₀⟩ := rd1162.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1163₀⟩ := rd1162.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1163⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨1163⟩
       [delegateVoterWeightWord σ I (delegateToWord I), delegateVoterSlot (delegateToWord I),
@@ -2906,8 +2906,8 @@ theorem ballotDelegateX_afterDelegateWeight {σ σ₀ A I} {g : Sat256} {sel : U
       change 1 ≤ (delegateVoterWeightWord σ I (delegateToWord I)).toNat
       exact hweightNat)
   have rd1167' := rd1167
-  rw [hgt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1167'
-  exact ⟨_, _, evm_run rd1167' with [push2 ⟨1174⟩, jumpiT (by decide) (by jump_dest)]⟩
+  rw [hgt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide] at rd1167'
+  exact ⟨_, _, evm_run rd1167' with [push2 ⟨1174⟩, jumpiT (by native_decide) (by jump_dest)]⟩
 
 theorem ballotDelegateX_delegateWeightRevert {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -2930,23 +2930,23 @@ theorem ballotDelegateX_delegateWeightRevert {σ σ₀ A I} {g : Sat256}
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and,
     push0, swap1, dup2,
     raw mstore 0 (delegateLoopHashMem (delegateToWord I) (delegateSourceWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost (by
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by
         change (UInt256.toByteArray (UInt256.land (delegateToWord I) solcAddrMask)).write 0
             (delegateLoopHashMem (delegateToWord I) (delegateSourceWord I)) 0 32 =
           delegateLoopHashMem (delegateToWord I) (delegateSourceWord I)
         rw [solcAddrMask_clean hcanon]
         exact delegateLoopHashMem_writeKey (delegateToWord I) (delegateSourceWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
     raw mstore 0 (delegateLoopHashMem (delegateToWord I) (delegateSourceWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost
+      (UInt256.ofNat 3) (by native_decide) mem_cost
       (delegateLoopHashMem_writeBase (delegateToWord I) (delegateSourceWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
     raw keccak256 0 (delegateVoterSlot (delegateToWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov) ]
+      (by native_decide) mem_cost hslot (by native_decide) (by evm_ov) ]
   have rd1162 := evm_run rd1160 with [dup1]
-  obtain ⟨_, _, rd1163₀⟩ := rd1162.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1163₀⟩ := rd1162.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1163⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨1163⟩
       [delegateVoterWeightWord σ I (delegateToWord I), delegateVoterSlot (delegateToWord I),
@@ -2961,9 +2961,9 @@ theorem ballotDelegateX_delegateWeightRevert {σ σ₀ A I} {g : Sat256}
     rw [hdelegateWeight]
     decide
   have rd1167' := rd1167
-  rw [hgt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1167'
-  have rd1171 := evm_run rd1167' with [push2 ⟨1174⟩, jumpiNT (by decide)]
-  exact rd1171.revertStub (by decide) (by decide) (by decide) (by evm_ov)
+  rw [hgt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd1167'
+  have rd1171 := evm_run rd1167' with [push2 ⟨1174⟩, jumpiNT (by native_decide)]
+  exact rd1171.revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
 
 theorem ballotDelegateX_afterSenderPackedStore {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -2987,7 +2987,7 @@ theorem ballotDelegateX_afterSenderPackedStore {σ σ₀ A I} {g : Sat256}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
     hsz36 hsize hszhi hcanon hweight hvoted hnotself hdelegate hdelegateWeight hreach
   have rd1181 := evm_run rd1174 with [jumpdest, push1 ⟨1⟩, dup3, dup2, add, dup1]
-  obtain ⟨_, _, rd1182₀⟩ := rd1181.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1182₀⟩ := rd1181.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1182⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨1182⟩
       [delegateSenderPackedWord σ I, delegateSenderPackedSlot I, ⟨1⟩,
@@ -3000,15 +3000,15 @@ theorem ballotDelegateX_afterSenderPackedStore {σ σ₀ A I} {g : Sat256}
   have rd1205 := evm_run rd1182 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨168⟩, shl, sub, not, and,
     push2 ⟨256⟩, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup8, and, mul ]
-  have rd1207 := RD.or rd1205 (by decide) (by evm_ov)
+  have rd1207 := RD.or rd1205 (by native_decide) (by evm_ov)
   have rd1208 := evm_run rd1207 with [dup3]
-  have rd1209 := RD.or rd1208 (by decide) (by evm_ov)
+  have rd1209 := RD.or rd1208 (by native_decide) (by evm_ov)
   have rd1210 := evm_run rd1209 with [swap1]
   by_cases hp : I.perm = true
   swap
   · have hpf : I.perm = false := by simpa using hp
-    exact Or.inr ⟨hpf, rd1210.sstoreStatic hpf (by decide) (by evm_ov)⟩
-  obtain ⟨_, _, rd1211⟩ := rd1210.sstore hp (by decide) (by evm_ov)
+    exact Or.inr ⟨hpf, rd1210.sstoreStatic hpf (by native_decide) (by evm_ov)⟩
+  obtain ⟨_, _, rd1211⟩ := rd1210.sstore hp (by native_decide) (by evm_ov)
   refine Or.inl ⟨hp, ?_⟩
   exact ⟨_, _, by
     simpa [delegateAfterSenderMap, delegateSenderPackedStoreWord, delegateSenderPackedWord,
@@ -3036,7 +3036,7 @@ theorem ballotDelegateX_delegateNotVotedBranch {σ σ₀ A I} {g : Sat256}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
     hsz36 hsize hszhi hcanon hweight hvoted hnotself hdelegate hdelegateWeight hreach)
   have rd1213 := evm_run rd1211 with [dup2, add]
-  obtain ⟨_, _, rd1214₀⟩ := rd1213.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1214₀⟩ := rd1213.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1214⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨1214⟩
       [delegateVoterPackedWord (delegateAfterSenderMap σ I) I (delegateToWord I),
@@ -3057,7 +3057,7 @@ theorem ballotDelegateX_delegateNotVotedBranch {σ σ₀ A I} {g : Sat256}
     decide
   have rd1218' := rd1218
   rw [hzero] at rd1218'
-  exact ⟨_, _, evm_run rd1218' with [push2 ⟨1285⟩, jumpiT (by decide) (by jump_dest)]⟩
+  exact ⟨_, _, evm_run rd1218' with [push2 ⟨1285⟩, jumpiT (by native_decide) (by jump_dest)]⟩
 
 theorem ballotDelegateX_delegateVotedBranch {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -3081,7 +3081,7 @@ theorem ballotDelegateX_delegateVotedBranch {σ σ₀ A I} {g : Sat256}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
     hsz36 hsize hszhi hcanon hweight hvoted hnotself hdelegate hdelegateWeight hreach)
   have rd1213 := evm_run rd1211 with [dup2, add]
-  obtain ⟨_, _, rd1214₀⟩ := rd1213.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1214₀⟩ := rd1213.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1214⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨1214⟩
       [delegateVoterPackedWord (delegateAfterSenderMap σ I) I (delegateToWord I),
@@ -3101,7 +3101,7 @@ theorem ballotDelegateX_delegateVotedBranch {σ σ₀ A I} {g : Sat256}
     exact isZero_eq_zero_of_ne hdelegateVoted
   have rd1218' := rd1218
   rw [hzero] at rd1218'
-  exact ⟨_, _, evm_run rd1218' with [push2 ⟨1285⟩, jumpiNT (by decide)]⟩
+  exact ⟨_, _, evm_run rd1218' with [push2 ⟨1285⟩, jumpiNT (by native_decide)]⟩
 
 theorem ballotDelegateX_delegateNotVotedToCheckedAdd {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -3131,7 +3131,7 @@ theorem ballotDelegateX_delegateNotVotedToCheckedAdd {σ σ₀ A I} {g : Sat256}
     hsz36 hsize hszhi hperm hcanon hweight hvoted hnotself hdelegate hdelegateWeight
     hdelegateNotVoted hreach
   have rd1287 := evm_run rd1285 with [jumpdest, dup2]
-  obtain ⟨_, _, rd1288₀⟩ := rd1287.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1288₀⟩ := rd1287.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1288⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨1288⟩
       [delegateSenderWeightWord (delegateAfterSenderMap σ I) I,
@@ -3140,7 +3140,7 @@ theorem ballotDelegateX_delegateNotVotedToCheckedAdd {σ σ₀ A I} {g : Sat256}
       ByteArray.empty (delegateAfterSenderMap σ I) k C := by
     exact ⟨_, _, by simpa [delegateSenderWeightWord, initState] using rd1288₀⟩
   have rd1289 := evm_run rd1288 with [dup2]
-  obtain ⟨_, _, rd1290₀⟩ := rd1289.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1290₀⟩ := rd1289.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1290⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨1290⟩
       [delegateVoterWeightWord (delegateAfterSenderMap σ I) I (delegateToWord I),
@@ -3196,8 +3196,8 @@ theorem ballotDelegateX_delegateNotVotedAfterCheckedAdd {σ σ₀ A I}
   rw [show delegateVoterWeightWord (delegateAfterSenderMap σ I) I (delegateToWord I) = target
         from rfl,
       show delegateSenderWeightWord (delegateAfterSenderMap σ I) I = addend from rfl, hgt,
-      show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1842'
-  have rd1866 := evm_run rd1842' with [push2 ⟨1866⟩, jumpiT (by decide) (by jump_dest)]
+      show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide] at rd1842'
+  have rd1866 := evm_run rd1842' with [push2 ⟨1866⟩, jumpiT (by native_decide) (by jump_dest)]
   have rd1304 := evm_run rd1866 with [jumpdest, swap3, swap2, pop, pop, jump (by jump_dest)]
   exact ⟨_, _, by simpa [target, addend] using rd1304⟩
 
@@ -3226,7 +3226,7 @@ theorem ballotDelegateX_delegateNotVotedSuccess {σ σ₀ A I} {g : Sat256}
     (sel := sel) hsz36 hsize hszhi hperm hcanon hweight hvoted hnotself hdelegate
     hdelegateWeight hdelegateNotVoted hfit hreach
   have rd1307 := evm_run rd1304 with [jumpdest, swap1, swap2]
-  obtain ⟨_, _, rd1308⟩ := rd1307.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1308⟩ := rd1307.sstore hperm (by native_decide) (by evm_ov)
   have rd156 := evm_run rd1308 with [
     pop, pop, jumpdest, pop, pop, pop, jump (by jump_dest), jumpdest ]
   have hsum :
@@ -3237,7 +3237,7 @@ theorem ballotDelegateX_delegateNotVotedSuccess {σ σ₀ A I} {g : Sat256}
     exact u256_add_comm _ _
   exact by
     simpa [delegateFalseSuccessMap, hsum] using
-      rd156.stop (by decide) (by evm_ov)
+      rd156.stop (by native_decide) (by evm_ov)
 
 theorem ballotDelegateX_delegateNotVotedOverflow {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -3270,8 +3270,8 @@ theorem ballotDelegateX_delegateNotVotedOverflow {σ σ₀ A I} {g : Sat256}
   rw [show delegateVoterWeightWord (delegateAfterSenderMap σ I) I (delegateToWord I) = target
         from rfl,
       show delegateSenderWeightWord (delegateAfterSenderMap σ I) I = addend from rfl, hgt,
-      show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1842'
-  have rd1847 := evm_run rd1842' with [push2 ⟨1866⟩, jumpiNT (by decide)]
+      show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd1842'
+  have rd1847 := evm_run rd1842' with [push2 ⟨1866⟩, jumpiNT (by native_decide)]
   exact RD.ballotPanic11Revert1847 rd1847
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -3303,7 +3303,7 @@ theorem ballotDelegateX_delegateVotedBoundsCheck {σ σ₀ A I} {g : Sat256}
     hsz36 hsize hszhi hperm hcanon hweight hvoted hnotself hdelegate hdelegateWeight
     hdelegateVoted hreach
   have rd1223 := evm_run rd1222 with [dup2]
-  obtain ⟨_, _, rd1224₀⟩ := rd1223.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1224₀⟩ := rd1223.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1224⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨1224⟩
       [delegateSenderWeightWord (delegateAfterSenderMap σ I) I,
@@ -3312,7 +3312,7 @@ theorem ballotDelegateX_delegateVotedBoundsCheck {σ σ₀ A I} {g : Sat256}
       ByteArray.empty (delegateAfterSenderMap σ I) k C := by
     exact ⟨_, _, by simpa [delegateSenderWeightWord, initState] using rd1224₀⟩
   have rd1229 := evm_run rd1224 with [push1 ⟨2⟩, dup3, dup2, add]
-  obtain ⟨_, _, rd1230₀⟩ := rd1229.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1230₀⟩ := rd1229.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1230⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨1230⟩
       [delegateVoterVoteWord (delegateAfterSenderMap σ I) I (delegateToWord I), ⟨2⟩,
@@ -3324,7 +3324,7 @@ theorem ballotDelegateX_delegateVotedBoundsCheck {σ σ₀ A I} {g : Sat256}
       simpa [delegateVoterVoteWord, delegateVoterVoteSlot, initState, u256_add_comm]
         using rd1230₀⟩
   have rd1231 := evm_run rd1230 with [dup2]
-  obtain ⟨_, _, rd1232₀⟩ := rd1231.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1232₀⟩ := rd1231.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1232⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨1232⟩
       [delegateProposalsLengthWord σ I,
@@ -3365,7 +3365,7 @@ theorem ballotDelegateX_delegateVotedOob {σ σ₀ A I} {g : Sat256}
   have rd1234' := rd1234
   rw [hlt] at rd1234'
   have rd1815 := evm_run rd1234' with [
-    push2 ⟨1245⟩, jumpiNT (by decide), push2 ⟨1245⟩, push2 ⟨1815⟩,
+    push2 ⟨1245⟩, jumpiNT (by native_decide), push2 ⟨1245⟩, push2 ⟨1815⟩,
     jump (by jump_dest) ]
   exact RD.ballotPanic32Revert1815 rd1815
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -3406,18 +3406,18 @@ theorem ballotDelegateX_delegateVotedToCheckedAdd {σ σ₀ A I}
     ult_one hbound
   have rd1234' := rd1234
   rw [hlt] at rd1234'
-  have rd1245 := evm_run rd1234' with [push2 ⟨1245⟩, jumpiT (by decide) (by jump_dest)]
+  have rd1245 := evm_run rd1234' with [push2 ⟨1245⟩, jumpiT (by native_decide) (by jump_dest)]
   have hbase := delegateProposalsDataBaseKeccak (delegateToWord I) (delegateSourceWord I)
   have rd1261 := evm_run rd1245 with [
     jumpdest, swap1, push0,
     raw mstore 0 (delegateProposalBaseMem (delegateToWord I) (delegateSourceWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, push0,
-    raw keccak256 0 proposalsDataBase (UInt256.ofNat 3) (by decide)
-      mem_cost hbase (by decide) (by evm_ov),
+    raw keccak256 0 proposalsDataBase (UInt256.ofNat 3) (by native_decide)
+      mem_cost hbase (by native_decide) (by evm_ov),
     swap1, push1 ⟨2⟩, mul, add, push1 ⟨1⟩, add ]
   have rd1264 := evm_run rd1261 with [push0, dup3, dup3]
-  obtain ⟨_, _, rd1265₀⟩ := rd1264.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1265₀⟩ := rd1264.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1265⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨1265⟩
       [delegateProposalCountWord σ I,
@@ -3476,8 +3476,8 @@ theorem ballotDelegateX_delegateVotedAfterCheckedAdd {σ σ₀ A I}
   have rd1842' := rd1842
   rw [show delegateProposalCountWord σ I = target from rfl,
       show delegateSenderWeightWord (delegateAfterSenderMap σ I) I = addend from rfl, hgt,
-      show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1842'
-  have rd1866 := evm_run rd1842' with [push2 ⟨1866⟩, jumpiT (by decide) (by jump_dest)]
+      show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide] at rd1842'
+  have rd1866 := evm_run rd1842' with [push2 ⟨1866⟩, jumpiT (by native_decide) (by jump_dest)]
   have rd1274 := evm_run rd1866 with [jumpdest, swap3, swap2, pop, pop, jump (by jump_dest)]
   exact ⟨_, _, by simpa [target, addend] using rd1274⟩
 
@@ -3509,7 +3509,7 @@ theorem ballotDelegateX_delegateVotedSuccess {σ σ₀ A I} {g : Sat256}
     (sel := sel) hsz36 hsize hszhi hperm hcanon hweight hvoted hnotself hdelegate
     hdelegateWeight hdelegateVoted hbound hfit hreach
   have rd1277 := evm_run rd1274 with [jumpdest, swap1, swap2]
-  obtain ⟨_, _, rd1278⟩ := rd1277.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1278⟩ := rd1277.sstore hperm (by native_decide) (by evm_ov)
   have rd156 := evm_run rd1278 with [
     pop, push2 ⟨1310⟩, swap1, pop, jump (by jump_dest), jumpdest, pop, pop, pop,
     jump (by jump_dest), jumpdest ]
@@ -3519,7 +3519,7 @@ theorem ballotDelegateX_delegateVotedSuccess {σ σ₀ A I} {g : Sat256}
     unfold delegateUpdatedProposalCount
     exact u256_add_comm _ _
   exact by
-    simpa [delegateTrueSuccessMap, hsum] using rd156.stop (by decide) (by evm_ov)
+    simpa [delegateTrueSuccessMap, hsum] using rd156.stop (by native_decide) (by evm_ov)
 
 theorem ballotDelegateX_delegateVotedOverflow {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -3554,8 +3554,8 @@ theorem ballotDelegateX_delegateVotedOverflow {σ σ₀ A I} {g : Sat256}
   have rd1842' := rd1842
   rw [show delegateProposalCountWord σ I = target from rfl,
       show delegateSenderWeightWord (delegateAfterSenderMap σ I) I = addend from rfl, hgt,
-      show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1842'
-  have rd1847 := evm_run rd1842' with [push2 ⟨1866⟩, jumpiNT (by decide)]
+      show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd1842'
+  have rd1847 := evm_run rd1842' with [push2 ⟨1866⟩, jumpiNT (by native_decide)]
   exact RD.ballotPanic11Revert1847 rd1847
     (by simp only [List.length_cons, List.length_nil]; omega)
 

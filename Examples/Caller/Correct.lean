@@ -169,7 +169,7 @@ theorem callerEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
     UInt256.eq ⟨941609360⟩
         (UInt256.shiftRight (uInt256OfByteArray (cd.readBytes 0 32)) ⟨224⟩)
       = if ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == cd.extract 0 4) then ⟨1⟩ else ⟨0⟩ :=
-  evmSelectorDecode hsz 0x38 0x1f 0xd1 0x90 ⟨941609360⟩ (by decide)
+  evmSelectorDecode hsz 0x38 0x1f 0xd1 0x90 ⟨941609360⟩ (by native_decide)
 
 theorem callerContains491 : (D_J callerBytecode 0).contains ⟨491⟩ = true := by
   jump_dest
@@ -201,11 +201,11 @@ theorem callerX_callvalue_ne
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev callerBytecode g (initState σ σ₀ g A I) := by
-  exact evm_run (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
-        (by decide) (by decide)) with [
+  exact evm_run (solcGuardPrologueRD hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)) with [
       push2 ⟨15⟩,
       jumpiNT (isZero_eq_zero_of_ne hwv),
-      raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+      raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 /-- The shared dispatcher prefix for `callvalue = 0`: through the non-payable guard's taken jump
     (`0x08 → 0x0f`) and on to the `0x18` (24) `JUMPI`, reaching pc 24 with stack `[41, size < 4]`. -/
@@ -215,8 +215,8 @@ theorem callerX_cvz_prefix
     RD callerBytecode I g (initState σ σ₀ g A I) ⟨24⟩
         [⟨41⟩, UInt256.lt (UInt256.ofNat I.calldata.size) ⟨4⟩]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ 14 53 := by
-  exact evm_run (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
-        (by decide) (by decide)) with [
+  exact evm_run (solcGuardPrologueRD hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)) with [
       push2 ⟨15⟩,
       jumpiT (by rw [hwv]; decide) callerContains15,
       jumpdest, pop, push1 ⟨4⟩, calldatasize, lt, push2 ⟨41⟩ ]
@@ -232,10 +232,10 @@ abbrev callerFirstArmPc : UInt256 := ⟨30⟩
 
 /-- The lone selector arm is well-formed (`DUP1; PUSH4; EQ; PUSH2; JUMPI`). -/
 theorem callerArmWellFormed : armWellFormed callerBytecode callerFirstArmPc :=
-  ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+  ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 /-- The arm's `PUSH4` selector value is `0x381fd190`. -/
-theorem callerArmSelNat : armSelNat callerBytecode callerFirstArmPc = ⟨941609360⟩ := by decide
+theorem callerArmSelNat : armSelNat callerBytecode callerFirstArmPc = ⟨941609360⟩ := by native_decide
 
 /-- **Selector coupling.**  Arm 0's `EQ` (its `PUSH4` value vs the calldata selector word) is `1`/`0`
     exactly as `0x381fd190` matches `calldata[0:4]` — the table-indexed instance of `callerEvmSelector`. -/
@@ -260,7 +260,7 @@ theorem callerReachBody {σ σ₀ A I} {g : Sat256}
     (fun j hj => absurd hj (by omega))
     (by show UInt256.eq (armSelNat callerBytecode callerFirstArmPc) (callerSelWord I) ≠ ⟨0⟩
         rw [callerMatch_eq I hsz, if_pos hmatch]; decide)
-    (by jump_dest) (by decide)
+    (by jump_dest) (by native_decide)
 
 /-- `callvalue = 0 ∧ calldatasize < 4`: the prefix's `JUMPI` jumps to the `0x29` (41) revert stub. -/
 theorem callerX_cvz_short
@@ -269,7 +269,7 @@ theorem callerX_cvz_short
     RDrev callerBytecode g (initState σ σ₀ g A I) := by
   exact evm_run (callerX_cvz_prefix hcode hwv) with [
     jumpiT (lt_four_ne_zero_of_lt hsz) callerContains41,
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 /-- `calldatasize ≥ 4, wrong selector`: fall through the size JUMPI, decode/compare the selector
     (`EQ = 0`), and revert at `0x29` (41). -/
@@ -282,9 +282,9 @@ theorem callerX_cvz_revertB
   exact evm_run (callerX_cvz_prefix hcode hwv) with [
     jumpiNT (lt_four_eq_zero_of_ge hsz hsize),
     push0, calldataload, push1 ⟨224⟩, shr, dup1, push4 ⟨941609360⟩, eq, push2 ⟨45⟩,
-    jumpiNT (by rw [show ((⟨0⟩ : UInt256).toNat) = 0 from by decide, callerEvmSelector hsz];
+    jumpiNT (by rw [show ((⟨0⟩ : UInt256).toNat) = 0 from by native_decide, callerEvmSelector hsz];
                 simp [hmatch]),
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 /-! ## Success path — the dispatcher reaches the `run` dispatch at pc 45 -/
 
@@ -309,7 +309,7 @@ theorem callerX_toDecoder {σ σ₀ A I} {g : Sat256}
     swap2, swap1, push2 ⟨348⟩,
     jump callerContains348 ]
   rw [uadd_word_usub_ofNat_word (c := (⟨4⟩ : UInt256))
-    (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by decide]; exact hsz) hsize] at rd
+    (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by native_decide]; exact hsz) hsize] at rd
   exact ⟨_, _, rd⟩
 
 /-! ## The opaque-call coincidence (the conceptual crux)
@@ -485,10 +485,10 @@ theorem callerX_body117 {σ σ₀ A I} {g : Sat256}
   exact ⟨_, _, evm_run rd with [
     jumpdest, push2 ⟨73⟩, jump caller_jd,
     jumpdest, dup2, push20 addrMask, and, push4 ⟨1143701499⟩, dup3, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
       solcFreePtrMem_mload64
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup3, push4 ⟨4294967295⟩, and, push1 ⟨224⟩, shl, dup2 ]⟩
 
 /-- Memory after writing the (left-shifted) `pow2` selector to `mem[128]`. -/
@@ -510,9 +510,9 @@ theorem callerX_body425 {σ σ₀ A I} {g : Sat256}
         callerSelMem (UInt256.ofNat 5) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := callerX_body117 hcode hwv hsz hsize hsz68 hszhi hmatch hclean
   exact ⟨_, _, evm_run rd with [
-    raw mstore 6 callerSelMem (UInt256.ofNat 5) (by decide)
+    raw mstore 6 callerSelMem (UInt256.ofNat 5) (by native_decide)
       mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨4⟩, add, push2 ⟨130⟩, swap2, swap1, push2 ⟨425⟩, jump caller_jd ]⟩
 
 /-- Memory after the encoder writes `n` at mem[132] (the full `pow2(n)` calldata at mem[128..164]). -/
@@ -606,7 +606,7 @@ theorem callerLand_target {I : ExecutionEnv}
     by_contra hne
     simp only [UInt256.eq, UInt256.fromBool, Bool.toUInt256, hne, decide_false, Bool.false_eq_true,
       ↓reduceIte] at hclean
-    exact absurd hclean (by decide)
+    exact absurd hclean (by native_decide)
   rw [u256_land_comm, ← heq]
 
 /-- **Target coupling.**  The decoded address (`AccountAddress.ofNat arg0`) is exactly the
@@ -619,7 +619,7 @@ theorem callerTarget_eq {I : ExecutionEnv}
   apply Fin.ext
   show (callerArg0 I).toNat % EVM.addressModulus % AccountAddress.size
       = (callerArg0 I).val % AccountAddress.size % AccountAddress.size
-  rw [show EVM.addressModulus = AccountAddress.size from by decide]
+  rw [show EVM.addressModulus = AccountAddress.size from by native_decide]
   rfl
 
 /-- Body segment: run the uint256 encoder (MSTORE `n` at mem[132]), set up and MLOAD for the CALL,
@@ -643,15 +643,15 @@ theorem callerX_toCall142 {σ σ₀ A I} {g : Sat256}
     jumpdest, push2 ⟨419⟩, dup2, push2 ⟨297⟩, jump caller_jd,
     jumpdest, push0, dup2, swap1, pop, swap2, swap1, pop, jump caller_jd,
     jumpdest, dup3,
-    raw mstore 3 (callerCalldataMem I) (UInt256.ofNat 6) (by decide)
+    raw mstore 3 (callerCalldataMem I) (UInt256.ofNat 6) (by native_decide)
       mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (by rfl) (by native_decide) (by evm_ov),
     pop, pop, jump caller_jd,
     jumpdest, swap3, swap2, pop, pop, jump caller_jd,
     jumpdest, push1 ⟨32⟩, push1 ⟨64⟩,
-    raw mload 0 (callerOutPtr I) (UInt256.ofNat 6) (by decide)
+    raw mload 0 (callerOutPtr I) (UInt256.ofNat 6) (by native_decide)
       mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (by rfl) (by native_decide) (by evm_ov),
     dup1, dup4, sub, dup2, push0, dup8 ]⟩
 
 /-- **The opaque CALL executes in the trace.**  GAS then `RD.call` (value 0): the result
@@ -673,9 +673,9 @@ theorem callerX_afterCall {σ σ₀ A I} {g : Sat256}
           UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ :: [])
         mem' aw' rdata' σ' k' C' := by
   obtain ⟨k, C, rd142⟩ := callerX_toCall142 hcode hwv hsz hsize hsz68 hszhi hmatch hclean
-  obtain ⟨gv, rd143⟩ := rd142.gas (by decide) (by evm_ov)
+  obtain ⟨gv, rd143⟩ := rd142.gas (by native_decide) (by evm_ov)
   obtain ⟨σ', z, o, A_in, callGas, k', C', _hΘ, rd144, _hosz⟩ :=
-    rd143.call (by decide) hdepth (by evm_ov)
+    rd143.call (by native_decide) hdepth (by evm_ov)
   exact ⟨σ', z, _, _, _, k', C', rd144⟩
 
 /-- **The opaque CALL, packaged for the assembly.**  Exposes the post-`CALL` `RD` cursor (memory and
@@ -705,9 +705,9 @@ theorem callerX_postCall {σ σ₀ A I} {g : Sat256}
                 accountMap := σ', substate := A' }, o) true
     ∧ o.size < UInt256.size := by
   obtain ⟨k, C, rd142⟩ := callerX_toCall142 hcode hwv hsz hsize hsz68 hszhi hmatch hclean
-  obtain ⟨gv, rd143⟩ := rd142.gas (by decide) (by evm_ov)
+  obtain ⟨gv, rd143⟩ := rd142.gas (by native_decide) (by evm_ov)
   obtain ⟨σ', z, o, A_in, callGas, k', C', _hΘ, rd144, hosz⟩ :=
-    rd143.call (by decide) hdepth (by evm_ov)
+    rd143.call (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := _hΘ
   refine ⟨σ', z, o, A', k', C', ?_, ?_, ?_⟩
   · -- the `RD` cursor: rewrite the active-words `M`-expression to `⟨6⟩`
@@ -743,15 +743,15 @@ theorem callerX_postRevert {σ σ₀ A I} {g : Sat256}
   have rd151 : RD callerBytecode I g (initState σ σ₀ g A I)
       (⟨142⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩)
       (UInt256.isZero ⟨0⟩ :: rest) mem aw rdata acc _ _ :=
-    evm_run rd with [iszero, dup1, iszero, push2 ⟨158⟩, jumpiNT (by decide)]
+    evm_run rd with [iszero, dup1, iszero, push2 ⟨158⟩, jumpiNT (by native_decide)]
   -- 151 RETURNDATASIZE; 152 PUSH0; 153 PUSH0; 154 RETURNDATACOPY
   obtain ⟨mem2, aw2, k2, C2, rd155⟩ :=
-    RD.returndatacopyFull rd151 (by decide) (by decide) (by decide) (by decide)
+    RD.returndatacopyFull rd151 (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
   -- 155 RETURNDATASIZE; 156 PUSH0; 157 REVERT
-  have rd156 := RD.returndatasize rd155 (by decide) (by simp only [List.length_cons]; omega)
-  have rd157 := RD.push0 rd156 (by decide) (by simp only [List.length_cons]; omega)
-  exact RD.rev _ rd157 (by decide)
+  have rd156 := RD.returndatasize rd155 (by native_decide) (by simp only [List.length_cons]; omega)
+  have rd157 := RD.push0 rd156 (by native_decide) (by simp only [List.length_cons]; omega)
+  exact RD.rev _ rd157 (by native_decide)
     (by rfl)
     (by simp only [List.length_cons]; omega)
 
@@ -773,7 +773,7 @@ theorem callerX_succ_to165 {σ σ₀ A I} {g : Sat256}
         (⟨64⟩ :: tl) mem aw rdata acc k' C' := by
   -- 144 ISZERO; DUP1; ISZERO; PUSH2 158; JUMPI (taken, z = true) → 158; POP×4; PUSH1 64
   refine ⟨_, _, evm_run rd with [iszero, dup1, iszero, push2 ⟨158⟩,
-    jumpiT (by decide) callerContains158, jumpdest, pop, pop, pop, pop, push1 ⟨64⟩]⟩
+    jumpiT (by native_decide) callerContains158, jumpdest, pop, pop, pop, pop, push1 ⟨64⟩]⟩
 
 theorem callerContains470 : (D_J callerBytecode 0).contains ⟨470⟩ = true := by
   jump_dest
@@ -800,15 +800,15 @@ theorem callerX_succ_to470 {σ σ₀ A I} {g : Sat256}
       [⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
       (callerMem2 o mem) ⟨6⟩ o acc k' C' := by
   refine ⟨_, _, evm_run rd with [
-    raw mload 0 ⟨128⟩ ⟨6⟩ (by decide)
+    raw mload 0 ⟨128⟩ ⟨6⟩ (by native_decide)
       mem_cost
-      hfp (by decide) (by evm_ov),
+      hfp (by native_decide) (by evm_ov),
     returndatasize,
     push1 ⟨31⟩, not, push1 ⟨31⟩, dup3, add, and, dup3, add, dup1, push1 ⟨64⟩,
     raw mstore 0 ((UInt256.add ⟨128⟩ (UInt256.land (UInt256.add (UInt256.ofNat o.size) ⟨31⟩)
-        (UInt256.lnot ⟨31⟩))).toByteArray.write 0 mem 64 32) ⟨6⟩ (by decide)
+        (UInt256.lnot ⟨31⟩))).toByteArray.write 0 mem 64 32) ⟨6⟩ (by native_decide)
       mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (by rfl) (by native_decide) (by evm_ov),
     pop, dup2, add, swap1, push2 ⟨194⟩, swap2, swap1, push2 ⟨470⟩, jump callerContains470 ]⟩
 
 /-- **Success decoder, length check (470 → 491).**  `slt(dataEnd − headStart, 32) = slt(|o|, 32) = 0`
@@ -842,7 +842,7 @@ theorem callerX_succ_revert {σ σ₀ A I} {g : Sat256}
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨491⟩,
     jumpiNT (by rw [solcDecodeEndLenCheckShort_128_32 ho]; decide),
     push2 ⟨490⟩, push2 ⟨203⟩, jump callerContains203,
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 /-- **Success-path huge returndata revert (470 → 203 REVERT).**  When the return-data length has
     the sign bit set, solc's signed length check follows the same bail-out path as the short case. -/
@@ -858,7 +858,7 @@ theorem callerX_succ_revert_huge {σ σ₀ A I} {g : Sat256}
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨491⟩,
     jumpiNT (by rw [solcDecodeEndLenCheckHuge_128_32 hhi hlo]; decide),
     push2 ⟨490⟩, push2 ⟨203⟩, jump callerContains203,
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 /-- **Success decoder tail (491 → STOP).**  Mirrors the calldata `uint256` decoder
     (`callerX_decoded`), but reads the result word from **memory** (`MLOAD` at 453, coupled to the
@@ -881,14 +881,14 @@ theorem callerX_succ_tail {σ σ₀ A I} {g : Sat256}
   have rd198 := evm_run rd with [
     jumpdest, push0, push2 ⟨504⟩, dup5, dup3, dup6, add, push2 ⟨450⟩, jump callerContains450,
     jumpdest, push0, dup2,
-    raw mload 0 (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))) ⟨6⟩ (by decide)
+    raw mload 0 (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))) ⟨6⟩ (by native_decide)
       mem_cost
       (by
-        have h128 : ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 := by decide
+        have h128 : ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 := by native_decide
         split_ifs with h
         · exfalso; rw [h128] at h; omega
         · rw [h128, hword])
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     swap1, pop, push2 ⟨464⟩, dup2, push2 ⟨306⟩, jump callerContains306,
     jumpdest, push2 ⟨315⟩, dup2, push2 ⟨297⟩, jump callerContains297,
     jumpdest, push0, dup2, swap1, pop, swap2, swap1, pop, jump callerContains315,
@@ -898,11 +898,11 @@ theorem callerX_succ_tail {σ σ₀ A I} {g : Sat256}
     jumpdest, swap2, pop, pop, swap3, swap2, pop, pop, jump callerContains194,
     jumpdest, push0, dup2, swap1 ]
   by_cases hp : I.perm = true
-  · obtain ⟨k', C', rd199⟩ := rd198.sstore hp (by decide) (by evm_ov)
+  · obtain ⟨k', C', rd199⟩ := rd198.sstore hp (by native_decide) (by evm_ov)
     exact Or.inl ⟨hp, RD.stop (evm_run rd199 with [pop, pop, pop, jump callerContains71, jumpdest])
-      (by decide) (by evm_ov)⟩
+      (by native_decide) (by evm_ov)⟩
   · have hpf : I.perm = false := by simpa using hp
-    exact Or.inr ⟨hpf, rd198.sstoreStatic hpf (by decide) (by evm_ov)⟩
+    exact Or.inr ⟨hpf, rd198.sstoreStatic hpf (by native_decide) (by evm_ov)⟩
 
 /-- **The whole success decoder, chained (144 → STOP).**  Given the post-call cursor (`z = true`,
     active words `⟨6⟩`), the free-pointer read `hfp`, the result-region read `hword`, and the size
@@ -945,7 +945,7 @@ theorem callerArg0_canonical {I : ExecutionEnv}
     by_contra hne
     simp only [UInt256.eq, UInt256.fromBool, Bool.toUInt256, hne, decide_false, Bool.false_eq_true,
       ↓reduceIte] at hclean
-    exact absurd hclean (by decide)
+    exact absurd hclean (by native_decide)
   have hlandle : ∀ a b : ℕ, Nat.land a b ≤ b := by
     intro a b
     refine Nat.le_of_testBit fun i hi => ?_
@@ -959,8 +959,8 @@ theorem callerArg0_canonical {I : ExecutionEnv}
     rfl
   have hmod : Nat.land (callerArg0 I).toNat addrMask.toNat % EVM.twoPow 256
       = Nat.land (callerArg0 I).toNat addrMask.toNat :=
-    Nat.mod_eq_of_lt (lt_of_le_of_lt (hlandle _ _) (by decide))
-  have hmask : addrMask.toNat < EVM.addressModulus := by decide
+    Nat.mod_eq_of_lt (lt_of_le_of_lt (hlandle _ _) (by native_decide))
+  have hmask : addrMask.toNat < EVM.addressModulus := by native_decide
   rw [hland, hmod]; exact lt_of_le_of_lt (hlandle _ _) hmask
 
 /-! ## Storage coupling: the Stele `.assign stored := v` writes the same word the EVM `SSTORE` does -/
@@ -970,9 +970,9 @@ theorem callerArg0_canonical {I : ExecutionEnv}
     writes exactly the word `ofNat k` — i.e. the value the EVM `SSTORE`s. -/
 theorem callerLocStore (evm' : EVM.State) (k : ℕ) :
     storageLocStore evm'
-        { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
+        { slot := ⟨0⟩, offset := 0, size := 32, hbound := by native_decide,
           bitOffset := .none,
-          type := .int (.uint ⟨256, by decide⟩) } (.int (Int.ofNat k))
+          type := .int (.uint ⟨256, by native_decide⟩) } (.int (Int.ofNat k))
       = some (EVM.storageStore evm' evm'.executionEnv.codeOwner ⟨0⟩ (UInt256.ofNat k)) := by
   exact storageLocStore_uint256_ofNat evm' ⟨0⟩ k
 
@@ -987,13 +987,13 @@ theorem callerAssign (evm' : EVM.State) (L : Stele.Store) (k : ℕ) (hbase : L.g
       { base := "stored", steps := [] } = .ok { base := "stored", steps := [] } := by
     simp [evalStorageRef, bind, EvalResult.bind, pure]
   have hty : storageTypeAt? callerContract.storage { base := "stored", steps := [] } =
-      some (.elem (.int (.uint ⟨256, by decide⟩))) := by
+      some (.elem (.int (.uint ⟨256, by native_decide⟩))) := by
     simp [storageTypeAt?, callerContract]
   have hbackend : callerConfig.storageBackend =
       solidityStorageBackend Caller.callerStorageLayout := rfl
   have hloc : Caller.callerStorageLayout { base := "stored", steps := [] } =
-      some (.leaf { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
-                    bitOffset := .none, type := .int (.uint ⟨256, (by decide)⟩) }) := rfl
+      some (.leaf { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by native_decide),
+                    bitOffset := .none, type := .int (.uint ⟨256, (by native_decide)⟩) }) := rfl
   exact assignStorageRef_storage_scalar hbase her hty hbackend hloc
     (Or.inl ⟨_, rfl⟩) (callerLocStore evm' k)
 
@@ -1003,8 +1003,8 @@ theorem callerCanon_eq {I : ExecutionEnv} (hcanon : (callerArg0 I).toNat < EVM.a
   have hland : UInt256.land (callerArg0 I) addrMask = callerArg0 I := by
     apply u256_inj
     show Nat.land (callerArg0 I).toNat addrMask.toNat % EVM.twoPow 256 = (callerArg0 I).toNat
-    rw [show addrMask.toNat = 2 ^ 160 - 1 from by decide,
-        land_mask160 _ (by rw [show EVM.addressModulus = 2^160 from by decide] at hcanon; exact hcanon)]
+    rw [show addrMask.toNat = 2 ^ 160 - 1 from by native_decide,
+        land_mask160 _ (by rw [show EVM.addressModulus = 2^160 from by native_decide] at hcanon; exact hcanon)]
     exact Nat.mod_eq_of_lt (by
       have hlt : (callerArg0 I).toNat < UInt256.size := (callerArg0 I).val.isLt
       simpa [UInt256.size, EVM.twoPow] using hlt)
@@ -1026,7 +1026,7 @@ theorem callerX_shortarg {σ σ₀ A I} {g : Sat256}
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero, push2 ⟨370⟩,
     jumpiNT (by rw [hslt]; decide),
     push2 ⟨369⟩, push2 ⟨203⟩, jump callerContains203,
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
   exact rd
 
 theorem callerX_hugearg {σ σ₀ A I} {g : Sat256}
@@ -1043,7 +1043,7 @@ theorem callerX_hugearg {σ σ₀ A I} {g : Sat256}
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero, push2 ⟨370⟩,
     jumpiNT (by rw [hslt]; decide),
     push2 ⟨369⟩, push2 ⟨203⟩, jump callerContains203,
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
   exact rd
 
 
@@ -1057,7 +1057,7 @@ theorem callerX_noncanon {σ σ₀ A I} {g : Sat256}
   obtain ⟨k, C, rd⟩ := callerX_dec264 hcode hwv hsz hsize hsz68 hszhi hmatch
   exact (evm_run rd with [
     jumpdest, dup2, eq, push2 ⟨274⟩, jumpiNT (by rw [hnc]),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ] :
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ] :
     RDrev callerBytecode g (initState σ σ₀ g A I))
 
 /-! ## Decoded-store accessors and the canonical-execution coupling -/
@@ -1068,14 +1068,14 @@ abbrev callerDecStore (I : ExecutionEnv) : Stele.Store :=
     (.int (Int.ofNat (callerArg1 I).toNat))
 theorem callerStore_t (I : ExecutionEnv) :
     (callerDecStore I).get? "t" = some (.address (AccountAddress.ofNat (callerArg0 I).toNat)) := by
-  rw [callerDecStore, store_get_ne _ _ (by decide), store_get_self]
+  rw [callerDecStore, store_get_ne _ _ (by native_decide), store_get_self]
 theorem callerStore_n (I : ExecutionEnv) :
     (callerDecStore I).get? "n" = some (.int (Int.ofNat (callerArg1 I).toNat)) := by
   rw [callerDecStore, store_get_self]
 theorem callerStore_stored (I : ExecutionEnv) (v : Value) :
     ((callerDecStore I).insert "tmp" v).get? "stored" = none := by
-  rw [store_get_ne _ _ (by decide), callerDecStore, store_get_ne _ _ (by decide),
-      store_get_ne _ _ (by decide), store_get_empty]
+  rw [store_get_ne _ _ (by native_decide), callerDecStore, store_get_ne _ _ (by native_decide),
+      store_get_ne _ _ (by native_decide), store_get_empty]
 
 
 theorem callerWrite_size (I : ExecutionEnv) (o : ByteArray) (L : ℕ) (hL : L ≤ 32) (hLo : L ≤ o.size) :
@@ -1123,7 +1123,7 @@ theorem callerExec_canonical {σ σ₀ A I} {g : Sat256}
     by_cases ho255 : o.size < 2 ^ 255
     · by_cases ho32 : 32 ≤ o.size
       · -- success: `32 ≤ |o| < 2^255`
-        rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by decide,
+        rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by native_decide,
             u256_min32_ofNat_toNat_of_ge32 o.size ho32 hosize] at rd144
         have hmsz : 160 ≤ (o.write 0 (callerCalldataMem I) 128 32).size := by
           have := callerWrite_size I o 32 (by omega) ho32; omega
@@ -1159,7 +1159,7 @@ theorem callerExec_canonical {σ σ₀ A I} {g : Sat256}
           exact (permSplit_false hpf hrd).reEquivStaticHalt hcode hd hdec hbody
       · -- `|o| < 32`: decode reverts
         rw [not_le] at ho32
-        rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by decide,
+        rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by native_decide,
             u256_min32_ofNat_toNat_of_lt32 o.size ho32] at rd144
         have hfp2 : (if (⟨64⟩:UInt256).toNat ≥ (o.write 0 (callerCalldataMem I) 128 o.size).size then ⟨0⟩
               else UInt256.ofNat (fromByteArrayBigEndian
@@ -1178,7 +1178,7 @@ theorem callerExec_canonical {σ σ₀ A I} {g : Sat256}
     · -- `2^255 ≤ |o| < 2^256`: the ABI decoder and solc signed check both revert.
       have hhi : 2 ^ 255 ≤ o.size := by omega
       have ho32 : 32 ≤ o.size := by omega
-      rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by decide,
+      rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by native_decide,
           u256_min32_ofNat_toNat_of_ge32 o.size ho32 hosize] at rd144
       have hfp : (if (⟨64⟩:UInt256).toNat ≥ (o.write 0 (callerCalldataMem I) 128 32).size then ⟨0⟩
             else UInt256.ofNat (fromByteArrayBigEndian
@@ -1203,8 +1203,8 @@ theorem callerX_callDepthLimit {σ σ₀ A I} {g : Sat256}
     (hdepth : I.depth = 1024) :
     RDrev callerBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd142⟩ := callerX_toCall142 hcode hwv hsz hsize hsz68 hszhi hmatch hclean
-  obtain ⟨gv, rd143⟩ := rd142.gas (by decide) (by evm_ov)
-  obtain ⟨k', C', rd144⟩ := rd143.callDepthLimit (by decide) hdepth (by evm_ov)
+  obtain ⟨gv, rd143⟩ := rd142.gas (by native_decide) (by evm_ov)
+  obtain ⟨k', C', rd144⟩ := rd143.callDepthLimit (by native_decide) hdepth (by evm_ov)
   exact callerX_postRevert rd144 (by simp)
 
 /-! ## The `callvalue = 0` Stele coupling -/
@@ -1318,7 +1318,7 @@ theorem callerFinal_read :
     callerInitReturnMem.readWithPadding 0 567 = callerBytecode := by
   unfold callerInitReturnMem
   rw [write0_read_back_from_gen callerInitcode ByteArray.empty 12 567
-    (by decide) (by native_decide) (by decide)]
+    (by native_decide) (by native_decide) (by native_decide)]
   exact callerInitcode_runtime_window
 
 set_option maxHeartbeats 400000 in
@@ -1339,7 +1339,7 @@ theorem callerInitcodeRun {σ σ₀ A I} {g : Sat256}
     raw codecopy 54 callerInitReturnMem (UInt256.ofNat 18) callerInitcodeDecode6
       mem_cost
       rfl
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     raw push2 ⟨567⟩ callerInitcodeDecode7 (by evm_ov),
     raw push0 callerInitcodeDecode10 (by evm_ov),
     raw ret 0 callerBytecode callerInitcodeDecode11

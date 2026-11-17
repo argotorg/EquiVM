@@ -136,7 +136,7 @@ theorem pausableX_unpause_success {σ σ₀ A I} {g : Sat256}
       (R := [⟨157⟩, ⟨97⟩, pausableSelWord I]) rd367 hnz
       (by jump_dest) (by simp)
   have rd202 := evm_run rd199 with [jumpdest, push0, dup1]
-  obtain ⟨_, _, rd203₀⟩ := rd202.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd203₀⟩ := rd202.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd203⟩ : ∃ k C, RD pausableBenchBytecode I g
       (initState σ σ₀ g A I) ⟨203⟩
       [pausedRawWord σ I, ⟨0⟩, ⟨157⟩, ⟨97⟩, pausableSelWord I] solcFreePtrMem
@@ -153,21 +153,21 @@ theorem pausableX_unpause_success {σ σ₀ A I} {g : Sat256}
   by_cases hp : I.perm = true
   swap
   · have hpf : I.perm = false := by simpa using hp
-    exact Or.inr ⟨hpf, rd208.sstoreStatic hpf (by decide) (by evm_ov)⟩
+    exact Or.inr ⟨hpf, rd208.sstoreStatic hpf (by native_decide) (by evm_ov)⟩
   refine Or.inl ⟨hp, ?_⟩
-  obtain ⟨_, _, rd209₀⟩ := rd208.sstore hp (by decide) (by evm_ov)
+  obtain ⟨_, _, rd209₀⟩ := rd208.sstore hp (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd209⟩ : ∃ k C, RD pausableBenchBytecode I g
       (initState σ σ₀ g A I) ⟨209⟩
       [⟨157⟩, ⟨97⟩, pausableSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (unpausePostMap σ I) k C := by
     exact ⟨_, _, by simpa [unpausePostMap] using rd209₀⟩
   have rd242 := rd209.pushConst unpausedTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd243 := evm_run rd242 with [caller, jumpdest]
   have rd247 := evm_run rd243 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov)]
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost solcFreePtrMem_mload64 (by native_decide) (by evm_ov)]
   have rd258₀ := evm_run rd247 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap1, swap2, and, dup2]
   have rd258 := rd258₀
@@ -180,22 +180,22 @@ theorem pausableX_unpause_success {σ σ₀ A I} {g : Sat256}
     simpa [pausableSenderWord] using solcAddrMask_clean_left (pausableSenderWord_canonical I)
   rw [hcaller] at rd258
   have rd260 := evm_run rd258 with [
-    raw mstore 6 (pausableEventMem I) (UInt256.ofNat 5) (by decide)
-      mem_cost (by rfl) (by decide) (by evm_ov)]
+    raw mstore 6 (pausableEventMem I) (UInt256.ofNat 5) (by native_decide)
+      mem_cost (by rfl) (by native_decide) (by evm_ov)]
   have rd270 := evm_run rd260 with [
     push1 ⟨32⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
-      mem_cost (pausableEventMem_mload64 I) (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
+      mem_cost (pausableEventMem_mload64 I) (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have hlen32 : ((⟨32⟩ : UInt256) + ⟨128⟩).sub ⟨128⟩ = ⟨32⟩ := by
     decide
   have rd270' := rd270
   rw [hlen32] at rd270'
-  have rd271 := RD.log1 0 (UInt256.ofNat 5) rd270' (by decide) hp
+  have rd271 := RD.log1 0 (UInt256.ofNat 5) rd270' (by native_decide) hp
     (by simp [M, MachineState.M, u256_ofNat_toNat]; native_decide)
-    (by decide) (by evm_ov)
+    (by native_decide) (by evm_ov)
   have rd97 := evm_run rd271 with [jump (by jump_dest), jumpdest, jump (by jump_dest), jumpdest]
-  exact rd97.stop (by decide) (by evm_ov)
+  exact rd97.stop (by native_decide) (by evm_ov)
 
 theorem pausableX_unpause_revert {σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD pausableBenchBytecode I g

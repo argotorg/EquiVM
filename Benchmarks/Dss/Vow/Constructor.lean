@@ -1157,11 +1157,11 @@ theorem vowCtorHopePostCall
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork
           σFinal (initState σ σ₀ g A I).σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (UInt256.land solcAddrMask vatStored))
-          (toExecute σFinal (AccountAddress.ofUInt256 (UInt256.land solcAddrMask vatStored)))
+          (toExecute I.fork σFinal (AccountAddress.ofUInt256 (UInt256.land solcAddrMask vatStored)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((vowCtorHopeCalldataMem (EVM.word flapper.val)
             (vowCtorWardsHashMem I vat flapper flopper)).readWithPadding

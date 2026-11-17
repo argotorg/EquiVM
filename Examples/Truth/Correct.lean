@@ -55,11 +55,11 @@ theorem truthX_callvalue_ne
     (hcode : I.code = truthBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev truthBytecode g (initState σ σ₀ g A I) := by
   -- prologue → PUSH1 0x0e · JUMPI (not taken: callvalue ≠ 0 ⇒ iszero = 0) → revert stub, one `RD`
-  exact evm_run (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
-        (by decide) (by decide)) with [
+  exact evm_run (solcGuardPrologueRD hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)) with [
       push1 ⟨14⟩,
       jumpiNT (isZero_eq_zero_of_ne hwv),
-      raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+      raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 /-! ### callvalue = 0 dispatcher -/
 
@@ -77,7 +77,7 @@ theorem truthEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
     UInt256.eq ⟨2661241298⟩
         (UInt256.shiftRight (uInt256OfByteArray (cd.readBytes 0 32)) ⟨224⟩)
       = if ((⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ : ByteArray) == cd.extract 0 4) then ⟨1⟩ else ⟨0⟩ :=
-  evmSelectorDecode hsz 0x9e 0x9f 0x51 0xd2 ⟨2661241298⟩ (by decide)
+  evmSelectorDecode hsz 0x9e 0x9f 0x51 0xd2 ⟨2661241298⟩ (by native_decide)
 
 /-! ### Dispatch machinery (single arm) — table-indexed selector coupling + `RD.dispatchTo` driver -/
 
@@ -90,10 +90,10 @@ abbrev truthFirstArmPc : UInt256 := ⟨28⟩
 
 /-- The lone selector arm is well-formed (`DUP1; PUSH4; EQ; PUSH1; JUMPI`). -/
 theorem truthArmWellFormed : armWellFormed truthBytecode truthFirstArmPc :=
-  ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+  ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 /-- The arm's `PUSH4` selector value is `0x9e9f51d2`. -/
-theorem truthArmSelNat : armSelNat truthBytecode truthFirstArmPc = ⟨2661241298⟩ := by decide
+theorem truthArmSelNat : armSelNat truthBytecode truthFirstArmPc = ⟨2661241298⟩ := by native_decide
 
 /-- **Selector coupling.**  Arm 0's `EQ` (its `PUSH4` value vs the calldata selector word) is `1`/`0`
     exactly as `0x9e9f51d2` matches `calldata[0:4]` — the table-indexed instance of `truthEvmSelector`. -/
@@ -117,8 +117,8 @@ theorem truthReachBody {σ σ₀ A I} {g : Sat256}
     (fun j hj => by rw [Nat.le_zero.mp hj]; exact truthArmWellFormed)
     (fun j hj => absurd hj (by omega))
     (by show UInt256.eq (armSelNat truthBytecode truthFirstArmPc) (truthSelWord I) ≠ ⟨0⟩
-        rw [truthMatch_eq I hsz, if_pos hmatch]; decide)
-    (by jump_dest) (by decide)
+        rw [truthMatch_eq I hsz, if_pos hmatch]; native_decide)
+    (by jump_dest) (by native_decide)
 
 /-- The shared dispatcher prefix for `callvalue = 0`: through the non-payable guard's taken jump
     (`0x08 → 0x0e`) and on to the `0x16` `JUMPI`, reaching pc 22 with stack `[0x26, (size < 4)]`,
@@ -130,10 +130,10 @@ theorem truthX_cvz_prefix
         [⟨38⟩, UInt256.lt (UInt256.ofNat I.calldata.size) ⟨4⟩]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ 14 53 := by
   -- prologue → PUSH1 0x0e · JUMPI(taken, cv=0) · JUMPDEST · POP · PUSH1 4 · CALLDATASIZE · LT · PUSH1 0x26
-  exact evm_run (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
-        (by decide) (by decide)) with [
+  exact evm_run (solcGuardPrologueRD hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)) with [
       push1 ⟨14⟩,
-      jumpiT (by rw [hwv]; decide) truthContains14,
+      jumpiT (by rw [hwv]; native_decide) truthContains14,
       jumpdest, pop, push1 ⟨4⟩, calldatasize, lt, push1 ⟨38⟩ ]
 
 /-- Dispatcher trace for `callvalue = 0 ∧ calldatasize < 4`: the prefix reaches the `0x16`
@@ -144,7 +144,7 @@ theorem truthX_cvz_short
     RDrev truthBytecode g (initState σ σ₀ g A I) := by
   exact evm_run (truthX_cvz_prefix hcode hwv) with [
     jumpiT (lt_four_ne_zero_of_lt hsz) truthContains38,
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 /-- **calldatasize ≥ 4, wrong selector**: the dispatcher continues past the `0x16` JUMPI
     (not taken), decodes & compares the selector (`EQ = 0` via `truthEvmSelector`), and reverts
@@ -159,9 +159,9 @@ theorem truthX_cvz_revertB
   exact evm_run (truthX_cvz_prefix hcode hwv) with [
     jumpiNT (lt_four_eq_zero_of_ge hsz hsize),
     push0, calldataload, push1 ⟨224⟩, shr, dup1, push4 ⟨2661241298⟩, eq, push1 ⟨42⟩,
-    jumpiNT (by rw [show ((⟨0⟩ : UInt256).toNat) = 0 from by decide, truthEvmSelector hsz];
+    jumpiNT (by rw [show ((⟨0⟩ : UInt256).toNat) = 0 from by native_decide, truthEvmSelector hsz];
                 simp [hmatch]),
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 
 /-- Decoding `truth()`'s (empty) argument list always succeeds with the empty store. -/
@@ -189,33 +189,33 @@ theorem truthX_cvz_success {σ σ₀ A I} {g : Sat256}
     jumpdest, push1 ⟨48⟩, push1 ⟨68⟩, jump (by jump_dest),
     jumpdest, push0, push1 ⟨1⟩, swap1, pop, swap1, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
       solcFreePtrMem_mload64
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push1 ⟨59⟩, swap2, swap1, push1 ⟨100⟩, jump (by jump_dest),
     jumpdest, push0, push1 ⟨32⟩, dup3, add, swap1, pop,
     push1 ⟨117⟩, push0, dup4, add, dup5, push1 ⟨87⟩, jump (by jump_dest),
     jumpdest, push1 ⟨94⟩, dup2, push1 ⟨76⟩, jump (by jump_dest),
     jumpdest, push0, dup2, iszero, iszero, swap1, pop, swap2, swap1, pop, jump (by jump_dest),
     jumpdest, dup3,
-    raw mstore 6 (solcReturnMem ⟨1⟩) (UInt256.ofNat 5) (by decide)
+    raw mstore 6 (solcReturnMem ⟨1⟩) (UInt256.ofNat 5) (by native_decide)
       mem_cost
-      (by rw [show ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 from by decide,
-          show UInt256.isZero (UInt256.isZero ⟨1⟩) = ⟨1⟩ from by decide]; rfl)
-      (by decide) (by evm_ov),
+      (by rw [show ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 from by native_decide,
+          show UInt256.isZero (UInt256.isZero ⟨1⟩) = ⟨1⟩ from by native_decide]; rfl)
+      (by native_decide) (by evm_ov),
     pop, pop, jump (by jump_dest),
     jumpdest, swap3, swap2, pop, pop, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (solcReturnMem_mload64 ⟨1⟩)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray ⟨1⟩) (by decide)
+    raw ret 0 (UInt256.toByteArray ⟨1⟩) (by native_decide)
       mem_cost
-      (by rw [show (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩).toNat = 32 from by decide,
-          show ((⟨128⟩ : UInt256).toNat) = 128 from by decide, solcReturnMem_read128])
+      (by rw [show (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩).toNat = 32 from by native_decide,
+          show ((⟨128⟩ : UInt256).toNat) = 128 from by native_decide, solcReturnMem_read128])
       (by evm_ov) ]
 
 theorem truthReEquiv_callvalueZero
@@ -276,8 +276,8 @@ theorem truthInitcode_codecopy_mem :
     ctorTruthInitcode.write 15 solcFreePtrMem 0 123 = truthInitReturnMem := by
   unfold truthInitReturnMem
   apply ByteArray.ext
-  rw [write0_data_from ctorTruthInitcode solcFreePtrMem 15 123 (by decide) (by native_decide)]
-  rw [write0_data truthBytecode solcFreePtrMem 123 (by decide)
+  rw [write0_data_from ctorTruthInitcode solcFreePtrMem 15 123 (by native_decide) (by native_decide)]
+  rw [write0_data truthBytecode solcFreePtrMem 123 (by native_decide)
     (by rw [truthRuntime_size])]
   have hwindow :
       ctorTruthInitcode.data.extract 15 (15 + 123) =
@@ -291,7 +291,7 @@ theorem truthFinal_read :
     truthInitReturnMem.readWithPadding 0 123 = truthBytecode := by
   unfold truthInitReturnMem
   rw [write0_read_back_gen truthBytecode solcFreePtrMem 123
-    (by decide) (by rw [truthRuntime_size]) (by decide)]
+    (by native_decide) (by rw [truthRuntime_size]) (by native_decide)]
   exact truthRuntime_extract_all
 
 set_option maxHeartbeats 400000 in
@@ -310,8 +310,8 @@ theorem truthInitcodeRun {σ σ₀ A I} {g : Sat256}
     raw push1 ⟨64⟩ ctorTruthDecode2 (by evm_ov),
     raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) ctorTruthDecode4
       mem_cost
-      (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
-      (by decide) (by evm_ov),
+      (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by native_decide]; rfl)
+      (by native_decide) (by evm_ov),
     raw push1 ⟨123⟩ ctorTruthDecode5 (by evm_ov),
     raw dup1 ctorTruthDecode7 (by evm_ov),
     raw push1 ⟨15⟩ ctorTruthDecode8 (by evm_ov),
@@ -319,7 +319,7 @@ theorem truthInitcodeRun {σ σ₀ A I} {g : Sat256}
     raw codecopy 3 truthInitReturnMem (UInt256.ofNat 4) ctorTruthDecode11
       mem_cost
       truthInitcode_codecopy_mem
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     raw push0 ctorTruthDecode12 (by evm_ov),
     raw ret 0 truthBytecode ctorTruthDecode13
       mem_cost

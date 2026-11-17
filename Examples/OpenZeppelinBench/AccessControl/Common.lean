@@ -61,23 +61,31 @@ abbrev accessControlHighFirstArmPc : UInt256 := ⟨41⟩
 abbrev accessControlLowJumpdestPc : UInt256 := ⟨88⟩
 abbrev accessControlLowFirstArmPc : UInt256 := ⟨89⟩
 
+@[simp] theorem accessControlSplitTarget :
+    armTgt accessControlBenchBytecode accessControlSplitPc = accessControlLowJumpdestPc := by
+  native_decide
+
+theorem accessControlLowFirstArm_eq :
+    accessControlLowFirstArmPc = armTgt accessControlBenchBytecode accessControlSplitPc + ⟨1⟩ := by
+  native_decide
+
 theorem accessControlSplitWellFormed :
     selectorSplitWellFormed accessControlBenchBytecode accessControlSplitPc := by
-  exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+  exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 theorem accessControlHighArmsWellFormed :
     ∀ j, j ≤ 3 → armWellFormed accessControlBenchBytecode
       (nthArmPc accessControlBenchBytecode accessControlHighFirstArmPc j) := by
   intro j hj
   interval_cases j <;>
-    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+    exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 theorem accessControlLowArmsWellFormed :
     ∀ j, j ≤ 2 → armWellFormed accessControlBenchBytecode
       (nthArmPc accessControlBenchBytecode accessControlLowFirstArmPc j) := by
   intro j hj
   interval_cases j <;>
-    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+    exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 theorem accessControlSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (c0 c1 c2 c3 : UInt8) (sel : UInt256)
@@ -96,7 +104,7 @@ theorem accessControlLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
           (nthArmPc accessControlBenchBytecode accessControlLowFirstArmPc j))
         (accessControlSelWord I) =
       if (accessControlLowSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
 theorem accessControlHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -105,7 +113,7 @@ theorem accessControlHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
           (nthArmPc accessControlBenchBytecode accessControlHighFirstArmPc j))
         (accessControlSelWord I) =
       if (accessControlHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
 theorem accessControlLowMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 3)
     (hsz : 4 ≤ I.calldata.size)
@@ -123,9 +131,9 @@ theorem accessControlLowMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 3)
     (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [accessControlLowArmEq I hsz j (by omega), hci]
-    interval_cases i <;> interval_cases j <;> decide
+    interval_cases i <;> interval_cases j <;> native_decide
   · rw [accessControlLowArmEq I hsz i hi, hci]
-    interval_cases i <;> decide
+    interval_cases i <;> native_decide
 
 theorem accessControlHighMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
     (hsz : 4 ≤ I.calldata.size)
@@ -143,9 +151,9 @@ theorem accessControlHighMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
     (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [accessControlHighArmEq I hsz j (by omega), hci]
-    interval_cases i <;> interval_cases j <;> decide
+    interval_cases i <;> interval_cases j <;> native_decide
   · rw [accessControlHighArmEq I hsz i hi, hci]
-    interval_cases i <;> decide
+    interval_cases i <;> native_decide
 
 theorem accessControlPivotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 3)
     (hsz : 4 ≤ I.calldata.size)
@@ -155,21 +163,21 @@ theorem accessControlPivotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 3)
   interval_cases i
   · have hword : accessControlSelWord I =
         armSelNat accessControlBenchBytecode accessControlLowFirstArmPc :=
-      accessControlSelWord_eq_of_beq I hsz 0x01 0xff 0xc9 0xa7 _ (by decide)
+      accessControlSelWord_eq_of_beq I hsz 0x01 0xff 0xc9 0xa7 _ (by native_decide)
         (by simpa [accessControlLowSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : accessControlSelWord I =
         armSelNat accessControlBenchBytecode
           (nthArmPc accessControlBenchBytecode accessControlLowFirstArmPc 1) :=
-      accessControlSelWord_eq_of_beq I hsz 0x24 0x8a 0x9c 0xa3 _ (by decide)
+      accessControlSelWord_eq_of_beq I hsz 0x24 0x8a 0x9c 0xa3 _ (by native_decide)
         (by simpa [accessControlLowSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : accessControlSelWord I =
         armSelNat accessControlBenchBytecode
           (nthArmPc accessControlBenchBytecode accessControlLowFirstArmPc 2) :=
-      accessControlSelWord_eq_of_beq I hsz 0x2f 0x2f 0xf1 0x5d _ (by decide)
+      accessControlSelWord_eq_of_beq I hsz 0x2f 0x2f 0xf1 0x5d _ (by native_decide)
         (by simpa [accessControlLowSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
 
 theorem accessControlPivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
     (hsz : 4 ≤ I.calldata.size)
@@ -178,27 +186,27 @@ theorem accessControlPivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
       (accessControlSelWord I) = ⟨0⟩ := by
   interval_cases i
   · have hword : accessControlSelWord I = armSelNat accessControlBenchBytecode accessControlSplitPc :=
-      accessControlSelWord_eq_of_beq I hsz 0x36 0x56 0x8a 0xbe _ (by decide)
+      accessControlSelWord_eq_of_beq I hsz 0x36 0x56 0x8a 0xbe _ (by native_decide)
         (by simpa [accessControlHighSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : accessControlSelWord I =
         armSelNat accessControlBenchBytecode
           (nthArmPc accessControlBenchBytecode accessControlHighFirstArmPc 1) :=
-      accessControlSelWord_eq_of_beq I hsz 0x91 0xd1 0x48 0x54 _ (by decide)
+      accessControlSelWord_eq_of_beq I hsz 0x91 0xd1 0x48 0x54 _ (by native_decide)
         (by simpa [accessControlHighSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : accessControlSelWord I =
         armSelNat accessControlBenchBytecode
           (nthArmPc accessControlBenchBytecode accessControlHighFirstArmPc 2) :=
-      accessControlSelWord_eq_of_beq I hsz 0xa2 0x17 0xfd 0xdf _ (by decide)
+      accessControlSelWord_eq_of_beq I hsz 0xa2 0x17 0xfd 0xdf _ (by native_decide)
         (by simpa [accessControlHighSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : accessControlSelWord I =
         armSelNat accessControlBenchBytecode
           (nthArmPc accessControlBenchBytecode accessControlHighFirstArmPc 3) :=
-      accessControlSelWord_eq_of_beq I hsz 0xd5 0x47 0x74 0x1f _ (by decide)
+      accessControlSelWord_eq_of_beq I hsz 0xd5 0x47 0x74 0x1f _ (by native_decide)
         (by simpa [accessControlHighSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
 
 /-! ## Dispatch reachability -/
 
@@ -288,23 +296,19 @@ theorem accessControlReachLowBody {σ σ₀ A I} {g : Sat256}
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (code := accessControlBenchBytecode) (splitPc := accessControlSplitPc) (bodyPC := bodyPC)
       (i := i) hcode hwv hsz hsize hprefix (by jump_dest) accessControlSplitWellFormed
-      (by simpa [accessControlSelWord, solcSelectorWord] using hpivot) (by jump_dest) (by decide)
+      (by simpa [accessControlSelWord, solcSelectorWord] using hpivot) (by jump_dest) (by native_decide)
       (fun j hj => by
-        simpa [accessControlLowFirstArmPc, accessControlLowJumpdestPc, accessControlSplitPc,
-          armTgt, pushAt, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
+        simpa only [← accessControlLowFirstArm_eq] using
           accessControlLowArmsWellFormed j (le_trans hj hi))
       (fun j hj => by
-        simpa [accessControlSelWord, solcSelectorWord, accessControlLowFirstArmPc,
-          accessControlLowJumpdestPc, accessControlSplitPc, armTgt, pushAt, selArmPushTgtPc,
-          selArmEqPc, selArmPush4Pc] using heq0 j hj)
+        simpa only [← accessControlLowFirstArm_eq, accessControlSelWord, solcSelectorWord]
+          using heq0 j hj)
       (by
-        simpa [accessControlSelWord, solcSelectorWord, accessControlLowFirstArmPc,
-          accessControlLowJumpdestPc, accessControlSplitPc, armTgt, pushAt, selArmPushTgtPc,
-          selArmEqPc, selArmPush4Pc] using htake)
+        simpa only [← accessControlLowFirstArm_eq, accessControlSelWord, solcSelectorWord]
+          using htake)
       hjd
       (by
-        simpa [accessControlLowFirstArmPc, accessControlLowJumpdestPc, accessControlSplitPc,
-          armTgt, pushAt, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using hbody))
+        simpa only [← accessControlLowFirstArm_eq] using hbody))
 
 /-! ## Dispatch failures and global non-payable guard -/
 
@@ -362,29 +366,29 @@ theorem accessControlX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (ctgt := solcGuardTgt accessControlBenchBytecode)
     (opC := solcGuardTgtOp accessControlBenchBytecode)
     (wC := solcGuardTgtWidth accessControlBenchBytecode)
-    (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
-      (by decide) (by decide))
-    hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (solcGuardPrologueRD hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide))
+    hwv (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
 theorem accessControlX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = accessControlBenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
     RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide)
-    (by decide)
+    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt accessControlBenchBytecode)
     (opC := solcGuardTgtOp accessControlBenchBytecode)
     (wC := solcGuardTgtWidth accessControlBenchBytecode) h0 hwv
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by jump_dest)
   exact solcCalldataShortRevert
     (bodyPc := solcDispatchBodyPc accessControlBenchBytecode)
     (rtgt := solcCalldataRevertTgt accessControlBenchBytecode)
     (opR := solcCalldataRevertTgtOp accessControlBenchBytecode)
     (wR := solcCalldataRevertTgtWidth accessControlBenchBytecode)
-    h1 hsz (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by jump_dest) (by decide) (by decide) (by decide)
+    h1 hsz (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by jump_dest) (by native_decide) (by native_decide) (by native_decide)
 
 theorem accessControlX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = accessControlBenchBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -468,11 +472,15 @@ theorem accessControlX_noMatch {σ σ₀ A I} {g : Sat256}
       simpa [accessControlHighFirstArmPc, accessControlSplitPc, nthArmPc, selArmNextPc,
         armTgtWidth, selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using h85
     obtain ⟨_, _, h85rd⟩ := h85'
-    exact h85rd.revertStub (by decide) (by decide) (by decide) (by simp)
+    exact h85rd.revertStub (by native_decide) (by native_decide) (by native_decide) (by simp)
   · have h88 := RD.selectorSplitTakenAuto hsplit accessControlSplitWellFormed hpivot
       (by jump_dest) (by simp)
-    have h89 := h88.jumpdest (by decide) (by simp)
-    have h122 := h89
+    have h89 := h88.jumpdest (by native_decide) (by simp)
+    have h89' : RD accessControlBenchBytecode I g (initState σ σ₀ g A I)
+        accessControlLowFirstArmPc [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3)
+        ByteArray.empty σ (kS + 5 + 1) (CS + 22 + 1) := by
+      simpa only [← accessControlLowFirstArm_eq] using h89
+    have h122 := h89'
       |>.selectorArmNotTakenAuto (accessControlLowArmsWellFormed 0 (by omega))
           (heqLow0 0 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (accessControlLowArmsWellFormed 1 (by omega))
@@ -483,12 +491,10 @@ theorem accessControlX_noMatch {σ σ₀ A I} {g : Sat256}
         (initState σ σ₀ g A I) ⟨122⟩ [accessControlSelWord I] solcFreePtrMem
         (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 1 + 5 + 5 + 5, CS + 22 + 1 + 22 + 22 + 22, ?_⟩
-      simpa [accessControlLowFirstArmPc, accessControlLowJumpdestPc, accessControlSplitPc,
-        nthArmPc, selArmNextPc, armTgtWidth, armTgt, pushAt, selArmJumpiPc, selArmPushTgtPc,
-        selArmEqPc, selArmPush4Pc] using h122
+      convert h122 using 1 <;> native_decide
     obtain ⟨_, _, h122rd⟩ := h122'
-    have h123 := h122rd.jumpdest (by decide) (by simp)
-    exact h123.revertStub (by decide) (by decide) (by decide) (by simp)
+    have h123 := h122rd.jumpdest (by native_decide) (by simp)
+    exact h123.revertStub (by native_decide) (by native_decide) (by native_decide) (by simp)
 
 /-! ## Scalar return encodings -/
 

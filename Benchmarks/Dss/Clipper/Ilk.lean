@@ -260,6 +260,7 @@ theorem clipperIlkPush32Decode (v : ClipperImmutables) {code : ByteArray}
       rw [patchRuntime_get?_disjoint hpatch
         (by apply clipperIlkPatchesWindowDisjoint32 v; native_decide)]
       native_decide)
+    (by native_decide)
     (by
       rw [show (⟨6799⟩ : UInt256).toNat + 1 = 6800 by native_decide]
       rw [show (⟨6799⟩ : UInt256).toNat + 33 = 6832 by native_decide]

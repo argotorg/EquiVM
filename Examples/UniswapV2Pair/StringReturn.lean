@@ -36,19 +36,19 @@ theorem uniswapReachNameBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨572⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x06fdde03⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x06 0xfd 0xde 0x03 ⟨0x06fdde03⟩ (by decide) hsel
-  exact uniswapReachLowestBody 1 (by decide) ⟨572⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x06 0xfd 0xde 0x03 ⟨0x06fdde03⟩ (by native_decide) hsel
+  exact uniswapReachLowestBody 1 (by native_decide) ⟨572⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
       all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `symbol()` body entry through the optimized dispatcher. -/
 theorem uniswapReachSymbolBody {σ σ₀ A I} {g : Sat256}
@@ -58,19 +58,19 @@ theorem uniswapReachSymbolBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1226⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x95d89b41⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x95 0xd8 0x9b 0x41 ⟨0x95d89b41⟩ (by decide) hsel
-  exact uniswapReachHighLowerBody 2 (by decide) ⟨1226⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x95 0xd8 0x9b 0x41 ⟨0x95d89b41⟩ (by native_decide) hsel
+  exact uniswapReachHighLowerBody 2 (by native_decide) ⟨1226⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
       all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 end UniswapV2Pair

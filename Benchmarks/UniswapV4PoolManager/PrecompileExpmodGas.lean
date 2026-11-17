@@ -19,11 +19,14 @@ theorem expmodCost_large_base {base modulus iterations : Nat}
 theorem precompile_EXPMOD_large_base {σ : AccountMap} {g : UInt256} {A : Substate} {I : ExecutionEnv}
     (hb : 2^132 ≤ nat_of_slice I.calldata 0 32) :
     Ξ_EXPMOD σ g A I = (∅, ⟨0⟩, A, .empty) := by
-  have hgas (n : Nat) : g.toNat < max 200
-      (((max (nat_of_slice I.calldata 0 32) (nat_of_slice I.calldata 64 32)+7)/8)^2*
-        max n 1/3) :=
-    Nat.lt_of_lt_of_le g.val.isLt
-      ((expmodCost_large_base hb (Nat.le_max_right _ _)).trans (Nat.le_max_right _ _))
-  simp only [Ξ_EXPMOD, hgas, if_true]
+  by_cases hosaka : I.fork ≥ .osaka
+  · have hbase : 1024 < nat_of_slice I.calldata 0 32 := by omega
+    simp [Ξ_EXPMOD, expmodRequiredGas, hosaka, hbase]
+  · have hgas (n : Nat) : g.toNat < max 200
+        (((max (nat_of_slice I.calldata 0 32) (nat_of_slice I.calldata 64 32)+7)/8)^2*
+          max n 1/3) :=
+      Nat.lt_of_lt_of_le g.val.isLt
+        ((expmodCost_large_base hb (Nat.le_max_right _ _)).trans (Nat.le_max_right _ _))
+    simp [Ξ_EXPMOD, expmodRequiredGas, hosaka, hgas]
 
 end Benchmarks.UniswapV4PoolManager

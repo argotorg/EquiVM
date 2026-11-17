@@ -353,10 +353,11 @@ theorem potReach163 {σ σ₀ A I} {g : Sat256}
   obtain ⟨k0, C0, h32⟩ :=
     potReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
+  have hrootTgt : armTgt potBytecode potRootSplitPc = potJumpdest162Pc := by native_decide
   have h162 : RD potBytecode I g (initState σ σ₀ g A I)
       potJumpdest162Pc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k0 + 5) (C0 + 22) := by
-    simpa [potRootSplitPc, potJumpdest162Pc] using
+    simpa [potRootSplitPc, potJumpdest162Pc, hrootTgt] using
       RD.selectorSplitTakenAuto h32 potRootSplitWellFormed hroot (by jump_dest) (by simp)
   have h163 : RD potBytecode I g (initState σ σ₀ g A I)
       potSplit163Pc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
@@ -376,10 +377,11 @@ theorem potReachG114First {σ σ₀ A I} {g : Sat256}
   obtain ⟨k1, C1, h43r⟩ :=
     potReach43 (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
+  have h43Tgt : armTgt potBytecode potSplit43Pc = potG114JumpdestPc := by native_decide
   have h113 : RD potBytecode I g (initState σ σ₀ g A I)
       potG114JumpdestPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k1 + 5) (C1 + 22) := by
-    simpa [potSplit43Pc, potG114JumpdestPc] using
+    simpa [potSplit43Pc, potG114JumpdestPc, h43Tgt] using
       RD.selectorSplitTakenAuto h43r potSplit43WellFormed h43 (by jump_dest) (by simp)
   have h114 : RD potBytecode I g (initState σ σ₀ g A I)
       potG114FirstArmPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
@@ -419,10 +421,11 @@ theorem potReachG223First {σ σ₀ A I} {g : Sat256}
   obtain ⟨k2, C2, h163r⟩ :=
     potReach163 (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
+  have h163Tgt : armTgt potBytecode potSplit163Pc = potG223JumpdestPc := by native_decide
   have h222 : RD potBytecode I g (initState σ σ₀ g A I)
       potG223JumpdestPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k2 + 5) (C2 + 22) := by
-    simpa [potSplit163Pc, potG223JumpdestPc] using
+    simpa [potSplit163Pc, potG223JumpdestPc, h163Tgt] using
       RD.selectorSplitTakenAuto h163r potSplit163WellFormed h163 (by jump_dest) (by simp)
   have h223 : RD potBytecode I g (initState σ σ₀ g A I)
       potG223FirstArmPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)

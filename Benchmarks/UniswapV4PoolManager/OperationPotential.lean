@@ -92,9 +92,19 @@ theorem step_compbit_potential {gasCost : Nat} {op : Operation.CBLOp}
     {arg : Option (UInt256 × Nat)} {s s' : State}
     (h : step gasCost (.CompBit op, arg) s = .ok s') :
     operationPotential s' ≤ operationPotential s := by
-  cases op <;> rw [step.eq_1] at h
+  cases op <;> simp only [step] at h
   all_goals first
   | simpa only [operationPotential] using execBinOp_potential h
   | simpa only [operationPotential] using Nat.le_of_eq (execUnOp_potential h)
+  | split at h
+    · have hpot : operationPotential s' = operationPotential
+          ({s with machineState := {s.machineState with
+            execLength := s.machineState.execLength + 1,
+            gasAvailable := s.machineState.gasAvailable.subNat gasCost}}) :=
+          execUnOp_potential h
+      rw [hpot]
+      simp only [operationPotential]
+      exact Nat.le_refl _
+    · contradiction
 
 end Benchmarks.UniswapV4PoolManager

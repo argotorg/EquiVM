@@ -101,7 +101,7 @@ theorem approveOwnerWord_toNat (I : ExecutionEnv) :
     (approveOwnerWord I).toNat = I.source.val := by
   unfold approveOwnerWord
   exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
-    (show AccountAddress.size ≤ UInt256.size from by decide))
+    (show AccountAddress.size ≤ UInt256.size from by native_decide))
 
 theorem approveOwnerWord_canonical (I : ExecutionEnv) :
     (approveOwnerWord I).toNat < EVM.addressModulus := by
@@ -118,12 +118,12 @@ theorem approveOwner_ofNat (I : ExecutionEnv) :
 
 theorem approveStore_spender (I : ExecutionEnv) :
     (approveStore I).get? "spender" = some (approveSpenderValue I) := by
-  rw [approveStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
+  rw [approveStore, store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
     store_get_self]
 
 theorem approveStore_id (I : ExecutionEnv) :
     (approveStore I).get? "id" = some (approveIdValue I) := by
-  rw [approveStore, store_get_ne _ _ (by decide), store_get_self]
+  rw [approveStore, store_get_ne _ _ (by native_decide), store_get_self]
 
 theorem approveStore_amount (I : ExecutionEnv) :
     (approveStore I).get? "amount" = some (approveAmountValue I) := by
@@ -131,8 +131,8 @@ theorem approveStore_amount (I : ExecutionEnv) :
 
 theorem approveStore_allowances (I : ExecutionEnv) :
     (approveStore I).get? "_allowances" = none := by
-  rw [approveStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
-    store_get_ne _ _ (by decide)]
+  rw [approveStore, store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
+    store_get_ne _ _ (by native_decide)]
   simp
 
 theorem evalExpr_approve_spender (evm : EVM.State) (I : ExecutionEnv) :
@@ -594,11 +594,11 @@ theorem erc6909ApproveX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, rd1769⟩ :=
     erc6909DecodeAddrOk rd1629 hcanonSpender (by jump_dest) (by evm_ov)
   have rd1770 := evm_run rd1769 with [jumpdest]
-  have rd1771 := RD.swap6 rd1770 (by decide) (by simp)
+  have rd1771 := RD.swap6 rd1770 (by native_decide) (by simp)
   have rd1777 := evm_run rd1771 with [push1 ⟨32⟩, dup6, add, calldataload]
-  have rd1778 := RD.swap6 rd1777 (by decide) (by simp)
+  have rd1778 := RD.swap6 rd1777 (by native_decide) (by simp)
   have rd1781 := evm_run rd1778 with [pop, push1 ⟨64⟩, swap1]
-  have rd1782 := RD.swap5 rd1781 (by decide) (by simp)
+  have rd1782 := RD.swap5 rd1781 (by native_decide) (by simp)
   have rd242 := evm_run rd1782 with [
     add, calldataload, swap4, swap3, pop, pop, pop, jump (by jump_dest) ]
   have rd522 := evm_run rd242 with [jumpdest, push2 ⟨522⟩, jump (by jump_dest)]
@@ -619,7 +619,7 @@ theorem erc6909ApproveX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact evm_run rd1742 with [
     jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
     push2 ⟨1760⟩, jumpiNT (by rw [hslt]; decide),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem erc6909ApproveX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -634,7 +634,7 @@ theorem erc6909ApproveX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact evm_run rd1742 with [
     jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
     push2 ⟨1760⟩, jumpiNT (by rw [hslt]; decide),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem erc6909ApproveX_noncanon_spender {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -742,7 +742,7 @@ theorem erc6909ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     push2 ⟨807⟩,
     jumpiT (by
       rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-        solcAddrMask from by decide]
+        solcAddrMask from by native_decide]
       rw [solcAddrMask_clean (approveOwnerWord_canonical I)]
       exact hownerWordNZ)
       (by jump_dest),
@@ -750,7 +750,7 @@ theorem erc6909ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     push2 ⟨848⟩,
     jumpiT (by
       rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-        solcAddrMask from by decide]
+        solcAddrMask from by native_decide]
       rw [solcAddrMask_clean hcanonSpender]
       exact hspenderWordNZ)
       (by jump_dest) ]
@@ -759,64 +759,64 @@ theorem erc6909ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, dup2, and,
     push0, dup2, dup2,
     raw mstore 0 (wordAt0Mem (approveOwnerWord I) solcFreePtrMem)
-      (UInt256.ofNat 3) (by decide) mem_cost
+      (UInt256.ofNat 3) (by native_decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-          solcAddrMask from by decide]
+          solcAddrMask from by native_decide]
         rw [solcAddrMask_clean_left (approveOwnerWord_canonical I)]
         rfl)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push1 ⟨2⟩, push1 ⟨32⟩, swap1, dup2,
     raw mstore 0 (approveOwnerHashMem (approveOwnerWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4,
     raw keccak256 0 (approveOwnerSlot (approveOwnerWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
-  have rd877 := RD.swap5 rd876₀ (by decide) (by evm_ov)
-  have rd878 := RD.dup9 rd877 (by decide) (by evm_ov)
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov) ]
+  have rd877 := RD.swap5 rd876₀ (by native_decide) (by evm_ov)
+  have rd878 := RD.dup9 rd877 (by native_decide) (by evm_ov)
   have rd882₀ := evm_run rd878 with [
     and, dup1, dup5,
     raw mstore 0 (wordAt0Mem (approveSpenderWord I)
         (approveOwnerHashMem (approveOwnerWord I)))
-      (UInt256.ofNat 3) (by decide) mem_cost
+      (UInt256.ofNat 3) (by native_decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-          solcAddrMask from by decide]
+          solcAddrMask from by native_decide]
         rw [solcAddrMask_clean hcanonSpender]
         rfl)
-      (by decide) (by evm_ov) ]
-  have rd883 := RD.swap5 rd882₀ (by decide) (by evm_ov)
+      (by native_decide) (by evm_ov) ]
+  have rd883 := RD.swap5 rd882₀ (by native_decide) (by evm_ov)
   have rd899 := evm_run rd883 with [
     dup3,
     raw mstore 0 (approveSpenderHashMem (approveOwnerWord I) (approveSpenderWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     dup1, dup4,
     raw keccak256 0 (approveSpenderSlot (approveOwnerWord I) (approveSpenderWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     dup8, dup5,
     raw mstore 0 (wordAt0Mem (approveIdWord I)
         (approveSpenderHashMem (approveOwnerWord I) (approveSpenderWord I)))
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     dup3,
     raw mstore 0 (approveIdHashMem (approveOwnerWord I) (approveSpenderWord I)
         (approveIdWord I))
-      (UInt256.ofNat 3) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     swap2, dup3, swap1,
     raw keccak256 0 (approveSlotI I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslot (by decide) (by evm_ov),
+      (by native_decide) mem_cost hslot (by native_decide) (by evm_ov),
     dup6, swap1 ]
   have rd899' := rd899
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by decide,
+      solcAddrMask from by native_decide,
     solcAddrMask_clean_left (approveOwnerWord_canonical I),
     solcAddrMask_clean hcanonSpender] at rd899'
   by_cases hp : I.perm = true
-  · exact Or.inl ⟨hp, by simpa using rd899'.sstore hp (by decide) (by evm_ov)⟩
+  · exact Or.inl ⟨hp, by simpa using rd899'.sstore hp (by native_decide) (by evm_ov)⟩
   · have hpf : I.perm = false := by simpa using hp
-    exact Or.inr ⟨hpf, rd899'.sstoreStatic hpf (by decide) (by evm_ov)⟩
+    exact Or.inr ⟨hpf, rd899'.sstoreStatic hpf (by native_decide) (by evm_ov)⟩
 
 theorem erc6909ApproveX_revert_owner {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -835,26 +835,26 @@ theorem erc6909ApproveX_revert_owner {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     push2 ⟨807⟩,
     jumpiNT (by
       rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-        solcAddrMask from by decide]
+        solcAddrMask from by native_decide]
       rw [hownerZeroWord]
       decide) ]
   exact evm_run rd781 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost solcFreePtrMem_mload64 (by native_decide) (by evm_ov),
     push4 ⟨0x198ecd53⟩, push1 ⟨227⟩, shl, dup2,
     raw mstore 6 (solcReturnMem approveInvalidApproverSelectorWord)
-      (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 5) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push0, push1 ⟨4⟩, dup3, add,
     raw mstore 3 (approveErrorMem approveInvalidApproverSelectorWord ⟨0⟩)
-      (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨36⟩, add, push2 ⟨698⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
       mem_cost (approveErrorMem_mload64 approveInvalidApproverSelectorWord ⟨0⟩)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rev 0 (by native_decide) mem_cost (by evm_ov) ]
 
 theorem erc6909ApproveX_revert_spender {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -878,7 +878,7 @@ theorem erc6909ApproveX_revert_spender {σ σ₀ A I} {g : Sat256} {sel : UInt25
     push2 ⟨807⟩,
     jumpiT (by
       rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-        solcAddrMask from by decide]
+        solcAddrMask from by native_decide]
       rw [solcAddrMask_clean (approveOwnerWord_canonical I)]
       exact hownerWordNZ)
       (by jump_dest),
@@ -886,26 +886,26 @@ theorem erc6909ApproveX_revert_spender {σ σ₀ A I} {g : Sat256} {sel : UInt25
     push2 ⟨848⟩,
     jumpiNT (by
       rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-        solcAddrMask from by decide]
+        solcAddrMask from by native_decide]
       rw [hspenderZeroWord]
       decide) ]
   exact evm_run rd822 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost solcFreePtrMem_mload64 (by native_decide) (by evm_ov),
     push4 ⟨0x6f65f465⟩, push1 ⟨224⟩, shl, dup2,
     raw mstore 6 (solcReturnMem approveInvalidSpenderSelectorWord)
-      (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 5) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push0, push1 ⟨4⟩, dup3, add,
     raw mstore 3 (approveErrorMem approveInvalidSpenderSelectorWord ⟨0⟩)
-      (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨36⟩, add, push2 ⟨698⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
       mem_cost (approveErrorMem_mload64 approveInvalidSpenderSelectorWord ⟨0⟩)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rev 0 (by native_decide) mem_cost (by evm_ov) ]
 
 theorem erc6909X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -924,63 +924,63 @@ theorem erc6909X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     hsz100 hsize hszhi hcanonSpender hsource hspender hreach)
   have rd951 := evm_run rd900 with [
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
       (approveIdHashMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
         (approveIdWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup5, dup2,
     raw mstore 6 (approveEventMem (approveOwnerWord I) (approveSpenderWord I)
         (approveIdWord I) (approveAmountWord I))
-      (UInt256.ofNat 5) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 5) (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     dup6, swap4, swap3, swap2 ]
   have rd942 := rd951.pushConst approveApprovalTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd951Log := evm_run rd942 with [
     swap2, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (approveEventMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
         (approveIdWord I) (approveAmountWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  have rd952 := RD.log4 0 (UInt256.ofNat 5) rd951Log (by decide) hperm
-    mem_cost (by decide) (by evm_ov)
+  have rd952 := RD.log4 0 (UInt256.ofNat 5) rd951Log (by native_decide) hperm
+    mem_cost (by native_decide) (by evm_ov)
   have rd512 := evm_run rd952 with [
     pop, pop, pop, pop, jump (by jump_dest) ]
   have rd193 := evm_run rd512 with [
     jumpdest, pop, push1 ⟨1⟩, swap4, swap3, pop, pop, pop, jump (by jump_dest) ]
   have rd165 := evm_run rd193 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (approveEventMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
         (approveIdWord I) (approveAmountWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
     raw mstore 0 (approveReturnMem (approveOwnerWord I) (approveSpenderWord I)
         (approveIdWord I) (approveAmountWord I))
-      (UInt256.ofNat 5) (by decide) mem_cost
+      (UInt256.ofNat 5) (by native_decide) mem_cost
       (by
-        rw [show UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ from by decide]
+        rw [show UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ from by native_decide]
         rfl)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨165⟩, jump (by jump_dest) ]
   exact evm_run rd165 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (approveReturnMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
         (approveIdWord I) (approveAmountWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
+    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by native_decide)
       mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
           show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32
-            from by decide]
+            from by native_decide]
         change (approveReturnMem (approveOwnerWord I) (approveSpenderWord I)
             (approveIdWord I) (approveAmountWord I)).readWithPadding 128 32 =
           UInt256.toByteArray (⟨1⟩ : UInt256)

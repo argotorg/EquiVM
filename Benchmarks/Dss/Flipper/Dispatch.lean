@@ -444,10 +444,12 @@ theorem flipperReachHighSplit {σ σ₀ A I} {g : Sat256}
   obtain ⟨k32, C32, h32⟩ :=
     flipperReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
+  have hrootTgt : armTgt flipperBytecode flipperRootSplitPc = flipperHighJumpdestPc :=
+    by native_decide
   have h173 : RD flipperBytecode I g (initState σ σ₀ g A I)
       flipperHighJumpdestPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
-    simpa [flipperRootSplitPc, flipperHighJumpdestPc] using
+    simpa [flipperRootSplitPc, flipperHighJumpdestPc, hrootTgt] using
       RD.selectorSplitTakenAuto h32 flipperRootSplitWellFormed hroot (by jump_dest) (by simp)
   have h174 : RD flipperBytecode I g (initState σ σ₀ g A I)
       flipperHighSplitPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
@@ -489,10 +491,12 @@ theorem flipperReachHighLowFirstArm {σ σ₀ A I} {g : Sat256}
   obtain ⟨k174, C174, h174⟩ :=
     flipperReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
+  have hhighTgt : armTgt flipperBytecode flipperHighSplitPc = flipperHighLowJumpdestPc :=
+    by native_decide
   have h244 : RD flipperBytecode I g (initState σ σ₀ g A I)
       flipperHighLowJumpdestPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k174 + 5) (C174 + 22) := by
-    simpa [flipperHighSplitPc, flipperHighLowJumpdestPc] using
+    simpa [flipperHighSplitPc, flipperHighLowJumpdestPc, hhighTgt] using
       RD.selectorSplitTakenAuto h174 flipperHighSplitWellFormed hhigh (by jump_dest)
         (by simp)
   have h245 : RD flipperBytecode I g (initState σ σ₀ g A I)
@@ -535,10 +539,12 @@ theorem flipperReachLowLowFirstArm {σ σ₀ A I} {g : Sat256}
   obtain ⟨k43, C43, h43⟩ :=
     flipperReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
+  have hlowTgt : armTgt flipperBytecode flipperLowSplitPc = flipperLowLowJumpdestPc :=
+    by native_decide
   have h113 : RD flipperBytecode I g (initState σ σ₀ g A I)
       flipperLowLowJumpdestPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5) (C43 + 22) := by
-    simpa [flipperLowSplitPc, flipperLowLowJumpdestPc] using
+    simpa [flipperLowSplitPc, flipperLowLowJumpdestPc, hlowTgt] using
       RD.selectorSplitTakenAuto h43 flipperLowSplitWellFormed hlow (by jump_dest) (by simp)
   have h114 : RD flipperBytecode I g (initState σ σ₀ g A I)
       flipperLowLowFirstArmPc [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3)

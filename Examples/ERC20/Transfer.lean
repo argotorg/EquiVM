@@ -131,7 +131,7 @@ theorem erc20Decode_transfer_none_huge {I : ExecutionEnv}
 
 theorem transferStore_to (I : ExecutionEnv) :
     (transferStore I).get? "to" = some (transferToValue I) := by
-  rw [transferStore, store_get_ne _ _ (by decide), store_get_self]
+  rw [transferStore, store_get_ne _ _ (by native_decide), store_get_self]
 
 theorem transferStore_value (I : ExecutionEnv) :
     (transferStore I).get? "value" = some (transferValueValue I) := by
@@ -139,7 +139,7 @@ theorem transferStore_value (I : ExecutionEnv) :
 
 theorem transferStore_balanceOf (I : ExecutionEnv) :
     (transferStore I).get? "balanceOf" = none := by
-  rw [transferStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]
+  rw [transferStore, store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
   simp
 
 theorem transferStoreFromBalance_value (evm : EVM.State) (I : ExecutionEnv) :
@@ -978,19 +978,19 @@ theorem RD.erc20PanicOverflowRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv
     RDrev erc20Bytecode g s0 := by
   have rd2508 := evm_run h with [ jumpdest ]
   have rd2541 := rd2508.pushConst ERC20.transferPanicSelector
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
   have rd2543 := evm_run rd2541 with [
     push0,
     raw mstore 0 (ERC20.transferPanicMem0 mem) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨17⟩, push1 ⟨4⟩ ]
   have rd2548 := evm_run rd2543 with [
     raw mstore 0 (ERC20.transferPanicMem mem) (UInt256.ofNat 3)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨36⟩, push0 ]
-  exact rd2548.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd2548.rev 0 (by native_decide) mem_cost (by evm_ov)
 
 end Reasoning.Reach
 
@@ -1012,7 +1012,7 @@ theorem erc20TransferX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, push2 ⟨300⟩, push1 ⟨4⟩, dup1, calldatasize, sub, dup2, add, swap1,
     push2 ⟨295⟩, swap2, swap1, push2 ⟨1945⟩, jump erc20_jd ]
   rw [uadd_word_usub_ofNat_word (c := (⟨4⟩ : UInt256))
-    (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by decide]; exact hsz4) hsize] at rd'
+    (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by native_decide]; exact hsz4) hsize] at rd'
   exact ⟨_, _, rd'⟩
 
 theorem erc20TransferX_dec1874_to {σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -1137,7 +1137,7 @@ theorem erc20TransferX_afterRequire {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   rw [hsenderCleanL, hsenderCleanL] at rd1415
   obtain ⟨_, _, rd1428⟩ := RD.erc20MappingHashSuffix rd1415 erc20_mapping_hash_wf
     (by rfl) (transferBalanceOwnerMem_writeSlot (transferSenderWord I)) hslot (by evm_ov)
-  obtain ⟨k1, C1, rd1429₀⟩ := rd1428.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1429₀⟩ := rd1428.sload (by native_decide) (by evm_ov)
   have rd1429 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1429⟩
       [transferFromBalanceWord (initState σ σ₀ g A I), transferValueWord I,
         ⟨0⟩, transferValueWord I, transferToWord I, ⟨300⟩, sel]
@@ -1172,7 +1172,7 @@ theorem erc20TransferX_insufficient {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   rw [hsenderCleanL, hsenderCleanL] at rd1415
   obtain ⟨_, _, rd1428⟩ := RD.erc20MappingHashSuffix rd1415 erc20_mapping_hash_wf
     (by rfl) (transferBalanceOwnerMem_writeSlot (transferSenderWord I)) hslot (by evm_ov)
-  obtain ⟨k1, C1, rd1429₀⟩ := rd1428.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1429₀⟩ := rd1428.sload (by native_decide) (by evm_ov)
   have rd1429 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1429⟩
       [transferFromBalanceWord (initState σ σ₀ g A I), transferValueWord I,
         ⟨0⟩, transferValueWord I, transferToWord I, ⟨300⟩, sel]
@@ -1187,30 +1187,30 @@ theorem erc20TransferX_insufficient {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   rw [hltw] at rd1430
   have rd1431₀ := evm_run rd1430 with [ iszero ]
   have rd1431 := rd1431₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1431
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd1431
   have rd1435 := evm_run rd1431 with [
-    push2 ⟨1493⟩, jumpiNT (by decide) ]
+    push2 ⟨1493⟩, jumpiNT (by native_decide) ]
   have rd1438 := evm_run rd1435 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
       (balanceOfHashMem_mload64 (transferSenderWord I))
-      (by decide) (by evm_ov) ]
+      (by native_decide) (by evm_ov) ]
   have rd1471 := rd1438.pushConst transferErrorSelector (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd1473 := evm_run rd1471 with [
     dup2,
     raw mstore 6 (transferInsufficientSelectorMem (transferSenderWord I)) (UInt256.ofNat 5)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov) ]
+      (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov) ]
   have rd2477 := evm_run rd1473 with [
     push1 ⟨4⟩, add, push2 ⟨1484⟩, swap1, push2 ⟨2477⟩, jump erc20_jd ]
   have rd2492 := evm_run rd2477 with [
     jumpdest, push0, push1 ⟨32⟩, dup3, add, swap1, pop, dup2, dup2, sub,
     push0, dup4, add,
     raw mstore 3 (transferInsufficientOffsetMem (transferSenderWord I)) (UInt256.ofNat 6)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov) ]
+      (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov) ]
   have rd2443 := evm_run rd2492 with [
     push2 ⟨2500⟩, dup2, push2 ⟨2443⟩, jump erc20_jd ]
   have rd2283 := evm_run rd2443 with [
@@ -1219,20 +1219,20 @@ theorem erc20TransferX_insufficient {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd2455 := evm_run rd2283 with [
     jumpdest, push0, dup3, dup3,
     raw mstore 3 (transferInsufficientLengthMem (transferSenderWord I)) (UInt256.ofNat 7)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, dup3, add, swap1, pop, swap3, swap2, pop, pop,
     jump erc20_jd ]
   have rd2403 := evm_run rd2455 with [
     jumpdest, swap2, pop, push2 ⟨2466⟩, dup3, push2 ⟨2403⟩, jump erc20_jd ]
   have rd2404 := evm_run rd2403 with [ jumpdest ]
   have rd2437 := rd2404.pushConst transferInsufficientBalanceWord
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
   have rd2466 := evm_run rd2437 with [
     push0, dup3, add,
     raw mstore 3 (transferInsufficientStringMem (transferSenderWord I)) (UInt256.ofNat 8)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     pop, jump erc20_jd ]
   have rd2500 := evm_run rd2466 with [
     jumpdest, push1 ⟨32⟩, dup3, add, swap1, pop, swap2, swap1, pop,
@@ -1241,12 +1241,12 @@ theorem erc20TransferX_insufficient {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, swap1, pop, swap2, swap1, pop, jump erc20_jd ]
   have rd1492 := evm_run rd1484 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
       mem_cost
       (transferInsufficientStringMem_mload64 (transferSenderWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  exact rd1492.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd1492.rev 0 (by native_decide) mem_cost (by evm_ov)
 
 theorem erc20RoutineCheckedSub {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {a b ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
@@ -1271,7 +1271,7 @@ theorem erc20RoutineCheckedSub {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k 
   rw [hgt] at rd2584
   have rd2585₀ := evm_run rd2584 with [ iszero ]
   have rd2585 := rd2585₀
-  rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd2585
+  rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide] at rd2585
   have rd2597 := evm_run rd2585 with [
     push2 ⟨2597⟩, jumpiT one_ne_zero_uint erc20_jd ]
   exact ⟨_, _, evm_run rd2597 with [
@@ -1307,9 +1307,9 @@ theorem erc20RoutineCheckedSub_underflow {g : Sat256} {s0 : State} {ee : Executi
   rw [hgt] at rd2584
   have rd2585₀ := evm_run rd2584 with [ iszero ]
   have rd2585 := rd2585₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd2585
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd2585
   have rd2589 := evm_run rd2585 with [
-    push2 ⟨2597⟩, jumpiNT (by decide) ]
+    push2 ⟨2597⟩, jumpiNT (by native_decide) ]
   have rd2507 := evm_run rd2589 with [
     push2 ⟨2596⟩, push2 ⟨2507⟩, jump erc20_jd ]
   exact rd2507.erc20PanicOverflowRevert (by evm_ov)
@@ -1338,7 +1338,7 @@ theorem erc20RoutineCheckedAdd {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k 
   rw [hgt] at rd2635
   have rd2636₀ := evm_run rd2635 with [ iszero ]
   have rd2636 := rd2636₀
-  rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd2636
+  rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide] at rd2636
   have rd2648 := evm_run rd2636 with [
     push2 ⟨2648⟩, jumpiT one_ne_zero_uint erc20_jd ]
   exact ⟨_, _, evm_run rd2648 with [
@@ -1382,9 +1382,9 @@ theorem erc20RoutineCheckedAdd_overflow {g : Sat256} {s0 : State} {ee : Executio
   rw [hgt] at rd2635
   have rd2636₀ := evm_run rd2635 with [ iszero ]
   have rd2636 := rd2636₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd2636
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd2636
   have rd2640 := evm_run rd2636 with [
-    push2 ⟨2648⟩, jumpiNT (by decide) ]
+    push2 ⟨2648⟩, jumpiNT (by native_decide) ]
   have rd2507 := evm_run rd2640 with [
     push2 ⟨2647⟩, push2 ⟨2507⟩, jump erc20_jd ]
   exact rd2507.erc20PanicOverflowRevert (by evm_ov)
@@ -1421,7 +1421,7 @@ theorem erc20TransferX_afterDebit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (balanceOfHashMem_writeOwner_self (transferSenderWord I))
     (balanceOfHashMem_writeSlot_self (transferSenderWord I)) hslot (by evm_ov)
   have rd1530 := evm_run rd1530₀ with [ push0, dup3, dup3 ]
-  obtain ⟨k1, C1, rd1559₀⟩ := rd1530.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1559₀⟩ := rd1530.sload (by native_decide) (by evm_ov)
   have rd1559 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1559⟩
       [transferFromBalanceWord (initState σ σ₀ g A I), transferValueWord I,
         ⟨0⟩, transferSenderSlotI I, transferValueWord I, ⟨0⟩, transferValueWord I,
@@ -1451,10 +1451,10 @@ theorem erc20TransferX_afterDebit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd1575 := evm_run rd1568 with [
     jumpdest, swap3, pop, pop, dup2, swap1 ]
   by_cases hp : I.perm = true
-  · obtain ⟨k3, C3, rd1575s⟩ := rd1575.sstore hp (by decide) (by evm_ov)
+  · obtain ⟨k3, C3, rd1575s⟩ := rd1575.sstore hp (by native_decide) (by evm_ov)
     exact Or.inl ⟨hp, _, _, evm_run rd1575s with [ pop ]⟩
   · have hpf : I.perm = false := by simpa using hp
-    exact Or.inr ⟨hpf, rd1575.sstoreStatic hpf (by decide) (by evm_ov)⟩
+    exact Or.inr ⟨hpf, rd1575.sstoreStatic hpf (by native_decide) (by evm_ov)⟩
 
 theorem erc20TransferX_afterCredit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1489,7 +1489,7 @@ theorem erc20TransferX_afterCredit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (balanceOfHashMem_writeOwner (transferSenderWord I) (transferToWord I))
     (balanceOfHashMem_writeSlot_self (transferToWord I)) hslot (by evm_ov)
   have rd1640 := evm_run rd1640₀ with [ push0, dup3, dup3 ]
-  obtain ⟨k1, C1, rd1641₀⟩ := rd1640.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1641₀⟩ := rd1640.sload (by native_decide) (by evm_ov)
   have rd1641 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1641⟩
       [transferToBalanceWord (initState σ σ₀ g A I) I, transferValueWord I,
         ⟨0⟩, transferToSlot I, transferValueWord I, ⟨0⟩, transferValueWord I,
@@ -1518,7 +1518,7 @@ theorem erc20TransferX_afterCredit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   rw [hnew] at rd1650
   have rd1656 := evm_run rd1650 with [
     jumpdest, swap3, pop, pop, dup2, swap1 ]
-  obtain ⟨k3, C3, rd1656s⟩ := rd1656.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨k3, C3, rd1656s⟩ := rd1656.sstore hperm (by native_decide) (by evm_ov)
   exact ⟨_, _, evm_run rd1656s with [ pop ]⟩
 
 theorem erc20TransferX_overflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -1547,7 +1547,7 @@ theorem erc20TransferX_overflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (balanceOfHashMem_writeOwner (transferSenderWord I) (transferToWord I))
     (balanceOfHashMem_writeSlot_self (transferToWord I)) hslot (by evm_ov)
   have rd1640 := evm_run rd1640₀ with [ push0, dup3, dup3 ]
-  obtain ⟨k1, C1, rd1641₀⟩ := rd1640.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1641₀⟩ := rd1640.sload (by native_decide) (by evm_ov)
   have rd1641 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1641⟩
       [transferToBalanceWord (initState σ σ₀ g A I) I, transferValueWord I,
         ⟨0⟩, transferToSlot I, transferValueWord I, ⟨0⟩, transferValueWord I,
@@ -1593,13 +1593,13 @@ theorem erc20X_transfer {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd1704 := rd1704₀
   rw [htoCleanL, hsenderCleanL] at rd1704
   have rd1737₀ := rd1704.pushConst transferTransferTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd2073 := evm_run rd1737₀ with [
     dup5, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
       (balanceOfHashMem_mload64 (transferToWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push2 ⟨1750⟩, swap2, swap1, push2 ⟨2073⟩, jump erc20_jd ]
   obtain ⟨k1, C1, rd1750⟩ := erc20RoutineEncodeUint256FromMem
     (val := transferValueWord I) (ret := ⟨1750⟩)
@@ -1608,39 +1608,39 @@ theorem erc20X_transfer {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rd2073 (by rfl) erc20_jd (by simp only [List.length_cons, List.length_nil]; omega)
   have rd1758 := evm_run rd1750 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (balanceOfReturnMem_mload64 (transferToWord I) (transferValueWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  have rd1759 := rd1758.log3 0 (UInt256.ofNat 5) (by decide) hperm mem_cost
-    (by decide) (by evm_ov)
+  have rd1759 := rd1758.log3 0 (UInt256.ofNat 5) (by native_decide) hperm mem_cost
+    (by native_decide) (by evm_ov)
   have rd300 := evm_run rd1759 with [
     push1 ⟨1⟩, swap1, pop, swap3, swap2, pop, pop, jump erc20_jd ]
   have rd2033 := evm_run rd300 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (balanceOfReturnMem_mload64 (transferToWord I) (transferValueWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push2 ⟨313⟩, swap2, swap1, push2 ⟨2033⟩, jump erc20_jd ]
   obtain ⟨k2, C2, rd313⟩ := erc20RoutineEncodeBoolFromMem
     (val := (⟨1⟩ : UInt256)) (ret := ⟨313⟩) (R := [sel])
     rd2033
     (by
-      rw [show UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ from by decide])
+      rw [show UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ from by native_decide])
     erc20_jd (by simp only [List.length_cons, List.length_nil]; omega)
   exact evm_run rd313 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (transferReturnMem_mload64 (transferToWord I) (transferValueWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
+    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by native_decide)
       mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, erc20SubRet32_toNat]
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by native_decide, erc20SubRet32_toNat]
         exact transferReturnMem_read128 (transferToWord I) (transferValueWord I))
       (by evm_ov) ]
 
@@ -1658,7 +1658,7 @@ theorem erc20TransferX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨1967⟩, jumpiNT (by rw [hslt]; decide),
     push2 ⟨1966⟩, push2 ⟨1800⟩, jump erc20_jd,
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem erc20TransferX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1674,7 +1674,7 @@ theorem erc20TransferX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨1967⟩, jumpiNT (by rw [hslt]; decide),
     push2 ⟨1966⟩, push2 ⟨1800⟩, jump erc20_jd,
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem erc20TransferX_noncanon_to {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)

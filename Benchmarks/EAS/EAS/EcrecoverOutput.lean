@@ -46,18 +46,19 @@ theorem ecrecoverOutput_precompile (σ : AccountMap) (gas : UInt256) (A : Substa
       · exact Or.inl rfl
 
 -- GENERALIZES Reasoning.ExternalCall.staticcallTheta_ecrecover_output_size with canonical addresses.
+set_option maxRecDepth 65536 in
 theorem ecrecoverOutput_theta
-    {blobVersionedHashes blocks σ σ₀ A_in r s gas p value value' data depth H perm σ' gas' A' z out}
+    {fork : Fork} {blobVersionedHashes blocks σ σ₀ A_in r s gas p value value' data depth H perm σ' gas' A' z out}
     (hΘ : (σ',gas',A',z,out) =
-      Θ σ σ₀ A_in r s (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-        (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+      Θ fork σ σ₀ A_in r s (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
+        (toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
         gas p value value' data depth H blobVersionedHashes blocks perm) :
     EcrecoverOutput out := by
   have hout := congrArg (fun x => x.2.2.2.2) hΘ
   change out = _ at hout
   rw [hout]
   unfold Θ
-  rw [toExecute_ecrecover_precompile,show AccountAddress.ofUInt256 (⟨1⟩ : UInt256) = 1 by decide]
+  rw [toExecute_ecrecover_precompile fork σ,show AccountAddress.ofUInt256 (⟨1⟩ : UInt256) = 1 by decide]
   dsimp
   exact ecrecoverOutput_precompile _ _ _ _
 

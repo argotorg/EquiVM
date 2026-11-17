@@ -84,7 +84,7 @@ theorem attesterAttestBody (imms : Store) (hfit : immutablesFit contract imms)
         rw [readWithPadding_eq_extract' _ _ _ (by decide) (by decide)
           (by rw [attestMemory_size]; decide), ByteArray.size_extract, attestMemory_size]
         native_decide
-      have hbound := Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hθ
+      have hbound := Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  _ hθ
           hsmall
       have hhiout : out.size < 2 ^ 255 := by omega
       have hlen : 32 ≤ out.size := by omega

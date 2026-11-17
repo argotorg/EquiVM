@@ -37,9 +37,10 @@ def runCall (evm : State) (target : AccountAddress) (value : Int) (payload : Byt
   let valueWord := EVM.wordOfInt value
   if valueWord ≤ (evm.accountMap.get? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance)) ∧
       evm.executionEnv.depth ≠ 1024 then
-    let (accounts, _, substate, ok, out) := Θ evm.accountMap evm.σ₀ evm.substate
+    let (accounts, _, substate, ok, out) := Θ evm.executionEnv.fork evm.accountMap evm.σ₀
+      (callSubstate evm.executionEnv.fork evm.accountMap target evm.substate)
       evm.executionEnv.codeOwner evm.executionEnv.sender target
-      (Ethereum.toExecute evm.accountMap target) (.ofNat 1000000)
+      (Ethereum.toExecute evm.executionEnv.fork evm.accountMap target) (.ofNat 1000000)
       (.ofNat evm.executionEnv.gasPrice) valueWord valueWord payload
       (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes
       evm.executionEnv.blocks (perm && evm.executionEnv.perm)

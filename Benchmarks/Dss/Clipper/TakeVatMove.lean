@@ -300,6 +300,7 @@ theorem clipperTakeVatPush32Decode4750 (v : ClipperImmutables) {code : ByteArray
         (clipperRuntimePatchesWindowDisjoint32Bool v (⟨4750⟩ : UInt256).toNat
           ((⟨4750⟩ : UInt256).toNat + 1) (by native_decide))]
       native_decide)
+    (by native_decide)
     (by
       rw [show (⟨4750⟩ : UInt256).toNat + 1 = 4751 by native_decide]
       rw [show (⟨4750⟩ : UInt256).toNat + 33 = 4783 by native_decide]

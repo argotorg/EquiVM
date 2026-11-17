@@ -50,8 +50,8 @@ theorem RD.uniswapUpdateOverflowStringRevertTail_aw6_size164 {g : Sat256} {s0 : 
     (hov : R.length + 5 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   exact RD.uniswapUpdateOverflowStringRevertTail_dynamic h
-    (by rw [hmem]; decide) (by decide) (by rw [hmem]; native_decide)
-    (by native_decide) (by native_decide) (by decide) hread64 hov
+    (by rw [hmem]; decide) (by native_decide) (by rw [hmem]; native_decide)
+    (by native_decide) (by native_decide) (by native_decide) hread64 hov
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapUpdateOverflowGuardFirstReverts {g : Sat256} {s0 : State}
@@ -121,13 +121,13 @@ theorem RD.uniswapUpdateOverflowGuardOk {g : Sat256} {s0 : State} {ee : Executio
     dup1, iszero, swap1, push2 ⟨6989⟩]
   have rd6973 := rd6973₀
   rw [hgt0Lit] at rd6973
-  have rd6977 := evm_run rd6973 with [jumpiNT (by decide)]
+  have rd6977 := evm_run rd6973 with [jumpiNT (by native_decide)]
   have rd6978 := evm_run rd6977 with [pop]
   have rd6989₀ := evm_run rd6978 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup4, gt, iszero,
     jumpdest, push2 ⟨7060⟩]
   have rd6989 := rd6989₀
-  rw [hgt1Lit, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6989
+  rw [hgt1Lit, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide] at rd6989
   exact ⟨_, _, evm_run rd6989 with [jumpiT one_ne_zero_uint (by jump_dest)]⟩
 
 set_option maxHeartbeats 1000000 in
@@ -168,8 +168,8 @@ theorem RD.uniswapUpdateElapsedZeroSkipsCumulatives {g : Sat256} {s0 : State}
     dup2, and, swap2, push1 ⟨1⟩, push1 ⟨224⟩, shl, swap1, div, dup2, and,
     dup3, sub, swap1, dup2, and, iszero, dup1, iszero, swap1, push2 ⟨7108⟩]
   have rd7091 := rd7091₀
-  rw [helapsed0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide,
-    show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd7091
+  rw [helapsed0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide,
+    show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd7091
   have rd7108 := evm_run rd7091 with [jumpiT one_ne_zero_uint (by jump_dest)]
   have rd7111 := evm_run rd7108 with [jumpdest, dup1, iszero, push2 ⟨7128⟩]
   have rd7128 := evm_run rd7111 with [jumpiT one_ne_zero_uint (by jump_dest)]
@@ -231,14 +231,14 @@ theorem RD.uniswapUpdateReserve0ZeroSkipsCumulatives {g : Sat256} {s0 : State}
     dup2, and, swap2, push1 ⟨1⟩, push1 ⟨224⟩, shl, swap1, div, dup2, and,
     dup3, sub, swap1, dup2, and, iszero, dup1, iszero, swap1, push2 ⟨7108⟩]
   have rd7091 := rd7091₀
-  rw [helapsedIsZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd7091
-  have rd7095 := evm_run rd7091 with [jumpiNT (by decide)]
+  rw [helapsedIsZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide] at rd7091
+  have rd7095 := evm_run rd7091 with [jumpiNT (by native_decide)]
   have rd7108₀ := evm_run rd7095 with [
     pop, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup5, and, iszero,
     iszero]
   have rd7108 := rd7108₀
-  rw [hreserve0ZeroLit, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide,
-    show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd7108
+  rw [hreserve0ZeroLit, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide,
+    show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd7108
   have rd7111 := evm_run rd7108 with [jumpdest, dup1, iszero, push2 ⟨7128⟩]
   have rd7128 := evm_run rd7111 with [jumpiT one_ne_zero_uint (by jump_dest)]
   have rd7130 := evm_run rd7128 with [jumpdest, iszero, push2 ⟨7241⟩]
@@ -311,21 +311,21 @@ theorem RD.uniswapUpdateReserve1ZeroSkipsCumulatives {g : Sat256} {s0 : State}
     dup2, and, swap2, push1 ⟨1⟩, push1 ⟨224⟩, shl, swap1, div, dup2, and,
     dup3, sub, swap1, dup2, and, iszero, dup1, iszero, swap1, push2 ⟨7108⟩]
   have rd7091 := rd7091₀
-  rw [helapsedIsZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd7091
-  have rd7095 := evm_run rd7091 with [jumpiNT (by decide)]
+  rw [helapsedIsZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide] at rd7091
+  have rd7095 := evm_run rd7091 with [jumpiNT (by native_decide)]
   have rd7108₀ := evm_run rd7095 with [
     pop, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup5, and, iszero,
     iszero]
   have rd7108 := rd7108₀
-  rw [hreserve0IsZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd7108
+  rw [hreserve0IsZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide] at rd7108
   have rd7111 := evm_run rd7108 with [jumpdest, dup1, iszero, push2 ⟨7128⟩]
-  have rd7115 := evm_run rd7111 with [jumpiNT (by decide)]
+  have rd7115 := evm_run rd7111 with [jumpiNT (by native_decide)]
   have rd7128₀ := evm_run rd7115 with [
     pop, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup4, and, iszero,
     iszero]
   have rd7128 := rd7128₀
-  rw [hreserve1ZeroLit, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide,
-    show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd7128
+  rw [hreserve1ZeroLit, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide,
+    show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd7128
   have rd7130 := evm_run rd7128 with [jumpdest, iszero, push2 ⟨7241⟩]
   exact ⟨_, _, evm_run rd7130 with [jumpiT one_ne_zero_uint (by jump_dest)]⟩
 
@@ -356,12 +356,12 @@ theorem RD.uniswapUpdateStorePackedReserves {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd7246⟩ := rd7244.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd7261 := rd7246.pushConst reserve112Mask (width := 14) (op := .PUSH14)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd7278 := evm_run rd7261 with [
     not, and, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup9, dup2, and,
     swap2, swap1, swap2, or]
   have rd7293 := rd7278.pushConst reserve112Mask (width := 14) (op := .PUSH14)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd7338 := evm_run rd7293 with [
     push1 ⟨112⟩, shl, not, and,
     push1 ⟨1⟩, push1 ⟨112⟩, shl, dup9, dup4, and, dup2, mul,

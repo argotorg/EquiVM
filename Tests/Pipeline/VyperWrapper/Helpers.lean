@@ -29,7 +29,7 @@ def hookStableAcrossCalls (σ : AccountMap) (I : ExecutionEnv) : Prop :=
   ∀ (σ₀ : AccountMap) (A_in : Substate) (r : AccountAddress) (c : ToExecute) (callGas p v v' : UInt256)
     (d : ByteArray) (e : Fin 1025) (H : BlockHeader) (blob : List ByteArray) (blocks : ProcessedBlocks) (w : Bool)
     (σ' : AccountMap) (g' : UInt256) (A' : Substate) (z : Bool) (out : ByteArray),
-    (σ', g', A', z, out) = Ethereum.EVM.Θ σ σ₀ A_in (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
+    (σ', g', A', z, out) = Ethereum.EVM.Θ I.fork σ σ₀ A_in (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
       r c callGas p v v' d e H blob blocks w →
     (solcSlotWordAt ⟨0⟩ σ' I).toNat < EVM.addressModulus
 

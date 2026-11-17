@@ -120,7 +120,7 @@ theorem voteSourceWord_toNat (I : ExecutionEnv) :
     (voteSourceWord I).toNat = I.source.val := by
   unfold voteSourceWord
   exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
-    (show AccountAddress.size ≤ UInt256.size from by decide))
+    (show AccountAddress.size ≤ UInt256.size from by native_decide))
 
 theorem voteSenderSlot_eq_hash (I : ExecutionEnv) :
     voteSenderSlot I =
@@ -494,7 +494,7 @@ theorem voteAssignVoted (evm : EVM.State) (I : ExecutionEnv) :
     EvalResult.ofOption, pure]
   rw [show ballotConfig.storageBackend = solidityStorageBackend ballotStorageLayout from rfl]
   rw [solidityStorageBackend_write_elem
-    (loc := { slot := voteSenderPackedSlot I, offset := 0, size := 1, hbound := by decide, type := .bool })
+    (loc := { slot := voteSenderPackedSlot I, offset := 0, size := 1, hbound := by native_decide, type := .bool })
     (hloc := by rfl)
     (hstore := by
       change storageLocStore evm (boolOffset0Loc (voteSenderPackedSlot I)) (.bool true) = _
@@ -790,7 +790,7 @@ theorem voteHashMem_mload64 (I : ExecutionEnv) :
      else UInt256.ofNat
        (fromByteArrayBigEndian ((voteHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [voteHashMem_size]; decide)
+  mloadFreePtrValue (by rw [voteHashMem_size]; native_decide)
     (voteHashMem_read64 I)
 
 theorem voteProposalBaseMem_read0 (I : ExecutionEnv) :
@@ -1005,7 +1005,7 @@ theorem voteWeightErrorMem3_mload64 (I : ExecutionEnv) :
        (fromByteArrayBigEndian
         ((voteWeightErrorMem3 I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [voteWeightErrorMem3_size]; decide)
+  mloadFreePtrValue (by rw [voteWeightErrorMem3_size]; native_decide)
     (voteWeightErrorMem3_read64 I)
 
 theorem voteVotedErrorMem3_mload64 (I : ExecutionEnv) :
@@ -1014,7 +1014,7 @@ theorem voteVotedErrorMem3_mload64 (I : ExecutionEnv) :
        (fromByteArrayBigEndian
         ((voteVotedErrorMem3 I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [voteVotedErrorMem3_size]; decide)
+  mloadFreePtrValue (by rw [voteVotedErrorMem3_size]; native_decide)
     (voteVotedErrorMem3_read64 I)
 
 theorem voteProposalCountSlot_evm (I : ExecutionEnv) :
@@ -1109,19 +1109,19 @@ theorem ballotVoteX_afterWeight {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz36 hsize hszhi hreach
   have rd440 := evm_run rd425 with [
     jumpdest, caller, push0, swap1, dup2,
-    raw mstore 0 (voteKeyMem I) (UInt256.ofNat 3) (by decide)
-      mem_cost (by simp [voteKeyMem, voteSourceWord]) (by decide) (by evm_ov),
+    raw mstore 0 (voteKeyMem I) (UInt256.ofNat 3) (by native_decide)
+      mem_cost (by simp [voteKeyMem, voteSourceWord]) (by native_decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩,
-    raw mstore 0 (voteHashMem I) (UInt256.ofNat 3) (by decide)
+    raw mstore 0 (voteHashMem I) (UInt256.ofNat 3) (by native_decide)
       mem_cost (by
         change (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0 (voteKeyMem I) 32 32 =
           voteHashMem I
-        rfl) (by decide) (by evm_ov),
+        rfl) (by native_decide) (by evm_ov),
     push1 ⟨64⟩, dup2,
-    raw keccak256 0 (voteSenderSlot I) (UInt256.ofNat 3) (by decide)
-      mem_cost (voteSenderKeccakSlot I) (by decide) (by evm_ov),
+    raw keccak256 0 (voteSenderSlot I) (UInt256.ofNat 3) (by native_decide)
+      mem_cost (voteSenderKeccakSlot I) (by native_decide) (by evm_ov),
     dup1]
-  obtain ⟨_, _, rd442₀⟩ := rd440.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd442₀⟩ := rd440.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd442⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨442⟩
       [voteSenderWeightWord σ I, voteSenderSlot I, ⟨0⟩, voteProposalWord I, ⟨156⟩, sel]
@@ -1145,7 +1145,7 @@ theorem ballotVoteX_afterNotVoted {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz36 hsize hszhi hweight hreach
   have rd521 := evm_run rd516 with [jumpdest, push1 ⟨1⟩, dup2, add]
-  obtain ⟨_, _, rd522₀⟩ := rd521.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd522₀⟩ := rd521.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd522⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨522⟩
       [voteSenderPackedWord σ I, voteSenderSlot I, voteProposalWord I, ⟨156⟩, sel]
@@ -1160,7 +1160,7 @@ theorem ballotVoteX_afterNotVoted {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     decide
   have rd525' := rd525
   rw [hzero] at rd525'
-  exact ⟨_, _, evm_run rd525' with [push2 ⟨586⟩, jumpiT (by decide) (by jump_dest)]⟩
+  exact ⟨_, _, evm_run rd525' with [push2 ⟨586⟩, jumpiT (by native_decide) (by jump_dest)]⟩
 
 theorem ballotVoteX_afterSenderStores {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1177,18 +1177,18 @@ theorem ballotVoteX_afterSenderStores {σ σ₀ A I} {g : Sat256} {sel : UInt256
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz36 hsize hszhi hweight hvoted hreach
   have rd593 := evm_run rd586 with [jumpdest, push1 ⟨1⟩, dup2, dup2, add, dup1]
-  obtain ⟨_, _, rd594⟩ := rd593.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd594⟩ := rd593.sload (by native_decide) (by evm_ov)
   have rd600 := evm_run rd594 with [push1 ⟨255⟩, not, and, swap1, swap2]
-  have rd601 := RD.or rd600 (by decide) (by evm_ov)
+  have rd601 := RD.or rd600 (by native_decide) (by evm_ov)
   have rd602 := evm_run rd601 with [swap1]
   by_cases hp : I.perm = true
   swap
   · have hpf : I.perm = false := by simpa using hp
-    exact Or.inr ⟨hpf, rd602.sstoreStatic hpf (by decide) (by evm_ov)⟩
+    exact Or.inr ⟨hpf, rd602.sstoreStatic hpf (by native_decide) (by evm_ov)⟩
   refine Or.inl ⟨hp, ?_⟩
-  obtain ⟨_, _, rd603⟩ := rd602.sstore hp (by decide) (by evm_ov)
+  obtain ⟨_, _, rd603⟩ := rd602.sstore hp (by native_decide) (by evm_ov)
   have rd610 := evm_run rd603 with [push1 ⟨2⟩, dup1, dup3, add, dup4, swap1]
-  obtain ⟨_, _, rd611⟩ := rd610.sstore hp (by decide) (by evm_ov)
+  obtain ⟨_, _, rd611⟩ := rd610.sstore hp (by native_decide) (by evm_ov)
   exact ⟨_, _, by
     simpa [voteAfterVoteMap, voteAfterVotedMap, voteSenderVotedStoreWord,
       voteSenderPackedWord, voteSenderPackedSlot, voteSenderVoteSlot, u256_add_comm,
@@ -1211,7 +1211,7 @@ theorem ballotVoteX_afterBounds {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz36 hsize hszhi hweight hvoted hreach)
   have rd612 := evm_run rd611 with [dup2]
-  obtain ⟨_, _, rd613₀⟩ := rd612.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd613₀⟩ := rd612.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd613⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨613⟩
       [voteSenderWeightWord (voteAfterVoteMap σ I) I, ⟨2⟩, voteSenderSlot I,
@@ -1219,7 +1219,7 @@ theorem ballotVoteX_afterBounds {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (voteHashMem I) (UInt256.ofNat 3) ByteArray.empty (voteAfterVoteMap σ I) k C := by
     exact ⟨_, _, by simpa [voteSenderWeightWord, initState] using rd613₀⟩
   have rd614 := evm_run rd613 with [dup2]
-  obtain ⟨_, _, rd615₀⟩ := rd614.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd615₀⟩ := rd614.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd615⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨615⟩
       [voteProposalsLengthWord (voteAfterVoteMap σ I) I,
@@ -1233,7 +1233,7 @@ theorem ballotVoteX_afterBounds {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd621 := evm_run rd615 with [swap1, swap2, swap1, dup5, swap1, dup2, lt]
   have rd621' := rd621
   rw [hlt] at rd621'
-  exact ⟨_, _, evm_run rd621' with [push2 ⟨633⟩, jumpiT (by decide) (by jump_dest)]⟩
+  exact ⟨_, _, evm_run rd621' with [push2 ⟨633⟩, jumpiT (by native_decide) (by jump_dest)]⟩
 
 theorem ballotVoteX_toCheckedAdd {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1256,13 +1256,13 @@ theorem ballotVoteX_toCheckedAdd {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     hsz36 hsize hszhi hperm hweight hvoted hbound hreach
   have rd652 := evm_run rd633 with [
     jumpdest, swap1, push0,
-    raw mstore 0 (voteProposalBaseMem I) (UInt256.ofNat 3) (by decide)
-      mem_cost (by simp [voteProposalBaseMem]) (by decide) (by evm_ov),
+    raw mstore 0 (voteProposalBaseMem I) (UInt256.ofNat 3) (by native_decide)
+      mem_cost (by simp [voteProposalBaseMem]) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, push0,
-    raw keccak256 0 proposalsDataBase (UInt256.ofNat 3) (by decide)
-      mem_cost (voteProposalsDataBaseKeccak I) (by decide) (by evm_ov),
+    raw keccak256 0 proposalsDataBase (UInt256.ofNat 3) (by native_decide)
+      mem_cost (voteProposalsDataBaseKeccak I) (by native_decide) (by evm_ov),
     swap1, push1 ⟨2⟩, mul, add, push1 ⟨1⟩, add, push0, dup3, dup3]
-  obtain ⟨_, _, rd653⟩ := rd652.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd653⟩ := rd652.sload (by native_decide) (by evm_ov)
   have rd1835 := evm_run rd653 with [
     push2 ⟨662⟩, swap2, swap1, push2 ⟨1835⟩, jump (by jump_dest)]
   exact ⟨_, _, by
@@ -1302,8 +1302,8 @@ theorem ballotVoteX_afterCheckedAdd {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd1842' := rd1842
   rw [show voteProposalCountWord (voteAfterVoteMap σ I) I = count from rfl,
       show voteSenderWeightWord (voteAfterVoteMap σ I) I = weight from rfl, hgt,
-      show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1842'
-  have rd1866 := evm_run rd1842' with [push2 ⟨1866⟩, jumpiT (by decide) (by jump_dest)]
+      show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide] at rd1842'
+  have rd1866 := evm_run rd1842' with [push2 ⟨1866⟩, jumpiT (by native_decide) (by jump_dest)]
   have rd662 := evm_run rd1866 with [jumpdest, swap3, swap2, pop, pop, jump (by jump_dest)]
   exact ⟨_, _, by
     simpa [count, weight] using rd662⟩
@@ -1327,11 +1327,11 @@ theorem ballotVoteX_success {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
     hsz36 hsize hszhi hperm hweight hvoted hbound hfit hreach
   have rd665 := evm_run rd662 with [jumpdest, swap1, swap2]
-  obtain ⟨_, _, rd666⟩ := rd665.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd666⟩ := rd665.sstore hperm (by native_decide) (by evm_ov)
   have rd156 := evm_run rd666 with [pop, pop, pop, pop, jump (by jump_dest), jumpdest]
   exact by
     simpa [voteSuccessMap, voteUpdatedProposalCount, u256_add_comm] using
-      rd156.stop (by decide) (by evm_ov)
+      rd156.stop (by native_decide) (by evm_ov)
 
 theorem ballotVoteX_weightRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1344,19 +1344,19 @@ theorem ballotVoteX_weightRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz36 hsize hszhi hreach
   have rd440 := evm_run rd425 with [
     jumpdest, caller, push0, swap1, dup2,
-    raw mstore 0 (voteKeyMem I) (UInt256.ofNat 3) (by decide)
-      mem_cost (by simp [voteKeyMem, voteSourceWord]) (by decide) (by evm_ov),
+    raw mstore 0 (voteKeyMem I) (UInt256.ofNat 3) (by native_decide)
+      mem_cost (by simp [voteKeyMem, voteSourceWord]) (by native_decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩,
-    raw mstore 0 (voteHashMem I) (UInt256.ofNat 3) (by decide)
+    raw mstore 0 (voteHashMem I) (UInt256.ofNat 3) (by native_decide)
       mem_cost (by
         change (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0 (voteKeyMem I) 32 32 =
           voteHashMem I
-        rfl) (by decide) (by evm_ov),
+        rfl) (by native_decide) (by evm_ov),
     push1 ⟨64⟩, dup2,
-    raw keccak256 0 (voteSenderSlot I) (UInt256.ofNat 3) (by decide)
-      mem_cost (voteSenderKeccakSlot I) (by decide) (by evm_ov),
+    raw keccak256 0 (voteSenderSlot I) (UInt256.ofNat 3) (by native_decide)
+      mem_cost (voteSenderKeccakSlot I) (by native_decide) (by evm_ov),
     dup1]
-  obtain ⟨_, _, rd442₀⟩ := rd440.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd442₀⟩ := rd440.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd442⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨442⟩
       [voteSenderWeightWord σ I, voteSenderSlot I, ⟨0⟩, voteProposalWord I, ⟨156⟩, sel]
@@ -1368,35 +1368,35 @@ theorem ballotVoteX_weightRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     decide
   have rd444' := rd444
   rw [hsubzero] at rd444'
-  have rd449 := evm_run rd444' with [push2 ⟨516⟩, jumpiNT (by decide)]
+  have rd449 := evm_run rd444' with [push2 ⟨516⟩, jumpiNT (by native_decide)]
   have rd452 := evm_run rd449 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost (voteHashMem_mload64 I) (by decide) (by evm_ov)]
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost (voteHashMem_mload64 I) (by native_decide) (by evm_ov)]
   have rd456 := rd452.pushConst ⟨0x461bcd⟩ (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd475 := evm_run rd456 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (voteErrorMem0 I) (UInt256.ofNat 5)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
     raw mstore 3 (voteErrorMem1 I) (UInt256.ofNat 6)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨20⟩, push1 ⟨36⟩, dup3, add,
     raw mstore 3 (voteWeightErrorMem2 I) (UInt256.ofNat 7)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)]
   have rd496 := rd475.pushConst voteWeightStringRaw (width := 20) (op := .PUSH20)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   exact evm_run rd496 with [
     push1 ⟨96⟩, shl, push1 ⟨68⟩, dup3, add,
     raw mstore 3 (voteWeightErrorMem3 I) (UInt256.ofNat 8)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨100⟩, add,
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
-      mem_cost (voteWeightErrorMem3_mload64 I) (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      mem_cost (voteWeightErrorMem3_mload64 I) (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov)]
+    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem ballotVoteX_votedRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1410,7 +1410,7 @@ theorem ballotVoteX_votedRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz36 hsize hszhi hweight hreach
   have rd521 := evm_run rd516 with [jumpdest, push1 ⟨1⟩, dup2, add]
-  obtain ⟨_, _, rd522₀⟩ := rd521.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd522₀⟩ := rd521.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd522⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨522⟩
       [voteSenderPackedWord σ I, voteSenderSlot I, voteProposalWord I, ⟨156⟩, sel]
@@ -1424,35 +1424,35 @@ theorem ballotVoteX_votedRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     exact isZero_eq_zero_of_ne hvoted
   have rd525' := rd525
   rw [hzero] at rd525'
-  have rd530 := evm_run rd525' with [push2 ⟨586⟩, jumpiNT (by decide)]
+  have rd530 := evm_run rd525' with [push2 ⟨586⟩, jumpiNT (by native_decide)]
   have rd533 := evm_run rd530 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost (voteHashMem_mload64 I) (by decide) (by evm_ov)]
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost (voteHashMem_mload64 I) (by native_decide) (by evm_ov)]
   have rd537 := rd533.pushConst ⟨0x461bcd⟩ (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd556 := evm_run rd537 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (voteErrorMem0 I) (UInt256.ofNat 5)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
     raw mstore 3 (voteErrorMem1 I) (UInt256.ofNat 6)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨14⟩, push1 ⟨36⟩, dup3, add,
     raw mstore 3 (voteVotedErrorMem2 I) (UInt256.ofNat 7)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)]
   have rd571 := rd556.pushConst voteVotedStringRaw (width := 14) (op := .PUSH14)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   exact evm_run rd571 with [
     push1 ⟨145⟩, shl, push1 ⟨68⟩, dup3, add,
     raw mstore 3 (voteVotedErrorMem3 I) (UInt256.ofNat 8)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨100⟩, add, push2 ⟨507⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
-      mem_cost (voteVotedErrorMem3_mload64 I) (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      mem_cost (voteVotedErrorMem3_mload64 I) (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov)]
+    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem ballotVoteX_oob {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1468,7 +1468,7 @@ theorem ballotVoteX_oob {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz36 hsize hszhi hweight hvoted hreach)
   have rd612 := evm_run rd611 with [dup2]
-  obtain ⟨_, _, rd613₀⟩ := rd612.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd613₀⟩ := rd612.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd613⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨613⟩
       [voteSenderWeightWord (voteAfterVoteMap σ I) I, ⟨2⟩, voteSenderSlot I,
@@ -1476,7 +1476,7 @@ theorem ballotVoteX_oob {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (voteHashMem I) (UInt256.ofNat 3) ByteArray.empty (voteAfterVoteMap σ I) k C := by
     exact ⟨_, _, by simpa [voteSenderWeightWord, initState] using rd613₀⟩
   have rd614 := evm_run rd613 with [dup2]
-  obtain ⟨_, _, rd615₀⟩ := rd614.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd615₀⟩ := rd614.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd615⟩ : ∃ k C, RD ballotBytecode I g
       (initState σ σ₀ g A I) ⟨615⟩
       [voteProposalsLengthWord (voteAfterVoteMap σ I) I,
@@ -1491,7 +1491,7 @@ theorem ballotVoteX_oob {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd621' := rd621
   rw [hlt] at rd621'
   have rd1815 := evm_run rd621' with [
-    push2 ⟨633⟩, jumpiNT (by decide), push2 ⟨633⟩, push2 ⟨1815⟩, jump (by jump_dest)]
+    push2 ⟨633⟩, jumpiNT (by native_decide), push2 ⟨633⟩, push2 ⟨1815⟩, jump (by jump_dest)]
   exact RD.ballotPanic32Revert1815 rd1815
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -1520,8 +1520,8 @@ theorem ballotVoteX_overflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd1842' := rd1842
   rw [show voteProposalCountWord (voteAfterVoteMap σ I) I = count from rfl,
       show voteSenderWeightWord (voteAfterVoteMap σ I) I = weight from rfl, hgt,
-      show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1842'
-  have rd1847 := evm_run rd1842' with [push2 ⟨1866⟩, jumpiNT (by decide)]
+      show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd1842'
+  have rd1847 := evm_run rd1842' with [push2 ⟨1866⟩, jumpiNT (by native_decide)]
   exact RD.ballotPanic11Revert1847 rd1847
     (by simp only [List.length_cons, List.length_nil]; omega)
 

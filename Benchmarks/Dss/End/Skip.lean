@@ -3561,10 +3561,10 @@ theorem endSkipX_catIlksPostCall {σ σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork  σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endSkipCatWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (endSkipCatWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (endSkipCatWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkipCatIlksCalldataMem I).readWithPadding
             endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
@@ -3912,9 +3912,9 @@ theorem endSkipX_vatIlksPostCall {σ σcur σ₀ A I}
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ σcur σ₀ Ain (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork  σcur σ₀ Ain (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σcur I))
-          (toExecute σcur (AccountAddress.ofUInt256 (endPackVatWord σcur I)))
+          (toExecute I.fork σcur (AccountAddress.ofUInt256 (endPackVatWord σcur I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkipVatIlksCalldataMem I catOut).readWithPadding
             endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
@@ -4285,10 +4285,10 @@ theorem endSkipX_bidsPostStaticcall {σ σcur σ₀ A I}
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, bidOut) =
-          Ethereum.EVM.Θ σcur σ₀ Ain
+          Ethereum.EVM.Θ I.fork  σcur σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (endSkipCatIlkFlipTargetWord catOut))
-            (toExecute σcur
+            (toExecute I.fork σcur
               (AccountAddress.ofUInt256 (endSkipCatIlkFlipTargetWord catOut)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endSkipBidsCalldataMem I catOut vatOut).readWithPadding
@@ -4780,10 +4780,10 @@ theorem endSkipX_suck1PostCall {σ σpre σ₀ A I}
     ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σpre σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.fork  σpre σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σpre I))
-          (toExecute σpre (AccountAddress.ofUInt256 (endPackVatWord σpre I)))
+          (toExecute I.fork σpre (AccountAddress.ofUInt256 (endPackVatWord σpre I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkipSuck1CalldataMem σpre I catOut vatOut bidOut).readWithPadding
             endSkipSuckOutPtr.toNat endSkipSuckInSize.toNat)
@@ -5186,10 +5186,10 @@ theorem endSkipX_suck2PostCall {σ σmem σpost σ₀ A I}
     ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σpost σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.fork  σpost σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σpost I))
-          (toExecute σpost (AccountAddress.ofUInt256 (endPackVatWord σpost I)))
+          (toExecute I.fork σpost (AccountAddress.ofUInt256 (endPackVatWord σpost I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkipSuck2CalldataMemFor σmem σpost I catOut vatOut bidOut).readWithPadding
             endSkipSuckOutPtr.toNat endSkipSuckInSize.toNat)
@@ -5531,10 +5531,10 @@ theorem endSkipX_hopePostCall {σ σmem σcall σpost σ₀ A I}
     ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σpost σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.fork  σpost σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σpost I))
-          (toExecute σpost (AccountAddress.ofUInt256 (endPackVatWord σpost I)))
+          (toExecute I.fork σpost (AccountAddress.ofUInt256 (endPackVatWord σpost I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkipHopeCalldataMemFor σmem σcall I catOut vatOut bidOut).readWithPadding
             endSkipHopeOutPtr.toNat endSkipHopeInSize.toNat)
@@ -5844,10 +5844,10 @@ theorem endSkipX_yankPostCall {σ σmem σcall σpost σ₀ A I}
     ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σpost σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.fork  σpost σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endSkipCatIlkFlipTargetWord catOut))
-          (toExecute σpost (AccountAddress.ofUInt256 (endSkipCatIlkFlipTargetWord catOut)))
+          (toExecute I.fork σpost (AccountAddress.ofUInt256 (endSkipCatIlkFlipTargetWord catOut)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkipYankCalldataMemFor σmem σcall I catOut vatOut bidOut).readWithPadding
             endSkipYankOutPtr.toNat endSkipYankInSize.toNat)
@@ -6855,10 +6855,10 @@ theorem endSkipX_grabPostCall {σ σCall σmem σcall σ₀ A I}
     ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σCall σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.fork  σCall σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σCall I))
-          (toExecute σCall (AccountAddress.ofUInt256 (endPackVatWord σCall I)))
+          (toExecute I.fork σCall (AccountAddress.ofUInt256 (endPackVatWord σCall I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkipGrabCalldataMemForTrace σCall σmem σcall I catOut vatOut bidOut)
             |>.readWithPadding endFreeGrabOutPtr.toNat endFreeGrabInSize.toNat)

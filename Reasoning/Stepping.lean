@@ -560,6 +560,31 @@ theorem iszero_xstep {s : State} {code : ByteArray} {pcv a : UInt256} {t : List 
   have hov' : ¬ ((a :: t).length - 1 + 1 > 1024) := by simp only [List.length_cons] at hov ⊢; omega
   simp only [if_neg hov', GasConstants.Gverylow, stIsZero]
 
+/-! ### CLZ (Osaka, cost 5, pc += 1, top ↦ its leading-zero count) -/
+
+def stClz (s : State) (a : UInt256) (t : List UInt256) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := UInt256.clz a :: t,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable.subNat 5 } }
+
+/-- `CLZ` (EIP-7939) steps only from Osaka on; before Osaka `0x1e` is an invalid instruction. -/
+theorem clz_xstep {s : State} {code : ByteArray} {pcv a : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.CLZ, .none))
+    (hfork : s.executionEnv.fork ≥ .osaka)
+    (hstk : s.machineState.stack = a :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
+         else .ok (stClz s a t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.CLZ, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_clz s hd, hstk]
+  have hov' : ¬ ((a :: t).length - 1 + 1 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov', if_pos hfork, GasConstants.Glow, stClz]
+
 /-! ### MSTORE (two-stage cost `memExp + 3`, pc += 1, pops 2) -/
 
 def stMStore (s : State) (a b : UInt256) (t : List UInt256) : State :=

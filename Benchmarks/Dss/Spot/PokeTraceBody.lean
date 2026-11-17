@@ -200,10 +200,10 @@ theorem RD.spotPokePeekPostCall
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork  σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (pokePipTargetWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (pokePipTargetWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (pokePipTargetWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((pokePeekCalldataMem I).readWithPadding
             pokePeekOutPtr.toNat pokePeekInSize.toNat)
@@ -1010,11 +1010,11 @@ theorem RD.spotPokeVatFilePostCall
     ∃ (σ'' : AccountMap)
       (z : Bool) (fileOut : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', z, fileOut) = Ethereum.EVM.Θ σ'
+        (σ'', g'', A', z, fileOut) = Ethereum.EVM.Θ I.fork  σ'
           σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (pokeVatTargetWord σ' I))
-          (toExecute σ' (AccountAddress.ofUInt256 (pokeVatTargetWord σ' I)))
+          (toExecute I.fork σ' (AccountAddress.ofUInt256 (pokeVatTargetWord σ' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding pokeVatFileOutPtr.toNat pokeVatFileInSize.toNat)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)

@@ -42,7 +42,7 @@ theorem rawCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 evm
         RD.call h hdec hdepth hstack
       rw [hcd] at hΘ
       have ho : out.size < 2^138 :=
-        Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ hsmall
+        Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  _ hΘ hsmall
       have hc : callViaEVM evm (AccountAddress.ofUInt256 target) 0 calldata
           (z, {evm with accountMap := σ', substate := A'}, out) := by
         apply callViaEVM.callMade (g' := gasLeft) (A' := A') wordOfInt_zero.symm

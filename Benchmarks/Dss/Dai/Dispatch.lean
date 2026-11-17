@@ -458,6 +458,7 @@ theorem daiReachHighFirstArm {σ σ₀ A I} {g : Sat256}
   obtain ⟨k32, C32, h32⟩ :=
     daiReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
+  have hhighTgt : armTgt daiBytecode daiHighSplitPc = ⟨124⟩ := by native_decide
   have h43 : RD daiBytecode I g (initState σ σ₀ g A I)
       daiHighSplitPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
@@ -467,7 +468,7 @@ theorem daiReachHighFirstArm {σ σ₀ A I} {g : Sat256}
   have h124 : RD daiBytecode I g (initState σ σ₀ g A I)
       ⟨124⟩ [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 5) (C32 + 22 + 22) := by
-    simpa [daiHighSplitPc] using
+    simpa [daiHighSplitPc, hhighTgt] using
       RD.selectorSplitTakenAuto h43 daiHighSplitWellFormed hhigh (by jump_dest) (by simp)
   have h125 : RD daiBytecode I g (initState σ σ₀ g A I)
       daiHighFirstArmPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
@@ -511,10 +512,11 @@ theorem daiReachLowFirstArm {σ σ₀ A I} {g : Sat256}
   obtain ⟨k32, C32, h32⟩ :=
     daiReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
+  have hrootTgt : armTgt daiBytecode daiRootSplitPc = ⟨184⟩ := by native_decide
   have h184 : RD daiBytecode I g (initState σ σ₀ g A I)
       ⟨184⟩ [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
-    simpa [daiRootSplitPc] using
+    simpa [daiRootSplitPc, hrootTgt] using
       RD.selectorSplitTakenAuto h32 daiRootSplitWellFormed hroot (by jump_dest) (by simp)
   have h185 : RD daiBytecode I g (initState σ σ₀ g A I)
       daiLowSplitPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
@@ -564,19 +566,21 @@ theorem daiReachVeryLowFirstArm {σ σ₀ A I} {g : Sat256}
   obtain ⟨k32, C32, h32⟩ :=
     daiReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
+  have hrootTgt : armTgt daiBytecode daiRootSplitPc = ⟨184⟩ := by native_decide
   have h184 : RD daiBytecode I g (initState σ σ₀ g A I)
       ⟨184⟩ [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
-    simpa [daiRootSplitPc] using
+    simpa [daiRootSplitPc, hrootTgt] using
       RD.selectorSplitTakenAuto h32 daiRootSplitWellFormed hroot (by jump_dest) (by simp)
   have h185 : RD daiBytecode I g (initState σ σ₀ g A I)
       daiLowSplitPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [daiLowSplitPc] using h184.jumpdest (by native_decide) (by simp)
+  have hlowTgt : armTgt daiBytecode daiLowSplitPc = ⟨266⟩ := by native_decide
   have h266 : RD daiBytecode I g (initState σ σ₀ g A I)
       ⟨266⟩ [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
-    simpa [daiLowSplitPc] using
+    simpa [daiLowSplitPc, hlowTgt] using
       RD.selectorSplitTakenAuto h185 daiLowSplitWellFormed hlow (by jump_dest) (by simp)
   have h267 : RD daiBytecode I g (initState σ σ₀ g A I)
       daiVeryLowFirstArmPc [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3)

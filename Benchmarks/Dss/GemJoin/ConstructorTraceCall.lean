@@ -139,10 +139,10 @@ theorem gemJoinCtorDecimalsStaticcallReach
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ σAcc σ₀ Ain
+          Ethereum.EVM.Θ I.fork  σAcc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 gemTarget)
-            (toExecute σAcc (AccountAddress.ofUInt256 gemTarget))
+            (toExecute I.fork σAcc (AccountAddress.ofUInt256 gemTarget))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((gemJoinCtorDecimalsCalldataMem I vat ilk gem).readWithPadding 224 4)
             (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) ∧

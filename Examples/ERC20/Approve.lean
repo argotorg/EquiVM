@@ -79,7 +79,7 @@ theorem erc20Decode_approve_none_huge {I : ExecutionEnv}
 
 theorem approveStore_spender (I : ExecutionEnv) :
     (approveStore I).get? "spender" = some (approveSpenderValue I) := by
-  rw [approveStore, store_get_ne _ _ (by decide), store_get_self]
+  rw [approveStore, store_get_ne _ _ (by native_decide), store_get_self]
 
 theorem approveStore_value (I : ExecutionEnv) :
     (approveStore I).get? "value" = some (approveValueValue I) := by
@@ -87,7 +87,7 @@ theorem approveStore_value (I : ExecutionEnv) :
 
 theorem approveStore_allowance (I : ExecutionEnv) :
     (approveStore I).get? "allowance" = none := by
-  rw [approveStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]
+  rw [approveStore, store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
   simp
 
 theorem evalExpr_approve_spender (evm : EVM.State) (I : ExecutionEnv) :
@@ -173,7 +173,7 @@ theorem approveOwnerWord_toNat (I : ExecutionEnv) :
     (approveOwnerWord I).toNat = I.source.val := by
   unfold approveOwnerWord
   exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
-    (show AccountAddress.size ≤ UInt256.size from by decide))
+    (show AccountAddress.size ≤ UInt256.size from by native_decide))
 
 theorem approveOwnerWord_canonical (I : ExecutionEnv) :
     (approveOwnerWord I).toNat < EVM.addressModulus := by
@@ -428,7 +428,7 @@ theorem approveReturnMem_mload64 (owner spender value : UInt256) :
        (fromByteArrayBigEndian
         ((approveReturnMem owner spender value).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [approveReturnMem_size]; decide)
+  mloadFreePtrValue (by rw [approveReturnMem_size]; native_decide)
     (approveReturnMem_read64 owner spender value)
 
 theorem approveReturnMem_read128 (owner spender value : UInt256) :
@@ -473,9 +473,9 @@ theorem erc20RoutineEncodeBoolFromMem {g : Sat256} {s0 : State} {ee : ExecutionE
   obtain ⟨k1, C1, rd2027⟩ := erc20RoutineBoolCleanup rd2007 erc20_jd (by evm_ov)
   let rd := evm_run rd2027 with [
     jumpdest, dup3,
-    raw mstore 0 memout (UInt256.ofNat 5) (by decide) mem_cost
-      (by rw [show ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 from by decide]; exact hmemout)
-      (by decide) (by evm_ov),
+    raw mstore 0 memout (UInt256.ofNat 5) (by native_decide) mem_cost
+      (by rw [show ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 from by native_decide]; exact hmemout)
+      (by native_decide) (by evm_ov),
     pop, pop,
     jump erc20_jd,
     jumpdest, swap3, swap2, pop, pop,
@@ -501,7 +501,7 @@ theorem erc20ApproveX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, push2 ⟨126⟩, push1 ⟨4⟩, dup1, calldatasize, sub, dup2, add, swap1,
     push2 ⟨121⟩, swap2, swap1, push2 ⟨1945⟩, jump erc20_jd ]
   rw [uadd_word_usub_ofNat_word (c := (⟨4⟩ : UInt256))
-    (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by decide]; exact hsz4) hsize] at rd'
+    (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by native_decide]; exact hsz4) hsize] at rd'
   exact ⟨_, _, rd'⟩
 
 /-- The approve tuple decoder accepts two static words and jumps to the address decoder for
@@ -521,7 +521,7 @@ theorem erc20ApproveX_dec1874_spender {σ σ₀ A I} {g : Sat256} {sel : UInt256
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) (by omega) hsize hreach
   exact ⟨_, _, evm_run rd with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
-    push2 ⟨1967⟩, jumpiT (by rw [hslt]; decide) erc20_jd,
+    push2 ⟨1967⟩, jumpiT (by rw [hslt]; native_decide) erc20_jd,
     jumpdest, push0, push2 ⟨1980⟩, dup6, dup3, dup7, add, push2 ⟨1874⟩,
     jump erc20_jd ]⟩
 
@@ -594,7 +594,7 @@ theorem erc20ApproveX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hclean : UInt256.eq (approveValueWord I) (approveValueWord I) = ⟨1⟩ :=
     uInt256_eq_self (approveValueWord I)
   have rd1939 := evm_run rd1912 with [
-    jumpdest, dup2, eq, push2 ⟨1922⟩, jumpiT (by rw [hclean]; decide) erc20_jd,
+    jumpdest, dup2, eq, push2 ⟨1922⟩, jumpiT (by rw [hclean]; native_decide) erc20_jd,
     jumpdest, pop, jump erc20_jd ]
   exact ⟨_, _, evm_run rd1939 with [
     jumpdest, swap3, swap2, pop, pop, jump erc20_jd,
@@ -641,9 +641,9 @@ theorem erc20ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     hslot (by evm_ov)
   have rd493 := evm_run rd493₀ with [ dup2, swap1 ]
   by_cases hp : I.perm = true
-  · exact Or.inl ⟨hp, rd493.sstore hp (by decide) (by evm_ov)⟩
+  · exact Or.inl ⟨hp, rd493.sstore hp (by native_decide) (by evm_ov)⟩
   · have hpf : I.perm = false := by simpa using hp
-    exact Or.inr ⟨hpf, rd493.sstoreStatic hpf (by decide) (by evm_ov)⟩
+    exact Or.inr ⟨hpf, rd493.sstoreStatic hpf (by native_decide) (by evm_ov)⟩
 
 theorem erc20X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -666,15 +666,15 @@ theorem erc20X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd576₀ := evm_run rd496 with [
     pop, dup3, push20 erc20AddrMask, and, caller, push20 erc20AddrMask, and ]
   have rd543₀ := rd576₀.pushConst approveApprovalTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd543 := rd543₀
   rw [hspenderCleanL, hownerCleanL] at rd543
   have rd2073 := evm_run rd543 with [
     dup5, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
       (allowanceOuterHashMem_mload64 (approveOwnerWord I) (approveSpenderWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push2 ⟨589⟩, swap2, swap1, push2 ⟨2073⟩, jump erc20_jd ]
   obtain ⟨k1, C1, rd589⟩ := erc20RoutineEncodeUint256FromMem
     (val := approveValueWord I) (ret := ⟨589⟩)
@@ -683,42 +683,42 @@ theorem erc20X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rd2073 (by rfl) erc20_jd (by simp only [List.length_cons, List.length_nil]; omega)
   have rd597 := evm_run rd589 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (allowanceReturnMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
         (approveValueWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  have rd598 := rd597.log3 0 (UInt256.ofNat 5) (by decide) hperm mem_cost
-    (by decide) (by evm_ov)
+  have rd598 := rd597.log3 0 (UInt256.ofNat 5) (by native_decide) hperm mem_cost
+    (by native_decide) (by evm_ov)
   have rd126 := evm_run rd598 with [
     push1 ⟨1⟩, swap1, pop, swap3, swap2, pop, pop, jump erc20_jd ]
   have rd2033 := evm_run rd126 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (allowanceReturnMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
         (approveValueWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push2 ⟨139⟩, swap2, swap1, push2 ⟨2033⟩, jump erc20_jd ]
   obtain ⟨k2, C2, rd139⟩ := erc20RoutineEncodeBoolFromMem
     (val := (⟨1⟩ : UInt256)) (ret := ⟨139⟩) (R := [sel])
     rd2033
     (by
-      rw [show UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ from by decide])
+      rw [show UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ from by native_decide])
     erc20_jd (by simp only [List.length_cons, List.length_nil]; omega)
   exact evm_run rd139 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (approveReturnMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
         (approveValueWord I))
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
+    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by native_decide)
       mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, erc20SubRet32_toNat]
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by native_decide, erc20SubRet32_toNat]
         change (approveReturnMem (approveOwnerWord I) (approveSpenderWord I)
             (approveValueWord I)).readWithPadding 128 32 =
           UInt256.toByteArray (⟨1⟩ : UInt256)
@@ -740,9 +740,9 @@ theorem erc20ApproveX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz4 hsize hreach
   exact evm_run rd with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
-    push2 ⟨1967⟩, jumpiNT (by rw [hslt]; decide),
+    push2 ⟨1967⟩, jumpiNT (by rw [hslt]; native_decide),
     push2 ⟨1966⟩, push2 ⟨1800⟩, jump erc20_jd,
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem erc20ApproveX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -756,9 +756,9 @@ theorem erc20ApproveX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz4 hsize hreach
   exact evm_run rd with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
-    push2 ⟨1967⟩, jumpiNT (by rw [hslt]; decide),
+    push2 ⟨1967⟩, jumpiNT (by rw [hslt]; native_decide),
     push2 ⟨1966⟩, push2 ⟨1800⟩, jump erc20_jd,
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem erc20ApproveX_noncanon_spender {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -792,7 +792,7 @@ theorem erc20Dispatch_approve {cd : ByteArray}
   intro t ht
   simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
   subst ht
-  rw [selectorOf, erc20TransferSelectorBytes, hcd]; decide
+  rw [selectorOf, erc20TransferSelectorBytes, hcd]; native_decide
 
 theorem erc20ApproveBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}

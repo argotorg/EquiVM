@@ -1511,10 +1511,10 @@ theorem endCageIlkX_vatIlksPostCall {σ σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork  σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (endPackVatWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (endPackVatWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endCageIlkVatIlksCalldataMem I).readWithPadding
             endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
@@ -1970,11 +1970,11 @@ theorem endCageIlkX_spotIlksPostStaticcall {σ σ' σ₀ A I}
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ'', g'', A', z, spotOut) =
-          Ethereum.EVM.Θ (endCageIlkPostArtAccountMap σ' I vatOut) σ₀ Ain
+          Ethereum.EVM.Θ I.fork (endCageIlkPostArtAccountMap σ' I vatOut) σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256
               (endCageIlkSpotWord (endCageIlkPostArtAccountMap σ' I vatOut) I))
-            (toExecute (endCageIlkPostArtAccountMap σ' I vatOut)
+            (toExecute I.fork (endCageIlkPostArtAccountMap σ' I vatOut)
               (AccountAddress.ofUInt256
                 (endCageIlkSpotWord (endCageIlkPostArtAccountMap σ' I vatOut) I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
@@ -2340,10 +2340,10 @@ theorem endCageIlkX_parPostStaticcall {σ σ' σ₀ A I}
       (z : Bool) (parOut : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ'', g'', A', z, parOut) =
-          Ethereum.EVM.Θ σ' σ₀ Ain
+          Ethereum.EVM.Θ I.fork  σ' σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (endCageIlkSpotWord σ' I))
-            (toExecute σ' (AccountAddress.ofUInt256 (endCageIlkSpotWord σ' I)))
+            (toExecute I.fork σ' (AccountAddress.ofUInt256 (endCageIlkSpotWord σ' I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageIlkParCalldataMem I vatOut spotOut).readWithPadding
               endFlowVatIlksOutPtr.toNat endCageIlkNoArgInSize.toNat)
@@ -2705,10 +2705,10 @@ theorem endCageIlkX_readPostStaticcall {σ σ' σ₀ A I}
       (z : Bool) (readOut : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ'', g'', A', z, readOut) =
-          Ethereum.EVM.Θ σ' σ₀ Ain
+          Ethereum.EVM.Θ I.fork  σ' σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (endCageIlkPipCallWord spotOut))
-            (toExecute σ' (AccountAddress.ofUInt256 (endCageIlkPipCallWord spotOut)))
+            (toExecute I.fork σ' (AccountAddress.ofUInt256 (endCageIlkPipCallWord spotOut)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageIlkReadCalldataMem I vatOut spotOut parOut).readWithPadding
               endFlowVatIlksOutPtr.toNat endCageIlkNoArgInSize.toNat)

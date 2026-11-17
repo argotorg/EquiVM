@@ -82,9 +82,13 @@ abbrev ballotLowJumpdestPc : UInt256 := ⟨88⟩
 /-- The low selector group begins after the `JUMPDEST` at pc 88. -/
 abbrev ballotLowFirstArmPc : UInt256 := ⟨89⟩
 
+private theorem ballotLowFirstArm_eq :
+    ballotLowFirstArmPc = armTgt ballotBytecode ballotSplitPc + ⟨1⟩ := by
+  native_decide
+
 /-- Ballot's `DUP1; PUSH4 pivot; GT; PUSH2 low; JUMPI` split is well-formed. -/
 theorem ballotSplitWellFormed : selectorSplitWellFormed ballotBytecode ballotSplitPc := by
-  exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+  exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 /-- Ballot's high-half selector arms decode as `DUP1; PUSH4; EQ; PUSH2; JUMPI`. -/
 theorem ballotHighArmsWellFormed :
@@ -92,7 +96,7 @@ theorem ballotHighArmsWellFormed :
       (nthArmPc ballotBytecode ballotHighFirstArmPc j) := by
   intro j hj
   interval_cases j <;>
-    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+    exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 /-- Ballot's low-half selector arms decode as `DUP1; PUSH4; EQ; PUSH2; JUMPI`. -/
 theorem ballotLowArmsWellFormed :
@@ -100,7 +104,7 @@ theorem ballotLowArmsWellFormed :
       (nthArmPc ballotBytecode ballotLowFirstArmPc j) := by
   intro j hj
   interval_cases j <;>
-    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+    exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 /-- If `calldata[0:4]` matches a selector byte literal, the EVM selector word is that literal. -/
 theorem ballotSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
@@ -120,7 +124,7 @@ theorem ballotLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat ballotBytecode (nthArmPc ballotBytecode ballotLowFirstArmPc j))
         (ballotSelWord I)
       = if (ballotSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
 /-- High-half selector coupling (`EQ` outcome agrees with calldata byte comparison). -/
 theorem ballotHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
@@ -129,7 +133,7 @@ theorem ballotHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat ballotBytecode (nthArmPc ballotBytecode ballotHighFirstArmPc j))
         (ballotSelWord I)
       = if (ballotSelBytes (j + 4) == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
 /-- Selector identification inside the low half. -/
 theorem ballotLowMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
@@ -144,9 +148,9 @@ theorem ballotLowMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
   have hci : I.calldata.extract 0 4 = ballotSelBytes i := (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [ballotLowArmEq I hsz j (by omega), hci]
-    interval_cases i <;> interval_cases j <;> decide
+    interval_cases i <;> interval_cases j <;> native_decide
   · rw [ballotLowArmEq I hsz i hi, hci]
-    interval_cases i <;> decide
+    interval_cases i <;> native_decide
 
 /-- Selector identification inside the high half. -/
 theorem ballotHighMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
@@ -163,9 +167,9 @@ theorem ballotHighMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
     (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [ballotHighArmEq I hsz j (by omega), hci]
-    interval_cases i <;> interval_cases j <;> decide
+    interval_cases i <;> interval_cases j <;> native_decide
   · rw [ballotHighArmEq I hsz i hi, hci]
-    interval_cases i <;> decide
+    interval_cases i <;> native_decide
 
 /-- A low-half selector makes the pivot `GT` branch jump to the low group. -/
 theorem ballotPivotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
@@ -173,24 +177,24 @@ theorem ballotPivotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
     UInt256.gt (armSelNat ballotBytecode ballotSplitPc) (ballotSelWord I) ≠ ⟨0⟩ := by
   interval_cases i
   · have hword : ballotSelWord I = armSelNat ballotBytecode ballotLowFirstArmPc :=
-      ballotSelWord_eq_of_beq I hsz 0x01 0x21 0xb9 0x3f _ (by decide)
+      ballotSelWord_eq_of_beq I hsz 0x01 0x21 0xb9 0x3f _ (by native_decide)
         (by simpa [ballotSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : ballotSelWord I =
         armSelNat ballotBytecode (nthArmPc ballotBytecode ballotLowFirstArmPc 1) :=
-      ballotSelWord_eq_of_beq I hsz 0x01 0x3c 0xf0 0x8b _ (by decide)
+      ballotSelWord_eq_of_beq I hsz 0x01 0x3c 0xf0 0x8b _ (by native_decide)
         (by simpa [ballotSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : ballotSelWord I =
         armSelNat ballotBytecode (nthArmPc ballotBytecode ballotLowFirstArmPc 2) :=
-      ballotSelWord_eq_of_beq I hsz 0x2e 0x41 0x76 0xcf _ (by decide)
+      ballotSelWord_eq_of_beq I hsz 0x2e 0x41 0x76 0xcf _ (by native_decide)
         (by simpa [ballotSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : ballotSelWord I =
         armSelNat ballotBytecode (nthArmPc ballotBytecode ballotLowFirstArmPc 3) :=
-      ballotSelWord_eq_of_beq I hsz 0x5c 0x19 0xa9 0x5c _ (by decide)
+      ballotSelWord_eq_of_beq I hsz 0x5c 0x19 0xa9 0x5c _ (by native_decide)
         (by simpa [ballotSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
 
 /-- A high-half selector makes the pivot `GT` branch fall through to the high group. -/
 theorem ballotPivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
@@ -199,24 +203,24 @@ theorem ballotPivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
     UInt256.gt (armSelNat ballotBytecode ballotSplitPc) (ballotSelWord I) = ⟨0⟩ := by
   interval_cases i
   · have hword : ballotSelWord I = armSelNat ballotBytecode ballotSplitPc :=
-      ballotSelWord_eq_of_beq I hsz 0x60 0x9f 0xf1 0xbd _ (by decide)
+      ballotSelWord_eq_of_beq I hsz 0x60 0x9f 0xf1 0xbd _ (by native_decide)
         (by simpa [ballotSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : ballotSelWord I =
         armSelNat ballotBytecode (nthArmPc ballotBytecode ballotHighFirstArmPc 1) :=
-      ballotSelWord_eq_of_beq I hsz 0x9e 0x7b 0x8d 0x61 _ (by decide)
+      ballotSelWord_eq_of_beq I hsz 0x9e 0x7b 0x8d 0x61 _ (by native_decide)
         (by simpa [ballotSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : ballotSelWord I =
         armSelNat ballotBytecode (nthArmPc ballotBytecode ballotHighFirstArmPc 2) :=
-      ballotSelWord_eq_of_beq I hsz 0xa3 0xec 0x13 0x8d _ (by decide)
+      ballotSelWord_eq_of_beq I hsz 0xa3 0xec 0x13 0x8d _ (by native_decide)
         (by simpa [ballotSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : ballotSelWord I =
         armSelNat ballotBytecode (nthArmPc ballotBytecode ballotHighFirstArmPc 3) :=
-      ballotSelWord_eq_of_beq I hsz 0xe2 0xba 0x53 0xf0 _ (by decide)
+      ballotSelWord_eq_of_beq I hsz 0xe2 0xba 0x53 0xf0 _ (by native_decide)
         (by simpa [ballotSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
 
 /-- Standard solc prologue/guards/selector-load, stopping at Ballot's pivot split. -/
 theorem ballotReachSplit {σ σ₀ A I} {g : Sat256}
@@ -296,22 +300,18 @@ theorem ballotReachLowBody {σ σ₀ A I} {g : Sat256}
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (code := ballotBytecode) (splitPc := ballotSplitPc) (bodyPC := bodyPC) (i := i)
       hcode hwv hsz hsize hprefix (by jump_dest) ballotSplitWellFormed
-      (by simpa [ballotSelWord, solcSelectorWord] using hpivot) (by jump_dest) (by decide)
+      (by simpa [ballotSelWord, solcSelectorWord] using hpivot) (by jump_dest) (by native_decide)
       (fun j hj => by
-        simpa [ballotLowFirstArmPc, ballotLowJumpdestPc, ballotSplitPc, armTgt, pushAt,
-          selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
+        simpa only [← ballotLowFirstArm_eq] using
           ballotLowArmsWellFormed j (le_trans hj hi))
       (fun j hj => by
-        simpa [ballotSelWord, solcSelectorWord, ballotLowFirstArmPc, ballotLowJumpdestPc,
-          ballotSplitPc, armTgt, pushAt, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
+        simpa only [ballotSelWord, solcSelectorWord, ← ballotLowFirstArm_eq] using
           heq0 j hj)
       (by
-        simpa [ballotSelWord, solcSelectorWord, ballotLowFirstArmPc, ballotLowJumpdestPc,
-          ballotSplitPc, armTgt, pushAt, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using htake)
+        simpa only [ballotSelWord, solcSelectorWord, ← ballotLowFirstArm_eq] using htake)
       hjd
       (by
-        simpa [ballotLowFirstArmPc, ballotLowJumpdestPc, ballotSplitPc, armTgt, pushAt,
-          selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using hbody))
+        simpa only [← ballotLowFirstArm_eq] using hbody))
 
 /-! ## Per-function body obligations (one `…BodyCore` per `Examples/Ballot/<Fn>.lean`, TODO) -/
 
@@ -460,27 +460,27 @@ theorem ballotX_callvalue_ne {σ σ₀ A I} {g : Sat256}
   exact solcGuardCallvalueNonzeroRevert
     (ctgt := solcGuardTgt ballotBytecode) (opC := solcGuardTgtOp ballotBytecode)
     (wC := solcGuardTgtWidth ballotBytecode)
-    (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
-      (by decide) (by decide))
-    hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (solcGuardPrologueRD hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide))
+    hwv (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
 /-- EVM calldata-size guard reverts when calldata is shorter than a selector. -/
 theorem ballotX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ballotBytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     RDrev ballotBytecode g (initState σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt ballotBytecode) (opC := solcGuardTgtOp ballotBytecode)
     (wC := solcGuardTgtWidth ballotBytecode) h0 hwv
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by jump_dest)
   exact solcCalldataShortRevert
     (bodyPc := solcDispatchBodyPc ballotBytecode)
     (rtgt := solcCalldataRevertTgt ballotBytecode)
     (opR := solcCalldataRevertTgtOp ballotBytecode)
     (wR := solcCalldataRevertTgtWidth ballotBytecode)
-    h1 hsz (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by jump_dest) (by decide) (by decide) (by decide)
+    h1 hsz (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by jump_dest) (by native_decide) (by native_decide) (by native_decide)
 
 /-- With enough calldata for a selector but no selector match, Ballot's dispatcher reverts. -/
 theorem ballotX_noMatch {σ σ₀ A I} {g : Sat256}
@@ -518,13 +518,16 @@ theorem ballotX_noMatch {σ σ₀ A I} {g : Sat256}
     have h85' : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨85⟩
         [ballotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 5 + 5 + 5 + 5, CS + 22 + 22 + 22 + 22 + 22, ?_⟩
-      simpa [ballotHighFirstArmPc, ballotSplitPc, nthArmPc, selArmNextPc, armTgtWidth,
-        selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using h85
+      convert h85 using 1 <;> native_decide
     obtain ⟨_, _, h85rd⟩ := h85'
-    exact h85rd.revertStub (by decide) (by decide) (by decide) (by simp)
+    exact h85rd.revertStub (by native_decide) (by native_decide) (by native_decide) (by simp)
   · have h88 := RD.selectorSplitTakenAuto hsplit ballotSplitWellFormed hpivot (by jump_dest) (by simp)
-    have h89 := h88.jumpdest (by decide) (by simp)
-    have h133 := h89
+    have h89 := h88.jumpdest (by native_decide) (by simp)
+    have h89' : RD ballotBytecode I g (initState σ σ₀ g A I)
+        ballotLowFirstArmPc [ballotSelWord I] solcFreePtrMem (UInt256.ofNat 3)
+        ByteArray.empty σ (kS + 5 + 1) (CS + 22 + 1) := by
+      simpa only [← ballotLowFirstArm_eq] using h89
+    have h133 := h89'
       |>.selectorArmNotTakenAuto (ballotLowArmsWellFormed 0 (by omega))
           (heqLow0 0 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (ballotLowArmsWellFormed 1 (by omega))
@@ -536,12 +539,10 @@ theorem ballotX_noMatch {σ σ₀ A I} {g : Sat256}
     have h133' : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨133⟩
         [ballotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 1 + 5 + 5 + 5 + 5, CS + 22 + 1 + 22 + 22 + 22 + 22, ?_⟩
-      simpa [ballotLowFirstArmPc, ballotLowJumpdestPc, ballotSplitPc, nthArmPc, selArmNextPc,
-        armTgtWidth, armTgt, pushAt, selArmJumpiPc, selArmPushTgtPc, selArmEqPc,
-        selArmPush4Pc] using h133
+      convert h133 using 1 <;> native_decide
     obtain ⟨_, _, h133rd⟩ := h133'
-    have h134 := h133rd.jumpdest (by decide) (by simp)
-    exact h134.revertStub (by decide) (by decide) (by decide) (by simp)
+    have h134 := h133rd.jumpdest (by native_decide) (by simp)
+    exact h134.revertStub (by native_decide) (by native_decide) (by native_decide) (by simp)
 
 /-- `callvalue ≠ 0` ⇒ both sides revert (non-payable global guard). -/
 theorem ballotNonPayable {σ σ₀ A I} {g : UInt256}
@@ -604,28 +605,28 @@ theorem ballotCorrect :
             (ballotPivotTaken 0 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h0))
             (ballotLowMatches 0 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h0)).1
             (ballotLowMatches 0 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h0)).2
-            (by jump_dest) (by decide))
+            (by jump_dest) (by native_decide))
       · by_cases h1 : selIs I ⟨#[0x01, 0x3c, 0xf0, 0x8b]⟩
         · exact ballotProposalsBody hcode hsize hwv h1
             (ballotReachLowBody 1 (by omega) ⟨158⟩ hcode hwv hsz hsize
               (ballotPivotTaken 1 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h1))
               (ballotLowMatches 1 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h1)).1
               (ballotLowMatches 1 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h1)).2
-              (by jump_dest) (by decide))
+              (by jump_dest) (by native_decide))
         · by_cases h2 : selIs I ⟨#[0x2e, 0x41, 0x76, 0xcf]⟩
           · exact ballotChairpersonBody hcode hsize hwv h2
               (ballotReachLowBody 2 (by omega) ⟨203⟩ hcode hwv hsz hsize
                 (ballotPivotTaken 2 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h2))
                 (ballotLowMatches 2 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h2)).1
                 (ballotLowMatches 2 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h2)).2
-                (by jump_dest) (by decide))
+                (by jump_dest) (by native_decide))
           · by_cases h3 : selIs I ⟨#[0x5c, 0x19, 0xa9, 0x5c]⟩
             · exact ballotDelegateBody hcode hsize hwv h3
                 (ballotReachLowBody 3 (by omega) ⟨245⟩ hcode hwv hsz hsize
                   (ballotPivotTaken 3 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h3))
                   (ballotLowMatches 3 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h3)).1
                   (ballotLowMatches 3 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h3)).2
-                  (by jump_dest) (by decide))
+                  (by jump_dest) (by native_decide))
             · by_cases h4 : selIs I ⟨#[0x60, 0x9f, 0xf1, 0xbd]⟩
               · exact ballotWinningProposalBody hcode hsize hwv h4
                   (ballotReachHighBody 0 (by omega) ⟨264⟩ hcode hwv hsz hsize
@@ -635,7 +636,7 @@ theorem ballotCorrect :
                       (by simpa [selIs, ballotSelBytes] using h4)).1
                     (ballotHighMatches 0 (by omega) hsz
                       (by simpa [selIs, ballotSelBytes] using h4)).2
-                    (by jump_dest) (by decide))
+                    (by jump_dest) (by native_decide))
               · by_cases h5 : selIs I ⟨#[0x9e, 0x7b, 0x8d, 0x61]⟩
                 · exact ballotGiveRightToVoteBody hcode hsize hwv h5
                     (ballotReachHighBody 1 (by omega) ⟨286⟩ hcode hwv hsz hsize
@@ -645,7 +646,7 @@ theorem ballotCorrect :
                         (by simpa [selIs, ballotSelBytes] using h5)).1
                       (ballotHighMatches 1 (by omega) hsz
                         (by simpa [selIs, ballotSelBytes] using h5)).2
-                      (by jump_dest) (by decide))
+                      (by jump_dest) (by native_decide))
                 · by_cases h6 : selIs I ⟨#[0xa3, 0xec, 0x13, 0x8d]⟩
                   · exact ballotVotersBody hcode hsize hwv h6
                       (ballotReachHighBody 2 (by omega) ⟨305⟩ hcode hwv hsz hsize
@@ -655,7 +656,7 @@ theorem ballotCorrect :
                           (by simpa [selIs, ballotSelBytes] using h6)).1
                         (ballotHighMatches 2 (by omega) hsz
                           (by simpa [selIs, ballotSelBytes] using h6)).2
-                        (by jump_dest) (by decide))
+                        (by jump_dest) (by native_decide))
                   · by_cases h7 : selIs I ⟨#[0xe2, 0xba, 0x53, 0xf0]⟩
                     · exact ballotWinnerNameBody hcode hsize hwv h7
                         (ballotReachHighBody 3 (by omega) ⟨417⟩ hcode hwv hsz hsize
@@ -665,7 +666,7 @@ theorem ballotCorrect :
                             (by simpa [selIs, ballotSelBytes] using h7)).1
                           (ballotHighMatches 3 (by omega) hsz
                             (by simpa [selIs, ballotSelBytes] using h7)).2
-                          (by jump_dest) (by decide))
+                          (by jump_dest) (by native_decide))
                     · -- size ≥ 4 but no selector matches
                       refine ballotNoDispatch hcode hsize hwv ?_
                       intro i hi

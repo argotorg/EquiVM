@@ -349,7 +349,11 @@ theorem cureReachRootSplit {σ σ₀ A I} {g : Sat256}
   obtain ⟨k, C, hsplit⟩ := solcLegacySelectorLoad hload
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length]; omega)
-  exact ⟨k, C, by simpa [cureRootSplitPc, cureSelWord] using hsplit⟩
+  have hrootPc : solcDispatchBodyPc cureBytecode + UInt256.ofNat 2 + (⟨1⟩ : UInt256) +
+      (⟨1⟩ : UInt256) + UInt256.ofNat (solcCalldataRevertTgtWidth cureBytecode + 1) +
+      (⟨1⟩ : UInt256) + UInt256.ofNat 2 + (⟨1⟩ : UInt256) + UInt256.ofNat 2 + (⟨1⟩ : UInt256) =
+      cureRootSplitPc := by native_decide
+  exact ⟨k, C, by simpa [cureRootSplitPc, cureSelWord, hrootPc] using hsplit⟩
 
 theorem cureReachMidSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -371,9 +375,12 @@ theorem cureReachLowSplit {σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h32⟩ := cureReachRootSplit (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h173 := RD.selectorSplitTakenAuto h32 cureRootSplitWellFormed hroot (by jump_dest) (by simp)
+  have hrootTgt : armTgt cureBytecode cureRootSplitPc = cureLowJumpdestPc := by native_decide
+  have h173 := RD.selectorSplitTakenAuto h32 cureRootSplitWellFormed hroot
+    (by jump_dest) (by simp)
+  rw [hrootTgt] at h173
   exact ⟨_, _, by
-    simpa [cureLowSplitPc, cureLowJumpdestPc, cureRootSplitPc, armTgt, pushAt] using
+    simpa [cureLowSplitPc, cureLowJumpdestPc] using
       h173.jumpdest (by native_decide) (by simp only [List.length]; omega)⟩
 
 theorem cureReachMidLowFirstArm {σ σ₀ A I} {g : Sat256}
@@ -385,10 +392,12 @@ theorem cureReachMidLowFirstArm {σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h43⟩ := cureReachMidSplit (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
+  have hmidTgt : armTgt cureBytecode cureMidSplitPc = cureMidLowJumpdestPc := by native_decide
   have h113 := RD.selectorSplitTakenAuto h43 cureMidSplitWellFormed hmid
     (by jump_dest) (by simp)
+  rw [hmidTgt] at h113
   exact ⟨_, _, by
-    simpa [cureMidLowFirstArmPc, cureMidLowJumpdestPc, cureMidSplitPc, armTgt, pushAt] using
+    simpa [cureMidLowFirstArmPc, cureMidLowJumpdestPc] using
       h113.jumpdest (by native_decide) (by simp only [List.length]; omega)⟩
 
 theorem cureReachHighUpperFirstArm {σ σ₀ A I} {g : Sat256}
@@ -426,10 +435,12 @@ theorem cureReachLowLowerFirstArm {σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h173⟩ := cureReachLowSplit (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
+  have hlowTgt : armTgt cureBytecode cureLowSplitPc = cureLowLowerJumpdestPc := by native_decide
   have h244 := RD.selectorSplitTakenAuto h173 cureLowSplitWellFormed hlow
     (by jump_dest) (by simp)
+  rw [hlowTgt] at h244
   exact ⟨_, _, by
-    simpa [cureLowLowerFirstArmPc, cureLowLowerJumpdestPc, cureLowSplitPc, armTgt, pushAt] using
+    simpa [cureLowLowerFirstArmPc, cureLowLowerJumpdestPc] using
       h244.jumpdest (by native_decide) (by simp only [List.length]; omega)⟩
 
 theorem cureReachAmtBody {σ σ₀ A I} {g : Sat256}

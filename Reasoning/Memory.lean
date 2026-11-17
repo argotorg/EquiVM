@@ -465,6 +465,41 @@ theorem readWithPadding_eq_extract_unbounded (source : ByteArray) (addr len : �
   rw [zeroes_zero (n := len - len) (by omega)]
   apply ByteArray.ext; rw [ByteArray.data_append]; show _ ++ #[] = _; rw [Array.append_empty]
 
+/-- Padded reads agree when equal-size sources have the same underlying slice. -/
+theorem readWithPadding_congr_extract (a b : ByteArray) (addr len : Nat)
+    (hsz : a.size = b.size)
+    (hextract : a.extract addr (addr + len) = b.extract addr (addr + len)) :
+    a.readWithPadding addr len = b.readWithPadding addr len := by
+  have hstop (src : ByteArray) (stop : Nat) (h : src.size ≤ stop)
+      (hend : src.size ≤ addr + len) :
+      src.extract addr stop = src.extract addr (addr + len) := by
+    apply ByteArray.ext
+    simp only [ByteArray.data_extract]
+    calc
+      src.data.extract addr stop = src.data.extract addr :=
+        Array.extract_eq_of_size_le_stop (by simpa [ByteArray.size_data] using h)
+      _ = src.data.extract addr (addr + len) :=
+        (Array.extract_eq_of_size_le_stop (by simpa [ByteArray.size_data] using hend)).symm
+  unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
+  by_cases haddr : addr ≥ a.size
+  · have hb : addr ≥ b.size := by omega
+    simp [haddr, hb]
+  · have hb : ¬ addr ≥ b.size := by omega
+    simp only [if_neg haddr, if_neg hb]
+    have hm : min len a.size = min len b.size := by rw [hsz]
+    rw [hm]
+    by_cases hl : len ≤ a.size
+    · have hlb : len ≤ b.size := by omega
+      simp only [min_eq_left hlb]
+      exact congrArg (fun x : ByteArray => x ++ ByteArray.zeroes (len - x.size)) hextract
+    · have hlb : ¬ len ≤ b.size := by omega
+      simp only [min_eq_right (Nat.le_of_not_ge hlb)]
+      have ha : a.extract addr (addr + b.size) = a.extract addr (addr + len) :=
+        hstop a _ (by omega) (by omega)
+      have hb' : b.extract addr (addr + b.size) = b.extract addr (addr + len) :=
+        hstop b _ (by omega) (by omega)
+      rw [ha, hb', hextract]
+
 /-- Split an in-bounds padded read into adjacent pieces. -/
 theorem byteArray_readWithPadding_split (source : ByteArray) (addr len₁ len₂ : Nat)
     (hpos₁ : 0 < len₁) (hpos₂ : 0 < len₂)

@@ -270,10 +270,12 @@ theorem stairstepReachLowFirstArm {σ σ₀ A I} {g : Sat256}
   obtain ⟨k32, C32, h32⟩ :=
     stairstepReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
+  have hrootTgt : armTgt stairstepExponentialDecreaseBytecode stairstepRootSplitPc =
+      stairstepLowJumpdestPc := by native_decide
   have h91 : RD stairstepExponentialDecreaseBytecode I g (initState σ σ₀ g A I)
       stairstepLowJumpdestPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
-    simpa [stairstepRootSplitPc, stairstepLowJumpdestPc] using
+    simpa [stairstepRootSplitPc, stairstepLowJumpdestPc, hrootTgt] using
       RD.selectorSplitTakenAuto h32 stairstepRootSplitWellFormed hroot (by jump_dest)
         (by simp)
   have h92 : RD stairstepExponentialDecreaseBytecode I g (initState σ σ₀ g A I)

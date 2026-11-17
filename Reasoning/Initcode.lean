@@ -1,6 +1,7 @@
 import Ethereum.Semantics
 import EVM.Types
 import Reasoning.EVMWord
+import Reasoning.Memory
 
 /-!
 # Initcode — decoding stable prefixes with appended constructor arguments
@@ -65,12 +66,15 @@ theorem decode_append_left (A B : ByteArray) (pc : UInt256)
           by_cases harg : argOnNBytesOfInstr instr = 0
           · simp [harg]
           · simp [harg]
-            rw [byteArray_extract'_append_left A B]
-            · have hargpos : 0 < argOnNBytesOfInstr instr := Nat.pos_of_ne_zero harg
-              have := hwin64 b instr hget hinstr
-              omega
-            · exact hwin64 b instr hget hinstr
-            · exact hwin b instr hget hinstr
+            have hwidth := hwin b instr hget hinstr
+            have hwidth64 := hwin64 b instr hget hinstr
+            rw [readWithPadding_eq_extract' (A ++ B) _ _
+                  (Nat.pos_of_ne_zero harg) (by omega) (by
+                    rw [ByteArray.size_append]; omega),
+                readWithPadding_eq_extract' A _ _
+                  (Nat.pos_of_ne_zero harg) (by omega) hwidth]
+            exact congrArg uInt256OfByteArray
+              (byteArray_extract_append_left A B _ _ hwidth)
 
 /-- Lift a concrete prefix decode using its actual instruction width. -/
 theorem decode_append_left_of_decode (A B : ByteArray) (pc : UInt256)
@@ -87,8 +91,7 @@ theorem decode_append_left_of_decode (A B : ByteArray) (pc : UInt256)
         decode A pc = some
           (instr', if argOnNBytesOfInstr instr' == 0 then none else
             some (uInt256OfByteArray
-              (A.extract' pc.toNat.succ
-                (pc.toNat.succ + argOnNBytesOfInstr instr')),
+              (A.readWithPadding pc.toNat.succ (argOnNBytesOfInstr instr')),
               argOnNBytesOfInstr instr')) := by
       simp [decode, hget, hparse]
     rw [hdecode] at hdecode'
@@ -100,8 +103,7 @@ theorem decode_append_left_of_decode (A B : ByteArray) (pc : UInt256)
         decode A pc = some
           (instr', if argOnNBytesOfInstr instr' == 0 then none else
             some (uInt256OfByteArray
-              (A.extract' pc.toNat.succ
-                (pc.toNat.succ + argOnNBytesOfInstr instr')),
+              (A.readWithPadding pc.toNat.succ (argOnNBytesOfInstr instr')),
               argOnNBytesOfInstr instr')) := by
       simp [decode, hget, hparse]
     rw [hdecode] at hdecode'

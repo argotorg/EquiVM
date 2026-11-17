@@ -54,7 +54,7 @@ theorem renounceOwnershipSetAddressZero_eq (old : UInt256) :
       UInt256.land old (UInt256.lnot solcAddrMask) := by
   unfold renounceOwnershipClearAddressWord
   apply u256_inj
-  rw [ownable2StepSetAddressWord_toNat old ⟨0⟩ (by decide),
+  rw [ownable2StepSetAddressWord_toNat old ⟨0⟩ (by native_decide),
     addressOffset0High160Mask_toNat]
   simp
 
@@ -159,7 +159,7 @@ theorem renounceOwnershipAssignPending (evm : EVM.State) :
       storageLocStore evm (addrLoc ⟨1⟩) (.address (AccountAddress.ofNat 0)) =
         some (renounceOwnershipAfterPendingState evm) := by
     simpa [renounceOwnershipAfterPendingState, renounceOwnershipClearAddressWord] using
-      storageLocStore_address_offset0 evm ⟨1⟩ ⟨0⟩ (by decide)
+      storageLocStore_address_offset0 evm ⟨1⟩ ⟨0⟩ (by native_decide)
   exact assignStorageRef_storage_scalar_value (hbackend := rfl) (cfg := config)
     (stele := { contract := contract, locals := ∅ }) (evm := evm)
     (evm' := renounceOwnershipAfterPendingState evm) (slot := pendingOwnerRef)
@@ -186,7 +186,7 @@ theorem renounceOwnershipAssignOwner (evm : EVM.State) :
         some (renounceOwnershipAfterOwnerState evm) := by
     simpa [renounceOwnershipAfterOwnerState, renounceOwnershipClearAddressWord] using
       storageLocStore_address_offset0 (renounceOwnershipAfterPendingState evm) ⟨0⟩
-        ⟨0⟩ (by decide)
+        ⟨0⟩ (by native_decide)
   exact assignStorageRef_storage_scalar_value (hbackend := rfl) (cfg := config)
     (stele := { contract := contract, locals := ∅ })
     (evm := renounceOwnershipAfterPendingState evm)
@@ -305,7 +305,7 @@ theorem ownable2StepX_renounceOwnership_success {σ σ₀ A I} {g : Sat256}
   have rd431 := evm_run rd191 with [jumpdest, push2 ⟨200⟩, push0, push2 ⟨431⟩,
     jump (by jump_dest)]
   have rd435 := evm_run rd431 with [jumpdest, push1 ⟨1⟩, dup1]
-  obtain ⟨_, _, rd436₀⟩ := rd435.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd436₀⟩ := rd435.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd436⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨436⟩
       [renounceOwnershipPendingOwnerWord σ I, ⟨1⟩, ⟨0⟩, ⟨200⟩, ⟨97⟩,
@@ -322,15 +322,15 @@ theorem ownable2StepX_renounceOwnership_success {σ σ₀ A I} {g : Sat256}
   have rd446 := rd446₀
   rw [show UInt256.lnot
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
-        UInt256.lnot solcAddrMask by decide] at rd446
+        UInt256.lnot solcAddrMask by native_decide] at rd446
   rw [hclear] at rd446
   have rd447 := evm_run rd446 with [swap1]
   by_cases hp : I.perm = true
   swap
   · have hpf : I.perm = false := by simpa using hp
-    exact Or.inr ⟨hpf, rd447.sstoreStatic hpf (by decide) (by evm_ov)⟩
+    exact Or.inr ⟨hpf, rd447.sstoreStatic hpf (by native_decide) (by evm_ov)⟩
   refine Or.inl ⟨hp, ?_⟩
-  obtain ⟨_, _, rd448₀⟩ := rd447.sstore hp (by decide) (by evm_ov)
+  obtain ⟨_, _, rd448₀⟩ := rd447.sstore hp (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd448⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨448⟩
       [⟨0⟩, ⟨200⟩, ⟨97⟩, ownable2StepSelWord I]
@@ -339,7 +339,7 @@ theorem ownable2StepX_renounceOwnership_success {σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [renounceOwnershipAfterPendingMap] using rd448₀⟩
   let σp := renounceOwnershipAfterPendingMap σ I
   have rd454 := evm_run rd448 with [push2 ⟨272⟩, dup2, push0, dup1]
-  obtain ⟨_, _, rd455₀⟩ := rd454.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd455₀⟩ := rd454.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd455⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨455⟩
       [renounceOwnershipOwnerWordAfterPending σ I, ⟨0⟩, ⟨0⟩, ⟨272⟩, ⟨0⟩,
@@ -349,7 +349,7 @@ theorem ownable2StepX_renounceOwnership_success {σ σ₀ A I} {g : Sat256}
   have rd478 := evm_run rd455 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, dup2, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, dup4, and, dup2]
-  have rd479₀ := RD.or rd478 (by decide) (by evm_ov)
+  have rd479₀ := RD.or rd478 (by native_decide) (by evm_ov)
   have rd480₀ := evm_run rd479₀ with [dup5]
   have hset :
       UInt256.lor
@@ -357,15 +357,15 @@ theorem ownable2StepX_renounceOwnership_success {σ σ₀ A I} {g : Sat256}
           (UInt256.land (renounceOwnershipOwnerWordAfterPending σ I) (UInt256.lnot solcAddrMask)) =
         renounceOwnershipSetOwnerWord σ I := by
     unfold renounceOwnershipSetOwnerWord
-    rw [show UInt256.land solcAddrMask (⟨0⟩ : UInt256) = ⟨0⟩ by decide]
+    rw [show UInt256.land solcAddrMask (⟨0⟩ : UInt256) = ⟨0⟩ by native_decide]
     rw [u256_lor_comm]
     rw [u256_lor_zero]
     exact (renounceOwnershipSetAddressZero_eq (renounceOwnershipOwnerWordAfterPending σ I)).symm
   have rd480 := rd480₀
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-        solcAddrMask by decide] at rd480
+        solcAddrMask by native_decide] at rd480
   rw [hset] at rd480
-  obtain ⟨_, _, rd481₀⟩ := rd480.sstore hp (by decide) (by evm_ov)
+  obtain ⟨_, _, rd481₀⟩ := rd480.sstore hp (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd481⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨481⟩
       [UInt256.land solcAddrMask (⟨0⟩ : UInt256), solcAddrMask,
@@ -376,20 +376,20 @@ theorem ownable2StepX_renounceOwnership_success {σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [renounceOwnershipAfterOwnerMap, σp] using rd481₀⟩
   have rd491pre := evm_run rd481 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost solcFreePtrMem_mload64 (by native_decide) (by evm_ov),
     swap2, swap1, swap3, and, swap3, dup4, swap2]
   have rd524 := rd491pre.pushConst
     (⟨0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0⟩ : UInt256)
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
   have rd526 := evm_run rd524 with [swap2, swap1]
-  have rd527 := rd526.log3 0 (UInt256.ofNat 3) (by decide) hp mem_cost
-    (by decide) (by evm_ov)
+  have rd527 := rd526.log3 0 (UInt256.ofNat 3) (by native_decide) hp mem_cost
+    (by native_decide) (by evm_ov)
   have rd529 := evm_run rd527 with [pop, pop, jump (by jump_dest)]
   have rd272 := evm_run rd529 with [jumpdest, pop, jump (by jump_dest)]
   have rd200' := evm_run rd272 with [jumpdest, jump (by jump_dest)]
   have rd98 := evm_run rd200' with [jumpdest]
-  exact rd98.stop (by decide) (by evm_ov)
+  exact rd98.stop (by native_decide) (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
 theorem ownable2StepX_renounceOwnership_revert_owner {σ σ₀ A I} {g : Sat256}

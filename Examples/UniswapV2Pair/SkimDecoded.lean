@@ -1228,12 +1228,12 @@ theorem uniswapSkimBodyDecoded
                           simpa [evm1S] using hPostTransferAccounts0
                         have hout1Small : out1.size < 2 ^ 138 := by
                           exact Theta_returnData_size_lt_2pow138_of_eq
-                            (blob := I.blobVersionedHashes) (σ := σ') (σ₀ := evm0E.σ₀) (A := A_in1)
+                            (fork := I.fork) (blob := I.blobVersionedHashes) (σ := σ') (σ₀ := evm0E.σ₀) (A := A_in1)
                             (s := AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val))
                             (o := I.sender)
                             (r := AccountAddress.ofUInt256
                               (UInt256.land token0CleanE solcAddrMask))
-                            (c := toExecute σ'
+                            (c := toExecute I.fork σ'
                               (AccountAddress.ofUInt256
                                 (UInt256.land token0CleanE solcAddrMask)))
                             (g := callGas1) (p := UInt256.ofNat I.gasPrice)
@@ -1510,13 +1510,13 @@ theorem uniswapSkimBodyDecoded
                                 obtain ⟨g3Ret, A3E, hΘsafeEq1⟩ := hΘsafe1
                                 have hout3Small : out3.size < 2 ^ 138 := by
                                   exact Theta_returnData_size_lt_2pow138_of_eq
-                                    (blob := I.blobVersionedHashes) (σ := σ2) (σ₀ := evm2E.σ₀) (A := A_in3)
+                                    (fork := I.fork) (blob := I.blobVersionedHashes) (σ := σ2) (σ₀ := evm2E.σ₀) (A := A_in3)
                                     (s := AccountAddress.ofUInt256
                                       (UInt256.ofNat I.codeOwner.val))
                                     (o := I.sender)
                                     (r := AccountAddress.ofUInt256
                                       (UInt256.land token1CleanE solcAddrMask))
-                                    (c := toExecute σ2
+                                    (c := toExecute I.fork σ2
                                       (AccountAddress.ofUInt256
                                         (UInt256.land token1CleanE solcAddrMask)))
                                     (g := callGas3) (p := UInt256.ofNat I.gasPrice)

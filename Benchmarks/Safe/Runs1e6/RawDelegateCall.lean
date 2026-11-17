@@ -43,7 +43,7 @@ theorem rawDelegateCallTraceFromBounded {σ : AccountMap} {I : ExecutionEnv} {g 
         (by simpa only [hee] using hd)
       simpa only [hee, hacc, hworld] using hΘ
     · exact fun hsmall ↦
-        Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ hsmall
+        Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ hsmall
 
 theorem rawDelegateCallTraceFrom {σ : AccountMap} {I : ExecutionEnv} {g : Sat256}
     {s0 : State} (evm : EVM.State)
@@ -92,8 +92,8 @@ theorem delegateCallExists (evm : EVM.State) (target : EVM.Address) (payload : B
     ∃ z evm' out, delegateCallViaEVM evm target payload (z, evm', out) := by
   by_cases hd : evm.executionEnv.depth = 1024
   · exact ⟨false, _, ByteArray.empty, delegateCallViaEVM.callNotMade rfl rfl hd⟩
-  · let result := Θ evm.accountMap evm.σ₀ AIn evm.executionEnv.source
-      evm.executionEnv.sender evm.executionEnv.codeOwner (toExecute evm.accountMap target)
+  · let result := Θ evm.executionEnv.fork evm.accountMap evm.σ₀ AIn evm.executionEnv.source
+      evm.executionEnv.sender evm.executionEnv.codeOwner (toExecute evm.executionEnv.fork evm.accountMap target)
       gas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ evm.executionEnv.weiValue payload
       (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes
       evm.executionEnv.blocks evm.executionEnv.perm

@@ -511,34 +511,34 @@ theorem RD.uniswapSafeMathSubUnderflow_aw6_size164_shared {g : Sat256} {s0 : Sta
   rw [hgt] at rd6887
   have rd6888₀ := evm_run rd6887 with [iszero]
   have rd6888 := rd6888₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd6888
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd6888
   have rd6891 := evm_run rd6888 with [
-    push2 ⟨2911⟩, jumpiNT (by decide)]
+    push2 ⟨2911⟩, jumpiNT (by native_decide)]
   have rd6895 := evm_run rd6891 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) hread64)
-      (by decide) (by evm_ov)]
+      (by native_decide) (by evm_ov)]
   have rd6899 := rd6895.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd6918 := evm_run rd6899 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 6)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
     raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
-      (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨21⟩, push1 ⟨36⟩, dup3, add,
     raw mstore 3
       (solcErrorStringMem2 (⟨21⟩ : UInt256) mem)
-      (UInt256.ofNat 7) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov)]
   have rd6940 := rd6918.pushConst
     (⟨146807710733670254765134916515197633279875231805303⟩ : UInt256)
-    (width := 21) (op := .PUSH21) (by decide) (by decide) (by evm_ov)
+    (width := 21) (op := .PUSH21) (by native_decide) (by native_decide) (by evm_ov)
   exact evm_run rd6940 with [
     push1 ⟨88⟩, shl, push1 ⟨68⟩, dup3, add,
     raw mstore 3
@@ -546,18 +546,18 @@ theorem RD.uniswapSafeMathSubUnderflow_aw6_size164_shared {g : Sat256} {s0 : Sta
         (UInt256.shiftLeft
           (⟨146807710733670254765134916515197633279875231805303⟩ : UInt256)
           ⟨88⟩) mem)
-      (UInt256.ofNat 8) (by decide) mem_cost
-      (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 8) (by native_decide) mem_cost
+      (by rfl) (by native_decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
       mem_cost
       (solcErrorStringMem3_mload64_of_size164 (⟨21⟩ : UInt256)
         (UInt256.shiftLeft
           (⟨146807710733670254765134916515197633279875231805303⟩ : UInt256)
           ⟨88⟩) hmem hread64)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov)]
+    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeMathAddSuccess {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -595,7 +595,7 @@ theorem RD.uniswapSafeMathMulSuccess {g : Sat256} {s0 : State} {ee : ExecutionEn
       simp
     have rd6807pre := evm_run h with [jumpdest, push1 ⟨0⟩, dup2, iszero, dup1,
       push2 ⟨6807⟩]
-    rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6807pre
+    rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide] at rd6807pre
     have rdRet := evm_run rd6807pre with [
       jumpiT one_ne_zero_uint (by jump_dest),
       jumpdest, push2 ⟨2911⟩, jumpiT one_ne_zero_uint (by jump_dest),
@@ -664,7 +664,7 @@ theorem RD.uniswapTransferInternalFromBalanceLoadMem {g : Sat256} {s0 : State}
       (by
         unfold solcSingleMappingLoadToRoutineMemWf
         repeat' first | apply And.intro | native_decide)
-      hmem hcanonSrc (by jump_dest) (by decide) hov
+      hmem hcanonSrc (by jump_dest) (by native_decide) hov
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTransferInternalFromBalanceLoad {g : Sat256} {s0 : State}
@@ -714,7 +714,7 @@ theorem RD.uniswapTransferInternalAfterDebitMem {g : Sat256} {s0 : State}
       (by
         unfold solcCheckedSubSuccessWf
         repeat' first | apply And.intro | native_decide)
-      hmem hcanonSrc hbalance (by jump_dest) (by decide) (by jump_dest) (by jump_dest) hov
+      hmem hcanonSrc hbalance (by jump_dest) (by native_decide) (by jump_dest) (by jump_dest) hov
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTransferInternalAfterDebit {g : Sat256} {s0 : State}
@@ -946,7 +946,7 @@ theorem RD.uniswapTransferInternalToBalanceLoadMem {g : Sat256} {s0 : State}
         unfold solcPreparedSingleMappingLoadToRoutineMemWf
         repeat' first | apply And.intro | native_decide)
       (uniswapTransferToHashMemOf_slot src toWord hmem)
-      hcanonTo (by jump_dest) (by decide) hov
+      hcanonTo (by jump_dest) (by native_decide) hov
 
 set_option maxHeartbeats 2000000 in
 theorem RD.uniswapTransferInternalToBalanceLoad {g : Sat256} {s0 : State}
@@ -996,7 +996,7 @@ theorem RD.uniswapTransferInternalAfterCreditCalcMem {g : Sat256} {s0 : State}
         unfold solcCheckedAddSuccessWf
         repeat' first | apply And.intro | native_decide)
       (uniswapTransferToHashMemOf_slot src toWord hmem)
-      hcanonTo hfit (by jump_dest) (by decide) (by jump_dest) (by jump_dest) hov
+      hcanonTo hfit (by jump_dest) (by native_decide) (by jump_dest) (by jump_dest) hov
 
 set_option maxHeartbeats 2000000 in
 theorem RD.uniswapTransferInternalAfterCreditCalc {g : Sat256} {s0 : State}

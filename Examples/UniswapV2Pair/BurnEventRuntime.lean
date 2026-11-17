@@ -51,7 +51,7 @@ theorem RD.uniswapBurnEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
   have rd4963 := evm_run rd4950 with [push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     dup16, and, swap3, caller, swap3]
   have rd4996 := rd4963.pushConst uniswapBurnTopic (width := 32) (op := .PUSH32)
-    (by native_decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd5005 := evm_run rd4996 with [swap3, swap1, dup2, swap1, sub, swap1, swap2, add, swap1]
   rw [u256_sub_self, show (⟨64⟩ : UInt256) + ⟨0⟩ = ⟨64⟩ by rfl] at rd5005
   have hwLog := UInt256_M_same_of_cover_len aw ptr 64 hcover

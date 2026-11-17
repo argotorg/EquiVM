@@ -213,7 +213,7 @@ theorem RD.uniswapApproveExternalToInternal {g : Sat256} {s0 : State} {ee : Exec
   simpa [uniswapSourceWord] using
     RD.solcCallerTransferThunk
       (pc := ⟨2894⟩) (contPc := ⟨2907⟩) (routinePc := ⟨7412⟩) h
-      (by dsimp [solcCallerTransferThunkWf]; repeat' first | apply And.intro | decide)
+      (by dsimp [solcCallerTransferThunkWf]; repeat' first | apply And.intro | native_decide)
       (by jump_dest) hov
 
 /-- The external `approve(address,uint256)` continuation receives `_approve`'s unit return and

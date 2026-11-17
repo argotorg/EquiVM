@@ -67,23 +67,31 @@ abbrev blindAuctionHighFirstArmPc : UInt256 := ⟨29⟩
 abbrev blindAuctionLowJumpdestPc : UInt256 := ⟨98⟩
 abbrev blindAuctionLowFirstArmPc : UInt256 := ⟨99⟩
 
+@[simp] theorem blindAuctionSplitTarget :
+    armTgt blindAuctionBytecode blindAuctionSplitPc = blindAuctionLowJumpdestPc := by
+  native_decide
+
+theorem blindAuctionLowFirstArm_eq :
+    blindAuctionLowFirstArmPc = armTgt blindAuctionBytecode blindAuctionSplitPc + ⟨1⟩ := by
+  native_decide
+
 theorem blindAuctionSplitWellFormed :
     selectorSplitWellFormed blindAuctionBytecode blindAuctionSplitPc := by
-  exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+  exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 theorem blindAuctionHighArmsWellFormed :
     ∀ j, j ≤ 5 → armWellFormed blindAuctionBytecode
       (nthArmPc blindAuctionBytecode blindAuctionHighFirstArmPc j) := by
   intro j hj
   interval_cases j <;>
-    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+    exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 theorem blindAuctionLowArmsWellFormed :
     ∀ j, j ≤ 4 → armWellFormed blindAuctionBytecode
       (nthArmPc blindAuctionBytecode blindAuctionLowFirstArmPc j) := by
   intro j hj
   interval_cases j <;>
-    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+    exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 theorem blindAuctionSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (c0 c1 c2 c3 : UInt8) (sel : UInt256)
@@ -102,7 +110,7 @@ theorem blindAuctionLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
           (nthArmPc blindAuctionBytecode blindAuctionLowFirstArmPc j))
         (blindAuctionSelWord I) =
       if (blindAuctionLowSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
 theorem blindAuctionHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 6) :
@@ -111,7 +119,7 @@ theorem blindAuctionHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
           (nthArmPc blindAuctionBytecode blindAuctionHighFirstArmPc j))
         (blindAuctionSelWord I) =
       if (blindAuctionHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
 theorem blindAuctionLowMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 5)
     (hsz : 4 ≤ I.calldata.size)
@@ -129,9 +137,9 @@ theorem blindAuctionLowMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 5)
     (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [blindAuctionLowArmEq I hsz j (by omega), hci]
-    interval_cases i <;> interval_cases j <;> decide
+    interval_cases i <;> interval_cases j <;> native_decide
   · rw [blindAuctionLowArmEq I hsz i hi, hci]
-    interval_cases i <;> decide
+    interval_cases i <;> native_decide
 
 theorem blindAuctionHighMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 6)
     (hsz : 4 ≤ I.calldata.size)
@@ -149,9 +157,9 @@ theorem blindAuctionHighMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 6)
     (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [blindAuctionHighArmEq I hsz j (by omega), hci]
-    interval_cases i <;> interval_cases j <;> decide
+    interval_cases i <;> interval_cases j <;> native_decide
   · rw [blindAuctionHighArmEq I hsz i hi, hci]
-    interval_cases i <;> decide
+    interval_cases i <;> native_decide
 
 theorem blindAuctionPivotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 5)
     (hsz : 4 ≤ I.calldata.size)
@@ -161,33 +169,33 @@ theorem blindAuctionPivotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 5)
   interval_cases i
   · have hword : blindAuctionSelWord I =
         armSelNat blindAuctionBytecode blindAuctionLowFirstArmPc :=
-      blindAuctionSelWord_eq_of_beq I hsz 0x01 0x49 0x5c 0x1c _ (by decide)
+      blindAuctionSelWord_eq_of_beq I hsz 0x01 0x49 0x5c 0x1c _ (by native_decide)
         (by simpa [blindAuctionLowSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : blindAuctionSelWord I =
         armSelNat blindAuctionBytecode
           (nthArmPc blindAuctionBytecode blindAuctionLowFirstArmPc 1) :=
-      blindAuctionSelWord_eq_of_beq I hsz 0x12 0xfa 0x6f 0xeb _ (by decide)
+      blindAuctionSelWord_eq_of_beq I hsz 0x12 0xfa 0x6f 0xeb _ (by native_decide)
         (by simpa [blindAuctionLowSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : blindAuctionSelWord I =
         armSelNat blindAuctionBytecode
           (nthArmPc blindAuctionBytecode blindAuctionLowFirstArmPc 2) :=
-      blindAuctionSelWord_eq_of_beq I hsz 0x2a 0x24 0xf4 0x6c _ (by decide)
+      blindAuctionSelWord_eq_of_beq I hsz 0x2a 0x24 0xf4 0x6c _ (by native_decide)
         (by simpa [blindAuctionLowSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : blindAuctionSelWord I =
         armSelNat blindAuctionBytecode
           (nthArmPc blindAuctionBytecode blindAuctionLowFirstArmPc 3) :=
-      blindAuctionSelWord_eq_of_beq I hsz 0x38 0xaf 0x3e 0xed _ (by decide)
+      blindAuctionSelWord_eq_of_beq I hsz 0x38 0xaf 0x3e 0xed _ (by native_decide)
         (by simpa [blindAuctionLowSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : blindAuctionSelWord I =
         armSelNat blindAuctionBytecode
           (nthArmPc blindAuctionBytecode blindAuctionLowFirstArmPc 4) :=
-      blindAuctionSelWord_eq_of_beq I hsz 0x3c 0xcf 0xd6 0x0b _ (by decide)
+      blindAuctionSelWord_eq_of_beq I hsz 0x3c 0xcf 0xd6 0x0b _ (by native_decide)
         (by simpa [blindAuctionLowSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
 
 theorem blindAuctionPivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 6)
     (hsz : 4 ≤ I.calldata.size)
@@ -196,39 +204,39 @@ theorem blindAuctionPivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 6)
       (blindAuctionSelWord I) = ⟨0⟩ := by
   interval_cases i
   · have hword : blindAuctionSelWord I = armSelNat blindAuctionBytecode blindAuctionSplitPc :=
-      blindAuctionSelWord_eq_of_beq I hsz 0x42 0x3b 0x21 0x7f _ (by decide)
+      blindAuctionSelWord_eq_of_beq I hsz 0x42 0x3b 0x21 0x7f _ (by native_decide)
         (by simpa [blindAuctionHighSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : blindAuctionSelWord I =
         armSelNat blindAuctionBytecode
           (nthArmPc blindAuctionBytecode blindAuctionHighFirstArmPc 1) :=
-      blindAuctionSelWord_eq_of_beq I hsz 0x90 0x0f 0x08 0x0a _ (by decide)
+      blindAuctionSelWord_eq_of_beq I hsz 0x90 0x0f 0x08 0x0a _ (by native_decide)
         (by simpa [blindAuctionHighSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : blindAuctionSelWord I =
         armSelNat blindAuctionBytecode
           (nthArmPc blindAuctionBytecode blindAuctionHighFirstArmPc 2) :=
-      blindAuctionSelWord_eq_of_beq I hsz 0x91 0xf9 0x01 0x57 _ (by decide)
+      blindAuctionSelWord_eq_of_beq I hsz 0x91 0xf9 0x01 0x57 _ (by native_decide)
         (by simpa [blindAuctionHighSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : blindAuctionSelWord I =
         armSelNat blindAuctionBytecode
           (nthArmPc blindAuctionBytecode blindAuctionHighFirstArmPc 3) :=
-      blindAuctionSelWord_eq_of_beq I hsz 0x95 0x7b 0xb1 0xe0 _ (by decide)
+      blindAuctionSelWord_eq_of_beq I hsz 0x95 0x7b 0xb1 0xe0 _ (by native_decide)
         (by simpa [blindAuctionHighSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : blindAuctionSelWord I =
         armSelNat blindAuctionBytecode
           (nthArmPc blindAuctionBytecode blindAuctionHighFirstArmPc 4) :=
-      blindAuctionSelWord_eq_of_beq I hsz 0xa6 0xe6 0x64 0x77 _ (by decide)
+      blindAuctionSelWord_eq_of_beq I hsz 0xa6 0xe6 0x64 0x77 _ (by native_decide)
         (by simpa [blindAuctionHighSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : blindAuctionSelWord I =
         armSelNat blindAuctionBytecode
           (nthArmPc blindAuctionBytecode blindAuctionHighFirstArmPc 5) :=
-      blindAuctionSelWord_eq_of_beq I hsz 0xd5 0x7b 0xde 0x79 _ (by decide)
+      blindAuctionSelWord_eq_of_beq I hsz 0xd5 0x7b 0xde 0x79 _ (by native_decide)
         (by simpa [blindAuctionHighSelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
 
 /-! ## Payable dispatcher prefix and routing -/
 
@@ -238,10 +246,10 @@ theorem blindAuctionPayablePrologueRD {σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ 3 18 := by
   exact evm_run (RD.initState hcode) with [
     push1 ⟨128⟩, push1 ⟨64⟩,
-    raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) (by decide)
+    raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
-      (by decide) (by decide) ]
+      (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by native_decide]; rfl)
+      (by native_decide) (by native_decide) ]
 
 theorem blindAuctionReachSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = blindAuctionBytecode)
@@ -253,8 +261,8 @@ theorem blindAuctionReachSplit {σ σ₀ A I} {g : Sat256}
     (opR := .PUSH2) (wR := 2)
     (blindAuctionPayablePrologueRD (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode)
-    hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide)
+    hsz hsize (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by simp)
   refine ⟨k3, C3, ?_⟩
   simpa [blindAuctionSelWord] using h3
@@ -319,16 +327,15 @@ theorem blindAuctionReachLowBody {σ σ₀ A I} {g : Sat256}
       blindAuctionLowJumpdestPc [blindAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     refine ⟨kS + 5, CS + 22, ?_⟩
-    simpa [blindAuctionLowJumpdestPc, blindAuctionSplitPc, armTgt, pushAt,
-      selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
+    simpa only [blindAuctionSplitTarget] using
       RD.selectorSplitTakenAuto hsplit blindAuctionSplitWellFormed hpivot (by jump_dest) (by simp)
   obtain ⟨kJd, CJd, hlowJd⟩ := hlowJdEx
   have hfirstEx : ∃ k C, RD blindAuctionBytecode I g (initState σ σ₀ g A I)
       blindAuctionLowFirstArmPc [blindAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     refine ⟨kJd + 1, CJd + 1, ?_⟩
-    simpa [blindAuctionLowFirstArmPc, blindAuctionLowJumpdestPc] using
-      hlowJd.jumpdest (by decide) (by simp)
+    simpa only [← blindAuctionLowFirstArm_eq] using
+      hlowJd.jumpdest (by native_decide) (by simp)
   obtain ⟨_, _, hfirst⟩ := hfirstEx
   exact RD.dispatchTo bodyPC i hfirst
     (fun j hj => blindAuctionLowArmsWellFormed j (le_trans hj hi))
@@ -397,8 +404,8 @@ theorem blindAuctionX_short {σ σ₀ A I} {g : Sat256}
     (opR := .PUSH2) (wR := 2)
     (blindAuctionPayablePrologueRD (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode)
-    hsz (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by jump_dest) (by decide) (by decide) (by decide)
+    hsz (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by jump_dest) (by native_decide) (by native_decide) (by native_decide)
 
 theorem blindAuctionX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = blindAuctionBytecode)
@@ -487,11 +494,15 @@ theorem blindAuctionX_noMatch {σ σ₀ A I} {g : Sat256}
       simpa [blindAuctionHighFirstArmPc, blindAuctionSplitPc, nthArmPc, selArmNextPc,
         armTgtWidth, selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using h95
     obtain ⟨_, _, h95rd⟩ := h95'
-    exact h95rd.revertStub (by decide) (by decide) (by decide) (by simp)
+    exact h95rd.revertStub (by native_decide) (by native_decide) (by native_decide) (by simp)
   · have h98 := RD.selectorSplitTakenAuto hsplit blindAuctionSplitWellFormed hpivot
       (by jump_dest) (by simp)
-    have h99 := h98.jumpdest (by decide) (by simp)
-    have h154 := h99
+    have h99 := h98.jumpdest (by native_decide) (by simp)
+    have h99' : RD blindAuctionBytecode I g (initState σ σ₀ g A I)
+        blindAuctionLowFirstArmPc [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3)
+        ByteArray.empty σ (kS + 5 + 1) (CS + 22 + 1) := by
+      simpa only [← blindAuctionLowFirstArm_eq] using h99
+    have h154 := h99'
       |>.selectorArmNotTakenAuto (blindAuctionLowArmsWellFormed 0 (by omega))
           (heqLow0 0 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (blindAuctionLowArmsWellFormed 1 (by omega))
@@ -506,12 +517,10 @@ theorem blindAuctionX_noMatch {σ σ₀ A I} {g : Sat256}
         [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 1 + 5 + 5 + 5 + 5 + 5,
         CS + 22 + 1 + 22 + 22 + 22 + 22 + 22, ?_⟩
-      simpa [blindAuctionLowFirstArmPc, blindAuctionLowJumpdestPc, blindAuctionSplitPc,
-        nthArmPc, selArmNextPc, armTgtWidth, armTgt, pushAt, selArmJumpiPc, selArmPushTgtPc,
-        selArmEqPc, selArmPush4Pc] using h154
+      convert h154 using 1 <;> native_decide
     obtain ⟨_, _, h154rd⟩ := h154'
-    have h155 := h154rd.jumpdest (by decide) (by simp)
-    exact h155.revertStub (by decide) (by decide) (by decide) (by simp)
+    have h155 := h154rd.jumpdest (by native_decide) (by simp)
+    exact h155.revertStub (by native_decide) (by native_decide) (by native_decide) (by simp)
 
 /-! ## Shared one-word getter tails -/
 
@@ -531,19 +540,19 @@ theorem blindAuctionRoutineEncodeAddress308 {g : Sat256} {s0 : State} {ee : Exec
       (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5) rdata acc k' C' := by
   let rd := evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
       solcFreePtrMem_mload64
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     swap1, swap2, and, dup2,
     raw mstore 6 (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5)
-      (by decide) mem_cost
+      (by native_decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-          solcAddrMask from by decide]
+          solcAddrMask from by native_decide]
         rfl)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨206⟩, jump (by jump_dest)]
   exact ⟨_, _, by simpa using rd⟩
 
@@ -557,15 +566,15 @@ theorem blindAuctionRoutineEncodeWord373 {g : Sat256} {s0 : State} {ee : Executi
       (solcReturnMem val) (UInt256.ofNat 5) rdata acc k' C' := by
   let rd := evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
       solcFreePtrMem_mload64
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     swap1, dup2,
-    raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide)
+    raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by native_decide)
       mem_cost
-      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
-      (by decide) (by evm_ov),
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by native_decide]; rfl)
+      (by native_decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨206⟩, jump (by jump_dest)]
   exact ⟨_, _, by simpa using rd⟩
 
@@ -578,15 +587,15 @@ theorem blindAuctionReturnOneWord206 {g : Sat256} {s0 : State} {ee : ExecutionEn
     RDret blindAuctionBytecode g s0 acc (UInt256.toByteArray val) := by
   exact evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (solcReturnMem_mload64 val)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray val) (by decide)
+    raw ret 0 (UInt256.toByteArray val) (by native_decide)
       mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
           blindAuctionSubRet32_toNat]
         simpa using solcReturnMem_read128 val)
       (by evm_ov)]

@@ -72,8 +72,8 @@ theorem daiX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev daiBytecode g (initState σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (σ := σ)
-    (σ₀ := σ₀) (A := A) (g := g) hcode (by decide) (by decide) (by decide)
-    (by decide) (by decide) (by decide)
+    (σ₀ := σ₀) (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide)
   have h12 := h0
     |>.pushConst (⟨16⟩ : UInt256) (width := 2) (op := .PUSH2) (by native_decide)
         (by native_decide) (by simp only [List.length]; omega)
@@ -87,12 +87,13 @@ theorem daiX_short {σ σ₀ A I} {g : Sat256}
     (hsz : I.calldata.size < 4) :
     RDrev daiBytecode g (initState σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (σ := σ)
-    (σ₀ := σ₀) (A := A) (g := g) hcode (by decide) (by decide) (by decide)
-    (by decide) (by decide) (by decide)
+    (σ₀ := σ₀) (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt daiBytecode) (opC := solcGuardTgtOp daiBytecode)
     (wC := solcGuardTgtWidth daiBytecode) h0 hwv
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by jump_dest)
   have h322 := h1
     |>.push1 ⟨4⟩ (by native_decide) (by simp only [List.length]; omega)
     |>.calldatasize (by native_decide) (by simp only [List.length]; omega)

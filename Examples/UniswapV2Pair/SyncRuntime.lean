@@ -248,13 +248,13 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallMade
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -294,13 +294,13 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallFailureGuard
     {k C : ℕ} {R : List UInt256}
     (hΘ :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -319,13 +319,13 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallFailureGuard
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -412,13 +412,13 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallSuccessGuard
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -480,13 +480,13 @@ theorem uniswapSyncRuntimeFirstBalanceOfReturnWordDecoded
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -549,13 +549,13 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Sloaded
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -613,13 +613,13 @@ theorem uniswapSyncRuntimeSecondBalanceOfSelectorReady
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -684,13 +684,13 @@ theorem uniswapSyncRuntimeSecondBalanceOfCalldataRebuilt
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -754,13 +754,13 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Cleaned
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -829,13 +829,13 @@ theorem uniswapSyncRuntimeSecondBalanceOfExtcodesize
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -897,13 +897,13 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallEntry
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -965,13 +965,13 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallMade
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -993,12 +993,12 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallMade
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
           (∃ (g'' : UInt256) (A' : Substate),
-            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ
+            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ I.fork
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
                 (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
-              (toExecute σ'
+              (toExecute I.fork σ'
                 (AccountAddress.ofUInt256
                   (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
@@ -1122,13 +1122,13 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallSuccessGuard
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -1150,12 +1150,12 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallSuccessGuard
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
           (∃ (g'' : UInt256) (A' : Substate),
-            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ
+            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ I.fork
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
                 (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
-              (toExecute σ'
+              (toExecute I.fork σ'
                 (AccountAddress.ofUInt256
                   (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
@@ -1220,13 +1220,13 @@ theorem uniswapSyncRuntimeSecondBalanceOfReturnWordDecoded
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -1248,12 +1248,12 @@ theorem uniswapSyncRuntimeSecondBalanceOfReturnWordDecoded
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
           (∃ (g'' : UInt256) (A' : Substate),
-            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ
+            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ I.fork
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
                 (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
-              (toExecute σ'
+              (toExecute I.fork σ'
                 (AccountAddress.ofUInt256
                   (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
@@ -1343,13 +1343,13 @@ theorem uniswapSyncRuntimeReserveSlotUnpacked
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -1371,12 +1371,12 @@ theorem uniswapSyncRuntimeReserveSlotUnpacked
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
           (∃ (g'' : UInt256) (A' : Substate),
-            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ
+            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ I.fork
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
                 (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
-              (toExecute σ'
+              (toExecute I.fork σ'
                 (AccountAddress.ofUInt256
                   (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
@@ -1438,13 +1438,13 @@ theorem uniswapSyncRuntimeUpdateOverflowGuardOk
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -1466,12 +1466,12 @@ theorem uniswapSyncRuntimeUpdateOverflowGuardOk
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
           (∃ (g'' : UInt256) (A' : Substate),
-            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ
+            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ I.fork
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
                 (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
-              (toExecute σ'
+              (toExecute I.fork σ'
                 (AccountAddress.ofUInt256
                   (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
@@ -1537,13 +1537,13 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroSkipsCumulatives
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -1565,12 +1565,12 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroSkipsCumulatives
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
           (∃ (g'' : UInt256) (A' : Substate),
-            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ
+            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ I.fork
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
                 (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
-              (toExecute σ'
+              (toExecute I.fork σ'
                 (AccountAddress.ofUInt256
                   (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
@@ -1647,13 +1647,13 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroStoresPackedReserves
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -1675,12 +1675,12 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroStoresPackedReserves
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
           (∃ (g'' : UInt256) (A' : Substate),
-            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ
+            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ I.fork
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
                 (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
-              (toExecute σ'
+              (toExecute I.fork σ'
                 (AccountAddress.ofUInt256
                   (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
@@ -1808,13 +1808,13 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroReturns
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256
             (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256
               (UInt256.land solcAddrMask
                 (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
@@ -1836,12 +1836,12 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroReturns
           (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256)
           (k' C' : ℕ),
           (∃ (g'' : UInt256) (A' : Substate),
-            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ
+            (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ I.fork
               σ' σ₀ A_in1
               (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
               (AccountAddress.ofUInt256
                 (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)))
-              (toExecute σ'
+              (toExecute I.fork σ'
                 (AccountAddress.ofUInt256
                   (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I))))
               callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩

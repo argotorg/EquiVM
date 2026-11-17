@@ -116,7 +116,7 @@ theorem daiJoinReachDenyBody {σ σ₀ A I} {g : Sat256}
     daiJoinSelWord_eq_of_beq I hsz 0x9c 0x52 0xa7 0xf1 ⟨0x9c52a7f1⟩
       (by native_decide) (by simpa [daiJoinSelBytes] using hsel)
   have hroot :
-      UInt256.lt (daiJoinSelWord I) ⟨0x957aa58c⟩ = ⟨0⟩ := by
+      UInt256.gt (armSelNat daiJoinBytecode daiJoinRootSplitPc) (daiJoinSelWord I) = ⟨0⟩ := by
     rw [hword]
     native_decide
   have heq0 : ∀ j, j < 1 →

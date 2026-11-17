@@ -645,8 +645,7 @@ theorem uniswapReachLowSplit {σ σ₀ A I} {g : Sat256}
   have h250 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapLowSplitPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [uniswapLowSplitPc, uniswapRootSplitPc, armTgt, pushAt] using
-      h249.jumpdest (by decide) (by simp)
+    convert h249.jumpdest (by native_decide) (by simp) using 1 <;> native_decide
   exact ⟨_, _, h250⟩
 
 /-- Reach the high-half split from the root split. -/
@@ -692,8 +691,7 @@ theorem uniswapReachLowestFirstArm {σ σ₀ A I} {g : Sat256}
   have h359 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapLowestFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k250 + 5 + 1) (C250 + 22 + 1) := by
-    simpa [uniswapLowestFirstArmPc, uniswapLowestJumpdestPc, uniswapLowSplitPc, armTgt, pushAt]
-      using h358.jumpdest (by decide) (by simp)
+    convert h358.jumpdest (by native_decide) (by simp) using 1 <;> native_decide
   exact ⟨_, _, h359⟩
 
 /-- Reach the first arm in Uniswap's middle-low selector group. -/
@@ -726,8 +724,7 @@ theorem uniswapReachMidLowFirstArm {σ σ₀ A I} {g : Sat256}
   have h321 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapMidLowFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k250 + 5 + 5 + 1) (C250 + 22 + 22 + 1) := by
-    simpa [uniswapMidLowFirstArmPc, uniswapMidLowJumpdestPc, uniswapMidLowSplitPc, armTgt, pushAt]
-      using h320.jumpdest (by decide) (by simp)
+    convert h320.jumpdest (by native_decide) (by simp) using 1 <;> native_decide
   exact ⟨_, _, h321⟩
 
 /-- Reach the first arm in Uniswap's low-upper selector group. -/
@@ -827,8 +824,7 @@ theorem uniswapReachHighMiddleFirstArm {σ σ₀ A I} {g : Sat256}
   have h114 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapHighMiddleFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5 + 5 + 1) (C43 + 22 + 22 + 1) := by
-    simpa [uniswapHighMiddleFirstArmPc, uniswapHighMiddleJumpdestPc, uniswapHighMidSplitPc,
-      armTgt, pushAt] using h113.jumpdest (by decide) (by simp)
+    convert h113.jumpdest (by native_decide) (by simp) using 1 <;> native_decide
   exact ⟨_, _, h114⟩
 
 /-- Reach the high-lower split in Uniswap's high selector branch. -/
@@ -854,8 +850,7 @@ theorem uniswapReachHighLowerSplit {σ σ₀ A I} {g : Sat256}
   have h152 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapHighLowerSplitPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5 + 1) (C43 + 22 + 1) := by
-    simpa [uniswapHighLowerSplitPc, uniswapHighLowerJumpdestPc, uniswapHighSplitPc, armTgt,
-      pushAt] using h151.jumpdest (by decide) (by simp)
+    convert h151.jumpdest (by native_decide) (by simp) using 1 <;> native_decide
   exact ⟨_, _, h152⟩
 
 /-- Reach the first arm in Uniswap's high-lower selector group. -/
@@ -911,8 +906,7 @@ theorem uniswapReachHighLowestFirstArm {σ σ₀ A I} {g : Sat256}
   have h212 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapHighLowestFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k152 + 5 + 1) (C152 + 22 + 1) := by
-    simpa [uniswapHighLowestFirstArmPc, uniswapHighLowestJumpdestPc, uniswapHighLowerSplitPc,
-      armTgt, pushAt] using h211.jumpdest (by decide) (by simp)
+    convert h211.jumpdest (by native_decide) (by simp) using 1 <;> native_decide
   exact ⟨_, _, h212⟩
 
 theorem uniswapJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256}
@@ -1446,20 +1440,20 @@ theorem uniswapReachPermitTypehashBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨933⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x30adf81f⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x30 0xad 0xf8 0x1f ⟨0x30adf81f⟩ (by decide) hsel
-  exact uniswapReachMidLowBody 1 (by decide) ⟨933⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x30 0xad 0xf8 0x1f ⟨0x30adf81f⟩ (by native_decide) hsel
+  exact uniswapReachMidLowBody 1 (by native_decide) ⟨933⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals decide)
+      all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `decimals()` body entry through the optimized dispatcher. -/
 theorem uniswapReachDecimalsBody {σ σ₀ A I} {g : Sat256}
@@ -1469,20 +1463,20 @@ theorem uniswapReachDecimalsBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨941⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x313ce567⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x31 0x3c 0xe5 0x67 ⟨0x313ce567⟩ (by decide) hsel
-  exact uniswapReachMidLowBody 2 (by decide) ⟨941⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x31 0x3c 0xe5 0x67 ⟨0x313ce567⟩ (by native_decide) hsel
+  exact uniswapReachMidLowBody 2 (by native_decide) ⟨941⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
       all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `transferFrom(address,address,uint256)` body entry through the optimized dispatcher. -/
 theorem uniswapReachTransferFromBody {σ σ₀ A I} {g : Sat256}
@@ -1492,17 +1486,17 @@ theorem uniswapReachTransferFromBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨879⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x23b872dd⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x23 0xb8 0x72 0xdd ⟨0x23b872dd⟩ (by decide) hsel
-  exact uniswapReachMidLowBody 0 (by decide) ⟨879⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x23 0xb8 0x72 0xdd ⟨0x23b872dd⟩ (by native_decide) hsel
+  exact uniswapReachMidLowBody 0 (by native_decide) ⟨879⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => False.elim ((Nat.not_lt_zero j) hj))
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `DOMAIN_SEPARATOR()` body entry through the optimized dispatcher. -/
 theorem uniswapReachDomainSeparatorBody {σ σ₀ A I} {g : Sat256}
@@ -1512,17 +1506,17 @@ theorem uniswapReachDomainSeparatorBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨971⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x3644e515⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x36 0x44 0xe5 0x15 ⟨0x3644e515⟩ (by decide) hsel
-  exact uniswapReachLowUpperBody 0 (by decide) ⟨971⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x36 0x44 0xe5 0x15 ⟨0x3644e515⟩ (by native_decide) hsel
+  exact uniswapReachLowUpperBody 0 (by native_decide) ⟨971⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => False.elim ((Nat.not_lt_zero j) hj))
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `initialize(address,address)` body entry through the optimized dispatcher. -/
 theorem uniswapReachInitializeBody {σ σ₀ A I} {g : Sat256}
@@ -1532,20 +1526,20 @@ theorem uniswapReachInitializeBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨979⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x485cc955⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x48 0x5c 0xc9 0x55 ⟨0x485cc955⟩ (by decide) hsel
-  exact uniswapReachLowUpperBody 1 (by decide) ⟨979⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x48 0x5c 0xc9 0x55 ⟨0x485cc955⟩ (by native_decide) hsel
+  exact uniswapReachLowUpperBody 1 (by native_decide) ⟨979⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals decide)
+      all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `price0CumulativeLast()` body entry through the optimized dispatcher. -/
 theorem uniswapReachPrice0CumulativeLastBody {σ σ₀ A I} {g : Sat256}
@@ -1555,20 +1549,20 @@ theorem uniswapReachPrice0CumulativeLastBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1025⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x5909c0d5⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x59 0x09 0xc0 0xd5 ⟨0x5909c0d5⟩ (by decide) hsel
-  exact uniswapReachLowUpperBody 2 (by decide) ⟨1025⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x59 0x09 0xc0 0xd5 ⟨0x5909c0d5⟩ (by native_decide) hsel
+  exact uniswapReachLowUpperBody 2 (by native_decide) ⟨1025⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
       all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `price1CumulativeLast()` body entry through the optimized dispatcher. -/
 theorem uniswapReachPrice1CumulativeLastBody {σ σ₀ A I} {g : Sat256}
@@ -1578,20 +1572,20 @@ theorem uniswapReachPrice1CumulativeLastBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1033⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x5a3d5493⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x5a 0x3d 0x54 0x93 ⟨0x5a3d5493⟩ (by decide) hsel
-  exact uniswapReachLowUpperBody 3 (by decide) ⟨1033⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x5a 0x3d 0x54 0x93 ⟨0x5a3d5493⟩ (by native_decide) hsel
+  exact uniswapReachLowUpperBody 3 (by native_decide) ⟨1033⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
       all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `balanceOf(address)` body entry through the optimized dispatcher. -/
 theorem uniswapReachBalanceOfBody {σ σ₀ A I} {g : Sat256}
@@ -1601,20 +1595,20 @@ theorem uniswapReachBalanceOfBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1079⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x70a08231⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x70 0xa0 0x82 0x31 ⟨0x70a08231⟩ (by decide) hsel
-  exact uniswapReachHighLowestBody 1 (by decide) ⟨1079⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x70 0xa0 0x82 0x31 ⟨0x70a08231⟩ (by native_decide) hsel
+  exact uniswapReachHighLowestBody 1 (by native_decide) ⟨1079⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals decide)
+      all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `kLast()` body entry through the optimized dispatcher. -/
 theorem uniswapReachKLastBody {σ σ₀ A I} {g : Sat256}
@@ -1624,20 +1618,20 @@ theorem uniswapReachKLastBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1117⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x7464fc3d⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x74 0x64 0xfc 0x3d ⟨0x7464fc3d⟩ (by decide) hsel
-  exact uniswapReachHighLowestBody 2 (by decide) ⟨1117⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x74 0x64 0xfc 0x3d ⟨0x7464fc3d⟩ (by native_decide) hsel
+  exact uniswapReachHighLowestBody 2 (by native_decide) ⟨1117⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
       all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `nonces(address)` body entry through the optimized dispatcher. -/
 theorem uniswapReachNoncesBody {σ σ₀ A I} {g : Sat256}
@@ -1647,17 +1641,17 @@ theorem uniswapReachNoncesBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1125⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x7ecebe00⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x7e 0xce 0xbe 0x00 ⟨0x7ecebe00⟩ (by decide) hsel
-  exact uniswapReachHighLowerBody 0 (by decide) ⟨1125⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x7e 0xce 0xbe 0x00 ⟨0x7ecebe00⟩ (by native_decide) hsel
+  exact uniswapReachHighLowerBody 0 (by native_decide) ⟨1125⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => False.elim ((Nat.not_lt_zero j) hj))
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `MINIMUM_LIQUIDITY()` body entry through the optimized dispatcher. -/
 theorem uniswapReachMinimumLiquidityBody {σ σ₀ A I} {g : Sat256}
@@ -1667,17 +1661,17 @@ theorem uniswapReachMinimumLiquidityBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1278⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xba9a7a56⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0xba 0x9a 0x7a 0x56 ⟨0xba9a7a56⟩ (by decide) hsel
-  exact uniswapReachHighMiddleBody 0 (by decide) ⟨1278⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0xba 0x9a 0x7a 0x56 ⟨0xba9a7a56⟩ (by native_decide) hsel
+  exact uniswapReachHighMiddleBody 0 (by native_decide) ⟨1278⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => False.elim ((Nat.not_lt_zero j) hj))
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `factory()` body entry through the optimized dispatcher. -/
 theorem uniswapReachFactoryBody {σ σ₀ A I} {g : Sat256}
@@ -1687,20 +1681,20 @@ theorem uniswapReachFactoryBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1324⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xc45a0155⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0xc4 0x5a 0x01 0x55 ⟨0xc45a0155⟩ (by decide) hsel
-  exact uniswapReachHighMiddleBody 2 (by decide) ⟨1324⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0xc4 0x5a 0x01 0x55 ⟨0xc45a0155⟩ (by native_decide) hsel
+  exact uniswapReachHighMiddleBody 2 (by native_decide) ⟨1324⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
       all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `token1()` body entry through the optimized dispatcher. -/
 theorem uniswapReachToken1Body {σ σ₀ A I} {g : Sat256}
@@ -1710,17 +1704,17 @@ theorem uniswapReachToken1Body {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1332⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xd21220a7⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0xd2 0x12 0x20 0xa7 ⟨0xd21220a7⟩ (by decide) hsel
-  exact uniswapReachHighUpperBody 0 (by decide) ⟨1332⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0xd2 0x12 0x20 0xa7 ⟨0xd21220a7⟩ (by native_decide) hsel
+  exact uniswapReachHighUpperBody 0 (by native_decide) ⟨1332⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => False.elim ((Nat.not_lt_zero j) hj))
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `allowance(address,address)` body entry through the optimized dispatcher. -/
 theorem uniswapReachAllowanceBody {σ σ₀ A I} {g : Sat256}
@@ -1730,20 +1724,20 @@ theorem uniswapReachAllowanceBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1421⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xdd62ed3e⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0xdd 0x62 0xed 0x3e ⟨0xdd62ed3e⟩ (by decide) hsel
-  exact uniswapReachHighUpperBody 2 (by decide) ⟨1421⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0xdd 0x62 0xed 0x3e ⟨0xdd62ed3e⟩ (by native_decide) hsel
+  exact uniswapReachHighUpperBody 2 (by native_decide) ⟨1421⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
       all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `sync()` body entry through the optimized dispatcher. -/
 theorem uniswapReachSyncBody {σ σ₀ A I} {g : Sat256}
@@ -1753,20 +1747,20 @@ theorem uniswapReachSyncBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1467⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xfff6cae9⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0xff 0xf6 0xca 0xe9 ⟨0xfff6cae9⟩ (by decide) hsel
-  exact uniswapReachHighUpperBody 3 (by decide) ⟨1467⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0xff 0xf6 0xca 0xe9 ⟨0xfff6cae9⟩ (by native_decide) hsel
+  exact uniswapReachHighUpperBody 3 (by native_decide) ⟨1467⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
       all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `skim(address)` body entry through the optimized dispatcher. -/
 theorem uniswapReachSkimBody {σ σ₀ A I} {g : Sat256}
@@ -1776,20 +1770,20 @@ theorem uniswapReachSkimBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1286⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xbc25cf77⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0xbc 0x25 0xcf 0x77 ⟨0xbc25cf77⟩ (by decide) hsel
-  exact uniswapReachHighMiddleBody 1 (by decide) ⟨1286⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0xbc 0x25 0xcf 0x77 ⟨0xbc25cf77⟩ (by native_decide) hsel
+  exact uniswapReachHighMiddleBody 1 (by native_decide) ⟨1286⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals decide)
+      all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `getReserves()` body entry through the optimized dispatcher. -/
 theorem uniswapReachGetReservesBody {σ σ₀ A I} {g : Sat256}
@@ -1799,18 +1793,18 @@ theorem uniswapReachGetReservesBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨697⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x0902f1ac⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x09 0x02 0xf1 0xac ⟨0x0902f1ac⟩ (by decide) hsel
-  exact uniswapReachLowestBody 2 (by decide) ⟨697⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x09 0x02 0xf1 0xac ⟨0x0902f1ac⟩ (by native_decide) hsel
+  exact uniswapReachLowestBody 2 (by native_decide) ⟨697⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
-      interval_cases j <;> decide)
+      interval_cases j <;> native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `token0()` body entry through the optimized dispatcher. -/
 theorem uniswapReachToken0Body {σ σ₀ A I} {g : Sat256}
@@ -1820,18 +1814,18 @@ theorem uniswapReachToken0Body {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨817⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x0dfe1681⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x0d 0xfe 0x16 0x81 ⟨0x0dfe1681⟩ (by decide) hsel
-  exact uniswapReachLowestBody 4 (by decide) ⟨817⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x0d 0xfe 0x16 0x81 ⟨0x0dfe1681⟩ (by native_decide) hsel
+  exact uniswapReachLowestBody 4 (by native_decide) ⟨817⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
-      interval_cases j <;> decide)
+      interval_cases j <;> native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `approve(address,uint256)` body entry through the optimized dispatcher. -/
 theorem uniswapReachApproveBody {σ σ₀ A I} {g : Sat256}
@@ -1841,19 +1835,19 @@ theorem uniswapReachApproveBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨753⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x095ea7b3⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x09 0x5e 0xa7 0xb3 ⟨0x095ea7b3⟩ (by decide) hsel
-  exact uniswapReachLowestBody 3 (by decide) ⟨753⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x09 0x5e 0xa7 0xb3 ⟨0x095ea7b3⟩ (by native_decide) hsel
+  exact uniswapReachLowestBody 3 (by native_decide) ⟨753⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
       all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `totalSupply()` body entry through the optimized dispatcher. -/
 theorem uniswapReachTotalSupplyBody {σ σ₀ A I} {g : Sat256}
@@ -1863,24 +1857,24 @@ theorem uniswapReachTotalSupplyBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨853⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x18160ddd⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x18 0x16 0x0d 0xdd ⟨0x18160ddd⟩ (by decide) hsel
+    uniswapSelWord_eq_of_beq I hsz 0x18 0x16 0x0d 0xdd ⟨0x18160ddd⟩ (by native_decide) hsel
   have hroot :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapRootSplitPc) (uniswapSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    decide
+    native_decide
   have hlow :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapLowSplitPc) (uniswapSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    decide
-  exact uniswapReachLowestBody 5 (by decide) ⟨853⟩ hcode hwv hsz hsize hroot hlow
+    native_decide
+  exact uniswapReachLowestBody 5 (by native_decide) ⟨853⟩ hcode hwv hsz hsize hroot hlow
     (fun j hj => by
       rw [hword]
-      interval_cases j <;> decide)
+      interval_cases j <;> native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `transfer(address,uint256)` body entry through the optimized dispatcher. -/
 theorem uniswapReachTransferBody {σ σ₀ A I} {g : Sat256}
@@ -1890,19 +1884,19 @@ theorem uniswapReachTransferBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1234⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xa9059cbb⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0xa9 0x05 0x9c 0xbb ⟨0xa9059cbb⟩ (by decide) hsel
-  exact uniswapReachHighLowerBody 3 (by decide) ⟨1234⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0xa9 0x05 0x9c 0xbb ⟨0xa9059cbb⟩ (by native_decide) hsel
+  exact uniswapReachHighLowerBody 3 (by native_decide) ⟨1234⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
       all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 end UniswapV2Pair

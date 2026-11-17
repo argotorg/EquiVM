@@ -205,11 +205,11 @@ theorem uniswapMintFeeToTypedCall_source_of_mem
     (hmem : 160 ≤ mem.size)
     (hΘ :
       ∃ (g'' : UInt256) (A'_evm : Substate),
-        (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ
+        (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ I.fork
           σ1 σ₀ A_in2
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I))
-          (toExecute σ1 (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
+          (toExecute I.fork σ1 (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
           callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((feeToSelectorMem
             mem)
@@ -260,10 +260,10 @@ theorem uniswapMintFeeToTypedCall_source_of_mem
     simp [uniswapExternalABI]
   have hΘE :
       (σ2, g'', A'_evm, z2, out2) =
-        Ethereum.EVM.Θ evm1S.accountMap evm1S.σ₀ A_in2
+        Ethereum.EVM.Θ evm1S.executionEnv.fork evm1S.accountMap evm1S.σ₀ A_in2
           (AccountAddress.ofUInt256 (UInt256.ofNat evm1S.executionEnv.codeOwner))
           evm1S.executionEnv.sender (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I))
-          (toExecute evm1S.accountMap (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
+          (toExecute evm1S.executionEnv.fork evm1S.accountMap (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
           callGas2 (UInt256.ofNat evm1S.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((feeToSelectorMem
             mem)
@@ -302,11 +302,11 @@ theorem uniswapMintFeeToTypedCall_source
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size)
     (hΘ :
       ∃ (g'' : UInt256) (A'_evm : Substate),
-        (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ
+        (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ I.fork
           σ1 σ₀ A_in2
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I))
-          (toExecute σ1 (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
+          (toExecute I.fork σ1 (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
           callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((feeToSelectorMem
             (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) oPrev o))

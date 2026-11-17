@@ -22,16 +22,16 @@ theorem ecrecover_output_shape (σ : AccountMap) (g : UInt256) (A : Substate) (I
       · exact Or.inl rfl
 
 theorem theta_ecrecover_output_shape
-    {blobVersionedHashes blocks σ σ₀ A_in r s g p v v' d e H w σ' g' A' z o}
-    (hΘ : (σ', g', A', z, o) = Θ σ σ₀ A_in r s
+    {fork : Fork} {blobVersionedHashes blocks σ σ₀ A_in r s g p v v' d e H w σ' g' A' z o}
+    (hΘ : (σ', g', A', z, o) = Θ fork σ σ₀ A_in r s
       (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-      (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+      (toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
       g p v v' d e H blobVersionedHashes blocks w) : EcrecoverOutput o := by
   have hout := congrArg (fun x => x.2.2.2.2) hΘ
   dsimp only at hout
   rw [hout]
   unfold Θ
-  rw [toExecute_ecrecover_precompile σ,
+  rw [toExecute_ecrecover_precompile fork σ,
     show AccountAddress.ofUInt256 (⟨1⟩ : UInt256) = 1 by decide]
   dsimp
   exact ecrecover_output_shape _ _ _ _

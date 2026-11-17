@@ -131,6 +131,9 @@ for a complete Vyper proof and `Examples/VyperImmutable` for the immutable suffi
 
 ## Conventions the generators follow
 
+- A block summary lifts its opcodes' side conditions to hypotheses of the block theorem: `hvalid`
+  for jump destinations, `hperm` for state changes, and `hfork : ee.fork ≥ .osaka` for `CLZ`
+  (EIP-7939; before Osaka `0x1e` is an invalid instruction).
 - Transition order is the `SpecSyntax.lean` function order; the translator writes them in selector
   order, which is the compiled dispatcher order. `vy2stele.py` keeps the selector variants of one
   source function (default arguments) adjacent, the grouping `scaffold.py` applies when it

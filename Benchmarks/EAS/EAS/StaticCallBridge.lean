@@ -30,7 +30,7 @@ theorem staticcallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 
       omega
     obtain ⟨σ',success,out,AIn,callGas,k',C',⟨gasLeft,A',hΘ⟩,rd',_⟩ := RD.solcStaticcall rd hdec hdlt hstack
     rw [hcd] at hΘ
-    have hout : out.size < 2^138 := Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ hsmall
+    have hout : out.size < 2^138 := Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  _ hΘ hsmall
     refine ⟨{evm with accountMap := σ', substate := A'},σ',success,out,k',C',?_,⟨hs.world,hs.env,rfl⟩,rd',hout⟩
     apply callViaEVM.callMade (valueWord := ⟨0⟩) (g' := gasLeft) (A' := A') wordOfInt_zero.symm ?_ rfl (Fin.zero_le _) ?_
     · refine ⟨callGas,AIn,?_⟩

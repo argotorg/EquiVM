@@ -34,7 +34,7 @@ theorem typedStaticCallBridge {cfg : Config} {code : ByteArray} {I : ExecutionEn
     obtain ⟨σ', z, out, Ain, callGas, k', C', ⟨gasLeft, A', hΘ⟩, hr, _⟩ :=
       RD.solcStaticcall h hdec hdepth hstack
     have ho : out.size < 2^138 :=
-      Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ hsmall
+      Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  _ hΘ hsmall
     have hc := callCoincides (cfg := cfg) (evm := evm) (tgt := AccountAddress.ofUInt256 target)
       (callPerm := false) (g'' := gasLeft) (A' := A') (A_in := Ain) (callGas := callGas)
       (σ' := σ') (z := z) (o := out) (by rw [hI]; exact hd) rfl hcd

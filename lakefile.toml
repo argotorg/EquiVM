@@ -47,4 +47,4 @@ root = "Tests.DiffTest.Main"
 [[require]]
 name = "evmlean"
 git = "https://github.com/lefterislazar/EVMLean.git"
-rev = "main"
+rev = "no-py-base"

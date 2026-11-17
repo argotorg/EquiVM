@@ -62,10 +62,10 @@ theorem uniswapBalanceTypedCallFromState_source
       some (calldataMem.readWithPadding inOff.toNat 36))
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
       (σ2, g'', A'_evm, z2, out2) =
-        Ethereum.EVM.Θ σ1 σ₀ A_in2
+        Ethereum.EVM.Θ I.fork σ1 σ₀ A_in2
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 targetWord)
-          (toExecute σ1 (AccountAddress.ofUInt256 targetWord))
+          (toExecute I.fork σ1 (AccountAddress.ofUInt256 targetWord))
           callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (calldataMem.readWithPadding inOff.toNat 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
@@ -83,9 +83,9 @@ theorem uniswapBalanceTypedCallFromState_source
     rw [hEq] at hlt
     exact absurd hlt (by decide)
   have hΘE : (σ2, g'', A'_evm, z2, out2) =
-      Ethereum.EVM.Θ evmE.accountMap evmE.σ₀ A_in2
+      Ethereum.EVM.Θ evmE.executionEnv.fork evmE.accountMap evmE.σ₀ A_in2
         (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner.val))
-        evmE.executionEnv.sender target (toExecute evmE.accountMap target)
+        evmE.executionEnv.sender target (toExecute evmE.executionEnv.fork evmE.accountMap target)
         callGas2 (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
         (calldataMem.readWithPadding inOff.toNat 36)
         (evmE.executionEnv.depth + 1) evmE.executionEnv.header
@@ -116,12 +116,12 @@ theorem uniswapFirstBalanceTypedCall_source
     (hdepth : I.depth.val < 1024)
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
       (σ', g'', A'_evm, z, o) =
-        Ethereum.EVM.Θ
+        Ethereum.EVM.Θ I.fork
           (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (UInt256.land solcAddrMask
             (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)))
-          (toExecute (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+          (toExecute I.fork (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
             (AccountAddress.ofUInt256 (UInt256.land solcAddrMask
               (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I))))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
@@ -182,10 +182,10 @@ theorem uniswapSyncSecondBalanceTypedCall_source
     (hσ0 : evm0S.σ₀ = σ₀) (henv : evm0S.executionEnv = I)
     (hdepth : I.depth.val < 1024) (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
-      (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ σ1 σ₀ A_in2
+      (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ I.fork σ1 σ₀ A_in2
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
         (AccountAddress.ofUInt256 (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ1 I)))
-        (toExecute σ1 (AccountAddress.ofUInt256
+        (toExecute I.fork σ1 (AccountAddress.ofUInt256
           (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ1 I))))
         callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
         ((balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)

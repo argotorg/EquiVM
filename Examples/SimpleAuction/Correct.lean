@@ -62,7 +62,7 @@ theorem simpleAuctionCorrect :
             (by simpa [selIs, simpleAuctionLowSelBytes] using h0)).1
           (simpleAuctionLowMatches 0 (by omega) hsz
             (by simpa [selIs, simpleAuctionLowSelBytes] using h0)).2
-          (by jump_dest) (by decide))
+          (by jump_dest) (by native_decide))
     · by_cases h1 : selIs I ⟨#[0x3c, 0xcf, 0xd6, 0x0b]⟩
       · exact simpleAuctionWithdrawBody hcode hsize h1
           (simpleAuctionReachHighBody 0 (by omega) ⟨203⟩ hcode hsz hsize
@@ -72,7 +72,7 @@ theorem simpleAuctionCorrect :
               (by simpa [selIs, simpleAuctionHighSelBytes] using h1)).1
             (simpleAuctionHighMatches 0 (by omega) hsz
               (by simpa [selIs, simpleAuctionHighSelBytes] using h1)).2
-            (by jump_dest) (by decide))
+            (by jump_dest) (by native_decide))
       · by_cases h2 : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩
         · exact simpleAuctionAuctionEndBody hcode h2
             (simpleAuctionReachLowBody 1 (by omega) ⟨124⟩ hcode hsz hsize
@@ -82,7 +82,7 @@ theorem simpleAuctionCorrect :
                 (by simpa [selIs, simpleAuctionLowSelBytes] using h2)).1
               (simpleAuctionLowMatches 1 (by omega) hsz
                 (by simpa [selIs, simpleAuctionLowSelBytes] using h2)).2
-              (by jump_dest) (by decide))
+              (by jump_dest) (by native_decide))
         · by_cases h3 : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩
           · exact simpleAuctionBeneficiaryBody hcode hsize h3
               (simpleAuctionReachLowBody 2 (by omega) ⟨144⟩ hcode hsz hsize
@@ -92,7 +92,7 @@ theorem simpleAuctionCorrect :
                   (by simpa [selIs, simpleAuctionLowSelBytes] using h3)).1
                 (simpleAuctionLowMatches 2 (by omega) hsz
                   (by simpa [selIs, simpleAuctionLowSelBytes] using h3)).2
-                (by jump_dest) (by decide))
+                (by jump_dest) (by native_decide))
           · by_cases h4 : selIs I ⟨#[0x4b, 0x44, 0x9c, 0xba]⟩
             · exact simpleAuctionAuctionEndTimeBody hcode hsize h4
                 (simpleAuctionReachHighBody 1 (by omega) ⟨239⟩ hcode hsz hsize
@@ -102,7 +102,7 @@ theorem simpleAuctionCorrect :
                     (by simpa [selIs, simpleAuctionHighSelBytes] using h4)).1
                   (simpleAuctionHighMatches 1 (by omega) hsz
                     (by simpa [selIs, simpleAuctionHighSelBytes] using h4)).2
-                  (by jump_dest) (by decide))
+                  (by jump_dest) (by native_decide))
             · by_cases h5 : selIs I ⟨#[0x91, 0xf9, 0x01, 0x57]⟩
               · exact simpleAuctionHighestBidderBody hcode hsize h5
                   (simpleAuctionReachHighBody 2 (by omega) ⟨274⟩ hcode hsz hsize
@@ -112,7 +112,7 @@ theorem simpleAuctionCorrect :
                       (by simpa [selIs, simpleAuctionHighSelBytes] using h5)).1
                     (simpleAuctionHighMatches 2 (by omega) hsz
                       (by simpa [selIs, simpleAuctionHighSelBytes] using h5)).2
-                    (by jump_dest) (by decide))
+                    (by jump_dest) (by native_decide))
               · by_cases h6 : selIs I ⟨#[0xd5, 0x7b, 0xde, 0x79]⟩
                 · exact simpleAuctionHighestBidBody hcode hsize h6
                     (simpleAuctionReachHighBody 3 (by omega) ⟨305⟩ hcode hsz hsize
@@ -122,7 +122,7 @@ theorem simpleAuctionCorrect :
                         (by simpa [selIs, simpleAuctionHighSelBytes] using h6)).1
                       (simpleAuctionHighMatches 3 (by omega) hsz
                         (by simpa [selIs, simpleAuctionHighSelBytes] using h6)).2
-                      (by jump_dest) (by decide))
+                      (by jump_dest) (by native_decide))
                 · refine simpleAuctionNoDispatch hcode hsize ?_
                   intro i hi
                   interval_cases i
@@ -172,8 +172,8 @@ theorem simpleAuctionInitcode_decode_append (tail : ByteArray) (pc : UInt256)
 macro "simple_ctor_decode" : tactic =>
   `(tactic|
     (first
-      | rw [simpleAuctionInitcode_decode_append _ _ (by decide)]
-      | (unfold simpleAuctionCtorCode; rw [simpleAuctionInitcode_decode_append _ _ (by decide)]);
+      | rw [simpleAuctionInitcode_decode_append _ _ (by native_decide)]
+      | (unfold simpleAuctionCtorCode; rw [simpleAuctionInitcode_decode_append _ _ (by native_decide)]);
      native_decide))
 
 macro "simple_ctor_jd" : tactic =>
@@ -315,9 +315,9 @@ theorem simpleAuctionBeneficiaryMem_read (biddingTime : UInt256)
       UInt256.toByteArray (EVM.word beneficiaryAddress) := by
   unfold simpleAuctionBeneficiaryMem
   rw [write0_read_back_from_gen (simpleAuctionCtorCode biddingTime beneficiaryAddress)
-      ByteArray.empty 1194 32 (by decide)
+      ByteArray.empty 1194 32 (by native_decide)
     (by simp [simpleAuctionCtorCode_size])
-    (by decide)]
+    (by native_decide)]
   rw [simpleAuctionBeneficiaryArg_extract, word_toBytesBE_toByteArray_eq_toByteArray]
 
 theorem simpleAuctionBiddingMem_read (biddingTime : UInt256)
@@ -326,9 +326,9 @@ theorem simpleAuctionBiddingMem_read (biddingTime : UInt256)
       UInt256.toByteArray biddingTime := by
   unfold simpleAuctionBiddingMem
   rw [write0_read_back_from_gen (simpleAuctionCtorCode biddingTime beneficiaryAddress)
-      (simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress) 1162 32 (by decide)
+      (simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress) 1162 32 (by native_decide)
     (by simp [simpleAuctionCtorCode_size])
-    (by decide)]
+    (by native_decide)]
   rw [simpleAuctionBiddingArg_extract, word_toBytesBE_toByteArray_eq_toByteArray]
 
 theorem simpleAuctionBeneficiaryMem_mload (biddingTime : UInt256)
@@ -344,7 +344,7 @@ theorem simpleAuctionBeneficiaryMem_mload (biddingTime : UInt256)
       have hsz := write0_size_ge_32
           (simpleAuctionCtorCode biddingTime beneficiaryAddress) ByteArray.empty 1194
         (by simp [simpleAuctionCtorCode_size])
-      have hz : (⟨0⟩ : UInt256).toNat = 0 := by decide
+      have hz : (⟨0⟩ : UInt256).toNat = 0 := by native_decide
       rw [hz]
       omega)
     (simpleAuctionBeneficiaryMem_read biddingTime beneficiaryAddress)
@@ -363,7 +363,7 @@ theorem simpleAuctionBiddingMem_mload (biddingTime : UInt256)
         (simpleAuctionCtorCode biddingTime beneficiaryAddress)
           (simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress) 1162
         (by simp [simpleAuctionCtorCode_size])
-      have hz : (⟨0⟩ : UInt256).toNat = 0 := by decide
+      have hz : (⟨0⟩ : UInt256).toNat = 0 := by native_decide
       rw [hz]
       omega)
     (simpleAuctionBiddingMem_read biddingTime beneficiaryAddress)
@@ -386,9 +386,9 @@ theorem simpleAuctionReturnMem_read (biddingTime : UInt256)
       simpleAuctionBytecode := by
   unfold simpleAuctionReturnMem
   rw [write0_read_back_from_gen (simpleAuctionCtorCode biddingTime beneficiaryAddress)
-    (simpleAuctionBiddingMem biddingTime beneficiaryAddress) 115 1047 (by decide)
+    (simpleAuctionBiddingMem biddingTime beneficiaryAddress) 115 1047 (by native_decide)
     (by rw [simpleAuctionCtorCode_size]; omega)
-    (by decide)]
+    (by native_decide)]
   have hleft :
       (simpleAuctionCtorCode biddingTime beneficiaryAddress).extract 115 (115 + 1047) =
         simpleAuctionInitcode.extract 115 (115 + 1047) := by
@@ -448,13 +448,13 @@ theorem simpleAuctionInitcodeOverflowRevert
         (by simple_ctor_decode)
         mem_cost
       rfl
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push0,
     raw mload 0 (EVM.word beneficiaryAddress) (UInt256.ofNat 1)
       (by simple_ctor_decode)
         mem_cost
         (simpleAuctionBeneficiaryMem_mload biddingTime beneficiaryAddress)
-        (by decide) (by evm_ov),
+        (by native_decide) (by evm_ov),
       dup1, push20 solcAddrMask, and, push0]
     obtain ⟨kSload, CSload, rdAfterSload⟩ :=
       rdBeforeSload.sload (by simple_ctor_decode) (by evm_ov)
@@ -476,13 +476,13 @@ theorem simpleAuctionInitcodeOverflowRevert
       (by simple_ctor_decode)
       mem_cost
       rfl
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push0,
     raw mload 0 biddingTime (UInt256.ofNat 1)
       (by simple_ctor_decode)
       mem_cost
       (simpleAuctionBiddingMem_mload biddingTime beneficiaryAddress)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     timestamp, dup1, dup3, add, lt]
     have hlt := ctorCheckedAddOverflowLt (UInt256.ofNat I.header.timestamp)
       biddingTime hover
@@ -531,13 +531,13 @@ theorem simpleAuctionInitcodeSuccess
       (by simple_ctor_decode)
       mem_cost
       rfl
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push0,
     raw mload 0 (EVM.word beneficiaryAddress) (UInt256.ofNat 1)
       (by simple_ctor_decode)
       mem_cost
       (simpleAuctionBeneficiaryMem_mload biddingTime beneficiaryAddress)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, push20 solcAddrMask, and, push0]
   obtain ⟨kSload, CSload, rdAfterSload⟩ :=
     rdBeforeSload.sload (by simple_ctor_decode) (by evm_ov)
@@ -559,26 +559,26 @@ theorem simpleAuctionInitcodeSuccess
       (by simple_ctor_decode)
       mem_cost
       rfl
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push0,
     raw mload 0 biddingTime (UInt256.ofNat 1)
       (by simple_ctor_decode)
       mem_cost
       (simpleAuctionBiddingMem_mload biddingTime beneficiaryAddress)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     timestamp, dup1, dup3, add, lt]
   have hlt := ctorCheckedAddNoOverflowLt (UInt256.ofNat I.header.timestamp)
     biddingTime hno
   have rdBeforeJump := rdBeforeLt
   rw [hlt] at rdBeforeJump
   have rdBeforeAuctionEndStore := simple_ctor_run rdBeforeJump with [
-    swap1, pop, push1 ⟨111⟩, jumpiNT (by decide),
+    swap1, pop, push1 ⟨111⟩, jumpiNT (by native_decide),
     push0,
     raw mload 0 biddingTime (UInt256.ofNat 1)
       (by simple_ctor_decode)
       mem_cost
       (simpleAuctionBiddingMem_mload biddingTime beneficiaryAddress)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     timestamp, add, push1 ⟨1⟩]
   obtain ⟨k'', C'', rdAfterAuctionEndStore⟩ :=
     rdBeforeAuctionEndStore.sstore hperm (by simple_ctor_decode) (by evm_ov)
@@ -588,7 +588,7 @@ theorem simpleAuctionInitcodeSuccess
       (by simple_ctor_decode)
       mem_cost
       (simpleAuctionRuntime_codecopy_mem biddingTime beneficiaryAddress)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push2 ⟨1047⟩, push0]
   simpa [beneficiaryStoreWord, oldBeneficiarySlot, u256_add_comm] using
     rdBeforeReturn.ret 0 simpleAuctionBytecode
@@ -792,7 +792,7 @@ theorem simpleAuctionCtorAssignAuctionEndTime (evm : EVM.State) (biddingTime : I
               ("beneficiaryAddress", Value.address beneficiaryAddress)] =
             (((∅ : Store).insert "biddingTime" (Value.int biddingTime)).insert
               "beneficiaryAddress" (Value.address beneficiaryAddress)) from rfl]
-        rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]
+        rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
         simp)
       (her := by
         simp [evalStorageRef, evalStorageRefSteps, auctionEndTimeRef, EvalResult.bind, pure, bind])

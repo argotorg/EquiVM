@@ -255,7 +255,7 @@ theorem auctionEndAssignEnded (evm : EVM.State) :
       (hbase := by simp)
       (her := by
         simp [evalStorageRef, evalStorageRefSteps, endedRef, EvalResult.bind, pure, bind])
-      (hty := by decide)
+      (hty := by native_decide)
       (hloc := blindAuctionConfig_storage_ended)
   erw [storageLocStore_bool_true_offset0]
   rfl
@@ -443,7 +443,7 @@ theorem blindAuctionX_auctionEnd_nonpayable {σ σ₀ A I} {g : Sat256}
   have rd264 := evm_run rd256 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨267⟩,
     jumpiNT (isZero_eq_zero_of_ne hwv)]
-  exact rd264.revertStub (by decide) (by decide) (by decide)
+  exact rd264.revertStub (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem blindAuctionX_auctionEndToBody {σ σ₀ A I} {g : Sat256}
@@ -496,7 +496,7 @@ theorem blindAuctionX_auctionEnd_timeRevert {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd566⟩ := blindAuctionX_auctionEndToBody
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach
   have rd569 := evm_run rd566 with [jumpdest, push1 ⟨2⟩]
-  obtain ⟨_, _, rd570₀⟩ := rd569.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd570₀⟩ := rd569.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd570⟩ : ∃ k C, RD blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨570⟩
       [auctionEndRevealEndWord σ I, ⟨276⟩, blindAuctionSelWord I] solcFreePtrMem
@@ -505,34 +505,34 @@ theorem blindAuctionX_auctionEnd_timeRevert {σ σ₀ A I} {g : Sat256}
   have hgt : UInt256.gt (auctionEndTimestampWord I) (auctionEndRevealEndWord σ I) = ⟨0⟩ :=
     ugt_zero htime
   have rd571dup := evm_run rd570 with [dup1]
-  have rd572 := RD.timestamp rd571dup (by decide) (by evm_ov)
+  have rd572 := RD.timestamp rd571dup (by native_decide) (by evm_ov)
   have rd573₀ := evm_run rd572 with [gt]
   have rd573 := rd573₀
   rw [show UInt256.gt (UInt256.ofNat I.header.timestamp) (auctionEndRevealEndWord σ I) =
       ⟨0⟩ from by simpa [auctionEndTimestampWord] using hgt] at rd573
-  have rd577 := evm_run rd573 with [push2 ⟨609⟩, jumpiNT (by decide)]
+  have rd577 := evm_run rd573 with [push2 ⟨609⟩, jumpiNT (by native_decide)]
   let errSel : UInt256 := UInt256.shiftLeft (⟨0x0a8d68c9⟩ : UInt256) ⟨226⟩
   have rd590 := evm_run rd577 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost solcFreePtrMem_mload64 (by native_decide) (by evm_ov),
     push4 ⟨0x0a8d68c9⟩, push1 ⟨226⟩, shl, dup2,
-    raw mstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by decide)
+    raw mstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by native_decide)
       mem_cost
-      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
-      (by decide) (by evm_ov)]
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by native_decide]; rfl)
+      (by native_decide) (by evm_ov)]
   have rd600 := evm_run rd590 with [
     push1 ⟨4⟩, dup2, add, dup3, swap1,
     raw mstore 3 (auctionEndTimeRevertMem (auctionEndRevealEndWord σ I) errSel)
-      (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨36⟩, add, jumpdest]
   have rd608 := evm_run rd600 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
       mem_cost (auctionEndTimeRevertMem_mload64 (auctionEndRevealEndWord σ I) errSel)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1]
-  exact rd608.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd608.rev 0 (by native_decide) mem_cost (by evm_ov)
 
 theorem blindAuctionX_auctionEnd_afterTime {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -547,7 +547,7 @@ theorem blindAuctionX_auctionEnd_afterTime {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd566⟩ := blindAuctionX_auctionEndToBody
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach
   have rd569 := evm_run rd566 with [jumpdest, push1 ⟨2⟩]
-  obtain ⟨_, _, rd570₀⟩ := rd569.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd570₀⟩ := rd569.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd570⟩ : ∃ k C, RD blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨570⟩
       [auctionEndRevealEndWord σ I, ⟨276⟩, blindAuctionSelWord I] solcFreePtrMem
@@ -556,7 +556,7 @@ theorem blindAuctionX_auctionEnd_afterTime {σ σ₀ A I} {g : Sat256}
   have hgt : UInt256.gt (auctionEndTimestampWord I) (auctionEndRevealEndWord σ I) = ⟨1⟩ :=
     ugt_one htime
   have rd571dup := evm_run rd570 with [dup1]
-  have rd572 := RD.timestamp rd571dup (by decide) (by evm_ov)
+  have rd572 := RD.timestamp rd571dup (by native_decide) (by evm_ov)
   have rd573₀ := evm_run rd572 with [gt]
   have rd573 := rd573₀
   rw [show UInt256.gt (UInt256.ofNat I.header.timestamp) (auctionEndRevealEndWord σ I) =
@@ -574,7 +574,7 @@ theorem blindAuctionX_auctionEnd_endedRevert {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd609⟩ := blindAuctionX_auctionEnd_afterTime
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach htime
   have rd612 := evm_run rd609 with [jumpdest, push1 ⟨3⟩]
-  obtain ⟨_, _, rd613₀⟩ := rd612.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd613₀⟩ := rd612.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd613⟩ : ∃ k C, RD blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨613⟩
       [auctionEndEndedRawWord σ I, auctionEndRevealEndWord σ I, ⟨276⟩,
@@ -588,23 +588,23 @@ theorem blindAuctionX_auctionEnd_endedRevert {σ σ₀ A I} {g : Sat256}
     rw [Reasoning.Theory.u256_land_comm ⟨255⟩ (auctionEndEndedRawWord σ I)]
     rfl
   rw [hmask, isZero_eq_zero_of_ne hended] at rd617
-  have rd621 := evm_run rd617 with [push2 ⟨645⟩, jumpiNT (by decide)]
+  have rd621 := evm_run rd617 with [push2 ⟨645⟩, jumpiNT (by native_decide)]
   let errSel : UInt256 := UInt256.shiftLeft (⟨0x0c39fb9f⟩ : UInt256) ⟨227⟩
   have rd634 := evm_run rd621 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost solcFreePtrMem_mload64 (by native_decide) (by evm_ov),
     push4 ⟨0x0c39fb9f⟩, push1 ⟨227⟩, shl, dup2,
-    raw mstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by decide)
+    raw mstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by native_decide)
       mem_cost
-      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
-      (by decide) (by evm_ov)]
+      (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by native_decide]; rfl)
+      (by native_decide) (by evm_ov)]
   have rd644 := evm_run rd634 with [
     push1 ⟨4⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
-      mem_cost (solcReturnMem_mload64 errSel) (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
+      mem_cost (solcReturnMem_mload64 errSel) (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1]
-  exact rd644.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd644.rev 0 (by native_decide) mem_cost (by evm_ov)
 
 theorem blindAuctionX_auctionEnd_afterNotEnded {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -620,7 +620,7 @@ theorem blindAuctionX_auctionEnd_afterNotEnded {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd609⟩ := blindAuctionX_auctionEnd_afterTime
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach htime
   have rd612 := evm_run rd609 with [jumpdest, push1 ⟨3⟩]
-  obtain ⟨_, _, rd613₀⟩ := rd612.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd613₀⟩ := rd612.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd613⟩ : ∃ k C, RD blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨613⟩
       [auctionEndEndedRawWord σ I, auctionEndRevealEndWord σ I, ⟨276⟩,
@@ -633,7 +633,7 @@ theorem blindAuctionX_auctionEnd_afterNotEnded {σ σ₀ A I} {g : Sat256}
       auctionEndEndedWord σ I := by
     rw [Reasoning.Theory.u256_land_comm ⟨255⟩ (auctionEndEndedRawWord σ I)]
     rfl
-  rw [hmask, hended, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd617
+  rw [hmask, hended, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by native_decide] at rd617
   exact ⟨_, _, evm_run rd617 with [push2 ⟨645⟩, jumpiT one_ne_zero_uint (by jump_dest)]⟩
 
 theorem blindAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
@@ -653,7 +653,7 @@ theorem blindAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd645⟩ := blindAuctionX_auctionEnd_afterNotEnded
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach htime hended
   have rd648 := evm_run rd645 with [jumpdest, push1 ⟨5⟩]
-  obtain ⟨_, _, rd649₀⟩ := rd648.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd649₀⟩ := rd648.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd649⟩ : ∃ k C, RD blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨649⟩
       [auctionEndHighestBidderRawWord σ I, auctionEndRevealEndWord σ I, ⟨276⟩,
@@ -661,7 +661,7 @@ theorem blindAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [auctionEndHighestBidderRawWord, initState] using rd649₀⟩
   have rd651 := evm_run rd649 with [push1 ⟨6⟩]
-  obtain ⟨_, _, rd652₀⟩ := rd651.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd652₀⟩ := rd651.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd652⟩ : ∃ k C, RD blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨652⟩
       [auctionEndHighestBidWord σ I, auctionEndHighestBidderRawWord σ I,
@@ -670,8 +670,8 @@ theorem blindAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [auctionEndHighestBidWord, initState] using rd652₀⟩
   have rd656 := evm_run rd652 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov)]
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost solcFreePtrMem_mload64 (by native_decide) (by evm_ov)]
   have rd667₀ := evm_run rd656 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap1, swap4, and]
   have rd667 := rd667₀
@@ -681,18 +681,18 @@ theorem blindAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
   rw [haddrMask] at rd667
   have rd669 := evm_run rd667 with [
     dup4,
-    raw mstore 6 (auctionEndEventMemWinner σ I) (UInt256.ofNat 5) (by decide)
-      mem_cost (by rfl) (by decide) (by evm_ov)]
+    raw mstore 6 (auctionEndEventMemWinner σ I) (UInt256.ofNat 5) (by native_decide)
+      mem_cost (by rfl) (by native_decide) (by evm_ov)]
   have rd677 := evm_run rd669 with [
     push1 ⟨32⟩, dup4, add, swap2, swap1, swap2,
-    raw mstore 3 (auctionEndEventMem σ I) (UInt256.ofNat 6) (by decide)
-      mem_cost (by rfl) (by decide) (by evm_ov)]
+    raw mstore 3 (auctionEndEventMem σ I) (UInt256.ofNat 6) (by native_decide)
+      mem_cost (by rfl) (by native_decide) (by evm_ov)]
   have rd711 := rd677.pushConst auctionEndedTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd719 := evm_run rd711 with [
     swap2, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
-      mem_cost (auctionEndEventMem_mload64 σ I) (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+      mem_cost (auctionEndEventMem_mload64 σ I) (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have hlen64 : ((⟨128⟩ : UInt256) + ⟨64⟩).sub ⟨128⟩ = ⟨64⟩ := by
     decide
@@ -701,15 +701,15 @@ theorem blindAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
   by_cases hperm : I.perm = true
   swap
   · exact Or.inr ⟨by simpa using hperm,
-      rd719'.log1Static (by simpa using hperm) (by decide) (by evm_ov)⟩
+      rd719'.log1Static (by simpa using hperm) (by native_decide) (by evm_ov)⟩
   refine Or.inl ⟨hperm, ?_⟩
-  have rd720 := RD.log1 0 (UInt256.ofNat 6) rd719' (by decide) hperm
+  have rd720 := RD.log1 0 (UInt256.ofNat 6) rd719' (by native_decide) hperm
     (by
       simp [M]
       native_decide)
-    (by decide) (by evm_ov)
+    (by native_decide) (by evm_ov)
   have rd723 := evm_run rd720 with [push1 ⟨3⟩, dup1]
-  obtain ⟨_, _, rd724₀⟩ := rd723.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd724₀⟩ := rd723.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd724⟩ : ∃ k C, RD blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨724⟩
       [auctionEndEndedRawWord σ I, ⟨3⟩, auctionEndRevealEndWord σ I, ⟨276⟩,
@@ -722,7 +722,7 @@ theorem blindAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
       UInt256.land (auctionEndEndedRawWord σ I) (UInt256.lnot ⟨255⟩) := by
     exact Reasoning.Theory.u256_land_comm (UInt256.lnot ⟨255⟩) (auctionEndEndedRawWord σ I)
   rw [hland] at rd728
-  have rd731₀ := RD.or rd728 (by decide) (by evm_ov)
+  have rd731₀ := RD.or rd728 (by native_decide) (by evm_ov)
   have rd731 := rd731₀
   have hlor : UInt256.lor ⟨1⟩
         (UInt256.land (auctionEndEndedRawWord σ I) (UInt256.lnot ⟨255⟩)) =
@@ -732,7 +732,7 @@ theorem blindAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
       (UInt256.land (auctionEndEndedRawWord σ I) (UInt256.lnot ⟨255⟩))
   rw [hlor] at rd731
   have rd732 := evm_run rd731 with [swap1]
-  obtain ⟨_, _, rd733₀⟩ := rd732.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd733₀⟩ := rd732.sstore hperm (by native_decide) (by evm_ov)
   exact ⟨_, _, by simpa [auctionEndAfterEndedMap] using rd733₀⟩
 
 theorem blindAuctionX_auctionEnd_toCall {σ σ₀ A I} {g : Sat256}
@@ -757,7 +757,7 @@ theorem blindAuctionX_auctionEnd_toCall {σ σ₀ A I} {g : Sat256}
     hwv hreach htime hended)
   let σa := auctionEndAfterEndedMap σ I
   have rd735 := evm_run rd733 with [push0, dup1]
-  obtain ⟨_, _, rd736₀⟩ := rd735.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd736₀⟩ := rd735.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd736⟩ : ∃ k C, RD blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨736⟩
       [auctionEndBeneficiaryRawWord σa I, ⟨0⟩, auctionEndRevealEndWord σ I, ⟨276⟩,
@@ -765,7 +765,7 @@ theorem blindAuctionX_auctionEnd_toCall {σ σ₀ A I} {g : Sat256}
       (auctionEndEventMem σ I) (UInt256.ofNat 6) ByteArray.empty σa k C := by
     exact ⟨_, _, by simpa [σa, auctionEndBeneficiaryRawWord] using rd736₀⟩
   have rd738 := evm_run rd736 with [push1 ⟨6⟩]
-  obtain ⟨_, _, rd739₀⟩ := rd738.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd739₀⟩ := rd738.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd739⟩ : ∃ k C, RD blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨739⟩
       [auctionEndHighestBidWord σa I, auctionEndBeneficiaryRawWord σa I, ⟨0⟩,
@@ -774,8 +774,8 @@ theorem blindAuctionX_auctionEnd_toCall {σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [σa, auctionEndHighestBidWord] using rd739₀⟩
   have rd742 := evm_run rd739 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
-      mem_cost (auctionEndEventMem_mload64 σ I) (by decide) (by evm_ov)]
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+      mem_cost (auctionEndEventMem_mload64 σ I) (by native_decide) (by evm_ov)]
   have rd754₀ := evm_run rd742 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap1, swap3, and, swap2,
     jumpdest]
@@ -786,10 +786,10 @@ theorem blindAuctionX_auctionEnd_toCall {σ σ₀ A I} {g : Sat256}
   rw [haddrMask] at rd754
   have rd765 := evm_run rd754 with [
     push0, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
-      mem_cost (auctionEndEventMem_mload64 σ I) (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+      mem_cost (auctionEndEventMem_mload64 σ I) (by native_decide) (by evm_ov),
     dup1, dup4, sub, dup2, dup6, dup8]
-  obtain ⟨gasArg, rd766⟩ := rd765.gas (by decide) (by evm_ov)
+  obtain ⟨gasArg, rd766⟩ := rd765.gas (by native_decide) (by evm_ov)
   exact ⟨gasArg, _, _, by simpa [σa] using rd766⟩
 
 theorem blindAuctionX_auctionEnd_postCallEmpty_toRequire {σ σ₀ A I} {g : Sat256}
@@ -805,7 +805,7 @@ theorem blindAuctionX_auctionEnd_postCallEmpty_toRequire {σ σ₀ A I} {g : Sat
   refine ⟨_, _, evm_run rd with [
     swap3, pop, pop, pop,
     returndatasize, dup1, push0, dup2, eq, push2 ⟨812⟩,
-    jumpiT (by decide) (by jump_dest),
+    jumpiT (by native_decide) (by jump_dest),
     jumpdest, push1 ⟨96⟩, swap2, pop,
     jumpdest, pop, pop, swap1, pop]⟩
 
@@ -835,22 +835,22 @@ theorem blindAuctionX_auctionEnd_postCallNonempty_toRequire {σ σ₀ A I} {g : 
   have rd776 := rd776₀
   change UInt256.eq rdsz (⟨0⟩ : UInt256) = ⟨0⟩ at heq0
   rw [show UInt256.ofNat o.size = rdsz from rfl, heq0] at rd776
-  have rd780 := evm_run rd776 with [push2 ⟨812⟩, jumpiNT (by decide)]
+  have rd780 := evm_run rd776 with [push2 ⟨812⟩, jumpiNT (by native_decide)]
   let rounded : UInt256 := UInt256.land (UInt256.add rdsz ⟨63⟩) (UInt256.lnot ⟨31⟩)
   let mem2 : ByteArray := (UInt256.toByteArray (UInt256.add ⟨128⟩ rounded)).write 0 mem 64 32
   have rd798 := evm_run rd780 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
-      mem_cost hfp (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+      mem_cost hfp (by native_decide) (by evm_ov),
     swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and, dup3, add,
     push1 ⟨64⟩,
-    raw mstore 0 mem2 (UInt256.ofNat 6) (by decide)
-      mem_cost (by rfl) (by decide) (by evm_ov)]
+    raw mstore 0 mem2 (UInt256.ofNat 6) (by native_decide)
+      mem_cost (by rfl) (by native_decide) (by evm_ov)]
   let mem3 : ByteArray := (UInt256.toByteArray rdsz).write 0 mem2 128 32
   have rd801 := evm_run rd798 with [
     returndatasize, dup3,
-    raw mstore 0 mem3 (UInt256.ofNat 6) (by decide)
-      mem_cost (by rfl) (by decide) (by evm_ov)]
+    raw mstore 0 mem3 (UInt256.ofNat 6) (by native_decide)
+      mem_cost (by rfl) (by native_decide) (by evm_ov)]
   have rd807 := evm_run rd801 with [returndatasize, push0, push1 ⟨32⟩, dup5, add]
   let copyDest : UInt256 := (⟨128⟩ : UInt256) + ⟨32⟩
   let copyLen : UInt256 := UInt256.ofNat o.size
@@ -862,7 +862,7 @@ theorem blindAuctionX_auctionEnd_postCallNonempty_toRequire {σ σ₀ A I} {g : 
       copyDest.toNat copyLen.toNat)) - Cₘ (UInt256.ofNat 6))
     mem4
     (UInt256.ofNat (MachineState.M (UInt256.ofNat 6).toNat copyDest.toNat copyLen.toNat))
-    rd807 (by decide)
+    rd807 (by native_decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
     (by
       simp [M, copyDest, copyLen])
@@ -880,9 +880,9 @@ theorem blindAuctionX_auctionEnd_requireSuccess_return {σ σ₀ A I} {g : Sat25
       mem aw rdata acc k C) :
     RDret blindAuctionBytecode g (initState σ σ₀ g A I) acc ByteArray.empty := by
   have rd276 := evm_run rd with [
-    dup1, push2 ⟨830⟩, jumpiT (by decide) (by jump_dest),
+    dup1, push2 ⟨830⟩, jumpiT (by native_decide) (by jump_dest),
     jumpdest, pop, pop, jump (by jump_dest), jumpdest]
-  exact rd276.stop (by decide) (by evm_ov)
+  exact rd276.stop (by native_decide) (by evm_ov)
 
 theorem blindAuctionX_auctionEnd_requireSuccess_revert {σ σ₀ A I} {g : Sat256}
     {acc : AccountMap}
@@ -891,8 +891,8 @@ theorem blindAuctionX_auctionEnd_requireSuccess_revert {σ σ₀ A I} {g : Sat25
       [⟨0⟩, auctionEndRevealEndWord σ I, ⟨276⟩, blindAuctionSelWord I]
       mem aw rdata acc k C) :
     RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
-  have rd827 := evm_run rd with [dup1, push2 ⟨830⟩, jumpiNT (by decide), push0, push0]
-  exact RD.rev _ rd827 (by decide)
+  have rd827 := evm_run rd with [dup1, push2 ⟨830⟩, jumpiNT (by native_decide), push0, push0]
+  exact RD.rev _ rd827 (by native_decide)
     (by rfl)
     (by evm_ov)
 
@@ -909,10 +909,10 @@ theorem blindAuctionX_auctionEnd_callMade {σ σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ (auctionEndAfterEndedMap σ I) σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork (auctionEndAfterEndedMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I))
-          (toExecute (auctionEndAfterEndedMap σ I)
+          (toExecute I.fork (auctionEndAfterEndedMap σ I)
             (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I)))
           callGas (UInt256.ofNat I.gasPrice)
           (auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I)
@@ -929,7 +929,7 @@ theorem blindAuctionX_auctionEnd_callMade {σ σ₀ A I} {g : Sat256}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hperm hwv hreach htime hended
   obtain ⟨σ', z, o, A_in, callGas, k', C', hΘ, rd767₀, _hosz⟩ :=
-    rd766.callValueMade (by decide) hperm hbalance hdepth (by evm_ov)
+    rd766.callValueMade (by native_decide) hperm hbalance hdepth (by evm_ov)
   have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 0 := by
     have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o.size := by
       show (0 : Nat) ≤ (UInt256.ofNat o.size).val.val
@@ -939,10 +939,10 @@ theorem blindAuctionX_auctionEnd_callMade {σ σ₀ A I} {g : Sat256}
       (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
     exact byteArray_readWithPadding_zero _ _
   have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
-      (σ', g'', A', z, o) = Ethereum.EVM.Θ (auctionEndAfterEndedMap σ I) σ₀ A_in
+      (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork (auctionEndAfterEndedMap σ I) σ₀ A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
         (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I))
-        (toExecute (auctionEndAfterEndedMap σ I)
+        (toExecute I.fork (auctionEndAfterEndedMap σ I)
           (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I)))
         callGas (UInt256.ofNat I.gasPrice)
         (auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I)
@@ -973,7 +973,7 @@ theorem blindAuctionX_auctionEnd_callDepthRevert {σ σ₀ A I} {g : Sat256}
   obtain ⟨gasArg, _, _, rd766⟩ := blindAuctionX_auctionEnd_toCall
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hperm hwv hreach htime hended
-  obtain ⟨_, _, rd767⟩ := rd766.callValueDepthLimit hperm (by decide) hdepth (by evm_ov)
+  obtain ⟨_, _, rd767⟩ := rd766.callValueDepthLimit hperm (by native_decide) hdepth (by evm_ov)
   obtain ⟨_, _, rd822⟩ :=
     blindAuctionX_auctionEnd_postCallEmpty_toRequire
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) rd767
@@ -994,7 +994,7 @@ theorem blindAuctionX_auctionEnd_callInsufficientRevert {σ σ₀ A I} {g : Sat2
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hperm hwv hreach htime hended
   obtain ⟨_, _, rd767⟩ :=
-    RD.callValueInsufficientBalance rd766 hperm (by decide)
+    RD.callValueInsufficientBalance rd766 hperm (by native_decide)
       hbalance hdepth (by evm_ov)
   obtain ⟨_, _, rd822⟩ :=
     blindAuctionX_auctionEnd_postCallEmpty_toRequire
@@ -1266,11 +1266,11 @@ theorem blindAuctionAuctionEndBodyCore {σ σ₀ A I}
                 exact hdepthEq (by
                   simpa [evmEAfter, evmE, initState, auctionEndAfterEndedState_executionEnv] using hd)
             have houtsz : out.size < UInt256.size := by
-              have hsizeΘ := Theta_returnData_size_lt (auctionEndAfterEndedMap σ I) σ₀ A_in
+              have hsizeΘ := Theta_returnData_size_lt I.fork (auctionEndAfterEndedMap σ I) σ₀ A_in
                 (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
                 (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord
                   (auctionEndAfterEndedMap σ I) I))
-                (toExecute (auctionEndAfterEndedMap σ I)
+                (toExecute I.fork (auctionEndAfterEndedMap σ I)
                   (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord
                     (auctionEndAfterEndedMap σ I) I)))
                 callGas (UInt256.ofNat I.gasPrice)

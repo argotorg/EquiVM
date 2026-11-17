@@ -382,10 +382,11 @@ theorem catReachLowSplit {σ σ₀ A I} {g : Sat256}
       (armTgt catBytecode catRootSplitPc) [catSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ (k32 + 5) (C32 + 22) :=
     RD.selectorSplitTakenAuto h32 catRootSplitWellFormed hroot (by jump_dest) (by simp)
+  have hrootTgt : armTgt catBytecode catRootSplitPc = catLowJumpdestPc := by native_decide
   have h152 : RD catBytecode I g (initState σ σ₀ g A I)
       catLowSplitPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [catLowSplitPc, catLowJumpdestPc, catRootSplitPc, armTgt, pushAt]
+    simpa [catLowSplitPc, catLowJumpdestPc, catRootSplitPc, hrootTgt]
       using h151.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h152⟩
 
@@ -422,10 +423,11 @@ theorem catReachLowLowFirstArm {σ σ₀ A I} {g : Sat256}
       (armTgt catBytecode catLowSplitPc) [catSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ (k152 + 5) (C152 + 22) :=
     RD.selectorSplitTakenAuto h152 catLowSplitWellFormed hlow (by jump_dest) (by simp)
+  have hlowTgt : armTgt catBytecode catLowSplitPc = catLowLowJumpdestPc := by native_decide
   have h212 : RD catBytecode I g (initState σ σ₀ g A I)
       catLowLowFirstArmPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k152 + 5 + 1) (C152 + 22 + 1) := by
-    simpa [catLowLowFirstArmPc, catLowLowJumpdestPc, catLowSplitPc, armTgt, pushAt]
+    simpa [catLowLowFirstArmPc, catLowLowJumpdestPc, catLowSplitPc, hlowTgt]
       using h211.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h212⟩
 
@@ -463,10 +465,11 @@ theorem catReachHighLowFirstArm {σ σ₀ A I} {g : Sat256}
       (armTgt catBytecode catHighSplitPc) [catSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ (k43 + 5) (C43 + 22) :=
     RD.selectorSplitTakenAuto h43 catHighSplitWellFormed hhigh (by jump_dest) (by simp)
+  have hhighTgt : armTgt catBytecode catHighSplitPc = catHighLowJumpdestPc := by native_decide
   have h103 : RD catBytecode I g (initState σ σ₀ g A I)
       catHighLowFirstArmPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5 + 1) (C43 + 22 + 1) := by
-    simpa [catHighLowFirstArmPc, catHighLowJumpdestPc, catHighSplitPc, armTgt, pushAt]
+    simpa [catHighLowFirstArmPc, catHighLowJumpdestPc, catHighSplitPc, hhighTgt]
       using h102.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h103⟩
 

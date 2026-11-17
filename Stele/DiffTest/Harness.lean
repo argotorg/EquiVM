@@ -67,13 +67,15 @@ def Target.world (t : Target) (code : ByteArray := t.runtime) : AccountMap :=
   let σ := t.callers.foldl (fun σ a => σ.insert a { (default : Account) with balance := UInt256.ofNat (10 ^ 20) }) σ
   t.callees.foldl (fun σ (a, c) => σ.insert a { (default : Account) with code := c, balance := UInt256.ofNat (10 ^ 18) }) σ
 
-/-- The environment of a message to the contract. -/
+/-- The environment of a message to the contract. The EVM runs at Osaka, the current mainnet fork
+    (the default fork of `ExecutionEnv` is Cancun, where `CLZ` is an invalid instruction). -/
 def Target.env (t : Target) (code : ByteArray) (caller : EVM.Address) (value : Nat) (calldata : ByteArray)
     (perm : Bool) (timestamp : Nat := 0) (number : Nat := 0) : ExecutionEnv :=
   let header := { (default : ExecutionEnv).header with timestamp := timestamp, number := number }
   { (default : ExecutionEnv) with
       codeOwner := t.selfAddress, source := caller, sender := caller, weiValue := UInt256.ofNat value,
-      calldata := calldata, code := code, gasPrice := 1, perm := perm, header := header }
+      calldata := calldata, code := code, gasPrice := 1, perm := perm, header := header,
+      fork := .osaka }
 
 /-- The value transfer of the message: the caller pays, the contract receives (as `Θ` does before
     running the code). -/

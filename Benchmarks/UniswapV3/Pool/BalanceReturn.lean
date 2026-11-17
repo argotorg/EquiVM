@@ -16,7 +16,7 @@ theorem callViaEVM_output_size {evm evm' : EVM.State} {target : AccountAddress} 
   cases hc with
   | callMade _ hex _ _ _ =>
       obtain ⟨gas, A, hΘ⟩ := hex
-      exact Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ hsmall
+      exact Theta_returnData_size_lt_2pow138_of_eq evm.executionEnv.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  _ hΘ hsmall
   | callNotMade _ _ _ => decide
 
 theorem balanceReturndataGrowingX {σ : AccountMap} {ee : ExecutionEnv} {g : Sat256}

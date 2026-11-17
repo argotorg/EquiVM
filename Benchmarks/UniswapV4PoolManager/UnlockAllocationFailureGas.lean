@@ -10,14 +10,14 @@ open Benchmarks.UniswapV4PoolManager.Immutables
 namespace Benchmarks.UniswapV4PoolManager
 
 theorem unlockAllocationBounds_small {out : ByteArray} (hb : BytesReturnBounds out)
-    (hs : out.size ≤ 64) (first : Bool) : unlockAllocationBounds out first := by
+    (hs : out.size ≤ 256) (first : Bool) : unlockAllocationBounds out first := by
   have ho : (UInt256.ofNat out.size).toNat = out.size :=
     UInt256.toNat_ofNat_of_lt (by change _ < 2^256; omega)
   have hp : (unlockRawEnd out).toNat = 160+paddedSize out.size := by
     rw [allocationEnd_toNat _ _ (by rw [ho]; change 160+out.size+31 < 2^256; omega), ho]
     rfl
   have he := unlockDecodedEnd_toNat (by omega : out.size < 2^138) hb
-  have hl : (unlockReturnLength out).toNat ≤ 64 := by
+  have hl : (unlockReturnLength out).toNat ≤ 256 := by
     have h := hb.2.2.2.2.2
     change (calldataWord out 0).toNat+32+(unlockReturnLength out).toNat ≤ out.size at h
     omega
@@ -38,7 +38,8 @@ theorem unlockAllocationBounds_small {out : ByteArray} (hb : BytesReturnBounds o
 theorem unlockAllocationFailure_nonprecompile {I : ExecutionEnv} {g : Sat256} {s0 evm evm' : State}
     {out data : ByteArray} {aw : UInt256} {C : Nat} {target : AccountAddress}
     (v : PoolManagerImmutables)
-    (w : ZeroCallGasEvidence evm target data evm' true out) (hn : target ∉ π)
+    (w : ZeroCallGasEvidence evm target data evm' true out)
+    (hn : target ∉ π evm.executionEnv.fork)
     (hgas : g.toNat < 324518553658429321982441292826060)
     (hout : out.size < 2^138) (hpaid : 1094+Cₘ aw+w.spent ≤ C)
     (h : UnlockAllocationFailure (deployedRuntime v) I g s0 evm'.accountMap out aw C) :
@@ -67,7 +68,7 @@ theorem unlockAllocationFailure_outOfGas {I : ExecutionEnv} {g : Sat256} {s0 evm
     (hout : out.size < 2^138) (hpaid : 1094+Cₘ aw+w.spent ≤ C)
     (h : UnlockAllocationFailure (deployedRuntime v) I g s0 evm'.accountMap out aw C) :
     X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass := by
-  by_cases hp : target ∈ π
+  by_cases hp : target ∈ π evm.executionEnv.fork
   · obtain ⟨hb, first, _, _, _, _, _, hbad, _⟩ := h
     exact (hbad (unlockAllocationBounds_small hb (w.unlock_precompile_size hp hb) first)).elim
   · exact unlockAllocationFailure_nonprecompile v w hp hgas hout hpaid h

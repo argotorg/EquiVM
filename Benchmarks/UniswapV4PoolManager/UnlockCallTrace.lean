@@ -61,19 +61,27 @@ theorem unlockCallTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     · exact .inl hoog
     obtain ⟨σ', z, out, Ain, callGas, gasLeft, A', k', C', hθ, hr, hcost, hout⟩ := hcall
     let evm' : EVM.State := {evm with accountMap := σ', substate := A'}
-    have hθ' : (evm'.accountMap, gasLeft, evm'.substate, z, out) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain evm.executionEnv.codeOwner evm.executionEnv.sender
-          I.source (toExecute evm.accountMap I.source) callGas (UInt256.ofNat evm.executionEnv.gasPrice)
+    have hθ' : (σ', gasLeft, A', z, out) =
+        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain evm.executionEnv.codeOwner evm.executionEnv.sender
+          I.source (toExecute evm.executionEnv.fork evm.accountMap I.source) callGas (UInt256.ofNat evm.executionEnv.gasPrice)
           ⟨0⟩ ⟨0⟩ (mem.readWithPadding 160 (UInt256.sub ending ⟨160⟩).toNat)
           (evm.executionEnv.depth+1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes
           evm.executionEnv.blocks evm.executionEnv.perm := by
-      simpa only [evm', hI, hσ0, accountAddress_roundtrip] using hθ
+      simpa only [hI.symm, hσ0.symm, accountAddress_roundtrip] using hθ
     have hc : typedCallViaEVM config evm I.source "unlockCallback" 0 [.bytes data] (z, evm', out) true := by
       refine ⟨_, hencode, ?_⟩
       apply callViaEVM.callMade (g' := gasLeft) (A' := A') wordOfInt_zero.symm
         ⟨callGas, Ain, ?_⟩ rfl (Fin.zero_le _) (by rw [hI]; exact hd)
       simpa only [Bool.true_and] using hθ'
-    have ho : out.size < 2^138 := Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hθ' hsmall
+    have hθI : (σ', gasLeft, A', z, out) =
+        Ethereum.EVM.Θ I.fork evm.accountMap evm.σ₀ Ain evm.executionEnv.codeOwner evm.executionEnv.sender
+          I.source (toExecute I.fork evm.accountMap I.source) callGas (UInt256.ofNat evm.executionEnv.gasPrice)
+          ⟨0⟩ ⟨0⟩ (mem.readWithPadding 160 (UInt256.sub ending ⟨160⟩).toNat)
+          (evm.executionEnv.depth+1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes
+          evm.executionEnv.blocks evm.executionEnv.perm := by
+      simpa only [hI] using hθ'
+    have ho : out.size < 2^138 := Theta_returnData_size_lt_2pow138_of_eq I.fork
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hθI hsmall
     change RD _ _ _ _ ⟨9036⟩ ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨160⟩ :: R)
       (callOutputMem mem out ⟨160⟩ ⟨0⟩) _ _ _ _ _ at hr
     rw [callOutputMem_zero] at hr
@@ -83,7 +91,7 @@ theorem unlockCallTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     | true =>
       let w : ZeroCallGasEvidence evm I.source
           (mem.readWithPadding 160 (UInt256.sub ending ⟨160⟩).toNat) evm' true out :=
-        ⟨callGas, gasLeft, Ain, hθ'⟩
+        ⟨callGas, gasLeft, Ain, by simpa only [evm'] using hθ'⟩
       have rd1 := poolManager_block_9036_fallthrough (by omega) (by decide) hr
       have rd2 := poolManager_block_9043_taken (by omega) (by decide)
         (by rw [poolManagerPatchedValidJumpsRuntime v]; jump_dest) rd1

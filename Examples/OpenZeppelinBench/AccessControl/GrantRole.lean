@@ -85,7 +85,7 @@ def grantRoleTargetEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 
 theorem grantRoleStore_role (I : ExecutionEnv) :
     (grantRoleStore I).get? "role" = some (grantRoleRoleValue I) := by
-  rw [grantRoleStore, store_get_ne _ _ (by decide), store_get_self]
+  rw [grantRoleStore, store_get_ne _ _ (by native_decide), store_get_self]
 
 theorem grantRoleStore_account (I : ExecutionEnv) :
     (grantRoleStore I).get? "account" = some (grantRoleAccountValue I) := by
@@ -93,16 +93,16 @@ theorem grantRoleStore_account (I : ExecutionEnv) :
 
 theorem grantRoleStore_roles (I : ExecutionEnv) :
     (grantRoleStore I).get? "_roles" = none := by
-  rw [grantRoleStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]
+  rw [grantRoleStore, store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
   native_decide
 
 theorem grantRoleStoreWithAdmin_role (evm : EVM.State) (I : ExecutionEnv) :
     (grantRoleStoreWithAdmin evm I).get? "role" = some (grantRoleRoleValue I) := by
-  rw [grantRoleStoreWithAdmin, store_get_ne _ _ (by decide), grantRoleStore_role]
+  rw [grantRoleStoreWithAdmin, store_get_ne _ _ (by native_decide), grantRoleStore_role]
 
 theorem grantRoleStoreWithAdmin_account (evm : EVM.State) (I : ExecutionEnv) :
     (grantRoleStoreWithAdmin evm I).get? "account" = some (grantRoleAccountValue I) := by
-  rw [grantRoleStoreWithAdmin, store_get_ne _ _ (by decide), grantRoleStore_account]
+  rw [grantRoleStoreWithAdmin, store_get_ne _ _ (by native_decide), grantRoleStore_account]
 
 theorem grantRoleStoreWithAdmin_adminRole (evm : EVM.State) (I : ExecutionEnv) :
     (grantRoleStoreWithAdmin evm I).get? "adminRole" = some (grantRoleAdminValue evm I) := by
@@ -110,7 +110,7 @@ theorem grantRoleStoreWithAdmin_adminRole (evm : EVM.State) (I : ExecutionEnv) :
 
 theorem grantRoleStoreWithAdmin_roles (evm : EVM.State) (I : ExecutionEnv) :
     (grantRoleStoreWithAdmin evm I).get? "_roles" = none := by
-  rw [grantRoleStoreWithAdmin, store_get_ne _ _ (by decide), grantRoleStore_roles]
+  rw [grantRoleStoreWithAdmin, store_get_ne _ _ (by native_decide), grantRoleStore_roles]
 
 theorem evalExpr_grantRole_role (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := grantRoleStore I } evm
@@ -528,7 +528,7 @@ theorem accessControlGrantRoleX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt
   exact evm_run rd922 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨939⟩, jumpiNT (by rw [hslt]; decide),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem accessControlGrantRoleX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (_hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -544,7 +544,7 @@ theorem accessControlGrantRoleX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt2
   exact evm_run rd922 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨939⟩, jumpiNT (by rw [hslt]; decide),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem accessControlGrantRoleX_noncanon_account {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -571,7 +571,7 @@ theorem accessControlGrantRoleX_noncanon_account {σ σ₀ A I} {g : Sat256}
     dup2, eq, push2 ⟨968⟩, jumpiNT (by
       rw [hmask]
       simpa [grantRoleAccountWord, calldataWord] using hnc),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 def grantRoleStorageWordAt (σ : AccountMap) (owner : AccountAddress) (slot : UInt256) : UInt256 :=
   revokeRoleStorageWordAt σ owner slot
@@ -610,13 +610,13 @@ theorem grantRoleRoleKeyValueToWord {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldat
   apply congrArg UInt256.ofNat
   unfold fromByteArrayBigEndian
   rw [byteArray_toList_eq (I.calldata.readBytes 4 32),
-    readBytes_at_toList I.calldata 4 (by omega) (by decide), ← byteArray_toList_eq I.calldata]
+    readBytes_at_toList I.calldata 4 (by omega) (by native_decide), ← byteArray_toList_eq I.calldata]
 
 theorem grantRoleSourceWord_toNat (I : ExecutionEnv) :
     (grantRoleSourceWord I).toNat = I.source.val := by
   unfold grantRoleSourceWord
   exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
-    (show AccountAddress.size ≤ UInt256.size from by decide))
+    (show AccountAddress.size ≤ UInt256.size from by native_decide))
 
 theorem grantRoleSourceWord_canonical (I : ExecutionEnv) :
     (grantRoleSourceWord I).toNat < EVM.addressModulus := by
@@ -710,15 +710,15 @@ theorem accessControlGrantRoleX_adminLoaded {σ σ₀ A I} {g : Sat256}
   have rd370pre := evm_run rd353 with [
     jumpdest, push0, dup3, dup2,
     raw mstore 0 (wordAt0Mem (grantRoleRoleWord I) solcFreePtrMem)
-      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, dup2, swap1,
     raw mstore 0 (revokeRoleBaseHashMem (grantRoleRoleWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨64⟩, swap1,
     raw keccak256 0 (revokeRoleBaseSlot (grantRoleRoleWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost hslotRaw (by decide) (by evm_ov),
+      (by native_decide) mem_cost hslotRaw (by native_decide) (by evm_ov),
     push1 ⟨1⟩, add]
-  obtain ⟨_, _, rd371₀⟩ := rd370pre.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd371₀⟩ := rd370pre.sload (by native_decide) (by evm_ov)
   have rd371 :
       ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨371⟩
         [grantRoleAdminStorageWord σ I, grantRoleAccountWord I, grantRoleRoleWord I,
@@ -863,11 +863,11 @@ theorem accessControlGrantRoleX_onlyRole_revert {σ σ₀ A I} {g : Sat256}
     jumpdest, push2 ⟨849⟩, jumpiNT (by rw [hadmin]) ]
   have rd815 := evm_run rd803 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost hloadAdmin64
-      (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost hloadAdmin64
+      (by native_decide) (by evm_ov),
     push4 ⟨3796991295⟩, push1 ⟨224⟩, shl, dup2,
     raw mstore 6 (revokeRoleUnauthorizedSelectorMemFrom memAdmin)
-      (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+      (UInt256.ofNat 5) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov) ]
   have rd830pre := evm_run rd815 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and,
     push1 ⟨4⟩, dup3, add ]
@@ -881,29 +881,29 @@ theorem accessControlGrantRoleX_onlyRole_revert {σ σ₀ A I} {g : Sat256}
     exact u256_land_comm (grantRoleSourceWord I) solcAddrMask
   have rd830 := evm_run rd830pre with [
     raw mstore 3 (revokeRoleUnauthorizedAccountMemFrom (grantRoleSourceWord I) memAdmin)
-      (UInt256.ofNat 6) (by decide) mem_cost
+      (UInt256.ofNat 6) (by native_decide) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 by decide, hsourceMaskComm]
+        rw [show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 by native_decide, hsourceMaskComm]
         rfl)
-      (by decide) (by evm_ov) ]
+      (by native_decide) (by evm_ov) ]
   have rd837 := evm_run rd830 with [
     push1 ⟨36⟩, dup2, add, dup4, swap1,
     raw mstore 3
       (revokeRoleUnauthorizedMemFrom (grantRoleSourceWord I)
         (grantRoleAdminStorageWord σ I) memAdmin)
-      (UInt256.ofNat 7) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov) ]
   have rd848 := evm_run rd837 with [
     push1 ⟨68⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide) mem_cost
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by native_decide) mem_cost
       (revokeRoleUnauthorizedMemFrom_mload64 (grantRoleSourceWord I)
         (grantRoleAdminStorageWord σ I) hmemAdmin hreadAdmin)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have hlen68 : ((⟨68⟩ : UInt256) + ⟨128⟩).sub ⟨128⟩ = ⟨68⟩ := by
     decide
   have rd848' := rd848
   rw [hlen68] at rd848'
-  exact rd848'.rev 0 (by decide)
+  exact rd848'.rev 0 (by native_decide)
     (by
       simp [M]
       native_decide)
@@ -987,7 +987,7 @@ theorem accessControlGrantRoleX_grant_noop {σ σ₀ A I} {g : Sat256}
     jumpdest, swap3, swap2, pop, pop, jump (by jump_dest),
     jumpdest, pop, pop, pop, pop, jump (by jump_dest),
     jumpdest]
-  exact rd233.stop (by decide) (by evm_ov)
+  exact rd233.stop (by native_decide) (by evm_ov)
 
 theorem accessControlGrantRoleX_grant_write {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -1069,10 +1069,10 @@ theorem accessControlGrantRoleX_grant_write {σ σ₀ A I} {g : Sat256}
   have rd569pre := evm_run rd556 with [
     push0, dup4, dup2,
     raw mstore 0 (wordAt0Mem (grantRoleRoleWord I) memTarget)
-      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, dup2, dup2,
     raw mstore 0 (revokeRoleBaseHashMemFrom (grantRoleRoleWord I) memTarget)
-      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4]
   have hbaseSlotRaw :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -1083,7 +1083,7 @@ theorem accessControlGrantRoleX_grant_write {σ σ₀ A I} {g : Sat256}
     rw [revokeRoleBaseHashMemFrom_read0_64 _ hmemTarget, revokeRoleBaseHashMem_read0_64]
   have rd579pre := evm_run rd569pre with [
     raw keccak256 0 (revokeRoleBaseSlot (grantRoleRoleWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost hbaseSlotRaw (by decide) (by evm_ov),
+      (by native_decide) mem_cost hbaseSlotRaw (by native_decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup7, and]
   have haddrMask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask := by
@@ -1101,19 +1101,19 @@ theorem accessControlGrantRoleX_grant_write {σ σ₀ A I} {g : Sat256}
     raw mstore 0
       (revokeRoleHasRoleAccountMemFrom (grantRoleRoleWord I) (grantRoleAccountWord I)
         memTarget)
-      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     swap1, swap2,
     raw mstore 0
       (revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I) (grantRoleAccountWord I)
         memTarget)
-      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     swap1]
   have hslotWrite := grantRoleTargetKeccakSlotFrom I memTarget hsz68 hmemTarget hcanonAccount
   have rd588 := evm_run rd585pre with [
     raw keccak256 0 (grantRoleTargetSlot I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslotWrite (by decide) (by evm_ov),
+      (by native_decide) mem_cost hslotWrite (by native_decide) (by evm_ov),
     dup1]
-  obtain ⟨_, _, rd589₀⟩ := rd588.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd589₀⟩ := rd588.sload (by native_decide) (by evm_ov)
   have rd589 :
       ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨589⟩
         [grantRoleTargetStorageWord σ I, grantRoleTargetSlot I, ⟨0⟩,
@@ -1142,9 +1142,9 @@ theorem accessControlGrantRoleX_grant_write {σ σ₀ A I} {g : Sat256}
   by_cases hp : I.perm = true
   swap
   · have hpf : I.perm = false := by simpa using hp
-    exact Or.inr ⟨hpf, rd597pre.sstoreStatic hpf (by decide) (by evm_ov)⟩
+    exact Or.inr ⟨hpf, rd597pre.sstoreStatic hpf (by native_decide) (by evm_ov)⟩
   refine Or.inl ⟨hp, ?_⟩
-  obtain ⟨_, _, rd598₀⟩ := rd597pre.sstore hp (by decide) (by evm_ov)
+  obtain ⟨_, _, rd598₀⟩ := rd597pre.sstore hp (by native_decide) (by evm_ov)
   have rd598 :
       ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨598⟩
         [⟨0⟩, grantRoleAccountWord I, grantRoleRoleWord I, ⟨389⟩,
@@ -1169,34 +1169,34 @@ theorem accessControlGrantRoleX_grant_write {σ σ₀ A I} {g : Sat256}
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and, dup3,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and, dup5]
   have rd658 := rd625pre.pushConst grantRoleGrantedTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd668 := evm_run rd658 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
       (revokeRoleHasRoleSlotHashMemFrom_mload64 (grantRoleRoleWord I)
         (grantRoleAccountWord I) hmemTarget hreadTarget)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
       (revokeRoleHasRoleSlotHashMemFrom_mload64 (grantRoleRoleWord I)
         (grantRoleAccountWord I) hmemTarget hreadTarget)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have hlen0 : ((⟨128⟩ : UInt256).sub ⟨128⟩) = ⟨0⟩ := by
     decide
   have rd668' := rd668
   rw [hlen0] at rd668'
-  have rd669 := RD.log4 0 (UInt256.ofNat 3) rd668' (by decide) hp
+  have rd669 := RD.log4 0 (UInt256.ofNat 3) rd668' (by native_decide) hp
     (by
       simp [M]
       native_decide)
-    (by decide) (by simp)
+    (by native_decide) (by simp)
   have rd233 := evm_run rd669 with [
     pop, push1 ⟨1⟩, push2 ⟨347⟩, jump (by jump_dest),
     jumpdest, swap3, swap2, pop, pop, jump (by jump_dest),
     jumpdest, pop, pop, pop, pop, jump (by jump_dest),
     jumpdest]
-  exact rd233.stop (by decide) (by evm_ov)
+  exact rd233.stop (by native_decide) (by evm_ov)
 
 theorem accessControlGrantRoleBody {σ σ₀ A I}
     {g : UInt256}

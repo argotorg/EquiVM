@@ -308,10 +308,11 @@ theorem jugReachLowFirstArm {σ σ₀ A I} {g : Sat256}
   obtain ⟨k32, C32, h32⟩ :=
     jugReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
+  have hrootTgt : armTgt jugBytecode jugRootSplitPc = jugLowJumpdestPc := by native_decide
   have h113 : RD jugBytecode I g (initState σ σ₀ g A I)
       jugLowJumpdestPc [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
-    simpa [jugRootSplitPc, jugLowJumpdestPc] using
+    simpa [jugRootSplitPc, jugLowJumpdestPc, hrootTgt] using
       RD.selectorSplitTakenAuto h32 jugRootSplitWellFormed hroot (by jump_dest) (by simp)
   have h114 : RD jugBytecode I g (initState σ σ₀ g A I)
       jugLowFirstArmPc [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3)

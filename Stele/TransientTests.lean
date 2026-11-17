@@ -225,7 +225,7 @@ private def staticState : EVM.State := { evm with executionEnv.perm := false }
 -- calls within a transaction, belongs to the execution context, and rolls back with a failed call.
 private def runMessage (state : EVM.State) (recipient : EVM.Address) (code : ByteArray)
     (perm : Bool := true) : Bool × EVM.State × ByteArray :=
-  let (accounts, _, substate, ok, output) := Ethereum.EVM.Θ
+  let (accounts, _, substate, ok, output) := Ethereum.EVM.Θ state.executionEnv.fork
     state.accountMap state.σ₀ state.substate state.executionEnv.codeOwner
     state.executionEnv.sender recipient (.Code code) ⟨100000⟩ ⟨0⟩ ⟨0⟩ ⟨0⟩ .empty 1
     state.executionEnv.header state.executionEnv.blobVersionedHashes state.executionEnv.blocks perm

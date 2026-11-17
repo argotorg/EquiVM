@@ -48,7 +48,7 @@ theorem erc20ArmsWellFormed :
     ∀ j, j ≤ 5 → armWellFormed erc20Bytecode (nthArmPc erc20Bytecode erc20FirstArmPc j) := by
   intro j hj
   interval_cases j <;>
-    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+    exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 /-- ERC20's six function selectors, indexed in dispatch (arm) order. -/
 def erc20SelBytes : ℕ → ByteArray
@@ -65,7 +65,7 @@ def erc20SelBytes : ℕ → ByteArray
 theorem erc20ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size) (j : ℕ) (hj : j < 6) :
     UInt256.eq (armSelNat erc20Bytecode (nthArmPc erc20Bytecode erc20FirstArmPc j)) (erc20SelWord I)
       = if (erc20SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
 /-- **Selector identification (proven).**  When `calldata[0:4]` is the `i`-th selector, the earlier
     arms' `EQ`s are `0` (the selectors are distinct) and arm `i`'s is non-zero. -/
@@ -149,26 +149,26 @@ theorem erc20X_callvalue_ne {σ σ₀ A I} {g : Sat256}
   exact solcGuardCallvalueNonzeroRevert
     (ctgt := solcGuardTgt erc20Bytecode) (opC := solcGuardTgtOp erc20Bytecode)
     (wC := solcGuardTgtWidth erc20Bytecode)
-    (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
-      (by decide) (by decide))
-    hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (solcGuardPrologueRD hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide))
+    hwv (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
 theorem erc20X_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = erc20Bytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt erc20Bytecode) (opC := solcGuardTgtOp erc20Bytecode)
     (wC := solcGuardTgtWidth erc20Bytecode) h0 hwv
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by jump_dest)
   exact solcCalldataShortRevert
     (bodyPc := solcDispatchBodyPc erc20Bytecode)
     (rtgt := solcCalldataRevertTgt erc20Bytecode)
     (opR := solcCalldataRevertTgtOp erc20Bytecode)
     (wR := solcCalldataRevertTgtWidth erc20Bytecode)
-    h1 hsz (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by jump_dest) (by decide) (by decide) (by decide)
+    h1 hsz (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by native_decide) (by jump_dest) (by native_decide) (by native_decide) (by native_decide)
 
 theorem erc20X_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = erc20Bytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -183,22 +183,21 @@ theorem erc20X_noMatch {σ σ₀ A I} {g : Sat256}
     rw [hnm j hj]
     rfl
   have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨k1, C1, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt erc20Bytecode) (opC := solcGuardTgtOp erc20Bytecode)
     (wC := solcGuardTgtWidth erc20Bytecode) h0 hwv
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
+    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by jump_dest)
   obtain ⟨k2, C2, h2⟩ := solcCalldataOk
     (bodyPc := solcDispatchBodyPc erc20Bytecode)
     (selLoadTgt := solcCalldataRevertTgt erc20Bytecode)
     (opR := solcCalldataRevertTgtOp erc20Bytecode)
     (wR := solcCalldataRevertTgtWidth erc20Bytecode)
-    h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
+    h1 hsz hsize (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by simp)
   have h4 : RD erc20Bytecode I g (initState σ σ₀ g A I) erc20FirstArmPc
       [erc20SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k3 C3 := by
-    simpa [erc20FirstArmPc, erc20SelWord, solcFirstArmPcFromPrefix, solcSelectorLoadPc,
-      solcCalldataJumpiPc, solcCalldataRevertPushPc, solcDispatchBodyPc] using h3
+    convert h3 using 1 <;> native_decide
   have h5 := h4
     |>.selectorArmNotTakenAuto (erc20ArmsWellFormed 0 (by omega)) (heq0 0 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (erc20ArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
@@ -213,7 +212,7 @@ theorem erc20X_noMatch {σ σ₀ A I} {g : Sat256}
       selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using h5
   obtain ⟨_, _, h96rd⟩ := h96
   exact evm_run h96rd with [
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 /-! ## Per-function body obligations (take the dispatcher-reached cursor) -/
 
@@ -349,27 +348,27 @@ theorem erc20Correct : runtimeRefinement erc20Config erc20Bytecode erc20Contract
       by_cases h0 : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩
       · exact erc20ApproveBody hcode hsize hwv h0
           (erc20ReachBody 0 (by omega) ⟨100⟩ hcode hwv hsz hsize (erc20Matches 0 (by omega) hsz h0).1
-            (erc20Matches 0 (by omega) hsz h0).2 (by jump_dest) (by decide))
+            (erc20Matches 0 (by omega) hsz h0).2 (by jump_dest) (by native_decide))
       · by_cases h1 : selIs I ⟨#[0x18, 0x16, 0x0d, 0xdd]⟩
         · exact erc20TotalSupplyBody hcode hsize hwv h1
             (erc20ReachBody 1 (by omega) ⟨148⟩ hcode hwv hsz hsize (erc20Matches 1 (by omega) hsz h1).1
-              (erc20Matches 1 (by omega) hsz h1).2 (by jump_dest) (by decide))
+              (erc20Matches 1 (by omega) hsz h1).2 (by jump_dest) (by native_decide))
         · by_cases h2 : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩
           · exact erc20TransferFromBody hcode hsize hwv h2
               (erc20ReachBody 2 (by omega) ⟨178⟩ hcode hwv hsz hsize (erc20Matches 2 (by omega) hsz h2).1
-                (erc20Matches 2 (by omega) hsz h2).2 (by jump_dest) (by decide))
+                (erc20Matches 2 (by omega) hsz h2).2 (by jump_dest) (by native_decide))
           · by_cases h3 : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩
             · exact erc20BalanceOfBody hcode hsize hwv h3
                 (erc20ReachBody 3 (by omega) ⟨226⟩ hcode hwv hsz hsize (erc20Matches 3 (by omega) hsz h3).1
-                  (erc20Matches 3 (by omega) hsz h3).2 (by jump_dest) (by decide))
+                  (erc20Matches 3 (by omega) hsz h3).2 (by jump_dest) (by native_decide))
             · by_cases h4 : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩
               · exact erc20TransferBody hcode hsize hwv h4
                   (erc20ReachBody 4 (by omega) ⟨274⟩ hcode hwv hsz hsize (erc20Matches 4 (by omega) hsz h4).1
-                    (erc20Matches 4 (by omega) hsz h4).2 (by jump_dest) (by decide))
+                    (erc20Matches 4 (by omega) hsz h4).2 (by jump_dest) (by native_decide))
               · by_cases h5 : selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩
                 · exact erc20AllowanceBody hcode hsize hwv h5
                     (erc20ReachBody 5 (by omega) ⟨322⟩ hcode hwv hsz hsize (erc20Matches 5 (by omega) hsz h5).1
-                      (erc20Matches 5 (by omega) hsz h5).2 (by jump_dest) (by decide))
+                      (erc20Matches 5 (by omega) hsz h5).2 (by jump_dest) (by native_decide))
                 · -- size ≥ 4 but no selector matches: explicit no-match evidence from h0..h5
                   refine erc20NoDispatch hcode hsize hwv ?_
                   intro i hi
@@ -415,8 +414,8 @@ theorem erc20Initcode_decode_append (tail : ByteArray) (pc : UInt256)
 macro "erc20_ctor_decode" : tactic =>
   `(tactic|
     (first
-      | rw [erc20Initcode_decode_append _ _ (by decide)]
-      | (unfold erc20CtorCode; rw [erc20Initcode_decode_append _ _ (by decide)]);
+      | rw [erc20Initcode_decode_append _ _ (by native_decide)]
+      | (unfold erc20CtorCode; rw [erc20Initcode_decode_append _ _ (by native_decide)]);
      native_decide))
 
 macro "erc20_ctor_jd" : tactic =>
@@ -550,7 +549,7 @@ theorem erc20CtorArg_codecopy_mem (initialSupply : UInt256) :
       erc20CtorArgMem initialSupply := by
   unfold erc20CtorArgMem
   rw [write_eq_gen_from (erc20CtorCode initialSupply) solcFreePtrMem 2763 64 32
-    (by decide)
+    (by native_decide)
     (by rw [erc20CtorCode, ByteArray.size_append, erc20Initcode_size,
       word_toBytesBE_toByteArray_size])
     (by rw [solcFreePtrMem_size])]
@@ -608,10 +607,10 @@ theorem erc20CtorReturnMem_read (caller : AccountAddress) (initialSupply : UInt2
     (erc20CtorReturnMem caller initialSupply).readWithPadding 0 2708 = erc20Bytecode := by
   unfold erc20CtorReturnMem
   rw [write0_read_back_from_gen (erc20CtorCode initialSupply) (erc20CtorHashMem caller initialSupply)
-    55 2708 (by decide)
+    55 2708 (by native_decide)
     (by rw [erc20CtorCode, ByteArray.size_append, erc20Initcode_size,
       word_toBytesBE_toByteArray_size]; omega)
-    (by decide)]
+    (by native_decide)]
   have hleft :
       (erc20CtorCode initialSupply).extract 55 (55 + 2708) =
         erc20Initcode.extract 55 (55 + 2708) := by
@@ -670,39 +669,39 @@ theorem erc20InitcodeSuccess
     raw mstore 9 solcFreePtrMem (UInt256.ofNat 3)
       (by erc20_ctor_decode)
       mem_cost
-      (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
-      (by decide) (by evm_ov),
+      (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by native_decide]; rfl)
+      (by native_decide) (by evm_ov),
     push1 ⟨32⟩, push2 ⟨2763⟩, push1 ⟨64⟩,
     raw codecopy 0 (erc20CtorArgMem initialSupply) (UInt256.ofNat 3)
       (by erc20_ctor_decode)
       mem_cost
       (erc20CtorArg_codecopy_mem initialSupply)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push1 ⟨64⟩,
     raw mload 0 initialSupply (UInt256.ofNat 3)
       (by erc20_ctor_decode)
       mem_cost
       (erc20CtorArgMem_mload64 initialSupply)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, caller, push0,
     raw mstore 0 (wordAt0Mem (UInt256.ofNat I.source.val) (erc20CtorArgMem initialSupply))
       (UInt256.ofNat 3)
       (by erc20_ctor_decode)
       mem_cost
       rfl
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push0, push1 ⟨32⟩,
     raw mstore 0 (erc20CtorHashMem I.source initialSupply) (UInt256.ofNat 3)
       (by erc20_ctor_decode)
       mem_cost
       rfl
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push1 ⟨64⟩, push0,
     raw keccak256 0 (erc20BalanceOfSlot (.address I.source)) (UInt256.ofNat 3)
       (by erc20_ctor_decode)
       mem_cost
       (erc20CtorKeccakSlot I.source initialSupply)
-      (by decide) (by evm_ov)]
+      (by native_decide) (by evm_ov)]
   obtain ⟨k', C', rdAfterBalanceStore⟩ :=
     rdBeforeBalanceStore.sstore hperm (by erc20_ctor_decode) (by evm_ov)
   have rdBeforeTotalSupplyStore := erc20_ctor_run rdAfterBalanceStore with [
@@ -715,7 +714,7 @@ theorem erc20InitcodeSuccess
       (by erc20_ctor_decode)
       mem_cost
       (erc20CtorRuntime_codecopy_mem I.source initialSupply)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     push2 ⟨2708⟩, push0]
   exact rdBeforeReturn.ret 0 erc20Bytecode
     (by erc20_ctor_decode)

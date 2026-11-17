@@ -234,10 +234,11 @@ theorem vowReachLowSplit {σ σ₀ A I} {g : Sat256}
       (armTgt vowBytecode vowRootSplitPc) [vowSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ (k32 + 5) (C32 + 22) :=
     RD.selectorSplitTakenAuto h32 vowRootSplitWellFormed hroot (by jump_dest) (by simp)
+  have hrootTgt : armTgt vowBytecode vowRootSplitPc = vowLowJumpdestPc := by native_decide
   have h196 : RD vowBytecode I g (initState σ σ₀ g A I)
       vowLowSplitPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [vowLowSplitPc, vowLowJumpdestPc, vowRootSplitPc, armTgt, pushAt]
+    simpa [vowLowSplitPc, vowLowJumpdestPc, vowRootSplitPc, hrootTgt]
       using h195.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h196⟩
 
@@ -274,10 +275,11 @@ theorem vowReachLowLowFirstArm {σ σ₀ A I} {g : Sat256}
       (armTgt vowBytecode vowLowSplitPc) [vowSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ (k196 + 5) (C196 + 22) :=
     RD.selectorSplitTakenAuto h196 vowLowSplitWellFormed hlow (by jump_dest) (by simp)
+  have hlowTgt : armTgt vowBytecode vowLowSplitPc = vowLowLowJumpdestPc := by native_decide
   have h278 : RD vowBytecode I g (initState σ σ₀ g A I)
       vowLowLowFirstArmPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k196 + 5 + 1) (C196 + 22 + 1) := by
-    simpa [vowLowLowFirstArmPc, vowLowLowJumpdestPc, vowLowSplitPc, armTgt, pushAt]
+    simpa [vowLowLowFirstArmPc, vowLowLowJumpdestPc, vowLowSplitPc, hlowTgt]
       using h277.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h278⟩
 
@@ -315,10 +317,11 @@ theorem vowReachHighLowFirstArm {σ σ₀ A I} {g : Sat256}
       (armTgt vowBytecode vowHighSplitPc) [vowSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty σ (k43 + 5) (C43 + 22) :=
     RD.selectorSplitTakenAuto h43 vowHighSplitWellFormed hhigh (by jump_dest) (by simp)
+  have hhighTgt : armTgt vowBytecode vowHighSplitPc = vowHighLowJumpdestPc := by native_decide
   have h125 : RD vowBytecode I g (initState σ σ₀ g A I)
       vowHighLowFirstArmPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k43 + 5 + 1) (C43 + 22 + 1) := by
-    simpa [vowHighLowFirstArmPc, vowHighLowJumpdestPc, vowHighSplitPc, armTgt, pushAt]
+    simpa [vowHighLowFirstArmPc, vowHighLowJumpdestPc, vowHighSplitPc, hhighTgt]
       using h124.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h125⟩
 

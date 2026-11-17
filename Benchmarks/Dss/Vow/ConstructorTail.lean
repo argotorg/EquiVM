@@ -451,19 +451,19 @@ theorem vowConstructorCorrect :
                 (vowCtorWardsHashMem_size I vat flapper flopper))
           · calc
               (σCall, gTheta, ATheta, z, out) =
-                  Θ σFlopper (initState σ σ₀ (Sat256.ofUInt256 g) A I).σ₀ Ain
+                  Θ I.fork  σFlopper (initState σ σ₀ (Sat256.ofUInt256 g) A I).σ₀ Ain
                     (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
                     (AccountAddress.ofUInt256 targetWord)
-                    (toExecute σFlopper (AccountAddress.ofUInt256 targetWord)) callGas
+                    (toExecute I.fork σFlopper (AccountAddress.ofUInt256 targetWord)) callGas
                     (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
                     ((vowCtorHopeCalldataMem (EVM.word flapper.val)
                       (vowCtorWardsHashMem I vat flapper flopper)).readWithPadding
                       vowCtorCallOutPtr.toNat vowCtorCallInSize.toNat)
                     (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm := hTheta
-              _ = Θ evm4e.accountMap evm4e.σ₀ Ain
+              _ = Θ evm4e.executionEnv.fork evm4e.accountMap evm4e.σ₀ Ain
                     (AccountAddress.ofUInt256 (UInt256.ofNat evm4e.executionEnv.codeOwner))
                     evm4e.executionEnv.sender (AccountAddress.ofUInt256 targetWord)
-                    (toExecute evm4e.accountMap (AccountAddress.ofUInt256 targetWord)) callGas
+                    (toExecute evm4e.executionEnv.fork evm4e.accountMap (AccountAddress.ofUInt256 targetWord)) callGas
                     (UInt256.ofNat evm4e.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
                     ((vowCtorHopeCalldataMem (EVM.word flapper.val)
                       (vowCtorWardsHashMem I vat flapper flopper)).readWithPadding

@@ -118,10 +118,10 @@ theorem jugDripBodyCoreVatIlksCallFailed
       (dripVatIlksPostCallMem I out) (UInt256.ofNat 6) out σ' k C)
     (hΘ :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', false, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', false, out) = Ethereum.EVM.Θ I.fork  σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
           gasWord (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
@@ -153,10 +153,10 @@ theorem jugDripBodyCoreVatIlksCallFailed
     exact address_of_val _
   have hΘE :
       (σ', g'', A', false, out) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
           evm.executionEnv.sender (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute evm.accountMap (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
+          (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
           gasWord (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
@@ -259,10 +259,10 @@ theorem jugDripBodyCoreVatIlksReturnDecodeShort
       (dripVatIlksPostCallMem I out) (UInt256.ofNat 6) out σ' k C)
     (hΘ :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', true, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', true, out) = Ethereum.EVM.Θ I.fork  σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
           gasWord (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
@@ -295,10 +295,10 @@ theorem jugDripBodyCoreVatIlksReturnDecodeShort
     exact address_of_val _
   have hΘE :
       (σ', g'', A', true, out) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
           evm.executionEnv.sender (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute evm.accountMap (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
+          (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
           gasWord (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
@@ -345,10 +345,10 @@ theorem jugDripBodyCoreVatIlksAddOverflow
       mem (UInt256.ofNat 6) out σ' k C)
     (hΘ :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', true, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', true, out) = Ethereum.EVM.Θ I.fork  σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
@@ -373,10 +373,10 @@ theorem jugDripBodyCoreVatIlksAddOverflow
   rcases hΘ with ⟨g'', A', hΘ⟩
   have hΘE :
       (σ', g'', A', true, out) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
           evm.executionEnv.sender (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute evm.accountMap (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
+          (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)

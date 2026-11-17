@@ -370,9 +370,9 @@ theorem RD.catBiteKickPostCall {σ σ₀ A I} {g target gasWord : UInt256} {mem 
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ σx σ₀ Ain
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork  σx σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-          (AccountAddress.ofUInt256 target) (toExecute σx (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute I.fork σx (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding 128 164) (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ RD catBytecode I (Sat256.ofUInt256 g)

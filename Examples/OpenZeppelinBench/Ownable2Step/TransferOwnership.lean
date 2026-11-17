@@ -59,12 +59,12 @@ theorem transferOwnershipStore_newOwner (I : ExecutionEnv) :
 
 theorem transferOwnershipStore_owner (I : ExecutionEnv) :
     (transferOwnershipStore I).get? "_owner" = none := by
-  rw [transferOwnershipStore, store_get_ne _ _ (by decide)]
+  rw [transferOwnershipStore, store_get_ne _ _ (by native_decide)]
   native_decide
 
 theorem transferOwnershipStore_pendingOwner (I : ExecutionEnv) :
     (transferOwnershipStore I).get? "_pendingOwner" = none := by
-  rw [transferOwnershipStore, store_get_ne _ _ (by decide)]
+  rw [transferOwnershipStore, store_get_ne _ _ (by native_decide)]
   native_decide
 
 theorem evalExpr_transferOwnership_owner (evm : EVM.State) (I : ExecutionEnv) :
@@ -306,7 +306,7 @@ theorem ownable2StepDecodeAddressLenRevert530 {g : Sat256} {s0 : State}
   evm_run h with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨546⟩,
     jumpiNT (by rw [hsltval]; decide),
-    raw revertStub (by decide) (by decide) (by decide) (by
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by
       have hR : R.length ≤ 1024 - 10 := Nat.le_sub_of_add_le hov
       simp only [List.length_cons]
       omega) ]
@@ -335,7 +335,7 @@ theorem ownable2StepDecodeAddressNoncanonRevert530 {g : Sat256} {s0 : State}
     jumpiT (by rw [hsltval]; decide) (by jump_dest),
     jumpdest, dup2, calldataload, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     dup2, and, dup2, eq, push2 ⟨568⟩, jumpiNT (by rw [hnc']),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem ownable2StepTransferOwnershipX_toDecoder {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -448,7 +448,7 @@ theorem ownable2StepX_transferOwnership_success {σ σ₀ A I} {g : Sat256}
     rd387 (by simpa [ownable2StepOnlyOwnerWord, transferOwnershipOwnerWord] using howner)
     (by jump_dest) (by evm_ov)
   have rd287 := evm_run rd283 with [jumpdest, push1 ⟨1⟩, dup1]
-  obtain ⟨_, _, rd288₀⟩ := rd287.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd288₀⟩ := rd287.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd288⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨288⟩
       [transferOwnershipPendingOwnerWord σ I, ⟨1⟩, transferOwnershipNewOwnerWord I, ⟨97⟩,
@@ -458,7 +458,7 @@ theorem ownable2StepX_transferOwnership_success {σ σ₀ A I} {g : Sat256}
   have rd311₀ := evm_run rd288 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and, push1 ⟨1⟩,
     push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, swap1, swap2, and, dup2]
-  have rd312₀ := RD.or rd311₀ (by decide) (by evm_ov)
+  have rd312₀ := RD.or rd311₀ (by native_decide) (by evm_ov)
   have hset :
       UInt256.lor
           (UInt256.land (transferOwnershipNewOwnerWord I) solcAddrMask)
@@ -470,15 +470,15 @@ theorem ownable2StepX_transferOwnership_success {σ σ₀ A I} {g : Sat256}
       (UInt256.land (transferOwnershipPendingOwnerWord σ I) (UInt256.lnot solcAddrMask))
   have rd312 := rd312₀
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-        solcAddrMask by decide] at rd312
+        solcAddrMask by native_decide] at rd312
   rw [hset] at rd312
   have rd314 := evm_run rd312 with [swap1, swap2]
   by_cases hp : I.perm = true
   swap
   · have hpf : I.perm = false := by simpa using hp
-    exact Or.inr ⟨hpf, rd314.sstoreStatic hpf (by decide) (by evm_ov)⟩
+    exact Or.inr ⟨hpf, rd314.sstoreStatic hpf (by native_decide) (by evm_ov)⟩
   refine Or.inl ⟨hp, ?_⟩
-  obtain ⟨_, _, rd315₀⟩ := rd314.sstore hp (by decide) (by evm_ov)
+  obtain ⟨_, _, rd315₀⟩ := rd314.sstore hp (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd315⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨315⟩
       [UInt256.land (transferOwnershipNewOwnerWord I) solcAddrMask,
@@ -488,7 +488,7 @@ theorem ownable2StepX_transferOwnership_success {σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [transferOwnershipAfterPendingMap] using rd315₀⟩
   let σp := transferOwnershipAfterPendingMap σ I
   have rd319 := evm_run rd315 with [push2 ⟨331⟩, push0]
-  obtain ⟨_, _, rd320₀⟩ := rd319.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd320₀⟩ := rd319.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd320⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
       (initState σ σ₀ g A I) ⟨320⟩
       [transferOwnershipOwnerWordAfterPending σ I, ⟨331⟩,
@@ -504,22 +504,22 @@ theorem ownable2StepX_transferOwnership_success {σ σ₀ A I} {g : Sat256}
   have rd374 := rd341.pushConst
     (⟨0x38d16b8cac22d99fc7c124b9cd0de2d3fa1faef420bfe791d8c362d765e22700⟩ :
       UInt256)
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
   have rd383₀ := evm_run rd374 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost solcFreePtrMem_mload64 (by native_decide) (by evm_ov),
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+      mem_cost solcFreePtrMem_mload64 (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have rd383 := rd383₀
-  rw [show UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ = ⟨0⟩ by decide] at rd383
-  have rd385 := rd383.log3 0 (UInt256.ofNat 3) (by decide) hp mem_cost
-    (by decide) (by evm_ov)
+  rw [show UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ = ⟨0⟩ by native_decide] at rd383
+  have rd385 := rd383.log3 0 (UInt256.ofNat 3) (by native_decide) hp mem_cost
+    (by native_decide) (by evm_ov)
   have rd97 := evm_run rd385 with [pop, jump (by jump_dest)]
   have rd98 := evm_run rd97 with [jumpdest]
-  exact rd98.stop (by decide) (by evm_ov)
+  exact rd98.stop (by native_decide) (by evm_ov)
 
 theorem ownable2StepX_transferOwnership_revert_owner {σ σ₀ A I} {g : Sat256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)

@@ -37,7 +37,7 @@ theorem staticCallBridge {code I g s0 pc R mem aw rdata σ k C evm}
       h.solcStaticcall hdec hdlt hov
     rw [hcd] at hΘ
     have hout : out.size < 2 ^ 138 :=
-      Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ hsmall
+      Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  _ hΘ hsmall
     let evm' := { evm with accountMap := σ', substate := AS' }
     have hcall : callViaEVM evm (AccountAddress.ofUInt256 target) 0 calldata (z, evm', out) false := by
       apply callViaEVM.callMade (valueWord := ⟨0⟩) (g' := gasLeft) (A' := AS')

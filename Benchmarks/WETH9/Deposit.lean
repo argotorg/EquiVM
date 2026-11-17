@@ -482,7 +482,10 @@ theorem weth9ReachNoMatch156 {σ σ₀ A I} {g : Sat256}
       |>.jump (by native_decide) (by jump_dest) (by simp)
     exact ⟨_, _, h156⟩
   · have h100 := RD.selectorSplitTakenAuto h19 weth9RootSplitWellFormed hroot (by jump_dest) (by simp)
-    have h156 := h100.jumpdest (by native_decide) (by simp)
+    have htarget : armTgt weth9Bytecode ⟨19⟩ = ⟨100⟩ := by native_decide
+    have h101 := h100.jumpdest (by native_decide) (by simp only [List.length]; omega)
+    have h101' := by simpa only [htarget] using h101
+    have h156 := h101'
       |>.selectorArmNotTakenAuto (weth9LowerArmsWellFormed 0 (by omega)) (hLower 0 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (weth9LowerArmsWellFormed 1 (by omega)) (hLower 1 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (weth9LowerArmsWellFormed 2 (by omega)) (hLower 2 (by omega)) (by simp)

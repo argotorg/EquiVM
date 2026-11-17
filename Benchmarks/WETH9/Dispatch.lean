@@ -91,7 +91,9 @@ theorem weth9ReachLowerArm {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h19⟩ := weth9ReachSplit (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   have h100 := RD.selectorSplitTakenAuto h19 weth9RootSplitWellFormed hb (by jump_dest) (by simp)
-  exact ⟨_, _, h100.jumpdest (by native_decide) (by simp only [List.length]; omega)⟩
+  have htarget : armTgt weth9Bytecode ⟨19⟩ = ⟨100⟩ := by native_decide
+  have h101 := h100.jumpdest (by native_decide) (by simp only [List.length]; omega)
+  exact ⟨_, _, by simpa [htarget] using h101⟩
 
 /-! ## Per-function body reaches
 

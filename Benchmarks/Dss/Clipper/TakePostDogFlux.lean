@@ -54,6 +54,7 @@ theorem clipperTakeIlkPush32Decode5045 (v : ClipperImmutables) {code : ByteArray
         (clipperRuntimePatchesWindowDisjoint32Bool v (⟨5045⟩ : UInt256).toNat
           ((⟨5045⟩ : UInt256).toNat + 1) (by native_decide))]
       native_decide)
+    (by native_decide)
     (by
       rw [show (⟨5045⟩ : UInt256).toNat + 1 = 5046 by native_decide]
       rw [show (⟨5045⟩ : UInt256).toNat + 33 = 5078 by native_decide]
@@ -108,6 +109,7 @@ theorem clipperTakeVatPush32Decode5114 (v : ClipperImmutables) {code : ByteArray
         (clipperRuntimePatchesWindowDisjoint32Bool v (⟨5114⟩ : UInt256).toNat
           ((⟨5114⟩ : UInt256).toNat + 1) (by native_decide))]
       native_decide)
+    (by native_decide)
     (by
       rw [show (⟨5114⟩ : UInt256).toNat + 1 = 5115 by native_decide]
       rw [show (⟨5114⟩ : UInt256).toNat + 33 = 5147 by native_decide]

@@ -287,10 +287,12 @@ theorem daiJoinReachLowFirstArm {σ σ₀ A I} {g : Sat256}
   obtain ⟨k32, C32, h32⟩ :=
     daiJoinReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
+  have hrootTgt : armTgt daiJoinBytecode daiJoinRootSplitPc = daiJoinLowJumpdestPc :=
+    by native_decide
   have h102 : RD daiJoinBytecode I g (initState σ σ₀ g A I)
       daiJoinLowJumpdestPc [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
-    simpa [daiJoinRootSplitPc, daiJoinLowJumpdestPc] using
+    simpa [daiJoinRootSplitPc, daiJoinLowJumpdestPc, hrootTgt] using
       RD.selectorSplitTakenAuto h32 daiJoinRootSplitWellFormed hroot (by jump_dest) (by simp)
   have h103 : RD daiJoinBytecode I g (initState σ σ₀ g A I)
       daiJoinLowFirstArmPc [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)

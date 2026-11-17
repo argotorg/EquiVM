@@ -816,6 +816,7 @@ theorem clipperYankIlkPush32Decode2220 (v : ClipperImmutables) {code : ByteArray
       rw [patchRuntime_get?_disjoint hpatch
         (by apply clipperYankPatchesWindowDisjoint32 v <;> native_decide)]
       native_decide)
+    (by native_decide)
     (by
       rw [show (⟨2220⟩ : UInt256).toNat + 1 = 2221 by native_decide]
       rw [show (⟨2220⟩ : UInt256).toNat + 33 = 2253 by native_decide]
@@ -870,6 +871,7 @@ theorem clipperYankIlkPush32Decode2368 (v : ClipperImmutables) {code : ByteArray
       rw [patchRuntime_get?_disjoint hpatch
         (by apply clipperYankPatchesWindowDisjoint32AfterIlk v <;> native_decide)]
       native_decide)
+    (by native_decide)
     (by
       rw [show (⟨2368⟩ : UInt256).toNat + 1 = 2369 by native_decide]
       rw [show (⟨2368⟩ : UInt256).toNat + 33 = 2401 by native_decide]
@@ -923,6 +925,7 @@ theorem clipperYankVatPush32Decode2436 (v : ClipperImmutables) {code : ByteArray
       rw [patchRuntime_get?_disjoint hpatch
         (by apply clipperYankPatchesWindowDisjoint32FluxBeforeVat v <;> native_decide)]
       native_decide)
+    (by native_decide)
     (by
       rw [show (⟨2436⟩ : UInt256).toNat + 1 = 2437 by native_decide]
       rw [show (⟨2436⟩ : UInt256).toNat + 33 = 2469 by native_decide]

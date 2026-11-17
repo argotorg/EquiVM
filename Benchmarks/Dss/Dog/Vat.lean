@@ -191,6 +191,8 @@ theorem dogVatGetterJumpdestDecode {v : DogImmutables} {code : ByteArray}
     hpatch (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide)
 
+set_option maxRecDepth 2000000 in
+set_option maxHeartbeats 2000000 in
 theorem dogVatConstDecode {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
     decode code ⟨1404⟩ =
@@ -220,15 +222,14 @@ theorem dogVatConstDecode {v : DogImmutables} {code : ByteArray}
           · rw [h]
             omega)
         hpatch
-  have hextract : code.extract' ({ val := 1404 } : UInt256).toNat.succ
-      (({ val := 1404 } : UInt256).toNat.succ + 32) =
+  have hread : code.readWithPadding ({ val := 1404 } : UInt256).toNat.succ 32 =
       UInt256.toByteArray (EVM.Word.ofNat v.vat.toNat) := by
-    change code.extract' 1405 1437 = UInt256.toByteArray (EVM.Word.ofNat v.vat.toNat)
-    unfold ByteArray.extract'
-    have hguard : (decide (1405 < 2 ^ 64) && decide (1437 < 2 ^ 64)) = true := by
-      native_decide
-    rw [if_pos hguard]
-    exact dogVatPatchWord hpatch
+    change code.readWithPadding 1405 32 = UInt256.toByteArray (EVM.Word.ofNat v.vat.toNat)
+    rw [readWithPadding_eq_extract' _ 1405 32 (by native_decide) (by native_decide)
+      (by rw [dogPatchedSize hpatch]; native_decide)]
+    have hbytes := dogVatPatchWord hpatch
+    unfold ByteArray.extract' at hbytes
+    exact hbytes
   have hgetSome : code.get? ({ val := 1404 } : UInt256).toNat = some 0x7f := by
     rw [hget]
     native_decide
@@ -236,12 +237,8 @@ theorem dogVatConstDecode {v : DogImmutables} {code : ByteArray}
     native_decide
   unfold decode
   rw [hgetSome, hparse]
-  change some (Operation.Push Operation.POp.PUSH32,
-      some (uInt256OfByteArray
-        (code.extract' ({ val := 1404 } : UInt256).toNat.succ
-          (({ val := 1404 } : UInt256).toNat.succ + 32)), 32)) =
-    some (Operation.Push Operation.POp.PUSH32, some (EVM.Word.ofNat v.vat.toNat, 32))
-  rw [hextract, uInt256OfByteArray_eq, fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
+  simp [argOnNBytesOfInstr, hread, uInt256OfByteArray_eq,
+    fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
 
 theorem dogVatGetterDupDecode {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :

@@ -190,10 +190,10 @@ theorem potDripX_postCall {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel ch
     ∃ (σ' : AccountMap) (z : Bool) (o : ByteArray)
       (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ σ'' s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork  σ'' s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (dripVatTargetWord σ'' I))
-          (toExecute σ'' (AccountAddress.ofUInt256 (dripVatTargetWord σ'' I)))
+          (toExecute I.fork σ'' (AccountAddress.ofUInt256 (dripVatTargetWord σ'' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((potSuckCalldataMem σ'' I (dripPieWord σ'' I * chi_) solcFreePtrMem).readWithPadding
             128 100)
@@ -1433,6 +1433,8 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
           rcases hΘ with ⟨g'', A', hΘ⟩
           have hΘE : (σ', g'', A', z, o) = Ethereum.EVM.Θ
               (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                (dripTmpVal σ I pow) (dripNowWord I)).executionEnv.fork
+              (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (dripTmpVal σ I pow) (dripNowWord I)).accountMap
               (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (dripTmpVal σ I pow) (dripNowWord I)).σ₀ A_in
@@ -1443,6 +1445,8 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
                 (dripTmpVal σ I pow) (dripNowWord I)).executionEnv.sender
               (AccountAddress.ofUInt256 (dripVatTargetWord σ2 I))
               (toExecute (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                (dripTmpVal σ I pow) (dripNowWord I)).executionEnv.fork
+              (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (dripTmpVal σ I pow) (dripNowWord I)).accountMap
                 (AccountAddress.ofUInt256 (dripVatTargetWord σ2 I)))
               callGas (UInt256.ofNat (dripEvmRho (initState σ σ₀

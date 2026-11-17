@@ -138,7 +138,7 @@ theorem renounceRoleSourceWord_toNat (I : ExecutionEnv) :
     (renounceRoleSourceWord I).toNat = I.source.val := by
   unfold renounceRoleSourceWord
   exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
-    (show AccountAddress.size ≤ UInt256.size from by decide))
+    (show AccountAddress.size ≤ UInt256.size from by native_decide))
 
 theorem renounceRoleSourceWord_canonical (I : ExecutionEnv) :
     (renounceRoleSourceWord I).toNat < EVM.addressModulus := by
@@ -247,7 +247,7 @@ theorem renounceRoleRoleKeyValueToWord {I : ExecutionEnv} (hsz68 : 68 ≤ I.call
   apply congrArg UInt256.ofNat
   unfold fromByteArrayBigEndian
   rw [byteArray_toList_eq (I.calldata.readBytes 4 32),
-    readBytes_at_toList I.calldata 4 (by omega) (by decide)]
+    readBytes_at_toList I.calldata 4 (by omega) (by native_decide)]
   rw [byteArray_toList_eq]
 
 theorem renounceRoleBaseKeccakSlot (I : ExecutionEnv) (hsz68 : 68 ≤ I.calldata.size) :
@@ -297,7 +297,7 @@ theorem renounceRolePostState_executionEnv (evm : EVM.State) (I : ExecutionEnv) 
 
 theorem renounceRoleStore_role (I : ExecutionEnv) :
     (renounceRoleStore I).get? "role" = some (renounceRoleRoleValue I) := by
-  rw [renounceRoleStore, store_get_ne _ _ (by decide), store_get_self]
+  rw [renounceRoleStore, store_get_ne _ _ (by native_decide), store_get_self]
 
 theorem renounceRoleStore_callerConfirmation (I : ExecutionEnv) :
     (renounceRoleStore I).get? "callerConfirmation" =
@@ -306,7 +306,7 @@ theorem renounceRoleStore_callerConfirmation (I : ExecutionEnv) :
 
 theorem renounceRoleStore_roles (I : ExecutionEnv) :
     (renounceRoleStore I).get? "_roles" = none := by
-  rw [renounceRoleStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]
+  rw [renounceRoleStore, store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
   native_decide
 
 theorem evalExpr_renounceRole_role (evm : EVM.State) (I : ExecutionEnv) :
@@ -583,7 +583,7 @@ theorem accessControlRenounceRoleX_shortarg {σ σ₀ A I} {g : Sat256}
   exact evm_run rd922 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨939⟩, jumpiNT (by rw [hslt]; decide),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem accessControlRenounceRoleX_hugearg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -600,7 +600,7 @@ theorem accessControlRenounceRoleX_hugearg {σ σ₀ A I} {g : Sat256}
   exact evm_run rd922 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨939⟩, jumpiNT (by rw [hslt]; decide),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem accessControlRenounceRoleX_noncanon_caller {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -627,7 +627,7 @@ theorem accessControlRenounceRoleX_noncanon_caller {σ σ₀ A I} {g : Sat256}
     dup2, eq, push2 ⟨968⟩, jumpiNT (by
       rw [hmask]
       simpa [renounceRoleCallerWord, calldataWord] using hnc),
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem accessControlRenounceRoleX_caller_ok {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -690,22 +690,22 @@ theorem accessControlRenounceRoleX_caller_revert {σ σ₀ A I} {g : Sat256}
     eq, push2 ⟨436⟩, jumpiNT (by rw [haddrMask, heqZero]) ]
   have rd424 := evm_run rd412 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
-      (solcFreePtrMem_mload64) (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
+      (solcFreePtrMem_mload64) (by native_decide) (by evm_ov),
     push4 ⟨860608793⟩, push1 ⟨225⟩, shl, dup2,
     raw mstore 6 (solcReturnMem renounceRoleBadConfirmationSelector)
-      (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
+      (UInt256.ofNat 5) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov) ]
   have rd435 := evm_run rd424 with [
     push1 ⟨4⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide) mem_cost
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost
       (solcReturnMem_mload64 renounceRoleBadConfirmationSelector)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
   have hlen4 : ((⟨4⟩ : UInt256) + ⟨128⟩).sub ⟨128⟩ = ⟨4⟩ := by
     decide
   have rd435' := rd435
   rw [hlen4] at rd435'
-  exact rd435'.rev 0 (by decide)
+  exact rd435'.rev 0 (by native_decide)
     (by
       simp [M]
       native_decide)
@@ -762,7 +762,7 @@ theorem accessControlRenounceRoleX_revoke_noop {σ σ₀ A I} {g : Sat256}
     jumpdest, swap3, swap2, pop, pop, jump (by jump_dest),
     jumpdest, pop, pop, pop, jump (by jump_dest),
     jumpdest]
-  exact rd233.stop (by decide) (by evm_ov)
+  exact rd233.stop (by native_decide) (by evm_ov)
 
 theorem accessControlRenounceRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -820,10 +820,10 @@ theorem accessControlRenounceRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
   have rd713pre := evm_run rd700 with [
     push0, dup4, dup2,
     raw mstore 0 (wordAt0Mem (renounceRoleRoleWord I) memTarget)
-      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, dup2, dup2,
     raw mstore 0 (revokeRoleBaseHashMemFrom (renounceRoleRoleWord I) memTarget)
-      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4]
   have hbaseSlotRaw :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -834,7 +834,7 @@ theorem accessControlRenounceRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
     rw [revokeRoleBaseHashMemFrom_read0_64 _ hmemTarget, revokeRoleBaseHashMem_read0_64]
   have rd723pre := evm_run rd713pre with [
     raw keccak256 0 (revokeRoleBaseSlot (renounceRoleRoleWord I)) (UInt256.ofNat 3)
-      (by decide) mem_cost hbaseSlotRaw (by decide) (by evm_ov),
+      (by native_decide) mem_cost hbaseSlotRaw (by native_decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup7, and]
   have haddrMask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask := by
@@ -852,12 +852,12 @@ theorem accessControlRenounceRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
     raw mstore 0
       (revokeRoleHasRoleAccountMemFrom (renounceRoleRoleWord I) (renounceRoleCallerWord I)
         memTarget)
-      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     swap3,
     raw mstore 0
       (revokeRoleHasRoleSlotHashMemFrom (renounceRoleRoleWord I) (renounceRoleCallerWord I)
         memTarget)
-      (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
     dup1, dup4]
   have hslotWrite :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -868,9 +868,9 @@ theorem accessControlRenounceRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
       (renounceRoleCallerWord I) memTarget hmemTarget hcanon, ← htargetSlotEq]
   have rd732 := evm_run rd731pre with [
     raw keccak256 0 (renounceRoleTargetSlot I) (UInt256.ofNat 3)
-      (by decide) mem_cost hslotWrite (by decide) (by evm_ov),
+      (by native_decide) mem_cost hslotWrite (by native_decide) (by evm_ov),
     dup1]
-  obtain ⟨_, _, rd733₀⟩ := rd732.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd733₀⟩ := rd732.sload (by native_decide) (by evm_ov)
   have rd733 :
       ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨734⟩
         [renounceRoleStorageWord σ I, renounceRoleTargetSlot I, ⟨64⟩,
@@ -893,9 +893,9 @@ theorem accessControlRenounceRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
   by_cases hp : I.perm = true
   swap
   · have hpf : I.perm = false := by simpa using hp
-    exact Or.inr ⟨hpf, rd739pre.sstoreStatic hpf (by decide) (by evm_ov)⟩
+    exact Or.inr ⟨hpf, rd739pre.sstoreStatic hpf (by native_decide) (by evm_ov)⟩
   refine Or.inl ⟨hp, ?_⟩
-  obtain ⟨_, _, rd740₀⟩ := rd739pre.sstore hp (by decide) (by evm_ov)
+  obtain ⟨_, _, rd740₀⟩ := rd739pre.sstore hp (by native_decide) (by evm_ov)
   have rd740 :
       ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨740⟩
         [⟨64⟩, renounceRoleCallerWord I, ⟨0⟩, ⟨0⟩, renounceRoleCallerWord I,
@@ -915,25 +915,25 @@ theorem accessControlRenounceRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
         memTarget).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     exact revokeRoleHasRoleSlotHashMemFrom_read64 _ _ hmemTarget hreadTarget
   have rd745pre := evm_run rd740 with [
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
       (revokeRoleHasRoleSlotHashMemFrom_mload64 (renounceRoleRoleWord I)
         (renounceRoleCallerWord I) hmemTarget hreadTarget)
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     caller, swap3, dup7, swap2]
   have rd745 := rd745pre.pushConst revokeRoleRevokedTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd780 := evm_run rd745 with [swap2, swap1]
-  have rd781 := RD.log4 0 (UInt256.ofNat 3) rd780 (by decide) hp
+  have rd781 := RD.log4 0 (UInt256.ofNat 3) rd780 (by native_decide) hp
     (by
       simp [M]
       native_decide)
-    (by decide) (by simp)
+    (by native_decide) (by simp)
   have rd233 := evm_run rd781 with [
     pop, push1 ⟨1⟩, push2 ⟨347⟩, jump (by jump_dest),
     jumpdest, swap3, swap2, pop, pop, jump (by jump_dest),
     jumpdest, pop, pop, pop, jump (by jump_dest),
     jumpdest]
-  exact rd233.stop (by decide) (by evm_ov)
+  exact rd233.stop (by native_decide) (by evm_ov)
 
 theorem accessControlRenounceRoleBody {σ σ₀ A I}
     {g : UInt256}

@@ -95,10 +95,10 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
           exact hdepthEq hbad
         have hΘE :
             (σ', g'', A', z, out) =
-              Ethereum.EVM.Θ evmE.accountMap evmE.σ₀ Ain
+              Ethereum.EVM.Θ evmE.executionEnv.fork evmE.accountMap evmE.σ₀ Ain
                 (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
                 evmE.executionEnv.sender (AccountAddress.ofUInt256 (pokePipTargetWord σ I))
-                (toExecute evmE.accountMap (AccountAddress.ofUInt256 (pokePipTargetWord σ I)))
+                (toExecute evmE.executionEnv.fork evmE.accountMap (AccountAddress.ofUInt256 (pokePipTargetWord σ I)))
                 callGas (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
                 ((pokePeekCalldataMem I).readWithPadding
                   pokePeekOutPtr.toNat pokePeekInSize.toNat)
@@ -222,12 +222,12 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                 let evmPipSAligned := { evmPipS with substate := A' }
                 have hΘFileE :
                     (σ'', gFile'', AFile', zFile, fileOut) =
-                    Ethereum.EVM.Θ evmPipE.accountMap evmPipE.σ₀ AinFile
+                    Ethereum.EVM.Θ evmPipE.executionEnv.fork evmPipE.accountMap evmPipE.σ₀ AinFile
                         (AccountAddress.ofUInt256
                           (UInt256.ofNat evmPipE.executionEnv.codeOwner))
                         evmPipE.executionEnv.sender
                         (AccountAddress.ofUInt256 (pokeVatTargetWord σ' I))
-                        (toExecute evmPipE.accountMap
+                        (toExecute evmPipE.executionEnv.fork evmPipE.accountMap
                         (AccountAddress.ofUInt256 (pokeVatTargetWord σ' I)))
                         callGasFile (UInt256.ofNat evmPipE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
                         (ByteArray.readWithPadding
@@ -592,12 +592,12 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                           let evmPipSAligned := { evmPipS with substate := A' }
                           have hΘFileE :
                               (σ'', gFile'', AFile', zFile, fileOut) =
-                                Ethereum.EVM.Θ evmPipE.accountMap evmPipE.σ₀ AinFile
+                                Ethereum.EVM.Θ evmPipE.executionEnv.fork evmPipE.accountMap evmPipE.σ₀ AinFile
                                   (AccountAddress.ofUInt256
                                     (UInt256.ofNat evmPipE.executionEnv.codeOwner))
                                   evmPipE.executionEnv.sender
                                   (AccountAddress.ofUInt256 (pokeVatTargetWord σ' I))
-                                  (toExecute evmPipE.accountMap
+                                  (toExecute evmPipE.executionEnv.fork evmPipE.accountMap
                                     (AccountAddress.ofUInt256 (pokeVatTargetWord σ' I)))
                                   callGasFile
                                   (UInt256.ofNat evmPipE.executionEnv.gasPrice)

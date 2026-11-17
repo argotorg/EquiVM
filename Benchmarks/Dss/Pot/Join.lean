@@ -905,10 +905,10 @@ theorem potJoinX_postCall {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : 
     ∃ (σ' : AccountMap) (z : Bool) (o : ByteArray)
       (A_in : Substate) (callGas : UInt256) (mem' : ByteArray) (aw' : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ σ'' s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork  σ'' s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (joinVatMasked σ'' I))
-          (toExecute σ'' (AccountAddress.ofUInt256 (joinVatMasked σ'' I)))
+          (toExecute I.fork σ'' (AccountAddress.ofUInt256 (joinVatMasked σ'' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((potMoveCalldataMem (joinCallerWord I) (joinThisWord I)
             (UInt256.mul (joinChi σ'' I) (joinWadWord I)) mem).readWithPadding 128 100)
@@ -1707,10 +1707,10 @@ theorem potJoinCallBridge {σ₀ I} {A : Substate} {g : Sat256}
     (hAccountsPre : σ'' = evm2_stele.accountMap)
     (hdepth : I.depth ≠ 1024)
     (hΘ : (σ_final, g'', A', z, o) =
-        Ethereum.EVM.Θ σ'' σ₀ A_in
+        Ethereum.EVM.Θ I.fork  σ'' σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (joinVatMasked σ'' I))
-          (toExecute σ'' (AccountAddress.ofUInt256 (joinVatMasked σ'' I)))
+          (toExecute I.fork σ'' (AccountAddress.ofUInt256 (joinVatMasked σ'' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((potMoveCalldataMem (joinCallerWord I) (joinThisWord I)
             (UInt256.mul (joinChi σ'' I) (joinWadWord I)) mem).readWithPadding 128 100)
@@ -1743,11 +1743,11 @@ theorem potJoinCallBridge {σ₀ I} {A : Substate} {g : Sat256}
     exact potMoveEncode_eq I.source I.codeOwner (joinCallerWord I) (joinThisWord I)
       (UInt256.mul (joinChi σ'' I) (joinWadWord I)) hmem rfl rfl
   have hΘ' : (σ_final, g'', A', z, o) =
-      Ethereum.EVM.Θ evm2_stele.accountMap evm2_stele.σ₀ A_in
+      Ethereum.EVM.Θ evm2_stele.executionEnv.fork evm2_stele.accountMap evm2_stele.σ₀ A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat evm2_stele.executionEnv.codeOwner))
         evm2_stele.executionEnv.sender
         (AccountAddress.ofUInt256 (joinVatMasked σ'' I))
-        (toExecute evm2_stele.accountMap (AccountAddress.ofUInt256 (joinVatMasked σ'' I)))
+        (toExecute evm2_stele.executionEnv.fork evm2_stele.accountMap (AccountAddress.ofUInt256 (joinVatMasked σ'' I)))
         callGas (UInt256.ofNat evm2_stele.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
         ((potMoveCalldataMem (joinCallerWord I) (joinThisWord I)
           (UInt256.mul (joinChi σ'' I) (joinWadWord I)) mem).readWithPadding 128 100)

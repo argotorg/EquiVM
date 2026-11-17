@@ -122,16 +122,16 @@ theorem powLoopActCore {cfg : Config} {C : ContractDecl} {evm : EVM.State} (N : 
     set L2 := L1.insert "i" (.int (Int.ofNat i + 1)) with hL2
     have hL2i : L2.get? "i" = some (.int (Int.ofNat (i + 1))) := by rw [hL2, store_get_self, e1]
     have hL2r : L2.get? "r" = some (.int (Int.ofNat (2 ^ (i + 1)))) := by
-      rw [hL2, store_get_ne _ _ (by decide), hL1, store_get_self, e2]
+      rw [hL2, store_get_ne _ _ (by native_decide), hL1, store_get_self, e2]
     have hL2n : L2.get? "n" = some (.int (Int.ofNat N)) := by
-      rw [hL2, store_get_ne _ _ (by decide), hL1, store_get_ne _ _ (by decide), hn]
+      rw [hL2, store_get_ne _ _ (by native_decide), hL1, store_get_ne _ _ (by native_decide), hn]
     refine ⟨L2, ?_, i + 1, by omega, by omega, hL2i, hL2r, hL2n⟩
     refine ExecBlock.consNormal (ExecStmt.letDecl ?_) (ExecBlock.consNormal (ExecStmt.letDecl ?_)
               ExecBlock.nil)
     · rw [evalMul2 hr]
     · show evalExpr? cfg { contract := C, locals := L1 } evm (.binary .add (.var "i") (.intLit 1))
           = .ok (.int (Int.ofNat i + 1))
-      rw [evalAdd1 (by rw [hL1, store_get_ne _ _ (by decide), hi])]
+      rw [evalAdd1 (by rw [hL1, store_get_ne _ _ (by native_decide), hi])]
   intro var i L hvar hile hi hr hn
   obtain ⟨L', hwhile, j, hj, hjN, _, hjr, _⟩ :=
     execWhile_var P hfalse htrue hstep var L ⟨i, hvar, hile, hi, hr, hn⟩
@@ -147,7 +147,7 @@ theorem powEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
     UInt256.eq ⟨1143701499⟩
         (UInt256.shiftRight (uInt256OfByteArray (cd.readBytes 0 32)) ⟨224⟩)
       = if ((⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ : ByteArray) == cd.extract 0 4) then ⟨1⟩ else ⟨0⟩ :=
-  evmSelectorDecode hsz 0x44 0x2b 0x7f 0xfb ⟨1143701499⟩ (by decide)
+  evmSelectorDecode hsz 0x44 0x2b 0x7f 0xfb ⟨1143701499⟩ (by native_decide)
 
 /-! ## Dispatch machinery (single arm) — generic `Reach`/`Solc` driver
 
@@ -165,10 +165,10 @@ abbrev powFirstArmPc : UInt256 := ⟨30⟩
 
 /-- The lone selector arm is well-formed (`DUP1; PUSH4; EQ; PUSH2; JUMPI`). -/
 theorem powArmWellFormed : armWellFormed powBytecode powFirstArmPc :=
-  ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+  ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 /-- The arm's `PUSH4` selector value is `0x442b7ffb`. -/
-theorem powArmSelNat : armSelNat powBytecode powFirstArmPc = ⟨1143701499⟩ := by decide
+theorem powArmSelNat : armSelNat powBytecode powFirstArmPc = ⟨1143701499⟩ := by native_decide
 
 /-- **Selector coupling.**  Arm 0's `EQ` (its `PUSH4` value vs the calldata selector word) is `1`/`0`
     exactly as `0x442b7ffb` matches `calldata[0:4]` — the table-indexed instance of `powEvmSelector`. -/
@@ -192,8 +192,8 @@ theorem powReachBody {σ σ₀ A I} {g : Sat256}
     (fun j hj => by rw [Nat.le_zero.mp hj]; exact powArmWellFormed)
     (fun j hj => absurd hj (by omega))
     (by show UInt256.eq (armSelNat powBytecode powFirstArmPc) (powSelWord I) ≠ ⟨0⟩
-        rw [powMatch_eq I hsz, if_pos hmatch]; decide)
-    (by jump_dest) (by decide)
+        rw [powMatch_eq I hsz, if_pos hmatch]; native_decide)
+    (by jump_dest) (by native_decide)
 
 /-! ## The loop core (crux) — **proved**
 
@@ -241,7 +241,7 @@ theorem RD.loop {g : Sat256} {s0 : State} {ee : ExecutionEnv} {slot n : UInt256}
       u256_inj (by rw [hinv, hin, ofNat_pow_toNat hn])
     have rd := evm_run h with [
       jumpdest, dup4, dup2, lt, iszero, push2 ⟨142⟩,
-      jumpiT (by rw [show UInt256.lt i n = ⟨0⟩ from ult_zero (by omega)]; decide)
+      jumpiT (by rw [show UInt256.lt i n = ⟨0⟩ from ult_zero (by omega)]; native_decide)
              (by jump_dest) ]
     rw [hieqn, hreq] at rd
     exact ⟨_, _, rd⟩
@@ -258,7 +258,7 @@ theorem RD.loop {g : Sat256} {s0 : State} {ee : ExecutionEnv} {slot n : UInt256}
     have hr2 : (UInt256.mul r ⟨2⟩).toNat = 2 * r.toNat := mul2_toNat hr2size
     have rd := evm_run h with [
       jumpdest, dup4, dup2, lt, iszero, push2 ⟨142⟩,
-      jumpiNT (by rw [show UInt256.lt i n = ⟨1⟩ from ult_one hilt]; decide),
+      jumpiNT (by rw [show UInt256.lt i n = ⟨1⟩ from ult_one hilt]; native_decide),
       push1 ⟨2⟩, dup3, mul, swap2, pop, push1 ⟨1⟩, dup2, add, swap1, pop, push2 ⟨117⟩,
       jump (by jump_dest) ]
     exact ⟨(i + ⟨1⟩, UInt256.mul r ⟨2⟩), _, _,
@@ -286,19 +286,19 @@ theorem powX_dispToEq {σ σ₀ A I} {g : Sat256}
     show (Fin.ofNat _ I.calldata.size).val = I.calldata.size
     simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt hsize
   have hlt0 : UInt256.lt (UInt256.ofNat I.calldata.size) ⟨4⟩ = ⟨0⟩ :=
-    ult_zero (by rw [hsztoNat]; exact le_trans (show (⟨4⟩ : UInt256).toNat ≤ 4 by decide) hsz)
+    ult_zero (by rw [hsztoNat]; exact le_trans (show (⟨4⟩ : UInt256).toNat ≤ 4 by native_decide) hsz)
   -- prologue → PUSH2·JUMPI(t)·JUMPDEST·POP·PUSH1·CALLDATASIZE·LT·PUSH2·JUMPI(nt)·PUSH0·
   --   CALLDATALOAD·PUSH1·SHR·DUP1·PUSH4·EQ, reaching the selector compare at pc 37, as one `RD` chain
   have rd := evm_run (solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
-        (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide))
+        (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide))
       with [
       push2 ⟨15⟩,
-      jumpiT (by rw [hwv]; decide)
+      jumpiT (by rw [hwv]; native_decide)
              (by jump_dest),
       jumpdest, pop, push1 ⟨4⟩, calldatasize, lt, push2 ⟨41⟩,
       jumpiNT hlt0,
       push0, calldataload, push1 ⟨224⟩, shr, dup1, push4 ⟨1143701499⟩, eq ]
-  rw [show (⟨0⟩ : UInt256).toNat = 0 from by decide] at rd
+  rw [show (⟨0⟩ : UInt256).toNat = 0 from by native_decide] at rd
   exact rd
 
 
@@ -320,7 +320,7 @@ theorem powX_disp {σ σ₀ A I} {g : Sat256}
       from by rw [powEvmSelector hsz, if_pos hmatch]] at rd
   exact evm_run rd with [
       push2 ⟨45⟩,
-      jumpiT (by decide) (by jump_dest) ]
+      jumpiT (by native_decide) (by jump_dest) ]
 
 
 set_option maxRecDepth 10000
@@ -404,7 +404,7 @@ theorem RD.routinecf {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
   -- prologue (SLT=0 ⇒ ISZERO=1 ⇒ JUMPI taken) · set up offset · JUMP → 0xbb → rearrange · JUMP ret
   evm_run h with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨228⟩,
-    jumpiT (by rw [hsltval]; decide)
+    jumpiT (by rw [hsltval]; native_decide)
            (by jump_dest),
     jumpdest, push0, push2 ⟨241⟩, dup5, dup3, dup6, add, push2 ⟨187⟩,
     jump (by jump_dest),
@@ -425,10 +425,10 @@ theorem RD.routinecf_revert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C :
     RDrev powBytecode g s0 :=
   evm_run h with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨228⟩,
-    jumpiNT (by rw [hsltval]; decide),
+    jumpiNT (by rw [hsltval]; native_decide),
     push2 ⟨227⟩, push2 ⟨152⟩,
     jump (by jump_dest),
-    jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 end Reasoning.Reach
 
@@ -488,7 +488,7 @@ theorem RD.routinerequire_revert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {
     jump (by jump_dest),
     jumpdest, push0, push2 ⟨256⟩, dup3, lt, push2 ⟨107⟩,
     jumpiNT hltval,
-    raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+    raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 
 /-- Loop exit `0x8e → 0x47` as an **`RD→RD` combinator**: drop the loop scratch, keep the result
@@ -529,9 +529,9 @@ theorem RD.routineencode {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : �
   evm_run h with [
       -- 71→83: load free pointer, save return addr 84, JUMP to the abi-encode helper @265
       jumpdest, push1 ⟨64⟩,
-      raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+      raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
         solcFreePtrMem_mload64
-        (by decide) (by evm_ov),
+        (by native_decide) (by evm_ov),
       push2 ⟨84⟩, swap2, swap1, push2 ⟨265⟩,
       jump (by jump_dest),
       -- 265→283: tail = 128+32, head = 128+0, JUMP to the word-copy helper @250
@@ -544,9 +544,9 @@ theorem RD.routineencode {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : �
       raw routine9c (by jump_dest) (by evm_ov),
       -- 259→264: MSTORE mem[128] := val, JUMP back @284
       jumpdest, dup3,
-      raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide) mem_cost
-        (by rw [show ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 from (by decide)]; rfl)
-        (by decide) (by evm_ov),
+      raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by native_decide) mem_cost
+        (by rw [show ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 from (by native_decide)]; rfl)
+        (by native_decide) (by evm_ov),
       pop, pop,
       jump (by jump_dest),
       -- 284→289: rearrange, JUMP back @84
@@ -554,13 +554,13 @@ theorem RD.routineencode {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : �
       jump (by jump_dest),
       -- 84→92: reload free pointer (now solcReturnMem), compute length 160−128, RETURN mem[128..160]
       jumpdest, push1 ⟨64⟩,
-      raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide) mem_cost
+      raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost
         (solcReturnMem_mload64 val)
-        (by decide) (by evm_ov),
+        (by native_decide) (by evm_ov),
       dup1, swap2, sub, swap1,
-      raw ret 0 (UInt256.toByteArray val) (by decide) mem_cost
+      raw ret 0 (UInt256.toByteArray val) (by native_decide) mem_cost
         (by
-          rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+          rw [show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
             sub_ret32_toNat, solcReturnMem_read128])
         (by evm_ov) ]
 
@@ -600,13 +600,13 @@ theorem powX_success {σ σ₀ A I} {g : Sat256}
       |>.routinedecodeToCf (by omega) hsize
       |>.routinecf hsltval (by jump_dest)
           (by simp only [List.length_cons, List.length_nil]; omega)
-  rw [show ((⟨4⟩ : UInt256) + ⟨0⟩).toNat = 4 from by decide, ← harg] at rdDec
+  rw [show ((⟨4⟩ : UInt256) + ⟨0⟩).toNat = 4 from by native_decide, ← harg] at rdDec
   rcases RD.loop (slot := ⟨0⟩) (n := arg) (REST := [⟨71⟩, sel])
       hn (by simp only [List.length_cons, List.length_nil]; omega)
       arg.toNat ⟨0⟩ ⟨1⟩ _ _
-      (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
-      (by decide)
-      (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by decide)]; omega)
+      (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by native_decide)]; omega)
+      (by native_decide)
+      (by rw [show (⟨0⟩:UInt256).toNat = 0 from (by native_decide)]; omega)
       (rdDec |>.routinerequire hltval (by simp only [List.length_nil]; omega))
     with ⟨k4, C4, rd4⟩
   -- loop-exit → encoder, threaded straight to the success terminal `RDret`
@@ -657,11 +657,11 @@ theorem powX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev powBytecode g (initState σ σ₀ g A I) := by
   -- prologue → PUSH2 0x0f · JUMPI (not taken: callvalue ≠ 0 ⇒ iszero = 0) → revert stub, one `RD`
-  exact evm_run (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
-        (by decide) (by decide)) with [
+  exact evm_run (solcGuardPrologueRD hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)) with [
       push2 ⟨15⟩,
       jumpiNT (isZero_eq_zero_of_ne hwv),
-      raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+      raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 /-! ## EVM revert trace: short calldata (`size < 4`) -/
 
@@ -672,16 +672,16 @@ theorem powX_short {σ σ₀ A I} {g : Sat256}
     RDrev powBytecode g (initState σ σ₀ g A I) := by
   -- prologue → guard JUMPI (taken, cv=0) → JUMPDEST·POP·PUSH1 4·CALLDATASIZE·LT (=1, size<4)·PUSH2 41·
   --   JUMPI (taken → 41)·JUMPDEST → revert stub at pc 42, as one `RD`
-  exact evm_run (solcGuardPrologueRD hcode (by decide) (by decide) (by decide) (by decide)
-        (by decide) (by decide)) with [
+  exact evm_run (solcGuardPrologueRD hcode (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide)) with [
       push2 ⟨15⟩,
-      jumpiT (by rw [hwv]; decide)
+      jumpiT (by rw [hwv]; native_decide)
              (by jump_dest),
       jumpdest, pop, push1 ⟨4⟩, calldatasize, lt, push2 ⟨41⟩,
       jumpiT (by rw [ult_one (by rw [ulit_toNat' _ (lt_size_of_lt256 (by omega)),
-                show (⟨4⟩ : UInt256).toNat = 4 from by decide]; omega)]; decide)
+                show (⟨4⟩ : UInt256).toNat = 4 from by native_decide]; omega)]; native_decide)
              (by jump_dest),
-      jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+      jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 /-! ## EVM revert trace: `n ≥ 256` (reuses the dispatcher + decoder) -/
 
@@ -710,7 +710,7 @@ theorem powX_nlarge {σ σ₀ A I} {g : Sat256}
       |>.routinedecodeToCf (by omega) hsize
       |>.routinecf hsltval0 (by jump_dest)
           (by simp only [List.length_cons, List.length_nil]; omega)
-  rw [show ((⟨4⟩ : UInt256) + ⟨0⟩).toNat = 4 from by decide, ← harg] at rdDec
+  rw [show ((⟨4⟩ : UInt256) + ⟨0⟩).toNat = 4 from by native_decide, ← harg] at rdDec
   exact rdDec |>.routinerequire_revert hltval (by simp only [List.length_nil]; omega)
 
 /-! ## EVM revert trace: wrong selector (reuses `powX_dispToEq`) -/
@@ -727,11 +727,11 @@ theorem powX_nomatch {σ σ₀ A I} {g : Sat256}
     hcode hwv hsz hsize
   rw [show UInt256.eq ⟨1143701499⟩
         (UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩) = ⟨0⟩
-      from by rw [powEvmSelector hsz, if_neg (by rw [hmatch]; decide)]] at rd
+      from by rw [powEvmSelector hsz, if_neg (by rw [hmatch]; native_decide)]] at rd
   exact evm_run rd with [
       push2 ⟨45⟩,
       jumpiNT rfl,
-      jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
+      jumpdest, raw revertStub (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 /-! ## EVM revert trace: short argument (`4 ≤ size < 36`, reuses disp + decode prefixes) -/
 
@@ -805,9 +805,9 @@ theorem powBodyReturns (evm : EVM.State) (locals : Stele.Store) {N : ℕ}
   set Lri := Lr.insert "i" (.int 0) with hLri
   have hLri_i : Lri.get? "i" = some (.int (Int.ofNat 0)) := by rw [hLri, store_get_self]; rfl
   have hLri_r : Lri.get? "r" = some (.int (Int.ofNat (2 ^ 0))) := by
-    rw [hLri, store_get_ne _ _ (by decide), hLr, store_get_self]; rfl
+    rw [hLri, store_get_ne _ _ (by native_decide), hLr, store_get_self]; rfl
   have hLri_n : Lri.get? "n" = some (.int (Int.ofNat N)) := by
-    rw [hLri, store_get_ne _ _ (by decide), hLr, store_get_ne _ _ (by decide), hn]
+    rw [hLri, store_get_ne _ _ (by native_decide), hLr, store_get_ne _ _ (by native_decide), hn]
   -- run the loop
   obtain ⟨L', hwhile, hL'r⟩ :=
     powLoopActCore (cfg := powConfig) (C := Pow.powContract) (evm := evm) N
@@ -959,7 +959,7 @@ theorem powFinal_read :
     powInitReturnMem.readWithPadding 0 290 = powBytecode := by
   unfold powInitReturnMem
   rw [write0_read_back_from_gen powInitcode ByteArray.empty 12 290
-    (by decide) (by native_decide) (by decide)]
+    (by native_decide) (by native_decide) (by native_decide)]
   exact powInitcode_runtime_window
 
 set_option maxHeartbeats 400000 in
@@ -980,7 +980,7 @@ theorem powInitcodeRun {σ σ₀ A I} {g : Sat256}
     raw codecopy 30 powInitReturnMem (UInt256.ofNat 10) powInitcodeDecode6
       mem_cost
       rfl
-      (by decide) (by evm_ov),
+      (by native_decide) (by evm_ov),
     raw push2 ⟨290⟩ powInitcodeDecode7 (by evm_ov),
     raw push0 powInitcodeDecode10 (by evm_ov),
     raw ret 0 powBytecode powInitcodeDecode11

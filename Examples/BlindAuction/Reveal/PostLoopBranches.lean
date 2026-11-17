@@ -262,10 +262,10 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_step
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (A_in : Substate) (callGas : UInt256) (k1350 C1350 : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ aDone.acc σ₀ A_in
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork aDone.acc σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-          (toExecute aDone.acc (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
+          (toExecute I.fork aDone.acc (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
           callGas (UInt256.ofNat I.gasPrice) aDone.refund aDone.refund
           ByteArray.empty (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ out.size < UInt256.size

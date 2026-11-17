@@ -485,10 +485,10 @@ theorem daiJoinExitVatMoveCallFailedCore
       (UInt256.ofNat 8) out σ' k C)
     (hΘ :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', false, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', false, out) = Ethereum.EVM.Θ I.fork  σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((exitMoveCalldataMem I (daiJoinRadWord (exitWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
@@ -510,10 +510,10 @@ theorem daiJoinExitVatMoveCallFailedCore
     daiJoinVatEvmAddress_eq_target σ I
   have hΘE :
       (σ', g'', A', false, out) =
-        Ethereum.EVM.Θ evmS.accountMap evmS.σ₀ Ain
+        Ethereum.EVM.Θ evmS.executionEnv.fork evmS.accountMap evmS.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmS.executionEnv.codeOwner))
           evmS.executionEnv.sender (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute evmS.accountMap (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
+          (toExecute evmS.executionEnv.fork evmS.accountMap (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat evmS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((exitMoveCalldataMem I (daiJoinRadWord (exitWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
@@ -573,10 +573,10 @@ theorem daiJoinExitDaiMintNoCodeCore
       (UInt256.ofNat 8) out σ' k C)
     (hΘ :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', true, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', true, out) = Ethereum.EVM.Θ I.fork  σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((exitMoveCalldataMem I (daiJoinRadWord (exitWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
@@ -597,10 +597,10 @@ theorem daiJoinExitDaiMintNoCodeCore
     daiJoinVatEvmAddress_eq_target σ I
   have hΘE :
       (σ', g'', A', true, out) =
-        Ethereum.EVM.Θ evmS.accountMap evmS.σ₀ Ain
+        Ethereum.EVM.Θ evmS.executionEnv.fork evmS.accountMap evmS.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmS.executionEnv.codeOwner))
           evmS.executionEnv.sender (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute evmS.accountMap (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
+          (toExecute evmS.executionEnv.fork evmS.accountMap (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat evmS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((exitMoveCalldataMem I (daiJoinRadWord (exitWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
@@ -662,20 +662,20 @@ theorem daiJoinExitDaiMintCallFailedCore
       (UInt256.ofNat 8) outMint σ'' k C)
     (hΘMove :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', true, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', true, out) = Ethereum.EVM.Θ I.fork  σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((exitMoveCalldataMem I (daiJoinRadWord (exitWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
     (hΘMint :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', false, outMint) = Ethereum.EVM.Θ σ' σ₀ mintAin
+        (σ'', g'', A', false, outMint) = Ethereum.EVM.Θ I.fork  σ' σ₀ mintAin
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I))
-          (toExecute σ' (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I)))
+          (toExecute I.fork σ' (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I)))
           mintGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((exitMintCalldataMem I
             (exitMoveCalldataMem I (daiJoinRadWord (exitWadWord I)) solcFreePtrMem)).readWithPadding
@@ -698,10 +698,10 @@ theorem daiJoinExitDaiMintCallFailedCore
     daiJoinVatEvmAddress_eq_target σ I
   have hΘMoveE :
       (σ', gMove'', AMove', true, out) =
-        Ethereum.EVM.Θ evmS.accountMap evmS.σ₀ Ain
+        Ethereum.EVM.Θ evmS.executionEnv.fork evmS.accountMap evmS.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmS.executionEnv.codeOwner))
           evmS.executionEnv.sender (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute evmS.accountMap (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
+          (toExecute evmS.executionEnv.fork evmS.accountMap (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat evmS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((exitMoveCalldataMem I (daiJoinRadWord (exitWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
@@ -731,10 +731,10 @@ theorem daiJoinExitDaiMintCallFailedCore
     daiJoinDaiEvmAddress_eq_target σ' I
   have hΘMintE :
       (σ'', gMint'', AMint', false, outMint) =
-        Ethereum.EVM.Θ evmVatS.accountMap evmVatS.σ₀ mintAin
+        Ethereum.EVM.Θ evmVatS.executionEnv.fork evmVatS.accountMap evmVatS.σ₀ mintAin
           (AccountAddress.ofUInt256 (UInt256.ofNat evmVatS.executionEnv.codeOwner))
           evmVatS.executionEnv.sender (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I))
-          (toExecute evmVatS.accountMap (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I)))
+          (toExecute evmVatS.executionEnv.fork evmVatS.accountMap (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I)))
           mintGas (UInt256.ofNat evmVatS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((exitMintCalldataMem I
             (exitMoveCalldataMem I (daiJoinRadWord (exitWadWord I)) solcFreePtrMem)).readWithPadding
@@ -801,20 +801,20 @@ theorem daiJoinExitDaiMintSuccessCore
       (UInt256.ofNat 8) outMint σ'' k C)
     (hΘMove :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', true, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', true, out) = Ethereum.EVM.Θ I.fork  σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((exitMoveCalldataMem I (daiJoinRadWord (exitWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
     (hΘMint :
       ∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', true, outMint) = Ethereum.EVM.Θ σ' σ₀ mintAin
+        (σ'', g'', A', true, outMint) = Ethereum.EVM.Θ I.fork  σ' σ₀ mintAin
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I))
-          (toExecute σ' (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I)))
+          (toExecute I.fork σ' (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I)))
           mintGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((exitMintCalldataMem I
             (exitMoveCalldataMem I (daiJoinRadWord (exitWadWord I)) solcFreePtrMem)).readWithPadding
@@ -866,10 +866,10 @@ theorem daiJoinExitDaiMintSuccessCore
     daiJoinVatEvmAddress_eq_target σ I
   have hΘMoveE :
       (σ', gMove'', AMove', true, out) =
-        Ethereum.EVM.Θ evmS.accountMap evmS.σ₀ Ain
+        Ethereum.EVM.Θ evmS.executionEnv.fork evmS.accountMap evmS.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmS.executionEnv.codeOwner))
           evmS.executionEnv.sender (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
-          (toExecute evmS.accountMap (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
+          (toExecute evmS.executionEnv.fork evmS.accountMap (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
           gasWord (UInt256.ofNat evmS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((exitMoveCalldataMem I (daiJoinRadWord (exitWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
@@ -899,10 +899,10 @@ theorem daiJoinExitDaiMintSuccessCore
     daiJoinDaiEvmAddress_eq_target σ' I
   have hΘMintE :
       (σ'', gMint'', AMint', true, outMint) =
-        Ethereum.EVM.Θ evmVatS.accountMap evmVatS.σ₀ mintAin
+        Ethereum.EVM.Θ evmVatS.executionEnv.fork evmVatS.accountMap evmVatS.σ₀ mintAin
           (AccountAddress.ofUInt256 (UInt256.ofNat evmVatS.executionEnv.codeOwner))
           evmVatS.executionEnv.sender (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I))
-          (toExecute evmVatS.accountMap (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I)))
+          (toExecute evmVatS.executionEnv.fork evmVatS.accountMap (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I)))
           mintGas (UInt256.ofNat evmVatS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((exitMintCalldataMem I
             (exitMoveCalldataMem I (daiJoinRadWord (exitWadWord I)) solcFreePtrMem)).readWithPadding

@@ -41,9 +41,9 @@ theorem callCoincides {cfg : Config} {evm : EVM.State} {name : Ident} {args : Li
     (hcd : cfg.externalABI.encode? name args
             = some (mem.readWithPadding inOff.toNat inSize.toNat))
     (hΘ : (σ', g'', A', z, o) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
+        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner)) evm.executionEnv.sender
-          (AccountAddress.ofUInt256 targetWord) (toExecute evm.accountMap (AccountAddress.ofUInt256 targetWord))
+          (AccountAddress.ofUInt256 targetWord) (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat) (evm.executionEnv.depth + 1)
           evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks
@@ -226,10 +226,10 @@ theorem typedCallViaEVM_callMade_sameInputs {cfg : Config}
     (hcd : cfg.externalABI.encode? name args =
       some (mem.readWithPadding inOff.toNat inSize.toNat))
     (hΘ : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm_evm.accountMap evm_evm.σ₀ A_in
+        Ethereum.EVM.Θ evm_evm.executionEnv.fork evm_evm.accountMap evm_evm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm_evm.executionEnv.codeOwner))
           evm_evm.executionEnv.sender (AccountAddress.ofUInt256 targetWord)
-          (toExecute evm_evm.accountMap (AccountAddress.ofUInt256 targetWord))
+          (toExecute evm_evm.executionEnv.fork evm_evm.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm_evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
           (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header
@@ -274,9 +274,9 @@ theorem rawZeroCall_source_of_theta
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (hΘ : ∃ (g'' : UInt256) (A' : Substate),
       (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ σ s0.σ₀ A_in
+        Ethereum.EVM.Θ I.fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
-          (AccountAddress.ofUInt256 targetWord) (toExecute σ (AccountAddress.ofUInt256 targetWord))
+          (AccountAddress.ofUInt256 targetWord) (toExecute I.fork σ (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩ data (I.depth + 1)
           I.header I.blobVersionedHashes I.blocks I.perm) :
     ∃ evm', callViaEVM evm (AccountAddress.ofUInt256 targetWord) 0 data (z, evm', out) ∧
@@ -347,9 +347,9 @@ theorem callStateMade {s0 I σ evm} (hs : SourceState s0 I σ evm)
     (hperm : I.perm = true)
     (hbalance : value ≤ (σ.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024)
-    (hΘ : (σ', gasLeft, AS', z, out) = Θ σ s0.σ₀ AIn
+    (hΘ : (σ', gasLeft, AS', z, out) = Θ I.fork σ s0.σ₀ AIn
       (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-      (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+      (AccountAddress.ofUInt256 target) (toExecute I.fork σ (AccountAddress.ofUInt256 target))
       callGas (UInt256.ofNat I.gasPrice) value value calldata (I.depth + 1) I.header
       I.blobVersionedHashes I.blocks I.perm) :
     callViaEVM (callState evm σ) (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
@@ -417,7 +417,7 @@ theorem callBridge {code I g s0 pc R mem aw rdata σ k C evm}
         h.callValueMade hdec hperm hb hdlt hov
       rw [hcd] at hΘ
       have ho : out.size < 2 ^ 138 :=
-        Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ hsmall
+        Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ hsmall
       have hraw := callStateMade hs hperm hb hdlt hΘ
       obtain ⟨evm', hcall, hs'⟩ := hs.callTransport hraw
       exact ⟨evm', σ', z, out, k', C', hcall, hs', rd, ho⟩
@@ -669,10 +669,10 @@ theorem callMade_accountMapEq_with_substate {cfg : Config}
     (hcd : cfg.externalABI.encode? name args =
       some (mem.readWithPadding inOff.toNat inSize.toNat))
     (hΘ : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm_evm.accountMap evm_evm.σ₀ A_in
+        Ethereum.EVM.Θ evm_evm.executionEnv.fork evm_evm.accountMap evm_evm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm_evm.executionEnv.codeOwner))
           evm_evm.executionEnv.sender (AccountAddress.ofUInt256 targetWord)
-          (toExecute evm_evm.accountMap (AccountAddress.ofUInt256 targetWord))
+          (toExecute evm_evm.executionEnv.fork evm_evm.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm_evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
           (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header
@@ -688,10 +688,10 @@ theorem callMade_accountMapEq_with_substate {cfg : Config}
       σ' = σ'_stele ∧ A' = A'_stele := by
   have hΘ_s :
       (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm_stele.accountMap evm_stele.σ₀ A_in
+        Ethereum.EVM.Θ evm_stele.executionEnv.fork evm_stele.accountMap evm_stele.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm_stele.executionEnv.codeOwner))
           evm_stele.executionEnv.sender (AccountAddress.ofUInt256 targetWord)
-          (toExecute evm_stele.accountMap (AccountAddress.ofUInt256 targetWord))
+          (toExecute evm_stele.executionEnv.fork evm_stele.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm_stele.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
           (evm_stele.executionEnv.depth + 1) evm_stele.executionEnv.header
@@ -756,13 +756,12 @@ theorem extCodeSizeWord_eq (σ : AccountMap) (target : UInt256) :
   unfold extCodeSizeWord
   cases σ.get? (AccountAddress.ofUInt256 target) <;> rfl
 
-theorem toExecute_ecrecover_precompile (σ : AccountMap) :
-    toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) =
+theorem toExecute_ecrecover_precompile (fork : Fork) (σ : AccountMap) :
+    toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) =
       ToExecute.Precompiled (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) := by
   unfold toExecute
-  have hmem : AccountAddress.ofUInt256 (⟨1⟩ : UInt256) ∈ π := by
-    unfold π
-    decide
+  have hmem : AccountAddress.ofUInt256 (⟨1⟩ : UInt256) ∈ π fork := by
+    cases fork <;> decide
   rw [if_pos hmem]
 
 theorem ecrecover_output_size (σ : AccountMap) (g : UInt256) (A : Substate)
@@ -788,24 +787,24 @@ theorem ecrecover_output_size (σ : AccountMap) (g : UInt256) (A : Substate)
         rfl
 
 theorem staticcallTheta_ecrecover_output_size
-    {blobVersionedHashes blocks σ σ₀ A_in r s g p v v' d e H w σ' g' A' z o}
+    {fork blobVersionedHashes blocks σ σ₀ A_in r s g p v v' d e H w σ' g' A' z o}
     (hΘ : (σ', g', A', z, o) =
-      Θ σ σ₀ A_in r s
+      Θ fork σ σ₀ A_in r s
         (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           g p v v' d e H blobVersionedHashes blocks w) :
     o.size = 0 ∨ o.size = 32 := by
-  have hpre : toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) =
+  have hpre : toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) =
       ToExecute.Precompiled (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) := by
-    exact toExecute_ecrecover_precompile σ
+    exact toExecute_ecrecover_precompile fork σ
   have hone : (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) = 1 := by
     decide
   have hout := congrArg (fun x => x.2.2.2.2.size) hΘ
   have hout' :
       o.size =
-        (Θ σ σ₀ A_in r s
+        (Θ fork σ σ₀ A_in r s
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+          (toExecute fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           g p v v' d e H blobVersionedHashes blocks w).2.2.2.2.size := by
     simpa using hout
   rw [hout']

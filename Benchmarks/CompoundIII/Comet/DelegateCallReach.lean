@@ -22,9 +22,9 @@ theorem RD.cometDelegatecall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ σ s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
           ee.source ee.sender
-          ee.codeOwner (toExecute σ (AccountAddress.ofUInt256 target))
+          ee.codeOwner (toExecute ee.fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ee.weiValue
           (mem.readWithPadding inOffset.toNat inSize.toNat) (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)
       ∧ RD code ee g s0 (pc + ⟨1⟩) ((if z then ⟨1⟩ else ⟨0⟩) :: t)
@@ -38,7 +38,7 @@ theorem RD.cometDelegatecall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
   · exact ⟨_, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩,
       (by unfold RD; exact Or.inl hoog),
       (by
-        exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+        exact Theta_returnData_size_lt ee.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
           (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize))⟩
   · have hd : decode s.executionEnv.code s.machineState.pc = some (.DELEGATECALL, .none) := by
       rw [hcode, hpc]; exact hdec
@@ -63,11 +63,11 @@ theorem RD.cometDelegatecall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     · exact ⟨_, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩,
         (by unfold RD; exact Or.inl hXP),
         (by
-          exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+          exact Theta_returnData_size_lt ee.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
             (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize))⟩
     · rename_i hP
       set mc := memoryExpansionCost s Operation.DELEGATECALL with hmc
-      set gc := Ccall (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner
+      set gc := Ccall s.executionEnv.fork (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner
         (⟨0⟩ : UInt256) gasArg s.accountMap
         { pc := s.machineState.pc, stack := s.machineState.stack,
           execLength := s.machineState.execLength,
@@ -75,7 +75,7 @@ theorem RD.cometDelegatecall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
           activeWords := s.machineState.activeWords, memory := s.machineState.memory,
           returnData := s.machineState.returnData, H_return := s.machineState.H_return }
         s.substate with hgc
-      set G := Ccallgas (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner
+      set G := Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner
         (⟨0⟩ : UInt256) gasArg s.accountMap
         { pc := s.machineState.pc, stack := s.machineState.stack,
           execLength := s.machineState.execLength + 1,
@@ -84,13 +84,13 @@ theorem RD.cometDelegatecall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
           returnData := s.machineState.returnData, H_return := s.machineState.H_return }
         s.substate with hG
       set cg := UInt256.ofNat G with hcg
-      set ce := Cextra (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner
+      set ce := Cextra s.executionEnv.fork (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner
         (⟨0⟩ : UInt256) s.accountMap s.substate with hce
-      set θs := Θ s.accountMap s.σ₀
-        (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
+      set θs := Θ s.executionEnv.fork s.accountMap s.σ₀
+        (callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
         s.executionEnv.source
         s.executionEnv.sender s.executionEnv.codeOwner
-        (toExecute s.accountMap (AccountAddress.ofUInt256 target)) cg
+        (toExecute s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target)) cg
         (UInt256.ofNat s.executionEnv.gasPrice) (⟨0⟩ : UInt256) s.executionEnv.weiValue
         (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
         (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.blobVersionedHashes
@@ -103,11 +103,11 @@ theorem RD.cometDelegatecall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
       have hmcle : mc ≤ s.machineState.gasAvailable.toNat := by omega
       have hretle : θs.2.1.toNat ≤ cg.toNat := by
         rw [hθs]
-        exact Theta_returnedGas_le s.accountMap s.σ₀
-          (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
+        exact Theta_returnedGas_le s.executionEnv.fork s.accountMap s.σ₀
+          (callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
           s.executionEnv.source
           s.executionEnv.sender s.executionEnv.codeOwner
-          (toExecute s.accountMap (AccountAddress.ofUInt256 target)) cg
+          (toExecute s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target)) cg
           (UInt256.ofNat s.executionEnv.gasPrice) (⟨0⟩ : UInt256) s.executionEnv.weiValue
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
           (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.blobVersionedHashes
@@ -140,7 +140,7 @@ theorem RD.cometDelegatecall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
         rw [Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
       rw [show g.toNat - k = g.toNat + 1 - (k + 1) from by omega] at hXP
       refine ⟨θs.1, θs.2.2.2.1, θs.2.2.2.2,
-        (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate, cg, k + 1,
+        (callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate), cg, k + 1,
         C + callCharge, ⟨θs.2.1, θs.2.2.1, ?_⟩, ?_, ?_⟩
       · rw [← hee, ← hσ, ← hmem, ← hw1, ← hθs]
       · unfold RD
@@ -163,10 +163,10 @@ theorem RD.cometDelegatecall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
       · rw [hθs]
         exact Ethereum.EVM.theta_projection_output_size_lt_uint256
           s.accountMap s.σ₀
-          (s.addAccessedAccount (AccountAddress.ofUInt256 target)).substate
+          (callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
           s.executionEnv.source
           s.executionEnv.sender s.executionEnv.codeOwner
-          (toExecute s.accountMap (AccountAddress.ofUInt256 target))
+          (toExecute s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target))
           (s.machineState.memory.readWithPadding inOffset.toNat inSize.toNat)
           cg (UInt256.ofNat s.executionEnv.gasPrice) (⟨0⟩ : UInt256) s.executionEnv.weiValue
           (s.executionEnv.depth + 1) s.executionEnv.header s.executionEnv.blobVersionedHashes
@@ -216,7 +216,7 @@ theorem RD.cometDelegatecallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g
     have hfuel : g.toNat + 1 - k = (g.toNat - k) + 1 := by omega
     have hXP := hX.trans (hfuel.symm ▸ X_peel (f := g.toNat - k) st)
     set mc := memoryExpansionCost s Operation.DELEGATECALL with hmc
-    set gc := Ccall (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner
+    set gc := Ccall s.executionEnv.fork (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner
       (⟨0⟩ : UInt256) gasArg s.accountMap
       { pc := s.machineState.pc, stack := s.machineState.stack,
         execLength := s.machineState.execLength,
@@ -224,7 +224,7 @@ theorem RD.cometDelegatecallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g
         activeWords := s.machineState.activeWords, memory := s.machineState.memory,
         returnData := s.machineState.returnData, H_return := s.machineState.H_return }
       s.substate with hgc
-    set G := Ccallgas (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner
+    set G := Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner
       (⟨0⟩ : UInt256) gasArg s.accountMap
       { pc := s.machineState.pc, stack := s.machineState.stack,
         execLength := s.machineState.execLength + 1,
@@ -232,7 +232,7 @@ theorem RD.cometDelegatecallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g
         activeWords := s.machineState.activeWords, memory := s.machineState.memory,
         returnData := s.machineState.returnData, H_return := s.machineState.H_return }
       s.substate with hG
-    set ce := Cextra (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner
+    set ce := Cextra s.executionEnv.fork (AccountAddress.ofUInt256 target) s.executionEnv.codeOwner
       (⟨0⟩ : UInt256) s.accountMap s.substate with hce
     set gv := (s.machineState.gasAvailable.subNat mc).subNat (gc - (UInt256.ofNat G).toNat)
       with hgv

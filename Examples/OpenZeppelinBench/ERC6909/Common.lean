@@ -44,6 +44,14 @@ abbrev erc6909LowFirstArmPc : UInt256 := ⟨89⟩
 /-- The first standard `PUSH4` arm in the low group, after the `balanceOf` `PUSH3` arm. -/
 abbrev erc6909LowRestFirstArmPc : UInt256 := ⟨99⟩
 
+theorem erc6909LowFirstArm_eq :
+    erc6909LowFirstArmPc = armTgt erc6909BenchBytecode erc6909SplitPc + ⟨1⟩ := by
+  native_decide
+
+theorem erc6909LowRestFirstArm_eq :
+    erc6909LowRestFirstArmPc = selArmNextPcW erc6909LowFirstArmPc 3 2 := by
+  native_decide
+
 /-- If `calldata[0:4]` matches a selector byte literal, the EVM selector word is that literal. -/
 theorem erc6909SelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (c0 c1 c2 c3 : UInt8) (sel : UInt256)
@@ -57,12 +65,12 @@ theorem erc6909SelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size
 
 /-- ERC6909's split decodes as `DUP1; PUSH4 pivot; GT; PUSH2 low; JUMPI`. -/
 theorem erc6909SplitWellFormed : selectorSplitWellFormed erc6909BenchBytecode erc6909SplitPc := by
-  exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+  exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 /-- The first low-half arm (`balanceOf`) decodes as `DUP1; PUSH3; EQ; PUSH2; JUMPI`. -/
 theorem erc6909BalanceArmWellFormed :
     armWellFormedW erc6909BenchBytecode erc6909LowFirstArmPc 3 := by
-  exact ⟨by decide, by decide, by decide, by decide, by decide, by decide, by decide⟩
+  exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 /-- ERC6909's high-half selector arms decode as standard `PUSH4` arms. -/
 theorem erc6909HighArmsWellFormed :
@@ -70,7 +78,7 @@ theorem erc6909HighArmsWellFormed :
       (nthArmPc erc6909BenchBytecode erc6909HighFirstArmPc j) := by
   intro j hj
   interval_cases j <;>
-    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+    exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 /-- ERC6909's low-half arms after `balanceOf` decode as standard `PUSH4` arms. -/
 theorem erc6909LowRestArmsWellFormed :
@@ -78,14 +86,14 @@ theorem erc6909LowRestArmsWellFormed :
       (nthArmPc erc6909BenchBytecode erc6909LowRestFirstArmPc j) := by
   intro j hj
   interval_cases j <;>
-    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+    exact ⟨by native_decide, by native_decide, by native_decide, by native_decide, by native_decide, by native_decide⟩
 
 /-! ### Selector-byte coupling -/
 
 theorem erc6909BalanceArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size) :
     UInt256.eq (armSelNatW erc6909BenchBytecode erc6909LowFirstArmPc) (erc6909SelWord I)
       = if (erc6909SelBytes 0 == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  exact evmSelectorDecode hsz 0x00 0xfd 0xd5 0x8e _ (by decide)
+  exact evmSelectorDecode hsz 0x00 0xfd 0xd5 0x8e _ (by native_decide)
 
 theorem erc6909LowRestArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 3) :
@@ -93,7 +101,7 @@ theorem erc6909LowRestArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat erc6909BenchBytecode (nthArmPc erc6909BenchBytecode erc6909LowRestFirstArmPc j))
         (erc6909SelWord I)
       = if (erc6909SelBytes (j + 1) == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
 theorem erc6909HighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -101,7 +109,7 @@ theorem erc6909HighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat erc6909BenchBytecode (nthArmPc erc6909BenchBytecode erc6909HighFirstArmPc j))
         (erc6909SelWord I)
       = if (erc6909SelBytes (j + 4) == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
 theorem erc6909LowRestMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 3)
     (hsz : 4 ≤ I.calldata.size)
@@ -117,9 +125,9 @@ theorem erc6909LowRestMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 3)
     (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [erc6909LowRestArmEq I hsz j (by omega), hci]
-    interval_cases i <;> interval_cases j <;> decide
+    interval_cases i <;> interval_cases j <;> native_decide
   · rw [erc6909LowRestArmEq I hsz i hi, hci]
-    interval_cases i <;> decide
+    interval_cases i <;> native_decide
 
 theorem erc6909HighMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
     (hsz : 4 ≤ I.calldata.size)
@@ -135,9 +143,9 @@ theorem erc6909HighMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
     (byteArray_eq_of_beq hsel).symm
   refine ⟨fun j hj => ?_, ?_⟩
   · rw [erc6909HighArmEq I hsz j (by omega), hci]
-    interval_cases i <;> interval_cases j <;> decide
+    interval_cases i <;> interval_cases j <;> native_decide
   · rw [erc6909HighArmEq I hsz i hi, hci]
-    interval_cases i <;> decide
+    interval_cases i <;> native_decide
 
 /-- A low-half selector makes the pivot `GT` branch jump to the low group. -/
 theorem erc6909PivotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
@@ -146,24 +154,24 @@ theorem erc6909PivotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
     UInt256.gt (armSelNat erc6909BenchBytecode erc6909SplitPc) (erc6909SelWord I) ≠ ⟨0⟩ := by
   interval_cases i
   · have hword : erc6909SelWord I = armSelNatW erc6909BenchBytecode erc6909LowFirstArmPc :=
-      erc6909SelWord_eq_of_beq I hsz 0x00 0xfd 0xd5 0x8e _ (by decide)
+      erc6909SelWord_eq_of_beq I hsz 0x00 0xfd 0xd5 0x8e _ (by native_decide)
         (by simpa [erc6909SelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : erc6909SelWord I =
         armSelNat erc6909BenchBytecode erc6909LowRestFirstArmPc :=
-      erc6909SelWord_eq_of_beq I hsz 0x01 0xff 0xc9 0xa7 _ (by decide)
+      erc6909SelWord_eq_of_beq I hsz 0x01 0xff 0xc9 0xa7 _ (by native_decide)
         (by simpa [erc6909SelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : erc6909SelWord I =
         armSelNat erc6909BenchBytecode (nthArmPc erc6909BenchBytecode erc6909LowRestFirstArmPc 1) :=
-      erc6909SelWord_eq_of_beq I hsz 0x09 0x5b 0xcd 0xb6 _ (by decide)
+      erc6909SelWord_eq_of_beq I hsz 0x09 0x5b 0xcd 0xb6 _ (by native_decide)
         (by simpa [erc6909SelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : erc6909SelWord I =
         armSelNat erc6909BenchBytecode (nthArmPc erc6909BenchBytecode erc6909LowRestFirstArmPc 2) :=
-      erc6909SelWord_eq_of_beq I hsz 0x42 0x6a 0x84 0x93 _ (by decide)
+      erc6909SelWord_eq_of_beq I hsz 0x42 0x6a 0x84 0x93 _ (by native_decide)
         (by simpa [erc6909SelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
 
 /-- A high-half selector makes the pivot `GT` branch fall through to the high group. -/
 theorem erc6909PivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
@@ -172,24 +180,24 @@ theorem erc6909PivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
     UInt256.gt (armSelNat erc6909BenchBytecode erc6909SplitPc) (erc6909SelWord I) = ⟨0⟩ := by
   interval_cases i
   · have hword : erc6909SelWord I = armSelNat erc6909BenchBytecode erc6909SplitPc :=
-      erc6909SelWord_eq_of_beq I hsz 0x55 0x8a 0x72 0x97 _ (by decide)
+      erc6909SelWord_eq_of_beq I hsz 0x55 0x8a 0x72 0x97 _ (by native_decide)
         (by simpa [erc6909SelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : erc6909SelWord I =
         armSelNat erc6909BenchBytecode (nthArmPc erc6909BenchBytecode erc6909HighFirstArmPc 1) :=
-      erc6909SelWord_eq_of_beq I hsz 0x59 0x8a 0xf9 0xe7 _ (by decide)
+      erc6909SelWord_eq_of_beq I hsz 0x59 0x8a 0xf9 0xe7 _ (by native_decide)
         (by simpa [erc6909SelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : erc6909SelWord I =
         armSelNat erc6909BenchBytecode (nthArmPc erc6909BenchBytecode erc6909HighFirstArmPc 2) :=
-      erc6909SelWord_eq_of_beq I hsz 0xb6 0x36 0x3c 0xf2 _ (by decide)
+      erc6909SelWord_eq_of_beq I hsz 0xb6 0x36 0x3c 0xf2 _ (by native_decide)
         (by simpa [erc6909SelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
   · have hword : erc6909SelWord I =
         armSelNat erc6909BenchBytecode (nthArmPc erc6909BenchBytecode erc6909HighFirstArmPc 3) :=
-      erc6909SelWord_eq_of_beq I hsz 0xfe 0x99 0x04 0x9a _ (by decide)
+      erc6909SelWord_eq_of_beq I hsz 0xfe 0x99 0x04 0x9a _ (by native_decide)
         (by simpa [erc6909SelBytes] using hsel)
-    rw [hword]; decide
+    rw [hword]; native_decide
 
 /-! ### Dispatcher reachability -/
 
@@ -263,13 +271,15 @@ theorem erc6909ReachBalanceBody {σ σ₀ A I} {g : Sat256}
   obtain ⟨k0, C0, hsplit⟩ := erc6909ReachSplit
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
   have h88 := hsplit.selectorSplitTakenAuto erc6909SplitWellFormed hpivot (by jump_dest) (by simp)
-  have h89 := h88.jumpdest (by decide) (by simp)
-  have h136 := RD.selectorArmWidthTakenAuto 3 h89 erc6909BalanceArmWellFormed htake
+  have h89 := h88.jumpdest (by native_decide) (by simp)
+  have h89' : RD erc6909BenchBytecode I g (initState σ σ₀ g A I)
+      erc6909LowFirstArmPc [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3)
+      ByteArray.empty σ (k0 + 5 + 1) (C0 + 22 + 1) := by
+    convert h89 using 1 <;> native_decide
+  have h136 := RD.selectorArmWidthTakenAuto 3 h89' erc6909BalanceArmWellFormed htake
     (by jump_dest) (by simp)
   refine ⟨k0 + 5 + 1 + 5, C0 + 22 + 1 + 22, ?_⟩
-  simpa [erc6909LowFirstArmPc, erc6909LowJumpdestPc, erc6909SplitPc, selArmPushSelPcW,
-    selArmEqPcW, selArmPushTgtPcW, selArmJumpiPcW, selArmNextPcW, armTgtW, armTgtWidthW]
-    using h136
+  convert h136 using 1 <;> native_decide
 
 /-- Reach a body in the low selector half after the special `balanceOf` arm. -/
 theorem erc6909ReachLowRestBody {σ σ₀ A I} {g : Sat256}
@@ -297,8 +307,12 @@ theorem erc6909ReachLowRestBody {σ σ₀ A I} {g : Sat256}
   obtain ⟨k0, C0, hsplit⟩ := erc6909ReachSplit
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
   have h88 := hsplit.selectorSplitTakenAuto erc6909SplitWellFormed hpivot (by jump_dest) (by simp)
-  have h89 := h88.jumpdest (by decide) (by simp)
-  have h99 := RD.selectorArmWidthNotTakenAuto 3 h89 erc6909BalanceArmWellFormed hbalance0
+  have h89 := h88.jumpdest (by native_decide) (by simp)
+  have h89' : RD erc6909BenchBytecode I g (initState σ σ₀ g A I)
+      erc6909LowFirstArmPc [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3)
+      ByteArray.empty σ (k0 + 5 + 1) (C0 + 22 + 1) := by
+    convert h89 using 1 <;> native_decide
+  have h99 := RD.selectorArmWidthNotTakenAuto 3 h89' erc6909BalanceArmWellFormed hbalance0
     (by simp)
   have hdispatch := RD.dispatchTo (code := erc6909BenchBytecode) (bodyPC := bodyPC) (i := i)
     (start := erc6909LowRestFirstArmPc) h99

@@ -114,8 +114,8 @@ private theorem decode_eq_of_get?_arg_eq (a b : ByteArray) (pc : UInt256)
     (hget : a.get? pc.toNat = b.get? pc.toNat)
     (harg : ∀ byte instr,
       b.get? pc.toNat = some byte → parseInstr byte = some instr →
-      a.extract' (pc.toNat + 1) (pc.toNat + 1 + argOnNBytesOfInstr instr) =
-        b.extract' (pc.toNat + 1) (pc.toNat + 1 + argOnNBytesOfInstr instr)) :
+      a.readWithPadding (pc.toNat + 1) (argOnNBytesOfInstr instr) =
+        b.readWithPadding (pc.toNat + 1) (argOnNBytesOfInstr instr)) :
     decode a pc = decode b pc := by
   unfold decode
   rw [hget]
@@ -420,26 +420,14 @@ theorem Layout.decodeUnchangedNOfLayout {layout : Layout} {template : ByteArray}
     rw [hinstr] at hinstr'
     cases hinstr'
     let len := argOnNBytesOfInstr instr
-    change (layout.runtimeN template words).extract' (pc.toNat + 1)
-      (pc.toNat + 1 + len) = template.extract' (pc.toNat + 1)
-        (pc.toNat + 1 + len)
+    change (layout.runtimeN template words).readWithPadding (pc.toNat + 1) len =
+      template.readWithPadding (pc.toNat + 1) len
     by_cases hpos : 0 < len
-    · unfold ByteArray.extract'
-      have hguard : (decide (pc.toNat + 1 < 2 ^ 64) &&
-          decide (pc.toNat + 1 + len < 2 ^ 64)) = true := by
-        rw [decide_eq_true (by omega), decide_eq_true (by omega)]
-        rfl
-      rw [if_pos hguard, if_pos hguard]
-      rw [← Reasoning.Theory.readWithPadding_eq_extract'
-          (layout.runtimeN template words) (pc.toNat + 1) len hpos
-          (by omega) (by rw [Layout.runtimeN_size_of_bounds hbound]; exact harghi)]
-      rw [← Reasoning.Theory.readWithPadding_eq_extract'
-          template (pc.toNat + 1) len hpos (by omega) harghi]
-      exact Layout.runtimeN_read_preserved (pc.toNat + 1) len hbound
+    · exact Layout.runtimeN_read_preserved (pc.toNat + 1) len hbound
         hargdisj harghi hpos (by omega)
     · have hz : len = 0 := by omega
       dsimp only [len] at hz ⊢
-      simp [hz, ByteArray.extract']
+      simp [hz, ByteArray.readWithPadding, ByteArray.readWithoutPadding]
 
 /-- Lift a concrete template decode when no patch intersects its opcode or argument. -/
 theorem Layout.decodeConcreteNOfChecks {layout : Layout} {template : ByteArray}
@@ -494,20 +482,6 @@ theorem Layout.decodeSite20 {layout : Layout} {template : ByteArray}
   rw [hpc]
   have hsite := Layout.runtimeN_read_site (words := words) off 20 key before after hsplit
     hbound hafter (by norm_num : 20 < 2 ^ 64)
-  unfold ByteArray.extract'
-  have hguard : (decide (off < 2 ^ 64) && decide (off + 20 < 2 ^ 64)) = true := by
-    have hs : (off, 20, key) ∈ layout.sites := by rw [hsplit]; simp
-    have hb := decide_eq_true_eq.mp (List.all_eq_true.mp hbound (off, 20, key) hs)
-    have hb' : off + 20 ≤ template.size := by simpa using hb.2.2
-    rw [decide_eq_true (by omega), decide_eq_true (by omega)]
-    rfl
-  rw [if_pos hguard]
-  rw [← Reasoning.Theory.readWithPadding_eq_extract'
-    (layout.runtimeN template words) off 20 (by norm_num) (by norm_num)
-    (by rw [Layout.runtimeN_size_of_bounds hbound]
-        have hs : (off, 20, key) ∈ layout.sites := by rw [hsplit]; simp
-        have hb := decide_eq_true_eq.mp (List.all_eq_true.mp hbound (off, 20, key) hs)
-        exact hb.2.2)]
   exact congrArg uInt256OfByteArray hsite
 
 /-- Decode a PUSH32 in a layout that may also contain PUSH20 sites. -/
@@ -533,20 +507,6 @@ theorem Layout.decodeSite32N {layout : Layout} {template : ByteArray}
   rw [hpc]
   have hsite := Layout.runtimeN_read_site (words := words) off 32 key before after hsplit
     hbound hafter (by norm_num : 32 < 2 ^ 64)
-  unfold ByteArray.extract'
-  have hguard : (decide (off < 2 ^ 64) && decide (off + 32 < 2 ^ 64)) = true := by
-    have hs : (off, 32, key) ∈ layout.sites := by rw [hsplit]; simp
-    have hb := decide_eq_true_eq.mp (List.all_eq_true.mp hbound (off, 32, key) hs)
-    have hb' : off + 32 ≤ template.size := by simpa using hb.2.2
-    rw [decide_eq_true (by omega), decide_eq_true (by omega)]
-    rfl
-  rw [if_pos hguard]
-  rw [← Reasoning.Theory.readWithPadding_eq_extract'
-    (layout.runtimeN template words) off 32 (by norm_num) (by norm_num)
-    (by rw [Layout.runtimeN_size_of_bounds hbound]
-        have hs : (off, 32, key) ∈ layout.sites := by rw [hsplit]; simp
-        have hb := decide_eq_true_eq.mp (List.all_eq_true.mp hbound (off, 32, key) hs)
-        exact hb.2.2)]
   exact congrArg uInt256OfByteArray hsite
 
 private theorem Layout.siteBytes32 (word : UInt256) :
@@ -663,26 +623,14 @@ theorem Layout.decodeUnchanged {layout : Layout} {template : ByteArray}
     change pc.toNat + 1 + len ≤ template.size at hbound
     change Reasoning.Theory.WindowDisjointFromWrites template.size
       (pc.toNat + 1) len (layout.writes words) at hwindow
-    change (layout.runtime template words).extract' (pc.toNat + 1)
-      (pc.toNat + 1 + len) = template.extract' (pc.toNat + 1)
-        (pc.toNat + 1 + len)
+    change (layout.runtime template words).readWithPadding (pc.toNat + 1) len =
+      template.readWithPadding (pc.toNat + 1) len
     by_cases hpos : 0 < len
-    · unfold ByteArray.extract'
-      have hguard : (decide (pc.toNat + 1 < 2 ^ 64) &&
-          decide (pc.toNat + 1 + len < 2 ^ 64)) = true := by
-        rw [decide_eq_true (by omega), decide_eq_true (by omega)]
-        rfl
-      rw [if_pos hguard, if_pos hguard]
-      rw [← Reasoning.Theory.readWithPadding_eq_extract'
-          (layout.runtime template words) (pc.toNat + 1) len hpos
-          (by omega) (by rw [hsize]; exact hbound)]
-      rw [← Reasoning.Theory.readWithPadding_eq_extract'
-          template (pc.toNat + 1) len hpos (by omega) hbound]
-      exact Reasoning.Theory.writeCascade_read_preserved_len template
+    · exact Reasoning.Theory.writeCascade_read_preserved_len template
         (layout.writes words) (pc.toNat + 1) len hwindow hpos (by omega)
     · have hz : len = 0 := by omega
       dsimp only [len] at hz ⊢
-      simp [hz, ByteArray.extract']
+      simp [hz, ByteArray.readWithPadding, ByteArray.readWithoutPadding]
 
 /-- The two layout checks are concrete arithmetic, so generated summaries can
     discharge them with `native_decide` and then decode the template. -/
@@ -794,7 +742,17 @@ theorem Layout.decodeSite {layout : Layout} {template : ByteArray}
   rw [Layout.getUnchanged pc.toNat hsize hgetwin (by omega), hopcode]
   simp [parseInstr, argOnNBytesOfInstr]
   rw [hpc]
-  rw [Layout.readSiteWord off key before after hsplit hbefore hafter hsize hsize64 hbound]
+  rw [Reasoning.Theory.readWithPadding_eq_extract'
+    (layout.runtime template words) off 32 (by norm_num) (by norm_num)
+    (by rw [hsize]; exact hbound)]
+  have hsite := Layout.readSiteWord off key before after hsplit hbefore hafter
+    hsize hsize64 hbound
+  unfold ByteArray.extract' at hsite
+  have hguard : (decide (off < 2 ^ 64) && decide (off + 32 < 2 ^ 64)) = true := by
+    rw [decide_eq_true (by omega), decide_eq_true (by omega)]
+    rfl
+  rw [if_pos hguard] at hsite
+  rw [hsite]
   rw [word_from_bytes]
 
 /-! ## Immutable words from Stele immutables

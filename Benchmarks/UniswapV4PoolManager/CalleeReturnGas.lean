@@ -110,11 +110,11 @@ theorem Xi_success_returnMemoryCost {σ σ₀ : AccountMap} {g : UInt256} {A : S
       exact (Nat.add_le_add_right hm _).trans hp
 
 theorem thetaCode_success_returnMemoryCost
-    {σ σ₀ : AccountMap} {A : Substate} {s o r : AccountAddress}
+    {fork : Fork} {σ σ₀ : AccountMap} {A : Substate} {s o r : AccountAddress}
     {code d : ByteArray} {g p v v' : UInt256} {e : Fin 1025} {H : BlockHeader}
     {blob : List ByteArray} {blocks : ProcessedBlocks} {perm : Bool}
     {σ' : AccountMap} {g' : UInt256} {A' : Substate} {out : ByteArray}
-    (h : Ethereum.EVM.Θ σ σ₀ A s o r (.Code code) g p v v' d e H blob blocks perm =
+    (h : Ethereum.EVM.Θ fork σ σ₀ A s o r (.Code code) g p v v' d e H blob blocks perm =
       (σ', g', A', true, out)) :
     Cₘ (UInt256.ofNat ((out.size+31)/32))+g'.toNat ≤ g.toNat := by
   obtain ⟨inputAccounts, I, accounts, substate, hx⟩ := thetaCode_success_Xi h

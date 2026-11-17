@@ -93,7 +93,9 @@ boundary is defined in terms of the EVM semantics.
   semantics, a formal model of the EVM in Lean. The semantics is a port of
   Nethermind's [EVMYulLean](https://github.com/NethermindEth/EVMYulLean) to a
   newer version of Lean with a few other adjustments. The EVM semantics is
-  executable and it passes the official EVM conformance test suite.
+  executable and it passes the official EVM conformance test suite. It is
+  parametric in the execution-layer fork (Cancun, Prague and Osaka, with
+  Osaka's blob-parameter forks), which is part of the execution environment.
 
 - **Stele** ([`Stele/`](Stele/))
   This contains Stele's syntax, semantics, and surface notation. The file
@@ -200,8 +202,8 @@ theorem erc20Correct : runtimeRefinement erc20Config erc20Bytecode erc20Contract
 ```
 
 It quantifies over every initial state: any account map, block environment,
-calldata, call value, gas, and permission mode (the contract may be entered through
-`STATICCALL`), provided the deployed code is `erc20Bytecode`.
+calldata, call value, gas, permission mode (the contract may be entered through
+`STATICCALL`), and fork, provided the deployed code is `erc20Bytecode`.
 For each such state it relates one full execution of the bytecode to one
 execution of the specification: either the bytecode execution runs out of gas
 (in which case the specification side is unconstrained), or its result is
@@ -241,7 +243,10 @@ trusted base is small and explicit. Accepting a certificate means trusting:
 - **The EVM model.** The refinement is stated against the
   [EVMLean](https://github.com/lefterislazar/EVMLean) semantics that follows the
   EVM Yellow Paper. The model is executable and passes the official EVM
-  conformance test suite, but its faithfulness to the EVM is trusted.
+  conformance test suite, but its faithfulness to the EVM is trusted. The
+  fork is part of the execution environment the refinement quantifies over, so
+  bytecode that executes a later fork's instruction (Osaka's `CLZ`, an invalid
+  instruction before Osaka) is proved under a precondition on the fork.
 - **The refinement relation.** [`Stele/Refine.lean`](Stele/Refine.lean) defines
   what equivalence means. It deliberately does not compare gas consumption,
   logs and substate, or revert payloads.

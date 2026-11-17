@@ -56,6 +56,6 @@ theorem rawValueCallTraceFrom {σ : AccountMap} {I : ExecutionEnv} {g : Sat256}
       (by simpa only [hee] using hd)
     simpa only [hee, hacc, hworld, accountAddress_roundtrip, Bool.true_and] using hΘ
   · exact fun hsmall ↦
-      Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ hsmall
+      Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ hsmall
 
 end Benchmarks.Safe.V2_0e91d99

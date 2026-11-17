@@ -642,11 +642,11 @@ theorem uniswapPermitX_ecrecoverStaticcallMade
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute (permitAfterNonceAccountMap σ I)
+          (toExecute I.fork (permitAfterNonceAccountMap σ I)
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
@@ -716,11 +716,11 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecoded
     (hstatic : ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute (permitAfterNonceAccountMap σ I)
+          (toExecute I.fork (permitAfterNonceAccountMap σ I)
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
@@ -737,11 +737,11 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecoded
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute (permitAfterNonceAccountMap σ I)
+          (toExecute I.fork (permitAfterNonceAccountMap σ I)
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
@@ -803,11 +803,11 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
     (hstatic : ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute (permitAfterNonceAccountMap σ I)
+          (toExecute I.fork (permitAfterNonceAccountMap σ I)
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
@@ -824,11 +824,11 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute (permitAfterNonceAccountMap σ I)
+          (toExecute I.fork (permitAfterNonceAccountMap σ I)
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
@@ -1013,11 +1013,11 @@ theorem uniswapPermitEcrecoverTypedCall_source
     (hdepth : I.depth.val < 1024)
     (hsz228 : 228 ≤ I.calldata.size)
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
-      (σ', g'', A'_evm, z, o) = Ethereum.EVM.Θ
+      (σ', g'', A'_evm, z, o) = Ethereum.EVM.Θ I.fork
         (permitAfterNonceAccountMap σ I) σ₀ A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
         (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-        (toExecute (permitAfterNonceAccountMap σ I)
+        (toExecute I.fork (permitAfterNonceAccountMap σ I)
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
         callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
         ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
@@ -1054,10 +1054,10 @@ theorem uniswapPermitEcrecoverTypedCall_source
     exact hcd
   have hΘE :
       (σ', g'', A'_evm, z, o) =
-        Ethereum.EVM.Θ evmE.accountMap evmE.σ₀ A_in
+        Ethereum.EVM.Θ evmE.executionEnv.fork evmE.accountMap evmE.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
           evmE.executionEnv.sender (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute evmE.accountMap (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+          (toExecute evmE.executionEnv.fork evmE.accountMap (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
           (evmE.executionEnv.depth + 1) evmE.executionEnv.header evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks false := by
@@ -1106,11 +1106,11 @@ theorem uniswapPermitEcrecoverStaticcallTyped_source
     (hstatic : ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork
           (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute (permitAfterNonceAccountMap σ I)
+          (toExecute I.fork (permitAfterNonceAccountMap σ I)
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)

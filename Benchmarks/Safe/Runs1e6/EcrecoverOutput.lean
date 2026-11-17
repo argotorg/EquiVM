@@ -7,6 +7,10 @@ open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Safe.Runs1e6
 
 -- LIBRARY CANDIDATE: ECRECOVER either has no result or returns a canonical address word.
+private theorem ecrecoverAddress_mem_π (fork : Fork) :
+    (AccountAddress.ofNat 1) ∈ π fork := by
+  cases fork <;> decide
+
 def EcrecoverOutput (out : ByteArray) : Prop :=
   out = ByteArray.empty ∨ (out.size = 32 ∧ (calldataWord out 0).toNat < EVM.addressModulus)
 
@@ -44,10 +48,11 @@ theorem precompileEcrecoverOutput (σ : AccountMap) (g : UInt256) (A : Substate)
       · exact ecrecoverHashOutput _
       · exact Or.inl rfl
 
-theorem thetaEcrecoverOutput (σ σ₀ : AccountMap) (A : Substate)
+set_option maxRecDepth 65536 in
+theorem thetaEcrecoverOutput (fork : Fork) (σ σ₀ : AccountMap) (A : Substate)
     (s o r : AccountAddress) (g p v v' : UInt256) (d : ByteArray) (e : Fin 1025)
     (H : BlockHeader) (blob : List ByteArray) (blocks : ProcessedBlocks) (w : Bool) :
-    EcrecoverOutput (Θ σ σ₀ A s o r (.Precompiled 1) g p v v' d e H blob blocks w).2.2.2.2 := by
+    EcrecoverOutput (Θ fork σ σ₀ A s o r (.Precompiled (AccountAddress.ofNat 1)) g p v v' d e H blob blocks w).2.2.2.2 := by
   unfold Θ
   dsimp only
   exact precompileEcrecoverOutput _ _ _ _
@@ -59,9 +64,11 @@ theorem callEcrecoverOutput {evm evm' : EVM.State} {d out : ByteArray} {z perm :
   | callNotMade => exact Or.inl rfl
   | callMade hvalue hcall hevm hbal hdepth =>
       obtain ⟨gas, A, hΘ⟩ := hcall
-      have hto : toExecute evm.accountMap (AccountAddress.ofNat 1) = .Precompiled 1 := rfl
+      have hto : toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofNat 1) = .Precompiled (AccountAddress.ofNat 1) := by
+        unfold toExecute
+        rw [if_pos (ecrecoverAddress_mem_π evm.executionEnv.fork)]
       rw [hto, hvalue] at hΘ
-      have hs := thetaEcrecoverOutput evm.accountMap evm.σ₀ A evm.executionEnv.codeOwner
+      have hs := thetaEcrecoverOutput evm.executionEnv.fork evm.accountMap evm.σ₀ A evm.executionEnv.codeOwner
         evm.executionEnv.sender (AccountAddress.ofNat 1) gas (.ofNat evm.executionEnv.gasPrice)
         (EVM.wordOfInt 0) (EVM.wordOfInt 0) d (evm.executionEnv.depth + 1) evm.executionEnv.header
         evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (perm && evm.executionEnv.perm)

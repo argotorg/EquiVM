@@ -21,7 +21,7 @@ theorem uniswapInternalBurnRuntimeBalanceSubEntry
   have rd8313 := evm_run rd8302 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and]
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by decide] at rd8313
+      solcAddrMask from by native_decide] at rd8313
   have rd8317 := evm_run rd8313 with [push1 ⟨0⟩, swap1, dup2]
   have rd8318 := rd8317.mstore 0 (wordAt0Mem (UInt256.land holder solcAddrMask) mem)
     feeToStaticcallActiveWords (by native_decide) mem_cost (by rfl) (by native_decide)
@@ -38,7 +38,7 @@ theorem uniswapInternalBurnRuntimeBalanceSubEntry
     (by simp only [List.length_cons]; omega)
   have rd8342 := evm_run rd8328 with [
     push2 ⟨8343⟩, swap1, dup3, push4 ⟨0xffffffff⟩, push2 ⟨6879⟩, and]
-  rw [show UInt256.land (⟨6879⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6879⟩ from by decide] at rd8342
+  rw [show UInt256.land (⟨6879⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6879⟩ from by native_decide] at rd8342
   exact ⟨_, _, rd8342.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -62,7 +62,7 @@ theorem uniswapInternalBurnRuntimeStoreBalanceSupplySubEntry
   have rd8354 := evm_run rd8343 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and]
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by decide] at rd8354
+      solcAddrMask from by native_decide] at rd8354
   have rd8358 := evm_run rd8354 with [push1 ⟨0⟩, swap1, dup2]
   have rd8359 := rd8358.mstore 0 (wordAt0Mem (UInt256.land holder solcAddrMask) mem)
     feeToStaticcallActiveWords (by native_decide) mem_cost (by rfl) (by native_decide)
@@ -80,7 +80,7 @@ theorem uniswapInternalBurnRuntimeStoreBalanceSupplySubEntry
   obtain ⟨_, _, rd8373⟩ := rd8372.sload (by native_decide) (by evm_ov)
   have rd8387 := evm_run rd8373 with [
     push2 ⟨8388⟩, swap1, dup3, push4 ⟨0xffffffff⟩, push2 ⟨6879⟩, and]
-  rw [show UInt256.land (⟨6879⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6879⟩ from by decide] at rd8387
+  rw [show UInt256.land (⟨6879⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6879⟩ from by native_decide] at rd8387
   exact ⟨_, _, rd8387.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -120,7 +120,7 @@ theorem uniswapInternalBurnRuntimeStoreSupplyEmitAndJump
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, and, swap2]
   have rd8447 := rd8414.pushConst
     (⟨100389287136786176327247604509743168900146139575972864366142685224231313322991⟩ : UInt256)
-    (width := 32) (op := .PUSH32) (by native_decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
   have rd8456 := evm_run rd8447 with [
     swap2, swap1, dup2, swap1, sub, push1 ⟨32⟩, add, swap1]
   have rd8457 := rd8456.log3 0 feeToStaticcallActiveWords (by native_decide) hperm

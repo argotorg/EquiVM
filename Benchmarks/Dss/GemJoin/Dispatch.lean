@@ -324,10 +324,12 @@ theorem gemJoinReachLowFirstArm {σ σ₀ A I} {g : Sat256}
   obtain ⟨k32, C32, h32⟩ :=
     gemJoinReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
+  have hrootTgt : armTgt gemJoinBytecode gemJoinRootSplitPc = gemJoinLowJumpdestPc :=
+    by native_decide
   have h113 : RD gemJoinBytecode I g (initState σ σ₀ g A I)
       gemJoinLowJumpdestPc [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty σ (k32 + 5) (C32 + 22) := by
-    simpa [gemJoinRootSplitPc, gemJoinLowJumpdestPc] using
+    simpa [gemJoinRootSplitPc, gemJoinLowJumpdestPc, hrootTgt] using
       RD.selectorSplitTakenAuto h32 gemJoinRootSplitWellFormed hroot (by jump_dest) (by simp)
   have h114 : RD gemJoinBytecode I g (initState σ σ₀ g A I)
       gemJoinLowFirstArmPc [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)

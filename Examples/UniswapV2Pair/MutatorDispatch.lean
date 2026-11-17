@@ -16,16 +16,16 @@ theorem uniswapReachSwapBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨430⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x022c0d9f⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x02 0x2c 0x0d 0x9f ⟨0x022c0d9f⟩ (by decide) hsel
-  exact uniswapReachLowestBody 0 (by decide) ⟨430⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x02 0x2c 0x0d 0x9f ⟨0x022c0d9f⟩ (by native_decide) hsel
+  exact uniswapReachLowestBody 0 (by native_decide) ⟨430⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => False.elim ((Nat.not_lt_zero j) hj))
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `mint(address)` body entry through the optimized dispatcher. -/
 theorem uniswapReachMintBody {σ σ₀ A I} {g : Sat256}
@@ -35,17 +35,17 @@ theorem uniswapReachMintBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1041⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x6a627842⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x6a 0x62 0x78 0x42 ⟨0x6a627842⟩ (by decide) hsel
-  exact uniswapReachHighLowestBody 0 (by decide) ⟨1041⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x6a 0x62 0x78 0x42 ⟨0x6a627842⟩ (by native_decide) hsel
+  exact uniswapReachHighLowestBody 0 (by native_decide) ⟨1041⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => False.elim ((Nat.not_lt_zero j) hj))
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `burn(address)` body entry through the optimized dispatcher. -/
 theorem uniswapReachBurnBody {σ σ₀ A I} {g : Sat256}
@@ -55,20 +55,20 @@ theorem uniswapReachBurnBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1163⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x89afcb44⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0x89 0xaf 0xcb 0x44 ⟨0x89afcb44⟩ (by decide) hsel
-  exact uniswapReachHighLowerBody 1 (by decide) ⟨1163⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0x89 0xaf 0xcb 0x44 ⟨0x89afcb44⟩ (by native_decide) hsel
+  exact uniswapReachHighLowerBody 1 (by native_decide) ⟨1163⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals decide)
+      all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 /-- Reach the `permit(address,address,uint256,uint256,uint8,bytes32,bytes32)` body entry through
     the optimized dispatcher. -/
@@ -79,19 +79,19 @@ theorem uniswapReachPermitBody {σ σ₀ A I} {g : Sat256}
     ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1340⟩
         [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xd505accf⟩ :=
-    uniswapSelWord_eq_of_beq I hsz 0xd5 0x05 0xac 0xcf ⟨0xd505accf⟩ (by decide) hsel
-  exact uniswapReachHighUpperBody 1 (by decide) ⟨1340⟩ hcode hwv hsz hsize
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
-    (by rw [hword]; decide)
+    uniswapSelWord_eq_of_beq I hsz 0xd5 0x05 0xac 0xcf ⟨0xd505accf⟩ (by native_decide) hsel
+  exact uniswapReachHighUpperBody 1 (by native_decide) ⟨1340⟩ hcode hwv hsz hsize
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
+    (by rw [hword]; native_decide)
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals decide)
+      all_goals native_decide)
     (by
       rw [hword]
-      decide)
+      native_decide)
     (by jump_dest)
-    (by decide)
+    (by native_decide)
 
 end UniswapV2Pair

@@ -68,27 +68,27 @@ theorem RD.uniswapUpdateEmitSyncAndJumpCore {g : Sat256} {s0 : State}
       (pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed)) awLog rdata acc k' C' := by
   have rd7342 := evm_run h with [
     push1 ⟨64⟩, dup1,
-    raw mload mcostLoad ptr awLoad (by decide) hmcLoad hmload64 hawLoad (by evm_ov)]
+    raw mload mcostLoad ptr awLoad (by native_decide) hmcLoad hmload64 hawLoad (by evm_ov)]
   have rd7347₀ := evm_run rd7342 with [dup5, dup5, and, dup2]
   have rd7348 := rd7347₀.mstore mcostStore0 (pairDynamicMem0 mem ptr (uniswapSyncReserve0Word packed)) awStore0
-    (by decide) hmcStore0 (by rfl) hawStore0 (by evm_ov)
+    (by native_decide) hmcStore0 (by rfl) hawStore0 (by evm_ov)
   have rd7359₀ := evm_run rd7348 with [
     swap2, swap1, swap4, div, swap1, swap2, and, push1 ⟨32⟩, dup3, add]
   have rd7360 := rd7359₀.mstore mcostStore1 (pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed)) awLog
-    (by decide) hmcStore1
+    (by native_decide) hmcStore1
     (by rfl)
     hawStore1 (by evm_ov)
   have rd7362 := evm_run rd7360 with [
     dup2,
-    raw mload mcostLoadLog ptr awLog (by decide) hmcLoadLog hmload64Log hawLoadLog
+    raw mload mcostLoadLog ptr awLog (by native_decide) hmcLoadLog hmload64Log hawLoadLog
       (by evm_ov)]
   have rd7395 := rd7362.pushConst uniswapSyncTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by native_decide) (by native_decide) (by evm_ov)
   have rd7404 := evm_run rd7395 with [
     swap3, swap2, dup2, swap1, sub, swap1, swap2, add, swap1]
-  have rd7405 := rd7404.log1 mcostLog awLog (by decide) hperm hmcLog hawLog
+  have rd7405 := rd7404.log1 mcostLog awLog (by native_decide) hperm hmcLog hawLog
     (by simp only [List.length_cons]; omega)
   have rd7411 := evm_run rd7405 with [pop, pop, pop, pop, pop, pop]
-  exact ⟨_, _, rd7411.jump (by decide) hret (by evm_ov)⟩
+  exact ⟨_, _, rd7411.jump (by native_decide) hret (by evm_ov)⟩
 
 end UniswapV2Pair
