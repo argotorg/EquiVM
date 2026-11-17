@@ -1,0 +1,175 @@
+{
+  "contract": "Midnight",
+  "externalCalls": [
+    {
+      "name": "isRatified",
+      "params": [
+        "Offer",
+        "bytes",
+        "address"
+      ],
+      "returns": [
+        "bytes32"
+      ],
+      "view": true
+    },
+    {
+      "name": "canIncreaseCredit",
+      "params": [
+        "address"
+      ],
+      "returns": [
+        "bool"
+      ],
+      "view": true
+    },
+    {
+      "name": "canIncreaseDebt",
+      "params": [
+        "address"
+      ],
+      "returns": [
+        "bool"
+      ],
+      "view": true
+    },
+    {
+      "name": "onBuy",
+      "params": [
+        "bytes32",
+        "Market",
+        "uint256",
+        "uint256",
+        "uint256",
+        "address",
+        "bytes"
+      ],
+      "returns": [
+        "bytes32"
+      ],
+      "view": false
+    },
+    {
+      "name": "onSell",
+      "params": [
+        "bytes32",
+        "Market",
+        "uint256",
+        "uint256",
+        "uint256",
+        "address",
+        "address",
+        "bytes"
+      ],
+      "returns": [
+        "bytes32"
+      ],
+      "view": false
+    },
+    {
+      "name": "onRepay",
+      "params": [
+        "bytes32",
+        "Market",
+        "uint256",
+        "address",
+        "bytes"
+      ],
+      "returns": [
+        "bytes32"
+      ],
+      "view": false
+    },
+    {
+      "name": "price",
+      "params": [],
+      "returns": [
+        "uint256"
+      ],
+      "view": true
+    },
+    {
+      "name": "canLiquidate",
+      "params": [
+        "address"
+      ],
+      "returns": [
+        "bool"
+      ],
+      "view": true
+    },
+    {
+      "name": "onLiquidate",
+      "params": [
+        "address",
+        "bytes32",
+        "Market",
+        "uint256",
+        "uint256",
+        "uint256",
+        "address",
+        "address",
+        "bytes",
+        "uint256"
+      ],
+      "returns": [
+        "bytes32"
+      ],
+      "view": false
+    },
+    {
+      "name": "onFlashLoan",
+      "params": [
+        "address",
+        "address[]",
+        "uint256[]",
+        "bytes"
+      ],
+      "returns": [
+        "bytes32"
+      ],
+      "view": false
+    }
+  ],
+  "holes": [
+    "inline assembly block @15254",
+    "tuple expression @25337",
+    "abi.encode @28187",
+    "abi.decode with a non-elementary or multiple types @51900",
+    "inline array literal @53674",
+    "inline array literal @1249",
+    "abi.encodeCall @407",
+    "inline assembly block @543",
+    "number literal 0.999 @44563",
+    "inline assembly block @429",
+    "tuple expression @50371",
+    "inline assembly block @259",
+    "abi.encode @2470",
+    "inline assembly block @2547",
+    "abi.encodeCall @922",
+    "inline assembly block @1068",
+    "inline assembly block @1643",
+    "hexString literal @1393",
+    "hexString literal @1981",
+    "inline assembly block @2071",
+    "abi.encode @2855",
+    "inline assembly block @2932"
+  ],
+  "notes": [
+    "constant WAD = 1000000000000000000 inlined",
+    "constant CBP = 1000000000000 inlined",
+    "constant MAX_CONTINUOUS_FEE = uint32((uint256(10000000000000000) / uint256(31536000))) inlined",
+    "constant CALLBACK_SUCCESS = keccak256(\"morpho.midnight.callbackSuccess\") = 0x7f87788ea698181ea4d28d1576d0ba4fc92c0dbe5bf75b43692af2ce91dbaea2 inlined",
+    "constant LIQUIDATION_LOCK_SLOT = uint256(keccak256(\"morpho.midnight.liquidationLocked\")) inlined",
+    "constant MAX_COLLATERALS_PER_BORROWER = 16 inlined",
+    "`_collateralParam` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 36482:69:0",
+    "constant ORACLE_PRICE_SCALE = 1000000000000000000000000000000000000 inlined",
+    "constant TIME_TO_MAX_LIF = 3600 inlined",
+    "constant MAX_COLLATERALS = 128 inlined",
+    "constant DEFAULT_TICK_SPACING = 4 inlined",
+    "constant MAX_TICK = 6744 inlined",
+    "constant LN_ONE_PLUS_DELTA = 4987541511039073 inlined",
+    "constant PRICE_ROUNDING_STEP = 100000000000 inlined",
+    "`collateralParam` copies a struct from storage in one read; check the bytecode's field read order \u2014 src 49477:68:0"
+  ]
+}

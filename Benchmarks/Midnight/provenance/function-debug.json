@@ -1,0 +1,464 @@
+{
+  "abi_decode_address": {
+    "entryPoint": 18342,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "abi_decode_address_44120": {
+    "entryPoint": 18232,
+    "id": null,
+    "parameterSlots": 0,
+    "returnSlots": 1
+  },
+  "abi_decode_address_44122": {
+    "entryPoint": 18254,
+    "id": null,
+    "parameterSlots": 0,
+    "returnSlots": 1
+  },
+  "abi_decode_address_44128": {
+    "entryPoint": 18276,
+    "id": null,
+    "parameterSlots": 0,
+    "returnSlots": 1
+  },
+  "abi_decode_address_44129": {
+    "entryPoint": 18298,
+    "id": null,
+    "parameterSlots": 0,
+    "returnSlots": 1
+  },
+  "abi_decode_address_44141": {
+    "entryPoint": 18320,
+    "id": null,
+    "parameterSlots": 0,
+    "returnSlots": 1
+  },
+  "abi_decode_address_fromMemory": {
+    "entryPoint": 23130,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "abi_decode_array_address_dyn_calldata": {
+    "entryPoint": 18841,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 2
+  },
+  "abi_decode_bool": {
+    "entryPoint": 19003,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "abi_decode_bool_fromMemory": {
+    "entryPoint": 20432,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "abi_decode_bytes": {
+    "entryPoint": 19043,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "abi_decode_bytes32t_uint256": {
+    "entryPoint": 18819,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 2
+  },
+  "abi_decode_bytes_calldata": {
+    "entryPoint": 18889,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 2
+  },
+  "abi_decode_struct_CollateralParams": {
+    "entryPoint": 18500,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "abi_decode_struct_Market": {
+    "entryPoint": 18574,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "abi_decode_struct_Markett_bytes32t_address": {
+    "entryPoint": 18934,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 3
+  },
+  "abi_decode_uint128": {
+    "entryPoint": 19113,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "abi_encode_address_uint256": {
+    "entryPoint": null,
+    "id": null,
+    "parameterSlots": 3,
+    "returnSlots": 1
+  },
+  "abi_encode_array_address_dyn_calldata": {
+    "entryPoint": 19549,
+    "id": null,
+    "parameterSlots": 3,
+    "returnSlots": 1
+  },
+  "abi_encode_array_uint256_dyn_calldata": {
+    "entryPoint": 19614,
+    "id": null,
+    "parameterSlots": 3,
+    "returnSlots": 1
+  },
+  "abi_encode_bytes": {
+    "entryPoint": 20095,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "abi_encode_bytes_calldata": {
+    "entryPoint": 19711,
+    "id": null,
+    "parameterSlots": 3,
+    "returnSlots": 1
+  },
+  "abi_encode_struct_Market": {
+    "entryPoint": 19181,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "abi_encode_struct_Offer": {
+    "entryPoint": 20131,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "abi_encode_uint128_uint128_uint128": {
+    "entryPoint": null,
+    "id": null,
+    "parameterSlots": 4,
+    "returnSlots": 1
+  },
+  "access_calldata_tail_array_struct_CollateralParams_calldata_dyn_calldata": {
+    "entryPoint": 20488,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 2
+  },
+  "array_allocation_size_array_struct_CollateralParams_dyn": {
+    "entryPoint": 18477,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "array_allocation_size_bytes": {
+    "entryPoint": 19016,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "calldata_array_index_access_address_dyn_calldata": {
+    "entryPoint": 19675,
+    "id": null,
+    "parameterSlots": 3,
+    "returnSlots": 1
+  },
+  "calldata_array_index_access_struct_CollateralParams_calldata_dyn_calldata": {
+    "entryPoint": 20541,
+    "id": null,
+    "parameterSlots": 3,
+    "returnSlots": 1
+  },
+  "checked_add_uint128": {
+    "entryPoint": 20456,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "checked_add_uint256": {
+    "entryPoint": 19536,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "checked_add_uint256_44170": {
+    "entryPoint": 19508,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "checked_div_uint256": {
+    "entryPoint": 19391,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "checked_mul_uint256": {
+    "entryPoint": 20413,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "checked_mul_uint256_44172": {
+    "entryPoint": 20377,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "checked_sub_uint128": {
+    "entryPoint": 19743,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "checked_sub_uint256": {
+    "entryPoint": 19447,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "checked_sub_uint256_44174": {
+    "entryPoint": 19421,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "copy_literal_to_memory_a55ffd6cc2b0b507f8827f3c680fa2adb9285b64bf7fb098798ce57c2156693f": {
+    "entryPoint": 24347,
+    "id": null,
+    "parameterSlots": 0,
+    "returnSlots": 1
+  },
+  "extract_returndata": {
+    "entryPoint": 22728,
+    "id": null,
+    "parameterSlots": 0,
+    "returnSlots": 1
+  },
+  "finalize_allocation": {
+    "entryPoint": 18444,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 0
+  },
+  "finalize_allocation_44126": {
+    "entryPoint": 18362,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 0
+  },
+  "finalize_allocation_44208": {
+    "entryPoint": 18389,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 0
+  },
+  "finalize_allocation_44210": {
+    "entryPoint": 18417,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 0
+  },
+  "fun_hasCredit": {
+    "entryPoint": null,
+    "id": 3825,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "fun_isHealthy": {
+    "entryPoint": 19775,
+    "id": 3655,
+    "parameterSlots": 3,
+    "returnSlots": 1
+  },
+  "fun_maxLif": {
+    "entryPoint": 24250,
+    "id": 5210,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "fun_maxSettlementFee": {
+    "entryPoint": 23967,
+    "id": 5183,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "fun_mulDivUp": {
+    "entryPoint": 24124,
+    "id": 5994,
+    "parameterSlots": 3,
+    "returnSlots": 1
+  },
+  "fun_mulDivUp_44146": {
+    "entryPoint": 24082,
+    "id": 5994,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "fun_safeTransfer": {
+    "entryPoint": 23236,
+    "id": 5612,
+    "parameterSlots": 3,
+    "returnSlots": 0
+  },
+  "fun_safeTransferFrom": {
+    "entryPoint": 23444,
+    "id": 5673,
+    "parameterSlots": 4,
+    "returnSlots": 0
+  },
+  "fun_settlementFee": {
+    "entryPoint": 21835,
+    "id": 3806,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "fun_tExchange": {
+    "entryPoint": 24160,
+    "id": 6157,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "fun_tGet": {
+    "entryPoint": 23150,
+    "id": 6185,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "fun_toUint128": {
+    "entryPoint": 23403,
+    "id": 6019,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "fun_touchMarket": {
+    "entryPoint": 20557,
+    "id": 3278,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "fun_updatePosition": {
+    "entryPoint": 23599,
+    "id": 3558,
+    "parameterSlots": 3,
+    "returnSlots": 3
+  },
+  "fun_updatePositionView": {
+    "entryPoint": 22775,
+    "id": 3421,
+    "parameterSlots": 3,
+    "returnSlots": 3
+  },
+  "fun_wExp": {
+    "entryPoint": 24388,
+    "id": 5805,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "mapping_index_access_mapping_address__uint32__of_address": {
+    "entryPoint": null,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "mapping_index_access_mapping_address_uint32_of_address": {
+    "entryPoint": null,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "memory_array_index_access_struct_CollateralParams_dyn": {
+    "entryPoint": 19460,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "mod_uint256": {
+    "entryPoint": 20085,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 1
+  },
+  "read_from_calldatat_address": {
+    "entryPoint": 19691,
+    "id": null,
+    "parameterSlots": 1,
+    "returnSlots": 1
+  },
+  "storage_array_index_access_uint": {
+    "entryPoint": 19133,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 2
+  },
+  "storage_array_index_access_uint128_": {
+    "entryPoint": 19480,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 2
+  },
+  "update_storage_value_offset_12_uint16_to_uint16": {
+    "entryPoint": null,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 0
+  },
+  "update_storage_value_offset_2_uint16_to_uint16": {
+    "entryPoint": null,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 0
+  },
+  "update_storage_value_offset_4_uint16_to_uint16": {
+    "entryPoint": null,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 0
+  },
+  "update_storage_value_offset_8_uint16_to_uint16": {
+    "entryPoint": null,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 0
+  },
+  "update_storage_value_offset_t_uint16_to_t_uint16": {
+    "entryPoint": null,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 0
+  },
+  "update_storage_value_offset_uint128_to_uint128": {
+    "entryPoint": null,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 0
+  },
+  "update_storage_value_offset_uint16_to_uint16": {
+    "entryPoint": null,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 0
+  },
+  "update_storage_value_offset_uint32_to_uint32": {
+    "entryPoint": null,
+    "id": null,
+    "parameterSlots": 2,
+    "returnSlots": 0
+  },
+  "update_storage_value_uint128_to_uint128": {
+    "entryPoint": null,
+    "id": null,
+    "parameterSlots": 3,
+    "returnSlots": 0
+  }
+}

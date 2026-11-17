@@ -1,0 +1,12 @@
+compiled Midnight with solc 0.8.34+commit.80d5c536.Linux.g++: runtime 24557 bytes (12 metadata), creation 24640 bytes, 57 selectors, 0 immutables
+wrote Benchmarks/Midnight/Bytecode.lean
+wrote Benchmarks/Midnight/Selectors.lean
+wrote Benchmarks/Midnight/DiffTarget.lean
+wrote 90 runtime summary shards (1808 units) and RuntimeBlocks.index
+wrote 90 creation summary shards (1813 units) and CreationBlocks.index
+ok   midnightBytecode matches the hex artifact
+ok   validJumps: matches the JUMPDEST scan
+ok   midnightCreationBytecode matches the hex artifact
+ok   creationValidJumps: matches the JUMPDEST scan
+ok   Selectors.lean: 57 entries match the ABI in SpecSyntax order
+ok   sources.sha256 verified
