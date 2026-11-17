@@ -1,0 +1,5 @@
+✔ [1141/1144] Built Benchmarks.Midnight.Conditions (1.6s)
+✔ [1142/1144] Built Benchmarks.Midnight.SpecSyntax (6.4s)
+✔ [1143/1144] Built Benchmarks.Midnight.Spec (2.4s)
+✔ [1144/1144] Built Benchmarks.Midnight.DiffTarget (1.4s)
+Build completed successfully (1144 jobs).

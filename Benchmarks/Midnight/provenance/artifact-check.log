@@ -1,0 +1,6 @@
+ok   midnightBytecode matches the hex artifact
+ok   validJumps: matches the JUMPDEST scan
+ok   midnightCreationBytecode matches the hex artifact
+ok   creationValidJumps: matches the JUMPDEST scan
+ok   Selectors.lean: 57 entries match the ABI in SpecSyntax order
+ok   sources.sha256 verified

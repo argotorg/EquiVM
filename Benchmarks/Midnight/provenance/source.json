@@ -1,0 +1,72 @@
+{
+  "repository": "https://github.com/morpho-org/midnight",
+  "commit": "a61b99fa1d10556bb2281fb8511a2b851ef4a9b2",
+  "main": "src/Midnight.sol",
+  "sources": [
+    {
+      "path": "src/Midnight.sol",
+      "gitBlob": "0d10fee85cc02f62b4cb9bb6ab21eb954dfe820d",
+      "sha256": "d6e642ab205cd802d62d05dc2e45401a39f4d28586c442d427e6bd8af23b62a2"
+    },
+    {
+      "path": "src/interfaces/ICallbacks.sol",
+      "gitBlob": "cc506f94450d0b08237311cc0e75611eb54e4a35",
+      "sha256": "ea705b69ce33e2aa39883ac3bb30aaa809e0d3898698986c4e3216379b55aae6"
+    },
+    {
+      "path": "src/interfaces/IERC20.sol",
+      "gitBlob": "9c6d4afb5bb222b5f46cc0f088d40e142c5e736d",
+      "sha256": "814a59872aa732161072454cfe187073acc6ae519e1e54b715a023d4111c1d10"
+    },
+    {
+      "path": "src/interfaces/IGate.sol",
+      "gitBlob": "227762de974a68885ded1d16f644478fe25e44e3",
+      "sha256": "58a3426ec6ae74b45932365762a0d5269e60cb1e7326c4a33cc23aadb8082918"
+    },
+    {
+      "path": "src/interfaces/IMidnight.sol",
+      "gitBlob": "835fe9e9e6107a588cd8e432cf7eb8ac661f450e",
+      "sha256": "63bacfc1d42073ef4698b4003d80d8e636ca5f8ee3a60440c506ebbf750a1470"
+    },
+    {
+      "path": "src/interfaces/IOracle.sol",
+      "gitBlob": "27e280244c9d8f7ed44c14387d36a45dbfc4e801",
+      "sha256": "f430beeaf7ea707af26b6433135b885a0de6291da6d5327c070da8c96090ebd4"
+    },
+    {
+      "path": "src/interfaces/IRatifier.sol",
+      "gitBlob": "572533613726524fc8403740469bab36d42e3797",
+      "sha256": "f601863d4228f15c5a2550bfdea9bbfe5ee3d1fd674e356691ebef32a932e30e"
+    },
+    {
+      "path": "src/libraries/ConstantsLib.sol",
+      "gitBlob": "b3f559b51aaa3db7e550b281c19b04ec30c9f1ac",
+      "sha256": "e65dcff5a787bed9a107205ec7dfbdf00e8b9e52b86defd20f6ca9feda9b3e82"
+    },
+    {
+      "path": "src/libraries/EventsLib.sol",
+      "gitBlob": "7477050ad2e2f42f1f81a9b955dcd42641604a85",
+      "sha256": "78342fe7014c48fecd0b693b74b36616435cbbbb7a9807e9914dd34dc5bfe26d"
+    },
+    {
+      "path": "src/libraries/IdLib.sol",
+      "gitBlob": "9e4e89d44076c9154ef5707544d481d1e5a2dbd3",
+      "sha256": "2eefe1d445bfafe99620ac48fa908d4fd62b397a1f2394763d554d896e34fe1b"
+    },
+    {
+      "path": "src/libraries/SafeTransferLib.sol",
+      "gitBlob": "9962ee72639443a14a6632fb2cc04caccfcce921",
+      "sha256": "e0221b481c90946a547a7d2fb0dfe91e6675427812eeb98494f7203d01726023"
+    },
+    {
+      "path": "src/libraries/TickLib.sol",
+      "gitBlob": "68b8279ef9e07ab07819465c859e43a6676e88d8",
+      "sha256": "23252efedc49df041203d2a31c32d241ca52afbf893f93106e3e34cca0b5593a"
+    },
+    {
+      "path": "src/libraries/UtilsLib.sol",
+      "gitBlob": "b1c7626953061e6c06fd0792a0e6825389f84d4a",
+      "sha256": "170e46e6aacd90b5e8fddab71460dfd8c5e5203f6f5905a7d01fc7659f1101f3"
+    }
+  ]
+}
