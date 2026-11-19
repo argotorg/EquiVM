@@ -1,0 +1,46 @@
+{
+  "existingStrictUpperBound": "327073817860464196263953616796569",
+  "witnessStartingGas": "327073817860464196263953616796567",
+  "belowExistingBoundBy": 2,
+  "tokenBytecode": "425f5259355ff3",
+  "tokenAssembly": "TIMESTAMP PUSH0 MSTORE MSIZE CALLDATALOAD PUSH0 RETURN",
+  "tokenNonMemoryGas": 14,
+  "selfAddress": "274877906944",
+  "makerPayer": "52776558133248",
+  "receiver": "39302159357469763005881253888",
+  "parentWords": "290499906672590983",
+  "replyWords": "285960845630832504",
+  "takerCallbackDataBytes": "9295997013522907392",
+  "replyBytes": "9150747060186640128",
+  "allocationEnd": "18446744073709551616",
+  "parentGasAfterCall": "2535144011467672880345371312674",
+  "formula": "C(p)+3*p+26766+J(C(2^59-1-p)+14)",
+  "measurements": [
+    {
+      "inputBytes": 0,
+      "parentWords": 127,
+      "spentBeforeSecondCall": 27459,
+      "baseGas": 26666
+    },
+    {
+      "inputBytes": 32,
+      "parentWords": 128,
+      "spentBeforeSecondCall": 27466,
+      "baseGas": 26666
+    },
+    {
+      "inputBytes": 64,
+      "parentWords": 129,
+      "spentBeforeSecondCall": 27472,
+      "baseGas": 26666
+    },
+    {
+      "inputBytes": 1024,
+      "parentWords": 159,
+      "spentBeforeSecondCall": 27669,
+      "baseGas": 26666
+    }
+  ],
+  "validation": "Four targeted ordinary-size EVM executions plus exact integer arithmetic. The exabyte-size execution was not run; the parameterized EVM trace is not yet a Lean theorem.",
+  "instructionImpact": "The mandated out-of-gas justification for the omitted capacity guard fails on this witness; Conditions.lean was not changed."
+}
