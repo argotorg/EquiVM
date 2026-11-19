@@ -4,25 +4,25 @@ import Benchmarks.UniswapV4PoolManager.CallGasEvidence
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.UniswapV4PoolManager
 
-theorem thetaCode_success_returnWork
+theorem thetaCode_success_returnWork {fork : Ethereum.Fork}
     {σ σ₀ : AccountMap} {A : Substate} {s o r : AccountAddress}
     {code d : ByteArray} {g p v v' : UInt256} {e : Fin 1025} {H : BlockHeader}
     {blob : List ByteArray} {blocks : ProcessedBlocks} {perm : Bool}
     {σ' : AccountMap} {g' : UInt256} {A' : Substate} {out : ByteArray}
     (hn : 0 < memoryFootprint out)
-    (h : Ethereum.EVM.Θ σ σ₀ A s o r (.Code code) g p v v' d e H blob blocks perm =
+    (h : Ethereum.EVM.Θ fork σ σ₀ A s o r (.Code code) g p v v' d e H blob blocks perm =
       (σ', g', A', true, out)) :
     Cₘ (UInt256.ofNat ((out.size+31)/32))+memoryFootprint out+4+g'.toNat ≤ g.toNat := by
   obtain ⟨inputAccounts, I, accounts, substate, hx⟩ := thetaCode_success_Xi h
   exact Xi_success_returnWork hn hx
 
-theorem thetaNonprecompile_success_returnWork
+theorem thetaNonprecompile_success_returnWork {fork : Ethereum.Fork}
     {σ σ₀ : AccountMap} {A : Substate} {s o r : AccountAddress}
     {d : ByteArray} {g p v v' : UInt256} {e : Fin 1025} {H : BlockHeader}
     {blob : List ByteArray} {blocks : ProcessedBlocks} {perm : Bool}
     {σ' : AccountMap} {g' : UInt256} {A' : Substate} {out : ByteArray}
-    (hn : r ∉ π) (hf : 0 < memoryFootprint out)
-    (h : Ethereum.EVM.Θ σ σ₀ A s o r (toExecute σ r) g p v v' d e H blob blocks perm =
+    (hn : r ∉ π fork) (hf : 0 < memoryFootprint out)
+    (h : Ethereum.EVM.Θ fork σ σ₀ A s o r (toExecute fork σ r) g p v v' d e H blob blocks perm =
       (σ', g', A', true, out)) :
     Cₘ (UInt256.ofNat ((out.size+31)/32))+memoryFootprint out+4+g'.toNat ≤ g.toNat := by
   obtain ⟨code, hc⟩ := toExecute_nonprecompile_code (σ := σ) hn
@@ -31,7 +31,7 @@ theorem thetaNonprecompile_success_returnWork
 
 theorem ZeroCallGasEvidence.returnWork_le_spent {evm evm' : State}
     {target : AccountAddress} {data out : ByteArray}
-    (w : ZeroCallGasEvidence evm target data evm' true out) (hn : target ∉ π)
+    (w : ZeroCallGasEvidence evm target data evm' true out) (hn : target ∉ π evm.executionEnv.fork)
     (hf : 0 < memoryFootprint out) :
     Cₘ (UInt256.ofNat ((out.size+31)/32))+memoryFootprint out+4 ≤ w.spent := by
   have hc := thetaNonprecompile_success_returnWork hn hf w.theta.symm

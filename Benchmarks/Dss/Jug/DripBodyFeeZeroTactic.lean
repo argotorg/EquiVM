@@ -42,12 +42,12 @@ by_cases hprevMaxNot :
     exact address_of_val _
   have hΘE :
       (σ', g'', A', true, out) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
           (AccountAddress.ofUInt256
             (UInt256.ofNat evm.executionEnv.codeOwner))
           evm.executionEnv.sender
           (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-          (toExecute evm.accountMap
+          (toExecute evm.executionEnv.fork evm.accountMap
             (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice)
           ⟨0⟩ ⟨0⟩
@@ -154,12 +154,12 @@ by_cases hprevMaxNot :
       exact address_of_val _
     have hΘE :
         (σ', g'', A', true, out) =
-          Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+          Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
             (AccountAddress.ofUInt256
               (UInt256.ofNat evm.executionEnv.codeOwner))
             evm.executionEnv.sender
             (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-            (toExecute evm.accountMap
+            (toExecute evm.executionEnv.fork evm.accountMap
               (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
             callGas (UInt256.ofNat evm.executionEnv.gasPrice)
             ⟨0⟩ ⟨0⟩
@@ -378,12 +378,12 @@ by_cases hprevMaxNot :
         exact address_of_val _
       have hΘE :
           (σ', g'', A', true, out) =
-            Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+            Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
               (AccountAddress.ofUInt256
                 (UInt256.ofNat evm.executionEnv.codeOwner))
               evm.executionEnv.sender
               (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-              (toExecute evm.accountMap
+              (toExecute evm.executionEnv.fork evm.accountMap
                 (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
               callGas (UInt256.ofNat evm.executionEnv.gasPrice)
               ⟨0⟩ ⟨0⟩
@@ -427,12 +427,12 @@ by_cases hprevMaxNot :
           hfoldBaseSize hsz36 hzeroMax hprevMax rfl
       have hΘFoldE :
           (σ'', gFold'', AFold', false, foldOut) =
-            Ethereum.EVM.Θ evmVat.accountMap evmVat.σ₀ AinFold
+            Ethereum.EVM.Θ evmVat.executionEnv.fork evmVat.accountMap evmVat.σ₀ AinFold
               (AccountAddress.ofUInt256
                 (UInt256.ofNat evmVat.executionEnv.codeOwner))
               evmVat.executionEnv.sender
               (AccountAddress.ofUInt256 (dripVatTargetWord σ' I))
-              (toExecute evmVat.accountMap
+              (toExecute evmVat.executionEnv.fork evmVat.accountMap
                 (AccountAddress.ofUInt256 (dripVatTargetWord σ' I)))
               callGasFold
               (UInt256.ofNat evmVat.executionEnv.gasPrice)
@@ -541,12 +541,12 @@ by_cases hprevMaxNot :
         exact address_of_val _
       have hΘE :
           (σ', g'', A', true, out) =
-            Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+            Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
               (AccountAddress.ofUInt256
                 (UInt256.ofNat evm.executionEnv.codeOwner))
               evm.executionEnv.sender
               (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-              (toExecute evm.accountMap
+              (toExecute evm.executionEnv.fork evm.accountMap
                 (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
               callGas (UInt256.ofNat evm.executionEnv.gasPrice)
               ⟨0⟩ ⟨0⟩
@@ -590,12 +590,12 @@ by_cases hprevMaxNot :
           hfoldBaseSize hsz36 hzeroMax hprevMax rfl
       have hΘFoldE :
           (σ'', gFold'', AFold', true, foldOut) =
-            Ethereum.EVM.Θ evmVat.accountMap evmVat.σ₀ AinFold
+            Ethereum.EVM.Θ evmVat.executionEnv.fork evmVat.accountMap evmVat.σ₀ AinFold
               (AccountAddress.ofUInt256
                 (UInt256.ofNat evmVat.executionEnv.codeOwner))
               evmVat.executionEnv.sender
               (AccountAddress.ofUInt256 (dripVatTargetWord σ' I))
-              (toExecute evmVat.accountMap
+              (toExecute evmVat.executionEnv.fork evmVat.accountMap
                 (AccountAddress.ofUInt256 (dripVatTargetWord σ' I)))
               callGasFold
               (UInt256.ofNat evmVat.executionEnv.gasPrice)

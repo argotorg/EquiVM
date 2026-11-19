@@ -27,7 +27,7 @@ theorem byteArray_zeroes_toList (n : Nat) :
 
 /-- Keccak-256 returns a 32-byte digest. -/
 theorem keccak_size (b : ByteArray) : (KEC b).size = 32 := by
-  exact Ethereum.Keccak256.hash_size_eq_32 b
+  exact Ethereum.Crypto.Keccak256.hash_size_eq_32 b
 
 /-! ## 1. Little-endian byte arithmetic (`fromBytes'` / `toBytes'`) -/
 
@@ -407,6 +407,43 @@ theorem zeroes32_extract_zeroes (n : Nat) (hn : n ≤ 32) :
 theorem extract_append_right' (A B : ByteArray) (i j : ℕ)
     (hi : i = A.size) (hj : j = A.size + B.size) : (A ++ B).extract i j = B := by
   subst hi; subst hj; exact extract_append_right A B
+
+/-- The large-index fallback of `extract'` computes the same slice as `extract`. -/
+theorem byteArray_extract'_eq_extract (a : ByteArray) (i j : Nat) :
+    a.extract' i j = a.extract i j := by
+  unfold ByteArray.extract'
+  split
+  · rfl
+  · apply ByteArray.ext
+    apply Array.toList_inj.mp
+    simp [byteArray_toList_eq, List.extract_eq_take_drop]
+
+theorem readWithoutPadding_eq_extract_total (source : ByteArray) (addr len : Nat) :
+    source.readWithoutPadding addr len = source.extract addr (addr + len) := by
+  unfold ByteArray.readWithoutPadding
+  split
+  · rename_i h
+    apply ByteArray.ext
+    simp [ByteArray.data_extract, h]
+  · apply ByteArray.ext
+    apply Array.ext
+    · simp only [ByteArray.data_extract, Array.size_extract, ← ByteArray.size_data]
+      omega
+    · intro i hi hj
+      simp
+
+/-- Padded reads preserve the entire available slice, then append the missing zero bytes. -/
+theorem readWithPadding_eq_padded_extract' (source : ByteArray) (addr len : Nat) :
+    source.readWithPadding addr len =
+      source.extract' addr (addr + len) ++
+        ByteArray.zeroes (len - (source.extract' addr (addr + len)).size) := by
+  simp only [ByteArray.readWithPadding, readWithoutPadding_eq_extract_total,
+    byteArray_extract'_eq_extract]
+
+theorem readWithPadding_eq_of_extract'_eq {a b : ByteArray} {addr len : Nat}
+    (h : a.extract' addr (addr + len) = b.extract' addr (addr + len)) :
+    a.readWithPadding addr len = b.readWithPadding addr len := by
+  simp only [readWithPadding_eq_padded_extract', h]
 
 /-- `readWithoutPadding` of a window that fits is exactly the slice. -/
 theorem readWithoutPadding_eq_extract (source : ByteArray) (addr : ℕ)

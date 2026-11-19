@@ -1871,7 +1871,7 @@ theorem erc20X_transferFrom {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd1279 := rd1279₀
   rw [htoCleanL, hfromCleanL] at rd1279
   have rd1312₀ := rd1279.pushConst transferTransferTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd2073 := evm_run rd1312₀ with [
     dup6, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
@@ -2127,7 +2127,7 @@ theorem erc20TransferFromX_insufficientAllowance {σ σ₀ A I}
       (allowanceOuterHashMem_mload64 (transferFromFromWord I) (transferFromSenderWord I))
       (by decide) (by evm_ov) ]
   have rd783 := rd750.pushConst transferErrorSelector (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd785 := evm_run rd783 with [
     dup2,
     raw mstore 6
@@ -2163,7 +2163,7 @@ theorem erc20TransferFromX_insufficientAllowance {σ σ₀ A I}
     jumpdest, swap2, pop, push2 ⟨2362⟩, dup3, push2 ⟨2299⟩, jump erc20_jd ]
   have rd2300 := evm_run rd2299 with [ jumpdest ]
   have rd2333 := rd2300.pushConst transferFromInsufficientAllowanceWord
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd2362 := evm_run rd2333 with [
     push0, dup3, add,
     raw mstore 3
@@ -2246,7 +2246,7 @@ theorem erc20TransferFromX_insufficientBalance {σ σ₀ A I}
       (balanceOfHashMem_mload64 (transferFromFromWord I))
       (by decide) (by evm_ov) ]
   have rd910 := rd877.pushConst transferErrorSelector (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd912 := evm_run rd910 with [
     dup2,
     raw mstore 6 (transferInsufficientSelectorMem (transferFromFromWord I)) (UInt256.ofNat 5)
@@ -2276,7 +2276,7 @@ theorem erc20TransferFromX_insufficientBalance {σ σ₀ A I}
     jumpdest, swap2, pop, push2 ⟨2466⟩, dup3, push2 ⟨2403⟩, jump erc20_jd ]
   have rd2404 := evm_run rd2403 with [ jumpdest ]
   have rd2437 := rd2404.pushConst transferInsufficientBalanceWord
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd2466 := evm_run rd2437 with [
     push0, dup3, add,
     raw mstore 3 (transferInsufficientStringMem (transferFromFromWord I)) (UInt256.ofNat 8)

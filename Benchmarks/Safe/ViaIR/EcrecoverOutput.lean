@@ -44,10 +44,11 @@ theorem precompileEcrecoverOutput (σ : AccountMap) (g : UInt256) (A : Substate)
       · exact ecrecoverHashOutput _
       · exact Or.inl rfl
 
-theorem thetaEcrecoverOutput (σ σ₀ : AccountMap) (A : Substate)
+theorem thetaEcrecoverOutput {fork : Ethereum.Fork} (σ σ₀ : AccountMap) (A : Substate)
     (s o r : AccountAddress) (g p v v' : UInt256) (d : ByteArray) (e : Fin 1025)
     (H : BlockHeader) (blob : List ByteArray) (blocks : ProcessedBlocks) (w : Bool) :
-    EcrecoverOutput (Θ σ σ₀ A s o r (.Precompiled 1) g p v v' d e H blob blocks w).2.2.2.2 := by
+    EcrecoverOutput (Θ fork σ σ₀ A s o r (.Precompiled 1) g p v v' d e H blob blocks w).2.2.2.2 :=
+      by
   unfold Θ
   dsimp only
   exact precompileEcrecoverOutput _ _ _ _
@@ -59,9 +60,11 @@ theorem callEcrecoverOutput {evm evm' : EVM.State} {d out : ByteArray} {z perm :
   | callNotMade => exact Or.inl rfl
   | callMade hvalue hcall hevm hbal hdepth =>
       obtain ⟨gas, A, hΘ⟩ := hcall
-      have hto : toExecute evm.accountMap (AccountAddress.ofNat 1) = .Precompiled 1 := rfl
+      have hto : toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofNat 1) =
+          .Precompiled 1 := toExecute_ecrecover_precompile evm.accountMap
       rw [hto, hvalue] at hΘ
-      have hs := thetaEcrecoverOutput evm.accountMap evm.σ₀ A evm.executionEnv.codeOwner
+      have hs := thetaEcrecoverOutput (fork := evm.executionEnv.fork) evm.accountMap evm.σ₀ A
+        evm.executionEnv.codeOwner
         evm.executionEnv.sender (AccountAddress.ofNat 1) gas (.ofNat evm.executionEnv.gasPrice)
         (EVM.wordOfInt 0) (EVM.wordOfInt 0) d (evm.executionEnv.depth + 1) evm.executionEnv.header
         evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (perm && evm.executionEnv.perm)
@@ -77,7 +80,10 @@ theorem callEcrecoverCanFail (evm : EVM.State) (d : ByteArray) :
   · refine ⟨{ evm with substate := default },
       callViaEVM.callMade (g' := ⟨0⟩) wordOfInt_zero.symm ⟨⟨0⟩, default, ?_⟩ rfl
         (Fin.zero_le _) hd⟩
-    change (_, _, _, _, _) = Θ _ _ _ _ _ _ (.Precompiled 1) ⟨0⟩ _ _ _ _ _ _ _ _ _
+    have hto : toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofNat 1) =
+        .Precompiled 1 := toExecute_ecrecover_precompile evm.accountMap
+    rw [hto]
+    change (_, _, _, _, _) = Θ _ _ _ _ _ _ _ (.Precompiled 1) ⟨0⟩ _ _ _ _ _ _ _ _ _
     unfold Θ
     rfl
 

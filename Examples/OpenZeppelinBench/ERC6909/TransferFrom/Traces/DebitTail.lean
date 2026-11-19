@@ -955,7 +955,7 @@ theorem erc6909TransferFromX_from1545_successCaller_mem {σ σ₀ σcur A I}
     solcAddrMask_clean hcanonSender,
     solcAddrMask_clean hcanonReceiver] at rd1580
   have rd1613 := rd1580.pushConst transferTransferTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by decide +kernel) (by evm_ov)
   have rd1622 := evm_run rd1613 with [
     swap2, add, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
@@ -1555,7 +1555,7 @@ theorem erc6909TransferFromX_from1545_successCaller_base
     solcAddrMask_clean hcanonSender,
     solcAddrMask_clean hcanonReceiver] at rd1580
   have rd1613 := rd1580.pushConst transferTransferTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by decide +kernel) (by evm_ov)
   have rd1622 := evm_run rd1613 with [
     swap2, add, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)

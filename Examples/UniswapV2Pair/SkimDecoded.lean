@@ -1233,7 +1233,7 @@ theorem uniswapSkimBodyDecoded
                             (o := I.sender)
                             (r := AccountAddress.ofUInt256
                               (UInt256.land token0CleanE solcAddrMask))
-                            (c := toExecute σ'
+                            (c := toExecute I.fork σ'
                               (AccountAddress.ofUInt256
                                 (UInt256.land token0CleanE solcAddrMask)))
                             (g := callGas1) (p := UInt256.ofNat I.gasPrice)
@@ -1516,7 +1516,7 @@ theorem uniswapSkimBodyDecoded
                                     (o := I.sender)
                                     (r := AccountAddress.ofUInt256
                                       (UInt256.land token1CleanE solcAddrMask))
-                                    (c := toExecute σ2
+                                    (c := toExecute I.fork σ2
                                       (AccountAddress.ofUInt256
                                         (UInt256.land token1CleanE solcAddrMask)))
                                     (g := callGas3) (p := UInt256.ofNat I.gasPrice)

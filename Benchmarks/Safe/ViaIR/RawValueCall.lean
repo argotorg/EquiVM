@@ -28,7 +28,8 @@ theorem rawValueCallTraceFrom {σ : AccountMap} {I : ExecutionEnv} {g : Sat256}
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', hr⟩ := RD.callValueDepthLimitOr h hperm hdec hd hov
     refine ⟨{ evm with substate :=
-        (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate },
+        (Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256
+          target) evm.substate) },
       σ, false, ByteArray.empty, _, k', C', ?_, hee, hacc, hworld, hr,
       by decide, fun _ ↦ by decide⟩
     exact callViaEVM.callNotMade rfl rfl
@@ -41,7 +42,8 @@ theorem rawValueCallTraceFrom {σ : AccountMap} {I : ExecutionEnv} {g : Sat256}
   swap
   · obtain ⟨k', C', hr⟩ := RD.callValueInsufficientBalanceOr h hperm hdec hb hdl hov
     refine ⟨{ evm with substate :=
-        (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate },
+        (Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256
+          target) evm.substate) },
       σ, false, ByteArray.empty, _, k', C', ?_, hee, hacc, hworld, hr,
       by decide, fun _ ↦ by decide⟩
     apply callViaEVM.callNotMade rfl rfl

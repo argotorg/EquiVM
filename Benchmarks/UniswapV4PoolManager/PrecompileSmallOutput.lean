@@ -29,9 +29,9 @@ lemma precompile_SHA256_output_size_le_64
   by_cases hgas : g.toNat < 60 + 12 * ((I.calldata.size + 31) / 32)
   · simp [Ξ_SHA256, hgas, maxReturnDataSizeByGas, maxReturnDataWordsByGas]
   · simp [Ξ_SHA256, hgas]
-    cases hres : ffi.SHA256 I.calldata with
+    cases hres : SHA256 I.calldata with
     | ok s =>
-        have hs := ffi_SHA256_ok_output_size hres
+        have hs := SHA256_ok_output_size hres
         simp [hs, maxReturnDataSizeByGas, maxReturnDataWordsByGas]
     | error e =>
         simp [dbgTrace, maxReturnDataSizeByGas, maxReturnDataWordsByGas]
@@ -96,9 +96,9 @@ lemma precompile_BLAKE2_F_output_size_le_64
   by_cases hgas : g.toNat < fromByteArrayBigEndian (I.calldata.extract 0 4)
   · simp [Ξ_BLAKE2_F, hgas, dbgTrace, maxReturnDataSizeByGas, maxReturnDataWordsByGas]
   · simp [Ξ_BLAKE2_F, hgas]
-    cases hres : ffi.BLAKE2 I.calldata with
+    cases hres : BLAKE2_F I.calldata with
     | ok s =>
-        have hs := ffi_BLAKE2_ok_output_size hres
+        have hs := BLAKE2_F_ok_output_size hres
         simp [hs, maxReturnDataSizeByGas, maxReturnDataWordsByGas]
     | error e =>
         simp [dbgTrace, maxReturnDataSizeByGas, maxReturnDataWordsByGas]

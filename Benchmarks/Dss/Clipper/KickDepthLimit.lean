@@ -103,8 +103,8 @@ theorem clipperKickDepthLimitReverts
     exact hdepth
   let sourceAfter : EVM.State :=
     { sourceInit with
-      substate := (sourceInit.addAccessedAccount
-        (EVM.address (clipperGetFeedPriceSpotterAddress sourceInit))).substate }
+      substate := (Ethereum.EVM.callSubstate sourceInit.executionEnv.fork sourceInit.accountMap
+        (EVM.address (clipperGetFeedPriceSpotterAddress sourceInit)) sourceInit.substate) }
   have hcalldata := clipperKickSpotterIlksEncode_eq v hmem
   have hcall : typedCallViaEVM config sourceInit
       (EVM.address (clipperGetFeedPriceSpotterAddress sourceInit))

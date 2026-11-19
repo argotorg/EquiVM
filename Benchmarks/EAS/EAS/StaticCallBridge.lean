@@ -19,7 +19,8 @@ theorem staticcallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 
       out.size < 2^138 := by
   by_cases hd : I.depth = 1024
   · obtain ⟨k',C',rd'⟩ := RD.solcStaticcallDepthLimit rd hdec hd hstack
-    let evm' := {evm with substate := (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate}
+    let evm' := {evm with substate := (Ethereum.EVM.callSubstate evm.executionEnv.fork
+      evm.accountMap (AccountAddress.ofUInt256 target) evm.substate)}
     refine ⟨evm',σ,false,ByteArray.empty,k',C',?_,⟨hs.world,hs.env,hs.accounts⟩,rd',by decide⟩
     apply callViaEVM.callNotMade rfl rfl
     intro hn

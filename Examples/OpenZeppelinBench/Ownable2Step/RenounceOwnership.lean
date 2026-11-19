@@ -381,7 +381,7 @@ theorem ownable2StepX_renounceOwnership_success {σ σ₀ A I} {g : Sat256}
     swap2, swap1, swap3, and, swap3, dup4, swap2]
   have rd524 := rd491pre.pushConst
     (⟨0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0⟩ : UInt256)
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd526 := evm_run rd524 with [swap2, swap1]
   have rd527 := rd526.log3 0 (UInt256.ofNat 3) (by decide) hp mem_cost
     (by decide) (by evm_ov)

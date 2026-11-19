@@ -57,12 +57,12 @@ by_cases hageOne : age = ⟨1⟩
       exact address_of_val _
     have hΘE :
         (σ', g'', A', true, out) =
-          Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+          Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
             (AccountAddress.ofUInt256
               (UInt256.ofNat evm.executionEnv.codeOwner))
             evm.executionEnv.sender
             (AccountAddress.ofUInt256 (dripVatTargetWord σ I))
-            (toExecute evm.accountMap
+            (toExecute evm.executionEnv.fork evm.accountMap
               (AccountAddress.ofUInt256 (dripVatTargetWord σ I)))
             callGas (UInt256.ofNat evm.executionEnv.gasPrice)
             ⟨0⟩ ⟨0⟩
@@ -208,13 +208,13 @@ by_cases hageOne : age = ⟨1⟩
           exact address_of_val _
         have hΘE :
             (σ', g'', A', true, out) =
-              Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+              Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
                 (AccountAddress.ofUInt256
                   (UInt256.ofNat evm.executionEnv.codeOwner))
                 evm.executionEnv.sender
                 (AccountAddress.ofUInt256
                   (dripVatTargetWord σ I))
-                (toExecute evm.accountMap
+                (toExecute evm.executionEnv.fork evm.accountMap
                   (AccountAddress.ofUInt256
                     (dripVatTargetWord σ I)))
                 callGas (UInt256.ofNat evm.executionEnv.gasPrice)
@@ -387,13 +387,13 @@ by_cases hageOne : age = ⟨1⟩
             exact address_of_val _
           have hΘE :
               (σ', g'', A', true, out) =
-                Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+                Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
                   (AccountAddress.ofUInt256
                     (UInt256.ofNat evm.executionEnv.codeOwner))
                   evm.executionEnv.sender
                   (AccountAddress.ofUInt256
                     (dripVatTargetWord σ I))
-                  (toExecute evm.accountMap
+                  (toExecute evm.executionEnv.fork evm.accountMap
                     (AccountAddress.ofUInt256
                       (dripVatTargetWord σ I)))
                   callGas (UInt256.ofNat evm.executionEnv.gasPrice)
@@ -698,13 +698,13 @@ by_cases hageOne : age = ⟨1⟩
             exact address_of_val _
           have hΘE :
               (σ', g'', A', true, out) =
-                Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+                Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
                   (AccountAddress.ofUInt256
                     (UInt256.ofNat evm.executionEnv.codeOwner))
                   evm.executionEnv.sender
                   (AccountAddress.ofUInt256
                     (dripVatTargetWord σ I))
-                  (toExecute evm.accountMap
+                  (toExecute evm.executionEnv.fork evm.accountMap
                     (AccountAddress.ofUInt256
                       (dripVatTargetWord σ I)))
                   callGas (UInt256.ofNat evm.executionEnv.gasPrice)
@@ -845,7 +845,7 @@ by_cases hageOne : age = ⟨1⟩
           · rcases hΘFold with ⟨gFold'', AFold', hΘFold'⟩
             have hΘFoldE :
                 (σ'', gFold'', AFold', false, foldOut) =
-                  Ethereum.EVM.Θ evmVatE.accountMap
+                  Ethereum.EVM.Θ evmVatE.executionEnv.fork evmVatE.accountMap
                     evmVatE.σ₀ AinFold
                     (AccountAddress.ofUInt256
                       (UInt256.ofNat
@@ -853,7 +853,7 @@ by_cases hageOne : age = ⟨1⟩
                     evmVatE.executionEnv.sender
                     (AccountAddress.ofUInt256
                       (dripVatTargetWord σ' I))
-                    (toExecute evmVatE.accountMap
+                    (toExecute evmVatE.executionEnv.fork evmVatE.accountMap
                       (AccountAddress.ofUInt256
                         (dripVatTargetWord σ' I)))
                     callGasFold
@@ -924,7 +924,7 @@ by_cases hageOne : age = ⟨1⟩
           · rcases hΘFold with ⟨gFold'', AFold', hΘFold'⟩
             have hΘFoldE :
                 (σ'', gFold'', AFold', true, foldOut) =
-                  Ethereum.EVM.Θ evmVatE.accountMap
+                  Ethereum.EVM.Θ evmVatE.executionEnv.fork evmVatE.accountMap
                     evmVatE.σ₀ AinFold
                     (AccountAddress.ofUInt256
                       (UInt256.ofNat
@@ -932,7 +932,7 @@ by_cases hageOne : age = ⟨1⟩
                     evmVatE.executionEnv.sender
                     (AccountAddress.ofUInt256
                       (dripVatTargetWord σ' I))
-                    (toExecute evmVatE.accountMap
+                    (toExecute evmVatE.executionEnv.fork evmVatE.accountMap
                       (AccountAddress.ofUInt256
                         (dripVatTargetWord σ' I)))
                     callGasFold
@@ -1083,13 +1083,13 @@ by_cases hageOne : age = ⟨1⟩
         exact address_of_val _
       have hΘE :
           (σ', g'', A', true, out) =
-            Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
+            Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain
               (AccountAddress.ofUInt256
                 (UInt256.ofNat evm.executionEnv.codeOwner))
               evm.executionEnv.sender
               (AccountAddress.ofUInt256
                 (dripVatTargetWord σ I))
-              (toExecute evm.accountMap
+              (toExecute evm.executionEnv.fork evm.accountMap
                 (AccountAddress.ofUInt256
                   (dripVatTargetWord σ I)))
               callGas (UInt256.ofNat evm.executionEnv.gasPrice)

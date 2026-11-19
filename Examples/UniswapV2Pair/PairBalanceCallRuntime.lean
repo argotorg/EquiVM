@@ -30,9 +30,9 @@ theorem RD.uniswapPairBalanceCallMade
       (A_in : Substate) (callGas : UInt256) (k' C' : Nat),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) = Ethereum.EVM.Θ
-          σ s0.σ₀ A_in
+          I.fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
-          (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute I.fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) ∧

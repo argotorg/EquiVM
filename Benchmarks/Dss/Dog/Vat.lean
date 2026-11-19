@@ -238,10 +238,11 @@ theorem dogVatConstDecode {v : DogImmutables} {code : ByteArray}
   rw [hgetSome, hparse]
   change some (Operation.Push Operation.POp.PUSH32,
       some (uInt256OfByteArray
-        (code.extract' ({ val := 1404 } : UInt256).toNat.succ
-          (({ val := 1404 } : UInt256).toNat.succ + 32)), 32)) =
+        (code.readWithPadding ({ val := 1404 } : UInt256).toNat.succ 32), 32)) =
     some (Operation.Push Operation.POp.PUSH32, some (EVM.Word.ofNat v.vat.toNat, 32))
-  rw [hextract, uInt256OfByteArray_eq, fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
+  rw [readWithPadding_eq_padded_extract', hextract, toByteArray_size, Nat.sub_self,
+    zeroes_zero (by rfl), ByteArray.append_empty, uInt256OfByteArray_eq,
+    fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
 
 theorem dogVatGetterDupDecode {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :

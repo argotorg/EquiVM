@@ -1511,10 +1511,10 @@ theorem endCageIlkX_vatIlksPostCall {σ σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (endPackVatWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (endPackVatWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endCageIlkVatIlksCalldataMem I).readWithPadding
             endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
@@ -1970,11 +1970,11 @@ theorem endCageIlkX_spotIlksPostStaticcall {σ σ' σ₀ A I}
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ'', g'', A', z, spotOut) =
-          Ethereum.EVM.Θ (endCageIlkPostArtAccountMap σ' I vatOut) σ₀ Ain
+          Ethereum.EVM.Θ I.fork (endCageIlkPostArtAccountMap σ' I vatOut) σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256
               (endCageIlkSpotWord (endCageIlkPostArtAccountMap σ' I vatOut) I))
-            (toExecute (endCageIlkPostArtAccountMap σ' I vatOut)
+            (toExecute I.fork (endCageIlkPostArtAccountMap σ' I vatOut)
               (AccountAddress.ofUInt256
                 (endCageIlkSpotWord (endCageIlkPostArtAccountMap σ' I vatOut) I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
@@ -2340,10 +2340,10 @@ theorem endCageIlkX_parPostStaticcall {σ σ' σ₀ A I}
       (z : Bool) (parOut : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ'', g'', A', z, parOut) =
-          Ethereum.EVM.Θ σ' σ₀ Ain
+          Ethereum.EVM.Θ I.fork σ' σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (endCageIlkSpotWord σ' I))
-            (toExecute σ' (AccountAddress.ofUInt256 (endCageIlkSpotWord σ' I)))
+            (toExecute I.fork σ' (AccountAddress.ofUInt256 (endCageIlkSpotWord σ' I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageIlkParCalldataMem I vatOut spotOut).readWithPadding
               endFlowVatIlksOutPtr.toNat endCageIlkNoArgInSize.toNat)
@@ -2705,10 +2705,10 @@ theorem endCageIlkX_readPostStaticcall {σ σ' σ₀ A I}
       (z : Bool) (readOut : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ'', g'', A', z, readOut) =
-          Ethereum.EVM.Θ σ' σ₀ Ain
+          Ethereum.EVM.Θ I.fork σ' σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (endCageIlkPipCallWord spotOut))
-            (toExecute σ' (AccountAddress.ofUInt256 (endCageIlkPipCallWord spotOut)))
+            (toExecute I.fork σ' (AccountAddress.ofUInt256 (endCageIlkPipCallWord spotOut)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageIlkReadCalldataMem I vatOut spotOut parOut).readWithPadding
               endFlowVatIlksOutPtr.toNat endCageIlkNoArgInSize.toNat)
@@ -6876,7 +6876,8 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                                     let readTargetStele :=
                                       EVM.address (endCageIlkSpotIlkPipAddr spotOut)
                                     let A_read :=
-                                      (evmParStele.addAccessedAccount readTargetStele).substate
+                                      (Ethereum.EVM.callSubstate evmParStele.executionEnv.fork
+                                        evmParStele.accountMap readTargetStele evmParStele.substate)
                                     have hcallReadStele :
                                         typedCallViaEVM config evmParStele readTargetStele
                                           "read" 0 []
@@ -6920,7 +6921,8 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                                   (endCageIlkSpotWord evmSpotStele.accountMap
                                     evmSpotStele.executionEnv).toNat)
                             let A_par :=
-                              (evmSpotStele.addAccessedAccount parTargetStele).substate
+                              (Ethereum.EVM.callSubstate evmSpotStele.executionEnv.fork
+                                evmSpotStele.accountMap parTargetStele evmSpotStele.substate)
                             have hcallParStele :
                                 typedCallViaEVM config evmSpotStele parTargetStele "par" 0 []
                                   (false, { evmSpotStele with substate := A_par },
@@ -6990,7 +6992,8 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                           (endCageIlkSpotWord evmArtStele.accountMap
                             evmArtStele.executionEnv).toNat)
                     let A_spot :=
-                      (evmArtStele.addAccessedAccount spotTargetStele).substate
+                      (Ethereum.EVM.callSubstate evmArtStele.executionEnv.fork
+                        evmArtStele.accountMap spotTargetStele evmArtStele.substate)
                     have hcallSpotStele :
                         typedCallViaEVM config evmArtStele spotTargetStele "spotIlks" 0
                           [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
@@ -7050,7 +7053,8 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
               endCageIlkX_vatIlksCallDepthLimit
                 (g := Sat256.ofUInt256 g) hcallReady hdepthEq
             let A_vat :=
-              (evmStele.addAccessedAccount (EVM.address (endPackVatAddr σ I))).substate
+              (Ethereum.EVM.callSubstate evmStele.executionEnv.fork evmStele.accountMap (EVM.address
+                (endPackVatAddr σ I)) evmStele.substate)
             have hcallStele :
                 typedCallViaEVM config evmStele
                   (EVM.address (endPackVatAddr σ I)) "vatIlks" 0

@@ -44,6 +44,20 @@ theorem byteArray_extract'_append_left (A B : ByteArray) {i j : Nat}
   rw [if_pos hguard, if_pos hguard]
   exact byteArray_extract_append_left A B i j hj
 
+/-- An in-bounds padded read from a prefix is unchanged by appending a suffix. -/
+theorem byteArray_readWithPadding_append_left (A B : ByteArray) (addr len : Nat)
+    (hpos : 0 < len) (hwin : addr + len ≤ A.size) :
+    (A ++ B).readWithPadding addr len = A.readWithPadding addr len := by
+  have haddr : ¬ addr ≥ A.size := by omega
+  have haddrAB : ¬ addr ≥ (A ++ B).size := by
+    simp only [ByteArray.size_append]; omega
+  have hlen : len ≤ A.size := by omega
+  have hlenAB : len ≤ (A ++ B).size := by
+    simp only [ByteArray.size_append]; omega
+  simp only [ByteArray.readWithPadding, ByteArray.readWithoutPadding, if_neg haddr,
+    if_neg haddrAB, Nat.min_eq_left hlen, Nat.min_eq_left hlenAB,
+    byteArray_extract_append_left A B addr (addr + len) hwin]
+
 /-- Decoding at a PC in a fixed bytecode prefix is unchanged by appending arbitrary bytes, provided
     the whole instruction window also lies in that prefix. -/
 theorem decode_append_left (A B : ByteArray) (pc : UInt256)
@@ -65,12 +79,8 @@ theorem decode_append_left (A B : ByteArray) (pc : UInt256)
           by_cases harg : argOnNBytesOfInstr instr = 0
           · simp [harg]
           · simp [harg]
-            rw [byteArray_extract'_append_left A B]
-            · have hargpos : 0 < argOnNBytesOfInstr instr := Nat.pos_of_ne_zero harg
-              have := hwin64 b instr hget hinstr
-              omega
-            · exact hwin64 b instr hget hinstr
-            · exact hwin b instr hget hinstr
+            rw [byteArray_readWithPadding_append_left A B _ _
+              (Nat.pos_of_ne_zero harg) (hwin b instr hget hinstr)]
 
 /-- Lift a concrete prefix decode using its actual instruction width. -/
 theorem decode_append_left_of_decode (A B : ByteArray) (pc : UInt256)
@@ -87,8 +97,7 @@ theorem decode_append_left_of_decode (A B : ByteArray) (pc : UInt256)
         decode A pc = some
           (instr', if argOnNBytesOfInstr instr' == 0 then none else
             some (uInt256OfByteArray
-              (A.extract' pc.toNat.succ
-                (pc.toNat.succ + argOnNBytesOfInstr instr')),
+              (A.readWithPadding pc.toNat.succ (argOnNBytesOfInstr instr')),
               argOnNBytesOfInstr instr')) := by
       simp [decode, hget, hparse]
     rw [hdecode] at hdecode'
@@ -100,8 +109,7 @@ theorem decode_append_left_of_decode (A B : ByteArray) (pc : UInt256)
         decode A pc = some
           (instr', if argOnNBytesOfInstr instr' == 0 then none else
             some (uInt256OfByteArray
-              (A.extract' pc.toNat.succ
-                (pc.toNat.succ + argOnNBytesOfInstr instr')),
+              (A.readWithPadding pc.toNat.succ (argOnNBytesOfInstr instr')),
               argOnNBytesOfInstr instr')) := by
       simp [decode, hget, hparse]
     rw [hdecode] at hdecode'

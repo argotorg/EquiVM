@@ -465,7 +465,8 @@ theorem uniswapMintBody
               storageStore_executionEnv] using hdepth1024
           have hcall0 : typedCallViaEVM config evmL target "balanceOf" 0
               [.address evmL.executionEnv.codeOwner]
-              (false, { evmL with substate := (evmL.addAccessedAccount target).substate },
+              (false, { evmL with substate := (Ethereum.EVM.callSubstate evmL.executionEnv.fork
+                evmL.accountMap target evmL.substate) },
                 ByteArray.empty) false := by
             exact callNotMade_depthLimit
               (cfg := config) (evm := evmL) (tgt := target)
@@ -477,7 +478,8 @@ theorem uniswapMintBody
               ExecTransitionBody config contract evmS (mintStore I) mintTransition.body
                 .reverted := by
             exact uniswapMintBodyReverts_firstCallFailure (hperm := by assumption) evmS
-              { evmL with substate := (evmL.addAccessedAccount target).substate } I
+              { evmL with substate := (Ethereum.EVM.callSubstate evmL.executionEnv.fork
+                evmL.accountMap target evmL.substate) } I
               (by simp only [evmS, initState]; exact hwv)
               hunlockedStele hguard0 hcall0
           have hRuntime :

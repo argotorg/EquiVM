@@ -688,7 +688,7 @@ theorem blindAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
     raw mstore 3 (auctionEndEventMem σ I) (UInt256.ofNat 6) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd711 := rd677.pushConst auctionEndedTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd719 := evm_run rd711 with [
     swap2, add, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
@@ -909,10 +909,10 @@ theorem blindAuctionX_auctionEnd_callMade {σ σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ (auctionEndAfterEndedMap σ I) σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork (auctionEndAfterEndedMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I))
-          (toExecute (auctionEndAfterEndedMap σ I)
+          (toExecute I.fork (auctionEndAfterEndedMap σ I)
             (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I)))
           callGas (UInt256.ofNat I.gasPrice)
           (auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I)
@@ -939,10 +939,10 @@ theorem blindAuctionX_auctionEnd_callMade {σ σ₀ A I} {g : Sat256}
       (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
     exact byteArray_readWithPadding_zero _ _
   have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
-      (σ', g'', A', z, o) = Ethereum.EVM.Θ (auctionEndAfterEndedMap σ I) σ₀ A_in
+      (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork (auctionEndAfterEndedMap σ I) σ₀ A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
         (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I))
-        (toExecute (auctionEndAfterEndedMap σ I)
+        (toExecute I.fork (auctionEndAfterEndedMap σ I)
           (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord (auctionEndAfterEndedMap σ I) I)))
         callGas (UInt256.ofNat I.gasPrice)
         (auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I)
@@ -1150,9 +1150,10 @@ theorem blindAuctionAuctionEndBodyCore {σ σ₀ A I}
         by_cases hdepthEq : I.depth = 1024
         · let evmSFail : EVM.State :=
             { evmSAfter with
-              substate := (evmSAfter.addAccessedAccount
-                (EVM.address
-                  (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmSAfter).toNat))).substate }
+              substate := (Ethereum.EVM.callSubstate evmSAfter.executionEnv.fork
+                evmSAfter.accountMap (EVM.address
+                  (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmSAfter).toNat))
+                    evmSAfter.substate) }
           have hcall :
               callViaEVM evmSAfter
                 (EVM.address
@@ -1266,11 +1267,12 @@ theorem blindAuctionAuctionEndBodyCore {σ σ₀ A I}
                 exact hdepthEq (by
                   simpa [evmEAfter, evmE, initState, auctionEndAfterEndedState_executionEnv] using hd)
             have houtsz : out.size < UInt256.size := by
-              have hsizeΘ := Theta_returnData_size_lt (auctionEndAfterEndedMap σ I) σ₀ A_in
+              have hsizeΘ := Theta_returnData_size_lt (fork := I.fork)
+                (auctionEndAfterEndedMap σ I) σ₀ A_in
                 (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
                 (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord
                   (auctionEndAfterEndedMap σ I) I))
-                (toExecute (auctionEndAfterEndedMap σ I)
+                (toExecute I.fork (auctionEndAfterEndedMap σ I)
                   (AccountAddress.ofUInt256 (auctionEndBeneficiaryWord
                     (auctionEndAfterEndedMap σ I) I)))
                 callGas (UInt256.ofNat I.gasPrice)
@@ -1359,9 +1361,10 @@ theorem blindAuctionAuctionEndBodyCore {σ σ₀ A I}
                 (henc := returnEquiv.fallthrough rfl rfl (by native_decide))
           · let evmSFail : EVM.State :=
               { evmSAfter with
-                substate := (evmSAfter.addAccessedAccount
-                  (EVM.address
-                    (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmSAfter).toNat))).substate }
+                substate := (Ethereum.EVM.callSubstate evmSAfter.executionEnv.fork
+                  evmSAfter.accountMap (EVM.address
+                    (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmSAfter).toNat))
+                      evmSAfter.substate) }
             have hHighE :
                 auctionEndHighestBidWordState evmEAfter =
                   auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I := by

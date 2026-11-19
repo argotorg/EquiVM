@@ -1232,8 +1232,9 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                         let evmPriceStele : EVM.State :=
                           { evmLockStele with
                             substate :=
-                              (evmLockStele.addAccessedAccount
-                                (EVM.address (clipperStatusCalcAddress evmLockStele))).substate }
+                              (Ethereum.EVM.callSubstate evmLockStele.executionEnv.fork
+                                evmLockStele.accountMap (EVM.address (clipperStatusCalcAddress
+                                evmLockStele)) evmLockStele.substate) }
                         have hcd :
                             config.externalABI.encode? "price"
                               [.int (Int.ofNat

@@ -1402,10 +1402,10 @@ theorem endSkimX_vatIlksPostCall {σ σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (endPackVatWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (endPackVatWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkimVatIlksCalldataMem I).readWithPadding
             endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
@@ -1775,9 +1775,10 @@ theorem endSkimX_urnsPostCall {σ σcur σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ σcur σ₀ Ain (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork σcur σ₀ Ain (AccountAddress.ofUInt256
+          (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σcur I))
-          (toExecute σcur (AccountAddress.ofUInt256 (endPackVatWord σcur I)))
+          (toExecute I.fork σcur (AccountAddress.ofUInt256 (endPackVatWord σcur I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkimUrnsCalldataMem I vatOut).readWithPadding
             endFreeUrnsOutPtr.toNat endFreeUrnsInSize.toNat)
@@ -4062,10 +4063,10 @@ theorem endSkimX_grabPostCall {σ σCall σ₀ A I}
     ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σCall σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.fork σCall σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σCall I))
-          (toExecute σCall (AccountAddress.ofUInt256 (endPackVatWord σCall I)))
+          (toExecute I.fork σCall (AccountAddress.ofUInt256 (endPackVatWord σCall I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkimGrabCalldataMemFor σCall σLoc I vatOut urnOut).readWithPadding
             endFreeGrabOutPtr.toNat endFreeGrabInSize.toNat)
@@ -7954,8 +7955,9 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
                                     Fin.ext (by have := I.depth.isLt; omega)
                                   obtain ⟨_, _, rd7373⟩ :=
                                     endSkimX_grabCallDepthLimit rdGrabReady hgrabDepthEq
-                                  let A_grab := (evmPostStele.addAccessedAccount
-                                    (EVM.address (endPackVatAddr σ_post I))).substate
+                                  let A_grab := (Ethereum.EVM.callSubstate
+                                    evmPostStele.executionEnv.fork evmPostStele.accountMap
+                                    (EVM.address (endPackVatAddr σ_post I)) evmPostStele.substate)
                                   have hgrabCallStele :
                                       typedCallViaEVM config evmPostStele
                                         (EVM.address (endPackVatAddr σ_post I)) "grab" 0
@@ -8049,7 +8051,8 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
             endSkimX_vatIlksCallDepthLimit
               (g := Sat256.ofUInt256 g) hcallReady hdepthEq
           let A_vat :=
-            (evmStele.addAccessedAccount (EVM.address (endPackVatAddr σ I))).substate
+            (Ethereum.EVM.callSubstate evmStele.executionEnv.fork evmStele.accountMap (EVM.address
+              (endPackVatAddr σ I)) evmStele.substate)
           have hcallStele :
               typedCallViaEVM config evmStele
               (EVM.address (endPackVatAddr σ I)) "vatIlks" 0

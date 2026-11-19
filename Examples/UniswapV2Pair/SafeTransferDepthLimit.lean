@@ -33,7 +33,8 @@ theorem safeTransferInternalCallReverts_depthLimit (caller : Frame) (evm : EVM.S
     ExecStmt config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar) .reverted := by
   have hcall : callViaEVM evm (EVM.address token) 0
       ((transferCalldataMem (UInt256.ofNat recipient.val) value).readWithPadding 128 68)
-      (false, { evm with substate := (evm.addAccessedAccount (EVM.address token)).substate }, ByteArray.empty) := by
+      (false, { evm with substate := (Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap
+        (EVM.address token) evm.substate) }, ByteArray.empty) := by
     apply callViaEVM.callNotMade rfl rfl
     rintro ⟨_, hne⟩
     exact hne hdepth

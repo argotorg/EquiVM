@@ -1,5 +1,9 @@
 import Benchmarks.Dss.DaiJoin.Rely
 
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000

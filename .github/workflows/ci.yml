@@ -33,7 +33,7 @@ jobs:
 
       # Standalone regression modules are not imported by the Stele library root.
       - name: Check Stele semantics
-        run: lake build Stele.CastTests Stele.IntegerTests Stele.TransientTests Stele.PermissionTests
+        run: lake build Stele.CastTests Stele.IntegerTests Stele.TransientTests Stele.PermissionTests Tests.EVMLean
 
       # Mirrors the imports of Examples.lean. Remove lines to prune.
       - name: Build examples

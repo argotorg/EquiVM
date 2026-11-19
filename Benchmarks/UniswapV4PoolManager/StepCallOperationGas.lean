@@ -22,14 +22,14 @@ theorem step_call_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s s' 
   have hidx := Stack.pop7_get! hPop'
   rcases hidx with ⟨h0, h1, h2⟩
   have hnet :
-      Ccallgas (AccountAddress.ofUInt256 vPop.2.2.1)
+      Ccallgas sExec.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
         (AccountAddress.ofUInt256 vPop.2.2.1) vPop.2.2.2.1 vPop.2.1
         sExec.accountMap sExec.machineState sExec.substate+100 ≤ gasCost := by
     have hbase :
-        Ccallgas (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
           (AccountAddress.ofUInt256 vPop.2.2.1) vPop.2.2.2.1 vPop.2.1
           s.accountMap s.machineState s.substate+100 ≤
-        Ccall (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccall s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
           (AccountAddress.ofUInt256 vPop.2.2.1) vPop.2.2.2.1 vPop.2.1
           s.accountMap s.machineState s.substate :=
       Ccallgas_add_100_le _ _ _ _ _ _ _
@@ -63,15 +63,15 @@ theorem step_callcode_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)} {s
   have hidx := Stack.pop7_get! hPop'
   rcases hidx with ⟨h0, h1, h2⟩
   have hnet :
-      Ccallgas (AccountAddress.ofUInt256 vPop.2.2.1)
+      Ccallgas sExec.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
         (AccountAddress.ofUInt256 (UInt256.ofNat s.executionEnv.codeOwner.val))
         vPop.2.2.2.1 vPop.2.1
         sExec.accountMap sExec.machineState sExec.substate+100 ≤ gasCost := by
     have hbase :
-        Ccallgas (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
           s.executionEnv.codeOwner vPop.2.2.2.1 vPop.2.1
           s.accountMap s.machineState s.substate+100 ≤
-        Ccall (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccall s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
           s.executionEnv.codeOwner vPop.2.2.2.1 vPop.2.1
           s.accountMap s.machineState s.substate :=
       Ccallgas_add_100_le _ _ _ _ _ _ _
@@ -106,15 +106,15 @@ theorem step_delegatecall_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)
   have hidx := Stack.pop6_get! hPop'
   rcases hidx with ⟨h0, h1⟩
   have hnet :
-      Ccallgas (AccountAddress.ofUInt256 vPop.2.2.1)
+      Ccallgas sExec.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
         (AccountAddress.ofUInt256 (UInt256.ofNat s.executionEnv.codeOwner.val))
         (⟨0⟩ : UInt256) vPop.2.1
         sExec.accountMap sExec.machineState sExec.substate+100 ≤ gasCost := by
     have hbase :
-        Ccallgas (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
           s.executionEnv.codeOwner (⟨0⟩ : UInt256) vPop.2.1
           s.accountMap s.machineState s.substate+100 ≤
-        Ccall (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccall s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
           s.executionEnv.codeOwner (⟨0⟩ : UInt256) vPop.2.1
           s.accountMap s.machineState s.substate :=
       Ccallgas_add_100_le _ _ _ _ _ _ _
@@ -149,15 +149,15 @@ theorem step_staticcall_gas_100 {gasCost : Nat} {arg : Option (UInt256 × Nat)} 
   have hidx := Stack.pop6_get! hPop'
   rcases hidx with ⟨h0, h1⟩
   have hnet :
-      Ccallgas (AccountAddress.ofUInt256 vPop.2.2.1)
+      Ccallgas sExec.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
         (AccountAddress.ofUInt256 vPop.2.2.1)
         (⟨0⟩ : UInt256) vPop.2.1
         sExec.accountMap sExec.machineState sExec.substate+100 ≤ gasCost := by
     have hbase :
-        Ccallgas (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccallgas s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
           (AccountAddress.ofUInt256 vPop.2.2.1) (⟨0⟩ : UInt256) vPop.2.1
           s.accountMap s.machineState s.substate+100 ≤
-        Ccall (AccountAddress.ofUInt256 vPop.2.2.1)
+        Ccall s.executionEnv.fork (AccountAddress.ofUInt256 vPop.2.2.1)
           (AccountAddress.ofUInt256 vPop.2.2.1) (⟨0⟩ : UInt256) vPop.2.1
           s.accountMap s.machineState s.substate :=
       Ccallgas_add_100_le _ _ _ _ _ _ _

@@ -3084,10 +3084,10 @@ theorem endSnipX_dogIlksPostCall {σ σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endSnipDogWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (endSnipDogWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (endSnipDogWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSnipDogIlksCalldataMem I).readWithPadding
             endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
@@ -3433,9 +3433,10 @@ theorem endSnipX_vatIlksPostCall {σ σcur σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ σcur σ₀ Ain (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork σcur σ₀ Ain (AccountAddress.ofUInt256
+          (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σcur I))
-          (toExecute σcur (AccountAddress.ofUInt256 (endPackVatWord σcur I)))
+          (toExecute I.fork σcur (AccountAddress.ofUInt256 (endPackVatWord σcur I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSnipVatIlksCalldataMem I dogOut).readWithPadding
             endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
@@ -3805,10 +3806,10 @@ theorem endSnipX_salesPostStaticcall {σ σcur σ₀ A I}
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, saleOut) =
-          Ethereum.EVM.Θ σcur σ₀ Ain
+          Ethereum.EVM.Θ I.fork σcur σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (endSnipSalesClipWord dogOut))
-            (toExecute σcur (AccountAddress.ofUInt256 (endSnipSalesClipWord dogOut)))
+            (toExecute I.fork σcur (AccountAddress.ofUInt256 (endSnipSalesClipWord dogOut)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endSnipSalesCalldataMem I dogOut vatOut).readWithPadding
               endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
@@ -4305,10 +4306,10 @@ theorem endSnipX_suckPostCall {σ σ' σ₀ A I}
     ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σ' σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.fork σ' σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σ' I))
-          (toExecute σ' (AccountAddress.ofUInt256 (endPackVatWord σ' I)))
+          (toExecute I.fork σ' (AccountAddress.ofUInt256 (endPackVatWord σ' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSnipSuckCalldataMem σ' I dogOut vatOut saleOut).readWithPadding
             endSnipSuckOutPtr.toNat endSnipSuckInSize.toNat)
@@ -4619,10 +4620,10 @@ theorem endSnipX_yankPostCall {σ σmem σpost σ₀ A I}
     ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σpost σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.fork σpost σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endSnipSalesClipWord dogOut))
-          (toExecute σpost (AccountAddress.ofUInt256 (endSnipSalesClipWord dogOut)))
+          (toExecute I.fork σpost (AccountAddress.ofUInt256 (endSnipSalesClipWord dogOut)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSnipYankCalldataMem σmem I dogOut vatOut saleOut).readWithPadding
             endSnipYankOutPtr.toNat endSnipYankInSize.toNat)
@@ -5623,10 +5624,10 @@ theorem endSnipX_grabPostCall {σ σCall σ₀ A I}
     ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σCall σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.fork σCall σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σCall I))
-          (toExecute σCall (AccountAddress.ofUInt256 (endPackVatWord σCall I)))
+          (toExecute I.fork σCall (AccountAddress.ofUInt256 (endPackVatWord σCall I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSnipGrabCalldataMemFor σCall σLoc I dogOut vatOut saleOut).readWithPadding
             endFreeGrabOutPtr.toNat endFreeGrabInSize.toNat)
@@ -10183,13 +10184,13 @@ theorem endSnipBody {σ σ₀ A I} {g : UInt256}
                                             have hSubstateGrab : AGrab = A_grab_stele := rfl
                                             have hΘGrabEqPost :
                                                 (σ_grab, gGrab'', AGrab, zGrab, ret) =
-                                                  Θ σ_post σ₀ AinGrab
+                                                  Θ I.fork σ_post σ₀ AinGrab
                                                     (AccountAddress.ofUInt256
                                                       (UInt256.ofNat ↑I.codeOwner))
                                                     I.sender
                                                     (AccountAddress.ofUInt256
                                                       (endPackVatWord σ_post I))
-                                                    (toExecute σ_post
+                                                    (toExecute I.fork σ_post
                                                       (AccountAddress.ofUInt256
                                                         (endPackVatWord σ_post I)))
                                                     callGasGrab (UInt256.ofNat I.gasPrice)
@@ -10274,13 +10275,13 @@ theorem endSnipBody {σ σ₀ A I} {g : UInt256}
                                               (by
                                                 calc
                                                   (σ_grab, gGrab'', AGrab, zGrab, ret) =
-                                                      Θ σ_post σ₀ AinGrab
+                                                      Θ I.fork σ_post σ₀ AinGrab
                                                         (AccountAddress.ofUInt256
                                                           (UInt256.ofNat ↑I.codeOwner))
                                                         I.sender
                                                         (AccountAddress.ofUInt256
                                                           (endPackVatWord σ_post I))
-                                                        (toExecute σ_post
+                                                        (toExecute I.fork σ_post
                                                           (AccountAddress.ofUInt256
                                                             (endPackVatWord σ_post I)))
                                                         callGasGrab (UInt256.ofNat I.gasPrice)
@@ -10290,13 +10291,15 @@ theorem endSnipBody {σ σ₀ A I} {g : UInt256}
                                                           endFreeGrabOutPtr.toNat endFreeGrabInSize.toNat)
                                                         (I.depth + 1) I.header I.blobVersionedHashes
                                                         I.blocks I.perm := hΘGrabEqPost
-                                                  _ = Θ evmPostStele.accountMap evmPostStele.σ₀ AinGrab
+                                                  _ = Θ evmPostStele.executionEnv.fork
+                                                    evmPostStele.accountMap evmPostStele.σ₀ AinGrab
                                                         (AccountAddress.ofUInt256
                                                           (UInt256.ofNat evmPostStele.executionEnv.codeOwner))
                                                         evmPostStele.executionEnv.sender
                                                         (AccountAddress.ofUInt256
                                                           (endPackVatWord σ_post_stele I))
-                                                        (toExecute evmPostStele.accountMap
+                                                        (toExecute evmPostStele.executionEnv.fork
+                                                          evmPostStele.accountMap
                                                           (AccountAddress.ofUInt256
                                                             (endPackVatWord σ_post_stele I)))
                                                         callGasGrab
@@ -10310,12 +10313,12 @@ theorem endSnipBody {σ σ₀ A I} {g : UInt256}
                                                         evmPostStele.executionEnv.blobVersionedHashes
                                                         evmPostStele.executionEnv.blocks
                                                         evmPostStele.executionEnv.perm := by
-                                                    change Θ σ_post σ₀ AinGrab
+                                                    change Θ I.fork σ_post σ₀ AinGrab
                                                       (AccountAddress.ofUInt256
                                                         (UInt256.ofNat I.codeOwner)) I.sender
                                                       (AccountAddress.ofUInt256
                                                         (endPackVatWord σ_post I))
-                                                      (toExecute σ_post
+                                                      (toExecute I.fork σ_post
                                                         (AccountAddress.ofUInt256
                                                           (endPackVatWord σ_post I)))
                                                       callGasGrab (UInt256.ofNat I.gasPrice)
@@ -10325,13 +10328,16 @@ theorem endSnipBody {σ σ₀ A I} {g : UInt256}
                                                         endFreeGrabOutPtr.toNat endFreeGrabInSize.toNat)
                                                       (I.depth + 1) I.header I.blobVersionedHashes
                                                       I.blocks I.perm =
-                                                      Θ evmPostStele.accountMap evmPostStele.σ₀ AinGrab
+                                                      Θ evmPostStele.executionEnv.fork
+                                                        evmPostStele.accountMap evmPostStele.σ₀
+                                                        AinGrab
                                                         (AccountAddress.ofUInt256
                                                           (UInt256.ofNat evmPostStele.executionEnv.codeOwner))
                                                         evmPostStele.executionEnv.sender
                                                         (AccountAddress.ofUInt256
                                                           (endPackVatWord σ_post_stele I))
-                                                        (toExecute evmPostStele.accountMap
+                                                        (toExecute evmPostStele.executionEnv.fork
+                                                          evmPostStele.accountMap
                                                           (AccountAddress.ofUInt256
                                                             (endPackVatWord σ_post_stele I)))
                                                         callGasGrab
@@ -10345,6 +10351,7 @@ theorem endSnipBody {σ σ₀ A I} {g : UInt256}
                                                         evmPostStele.executionEnv.blobVersionedHashes
                                                         evmPostStele.executionEnv.blocks
                                                         evmPostStele.executionEnv.perm
+                                                    rw [hEnvPostStele]
                                                     simp only [hAccountsPost,
                                                       hmapPostStele,
                                                       hSigma0PostStele, hEnvCodeOwnerPost,
@@ -10533,8 +10540,8 @@ theorem endSnipBody {σ σ₀ A I} {g : UInt256}
             endSnipX_dogIlksCallDepthLimit
               (g := Sat256.ofUInt256 g) hcallReady hdepthEq
           let A_dog :=
-            (evmStele.addAccessedAccount
-              (EVM.address (endSnipDogAddr σ I))).substate
+            (Ethereum.EVM.callSubstate evmStele.executionEnv.fork evmStele.accountMap (EVM.address
+              (endSnipDogAddr σ I)) evmStele.substate)
           have hcallStele :
               typedCallViaEVM config evmStele
                 (EVM.address (endSnipDogAddr σ I)) "dogIlks" 0

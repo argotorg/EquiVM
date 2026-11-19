@@ -25,8 +25,8 @@ theorem zeroCallBridge {code I g s0 pc R mem aw rdata σ k C evm}
           outOffset.toNat outSize.toNat)) out σ' k' C' ∧ out.size < 2^138 := by
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', rd⟩ := h.callDepthLimit hdec hd hov
-    let evm' := { evm with substate := (evm.addAccessedAccount
-      (AccountAddress.ofUInt256 target)).substate }
+    let evm' := { evm with substate := (Ethereum.EVM.callSubstate evm.executionEnv.fork
+      evm.accountMap (AccountAddress.ofUInt256 target) evm.substate) }
     have hc : callViaEVM evm (AccountAddress.ofUInt256 target) 0 calldata
         (false, evm', ByteArray.empty) := by
       apply callViaEVM.callNotMade rfl rfl

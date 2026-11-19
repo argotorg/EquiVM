@@ -3718,7 +3718,8 @@ theorem clipperUpchostBody (v : ClipperImmutables) {code : ByteArray}
         obtain ⟨k1599, C1599, rd1599⟩ :=
           RD.clipperUpchostVatIlksCallDepthLimit v hpatch hreach hcodeSizeVatNE hdepthEq
         let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
-        let A_vat := (evmE.addAccessedAccount (EVM.address v.vat)).substate
+        let A_vat := (Ethereum.EVM.callSubstate evmE.executionEnv.fork evmE.accountMap (EVM.address
+          v.vat) evmE.substate)
         have hdepthInit : evmE.executionEnv.depth = 1024 := by
           simpa [evmE, initState] using hdepthEq
         have hcallVatEvm :

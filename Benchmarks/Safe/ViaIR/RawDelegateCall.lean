@@ -27,7 +27,8 @@ theorem rawDelegateCallTraceFromBounded {σ : AccountMap} {I : ExecutionEnv} {g 
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', hr⟩ := delegateCallDepthLimitReach h hdec hd hov
     refine ⟨{ evm with substate :=
-        (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate },
+        (Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256
+          target) evm.substate) },
       σ, false, ByteArray.empty, _, k', C', ?_, hee, hacc, hworld, hr,
       by decide, fun _ ↦ by decide⟩
     exact delegateCallViaEVM.callNotMade rfl rfl (by simpa only [hee] using hd)
@@ -92,8 +93,9 @@ theorem delegateCallExists (evm : EVM.State) (target : EVM.Address) (payload : B
     ∃ z evm' out, delegateCallViaEVM evm target payload (z, evm', out) := by
   by_cases hd : evm.executionEnv.depth = 1024
   · exact ⟨false, _, ByteArray.empty, delegateCallViaEVM.callNotMade rfl rfl hd⟩
-  · let result := Θ evm.accountMap evm.σ₀ AIn evm.executionEnv.source
-      evm.executionEnv.sender evm.executionEnv.codeOwner (toExecute evm.accountMap target)
+  · let result := Θ evm.executionEnv.fork evm.accountMap evm.σ₀ AIn evm.executionEnv.source
+      evm.executionEnv.sender evm.executionEnv.codeOwner (toExecute evm.executionEnv.fork
+        evm.accountMap target)
       gas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ evm.executionEnv.weiValue payload
       (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes
       evm.executionEnv.blocks evm.executionEnv.perm

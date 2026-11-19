@@ -67,8 +67,8 @@ theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
         · -- depth limit: the call fails, `require(success)` reverts
           have hrev := weth9WithdrawCallDepthRev (g := gs) hperm hle hdepthEq h1395
           set evmSFail : EVM.State := { evmSZero with
-            substate := (evmSZero.addAccessedAccount
-              (EVM.address evmSZero.executionEnv.source)).substate } with hevmSFail
+            substate := (Ethereum.EVM.callSubstate evmSZero.executionEnv.fork evmSZero.accountMap
+              (EVM.address evmSZero.executionEnv.source) evmSZero.substate) } with hevmSFail
           have hcall : callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
               (Int.ofNat (withdrawWadWord I).toNat) ByteArray.empty
               (false, evmSFail, ByteArray.empty) := by
@@ -134,8 +134,8 @@ theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
           · -- insufficient balance: the call fails, `require(success)` reverts
             have hrev := weth9WithdrawCallInsufficientRev (g := gs) hperm hle hbalance hdepthLt h1395
             set evmSFail : EVM.State := { evmSZero with
-              substate := (evmSZero.addAccessedAccount
-                (EVM.address evmSZero.executionEnv.source)).substate } with hevmSFail
+              substate := (Ethereum.EVM.callSubstate evmSZero.executionEnv.fork evmSZero.accountMap
+                (EVM.address evmSZero.executionEnv.source) evmSZero.substate) } with hevmSFail
             have hcall : callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
                 (Int.ofNat (withdrawWadWord I).toNat) ByteArray.empty
                 (false, evmSFail, ByteArray.empty) := by

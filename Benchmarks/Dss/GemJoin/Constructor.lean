@@ -393,7 +393,8 @@ theorem gemJoinConstructorCorrect :
           (z := false) rfl houtEmpty rd200
         rcases hrev.xiResult hcodeCtor with hOOG | ⟨g', outRev, hRev⟩
         · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-        · let A_dec := (evm5s.addAccessedAccount (EVM.address gem)).substate
+        · let A_dec := (Ethereum.EVM.callSubstate evm5s.executionEnv.fork evm5s.accountMap
+          (EVM.address gem) evm5s.substate)
           have hcallDepth :
               typedCallViaEVM config evm5s (EVM.address gem) "decimals" 0 []
                 (false, { evm5s with substate := A_dec }, ByteArray.empty) false := by

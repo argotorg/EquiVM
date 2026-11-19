@@ -31,7 +31,8 @@ theorem vowFlapSin0CallDepthLimitBody
   obtain ⟨_, _, rd937⟩ :=
     RD.vowFlapSin0CallDepthLimit hreach hcodeSizeSinNE hdepthEq
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  let A_sin := (evm0.addAccessedAccount (EVM.address (kissVatAddress σ I))).substate
+  let A_sin := (Ethereum.EVM.callSubstate evm0.executionEnv.fork evm0.accountMap (EVM.address
+    (kissVatAddress σ I)) evm0.substate)
   have hcallSinDepth :
       typedCallViaEVM config evm0
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]

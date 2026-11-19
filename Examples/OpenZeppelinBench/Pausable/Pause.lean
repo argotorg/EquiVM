@@ -166,7 +166,7 @@ theorem pausableX_pause_success {σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (pausePostMap σ I) k C := by
     exact ⟨_, _, by simpa [pausePostMap] using rd293₀⟩
   have rd326 := rd293.pushConst pausedTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd243 := evm_run rd326 with [push2 ⟨243⟩, caller, swap1, jump (by jump_dest), jumpdest]
   have rd247 := evm_run rd243 with [
     push1 ⟨64⟩,

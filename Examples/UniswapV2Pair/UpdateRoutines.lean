@@ -356,12 +356,12 @@ theorem RD.uniswapUpdateStorePackedReserves {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd7246⟩ := rd7244.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd7261 := rd7246.pushConst reserve112Mask (width := 14) (op := .PUSH14)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd7278 := evm_run rd7261 with [
     not, and, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup9, dup2, and,
     swap2, swap1, swap2, or]
   have rd7293 := rd7278.pushConst reserve112Mask (width := 14) (op := .PUSH14)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd7338 := evm_run rd7293 with [
     push1 ⟨112⟩, shl, not, and,
     push1 ⟨1⟩, push1 ⟨112⟩, shl, dup9, dup4, and, dup2, mul,

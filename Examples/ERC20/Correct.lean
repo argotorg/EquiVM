@@ -33,6 +33,12 @@ set_option maxRecDepth 2000000
 
 namespace ERC20
 
+section
+
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 /-- The 4-byte function selector word the dispatcher computes from `calldata[0:32]`. -/
 abbrev erc20SelWord (I : ExecutionEnv) : UInt256 :=
   UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩
@@ -384,6 +390,8 @@ theorem erc20Correct : runtimeRefinement erc20Config erc20Bytecode erc20Contract
       exact erc20ShortRevert hcode hsize hwv (by omega)
   · -- callvalue ≠ 0: non-payable revert
     exact erc20NonPayable hcode hwv
+
+end
 
 /-! ## Constructor side -/
 

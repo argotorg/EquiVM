@@ -10,6 +10,10 @@ import Reasoning.Solc
 import Reasoning.Reach
 import Reasoning.Constructor
 
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 /-!
 # Truth — runtime-equivalence proof for `truth()`
 

@@ -19,10 +19,10 @@ theorem RD.uniswapSafeTransferDynamicEntryToCallMade
       (A_in : Substate) (callGas : UInt256) (k' C' : Nat),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ σ s0.σ₀ A_in
+          Ethereum.EVM.Θ I.fork σ s0.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask))
-            (toExecute σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
+            (toExecute I.fork σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((safeTransferDynamicCallMem2 base ptr toWord value).readWithPadding (ptr.toNat + 164) 68)
             (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm) ∧
@@ -73,10 +73,10 @@ theorem RD.uniswapSafeTransferDynamicEntryToCallMadeBounded
       (A_in : Substate) (callGas : UInt256) (k' C' : Nat),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ σ s0.σ₀ A_in
+          Ethereum.EVM.Θ I.fork σ s0.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask))
-            (toExecute σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
+            (toExecute I.fork σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((transferCalldataMem (UInt256.land solcAddrMask toWord) value).readWithPadding 128 68)
             (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm) ∧
@@ -97,7 +97,7 @@ theorem RD.uniswapSafeTransferDynamicEntryToCallMadeBounded
     exact Theta_returnData_size_lt_2pow138_of_eq σ s0.σ₀ A_in
       (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
       (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask))
-      (toExecute σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
+      (toExecute I.fork σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
       callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
       ((transferCalldataMem (UInt256.land solcAddrMask toWord) value).readWithPadding 128 68)
       (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm hcall

@@ -1021,10 +1021,10 @@ theorem endPackX_movePostCall {σ σ₀ A I} {g : UInt256} {sel amt gasWord : UI
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (endPackVatWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (endPackVatWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endPackMoveCalldataMem σ I amt solcFreePtrMem).readWithPadding
             endPackMoveOutPtr.toNat endPackMoveInSize.toNat)
@@ -2839,7 +2839,8 @@ theorem endPackBody {σ σ₀ A I} {g : UInt256}
             obtain ⟨_, _, rd6552⟩ :=
               endPackX_moveCallDepthLimit (g := g) hcallReady hdepthEq
             let A_move :=
-              (evmStele.addAccessedAccount (EVM.address (endPackVatAddr σ I))).substate
+              (Ethereum.EVM.callSubstate evmStele.executionEnv.fork evmStele.accountMap (EVM.address
+                (endPackVatAddr σ I)) evmStele.substate)
             have hcallStele :
                 typedCallViaEVM config evmStele
                   (EVM.address (endPackVatAddr σ I)) "move" 0

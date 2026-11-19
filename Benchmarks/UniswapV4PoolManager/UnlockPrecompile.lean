@@ -8,9 +8,9 @@ namespace Benchmarks.UniswapV4PoolManager
 theorem ZeroCallGasEvidence.unlock_precompile_size {evm evm' : State}
     {target : AccountAddress} {data out : ByteArray} {z : Bool}
     (w : ZeroCallGasEvidence evm target (unlockCallbackSelector++bytesReturnEncoding data) evm' z out)
-    (hp : target ∈ π) (hb : BytesReturnBounds out) : out.size ≤ 64 := by
+    (hp : target ∈ π evm.executionEnv.fork) (hb : BytesReturnBounds out) : out.size ≤ 64 := by
   have ht := w.theta.symm
-  have he : toExecute evm.accountMap target = .Precompiled target := by
+  have he : toExecute evm.executionEnv.fork evm.accountMap target = .Precompiled target := by
     unfold toExecute
     rw [if_pos hp]
   rw [he] at ht

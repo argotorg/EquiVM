@@ -257,7 +257,8 @@ theorem patchRuntime_decode_left {template out : ByteArray} {ps : List (Nat × B
             have hi64 : pc.toNat + 1 < 2 ^ 64 := by omega
             have hj64 : pc.toNat + 1 + argOnNBytesOfInstr instr < 2 ^ 64 := by omega
             have hjn : pc.toNat + 1 + argOnNBytesOfInstr instr ≤ n := by omega
-            rw [patchRuntime_extract'_left (n := n) hpatch hps hi64 hj64 hjn]
+            rw [readWithPadding_eq_of_extract'_eq
+              (patchRuntime_extract'_left (n := n) hpatch hps hi64 hj64 hjn)]
 
 theorem patchRuntime_decode_left_precise {template out : ByteArray}
     {ps : List (Nat × ByteArray)} {n : Nat}
@@ -285,7 +286,8 @@ theorem patchRuntime_decode_left_precise {template out : ByteArray}
               omega
             have hjn : pc.toNat + 1 + argOnNBytesOfInstr instr ≤ n :=
               hwin byte instr hget hinstr
-            rw [patchRuntime_extract'_left (n := n) hpatch hps hi64 hj64 hjn]
+            rw [readWithPadding_eq_of_extract'_eq
+              (patchRuntime_extract'_left (n := n) hpatch hps hi64 hj64 hjn)]
 
 theorem patchRuntime_decode_left_of_decode {template out : ByteArray}
     {ps : List (Nat × ByteArray)} {n : Nat}
@@ -314,7 +316,8 @@ theorem patchRuntime_decode_left_of_decode {template out : ByteArray}
             have hi64 : pc.toNat + 1 < 2 ^ 64 := by omega
             have hj64 : pc.toNat + 1 + argOnNBytesOfInstr instr < 2 ^ 64 := by omega
             simp [hinstr, harg]
-            rw [patchRuntime_extract'_left (n := n) hpatch hps hi64 hj64 hjn]
+            rw [readWithPadding_eq_of_extract'_eq
+              (patchRuntime_extract'_left (n := n) hpatch hps hi64 hj64 hjn)]
 
 @[simp] theorem wordBytes_address (a : EVM.Address) :
     wordBytes? (.address a) = some { data := (EVM.Word.ofNat ↑a).toBytesBE.toArray } := by
@@ -336,9 +339,12 @@ theorem decode_push32_of_get?_extract' {code : ByteArray} {pc w : UInt256}
   rw [hget]
   have hparse : parseInstr 0x7f = some (.Push .PUSH32) := by decide
   simp [hparse, argOnNBytesOfInstr]
-  rw [show pc.toNat + 1 + 32 = pc.toNat + 33 by omega]
-  rw [hpayload]
-  rw [uInt256OfByteArray_word_toBytesBE]
+  have hsize : ({ data := (EVM.Word.toBytesBE w).toArray } : ByteArray).size = 32 := by
+    simpa using word_toBytesBE_toByteArray_size w
+  rw [readWithPadding_eq_padded_extract',
+    show pc.toNat + 1 + 32 = pc.toNat + 33 by omega, hpayload,
+    hsize, Nat.sub_self, zeroes_zero (by rfl), ByteArray.append_empty]
+  exact uInt256OfByteArray_word_toBytesBE w
 
 theorem byteArray_eq_extract_prefix_suffix (b : ByteArray) (n : Nat) (hn : n ≤ b.size) :
     b = b.extract 0 n ++ b.extract n b.size := by
@@ -677,7 +683,8 @@ theorem patchRuntime_decode_disjoint_of_decode {template out : ByteArray}
             have hps := hargs byte instr hget hinstr
             have hj64 := harg64 byte instr hget hinstr
             simp [hinstr, harg]
-            rw [patchRuntime_extract'_disjoint hpatch hps hi64 hj64]
+            rw [readWithPadding_eq_of_extract'_eq
+              (patchRuntime_extract'_disjoint hpatch hps hi64 hj64)]
 
 theorem patchRuntime_decode_disjoint_of_decode_res {template out : ByteArray}
     {ps : List (Nat × ByteArray)} {pc : UInt256}
@@ -706,7 +713,8 @@ theorem patchRuntime_decode_disjoint_of_decode_res {template out : ByteArray}
           · simp [hinstr, harg] at hdec
             cases hdec
             simp [hinstr, harg]
-            rw [patchRuntime_extract'_disjoint hpatch hargs hi64 (by simpa using harg64)]
+            rw [readWithPadding_eq_of_extract'_eq
+              (patchRuntime_extract'_disjoint hpatch hargs hi64 (by simpa using harg64))]
 
 theorem spliceBytes_size_eq {template value out : ByteArray} {off : Nat}
     (hsp : spliceBytes? template off value = some out) :
@@ -1186,6 +1194,6 @@ theorem decode_eq_of_get?_arg_eq (a b : ByteArray) (pc : UInt256)
           by_cases hn : argOnNBytesOfInstr instr = 0
           · simp [hn]
           · simp [hn]
-            rw [harg byte instr hb hi]
+            rw [readWithPadding_eq_of_extract'_eq (harg byte instr hb hi)]
 
 end Reasoning.Theory

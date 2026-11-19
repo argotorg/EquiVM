@@ -83,7 +83,7 @@ theorem RD.uniswapUpdateEmitSyncAndJumpCore {g : Sat256} {s0 : State}
     raw mload mcostLoadLog ptr awLog (by decide) hmcLoadLog hmload64Log hawLoadLog
       (by evm_ov)]
   have rd7395 := rd7362.pushConst uniswapSyncTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd7404 := evm_run rd7395 with [
     swap3, swap2, dup2, swap1, sub, swap1, swap2, add, swap1]
   have rd7405 := rd7404.log1 mcostLog awLog (by decide) hperm hmcLog hawLog

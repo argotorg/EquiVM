@@ -1,5 +1,9 @@
 import Benchmarks.Dss.Spot.Selectors
 
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 /-!
 # MakerDAO/Sky DSS Spotter dispatcher facts
 

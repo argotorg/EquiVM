@@ -353,7 +353,7 @@ theorem RD.uniswapInitializeForbiddenRevert {g : Sat256} {s0 : State} {ee : Exec
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov)]
   have rd3166 := rd3162.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd3185 := evm_run rd3166 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (UniswapV2Pair.uniswapErrorStringMem0 solcFreePtrMem) (UInt256.ofNat 5)
@@ -370,7 +370,7 @@ theorem RD.uniswapInitializeForbiddenRevert {g : Sat256} {s0 : State} {ee : Exec
       (by rfl) (by decide) (by evm_ov)]
   have rd3206 := rd3185.pushConst
     (⟨243863241786521910795966162695504221424549241511⟩ : UInt256)
-    (width := 20) (op := .PUSH20) (by decide) (by decide) (by evm_ov)
+    (width := 20) (op := .PUSH20) (by decide +kernel) (by decide +kernel) (by evm_ov)
   exact evm_run rd3206 with [
     push1 ⟨97⟩, shl, push1 ⟨68⟩, dup3, add,
     raw mstore 3

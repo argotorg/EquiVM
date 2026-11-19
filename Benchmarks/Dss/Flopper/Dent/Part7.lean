@@ -705,7 +705,8 @@ theorem flopperDentBodyCoreMoveCallDepthLimit
   let src := UInt256.ofNat I.source.val
   let vat := solcAddressSlotWord ⟨2⟩ σ I
   let guy := solcAddressSlotWord (auctionPackedSlot id) σ I
-  let A_move := (evmEvm.addAccessedAccount (EVM.address (AccountAddress.ofNat vat.toNat))).substate
+  let A_move := (Ethereum.EVM.callSubstate evmEvm.executionEnv.fork evmEvm.accountMap (EVM.address
+    (AccountAddress.ofNat vat.toNat)) evmEvm.substate)
   have hmemCaller : memCaller.size = 96 := by
     simpa [memCaller, id] using twoWordHashMem_size_96 id ⟨1⟩ hmemStart
   have hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
