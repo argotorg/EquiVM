@@ -3,7 +3,7 @@
 
 TakeCapacityWitness.lean invalidates the former minimal-cost claim. Conditions.lean
 now uses the user-authorized g.toNat <= 2^24 bound. This script preserves the
-historical arithmetic and measurements described in HANDOFF.md.
+historical arithmetic and measurements.
 """
 from fractions import Fraction
 import json

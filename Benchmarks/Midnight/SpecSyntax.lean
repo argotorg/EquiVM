@@ -8,7 +8,8 @@ Transitions are in selector order (the dispatcher order).
 
 The initial 22-hole translation report is retained in `Midnight.spec.json`.
 The authored bodies below close those holes and restore conditional evaluation of
-calls hoisted by the translator. The block audit and gas argument are recorded in HANDOFF.md.
+calls hoisted by the translator. The physical block index is in provenance/block-audit.json.
+The gas bound is defined in Conditions.lean.
 
 NOTES:
   - constant WAD = 1000000000000000000 inlined

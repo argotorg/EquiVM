@@ -115,7 +115,7 @@ assert sorted(seen) == [b[0].pc for b in blocks]
 assert len(seen) == len(set(seen))
 creation = bytes.fromhex((directory / "creation.hex").read_text())
 _, _, ctor = code_and_blocks(creation[:83], keep_metadata=True)
-record = {"scope": "Physical block index for the manual audit in HANDOFF.md; not a proof or call graph.",
+record = {"scope": "Physical block index; not a proof or call graph.",
           "runtimeBlocksIncludingInvalid": len(blocks), "runtimeRegions": regions,
           "constructorBlocks": [{"entry": b[0].pc, "lastByte": b[-1].pc + b[-1].size - 1}
                                 for b in ctor],

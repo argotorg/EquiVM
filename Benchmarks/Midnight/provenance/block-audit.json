@@ -1,5 +1,5 @@
 {
-  "scope": "Physical block index for the manual audit in HANDOFF.md; not a proof or call graph.",
+  "scope": "Physical block index; not a proof or call graph.",
   "runtimeBlocksIncludingInvalid": 1233,
   "runtimeRegions": [
     {
