@@ -6,6 +6,10 @@ condition `g.toNat ≤ 2^24` and the Osaka fork requirement.
 The scaffold provenance and earlier differential results below are historical;
 the differential suite was not rerun during proof completion.
 
+This benchmark includes Morpho sources under BUSL-1.1 and MIT. See [NOTICE](NOTICE)
+for the license scope, [provenance/LICENSE](provenance/LICENSE) for the core contract,
+and [LICENSE-MIT](LICENSE-MIT) for the interfaces and libraries.
+
 ## 1. Compiler settings and provenance
 
 Target: `src/Midnight.sol` and its complete 13-file import closure from
