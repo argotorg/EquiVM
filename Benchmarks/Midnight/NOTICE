@@ -1,0 +1,26 @@
+Morpho Midnight licensing
+
+This benchmark includes Morpho Midnight sources from commit
+a61b99fa1d10556bb2281fb8511a2b851ef4a9b2:
+https://github.com/morpho-org/midnight/tree/a61b99fa1d10556bb2281fb8511a2b851ef4a9b2
+
+Copyright (c) 2026 Morpho Association
+
+The upstream licenses apply as follows:
+
+- contracts/src/Midnight.sol: Business Source License 1.1 (BUSL-1.1).
+  The full license, including its parameters and additional-use-grant reference,
+  is preserved in provenance/LICENSE.
+- The twelve Solidity interfaces and libraries in contracts/src/interfaces/
+  and contracts/src/libraries/: MIT, reproduced in LICENSE-MIT.
+
+The original SPDX identifiers and copyright notices are retained in the sources.
+
+The repository's MIT license does not replace these upstream terms. Portions of
+compiler artifacts, embedded bytecode, Yul, and translated specifications that
+copy or derive from the Midnight core contract remain subject to its applicable
+license. In particular, translation to Lean does not itself grant MIT rights to
+that material, including the contract translation in SpecSyntax.lean.
+
+Independently authored EquiVM material remains under the repository's MIT license.
+This notice grants no additional rights to Morpho's material.
