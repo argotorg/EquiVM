@@ -1,4 +1,5 @@
 import Benchmarks.Midnight.Dispatch
+import Benchmarks.Midnight.Storage
 
 /-!
 # Midnight `configurator()`
@@ -14,6 +15,16 @@ namespace Benchmarks.Midnight
 
 set_option maxRecDepth 2000000
 
+theorem configuratorBodyReturns (evm : EVM.State)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hhi : evm.executionEnv.calldata.size < calldataLimit) :
+    ExecTransitionBody config contract evm ∅ configuratorTransition.body
+      (.returned (calldataFrame contract ∅ ∅ evm) evm
+        (some [.address (AccountAddress.ofNat
+          (UInt256.land (Stele.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨9⟩)
+            solcAddrMask).toNat)])) := by
+  exact guardedAddressGetter evm rfl rfl rfl (by decide) hwv hhi
+
 /-- `configurator()`: the theorem `Correct.lean` routes selector 5 to. -/
 theorem midnightConfiguratorBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = midnightBytecode) (hsize : I.calldata.size < UInt256.size)
@@ -22,6 +33,43 @@ theorem midnightConfiguratorBody {σ σ₀ A I} {g : UInt256}
     (hsel : selIs I (midnightSelBytes 5)) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (midnightSelBytes 5) rfl hsel
-  sorry
+  have hd : dispatchMsg contract I.calldata = some configuratorTransition := by
+    apply midnightDispatch_configurator <;>
+      first | exact hsel | exact selectorNe_of_selIs hsel (by decide +kernel)
+  have hdec : config.externalABI.decodeCalldata? (configuratorTransition.params.map Param.name)
+      (transitionSignature configuratorTransition).paramTypes I.calldata = some ∅ :=
+    midnightDecodeEmpty hsz
+  obtain ⟨k, C, rd⟩ := midnightReachConfiguratorBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsz hsize hsel
+  by_cases hwv : I.weiValue = ⟨0⟩
+  · have rd1 := midnightBlocks.midnight_block_17600_fallthrough (by simp) hwv rd
+    by_cases hhi : I.calldata.size < calldataLimit
+    · have rd2 := midnightBlocks.midnight_block_17606_fallthrough (by simp)
+        (entrySizeCheck_ok (bytes := 0) hsz hhi hsize) rd1
+      have hr := midnightBlocks.midnight_block_17617 (by simp) rd2
+      have hret : RDret midnightBytecode (Sat256.ofUInt256 g)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+          (UInt256.land (solcSlotWordAt ⟨9⟩ σ I) solcAddrMask).toByteArray := by
+        change RDret _ _ _ _
+          ((writeWord midnightEntryMemory (memLoad ⟨64⟩ midnightEntryMemory).toNat
+            (UInt256.land (solcSlotWordAt ⟨9⟩ σ I) solcAddrMask)).readWithPadding
+            (memLoad ⟨64⟩ midnightEntryMemory).toNat 32) at hr
+        simpa only [midnightReturnWord_freePtr] using hr
+      have hbody := configuratorBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv hhi
+      exact hret.reEquivExecution hcode hd hdec hbody
+        (returnEquiv_of_encode (solcAddressReturnEncoding rfl (solcSlotWordAt ⟨9⟩ σ I)))
+    · have rd2 := midnightBlocks.midnight_block_17606_taken (by simp)
+        (by
+          have hc : UInt256.slt (UInt256.lnot (UInt256.ofNat 3) + UInt256.ofNat I.calldata.size)
+              ⟨0⟩ = ⟨1⟩ :=
+            entrySizeCheck_huge (bytes := 0) (Nat.le_of_not_lt hhi) hsize (by decide)
+          rw [hc]
+          decide)
+        (by jump_dest) rd1
+      have hr := midnightBlocks.midnight_block_6350 (by simp) rd2
+      exact hr.reEquivExecutionRevert hcode hd hdec (calldataSizeBodyReverts hwv hhi)
+  · have rd1 := midnightBlocks.midnight_block_17600_taken (by simp) hwv (by jump_dest) rd
+    have hr := midnightBlocks.midnight_block_6350 (by simp) rd1
+    exact hr.reEquivExecutionRevert hcode hd hdec (bodyReverts_nonPayable hwv)
 
 end Benchmarks.Midnight
