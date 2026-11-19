@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Recompute the integer minimum used by Conditions.lean; no EVM proof is claimed.
+"""Reproduce the superseded capacity-cutoff calculation, not the current gas bound.
 
-The path classification and bytecode cost argument are in HANDOFF.md. GasTrace.lean
-independently measures the ordinary-size instances of the binding path.
+TakeCapacityWitness.lean invalidates the former minimal-cost claim. Conditions.lean
+now uses the user-authorized g.toNat <= 2^24 bound. This script preserves the
+historical arithmetic and measurements described in HANDOFF.md.
 """
 from fractions import Fraction
 import json
@@ -43,7 +44,7 @@ bound = min(c for c, _ in candidates)
 minimizers = [p for c, p in candidates if c == bound]
 assert bound == 327073817860464196263953616796569
 assert bound > 2**24
-assert str(bound) in (directory / "Conditions.lean").read_text()
+assert "g.toNat ≤ 2^24" in (directory / "Conditions.lean").read_text()
 
 # Check the measured pre-CALL cost and capacities, including the copy slope.
 log = (directory / "provenance/gas-trace.log").read_text()
@@ -80,7 +81,7 @@ record = {
         "parentGasAfterCall": str(inverse_cap(memory(reply) + 15) - memory(reply) - 15),
     },
     "ordinarySizeMeasurements": measured,
-    "status": "arithmetic and executable measurements; refinement proof remains a generated stub",
+    "status": "historical cutoff superseded by 2^24; minimal-cost claim invalidated",
 }
 (directory / "provenance/gas-bound.json").write_text(json.dumps(record, indent=2) + "\n")
-print(f"gas.toNat < {bound}; all seven measurements match; includes 2^24")
+print(f"Historical cutoff: {bound}; seven recorded measurements match; current bound: 2^24")

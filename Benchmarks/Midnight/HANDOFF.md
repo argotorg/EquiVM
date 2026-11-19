@@ -1,7 +1,10 @@
-# Midnight scaffold
+# Midnight refinement proof
 
-All scaffold gates have passed, including the full block audit and final differential run.
-Refinement proofs are intentionally left as the 57 generated function stubs and constructor stub.
+The constructor and all 57 runtime functions now have complete Lean proofs.
+`Correct.lean` assembles `midnightContractCorrect` under the user-authorized
+condition `g.toNat ≤ 2^24` and the Osaka fork requirement.
+The scaffold provenance and earlier differential results below are historical;
+the differential suite was not rerun during proof completion.
 
 ## 1. Compiler settings and provenance
 
@@ -227,25 +230,27 @@ validation and does not weaken scalar canonicality checks.
 
 `Conditions.lean` defines `midnightWF σ I := I.fork >= .osaka` and the gas cutoff
 below. There is no storage-shape, valid-market, or slot-noncollision assumption.
-The generated bodies receive these two hypotheses. The capstone exports
+The runtime proofs receive these two hypotheses. The capstone exports
 `runtimeRefinementWithWF midnightWF midnightGasBound` and
 `contractRefinementWF midnightWF midnightGasBound`. The constructor theorem is
 the ordinary typed constructor refinement, with an empty immutable valuation.
-`generate.py` installs these signatures through the shared generator; generated
-proof files are not hand-edited.
+`generate.py` originally installed these signatures through the shared generator.
+The function bodies now contain completed proofs; do not regenerate them.
+The executable block summaries were preserved unchanged.
 
-`SpecSyntax`, `Spec`, `DiffTarget`, all executable block summaries, `Dispatch`,
-and `Correct` build. The final capstone build completed successfully with 3,644
-jobs; its compressed log is `provenance/correct-build.log.gz`. There are exactly 58 `sorry`s:
-one in each generated function stub and one in `Constructor.lean`. There are
-no additional proof holes, custom axioms, or hand-written refinement proofs.
-The six artifact checks all print `ok` (`provenance/artifact-check.log`).
+The completion build is recorded in `provenance/proof-final-build.log`; the
+capstone dependency audit is recorded in `provenance/proof-final-axioms.log`.
+The build passed all 4,643 jobs. The dependency audit contains only `propext`,
+`Classical.choice`, `Quot.sound`, and 26,285 native-evaluation axioms; it contains
+no proof-hole axiom or custom assumption. `provenance/proof-final-audit.json`
+records the counts and authorized gas condition.
+The original scaffold build and artifact checks remain in
+`provenance/correct-build.log.gz` and `provenance/artifact-check.log`.
 
-Expected difficult proofs are the dynamic decoders, packed writes in arbitrary
-storage, external calls/reentrancy and transient locks, CREATE2/SSTORE2, the
-liquidation oracle loop, signed price arithmetic, and the capacity argument.
-Call rules choose gas and call substate existentially: use the EVM's actual
-forwarded gas and substate. GAS occurs only in those forwarding sequences.
+The proof covers dynamic decoders, packed writes in arbitrary storage, external
+calls and reentrancy, transient locks, CREATE2/SSTORE2, the liquidation oracle
+loop, signed price arithmetic, and compiler memory capacity checks. External
+call proofs retain the EVM's actual forwarded gas and call substate.
 
 For reproducibility, build shards and function modules in small batches before
 `lake build Benchmarks.Midnight.Correct` on a memory-constrained machine. The
@@ -254,17 +259,22 @@ caches are ignored. Nothing outside this directory is changed or registered.
 
 ## 5. Gas bound
 
-The proposed runtime condition is the strict bound
+The current, user-authorized runtime condition is `g.toNat ≤ 2^24`.
+The earlier capacity cutoff below is retained as historical analysis. It is not
+the current condition: `TakeCapacityAudit.lean` and `TakeCapacityWitness.lean`
+record a cheaper token implementation and an arithmetic witness two gas below
+that former cutoff. The new condition excludes that witness.
+
+The former proposed runtime condition was the strict bound
 
 ```text
 g.toNat < 327073817860464196263953616796569
 ```
 
-It includes every starting gas up to and including `2^24`. It abstracts aggregate
-compiler capacity arithmetic and subsequent safe buffer arithmetic, while
-individual observable size guards remain in the value specification. This is
-an obligation for the generated body proofs, not a claim that those proofs
-have already been supplied.
+That proposed cutoff included every starting gas through `2^24`, but its
+claimed minimal counterexample cost was invalidated by the cheaper token
+recorded above. The following arithmetic and path classification document the
+former argument; they are not premises of the completed refinement proof.
 
 Let `C(w) = 3*w + floor(w*w/512)` be cumulative EVM memory cost, and let
 `J(q) = q + floor((q-1)/63)` for positive `q`. The latter is the least gas after
@@ -371,11 +381,10 @@ The other paths do not give a lower cutoff:
   sizes while producing a true first word; conditional/stateful token code
   adds work.
 
-Thus below B every path that would violate the omitted aggregate capacity
-invariant exhausts gas before that violation. The uint64 component guards,
-signed calldata checks, and wrapping direct-reference decoder remain explicit.
-Within the capacity invariant, buffer offsets stay far below `2^256`; large
-memory/copy/return extents exhaust gas before word arithmetic can wrap. No
-separate restriction is needed for GAS forwarding: use the actual EVM call
-witness. The proving session must turn these capacity/cost arguments into
-lemmas when replacing the generated `sorry`s.
+The former conclusion that every capacity violation below B exhausts gas was
+invalidated by `TakeCapacityWitness.lean`. The completed proof instead uses the
+authorized `2^24` limit. `midnightMemoryPaid_small` proves that a funded runtime
+state either already exhausts gas or has fewer than 100,000 active memory
+words. This supplies the needed allocation bounds and closes the take transfer
+funding argument. Observable size checks remain explicit, and external calls
+use their actual EVM witnesses.
