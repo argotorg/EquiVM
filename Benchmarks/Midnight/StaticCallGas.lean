@@ -39,7 +39,7 @@ theorem staticCallMono {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
   · exact ⟨_, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩, le_rfl,
       (by unfold RD; exact Or.inl hoog),
       (by
-        exact Theta_returnData_size_lt ee.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ false
+        exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ false
           (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize))⟩
   · have hd : decode s.executionEnv.code s.machineState.pc = some (.STATICCALL, .none) := by
       rw [hcode, hpc]; exact hdec
@@ -64,7 +64,7 @@ theorem staticCallMono {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     · exact ⟨_, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩, le_rfl,
         (by unfold RD; exact Or.inl hXP),
         (by
-          exact Theta_returnData_size_lt ee.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ false
+          exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ false
             (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize))⟩
     · rename_i hP
       set mc := memoryExpansionCost s Operation.STATICCALL with hmc
@@ -104,7 +104,7 @@ theorem staticCallMono {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
       have hmcle : mc ≤ s.machineState.gasAvailable.toNat := by omega
       have hretle : θs.2.1.toNat ≤ cg.toNat := by
         rw [hθs]
-        exact Theta_returnedGas_le s.executionEnv.fork s.accountMap s.σ₀
+        exact Theta_returnedGas_le s.accountMap s.σ₀
           (callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
           (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner))
           s.executionEnv.sender (AccountAddress.ofUInt256 target)

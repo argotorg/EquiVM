@@ -72,6 +72,17 @@ class GeneratorTests(unittest.TestCase):
         self.assertIn("RD.genMcopy", rendered)
         self.assertIn("mcopyExpansionCost aw", rendered)
 
+    def test_osaka_clz_requires_the_fork(self) -> None:
+        # Two CLZs in one block that ends in STOP: a single summary theorem, whose one fork
+        # hypothesis is shared by every CLZ of the block.
+        rendered = units("60011e60021e00")
+        self.assertEqual(rendered.count("(hfork : ee.fork ≥ .osaka)"), 1)
+        self.assertEqual(rendered.count(".clz hfork (by native_decide) (by evm_ov)"), 2)
+        self.assertNotIn("Unsupported instruction boundary", rendered)
+        # A block that falls through keeps the count on its output stack.
+        rendered = units("60011e")
+        self.assertIn("(UInt256.clz (UInt256.ofNat 1))", rendered)
+
     def test_immutable_mode_uses_deployed_code_and_symbolic_push(self) -> None:
         code = bytes([0x7F, *([0] * 32), 0x56])
         sites = rd.validate_immutable_sites(

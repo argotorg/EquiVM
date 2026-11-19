@@ -36,7 +36,8 @@ theorem typedZeroValueCallBudget {budgetRoot : UInt256} {credit : Nat} {code : B
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', rd'⟩ := rd.callDepthLimit hdec hd hstack
     refine Or.inr ⟨{ evm with
-      substate := (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate }, σ,
+      substate := callSubstate evm.executionEnv.fork evm.accountMap
+        (AccountAddress.ofUInt256 target) evm.substate }, σ,
       false, ByteArray.empty, _, k', C', ?_, ⟨hs.world, hs.env, hs.accounts⟩,
       rd', by decide, by simp⟩
     refine ⟨_, hcd, callViaEVM.callNotMade rfl rfl ?_⟩
@@ -51,7 +52,7 @@ theorem typedZeroValueCallBudget {budgetRoot : UInt256} {credit : Nat} {code : B
     rcases hcost with hoog | ⟨hC, _⟩
     · exact Or.inl hoog
     have hsize : out.size < 2^138 :=
-      Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ
+      Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ
         ((Ethereum.EVM.ByteArray.readWithPadding_size_le _ _ _).trans hsmall)
     have ha' := transferBudgetAt (root := budgetRoot) (credit := credit) rd' (by
       rcases ha with hsmall | ⟨halign, hf⟩

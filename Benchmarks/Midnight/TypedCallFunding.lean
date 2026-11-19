@@ -41,7 +41,8 @@ theorem typedZeroValueCallFunded {credit : Nat} {code : ByteArray} {I : Executio
   · obtain ⟨k', C', rd'⟩ := rd.callDepthLimit hdec hd hstack
     rw [hw] at rd'
     refine Or.inr ⟨{ evm with
-      substate := (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate }, σ,
+      substate := callSubstate evm.executionEnv.fork evm.accountMap
+        (AccountAddress.ofUInt256 target) evm.substate }, σ,
       false, ByteArray.empty, k', C', ?_, ⟨hs.world, hs.env, hs.accounts⟩,
       rd', by decide, by simp⟩
     refine ⟨_, hcd, callViaEVM.callNotMade rfl rfl ?_⟩
@@ -56,7 +57,7 @@ theorem typedZeroValueCallFunded {credit : Nat} {code : ByteArray} {I : Executio
     rcases hcost with hoog | ⟨hC, _⟩
     · exact Or.inl hoog
     have hsize : out.size < 2^138 :=
-      Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ
+      Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ
         ((Ethereum.EVM.ByteArray.readWithPadding_size_le _ _ _).trans hsmall)
     rw [hw] at rd'
     have ha' := staticCallMemoryFunding (out := out) (C' := C') ha (by omega) hin hout

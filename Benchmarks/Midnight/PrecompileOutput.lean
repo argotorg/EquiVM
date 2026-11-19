@@ -169,7 +169,9 @@ theorem precompile_EXPMOD_output_size_le_1024
     have hlen : nat_of_slice I.calldata 64 32 ≤ 1024 := by
       by_contra hbig
       have hbig' : nat_of_slice I.calldata 64 32 > 1024 := by omega
-      simp [expmodRequiredGas, hosaka, hbig'] at hreq
+      have hlimit : I.fork.spec.eip7823 = true := by
+        cases hf : I.fork <;> first | rfl | simp [hf, Fork.le_def, Fork.rank] at hosaka
+      simp [expmodRequiredGas, hlimit, hbig'] at hreq
     exact precompile_EXPMOD_output_size_le_modulus_length.trans hlen
 
 theorem precompile_dispatch_output_size_le_1024_or_calldata
