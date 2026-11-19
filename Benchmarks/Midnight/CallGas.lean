@@ -41,7 +41,7 @@ theorem callWithGasBound {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
     exact ⟨_, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩,
       (by unfold RD; exact Or.inl hoog),
       (by
-        exact Theta_returnData_size_lt ee.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+        exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
           (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize)),
       Or.inl hoog⟩
   · -- reach the CALL cursor `s`; reduce `step_call` (value 0, depth < 1024)
@@ -71,7 +71,7 @@ theorem callWithGasBound {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
       exact ⟨_, _, _, default, ⟨0⟩, k, C, ⟨_, _, rfl⟩,
         (by unfold RD; exact Or.inl hXP),
         (by
-          exact Theta_returnData_size_lt ee.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+          exact Theta_returnData_size_lt _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
             (Reasoning.Reach.readWithPadding_size_lt_uint256_of_word _ inOffset inSize)),
         Or.inl hXP⟩
     · -- success: SUCC is concrete in hXP.  Emit `Or.inr ⟨SUCC, …⟩` with field projections,
@@ -109,7 +109,9 @@ theorem callWithGasBound {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
       have hmcle : mc ≤ s.machineState.gasAvailable.toNat := by omega
       have hretle : θs.2.1.toNat ≤ cg.toNat := by
         rw [hθs]
-        exact Theta_returnedGas_le s.executionEnv.fork s.accountMap s.σ₀ (callSubstate s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target) s.substate)
+        exact Theta_returnedGas_le s.accountMap s.σ₀
+          (callSubstate s.executionEnv.fork s.accountMap
+            (AccountAddress.ofUInt256 target) s.substate)
           (AccountAddress.ofUInt256 (UInt256.ofNat ↑s.executionEnv.codeOwner)) s.executionEnv.sender
           (AccountAddress.ofUInt256 target) (toExecute s.executionEnv.fork s.accountMap (AccountAddress.ofUInt256 target))
           cg (UInt256.ofNat s.executionEnv.gasPrice) { val := 0 } { val := 0 }

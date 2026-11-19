@@ -1363,6 +1363,36 @@ theorem RD.iszero {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
       · exact hee
       · exact hσ₀
 
+/-- **CLZ** (EIP-7939): the top of the stack becomes its number of leading zero bits (cost
+    `Glow = 5`, pc += 1). Only from Osaka on: before Osaka `0x1e` is an invalid instruction. -/
+theorem RD.clz {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : AccountMap} {k C : ℕ}
+    {a : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
+    (hfork : ee.fork ≥ .osaka)
+    (hdec : decode code pc = some (.CLZ, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.clz a :: t) mem aw rdata acc (k + 1) (C + 5) := by
+  unfold RD at h ⊢
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
+  · exact Or.inl hoog
+  · have st := clz_xstep hcode hpc hdec (by rw [hee]; exact hfork) hstk hov
+    by_cases gg : g.toNat < C + 5
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨stClz s a t,
+        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
+        by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stClz]; exact hcode
+      · simp only [stClz]; rw [hpc]
+      · rfl
+      · simp only [stClz]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [stClz]; exact hmem
+      · simp only [stClz]; exact haw
+      · simp only [stClz]; exact hrdata
+      · simp only [stClz]; exact hacc
+      · exact hee
+      · exact hσ₀
+
 theorem RD.not {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : AccountMap} {k C : ℕ}

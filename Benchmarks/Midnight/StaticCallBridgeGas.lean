@@ -28,7 +28,9 @@ theorem typedStaticCallBridgeMono {code : ByteArray} {I : ExecutionEnv} {g : Sat
       out.size < 2 ^ 138 := by
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', hc, rd⟩ := staticCallDepthLimitMono h hdec hd hov
-    refine ⟨{ evm with substate := (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate }, σ, false,
+    refine ⟨{ evm with
+      substate := callSubstate evm.executionEnv.fork evm.accountMap
+        (AccountAddress.ofUInt256 target) evm.substate }, σ, false,
       ByteArray.empty, k', C', ?_, ⟨hs.world, hs.env, hs.accounts⟩, hc, rd, by decide⟩
     refine ⟨_, hcd, callViaEVM.callNotMade rfl rfl ?_⟩
     intro hn
@@ -39,7 +41,7 @@ theorem typedStaticCallBridgeMono {code : ByteArray} {I : ExecutionEnv} {g : Sat
       omega
     obtain ⟨σ', z, out, A_in, callGas, k', C', ⟨g'', A', hΘ⟩, hc, rd, _⟩ := staticCallMono h hdec hdlt hov
     have hsize : out.size < 2 ^ 138 :=
-      Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ
+      Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hΘ
         (le_trans (Ethereum.EVM.ByteArray.readWithPadding_size_le mem inOffset.toNat inSize.toNat)
           (le_trans hsmall Ethereum.EVM.pow_two_64_le_maxReturnDataSizeByGas))
     rw [hs.accounts, ← hs.world, ← hs.env] at hΘ

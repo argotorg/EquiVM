@@ -45,7 +45,8 @@ theorem delegateCallCostBridge {code I g s0 pc R mem aw rdata σ k C evm}
   · obtain ⟨k', C', rd'⟩ := rd.delegateCallDepthLimit hdec hd hstack
     rw [hmem] at rd'
     let evm' := { evm with
-      substate := (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate }
+      substate := callSubstate evm.executionEnv.fork evm.accountMap
+        (AccountAddress.ofUInt256 target) evm.substate }
     refine Or.inr ⟨evm', σ, false, ByteArray.empty, _, k', C', ?_,
       ⟨hs.world, hs.env, hs.accounts⟩, rd', by decide, Or.inl (Nat.zero_le _), Or.inl rfl⟩
     exact delegateCallViaEVM.callNotMade rfl rfl (hs.env ▸ hd)
@@ -67,7 +68,7 @@ theorem delegateCallCostBridge {code I g s0 pc R mem aw rdata σ k C evm}
       · refine ⟨callGas, AIn, ?_⟩
         simpa only [hs.env, hs.world, ← hs.accounts] using hΘ
       · simpa only [hs.env] using hd
-    · exact Theta_returnData_size_lt_2pow138_of_eq I.fork _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+    · exact Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
         hΘ hsmall
     · have hb := theta_output_memoryCost_or_small I.fork σ s0.σ₀ AIn
         I.source I.sender
