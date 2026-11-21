@@ -110,8 +110,7 @@ completeness up to the oracle (every derivation is reached by some fuel and some
 
 ## Limits
 
-- Precompiles execute in Lean without Python or native cryptography helpers. The generic
-  generators do not deliberately produce precompile addresses.
+- Precompiles: the generic generators do not deliberately produce precompile addresses.
 - Specifications whose modules import the proof library (`Reasoning.SteleBody`) are not registered
   (`Clipper`, `Dog`, `Comet`, `UniswapV2Router02`, `Conduit`, `UniswapV3Pool`).
 - Guards that need several storage entries to agree (allowances with a specific spender, the same

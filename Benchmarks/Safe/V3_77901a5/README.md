@@ -143,8 +143,7 @@ The randomized differential test reports:
 Safe_V3_77901a5: 1775 cases: 1761 agree (578 successful), 0 disagree, 0 stuck, 14 EVM out of gas, 0 spec out of fuel
 ```
 
-The EVM dependency implements cryptography in Lean. Run the randomized suite from the
-repository root; no Python cryptography environment is needed:
+Run the randomized suite from the repository root:
 
 ```bash
 lake exe stele-difftest --only Safe_V3_77901a5 --count 50

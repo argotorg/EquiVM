@@ -139,11 +139,6 @@ lake build           # core library
 lake build Examples Benchmarks   # the proof developments (large: expect a long build)
 ```
 
-EVMLean is pinned in [`lake-manifest.json`](lake-manifest.json). Its cryptography and
-precompiles run in Lean without Python helpers. The execution environment's fork is
-preserved across calls and contract creation; `lake build Tests.EVMLean` checks these
-boundaries and truncated PUSH decoding.
-
 ## Proving a contract correct
 
 To prove a new contract correct, create a new directory following the template

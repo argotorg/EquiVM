@@ -87,7 +87,6 @@ for those data bytes. All artifact bytes and jump tables remain pinned unchanged
 The local runner registers only this target in a hidden Lake package, preserving the
 repository's test registry. It invokes the repository CLI as
 `lake exe stele-difftest --only Vault --count 50`, with seed **2026**.
-EVMLean's precompiles execute in Lean; no Python cryptography environment is needed.
 
 ```sh
 python3 -B Benchmarks/CurveVault/run_difftest.py --only Vault --count 50

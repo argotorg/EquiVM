@@ -120,9 +120,6 @@ lake env lean Benchmarks/Safe/ViaIR/Audit.lean
 lake exe stele-difftest --only Safe_ViaIR --count 50
 ```
 
-EVMLean's precompiles execute in Lean. The differential command runs from the repository root
-without a separate Python cryptography environment.
-
 The Python check recompiles source, verifies every source hash and both Lean byte arrays, checks
 the ABI/dispatcher agreement, and checks that generated files match their current generator.
 Add `--write` to regenerate summaries, indexes, ABI checks, and the manifest. It does not fill
