@@ -823,7 +823,7 @@ theorem simpleAuctionX_bid_successNoPending {σ σ₀ A I} {g : Sat256}
     raw mstore 3 (bidEventMem I) (UInt256.ofNat 6) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd544 := rd510.pushConst bidHighestBidIncreasedTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd553 := evm_run rd544 with [
     swap2, add, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
@@ -887,7 +887,7 @@ theorem simpleAuctionX_bid_successWithPending {σ σ₀ A I} {g : Sat256}
     raw mstore 3 (bidPendingEventMem σ I) (UInt256.ofNat 6) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd544 := rd510.pushConst bidHighestBidIncreasedTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd553 := evm_run rd544 with [
     swap2, add, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)

@@ -1147,8 +1147,8 @@ theorem flapperCageBodyCoreMoveCallDepthLimit
   let src := cageThisWord I
   let guy := cageSenderWord I
   let rad := cageRadWord I
-  let A_move := (evmLiveStele.addAccessedAccount
-    (EVM.address (AccountAddress.ofNat vat.toNat))).substate
+  let A_move := (Ethereum.EVM.callSubstate evmLiveStele.executionEnv.fork evmLiveStele.accountMap
+    (EVM.address (AccountAddress.ofNat vat.toNat)) evmLiveStele.substate)
   have hmem : (relyAuthHashMem I).size = 96 := relyAuthHashMem_size I
   have hsrcCanon : src.toNat < EVM.addressModulus := by
     have hsizeAddr : AccountAddress.size < UInt256.size := by decide

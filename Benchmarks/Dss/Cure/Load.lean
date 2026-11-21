@@ -898,7 +898,8 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                 (key := key) (ret := ⟨484⟩) (R := [sel])
                 hafterPos hcanonKey hcodeSizeEvm hposMem hposRead64 hdepthEq (by simp)
             let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-            let A_call := (evm0.addAccessedAccount (EVM.address (loadSrc I))).substate
+            let A_call := (Ethereum.EVM.callSubstate evm0.executionEnv.fork evm0.accountMap
+              (EVM.address (loadSrc I)) evm0.substate)
             have hcallDepth :
                 typedCallViaEVM config evm0
                   (EVM.address (loadSrc I)) "cure" 0 []

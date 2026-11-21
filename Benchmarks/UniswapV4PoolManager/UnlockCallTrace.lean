@@ -62,8 +62,10 @@ theorem unlockCallTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
     obtain ⟨σ', z, out, Ain, callGas, gasLeft, A', k', C', hθ, hr, hcost, hout⟩ := hcall
     let evm' : EVM.State := {evm with accountMap := σ', substate := A'}
     have hθ' : (evm'.accountMap, gasLeft, evm'.substate, z, out) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain evm.executionEnv.codeOwner evm.executionEnv.sender
-          I.source (toExecute evm.accountMap I.source) callGas (UInt256.ofNat evm.executionEnv.gasPrice)
+        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ Ain evm.executionEnv.codeOwner
+          evm.executionEnv.sender
+          I.source (toExecute evm.executionEnv.fork evm.accountMap I.source) callGas (UInt256.ofNat
+            evm.executionEnv.gasPrice)
           ⟨0⟩ ⟨0⟩ (mem.readWithPadding 160 (UInt256.sub ending ⟨160⟩).toNat)
           (evm.executionEnv.depth+1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes
           evm.executionEnv.blocks evm.executionEnv.perm := by

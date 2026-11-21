@@ -911,7 +911,8 @@ theorem uniswapPermitBody_depthLimit
             (A := A) (I := I) (g := Sat256.ofUInt256 g))
       let evmCallS : EVM.State :=
         { evmNonceS with
-          substate := (evmNonceS.addAccessedAccount (AccountAddress.ofNat 1)).substate }
+          substate := (Ethereum.EVM.callSubstate evmNonceS.executionEnv.fork evmNonceS.accountMap
+            (AccountAddress.ofNat 1) evmNonceS.substate) }
       have hdepthStele : evmNonceS.executionEnv.depth = 1024 := by
         simpa [evmNonceS, evmS, permitAfterNonceState, storageStore_executionEnv, initState]
           using hdepth

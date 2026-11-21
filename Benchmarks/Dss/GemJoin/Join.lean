@@ -3159,7 +3159,8 @@ theorem gemJoinJoinBodyCoreSlipCallDepthLimit
         rfl hcodeSteleWord
   let evmSlip :=
     { evmStele with
-      substate := (evmStele.addAccessedAccount (EVM.address (joinVatAddressOf evmStele))).substate }
+      substate := (Ethereum.EVM.callSubstate evmStele.executionEnv.fork evmStele.accountMap
+        (EVM.address (joinVatAddressOf evmStele)) evmStele.substate) }
   have hcallSlipDepth :
       typedCallViaEVM config evmStele (EVM.address (joinVatAddressOf evmStele)) "slip" 0
         [.fixedBytes bytes32Width

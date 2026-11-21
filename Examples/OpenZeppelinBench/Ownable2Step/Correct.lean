@@ -22,7 +22,7 @@ theorem ownable2StepCorrect :
         have hreach := ownable2StepReachBody
           (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
           0 (by omega) ⟨89⟩ hcode hwv hsz0 hsize
-          hm.1 hm.2 (by jump_dest) (by decide)
+          hm.1 hm.2 (by jump_dest) (by decide +kernel)
         exact ownable2StepRenounceOwnershipBody hcode hsize hwv h0 hreach
       · by_cases h1 : selIs I ⟨#[0x79, 0xba, 0x50, 0x97]⟩
         · have hsz1 := ownable2StepAcceptOwnershipSelector_size h1
@@ -30,7 +30,7 @@ theorem ownable2StepCorrect :
           have hreach := ownable2StepReachBody
             (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
             1 (by omega) ⟨99⟩ hcode hwv hsz1 hsize
-            hm.1 hm.2 (by jump_dest) (by decide)
+            hm.1 hm.2 (by jump_dest) (by decide +kernel)
           exact ownable2StepAcceptOwnershipBody hcode hsize hwv h1 hreach
         · by_cases h2 : selIs I ⟨#[0x8d, 0xa5, 0xcb, 0x5b]⟩
           · have hsz2 := ownable2StepOwnerSelector_size h2
@@ -38,7 +38,7 @@ theorem ownable2StepCorrect :
             have hreach := ownable2StepReachBody
               (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
               2 (by omega) ⟨107⟩ hcode hwv hsz2
-              hsize hm.1 hm.2 (by jump_dest) (by decide)
+              hsize hm.1 hm.2 (by jump_dest) (by decide +kernel)
             exact ownable2StepOwnerBody hcode hsize hwv h2 hreach
           · by_cases h3 : selIs I ⟨#[0xe3, 0x0c, 0x39, 0x78]⟩
             · have hsz3 := ownable2StepPendingOwnerSelector_size h3
@@ -46,7 +46,7 @@ theorem ownable2StepCorrect :
               have hreach := ownable2StepReachBody
                 (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
                 3 (by omega) ⟨147⟩ hcode hwv hsz3
-                hsize hm.1 hm.2 (by jump_dest) (by decide)
+                hsize hm.1 hm.2 (by jump_dest) (by decide +kernel)
               exact ownable2StepPendingOwnerBody hcode hsize hwv h3 hreach
             · by_cases h4 : selIs I ⟨#[0xf2, 0xfd, 0xe3, 0x8b]⟩
               · have hsz4 := ownable2StepTransferOwnershipSelector_size h4
@@ -54,7 +54,7 @@ theorem ownable2StepCorrect :
                 have hreach := ownable2StepReachBody
                   (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
                   4 (by omega) ⟨164⟩ hcode hwv hsz4
-                  hsize hm.1 hm.2 (by jump_dest) (by decide)
+                  hsize hm.1 hm.2 (by jump_dest) (by decide +kernel)
                 exact ownable2StepTransferOwnershipBody hcode hsize hwv h4 hreach
               · refine ownable2StepNoDispatch hcode hsize hwv ?_
                 intro i hi

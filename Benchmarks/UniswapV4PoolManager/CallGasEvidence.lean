@@ -11,8 +11,10 @@ structure ZeroCallGasEvidence (evm : EVM.State) (target : AccountAddress) (data 
   returnedGas : UInt256
   inputSubstate : Substate
   theta : (evm'.accountMap, returnedGas, evm'.substate, z, out) =
-    Ethereum.EVM.Θ evm.accountMap evm.σ₀ inputSubstate evm.executionEnv.codeOwner evm.executionEnv.sender
-      target (toExecute evm.accountMap target) inputGas (UInt256.ofNat evm.executionEnv.gasPrice)
+    Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ inputSubstate
+      evm.executionEnv.codeOwner evm.executionEnv.sender
+      target (toExecute evm.executionEnv.fork evm.accountMap target) inputGas (UInt256.ofNat
+        evm.executionEnv.gasPrice)
       ⟨0⟩ ⟨0⟩ data (evm.executionEnv.depth+1) evm.executionEnv.header
       evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks evm.executionEnv.perm
 

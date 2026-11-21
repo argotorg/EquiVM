@@ -22,8 +22,8 @@ theorem delegateCallBridge {code I g s0 pc R mem aw rdata σ k C evm}
           outOffset.toNat outSize.toNat)) out σ' k' C' ∧ out.size < UInt256.size := by
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', rd⟩ := h.cometDelegatecallDepthLimit hdec hd hov
-    let evm' := { evm with substate := (evm.addAccessedAccount
-      (AccountAddress.ofUInt256 target)).substate }
+    let evm' := { evm with substate := (Ethereum.EVM.callSubstate evm.executionEnv.fork
+      evm.accountMap (AccountAddress.ofUInt256 target) evm.substate) }
     have hc : delegateCallViaEVM evm (AccountAddress.ofUInt256 target) calldata
         (false, evm', ByteArray.empty) :=
       delegateCallViaEVM.callNotMade rfl rfl (hs.env ▸ hd)

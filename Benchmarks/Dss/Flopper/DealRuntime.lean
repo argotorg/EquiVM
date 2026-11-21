@@ -864,7 +864,8 @@ theorem flopperDealBodyCoreMintCallDepthLimit
   let gem := solcAddressSlotWord ⟨3⟩ σ I
   let guy := solcAddressSlotWord (auctionPackedSlot id) σ I
   let lot := solcSlotWordAt (auctionLotSlot id) σ I
-  let A_mint := (evmStele.addAccessedAccount (EVM.address (AccountAddress.ofNat gem.toNat))).substate
+  let A_mint := (Ethereum.EVM.callSubstate evmStele.executionEnv.fork evmStele.accountMap
+    (EVM.address (AccountAddress.ofNat gem.toNat)) evmStele.substate)
   have hmemMap : memMap.size = 96 := by
     simpa [memMap, id] using
       twoWordHashMem_size_96 (dealIdWord I) ⟨1⟩ solcFreePtrMem_size

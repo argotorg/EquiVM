@@ -117,10 +117,10 @@ theorem uniswapMintFeeRuntimeFactoryStaticcallMadeOfTail
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σFee, g'', A', zFee, outFee) = Ethereum.EVM.Θ
-          σ'' s0.σ₀ A_inFee
+          I.fork σ'' s0.σ₀ A_inFee
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (mintFeeFactoryWord σ'' I))
-          (toExecute σ'' (AccountAddress.ofUInt256 (mintFeeFactoryWord σ'' I)))
+          (toExecute I.fork σ'' (AccountAddress.ofUInt256 (mintFeeFactoryWord σ'' I)))
           callGasFee (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((feeToSelectorMem
             mem).readWithPadding

@@ -481,7 +481,7 @@ theorem RD.uniswapTransferExternalToInternal {g : Sat256} {s0 : State} {ee : Exe
   simpa [uniswapSourceWord] using
     RD.solcCallerTransferThunk
       (pc := ⟨5061⟩) (contPc := ⟨2907⟩) (routinePc := ⟨7510⟩) h
-      (by dsimp [solcCallerTransferThunkWf]; repeat' first | apply And.intro | decide)
+      (by dsimp [solcCallerTransferThunkWf]; repeat' first | apply And.intro | decide +kernel)
       (by jump_dest) hov
 
 /-- Chained success prefix for `transfer(address,uint256)`, from the dispatcher body pc

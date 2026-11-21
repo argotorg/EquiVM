@@ -1169,7 +1169,7 @@ theorem accessControlGrantRoleX_grant_write {σ σ₀ A I} {g : Sat256}
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and, dup3,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and, dup5]
   have rd658 := rd625pre.pushConst grantRoleGrantedTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd668 := evm_run rd658 with [
     push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost

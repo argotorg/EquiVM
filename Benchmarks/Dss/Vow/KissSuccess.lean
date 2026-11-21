@@ -1410,7 +1410,8 @@ theorem vowKissBody {σ σ₀ A I} {g : UInt256}
     obtain ⟨k1704, C1704, rd1704⟩ :=
       RD.vowKissDaiCallDepthLimit hreach hsz36 hsize hashEnoughEvm hcodeSizeDaiNE hdepthEq
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let A_dai := (evm0.addAccessedAccount (EVM.address (kissVatAddress σ I))).substate
+    let A_dai := (Ethereum.EVM.callSubstate evm0.executionEnv.fork evm0.accountMap (EVM.address
+      (kissVatAddress σ I)) evm0.substate)
     have hcallDaiDepth :
         typedCallViaEVM config evm0
           (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]

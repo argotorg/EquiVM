@@ -33,9 +33,9 @@ theorem uniswapSwapCallbackCallMade
     (hcover : ptr.toNat + len.toNat ≤ aw.toNat * 32) (hov : R.length + 12 ≤ 1024) :
     ∃ σ' z out A_in callGas k' C',
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ σ s0.σ₀ A_in
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
-          (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute I.fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩ (mem.readWithPadding ptr.toNat len.toNat)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm) ∧
       RD uniswapV2PairBytecode I g s0 ⟨2070⟩

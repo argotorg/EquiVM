@@ -4268,10 +4268,10 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ σ σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork σ σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-      (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+      (toExecute I.fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (permitEcrecoverCalldata (initState σ σ₀ g A I) I)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
@@ -5942,10 +5942,10 @@ theorem permitStaticcallTheta_callViaEVM {σ σ₀ A I} {g : Sat256}
     {A' : Substate}
     (hdepth : I.depth.val < 1024)
     (hΘ :
-      (σ', g'', A', z, o) = Ethereum.EVM.Θ σ σ₀ A_in
+      (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork σ σ₀ A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
         (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-        (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+        (toExecute I.fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
         callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
         (permitEcrecoverCalldata (initState σ σ₀ g A I) I)
         (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
@@ -6378,8 +6378,8 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
           RD.solcStaticcallDepthLimit rd2757 (by native_decide) hdepthEq (by simp)
         let evmPostStele :=
           { evmStele with
-            substate := (evmStele.addAccessedAccount
-              (EVM.address (AccountAddress.ofNat 1))).substate }
+            substate := (Ethereum.EVM.callSubstate evmStele.executionEnv.fork evmStele.accountMap
+              (EVM.address (AccountAddress.ofNat 1)) evmStele.substate) }
         have hcallFailed :
             callViaEVM evmStele (EVM.address (AccountAddress.ofNat 1)) 0
               (permitEcrecoverCalldata evmStele I)

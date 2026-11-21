@@ -2250,7 +2250,8 @@ theorem flapperYankBodyCoreMoveCallDepthLimit
   let src := yankThisWord I
   let guy := solcAddressSlotWord (auctionPackedSlot id) σ I
   let bid := solcSlotWordAt (auctionBidSlot id) σ I
-  let A_move := (evmStele.addAccessedAccount (EVM.address (AccountAddress.ofNat gem.toNat))).substate
+  let A_move := (Ethereum.EVM.callSubstate evmStele.executionEnv.fork evmStele.accountMap
+    (EVM.address (AccountAddress.ofNat gem.toNat)) evmStele.substate)
   have hmemHash : memHash.size = 96 := by
     simpa [memHash, id] using
       twoWordHashMem_size_96 (yankIdWord I) ⟨1⟩ solcFreePtrMem_size

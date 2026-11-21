@@ -1,5 +1,9 @@
 import Benchmarks.WETH9.Selectors
 
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 /-!
 # WETH9 runtime dispatcher reach lemmas
 

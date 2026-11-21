@@ -2285,18 +2285,18 @@ theorem RD.dogFileIlkClipPostStaticcall {v : DogImmutables} {code : ByteArray}
       exact absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide)
     have hΘ' :
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ σ σ₀ A_in
+          Ethereum.EVM.Θ I.fork σ σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (fileIlkClipClipKey I))
-            (toExecute σ (AccountAddress.ofUInt256 (fileIlkClipClipKey I)))
+            (toExecute I.fork σ (AccountAddress.ofUInt256 (fileIlkClipClipKey I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((fileIlkClipCallMem mem).readWithPadding 128 4) (I.depth + 1) I.header I.blobVersionedHashes I.blocks false := by
       simpa [initState] using hΘ
     have hΘcall :
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ σ σ₀ A_in
+          Ethereum.EVM.Θ I.fork σ σ₀ A_in
             I.codeOwner I.sender (AccountAddress.ofUInt256 (fileIlkClipClipKey I))
-            (toExecute σ (AccountAddress.ofUInt256 (fileIlkClipClipKey I)))
+            (toExecute I.fork σ (AccountAddress.ofUInt256 (fileIlkClipClipKey I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((fileIlkClipCallMem mem).readWithPadding 128 4) (I.depth + 1) I.header I.blobVersionedHashes I.blocks false := by
       simpa [accountAddress_roundtrip I.codeOwner] using hΘ'
@@ -3291,7 +3291,8 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
           let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
           let evmCall :=
             { evm0 with
-              substate := (evm0.addAccessedAccount (EVM.address (fileIlkClipClip I))).substate }
+              substate := (Ethereum.EVM.callSubstate evm0.executionEnv.fork evm0.accountMap
+                (EVM.address (fileIlkClipClip I)) evm0.substate) }
           have hcallDepth :
               typedCallViaEVM config evm0 (EVM.address (fileIlkClipClip I))
                 "ilk" 0 [] (false, evmCall, ByteArray.empty) false := by

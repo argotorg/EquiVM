@@ -924,10 +924,10 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade_dynamic {g : Sat256} {s0 : S
       (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out2) = Ethereum.EVM.Θ
-          σ s0.σ₀ A_in
+          ee.fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
           (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask))
-          (toExecute σ (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask)))
+          (toExecute ee.fork σ (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask)))
           callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
           ((skimSecondBalanceDynamicCalldataMem (UInt256.ofNat ee.codeOwner.val) o
               toWord value out1)
@@ -1383,7 +1383,7 @@ theorem RD.uniswapSafeMathSubUnderflow_dynamic {g : Sat256} {s0 : State}
     (by rfl)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6899 := rd6895.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by decide +kernel) (by evm_ov)
   have rd6918a := evm_run rd6899 with [push1 ⟨229⟩, shl, dup2]
   let mem0 : ByteArray := (UInt256.toByteArray uniswapErrorStringSelector).write 0 mem fp0.toNat 32
   let aw2 : UInt256 := UInt256.ofNat (MachineState.M aw1.toNat fp0.toNat 32)
@@ -1418,7 +1418,7 @@ theorem RD.uniswapSafeMathSubUnderflow_dynamic {g : Sat256} {s0 : State}
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6940 := rd6918.pushConst
     (⟨146807710733670254765134916515197633279875231805303⟩ : UInt256)
-    (width := 21) (op := .PUSH21) (by decide) (by decide) (by evm_ov)
+    (width := 21) (op := .PUSH21) (by decide) (by decide +kernel) (by evm_ov)
   have rd6944 := evm_run rd6940 with [push1 ⟨88⟩, shl, push1 ⟨68⟩, dup3, add]
   let off3 : UInt256 := fp0 + ⟨68⟩
   let mem3 : ByteArray :=

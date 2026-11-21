@@ -118,8 +118,8 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
           hbidsZero hbidsHash
     let evmSFail : EVM.State :=
       { evmStele with
-        substate := (evmStele.addAccessedAccount
-          (EVM.address evmStele.executionEnv.source)).substate }
+        substate := (Ethereum.EVM.callSubstate evmStele.executionEnv.fork evmStele.accountMap
+          (EVM.address evmStele.executionEnv.source) evmStele.substate) }
     have hcallS :
         callViaEVM evmStele (EVM.address evmStele.executionEnv.source)
           0 ByteArray.empty (false, evmSFail, ByteArray.empty) := by

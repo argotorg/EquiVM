@@ -120,12 +120,6 @@ lake env lean Benchmarks/Safe/ViaIR/Audit.lean
 lake exe stele-difftest --only Safe_ViaIR --count 50
 ```
 
-The EVM dependency's Python precompiles resolve `Ethereum/EllipticCurvesPy/` relative to the
-working directory and require `coincurve`, `pycryptodome`, and `typing-extensions`. If the root
-command reports missing precompile scripts, run the built executable from `.lake/packages/evmlean`
-with those Python dependencies on `PATH`. The recorded randomized result was also reproduced
-there without precompile errors, using an isolated Python environment under `/tmp`.
-
 The Python check recompiles source, verifies every source hash and both Lean byte arrays, checks
 the ABI/dispatcher agreement, and checks that generated files match their current generator.
 Add `--write` to regenerate summaries, indexes, ABI checks, and the manifest. It does not fill

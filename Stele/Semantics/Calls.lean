@@ -53,13 +53,14 @@ inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
         -- it.)  `g'` is the (discarded) returned gas; named so it is a plain implicit.
           (σ', g', A', z, o)
             = Ethereum.EVM.Θ
+            evm.executionEnv.fork
             evm.accountMap
             evm.σ₀
             A_in
             evm.executionEnv.codeOwner  -- sender (msg.sender): `this`, as a CALL does
             evm.executionEnv.sender      -- original transactor (tx.origin)
             target
-            (Ethereum.toExecute evm.accountMap target) -- this is the code
+            (Ethereum.toExecute evm.executionEnv.fork evm.accountMap target) -- this is the code
             callGas
             (.ofNat evm.executionEnv.gasPrice)
             valueWord -- actual value sent
@@ -79,7 +80,7 @@ inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
       → callViaEVM evm target value calldata (z, evm', o) perm
 
   | callNotMade :
-      A' = ((evm.addAccessedAccount target) |>.substate )
+      A' = Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap target evm.substate
       → evm' = { evm with substate := A' }
       → (¬ (EVM.wordOfInt value ≤ (evm.accountMap.get? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))
          ∧ evm.executionEnv.depth ≠ 1024))
@@ -95,13 +96,14 @@ inductive delegateCallViaEVM (evm : EVM.State) (target : EVM.Address)
       (∃ (callGas : Ethereum.UInt256) (A_in : Ethereum.Substate),
           (σ', g', A', z, o)
             = Ethereum.EVM.Θ
+            evm.executionEnv.fork
             evm.accountMap
             evm.σ₀
             A_in
             evm.executionEnv.source
             evm.executionEnv.sender
             evm.executionEnv.codeOwner
-            (Ethereum.toExecute evm.accountMap target)
+            (Ethereum.toExecute evm.executionEnv.fork evm.accountMap target)
             callGas
             (.ofNat evm.executionEnv.gasPrice)
             (⟨0⟩ : EVM.Word)
@@ -116,7 +118,7 @@ inductive delegateCallViaEVM (evm : EVM.State) (target : EVM.Address)
       → evm.executionEnv.depth ≠ 1024
       → delegateCallViaEVM evm target calldata (z, evm', o)
   | callNotMade :
-      A' = ((evm.addAccessedAccount target) |>.substate)
+      A' = Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap target evm.substate
       → evm' = { evm with substate := A' }
       → evm.executionEnv.depth = 1024
       → delegateCallViaEVM evm target calldata (false, evm', ByteArray.empty)
@@ -159,6 +161,7 @@ inductive newViaEVM (cfg : Config) (evm : EVM.State)
                         { creator with nonce := creator.nonce + ⟨1⟩ }
           (addr, σ', _, A', z, _)
             = Ethereum.EVM.Lambda
+            evm.executionEnv.fork
             σStar
             evm.σ₀
             A_in

@@ -24,8 +24,7 @@ theorem rawZeroCallTrace {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEn
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', hr⟩ := RD.callDepthLimit h hdec hd hov
     refine ⟨{ initState σ σ₀ g A I with substate :=
-        ((initState σ σ₀ g A I).addAccessedAccount
-          (AccountAddress.ofUInt256 target)).substate },
+        (callSubstate I.fork σ (AccountAddress.ofUInt256 target) A) },
       σ, false, ByteArray.empty, _, k', C', ?_, rfl, rfl, hr, by decide⟩
     exact callViaEVM.callNotMade rfl rfl (fun hgood ↦ hgood.2 hd)
   · have hdl : I.depth.val < 1024 := by

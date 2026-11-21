@@ -100,9 +100,9 @@ theorem flipperDentBodyFrom4733SameCaller
       let evmFluxStele :=
         { evm0Stele with
           substate :=
-            (evm0Stele.addAccessedAccount
-              (EVM.address
-                (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv))).substate }
+            (Ethereum.EVM.callSubstate evm0Stele.executionEnv.fork evm0Stele.accountMap (EVM.address
+                (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv)) evm0Stele.substate)
+                  }
       have hfluxEncode :
           config.externalABI.encode? "flux" (dentFluxArgValsOf evm0Stele I) =
             some ((dentVatFluxCallMem memFlux σ I).readWithPadding 128 132) := by

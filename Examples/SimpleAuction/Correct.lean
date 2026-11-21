@@ -62,7 +62,7 @@ theorem simpleAuctionCorrect :
             (by simpa [selIs, simpleAuctionLowSelBytes] using h0)).1
           (simpleAuctionLowMatches 0 (by omega) hsz
             (by simpa [selIs, simpleAuctionLowSelBytes] using h0)).2
-          (by jump_dest) (by decide))
+          (by jump_dest) (by decide +kernel))
     · by_cases h1 : selIs I ⟨#[0x3c, 0xcf, 0xd6, 0x0b]⟩
       · exact simpleAuctionWithdrawBody hcode hsize h1
           (simpleAuctionReachHighBody 0 (by omega) ⟨203⟩ hcode hsz hsize
@@ -72,7 +72,7 @@ theorem simpleAuctionCorrect :
               (by simpa [selIs, simpleAuctionHighSelBytes] using h1)).1
             (simpleAuctionHighMatches 0 (by omega) hsz
               (by simpa [selIs, simpleAuctionHighSelBytes] using h1)).2
-            (by jump_dest) (by decide))
+            (by jump_dest) (by decide +kernel))
       · by_cases h2 : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩
         · exact simpleAuctionAuctionEndBody hcode h2
             (simpleAuctionReachLowBody 1 (by omega) ⟨124⟩ hcode hsz hsize
@@ -82,7 +82,7 @@ theorem simpleAuctionCorrect :
                 (by simpa [selIs, simpleAuctionLowSelBytes] using h2)).1
               (simpleAuctionLowMatches 1 (by omega) hsz
                 (by simpa [selIs, simpleAuctionLowSelBytes] using h2)).2
-              (by jump_dest) (by decide))
+              (by jump_dest) (by decide +kernel))
         · by_cases h3 : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩
           · exact simpleAuctionBeneficiaryBody hcode hsize h3
               (simpleAuctionReachLowBody 2 (by omega) ⟨144⟩ hcode hsz hsize
@@ -92,7 +92,7 @@ theorem simpleAuctionCorrect :
                   (by simpa [selIs, simpleAuctionLowSelBytes] using h3)).1
                 (simpleAuctionLowMatches 2 (by omega) hsz
                   (by simpa [selIs, simpleAuctionLowSelBytes] using h3)).2
-                (by jump_dest) (by decide))
+                (by jump_dest) (by decide +kernel))
           · by_cases h4 : selIs I ⟨#[0x4b, 0x44, 0x9c, 0xba]⟩
             · exact simpleAuctionAuctionEndTimeBody hcode hsize h4
                 (simpleAuctionReachHighBody 1 (by omega) ⟨239⟩ hcode hsz hsize
@@ -102,7 +102,7 @@ theorem simpleAuctionCorrect :
                     (by simpa [selIs, simpleAuctionHighSelBytes] using h4)).1
                   (simpleAuctionHighMatches 1 (by omega) hsz
                     (by simpa [selIs, simpleAuctionHighSelBytes] using h4)).2
-                  (by jump_dest) (by decide))
+                  (by jump_dest) (by decide +kernel))
             · by_cases h5 : selIs I ⟨#[0x91, 0xf9, 0x01, 0x57]⟩
               · exact simpleAuctionHighestBidderBody hcode hsize h5
                   (simpleAuctionReachHighBody 2 (by omega) ⟨274⟩ hcode hsz hsize
@@ -112,7 +112,7 @@ theorem simpleAuctionCorrect :
                       (by simpa [selIs, simpleAuctionHighSelBytes] using h5)).1
                     (simpleAuctionHighMatches 2 (by omega) hsz
                       (by simpa [selIs, simpleAuctionHighSelBytes] using h5)).2
-                    (by jump_dest) (by decide))
+                    (by jump_dest) (by decide +kernel))
               · by_cases h6 : selIs I ⟨#[0xd5, 0x7b, 0xde, 0x79]⟩
                 · exact simpleAuctionHighestBidBody hcode hsize h6
                     (simpleAuctionReachHighBody 3 (by omega) ⟨305⟩ hcode hsz hsize
@@ -122,7 +122,7 @@ theorem simpleAuctionCorrect :
                         (by simpa [selIs, simpleAuctionHighSelBytes] using h6)).1
                       (simpleAuctionHighMatches 3 (by omega) hsz
                         (by simpa [selIs, simpleAuctionHighSelBytes] using h6)).2
-                      (by jump_dest) (by decide))
+                      (by jump_dest) (by decide +kernel))
                 · refine simpleAuctionNoDispatch hcode hsize ?_
                   intro i hi
                   interval_cases i

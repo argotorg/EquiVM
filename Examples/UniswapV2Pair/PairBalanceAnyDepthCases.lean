@@ -52,7 +52,8 @@ theorem uniswapPairBalanceCallRuntimeAnyDepthCases
       have hargs := evalExprs_uniswap_this_single evm locals
       have hcall : typedCallViaEVM config evm (EVM.address token) "balanceOf" 0
           [.address evm.executionEnv.codeOwner]
-          (false, { evm with substate := (evm.addAccessedAccount (EVM.address token)).substate }, ByteArray.empty) false := by
+          (false, { evm with substate := (Ethereum.EVM.callSubstate evm.executionEnv.fork
+            evm.accountMap (EVM.address token) evm.substate) }, ByteArray.empty) false := by
         refine ⟨_, balanceOfThisCalldataMem_encode evm.executionEnv.codeOwner, ?_⟩
         apply callViaEVM.callNotMade rfl rfl
         rintro ⟨_, hne⟩

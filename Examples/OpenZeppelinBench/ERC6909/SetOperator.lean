@@ -1075,7 +1075,7 @@ theorem erc6909X_setOperator {σ σ₀ A I} {g : Sat256}
         rfl)
       (by decide) (by evm_ov) ]
   have rd1133 := rd1142pre.pushConst setOperatorApprovalTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd1142Log := evm_run rd1133 with [
     swap2, add, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)

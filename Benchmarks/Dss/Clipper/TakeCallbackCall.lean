@@ -101,10 +101,10 @@ theorem RD.clipperTakeClipperCallStep {code : ByteArray}
       (z : Bool) (out : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ σ s0.σ₀ A_in
+          Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
             (AccountAddress.ofUInt256 target)
-            (toExecute σ (AccountAddress.ofUInt256 target))
+            (toExecute ee.fork σ (AccountAddress.ofUInt256 target))
             callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
             (mem.readWithPadding inOffset.toNat inSize.toNat) (ee.depth + 1)
             ee.header ee.blobVersionedHashes ee.blocks ee.perm) ∧

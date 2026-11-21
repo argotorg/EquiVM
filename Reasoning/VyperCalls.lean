@@ -40,14 +40,14 @@ theorem typedCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 :
         out σ' k' C' ∧
       out.size < 2 ^ 138 ∧
       (σ' = σ ∨ ∃ (A_in : Substate) (callGas g' : UInt256) (A' : Substate),
-        (σ', g', A', z, out) = Ethereum.EVM.Θ σ s0.σ₀ A_in
+        (σ', g', A', z, out) = Ethereum.EVM.Θ I.fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-          (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute I.fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOffset.toNat inSize.toNat) (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm) := by
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', rd⟩ := h.callDepthLimit hdec hd hov
-    refine ⟨{ evm with substate := (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate }, σ, false,
+    refine ⟨{ evm with substate := (Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256 target) evm.substate) }, σ, false,
       ByteArray.empty, k', C', ?_, ⟨hs.world, hs.env, hs.accounts⟩, rd, by decide, Or.inl rfl⟩
     refine ⟨_, hcd, callViaEVM.callNotMade rfl rfl ?_⟩
     intro hn
@@ -64,9 +64,9 @@ theorem typedCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 :
           (le_trans hsmall Ethereum.EVM.pow_two_64_le_maxReturnDataSizeByGas))
     rw [hs.accounts, ← hs.world, ← hs.env] at hΘ
     have hΘ' : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
+        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner)) evm.executionEnv.sender
-          (AccountAddress.ofUInt256 target) (toExecute evm.accountMap (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOffset.toNat inSize.toNat) (evm.executionEnv.depth + 1)
           evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks
@@ -97,7 +97,7 @@ theorem typedStaticCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256}
       out.size < 2 ^ 138 := by
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', rd⟩ := RD.solcStaticcallDepthLimit h hdec hd hov
-    refine ⟨{ evm with substate := (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate }, σ, false,
+    refine ⟨{ evm with substate := (Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256 target) evm.substate) }, σ, false,
       ByteArray.empty, k', C', ?_, ⟨hs.world, hs.env, hs.accounts⟩, rd, by decide⟩
     refine ⟨_, hcd, callViaEVM.callNotMade rfl rfl ?_⟩
     intro hn
@@ -113,9 +113,9 @@ theorem typedStaticCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256}
           (le_trans hsmall Ethereum.EVM.pow_two_64_le_maxReturnDataSizeByGas))
     rw [hs.accounts, ← hs.world, ← hs.env] at hΘ
     have hΘ' : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
+        Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner)) evm.executionEnv.sender
-          (AccountAddress.ofUInt256 target) (toExecute evm.accountMap (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOffset.toNat inSize.toNat) (evm.executionEnv.depth + 1)
           evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks

@@ -932,10 +932,10 @@ theorem RD.uniswapSafeTransferEntryToCallMade {g : Sat256} {s0 : State}
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ σ s0.σ₀ A_in
+          Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
             (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask))
-            (toExecute σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
+            (toExecute ee.fork σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
             callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
             ((safeTransferRuntimeCallMem2 base toWord value).readWithPadding 292 68)
             (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)

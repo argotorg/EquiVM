@@ -110,8 +110,7 @@ completeness up to the oracle (every derivation is reached by some fuel and some
 
 ## Limits
 
-- Precompiles: evmlean's `sha256`, `ripemd160` and `ecrecover` are foreign functions the
-  interpreter cannot run; the generators never produce a precompile address.
+- Precompiles: the generic generators do not deliberately produce precompile addresses.
 - Specifications whose modules import the proof library (`Reasoning.SteleBody`) are not registered
   (`Clipper`, `Dog`, `Comet`, `UniswapV2Router02`, `Conduit`, `UniswapV3Pool`).
 - Guards that need several storage entries to agree (allowances with a specific spender, the same

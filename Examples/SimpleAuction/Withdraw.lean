@@ -1623,11 +1623,11 @@ theorem simpleAuctionX_withdraw_callMade {σ σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ
-          (withdrawZeroMap σ I) (initState σ σ₀ g A I).σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork (withdrawZeroMap σ I) (initState σ σ₀ g A I).σ₀
+          A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (withdrawSenderWord I))
-          (toExecute (withdrawZeroMap σ I) (AccountAddress.ofUInt256 (withdrawSenderWord I)))
+          (toExecute I.fork (withdrawZeroMap σ I) (AccountAddress.ofUInt256 (withdrawSenderWord I)))
           callGas (UInt256.ofNat I.gasPrice)
           (withdrawAmountWord σ I) (withdrawAmountWord σ I)
           ByteArray.empty (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
@@ -1651,11 +1651,11 @@ theorem simpleAuctionX_withdraw_callMade {σ σ₀ A I} {g : Sat256}
       (⟨0⟩ : UInt256).toNat = ByteArray.empty := by
     exact byteArray_readWithPadding_zero _ _
   have hΘ' : ∃ (g'' : UInt256) (A' : Substate),
-      (σ', g'', A', z, o) = Ethereum.EVM.Θ
-        (withdrawZeroMap σ I) (initState σ σ₀ g A I).σ₀ A_in
+      (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork (withdrawZeroMap σ I) (initState σ σ₀ g A I).σ₀
+        A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
         (AccountAddress.ofUInt256 (withdrawSenderWord I))
-        (toExecute (withdrawZeroMap σ I) (AccountAddress.ofUInt256 (withdrawSenderWord I)))
+        (toExecute I.fork (withdrawZeroMap σ I) (AccountAddress.ofUInt256 (withdrawSenderWord I)))
         callGas (UInt256.ofNat I.gasPrice)
         (withdrawAmountWord σ I) (withdrawAmountWord σ I)
         ByteArray.empty (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm := by
@@ -2447,8 +2447,8 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
       by_cases hdepthEq : I.depth = 1024
       · let evmSFail : EVM.State :=
           { evmSZero with
-            substate := (evmSZero.addAccessedAccount
-              (EVM.address evmSZero.executionEnv.source)).substate }
+            substate := (Ethereum.EVM.callSubstate evmSZero.executionEnv.fork evmSZero.accountMap
+              (EVM.address evmSZero.executionEnv.source) evmSZero.substate) }
         have hcall :
             callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
               (Int.ofNat (withdrawAmountWord σ I).toNat) ByteArray.empty
@@ -2658,8 +2658,8 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                   simpa [Sat256.ofUInt256] using hoog))
         · let evmSFail : EVM.State :=
             { evmSZero with
-              substate := (evmSZero.addAccessedAccount
-                (EVM.address evmSZero.executionEnv.source)).substate }
+              substate := (Ethereum.EVM.callSubstate evmSZero.executionEnv.fork evmSZero.accountMap
+                (EVM.address evmSZero.executionEnv.source) evmSZero.substate) }
           have hBalEq :
               (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)) =
                 (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)) :=

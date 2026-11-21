@@ -1108,9 +1108,9 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
               let evmSteleLock :=
                 Stele.EVM.storageStore evmStele evmStele.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
               let A_dog :=
-                (evmSteleLock.addAccessedAccount
+                (Ethereum.EVM.callSubstate evmSteleLock.executionEnv.fork evmSteleLock.accountMap
                   (EVM.address (AccountAddress.ofUInt256
-                    (clipperYankDogTarget σLocked I)))).substate
+                    (clipperYankDogTarget σLocked I))) evmSteleLock.substate)
               let evmDogStele : EVM.State := { evmSteleLock with substate := A_dog }
               have hdepthLock : evmSteleLock.executionEnv.depth = 1024 := by
                 simpa [evmSteleLock, evmStele, initState, storageStore_executionEnv]

@@ -65,7 +65,8 @@ theorem RD.staticcallSource {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
       change ee.depth.val = 1024
       omega
     obtain ⟨k', C', rd'⟩ := rd.solcStaticcallDepthLimit hdec hdepth' hov
-    refine ⟨false, .empty, σ, (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate,
+    refine ⟨false, .empty, σ, (Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap
+      (AccountAddress.ofUInt256 target) evm.substate),
       k', C', ?_, rd', by decide⟩
     apply callViaEVM.callNotMade (perm := false) rfl
     · rw [hacc]

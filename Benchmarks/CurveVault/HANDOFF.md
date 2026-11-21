@@ -87,19 +87,15 @@ for those data bytes. All artifact bytes and jump tables remain pinned unchanged
 The local runner registers only this target in a hidden Lake package, preserving the
 repository's test registry. It invokes the repository CLI as
 `lake exe stele-difftest --only Vault --count 50`, with seed **2026**.
-It also supplies the working-directory paths needed by EVMLean's Python precompiles.
-Its Python dependencies are pinned in [precompile-requirements.txt](precompile-requirements.txt).
 
 ```sh
-uv venv Benchmarks/CurveVault/.difftest/.venv
-uv pip install --no-cache --python Benchmarks/CurveVault/.difftest/.venv/bin/python3 -r Benchmarks/CurveVault/precompile-requirements.txt
 python3 -B Benchmarks/CurveVault/run_difftest.py --only Vault --count 50
 lake env lean --run Benchmarks/CurveVault/SuccessfulPaths.lean
 lake env lean --run Benchmarks/CurveVault/BoundaryCases.lean
 lake env lean --run Benchmarks/CurveVault/InitializeDiagnostic.lean
 ```
 
-Final CLI result, after supplying the precompile dependencies:
+Recorded CLI result:
 
 ```text
 Vault: 2525 cases: 2525 agree (756 successful), 0 disagree, 0 stuck, 0 EVM out of gas, 0 spec out of fuel

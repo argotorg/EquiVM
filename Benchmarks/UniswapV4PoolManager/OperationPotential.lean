@@ -96,5 +96,9 @@ theorem step_compbit_potential {gasCost : Nat} {op : Operation.CBLOp}
   all_goals first
   | simpa only [operationPotential] using execBinOp_potential h
   | simpa only [operationPotential] using Nat.le_of_eq (execUnOp_potential h)
+  | simp only at h
+    split at h
+    · simpa only [operationPotential] using Nat.le_of_eq (execUnOp_potential h)
+    · contradiction
 
 end Benchmarks.UniswapV4PoolManager

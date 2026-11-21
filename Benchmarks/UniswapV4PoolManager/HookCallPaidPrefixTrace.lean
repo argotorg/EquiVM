@@ -38,7 +38,8 @@ theorem hookCallPaidPrefixTrace {I : ExecutionEnv} {g : Sat256} {s0 evm : State}
   by_cases hd : I.depth = 1024
   · obtain ⟨k2, C2, rd2⟩ := RD.callDepthLimit rd1 hdec hd (by simp only [List.length_cons]; omega)
     have hc : callViaEVM evm hook 0 data
-        (false, {evm with substate := (evm.addAccessedAccount hook).substate}, .empty) := by
+        (false, {evm with substate := (Ethereum.EVM.callSubstate evm.executionEnv.fork
+          evm.accountMap hook evm.substate)}, .empty) := by
       apply callViaEVM.callNotMade rfl rfl
       intro hh
       exact hh.2 (by rw [hI]; exact hd)

@@ -13447,7 +13447,7 @@ theorem dogDecodePatchedEqTemplatePrecise {v : DogImmutables} {code : ByteArray}
                   · exact Or.inl (by omega)
                   · exact Or.inr (by omega))
                 hpatch
-            rw [hextract]
+            rw [readWithPadding_eq_of_extract'_eq hextract]
 
 theorem dogBarkVatPatchWord2890 {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
@@ -13518,10 +13518,11 @@ theorem dogBarkVatConstDecode2889 {v : DogImmutables} {code : ByteArray}
   rw [hgetSome, hparse]
   change some (Operation.Push Operation.POp.PUSH32,
       some (uInt256OfByteArray
-        (code.extract' ({ val := 2889 } : UInt256).toNat.succ
-          (({ val := 2889 } : UInt256).toNat.succ + 32)), 32)) =
+        (code.readWithPadding ({ val := 2889 } : UInt256).toNat.succ 32), 32)) =
     some (Operation.Push Operation.POp.PUSH32, some (EVM.Word.ofNat v.vat.toNat, 32))
-  rw [hextract, uInt256OfByteArray_eq, fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
+  rw [readWithPadding_eq_padded_extract', hextract, toByteArray_size, Nat.sub_self,
+    zeroes_zero (by rfl), ByteArray.append_empty, uInt256OfByteArray_eq,
+    fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
 
 theorem dogBarkVatPatchWord3170 {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
@@ -13593,10 +13594,11 @@ theorem dogBarkVatConstDecode3169 {v : DogImmutables} {code : ByteArray}
   rw [hgetSome, hparse]
   change some (Operation.Push Operation.POp.PUSH32,
       some (uInt256OfByteArray
-        (code.extract' ({ val := 3169 } : UInt256).toNat.succ
-          (({ val := 3169 } : UInt256).toNat.succ + 32)), 32)) =
+        (code.readWithPadding ({ val := 3169 } : UInt256).toNat.succ 32), 32)) =
     some (Operation.Push Operation.POp.PUSH32, some (EVM.Word.ofNat v.vat.toNat, 32))
-  rw [hextract, uInt256OfByteArray_eq, fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
+  rw [readWithPadding_eq_padded_extract', hextract, toByteArray_size, Nat.sub_self,
+    zeroes_zero (by rfl), ByteArray.append_empty, uInt256OfByteArray_eq,
+    fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
 
 theorem dogBarkVatPatchWord3965 {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
@@ -13666,10 +13668,11 @@ theorem dogBarkVatConstDecode3964 {v : DogImmutables} {code : ByteArray}
   rw [hgetSome, hparse]
   change some (Operation.Push Operation.POp.PUSH32,
       some (uInt256OfByteArray
-        (code.extract' ({ val := 3964 } : UInt256).toNat.succ
-          (({ val := 3964 } : UInt256).toNat.succ + 32)), 32)) =
+        (code.readWithPadding ({ val := 3964 } : UInt256).toNat.succ 32), 32)) =
     some (Operation.Push Operation.POp.PUSH32, some (EVM.Word.ofNat v.vat.toNat, 32))
-  rw [hextract, uInt256OfByteArray_eq, fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
+  rw [readWithPadding_eq_padded_extract', hextract, toByteArray_size, Nat.sub_self,
+    zeroes_zero (by rfl), ByteArray.append_empty, uInt256OfByteArray_eq,
+    fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
 
 theorem RD.dogBarkVatUrnsToCallMload {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
@@ -14206,10 +14209,10 @@ theorem RD.dogBarkVatUrnsPostStaticcall {v : DogImmutables} {code : ByteArray}
       exact absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from hdepthEq]; decide)
     have hΘ' :
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ σ σ₀ A_in
+          Ethereum.EVM.Θ I.fork σ σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (barkVatWord v))
-            (toExecute σ (AccountAddress.ofUInt256 (barkVatWord v)))
+            (toExecute I.fork σ (AccountAddress.ofUInt256 (barkVatWord v)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((barkVatUrnsCallMem I mem).readWithPadding 128 68)
             (I.depth + 1) I.header I.blobVersionedHashes I.blocks false := by
@@ -14223,9 +14226,9 @@ theorem RD.dogBarkVatUrnsPostStaticcall {v : DogImmutables} {code : ByteArray}
       exact (Nat.mod_eq_of_lt (AccountAddress.ofNat v.vat.toNat).isLt).symm
     have hΘcall :
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ σ σ₀ A_in
+          Ethereum.EVM.Θ I.fork σ σ₀ A_in
             I.codeOwner I.sender (EVM.address (AccountAddress.ofNat v.vat.toNat))
-            (toExecute σ (EVM.address (AccountAddress.ofNat v.vat.toNat)))
+            (toExecute I.fork σ (EVM.address (AccountAddress.ofNat v.vat.toNat)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((barkVatUrnsCallMem I mem).readWithPadding 128 68)
             (I.depth + 1) I.header I.blobVersionedHashes I.blocks false := by
@@ -15710,10 +15713,11 @@ theorem RD.dogBarkVatIlksPostStaticcall {v : DogImmutables} {code : ByteArray}
       exact Nat.mod_eq_of_lt (AccountAddress.ofNat v.vat.toNat).isLt
     have hΘ' :
         (σ', g'', A', z, outIlks) =
-          Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
+          Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
             evm.executionEnv.sender (AccountAddress.ofUInt256 (barkVatWord v))
-            (toExecute evm.accountMap (AccountAddress.ofUInt256 (barkVatWord v)))
+            (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256 (barkVatWord
+              v)))
             callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
             ((barkVatIlksCallMem σ I mem out).readWithPadding 384 36)
             (evm.executionEnv.depth + 1) evm.executionEnv.header
@@ -20339,10 +20343,11 @@ theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
       exact Nat.mod_eq_of_lt (AccountAddress.ofNat v.vat.toNat).isLt
     have hΘ' :
         (σ', g'', A', z, outGrab) =
-          Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
+          Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
             evm.executionEnv.sender (AccountAddress.ofUInt256 (barkVatWord v))
-            (toExecute evm.accountMap (AccountAddress.ofUInt256 (barkVatWord v)))
+            (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256 (barkVatWord
+              v)))
             callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
             ((barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding
               barkVatGrabOutPtr.toNat barkVatGrabInSize.toNat)
@@ -21206,10 +21211,11 @@ theorem RD.dogBarkFessPostCall {v : DogImmutables} {code : ByteArray}
       rw [Nat.mod_mod]
     have hΘ' :
         (σ', g'', A', z, outFess) =
-          Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
+          Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
             evm.executionEnv.sender (AccountAddress.ofUInt256 (barkVowWord σ I))
-            (toExecute evm.accountMap (AccountAddress.ofUInt256 (barkVowWord σ I)))
+            (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256 (barkVowWord σ
+              I)))
             callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
             ((barkVowFessDueMem mem due).readWithPadding
               barkVowFessOutPtr.toNat barkVowFessInSize.toNat)
@@ -22774,10 +22780,11 @@ theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
       rw [Nat.mod_mod]
     have hΘ' :
         (σ', g'', A', z, outKick) =
-          Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
+          Ethereum.EVM.Θ evm.executionEnv.fork evm.accountMap evm.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
             evm.executionEnv.sender (AccountAddress.ofUInt256 (barkIlksClipWord σMem I))
-            (toExecute evm.accountMap (AccountAddress.ofUInt256 (barkIlksClipWord σMem I)))
+            (toExecute evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256
+              (barkIlksClipWord σMem I)))
             callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
             ((barkKickCalldataMem I mem tab dink).readWithPadding
               barkKickOutPtr.toNat barkKickInSize.toNat)
@@ -28783,8 +28790,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
           let evmCall :=
             { evm0 with
               substate :=
-                (evm0.addAccessedAccount
-                  (EVM.address (AccountAddress.ofNat v.vat.toNat))).substate }
+                (Ethereum.EVM.callSubstate evm0.executionEnv.fork evm0.accountMap (EVM.address
+                  (AccountAddress.ofNat v.vat.toNat)) evm0.substate) }
           have hcallDepth :
               typedCallViaEVM config evm0
                 (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0

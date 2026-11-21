@@ -504,7 +504,7 @@ theorem ownable2StepX_transferOwnership_success {σ σ₀ A I} {g : Sat256}
   have rd374 := rd341.pushConst
     (⟨0x38d16b8cac22d99fc7c124b9cd0de2d3fa1faef420bfe791d8c362d765e22700⟩ :
       UInt256)
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd383₀ := evm_run rd374 with [
     push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)

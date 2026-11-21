@@ -38,7 +38,7 @@ theorem unlockAllocationBounds_small {out : ByteArray} (hb : BytesReturnBounds o
 theorem unlockAllocationFailure_nonprecompile {I : ExecutionEnv} {g : Sat256} {s0 evm evm' : State}
     {out data : ByteArray} {aw : UInt256} {C : Nat} {target : AccountAddress}
     (v : PoolManagerImmutables)
-    (w : ZeroCallGasEvidence evm target data evm' true out) (hn : target ∉ π)
+    (w : ZeroCallGasEvidence evm target data evm' true out) (hn : target ∉ π evm.executionEnv.fork)
     (hgas : g.toNat < 324518553658429321982441292826060)
     (hout : out.size < 2^138) (hpaid : 1094+Cₘ aw+w.spent ≤ C)
     (h : UnlockAllocationFailure (deployedRuntime v) I g s0 evm'.accountMap out aw C) :
@@ -67,7 +67,7 @@ theorem unlockAllocationFailure_outOfGas {I : ExecutionEnv} {g : Sat256} {s0 evm
     (hout : out.size < 2^138) (hpaid : 1094+Cₘ aw+w.spent ≤ C)
     (h : UnlockAllocationFailure (deployedRuntime v) I g s0 evm'.accountMap out aw C) :
     X (g.toNat+1) (D_J (deployedRuntime v) 0) s0 = .error .OutOfGass := by
-  by_cases hp : target ∈ π
+  by_cases hp : target ∈ π evm.executionEnv.fork
   · obtain ⟨hb, first, _, _, _, _, _, hbad, _⟩ := h
     exact (hbad (unlockAllocationBounds_small hb (w.unlock_precompile_size hp hb) first)).elim
   · exact unlockAllocationFailure_nonprecompile v w hp hgas hout hpaid h

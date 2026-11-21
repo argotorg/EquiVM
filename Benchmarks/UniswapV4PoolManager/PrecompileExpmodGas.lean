@@ -24,6 +24,9 @@ theorem precompile_EXPMOD_large_base {σ : AccountMap} {g : UInt256} {A : Substa
         max n 1/3) :=
     Nat.lt_of_lt_of_le g.val.isLt
       ((expmodCost_large_base hb (Nat.le_max_right _ _)).trans (Nat.le_max_right _ _))
-  simp only [Ξ_EXPMOD, hgas, if_true]
+  have hlarge : 1024 < nat_of_slice I.calldata 0 32 := by omega
+  cases hf : I.fork <;>
+    simp [Ξ_EXPMOD, expmodRequiredGas, hf, Fork.spec,
+      ForkSpec.cancun, ForkSpec.prague, ForkSpec.osaka, hlarge, hgas]
 
 end Benchmarks.UniswapV4PoolManager

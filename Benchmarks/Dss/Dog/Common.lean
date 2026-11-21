@@ -12,6 +12,10 @@ import Reasoning.Initcode
 import Reasoning.SteleBody
 import Mathlib.Tactic.IntervalCases
 
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 /-!
 # MakerDAO/Sky DSS Dog shared proof foundation
 
@@ -633,9 +637,11 @@ theorem dogDecodePatchedEqTemplateDisjoint {v : DogImmutables} {code : ByteArray
           · simp [harg]
             have hargpos : 0 < argOnNBytesOfInstr instr := Nat.pos_of_ne_zero harg
             have hargle := argOnNBytesOfInstr_le_32 instr
-            rw [patchRuntime_extract'_eq (template := dogBytecode) (out := code)
+            apply congrArg uInt256OfByteArray
+            apply readWithPadding_eq_of_extract'_eq
+            apply patchRuntime_extract'_eq (template := dogBytecode) (out := code)
               (ps := patches v) (start := pc.toNat.succ)
-              (stop := pc.toNat.succ + argOnNBytesOfInstr instr)]
+              (stop := pc.toNat.succ + argOnNBytesOfInstr instr)
             · omega
             · omega
             · omega

@@ -1578,7 +1578,7 @@ theorem accessControlRevokeRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov),
     caller, swap3, dup7, swap2]
   have rd745 := rd745pre.pushConst revokeRoleRevokedTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd780 := evm_run rd745 with [swap2, swap1]
   have rd781 := RD.log4 0 (UInt256.ofNat 3) rd780 (by decide) hp
     (by

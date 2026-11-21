@@ -106,9 +106,9 @@ theorem flipperTendBodyFrom3486SameCaller
       let evmPayStele :=
         { evm0Stele with
           substate :=
-            (evm0Stele.addAccessedAccount
-              (EVM.address
-                (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv))).substate }
+            (Ethereum.EVM.callSubstate evm0Stele.executionEnv.fork evm0Stele.accountMap (EVM.address
+                (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv)) evm0Stele.substate)
+                  }
       have hpayEncode :
           config.externalABI.encode? "move" (tendPayMoveArgValsOf evm0Stele I) =
             some ((tendVatPayCallMem memPay σ I).readWithPadding 128 100) := by

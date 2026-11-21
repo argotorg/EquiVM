@@ -1239,10 +1239,10 @@ theorem blindAuctionRevealX_from963_empty_callMade {σ σ₀ A I} {g : Sat256}
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ σ (initState σ σ₀ g A I).σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork σ (initState σ σ₀ g A I).σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-          (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ByteArray.empty (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ o.size < UInt256.size
@@ -3404,10 +3404,10 @@ theorem scratch_blindAuctionRevealX_callMade_fromCall {σ σ₀ A I} {g : Sat256
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ σ (initState σ σ₀ g A I).σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork σ (initState σ σ₀ g A I).σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-          (toExecute σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
           callGas (UInt256.ofNat I.gasPrice) refund refund
           ByteArray.empty (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ o.size < UInt256.size

@@ -165,7 +165,8 @@ theorem vowFileAddressFlapperNopeCallDepthLimitBodyCore
       solcFreePtrMem_read64
   obtain ⟨_, _, rd4300⟩ := RD.vowFileAddressNopeCallDepthLimit hswitch hmatch hmemAuth
     hread64 hcodeSizeNope hdepth
-  let ANope := (evm0Stele.addAccessedAccount (EVM.address (fileAddressVatAddressOf evm0Stele))).substate
+  let ANope := (Ethereum.EVM.callSubstate evm0Stele.executionEnv.fork evm0Stele.accountMap
+    (EVM.address (fileAddressVatAddressOf evm0Stele)) evm0Stele.substate)
   have hcallNope :
       typedCallViaEVM config evm0Stele
         (EVM.address (fileAddressVatAddressOf evm0Stele)) "nope" 0
