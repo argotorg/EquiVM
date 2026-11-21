@@ -1,15 +1,10 @@
 import Stele.Interp
 
-/-! Regression checks for the fork-parametric, pure-Lean EVMLean dependency. -/
+/-! The interpreter's call and create oracles run the callee under the caller's fork. -/
 
 open Ethereum Ethereum.EVM Stele.Interp
 
-namespace Tests.EVMLean
-
--- Missing PUSH bytes are low-order zero bytes, including a wholly missing operand.
-#guard decode ⟨#[0x61, 0xab]⟩ ⟨0⟩ = some (.Push .PUSH2, some (⟨0xab00⟩, 2))
-#guard decode ⟨#[0x7f]⟩ ⟨0⟩ = some (.Push .PUSH32, some (⟨0⟩, 32))
-#guard decode ⟨#[0x61, 0xab, 0xcd]⟩ ⟨0⟩ = some (.Push .PUSH2, some (⟨0xabcd⟩, 2))
+namespace Stele.ForkTests
 
 private def caller : AccountAddress := 0x1000
 private def target : AccountAddress := 0x2000
@@ -76,4 +71,4 @@ private def createWithClz (fork : Fork) : CreateResult :=
 #guard ((createWithClz .osaka).accounts.get? (createWithClz .osaka).address |>.getD default).code =
   (⟨256⟩ : UInt256).toByteArray
 
-end Tests.EVMLean
+end Stele.ForkTests
