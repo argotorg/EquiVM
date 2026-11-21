@@ -162,7 +162,7 @@ theorem pausableX_unpause_success {σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (unpausePostMap σ I) k C := by
     exact ⟨_, _, by simpa [unpausePostMap] using rd209₀⟩
   have rd242 := rd209.pushConst unpausedTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd243 := evm_run rd242 with [caller, jumpdest]
   have rd247 := evm_run rd243 with [
     push1 ⟨64⟩,

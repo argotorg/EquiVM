@@ -1,0 +1,35 @@
+n=0, buy=true, assets=false, steps=5207, calls=3
+pc=11378, spent=8484, words=113, free=2624, returned=32
+pc=23522, spent=26425, words=127, free=3808, returned=64
+pc=23522, spent=27460, words=127, free=4064, returned=96
+succeeded
+n=32, buy=true, assets=false, steps=5207, calls=3
+pc=11378, spent=8491, words=114, free=2656, returned=32
+pc=23522, spent=26432, words=128, free=3840, returned=64
+pc=23522, spent=27467, words=128, free=4096, returned=96
+succeeded
+n=64, buy=true, assets=false, steps=5207, calls=3
+pc=11378, spent=8497, words=115, free=2688, returned=32
+pc=23522, spent=26438, words=129, free=3872, returned=64
+pc=23522, spent=27473, words=129, free=4128, returned=96
+succeeded
+n=1024, buy=true, assets=false, steps=5207, calls=3
+pc=11378, spent=8693, words=145, free=3648, returned=32
+pc=23522, spent=26635, words=159, free=4832, returned=64
+pc=23522, spent=27670, words=159, free=5088, returned=96
+succeeded
+n=0, buy=true, assets=true, steps=5216, calls=3
+pc=11378, spent=8484, words=113, free=2624, returned=32
+pc=23522, spent=26460, words=127, free=3808, returned=64
+pc=23522, spent=27495, words=127, free=4064, returned=96
+succeeded
+n=0, buy=false, assets=false, steps=5260, calls=3
+pc=11378, spent=8487, words=113, free=2624, returned=32
+pc=23522, spent=26622, words=127, free=3808, returned=64
+pc=23522, spent=27657, words=127, free=4064, returned=96
+succeeded
+n=0, buy=false, assets=true, steps=5270, calls=3
+pc=11378, spent=8487, words=113, free=2624, returned=32
+pc=23522, spent=26658, words=127, free=3808, returned=64
+pc=23522, spent=27693, words=127, free=4064, returned=96
+succeeded

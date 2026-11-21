@@ -475,7 +475,8 @@ theorem uniswapSyncBodyCoreRevert_firstCallDepth
       storageStore_executionEnv] using hdepth
   have hcall0 : typedCallViaEVM config evmL target "balanceOf" 0
       [.address evmL.executionEnv.codeOwner]
-      (false, { evmL with substate := (evmL.addAccessedAccount target).substate },
+      (false, { evmL with substate := (Ethereum.EVM.callSubstate evmL.executionEnv.fork
+        evmL.accountMap target evmL.substate) },
         ByteArray.empty) false := by
     exact callNotMade_depthLimit
       (cfg := config) (evm := evmL) (tgt := target)
@@ -486,7 +487,8 @@ theorem uniswapSyncBodyCoreRevert_firstCallDepth
   have hbody :
       ExecTransitionBody config contract evmS ∅ syncTransition.body .reverted := by
     exact uniswapSyncBodyReverts_firstCallFailure (hperm := by assumption) evmS
-      { evmL with substate := (evmL.addAccessedAccount target).substate }
+      { evmL with substate := (Ethereum.EVM.callSubstate evmL.executionEnv.fork evmL.accountMap
+        target evmL.substate) }
       (by simp only [evmS, initState]; exact hwv)
       hunlockedStele hguard0 hcall0
   exact hRuntime.reEquivExecutionRevert hcode hdispatch hdecode hbody

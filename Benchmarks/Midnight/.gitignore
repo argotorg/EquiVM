@@ -1,0 +1,13 @@
+.difftest/
+__pycache__/
+
+# Keep the final validation evidence referenced by the hand-off and audit script.
+!provenance/artifact-check.log
+!provenance/difftest-final.log
+!provenance/edge-cases.log
+!provenance/final-spec-build.log
+!provenance/gas-trace.log
+!provenance/regenerate-blocks.log
+!provenance/regenerate.log
+!provenance/scaffold.log
+!provenance/successful-paths.log

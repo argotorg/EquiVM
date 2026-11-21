@@ -67,8 +67,7 @@ The no-write artifact check reproduces both bytecode files, ABI, source hashes,
 and generated summaries with the pinned compiler. The executable audit reports
 408 cases and `failures 0`, with 104 successes, 292 reverts, 11 static violations,
 and one out-of-gas case. Its gas-observation PCs changed; expected outcomes did not.
-The rebuilt differential executable, run from the EVM dependency directory with
-its Python precompile dependencies available, reports:
+The differential run recorded for this repair, before the pure-Lean EVMLean upgrade, reported:
 
 ```text
 Safe_ViaIR: 1775 cases: 1762 agree (580 successful), 0 disagree, 0 stuck, 13 EVM out of gas, 0 spec out of fuel

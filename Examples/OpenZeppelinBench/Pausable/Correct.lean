@@ -27,31 +27,31 @@ theorem pausableCorrect :
           (pausableReachBody 0 (by omega) ⟨89⟩ hcode hwv hsz hsize
             (pausableMatches 0 (by omega) hsz h0).1
             (pausableMatches 0 (by omega) hsz h0).2
-            (by jump_dest) (by decide))
+            (by jump_dest) (by decide +kernel))
       · by_cases h1 : selIs I ⟨#[0x5c, 0x97, 0x5a, 0xbb]⟩
         · exact pausablePausedBody hcode hsize hwv h1
             (pausableReachBody 1 (by omega) ⟨99⟩ hcode hwv hsz hsize
               (pausableMatches 1 (by omega) hsz h1).1
               (pausableMatches 1 (by omega) hsz h1).2
-              (by jump_dest) (by decide))
+              (by jump_dest) (by decide +kernel))
         · by_cases h2 : selIs I ⟨#[0x84, 0x56, 0xcb, 0x59]⟩
           · exact pausablePauseBody hcode hsize hwv h2
               (pausableReachBody 2 (by omega) ⟨125⟩ hcode hwv hsz hsize
                 (pausableMatches 2 (by omega) hsz h2).1
                 (pausableMatches 2 (by omega) hsz h2).2
-                (by jump_dest) (by decide))
+                (by jump_dest) (by decide +kernel))
           · by_cases h3 : selIs I ⟨#[0x9b, 0xb8, 0xbc, 0xec]⟩
             · exact pausableGuardedWhenNotPausedBody hcode hsize hwv h3
                 (pausableReachBody 3 (by omega) ⟨133⟩ hcode hwv hsz hsize
                   (pausableMatches 3 (by omega) hsz h3).1
                   (pausableMatches 3 (by omega) hsz h3).2
-                  (by jump_dest) (by decide))
+                  (by jump_dest) (by decide +kernel))
             · by_cases h4 : selIs I ⟨#[0xdd, 0xf7, 0x03, 0x09]⟩
               · exact pausableGuardedWhenPausedBody hcode hsize hwv h4
                   (pausableReachBody 4 (by omega) ⟨141⟩ hcode hwv hsz hsize
                     (pausableMatches 4 (by omega) hsz h4).1
                     (pausableMatches 4 (by omega) hsz h4).2
-                    (by jump_dest) (by decide))
+                    (by jump_dest) (by decide +kernel))
               · refine pausableNoDispatch hcode hsize hwv ?_
                 intro i hi
                 interval_cases i

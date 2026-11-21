@@ -4247,7 +4247,8 @@ theorem flapperDealBodyCoreMoveCallDepthLimit
   let src := yankThisWord I
   let guy := solcAddressSlotWord (auctionPackedSlot id) σ I
   let lot := solcSlotWordAt (auctionLotSlot id) σ I
-  let A_move := (evmStele.addAccessedAccount (EVM.address (AccountAddress.ofNat vat.toNat))).substate
+  let A_move := (Ethereum.EVM.callSubstate evmStele.executionEnv.fork evmStele.accountMap
+    (EVM.address (AccountAddress.ofNat vat.toNat)) evmStele.substate)
   have hmemMap : memMap.size = 96 := by
     simpa [memMap, id] using
       twoWordHashMem_size_96 (dealIdWord I) ⟨1⟩ solcFreePtrMem_size

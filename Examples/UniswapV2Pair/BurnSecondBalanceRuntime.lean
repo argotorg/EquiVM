@@ -73,9 +73,9 @@ theorem uniswapBurnRuntimeSecondBalanceOfResultBranchesOfTail
       (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ
-          σ s0.σ₀ A_in1
+          I.fork σ s0.σ₀ A_in1
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
-          (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute I.fork σ (AccountAddress.ofUInt256 target))
           callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)

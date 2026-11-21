@@ -2242,7 +2242,7 @@ theorem erc6909X_transfer {σ σ₀ A I} {g : Sat256}
     solcAddrMask_clean (transferSenderWord_canonical I),
     solcAddrMask_clean hcanonReceiver] at rd1580
   have rd1613 := rd1580.pushConst transferTransferTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd1622 := evm_run rd1613 with [
     swap2, add, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)

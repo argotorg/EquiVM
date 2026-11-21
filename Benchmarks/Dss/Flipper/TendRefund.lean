@@ -2771,9 +2771,9 @@ theorem flipperTendBodyFrom3486Refund
       let evmRefundStele :=
         { evm0Stele with
           substate :=
-            (evm0Stele.addAccessedAccount
-              (EVM.address
-                (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv))).substate }
+            (Ethereum.EVM.callSubstate evm0Stele.executionEnv.fork evm0Stele.accountMap (EVM.address
+                (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv)) evm0Stele.substate)
+                  }
       have hrefundEncode :
           config.externalABI.encode? "move" (tendRefundMoveArgValsOf evm0Stele I) =
             some ((tendVatRefundCallMem memHash σ I).readWithPadding 128 100) := by

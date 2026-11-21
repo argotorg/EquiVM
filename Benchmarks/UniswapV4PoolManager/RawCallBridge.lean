@@ -29,7 +29,8 @@ theorem rawCallBridge {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 evm
   · by_cases hd : I.depth = 1024
     · obtain ⟨k', C', hr⟩ := RD.callDepthLimit h hdec hd hstack
       have hc : callViaEVM evm (AccountAddress.ofUInt256 target) 0 calldata
-          (false, {evm with substate := (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate}, .empty) := by
+          (false, {evm with substate := (Ethereum.EVM.callSubstate evm.executionEnv.fork
+            evm.accountMap (AccountAddress.ofUInt256 target) evm.substate)}, .empty) := by
         apply callViaEVM.callNotMade rfl rfl
         intro hh
         exact hh.2 (by rw [hI]; exact hd)

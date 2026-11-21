@@ -3,20 +3,21 @@ import Benchmarks.UniswapV4PoolManager.MemoryGas
 open Ethereum Ethereum.EVM Reasoning.Theory
 namespace Benchmarks.UniswapV4PoolManager
 
-theorem toExecute_nonprecompile_code {σ : AccountMap} {target : AccountAddress} (hn : target ∉ π) :
-    ∃ code, toExecute σ target = .Code code := by
+theorem toExecute_nonprecompile_code {fork : Fork} {σ : AccountMap} {target : AccountAddress} (hn :
+  target ∉ π fork) :
+    ∃ code, toExecute fork σ target = .Code code := by
   unfold toExecute
   rw [if_neg hn]
   simp only [Id.run]
   split <;> exact ⟨_, rfl⟩
 
 -- LIBRARY CANDIDATE: a successful code message call exposes a successful fresh EVM execution.
-theorem thetaCode_success_Xi
+theorem thetaCode_success_Xi {fork : Ethereum.Fork}
     {σ σ₀ : AccountMap} {A : Substate} {s o r : AccountAddress}
     {code d : ByteArray} {g p v v' : UInt256} {e : Fin 1025} {H : BlockHeader}
     {blob : List ByteArray} {blocks : ProcessedBlocks} {perm : Bool}
     {σ' : AccountMap} {g' : UInt256} {A' : Substate} {out : ByteArray}
-    (h : Ethereum.EVM.Θ σ σ₀ A s o r (.Code code) g p v v' d e H blob blocks perm =
+    (h : Ethereum.EVM.Θ fork σ σ₀ A s o r (.Code code) g p v v' d e H blob blocks perm =
       (σ', g', A', true, out)) :
     ∃ (inputAccounts : AccountMap) (I : ExecutionEnv) (accounts : AccountMap) (substate : Substate),
       Ξ inputAccounts σ₀ g A I = .ok (.success (accounts, g', substate) out) := by
@@ -29,7 +30,7 @@ theorem thetaCode_success_Xi
   let I : ExecutionEnv :=
     { codeOwner := r, sender := o, gasPrice := p.toNat, calldata := d,
       source := s, weiValue := v', depth := e, perm := perm, code := code,
-      header := H, blobVersionedHashes := blob, blocks := blocks }
+      header := H, blobVersionedHashes := blob, blocks := blocks, fork := fork }
   unfold Ethereum.EVM.Θ at h
   change (let answer : AccountMap × UInt256 × Substate × ByteArray :=
       match Ξ σ₁ σ₀ g A I with

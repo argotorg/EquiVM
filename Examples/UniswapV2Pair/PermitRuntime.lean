@@ -181,10 +181,10 @@ theorem RD.uniswapPermitEcrecoverStaticcallMade {g : Sat256} {s0 : State}
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ σ s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+          (toExecute ee.fork σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitRuntimeEcrecoverInputMem baseMem digest v r s).readWithPadding 482 128)
           (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks false)

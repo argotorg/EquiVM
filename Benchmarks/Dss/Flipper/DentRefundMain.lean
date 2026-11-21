@@ -102,9 +102,9 @@ theorem flipperDentBodyFrom4733Refund
       let evmRefundStele :=
         { evm0Stele with
           substate :=
-            (evm0Stele.addAccessedAccount
-              (EVM.address
-                (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv))).substate }
+            (Ethereum.EVM.callSubstate evm0Stele.executionEnv.fork evm0Stele.accountMap (EVM.address
+                (flipperVatAddress evm0Stele.accountMap evm0Stele.executionEnv)) evm0Stele.substate)
+                  }
       have hrefundEncode :
           config.externalABI.encode? "move" (dentRefundMoveArgValsOf evm0Stele I) =
             some ((dentVatRefundCallMem memHash σ I).readWithPadding 128 100) := by

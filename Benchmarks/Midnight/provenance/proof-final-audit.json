@@ -1,0 +1,14 @@
+{
+  "theorem": "Benchmarks.Midnight.midnightContractCorrect",
+  "totalAxioms": 26288,
+  "standardAxioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "nativeEvaluationAxioms": 26285,
+  "otherAxioms": [],
+  "sorryAxPresent": false,
+  "gasBound": "g.toNat ≤ 2^24",
+  "build": "Build completed successfully (4643 jobs)."
+}

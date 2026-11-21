@@ -1,0 +1,303 @@
+{
+  "command": "python3 -B Benchmarks/Midnight/run_difftest.py --only Midnight --count 50 --seed 2026",
+  "seed": 2026,
+  "count": 50,
+  "summary": "Midnight: 3075 cases: 3075 agree (1341 successful), 0 disagree, 0 stuck, 0 EVM out of gas, 0 spec out of fuel",
+  "coverage": [
+    {
+      "name": "constructor",
+      "successful": 17,
+      "cases": 25
+    },
+    {
+      "name": "liquidationLocked",
+      "successful": 39,
+      "cases": 51
+    },
+    {
+      "name": "setDefaultContinuousFee",
+      "successful": 6,
+      "cases": 54
+    },
+    {
+      "name": "defaultContinuousFee",
+      "successful": 37,
+      "cases": 50
+    },
+    {
+      "name": "settlementFeeCbps",
+      "successful": 45,
+      "cases": 53
+    },
+    {
+      "name": "claimSettlementFee",
+      "successful": 0,
+      "cases": 51
+    },
+    {
+      "name": "configurator",
+      "successful": 41,
+      "cases": 51
+    },
+    {
+      "name": "supplyCollateral",
+      "successful": 0,
+      "cases": 50
+    },
+    {
+      "name": "setMarketContinuousFee",
+      "successful": 0,
+      "cases": 51
+    },
+    {
+      "name": "enableLltv",
+      "successful": 7,
+      "cases": 50
+    },
+    {
+      "name": "flashLoan",
+      "successful": 0,
+      "cases": 54
+    },
+    {
+      "name": "claimableSettlementFee",
+      "successful": 43,
+      "cases": 52
+    },
+    {
+      "name": "totalUnits",
+      "successful": 46,
+      "cases": 52
+    },
+    {
+      "name": "updatePosition",
+      "successful": 0,
+      "cases": 52
+    },
+    {
+      "name": "lossFactor",
+      "successful": 40,
+      "cases": 53
+    },
+    {
+      "name": "claimContinuousFee",
+      "successful": 0,
+      "cases": 55
+    },
+    {
+      "name": "isHealthy",
+      "successful": 32,
+      "cases": 50
+    },
+    {
+      "name": "setDefaultSettlementFee",
+      "successful": 1,
+      "cases": 50
+    },
+    {
+      "name": "isAuthorized",
+      "successful": 41,
+      "cases": 50
+    },
+    {
+      "name": "take",
+      "successful": 0,
+      "cases": 53
+    },
+    {
+      "name": "repay",
+      "successful": 0,
+      "cases": 54
+    },
+    {
+      "name": "withdrawable",
+      "successful": 41,
+      "cases": 50
+    },
+    {
+      "name": "feeClaimer",
+      "successful": 41,
+      "cases": 50
+    },
+    {
+      "name": "feeSetter",
+      "successful": 42,
+      "cases": 52
+    },
+    {
+      "name": "lastLossFactor",
+      "successful": 41,
+      "cases": 51
+    },
+    {
+      "name": "isLiquidationCursorEnabled",
+      "successful": 47,
+      "cases": 53
+    },
+    {
+      "name": "enableLiquidationCursor",
+      "successful": 4,
+      "cases": 50
+    },
+    {
+      "name": "debt",
+      "successful": 42,
+      "cases": 52
+    },
+    {
+      "name": "position",
+      "successful": 35,
+      "cases": 51
+    },
+    {
+      "name": "tickSpacingSetter",
+      "successful": 45,
+      "cases": 50
+    },
+    {
+      "name": "setMarketSettlementFee",
+      "successful": 0,
+      "cases": 56
+    },
+    {
+      "name": "liquidate",
+      "successful": 0,
+      "cases": 50
+    },
+    {
+      "name": "setConfigurator",
+      "successful": 8,
+      "cases": 51
+    },
+    {
+      "name": "withdrawCollateral",
+      "successful": 0,
+      "cases": 52
+    },
+    {
+      "name": "touchMarket",
+      "successful": 0,
+      "cases": 52
+    },
+    {
+      "name": "withdraw",
+      "successful": 0,
+      "cases": 53
+    },
+    {
+      "name": "settlementFee",
+      "successful": 29,
+      "cases": 52
+    },
+    {
+      "name": "multicall",
+      "successful": 17,
+      "cases": 51
+    },
+    {
+      "name": "setFeeSetter",
+      "successful": 15,
+      "cases": 53
+    },
+    {
+      "name": "isLltvEnabled",
+      "successful": 40,
+      "cases": 51
+    },
+    {
+      "name": "collateralBitmap",
+      "successful": 43,
+      "cases": 53
+    },
+    {
+      "name": "setIsAuthorized",
+      "successful": 22,
+      "cases": 51
+    },
+    {
+      "name": "continuousFee",
+      "successful": 44,
+      "cases": 53
+    },
+    {
+      "name": "defaultSettlementFeeCbp",
+      "successful": 14,
+      "cases": 54
+    },
+    {
+      "name": "setFeeClaimer",
+      "successful": 15,
+      "cases": 51
+    },
+    {
+      "name": "pendingFee",
+      "successful": 44,
+      "cases": 52
+    },
+    {
+      "name": "credit",
+      "successful": 39,
+      "cases": 51
+    },
+    {
+      "name": "updatePositionView",
+      "successful": 37,
+      "cases": 51
+    },
+    {
+      "name": "tickSpacing",
+      "successful": 36,
+      "cases": 50
+    },
+    {
+      "name": "lastAccrual",
+      "successful": 44,
+      "cases": 53
+    },
+    {
+      "name": "consumed",
+      "successful": 44,
+      "cases": 53
+    },
+    {
+      "name": "marketState",
+      "successful": 41,
+      "cases": 50
+    },
+    {
+      "name": "collateral",
+      "successful": 13,
+      "cases": 51
+    },
+    {
+      "name": "setConsumed",
+      "successful": 9,
+      "cases": 51
+    },
+    {
+      "name": "setMarketTickSpacing",
+      "successful": 1,
+      "cases": 52
+    },
+    {
+      "name": "setTickSpacingSetter",
+      "successful": 7,
+      "cases": 53
+    },
+    {
+      "name": "toMarket",
+      "successful": 0,
+      "cases": 52
+    },
+    {
+      "name": "continuousFeeCredit",
+      "successful": 46,
+      "cases": 53
+    },
+    {
+      "name": "stray",
+      "successful": 0,
+      "cases": 100
+    }
+  ]
+}

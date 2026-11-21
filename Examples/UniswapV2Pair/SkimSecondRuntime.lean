@@ -511,7 +511,7 @@ theorem RD.uniswapSafeMathSubUnderflow_aw13_free292 {g : Sat256} {s0 : State}
       ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
     omega
   have rd6899 := rd6895.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by decide +kernel) (by evm_ov)
   have rd6918a := evm_run rd6899 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 0 mem0 (UInt256.ofNat 13)
@@ -544,7 +544,7 @@ theorem RD.uniswapSafeMathSubUnderflow_aw13_free292 {g : Sat256} {s0 : State}
       (by unfold mem2; rfl) (by decide) (by evm_ov)]
   have rd6940 := rd6918.pushConst
     (⟨146807710733670254765134916515197633279875231805303⟩ : UInt256)
-    (width := 21) (op := .PUSH21) (by decide) (by decide) (by evm_ov)
+    (width := 21) (op := .PUSH21) (by decide) (by decide +kernel) (by evm_ov)
   let mem3 : ByteArray :=
     (UInt256.toByteArray uniswapSafeMathSubUnderflowStringWord).write 0 mem2 360 32
   have hmem3 : mem3.size = 392 := by
@@ -606,10 +606,10 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade {g : Sat256} {s0 : State}
       (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) = Ethereum.EVM.Θ
-          σ s0.σ₀ A_in
+          ee.fork σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
           (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask))
-          (toExecute σ (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask)))
+          (toExecute ee.fork σ (AccountAddress.ofUInt256 (UInt256.land token1 solcAddrMask)))
           callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
           ((skimSecondBalanceCalldataMem (UInt256.ofNat ee.codeOwner.val) o toWord value)
             |>.readWithPadding 292 36)

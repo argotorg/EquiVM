@@ -100,7 +100,8 @@ theorem uniswapSwapCallbackCases
       · have hd : I.depth = 1024 := Fin.ext (by have := I.depth.isLt; omega)
         have hcall : typedCallViaEVM config evm (EVM.address recipient) "uniswapV2Call" 0
             (swapCallbackArgs I.source amount0Out amount1Out (I.calldata.extract dataPtr.toNat (dataPtr.toNat + dataLen.toNat)))
-            (false, { evm with substate := (evm.addAccessedAccount (EVM.address recipient)).substate }, ByteArray.empty) true := by
+            (false, { evm with substate := (Ethereum.EVM.callSubstate evm.executionEnv.fork
+              evm.accountMap (EVM.address recipient) evm.substate) }, ByteArray.empty) true := by
           refine ⟨_, swapCallbackCalldata_encode _ _ _ _, ?_⟩
           apply callViaEVM.callNotMade rfl rfl
           rintro ⟨_, hne⟩

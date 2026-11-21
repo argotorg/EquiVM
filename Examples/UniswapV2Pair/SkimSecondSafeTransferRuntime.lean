@@ -1156,10 +1156,10 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
         (σ', g'', A', z, out) =
-          Ethereum.EVM.Θ σ s0.σ₀ A_in
+          Ethereum.EVM.Θ ee.fork σ s0.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
             (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask))
-            (toExecute σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
+            (toExecute ee.fork σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
             callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
             ((skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value)
               |>.readWithPadding 456 68)

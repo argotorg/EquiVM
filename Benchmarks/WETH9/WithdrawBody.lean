@@ -674,10 +674,10 @@ theorem weth9WithdrawCallMade {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     ∃ (σ' : AccountMap) (z : Bool) (o : ByteArray)
       (A_in : Substate) (callGas : UInt256),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ (withdrawStoreMap σ I) σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork (withdrawStoreMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (solcSourceWord I))
-          (toExecute (withdrawStoreMap σ I) (AccountAddress.ofUInt256 (solcSourceWord I)))
+          (toExecute I.fork (withdrawStoreMap σ I) (AccountAddress.ofUInt256 (solcSourceWord I)))
           callGas (UInt256.ofNat I.gasPrice) (withdrawWadWord I) (withdrawWadWord I)
           ByteArray.empty (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ o.size < UInt256.size

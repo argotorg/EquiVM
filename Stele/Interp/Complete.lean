@@ -670,7 +670,7 @@ theorem selectorDispatchMsg_eq_none_of_size {contract : ContractDecl} {calldata 
   show ¬ ((KEC (transitionSigStr t).toByteArray).extract 0 4 == calldata.extract 0 4) = true
   intro heq
   have hs := size_eq_of_beq heq
-  have h32 : (KEC (transitionSigStr t).toByteArray).size = 32 := Keccak256.hash_size_eq_32 _
+  have h32 : (KEC (transitionSigStr t).toByteArray).size = 32 := Crypto.Keccak256.hash_size_eq_32 _
   rw [ByteArray.size_extract, ByteArray.size_extract, h, h32] at hs
   exact absurd hs (by decide)
 

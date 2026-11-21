@@ -26,7 +26,8 @@ theorem rawStaticCallTraceFrom {σ : AccountMap} {I : ExecutionEnv} {g : Sat256}
   by_cases hd : I.depth = 1024
   · obtain ⟨k', C', hr⟩ := RD.solcStaticcallDepthLimit h hdec hd hov
     refine ⟨{ evm with substate :=
-        (evm.addAccessedAccount (AccountAddress.ofUInt256 target)).substate },
+        (Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap (AccountAddress.ofUInt256
+          target) evm.substate) },
       σ, false, ByteArray.empty, _, k', C', ?_, hee, hacc, hworld, hr,
       by decide, fun _ ↦ by decide⟩
     exact callViaEVM.callNotMade rfl rfl

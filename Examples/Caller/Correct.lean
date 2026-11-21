@@ -14,6 +14,10 @@ import Reasoning.Reach
 import Reasoning.Constructor
 import Reasoning.ExternalCall
 
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 /-!
 # Caller — runtime-equivalence proof for `run(address t, uint256 n)`
 

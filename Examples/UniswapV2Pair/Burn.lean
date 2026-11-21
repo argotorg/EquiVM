@@ -499,7 +499,8 @@ theorem uniswapBurnBody
           let target := EVM.address (uniswapAddressAtSlot evmL ⟨6⟩)
           have hcall : typedCallViaEVM config evmL target "balanceOf" 0
               [.address evmL.executionEnv.codeOwner]
-              (false, { evmL with substate := (evmL.addAccessedAccount target).substate },
+              (false, { evmL with substate := (Ethereum.EVM.callSubstate evmL.executionEnv.fork
+                evmL.accountMap target evmL.substate) },
                 ByteArray.empty) false :=
             callNotMade_depthLimit (balanceOfThisCalldataMem_encode evmL.executionEnv.codeOwner)
               (by simpa only [evmL, he] using hdepth1024)

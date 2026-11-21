@@ -1197,10 +1197,10 @@ theorem endThawX_daiPostStaticcall {σ σ₀ A I} {g : UInt256}
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endThawVatWord σ I))
-          (toExecute σ (AccountAddress.ofUInt256 (endThawVatWord σ I)))
+          (toExecute I.fork σ (AccountAddress.ofUInt256 (endThawVatWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endThawDaiCalldataMem σ I solcFreePtrMem).readWithPadding
             endThawDaiOutPtr.toNat endThawDaiInSize.toNat)
@@ -1841,10 +1841,10 @@ theorem endThawX_debtPostCall {σ σ' σ₀ A I} {g : Sat256}
     ∃ (σ'' : AccountMap)
       (z : Bool) (debtOut : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', z, debtOut) = Ethereum.EVM.Θ σ' σ₀ Ain
+        (σ'', g'', A', z, debtOut) = Ethereum.EVM.Θ I.fork σ' σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endThawVatWord σ' I))
-          (toExecute σ' (AccountAddress.ofUInt256 (endThawVatWord σ' I)))
+          (toExecute I.fork σ' (AccountAddress.ofUInt256 (endThawVatWord σ' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endThawNoArgCalldataMem endThawDebtSelectorWord mem).readWithPadding
             endThawNoArgOutPtr.toNat endThawNoArgInSize.toNat)
@@ -2224,10 +2224,10 @@ theorem endThawX_tellPostStaticcall {σ σ' σ₀ A I} {g : Sat256}
     ∃ (σ'' : AccountMap)
       (z : Bool) (tellOut : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ'', g'', A', z, tellOut) = Ethereum.EVM.Θ σ' σ₀ Ain
+        (σ'', g'', A', z, tellOut) = Ethereum.EVM.Θ I.fork σ' σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endThawCureWord σ' I))
-          (toExecute σ' (AccountAddress.ofUInt256 (endThawCureWord σ' I)))
+          (toExecute I.fork σ' (AccountAddress.ofUInt256 (endThawCureWord σ' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endThawNoArgCalldataMem endThawTellSelectorWord mem).readWithPadding
             endThawNoArgOutPtr.toNat endThawNoArgInSize.toNat)
@@ -4698,11 +4698,11 @@ theorem endThawDebtCallMadeBridge {evmE evmS : EVM.State}
     (hmem : mem.size = 164)
     (hdepth : evmE.executionEnv.depth ≠ 1024)
     (hΘ : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evmE.accountMap evmE.σ₀ Ain
+        Ethereum.EVM.Θ evmE.executionEnv.fork evmE.accountMap evmE.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
           evmE.executionEnv.sender
           (AccountAddress.ofUInt256 (endThawVatWord evmE.accountMap evmE.executionEnv))
-          (toExecute evmE.accountMap
+          (toExecute evmE.executionEnv.fork evmE.accountMap
             (AccountAddress.ofUInt256 (endThawVatWord evmE.accountMap evmE.executionEnv)))
           callGas (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((endThawNoArgCalldataMem endThawDebtSelectorWord mem).readWithPadding
@@ -4727,11 +4727,11 @@ theorem endThawDebtCallMadeBridge {evmE evmS : EVM.State}
     exact endThawVatAddr_source_eq_evmWord hState.accountMap
   have hΘS :
       (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evmS.accountMap evmS.σ₀ Ain
+        Ethereum.EVM.Θ evmS.executionEnv.fork evmS.accountMap evmS.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmS.executionEnv.codeOwner))
           evmS.executionEnv.sender
           (AccountAddress.ofUInt256 (endThawVatWord evmS.accountMap evmS.executionEnv))
-          (toExecute evmS.accountMap
+          (toExecute evmS.executionEnv.fork evmS.accountMap
             (AccountAddress.ofUInt256 (endThawVatWord evmS.accountMap evmS.executionEnv)))
           callGas (UInt256.ofNat evmS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((endThawNoArgCalldataMem endThawDebtSelectorWord mem).readWithPadding
@@ -4764,11 +4764,11 @@ theorem endThawTellCallMadeBridge {evmE evmS : EVM.State}
     (hmem : mem.size = 164)
     (hdepth : evmE.executionEnv.depth ≠ 1024)
     (hΘ : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evmE.accountMap evmE.σ₀ Ain
+        Ethereum.EVM.Θ evmE.executionEnv.fork evmE.accountMap evmE.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
           evmE.executionEnv.sender
           (AccountAddress.ofUInt256 (endThawCureWord evmE.accountMap evmE.executionEnv))
-          (toExecute evmE.accountMap
+          (toExecute evmE.executionEnv.fork evmE.accountMap
             (AccountAddress.ofUInt256 (endThawCureWord evmE.accountMap evmE.executionEnv)))
           callGas (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((endThawNoArgCalldataMem endThawTellSelectorWord mem).readWithPadding
@@ -4793,11 +4793,11 @@ theorem endThawTellCallMadeBridge {evmE evmS : EVM.State}
     exact endThawCureAddr_source_eq_evmWord hState.accountMap
   have hΘS :
       (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evmS.accountMap evmS.σ₀ Ain
+        Ethereum.EVM.Θ evmS.executionEnv.fork evmS.accountMap evmS.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmS.executionEnv.codeOwner))
           evmS.executionEnv.sender
           (AccountAddress.ofUInt256 (endThawCureWord evmS.accountMap evmS.executionEnv))
-          (toExecute evmS.accountMap
+          (toExecute evmS.executionEnv.fork evmS.accountMap
             (AccountAddress.ofUInt256 (endThawCureWord evmS.accountMap evmS.executionEnv)))
           callGas (UInt256.ofNat evmS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((endThawNoArgCalldataMem endThawTellSelectorWord mem).readWithPadding
@@ -6168,7 +6168,8 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
           obtain ⟨_, _, rd4753⟩ :=
             endThawX_daiStaticcallDepthLimit (g := g) hdaiReady hdepthEq
           let A_dai :=
-            (evmStele.addAccessedAccount (EVM.address (endThawVatAddr σ I))).substate
+            (Ethereum.EVM.callSubstate evmStele.executionEnv.fork evmStele.accountMap (EVM.address
+              (endThawVatAddr σ I)) evmStele.substate)
           have hcallStele :
               typedCallViaEVM config evmStele
                 (EVM.address (endThawVatAddr σ I)) "dai" 0

@@ -102,6 +102,7 @@ NAMES = {
     0x55: "sstore", 0x56: "jump", 0x57: "jumpi", 0x5A: "gas",
     0x5C: "tload", 0x5D: "tstore",
     0x08: "addmod", 0x09: "mulmod", 0x0B: "signextend", 0x1A: "byte", 0x1D: "sar",
+    0x1E: "clz",
     0x31: "balance", 0x3F: "extcodehash", 0x40: "blockhash", 0x48: "basefee",
     0x5E: "mcopy", 0xA0: "log0",
     0x5B: "jumpdest", 0x5F: "push0", 0xA1: "log1", 0xA2: "log2", 0xA3: "log3",
@@ -424,7 +425,7 @@ def stack_shape(ins: Instruction) -> tuple[int, int, int]:
     if 0x90 <= op <= 0x9F:
         depth = op - 0x8F + 1
         return (depth, 0, 0)
-    if op in {0x15, 0x19, 0x31, 0x35, 0x3B, 0x3F, 0x40, 0x51, 0x54, 0x5C}:
+    if op in {0x15, 0x19, 0x1E, 0x31, 0x35, 0x3B, 0x3F, 0x40, 0x51, 0x54, 0x5C}:
         return (1, 1, 1)
     if op in {0x50, 0x56}:
         return (1, 1, 0)
@@ -544,7 +545,7 @@ STATIC_COST = {
     0x36: 2, 0x38: 2, 0x3D: 2, 0x42: 2, 0x43: 2, 0x44: 2, 0x45: 2,
     0x46: 2, 0x50: 2,
     0x56: 8, 0x57: 10, 0x5A: 2, 0x5B: 1, 0x5F: 2,
-    0x08: 8, 0x09: 8, 0x0B: 5, 0x1A: 3, 0x1D: 3, 0x40: 20, 0x48: 2,
+    0x08: 8, 0x09: 8, 0x0B: 5, 0x1A: 3, 0x1D: 3, 0x1E: 5, 0x40: 20, 0x48: 2,
 }
 
 
@@ -724,6 +725,13 @@ def simulate(block: list[Instruction], branch: str | None,
             a = stack.pop(0)
             stack.insert(0, f"(UInt256.lnot {a})")
             proof.append(f"  have {after} := {before}.not {decode} {ov}")
+        elif op == 0x1E:
+            # EIP-7939: before Osaka `0x1e` is an invalid instruction, so the summary
+            # holds only for environments at Osaka or later.
+            a = stack.pop(0)
+            stack.insert(0, f"(UInt256.clz {a})")
+            fork = require("hfork", "ee.fork ≥ .osaka")
+            proof.append(f"  have {after} := {before}.clz {fork} {decode} {ov}")
         elif op in {0x08, 0x09}:
             a, b, c = stack.pop(0), stack.pop(0), stack.pop(0)
             fn = "UInt256.addMod" if op == 0x08 else "UInt256.mulMod"

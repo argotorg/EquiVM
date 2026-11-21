@@ -168,7 +168,7 @@ theorem RD.uniswapSafeMathSubUnderflow_aw6_size164 {g : Sat256} {s0 : State}
       (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rd6899 := rd6895.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd6918 := evm_run rd6899 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 0 (UniswapV2Pair.uniswapErrorStringMem0 mem) (UInt256.ofNat 6)
@@ -185,7 +185,7 @@ theorem RD.uniswapSafeMathSubUnderflow_aw6_size164 {g : Sat256} {s0 : State}
       (by rfl) (by decide) (by evm_ov)]
   have rd6940 := rd6918.pushConst
     (⟨146807710733670254765134916515197633279875231805303⟩ : UInt256)
-    (width := 21) (op := .PUSH21) (by decide) (by decide) (by evm_ov)
+    (width := 21) (op := .PUSH21) (by decide +kernel) (by decide +kernel) (by evm_ov)
   exact evm_run rd6940 with [
     push1 ⟨88⟩, shl, push1 ⟨68⟩, dup3, add,
     raw mstore 3

@@ -4011,8 +4011,9 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                       (relyAuthHashMem I)
                     let memEndStore := twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
                       memStore
-                    let A_move := (evmMoveStele.addAccessedAccount
-                      (EVM.address (AccountAddress.ofNat vat.toNat))).substate
+                    let A_move := (Ethereum.EVM.callSubstate evmMoveStele.executionEnv.fork
+                      evmMoveStele.accountMap (EVM.address (AccountAddress.ofNat vat.toNat))
+                      evmMoveStele.substate)
                     have hmemStore : memStore.size = 96 := by
                       simpa [memStore] using
                         twoWordHashMem_size_96 (kickRuntimeIdWord σ I) ⟨1⟩

@@ -1611,7 +1611,9 @@ theorem flipperKickBodyCore {σ σ₀ A I} {g : UInt256}
               let targetStele : EVM.Address :=
                 EVM.address (flipperVatAddress evmTabStele.accountMap evmTabStele.executionEnv)
               let evmVatStele : EVM.State :=
-                { evmTabStele with substate := (evmTabStele.addAccessedAccount targetStele).substate }
+                { evmTabStele with substate := (Ethereum.EVM.callSubstate
+                  evmTabStele.executionEnv.fork evmTabStele.accountMap targetStele
+                  evmTabStele.substate) }
               have hcallVatSteleFalse :
                   typedCallViaEVM config evmTabStele targetStele "flux" 0
                     (kickFluxArgValsOf evmTabStele)
@@ -1626,7 +1628,8 @@ theorem flipperKickBodyCore {σ σ₀ A I} {g : UInt256}
                     (calldata :=
                       (kickVatFluxCallMem σ (kickAfterTabMap σ I) I).readWithPadding
                         128 132)
-                    (A' := (evmTabStele.addAccessedAccount targetStele).substate)
+                    (A' := (Ethereum.EVM.callSubstate evmTabStele.executionEnv.fork
+                      evmTabStele.accountMap targetStele evmTabStele.substate))
                     (evm' := evmVatStele)
                     rfl rfl
                     (by

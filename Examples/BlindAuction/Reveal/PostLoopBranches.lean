@@ -104,8 +104,8 @@ theorem scratch_blindAuctionReveal_postLoop_callDepth_fromCall
     simpa [revealScratchSenderWord, hpc, hawCall'] using rd1350₀
   let evmSFail : EVM.State :=
     { evmDone with
-      substate := (evmDone.addAccessedAccount
-        (EVM.address evmDone.executionEnv.source)).substate }
+      substate := (Ethereum.EVM.callSubstate evmDone.executionEnv.fork evmDone.accountMap
+        (EVM.address evmDone.executionEnv.source) evmDone.substate) }
   have hcallS :
       callViaEVM evmDone (EVM.address evmDone.executionEnv.source)
         (Int.ofNat aDone.refund.toNat) ByteArray.empty
@@ -197,8 +197,8 @@ theorem scratch_blindAuctionReveal_postLoop_callInsufficient_fromCall
         simp [henvDone, hAddressId]
   let evmEFail : EVM.State :=
     { evmEDone with
-      substate := (evmEDone.addAccessedAccount
-        (AccountAddress.ofUInt256 (revealScratchSenderWord I))).substate }
+      substate := (Ethereum.EVM.callSubstate evmEDone.executionEnv.fork evmEDone.accountMap
+        (AccountAddress.ofUInt256 (revealScratchSenderWord I)) evmEDone.substate) }
   have hcallE :
       callViaEVM evmEDone
         (AccountAddress.ofUInt256 (revealScratchSenderWord I))
@@ -262,10 +262,10 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_step
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (A_in : Substate) (callGas : UInt256) (k1350 C1350 : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, out) = Ethereum.EVM.Θ aDone.acc σ₀ A_in
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ I.fork aDone.acc σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-          (toExecute aDone.acc (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
+          (toExecute I.fork aDone.acc (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
           callGas (UInt256.ofNat I.gasPrice) aDone.refund aDone.refund
           ByteArray.empty (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ out.size < UInt256.size

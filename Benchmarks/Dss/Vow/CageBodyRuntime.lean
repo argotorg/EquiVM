@@ -238,7 +238,8 @@ theorem vowCageFirstDaiCallDepthLimitBody
         σClearedStele, vowCageClearedAccountMap]
     rw [flapFlapperAddressOf_eq_vowAddressReturnWord evmAsh I hownerAsh, hslot,
       accountAddress_ofUInt256_eq_ofNat_toNat]
-  let A_dai := (evmAsh.addAccessedAccount (EVM.address (cageVatAddressOf evmAsh))).substate
+  let A_dai := (Ethereum.EVM.callSubstate evmAsh.executionEnv.fork evmAsh.accountMap (EVM.address
+    (cageVatAddressOf evmAsh)) evmAsh.substate)
   have hcallDai :
       typedCallViaEVM config evmAsh (EVM.address (cageVatAddressOf evmAsh))
         "dai" 0 [.address (flapFlapperAddressOf evmAsh)]

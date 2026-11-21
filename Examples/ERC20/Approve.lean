@@ -666,7 +666,7 @@ theorem erc20X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd576₀ := evm_run rd496 with [
     pop, dup3, push20 erc20AddrMask, and, caller, push20 erc20AddrMask, and ]
   have rd543₀ := rd576₀.pushConst approveApprovalTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by decide +kernel) (by evm_ov)
   have rd543 := rd543₀
   rw [hspenderCleanL, hownerCleanL] at rd543
   have rd2073 := evm_run rd543 with [

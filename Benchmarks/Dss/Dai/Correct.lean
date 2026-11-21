@@ -22,6 +22,10 @@ import Benchmarks.Dss.Dai.TransferFrom
 import Benchmarks.Dss.Dai.Version
 import Benchmarks.Dss.Dai.Wards
 
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 /-!
 # MakerDAO DSS Dai benchmark correctness scaffold
 

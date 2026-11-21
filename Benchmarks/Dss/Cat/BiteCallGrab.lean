@@ -79,9 +79,9 @@ theorem RD.catBiteGrabCall
       (z : Bool) (o : ByteArray) (Ain : Substate) (callGas : UInt256)
       (mem' : ByteArray) (aw' : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (σ', g'', A', z, o) = Ethereum.EVM.Θ σ σ₀ Ain
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ I.fork σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-          (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
+          (AccountAddress.ofUInt256 target) (toExecute I.fork σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)

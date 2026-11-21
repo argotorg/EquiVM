@@ -1,6 +1,10 @@
 import Examples.ERC20.BalanceOf
 import Examples.ERC20.Approve
 
+-- Concrete decoder facts must reduce the empty padding of a complete PUSH operand.
+set_option allowUnsafeReducibility true in
+attribute [local semireducible] ByteArray.zeroes
+
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -978,7 +982,7 @@ theorem RD.erc20PanicOverflowRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv
     RDrev erc20Bytecode g s0 := by
   have rd2508 := evm_run h with [ jumpdest ]
   have rd2541 := rd2508.pushConst ERC20.transferPanicSelector
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd2543 := evm_run rd2541 with [
     push0,
     raw mstore 0 (ERC20.transferPanicMem0 mem) (UInt256.ofNat 3)
@@ -1197,7 +1201,7 @@ theorem erc20TransferX_insufficient {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (balanceOfHashMem_mload64 (transferSenderWord I))
       (by decide) (by evm_ov) ]
   have rd1471 := rd1438.pushConst transferErrorSelector (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd1473 := evm_run rd1471 with [
     dup2,
     raw mstore 6 (transferInsufficientSelectorMem (transferSenderWord I)) (UInt256.ofNat 5)
@@ -1227,7 +1231,7 @@ theorem erc20TransferX_insufficient {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, swap2, pop, push2 ⟨2466⟩, dup3, push2 ⟨2403⟩, jump erc20_jd ]
   have rd2404 := evm_run rd2403 with [ jumpdest ]
   have rd2437 := rd2404.pushConst transferInsufficientBalanceWord
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd2466 := evm_run rd2437 with [
     push0, dup3, add,
     raw mstore 3 (transferInsufficientStringMem (transferSenderWord I)) (UInt256.ofNat 8)
@@ -1593,7 +1597,7 @@ theorem erc20X_transfer {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd1704 := rd1704₀
   rw [htoCleanL, hsenderCleanL] at rd1704
   have rd1737₀ := rd1704.pushConst transferTransferTopic (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd2073 := evm_run rd1737₀ with [
     dup5, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)

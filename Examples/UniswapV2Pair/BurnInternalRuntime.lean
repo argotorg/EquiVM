@@ -120,7 +120,7 @@ theorem uniswapInternalBurnRuntimeStoreSupplyEmitAndJump
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, and, swap2]
   have rd8447 := rd8414.pushConst
     (⟨100389287136786176327247604509743168900146139575972864366142685224231313322991⟩ : UInt256)
-    (width := 32) (op := .PUSH32) (by native_decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by native_decide) (by decide +kernel) (by evm_ov)
   have rd8456 := evm_run rd8447 with [
     swap2, swap1, dup2, swap1, sub, push1 ⟨32⟩, add, swap1]
   have rd8457 := rd8456.log3 0 feeToStaticcallActiveWords (by native_decide) hperm

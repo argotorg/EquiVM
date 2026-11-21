@@ -7758,7 +7758,8 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
         let amt := UInt256.sub (tendBidWord I) oldBid
         let encMem := twoWordHashMem id ⟨1⟩ memCaller
         let evmPayStele : EVM.State :=
-          { evmStele with substate := (evmStele.addAccessedAccount target).substate }
+          { evmStele with substate := (Ethereum.EVM.callSubstate evmStele.executionEnv.fork
+            evmStele.accountMap target evmStele.substate) }
         have hencMem : encMem.size = 96 := by
           simpa [encMem, id] using twoWordHashMem_size_96 id ⟨1⟩ hmemCaller
         have hcd :
@@ -8057,7 +8058,8 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
         let oldBid := tendBidStoredWord evmStele I
         let encMem := twoWordHashMem id ⟨1⟩ memCaller
         let evmRefundFail : EVM.State :=
-          { evmStele with substate := (evmStele.addAccessedAccount target).substate }
+          { evmStele with substate := (Ethereum.EVM.callSubstate evmStele.executionEnv.fork
+            evmStele.accountMap target evmStele.substate) }
         have hencMem : encMem.size = 96 := by
           simpa [encMem, id] using twoWordHashMem_size_96 id ⟨1⟩ hmemCaller
         have hguyCanon : guy.toNat < EVM.addressModulus := by

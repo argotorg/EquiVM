@@ -418,7 +418,7 @@ theorem ballotDelegateX_loopFoundRevert1058 {σ σ₀ A I} {g : Sat256}
         exact delegateLoopHashMem_mload64 w (delegateSourceWord I))
       (by decide) (by evm_ov) ]
   have rd1065 := rd1061.pushConst ⟨0x461bcd⟩ (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by decide +kernel) (by evm_ov)
   have rd1084 := evm_run rd1065 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (delegateLoopFoundErrorMem0 w (delegateSourceWord I)) (UInt256.ofNat 5)
@@ -432,7 +432,7 @@ theorem ballotDelegateX_loopFoundRevert1058 {σ σ₀ A I} {g : Sat256}
     raw mstore 3 (delegateLoopFoundErrorMem2 w (delegateSourceWord I)) (UInt256.ofNat 7)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1117 := rd1084.pushConst delegateLoopFoundStringWord (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by decide +kernel) (by evm_ov)
   have rd507 := evm_run rd1117 with [
     push1 ⟨68⟩, dup3, add,
     raw mstore 3 (delegateLoopFoundErrorMem3 w (delegateSourceWord I)) (UInt256.ofNat 8)

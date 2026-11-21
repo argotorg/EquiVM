@@ -12,16 +12,21 @@ theorem constructorDecimalsSource_exists (evm : EVM.State) (asset : AccountAddre
     ∃ evm' z out,
       callViaEVM evm asset 0 decimalsPayload (z, evm', out) false ∧ out.size < 2^138 := by
   by_cases hd : evm.executionEnv.depth = 1024
-  · refine ⟨{ evm with substate := (evm.addAccessedAccount asset).substate },
+  · refine ⟨{ evm with substate := (Ethereum.EVM.callSubstate evm.executionEnv.fork evm.accountMap
+    asset evm.substate) },
       false, ByteArray.empty, ?_, by decide⟩
     exact callViaEVM.callNotMade rfl rfl (fun h ↦ h.2 hd)
-  · let result := Θ evm.accountMap evm.σ₀ (evm.addAccessedAccount asset).substate
-      evm.executionEnv.codeOwner evm.executionEnv.sender asset (toExecute evm.accountMap asset)
+  · let result := Θ evm.executionEnv.fork evm.accountMap evm.σ₀ (Ethereum.EVM.callSubstate
+    evm.executionEnv.fork evm.accountMap asset evm.substate)
+      evm.executionEnv.codeOwner evm.executionEnv.sender asset (toExecute evm.executionEnv.fork
+        evm.accountMap asset)
       evm.machineState.gasAvailable.toUInt256 (UInt256.ofNat evm.executionEnv.gasPrice)
       ⟨0⟩ ⟨0⟩ decimalsPayload (evm.executionEnv.depth + 1) evm.executionEnv.header
       evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks false
-    have hθ : result = Θ evm.accountMap evm.σ₀ (evm.addAccessedAccount asset).substate
-        evm.executionEnv.codeOwner evm.executionEnv.sender asset (toExecute evm.accountMap asset)
+    have hθ : result = Θ evm.executionEnv.fork evm.accountMap evm.σ₀ (Ethereum.EVM.callSubstate
+      evm.executionEnv.fork evm.accountMap asset evm.substate)
+        evm.executionEnv.codeOwner evm.executionEnv.sender asset (toExecute evm.executionEnv.fork
+          evm.accountMap asset)
         evm.machineState.gasAvailable.toUInt256 (UInt256.ofNat evm.executionEnv.gasPrice)
         ⟨0⟩ ⟨0⟩ decimalsPayload (evm.executionEnv.depth + 1) evm.executionEnv.header
         evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks false := rfl
@@ -29,7 +34,8 @@ theorem constructorDecimalsSource_exists (evm : EVM.State) (asset : AccountAddre
     refine ⟨{ evm with accountMap := σ', substate := A' }, z, out, ?_, ?_⟩
     · apply callViaEVM.callMade (valueWord := ⟨0⟩) (g' := gas') (A' := A')
         wordOfInt_zero.symm ?_ rfl (Fin.zero_le _) hd
-      exact ⟨evm.machineState.gasAvailable.toUInt256, (evm.addAccessedAccount asset).substate, hθ⟩
+      exact ⟨evm.machineState.gasAvailable.toUInt256, (Ethereum.EVM.callSubstate
+        evm.executionEnv.fork evm.accountMap asset evm.substate), hθ⟩
     · exact Theta_returnData_size_lt_2pow138_of_eq _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hθ
         (by change 4 ≤ _; decide)
 

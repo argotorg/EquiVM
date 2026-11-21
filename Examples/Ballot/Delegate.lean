@@ -2578,7 +2578,7 @@ theorem ballotDelegateX_weightRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (delegateHashMem_mload64 (delegateSourceWord I)) (by decide) (by evm_ov) ]
   have rd746 := rd742.pushConst ⟨0x461bcd⟩ (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd765 := evm_run rd746 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (delegateWeightErrorMem0 (delegateSourceWord I)) (UInt256.ofNat 5)
@@ -2590,7 +2590,7 @@ theorem ballotDelegateX_weightRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mstore 3 (delegateWeightErrorMem2 (delegateSourceWord I)) (UInt256.ofNat 7)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd798 := rd765.pushConst delegateWeightStringWord (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd507 := evm_run rd798 with [
     push1 ⟨68⟩, dup3, add,
     raw mstore 3 (delegateWeightErrorMem3 (delegateSourceWord I)) (UInt256.ofNat 8)
@@ -2670,7 +2670,7 @@ theorem ballotDelegateX_votedRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (delegateHashMem_mload64 (delegateSourceWord I)) (by decide) (by evm_ov) ]
   have rd831 := rd827.pushConst ⟨0x461bcd⟩ (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd850 := evm_run rd831 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (delegateWeightErrorMem0 (delegateSourceWord I)) (UInt256.ofNat 5)
@@ -2682,7 +2682,7 @@ theorem ballotDelegateX_votedRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mstore 3 (delegateVotedErrorMem2 (delegateSourceWord I)) (UInt256.ofNat 7)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd869 := rd850.pushConst delegateVotedStringRaw (width := 18) (op := .PUSH18)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd507 := evm_run rd869 with [
     push1 ⟨113⟩, shl, push1 ⟨68⟩, dup3, add,
     raw mstore 3 (delegateVotedErrorMem3 (delegateSourceWord I)) (UInt256.ofNat 8)
@@ -2727,7 +2727,7 @@ theorem ballotDelegateX_selfRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (delegateHashMem_mload64 (delegateSourceWord I)) (by decide) (by evm_ov) ]
   have rd908 := rd904.pushConst ⟨0x461bcd⟩ (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd927 := evm_run rd908 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (delegateWeightErrorMem0 (delegateSourceWord I)) (UInt256.ofNat 5)
@@ -2739,7 +2739,7 @@ theorem ballotDelegateX_selfRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mstore 3 (delegateSelfErrorMem2 (delegateSourceWord I)) (UInt256.ofNat 7)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd960 := rd927.pushConst delegateSelfStringWord (width := 32) (op := .PUSH32)
-    (by decide) (by decide) (by evm_ov)
+    (by decide +kernel) (by decide +kernel) (by evm_ov)
   have rd507 := evm_run rd960 with [
     push1 ⟨68⟩, dup3, add,
     raw mstore 3 (delegateSelfErrorMem3 (delegateSourceWord I)) (UInt256.ofNat 8)
