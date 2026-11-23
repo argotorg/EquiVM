@@ -162,7 +162,7 @@ private def aliasedFrame : Frame :=
 #guard usesTransientStorage aliasedFrame { base := "values" } = false
 #guard (do
   let state ← pushArray? cfg aliasedFrame evm { base := "values" } (some (.int 7))
-  cfg.storageBackend.read { base := "saved" } (.dynamicArray wordTy) state) =
+  cfg.storageBackend.read { base := "saved" } (.dynamicArray wordTy) (EVM.ownStorage state)) =
   .ok (.array [.int 7])
 #guard readAfter
   (pushArray? cfg aliasedFrame evm { base := "values" } (some (.int 7))) "values" =

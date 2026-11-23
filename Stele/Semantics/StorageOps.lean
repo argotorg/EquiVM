@@ -62,8 +62,8 @@ def defaultValues? : List StorageType -> EvalResult (List Value)
   termination_by ts => (sizeOf ts, 0)
 end
 
-/-- Check an array or bytes index using the selected backend's length operation. -/
-@[simp] def arrayIndexInBounds? (cfg : Config) (evm : EVM.State)
+/-- Check an array or bytes index using a backend's length operation on storage map `s`. -/
+@[simp] def arrayIndexInBounds? (B : StorageBackend) (s : SlotMap)
     (decls : List StorageDecl) (base : Ident) (pre : List EvaledStorageRefStep)
     (i : KeyValue) : EvalResult Unit :=
   match storageTypeAt? decls { base := base, steps := pre }, i with
@@ -73,7 +73,7 @@ end
   | some ty@(.dynamicArray _), .int iv
   | some ty@(.bytes), .int iv
   | some ty@(.string), .int iv =>
-      match cfg.storageBackend.length { base := base, steps := pre } ty evm with
+      match B.length { base := base, steps := pre } ty s with
       | .ok len => if 0 ≤ iv ∧ iv < len then .ok () else .revert
       | .revert => .revert
       | .error e => .error e

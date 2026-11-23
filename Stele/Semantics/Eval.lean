@@ -190,7 +190,8 @@ def evalStorageRefStep (cfg : Config) (stele : Frame) (evm : EVM.State)
     let indexKey <- EvalResult.ofOption .typeError (valueToKey? index)
     -- check this index in bounds against the array reached by `pre`, *before* descending —
     -- interleaved with index evaluation exactly as solc emits it
-    let _ <- arrayIndexInBounds? cfg evm stele.contract.storage base pre indexKey
+    let _ <- arrayIndexInBounds? cfg.storageBackend (EVM.ownStorage evm)
+      stele.contract.storage base pre indexKey
     pure (.aindex indexKey)
   termination_by (slotStepEvalSize step, 0)
   decreasing_by
@@ -268,8 +269,8 @@ def evalTransientStorageRefStep (cfg : Config) (stele : Frame) (evm : EVM.State)
   | .aindex expr => do
       let index ← evalExpr? cfg stele evm expr
       let indexKey ← EvalResult.ofOption .typeError (valueToKey? index)
-      let _ ← arrayIndexInBounds? { cfg with storageBackend := cfg.transientBackend }
-        evm stele.contract.transient base pre indexKey
+      let _ ← arrayIndexInBounds? cfg.transientBackend (EVM.ownTransient evm)
+        stele.contract.transient base pre indexKey
       pure (.aindex indexKey)
   termination_by (slotStepEvalSize step, 0)
   decreasing_by
@@ -398,12 +399,12 @@ def assignStorageRef? (cfg : Config) (stele : Frame) (evm : EVM.State)
     | none => .error .unboundVariable
   | .storage => do
     let (evaledStorageRef, ty) <- resolveStorageRef? cfg stele evm slot
-    let evm' <- cfg.storageBackend.write evaledStorageRef ty value evm
-    pure (stele, evm')
+    let s' <- cfg.storageBackend.write evaledStorageRef ty value (EVM.ownStorage evm)
+    pure (stele, EVM.setOwnStorage evm s')
   | .transient => do
     let (er, ty) ← resolveTransientStorageRef? cfg stele evm slot
-    let evm' ← cfg.transientBackend.write er ty value evm
-    pure (stele, evm')
+    let s' ← cfg.transientBackend.write er ty value (EVM.ownTransient evm)
+    pure (stele, EVM.setOwnTransient evm s')
 
 def evalExpr? (cfg : Config) (stele : Frame) (evm : EVM.State) :
     Expr -> EvalResult Value
@@ -445,18 +446,18 @@ def evalExpr? (cfg : Config) (stele : Frame) (evm : EVM.State) :
   | .env var => pure (envValue evm var)
   | .storage slot => do
       let (evaledStorageRef, ty) <- resolveStorageRef? cfg stele evm slot
-      cfg.storageBackend.read evaledStorageRef ty evm
+      cfg.storageBackend.read evaledStorageRef ty (EVM.ownStorage evm)
   | .transient slot => do
       let (er, ty) ← resolveTransientStorageRef? cfg stele evm slot
-      cfg.transientBackend.read er ty evm
+      cfg.transientBackend.read er ty (EVM.ownTransient evm)
   | .arrayLength origin slot => do
       match origin with
       | .storage => do
           let (er, ty) <- resolveStorageRef? cfg stele evm slot
-          pure (.int (← cfg.storageBackend.length er ty evm))
+          pure (.int (← cfg.storageBackend.length er ty (EVM.ownStorage evm)))
       | .transient => do
           let (er, ty) ← resolveTransientStorageRef? cfg stele evm slot
-          pure (.int (← cfg.transientBackend.length er ty evm))
+          pure (.int (← cfg.transientBackend.length er ty (EVM.ownTransient evm)))
       | .localVar =>
           match stele.locals.get? slot.base with
           | some root => do
@@ -473,7 +474,7 @@ def evalExpr? (cfg : Config) (stele : Frame) (evm : EVM.State) :
       | .storageRef er ty => do
           let step := EvaledStorageRefStep.field name
           let ty' <- EvalResult.ofOption .typeError (storageTypeStep? ty step)
-          cfg.storageBackend.read { er with steps := er.steps ++ [step] } ty' evm
+          cfg.storageBackend.read { er with steps := er.steps ++ [step] } ty' (EVM.ownStorage evm)
       | _ => EvalResult.ofOption .typeError (lookupField? baseValue name)
   | .cast expr ty => do /- TODO do we really need to have casting? -/
       let value <- evalExpr? cfg stele evm expr

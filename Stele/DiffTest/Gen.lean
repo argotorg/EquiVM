@@ -343,8 +343,9 @@ partial def randomStorage (cfg : Config) (contract : ContractDecl) (pools : Pool
   let mut evm := evm
   let mut trail : List Value := []
   let keyPools := pools.dedup
-  let decls := contract.storage.map ((·, cfg.storageBackend)) ++ contract.transient.map ((·, cfg.transientBackend))
-  for (decl, backend) in decls do
+  let decls := contract.storage.map ((·, cfg.storageBackend, false)) ++
+    contract.transient.map ((·, cfg.transientBackend, true))
+  for (decl, backend, transient) in decls do
     let mut targets : List (List EvaledStorageRefStep × List Value × StorageType) := []
     match decl.ty with
     | .mapping .. =>
@@ -361,8 +362,9 @@ partial def randomStorage (cfg : Config) (contract : ContractDecl) (pools : Pool
       let (v?, r') := genStorageValue pools contract.structs ty r
       r := r'
       if let some v := v? then
-        if let .ok evm' := backend.write { base := decl.name, steps := steps } ty v evm then
-          evm := evm'
+        let slots := if transient then EVM.ownTransient evm else EVM.ownStorage evm
+        if let .ok slots' := backend.write { base := decl.name, steps := steps } ty v slots then
+          evm := if transient then EVM.setOwnTransient evm slots' else EVM.setOwnStorage evm slots'
           trail := trail ++ keys ++ [v]
   let written := Pools.ofValues trail
   return (evm, { written with words := written.words ++ written.words.map (· / 2) }.dedup, r)

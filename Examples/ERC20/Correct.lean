@@ -789,7 +789,7 @@ theorem erc20CtorAssignBalance (evm : EVM.State) (initialSupply : Int)
         exact Int.toNat_of_nonneg h0
   conv_lhs => rw [← hint]
   erw [storageLocStore_uint256]
-  rfl
+  simp [erc20CtorBalancePostState]
 
 theorem erc20CtorAssignTotalSupply (evm : EVM.State) (initialSupply : Int)
     (h0 : 0 ≤ initialSupply)
@@ -818,6 +818,7 @@ theorem erc20CtorAssignTotalSupply (evm : EVM.State) (initialSupply : Int)
         exact Int.toNat_of_nonneg h0
   conv_lhs => rw [← hint]
   erw [storageLocStore_uint256]
+  simp
 
 theorem erc20SteleCtorExecReverts_nonpayable
     {σ : AccountMap}

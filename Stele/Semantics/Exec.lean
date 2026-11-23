@@ -135,29 +135,35 @@ def pushArray? (cfg : Config) (stele : Frame) (evm : EVM.State) (ref : StorageRe
     (value : Option Value) : EvalResult EVM.State :=
   if usesTransientStorage stele ref then do
     let (er, ty) ← resolveTransientStorageRef? cfg stele evm ref
-    cfg.transientBackend.push er ty value evm
+    let s' ← cfg.transientBackend.push er ty value (EVM.ownTransient evm)
+    pure (EVM.setOwnTransient evm s')
   else do
     let (er, ty) ← resolveStorageRef? cfg stele evm ref
-    cfg.storageBackend.push er ty value evm
+    let s' ← cfg.storageBackend.push er ty value (EVM.ownStorage evm)
+    pure (EVM.setOwnStorage evm s')
 
 def popArray? (cfg : Config) (stele : Frame) (evm : EVM.State) (ref : StorageRef) :
     EvalResult EVM.State :=
   if usesTransientStorage stele ref then do
     let (er, ty) ← resolveTransientStorageRef? cfg stele evm ref
-    cfg.transientBackend.pop er ty evm
+    let s' ← cfg.transientBackend.pop er ty (EVM.ownTransient evm)
+    pure (EVM.setOwnTransient evm s')
   else do
     let (er, ty) ← resolveStorageRef? cfg stele evm ref
-    cfg.storageBackend.pop er ty evm
+    let s' ← cfg.storageBackend.pop er ty (EVM.ownStorage evm)
+    pure (EVM.setOwnStorage evm s')
 
 /-- `delete x`: reset the storage at `ref` through the configured backend. -/
 def deleteStorage? (cfg : Config) (stele : Frame) (evm : EVM.State) (ref : StorageRef)
     : EvalResult EVM.State :=
   if usesTransientStorage stele ref then do
     let (er, ty) ← resolveTransientStorageRef? cfg stele evm ref
-    cfg.transientBackend.clear er ty evm
+    let s' ← cfg.transientBackend.clear er ty (EVM.ownTransient evm)
+    pure (EVM.setOwnTransient evm s')
   else do
     let (er, ty) ← resolveStorageRef? cfg stele evm ref
-    cfg.storageBackend.clear er ty evm
+    let s' ← cfg.storageBackend.clear er ty (EVM.ownStorage evm)
+    pure (EVM.setOwnStorage evm s')
 
 /-- Evaluate a `new`'s optional salt: `none` ⇒ CREATE; `some e` must be a `bytes32` ⇒ CREATE2. -/
 def evalSalt? (cfg : Config) (stele : Frame) (evm : EVM.State) :

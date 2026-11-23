@@ -18,8 +18,8 @@ def elemTypeSoliditySize (t : ElemType) : Fin 33 :=
   | .bytes n => ⟨n+1, by omega⟩
   | .function => 24
 
-def checkBytesPacked (slot : EVM.Word) (state : EVM.State) : Bool :=
-  let slot := EVM.storageLoad state state.executionEnv.codeOwner slot
+def checkBytesPacked (slot : EVM.Word) (s : SlotMap) : Bool :=
+  let slot := s.load slot
   (slot.val % 2) == 0
 
 def solidityBytesDataBaseSlot (baseSlot : EVM.Word) : EVM.Word :=

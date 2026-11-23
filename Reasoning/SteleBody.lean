@@ -971,7 +971,8 @@ theorem store_get_ne5 (L : Stele.Store) {k1 k2 k3 k4 k5 a : Ident}
 After native storage pointers, `evalExpr? (.storage …)` and `assignStorageRef? .storage` route
 through `resolveStorageRef?` and then through the configured storage backend. The generic lemmas
 use a backend read/write fact; the Solidity-layout specializations collapse scalar leaves to
-`storageLocLoad` and `storageLocStore`. -/
+`storageLocLoad` and `storageLocStore` on the executing account's storage
+(`Stele.EVM.ownStorage`), a write's result being stored back with `Stele.EVM.setOwnStorage`. -/
 
 /-- `resolveStorageRef?` for a base that is not a local storage pointer: just `evalStorageRef`
     paired with the declared type from `storageTypeAt?`. -/
@@ -991,31 +992,33 @@ theorem evalExpr_storage_scalar_of_read {cfg : Config}
     (hbase : stele.locals.get? slot.base = none)
     (her : evalStorageRef cfg stele evm slot = .ok er)
     (hty : storageTypeAt? stele.contract.storage er = some (.elem t))
-    (hread : cfg.storageBackend.read er (.elem t) evm = .ok value) :
+    (hread : cfg.storageBackend.read er (.elem t) (Stele.EVM.ownStorage evm) = .ok value) :
     evalExpr? cfg stele evm (.storage slot) = .ok value := by
   rw [evalExpr?]
   simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind, hread]
 
-/-- Write a storage reference through any configured backend. -/
+/-- Write a storage reference through any configured backend: the backend's result becomes the
+    executing account's storage. -/
 theorem assignStorageRef_storage_of_write {cfg : Config}
-    {stele : Frame} {evm evm' : EVM.State}
+    {stele : Frame} {evm : EVM.State} {s' : SlotMap}
     {slot : StorageRef} {er : EvaledStorageRef} {ty : StorageType} {value : Value}
     (hbase : stele.locals.get? slot.base = none)
     (her : evalStorageRef cfg stele evm slot = .ok er)
     (hty : storageTypeAt? stele.contract.storage er = some ty)
-    (hwrite : cfg.storageBackend.write er ty value evm = .ok evm') :
-    assignStorageRef? cfg stele evm .storage slot value = .ok (stele, evm') := by
+    (hwrite : cfg.storageBackend.write er ty value (Stele.EVM.ownStorage evm) = .ok s') :
+    assignStorageRef? cfg stele evm .storage slot value =
+      .ok (stele, Stele.EVM.setOwnStorage evm s') := by
   simp only [assignStorageRef?, resolveStorageRef?_ok hbase her hty,
     hwrite, bind, EvalResult.bind, pure]
 
 /-- A Solidity backend reads an elementary leaf through its physical location. -/
-theorem readStorage?_elem {cfg : Config} {layout : StorageLayout} {evm : EVM.State}
+theorem readStorage?_elem {cfg : Config} {layout : StorageLayout} {s : SlotMap}
     {er : EvaledStorageRef} {t : ABI.ElemType} {loc : StorageLoc}
     (hbackend : cfg.storageBackend = solidityStorageBackend layout)
     (hloc : layout er = some (.leaf loc)) :
-    cfg.storageBackend.read er (.elem t) evm = .ok (storageLocLoad evm loc) := by
+    cfg.storageBackend.read er (.elem t) s = .ok (storageLocLoad s loc) := by
   rw [hbackend]
-  exact solidityStorageBackend_read_elem layout er t evm loc hloc
+  exact solidityStorageBackend_read_elem layout er t s loc hloc
 
 /-- A scalar storage read collapses to a single `storageLocLoad`. -/
 theorem evalExpr_storage_scalar {cfg : Config} {layout : StorageLayout}
@@ -1026,7 +1029,8 @@ theorem evalExpr_storage_scalar {cfg : Config} {layout : StorageLayout}
     (hty : storageTypeAt? stele.contract.storage er = some (.elem t))
     (hbackend : cfg.storageBackend = solidityStorageBackend layout)
     (hloc : layout er = some (.leaf loc)) :
-    evalExpr? cfg stele evm (.storage slot) = .ok (storageLocLoad evm loc) := by
+    evalExpr? cfg stele evm (.storage slot) =
+      .ok (storageLocLoad (Stele.EVM.ownStorage evm) loc) := by
    exact evalExpr_storage_scalar_of_read hbase her hty (readStorage?_elem hbackend hloc)
 
 /-- A scalar storage read with an already-normalized `storageLocLoad` value. -/
@@ -1039,7 +1043,7 @@ theorem evalExpr_storage_scalar_value {cfg : Config} {layout : StorageLayout}
     (hty : storageTypeAt? stele.contract.storage er = some (.elem t))
     (hbackend : cfg.storageBackend = solidityStorageBackend layout)
     (hloc : layout er = some (.leaf loc))
-    (hload : storageLocLoad evm loc = value) :
+    (hload : storageLocLoad (Stele.EVM.ownStorage evm) loc = value) :
     evalExpr? cfg stele evm (.storage slot) = .ok value := by
   rw [evalExpr_storage_scalar hbase her hty hbackend hloc]
   exact congrArg EvalResult.ok hload
@@ -1054,15 +1058,21 @@ theorem assignStorageRef_storage_scalar_value {cfg : Config} {layout : StorageLa
     (hbackend : cfg.storageBackend = solidityStorageBackend layout)
     (hloc : layout er = some (.leaf loc))
     (hleaf : (∃ t, ty = .elem t) ∨ (∃ name, ty = .contract name))
-    (hstore : storageLocStore evm loc value = some evm') :
+    (hstore : (storageLocStore (Stele.EVM.ownStorage evm) loc value).map
+      (Stele.EVM.setOwnStorage evm) = some evm') :
     assignStorageRef? cfg stele evm .storage slot value = .ok (stele, evm') := by
-  rcases hleaf with ⟨t, rfl⟩ | ⟨name, rfl⟩
-  · simp [assignStorageRef?, resolveStorageRef?_ok hbase her hty, hbackend,
-      solidityStorageBackend, solidityWriteStorage?, solidityLeafLoc?_of_leaf hloc, hstore,
-      EvalResult.ofOption, EvalResult.bind, bind, pure]
-  · simp [assignStorageRef?, resolveStorageRef?_ok hbase her hty, hbackend,
-      solidityStorageBackend, solidityWriteStorage?, solidityLeafLoc?_of_leaf hloc, hstore,
-      EvalResult.ofOption, EvalResult.bind, bind, pure]
+  cases hs : storageLocStore (Stele.EVM.ownStorage evm) loc value with
+  | none => rw [hs] at hstore; cases hstore
+  | some s' =>
+      rw [hs] at hstore
+      cases hstore
+      rcases hleaf with ⟨t, rfl⟩ | ⟨name, rfl⟩
+      · simp [assignStorageRef?, resolveStorageRef?_ok hbase her hty, hbackend,
+          solidityStorageBackend, solidityWriteStorage?, solidityLeafLoc?_of_leaf hloc, hs,
+          EvalResult.ofOption, EvalResult.bind, bind, pure]
+      · simp [assignStorageRef?, resolveStorageRef?_ok hbase her hty, hbackend,
+          solidityStorageBackend, solidityWriteStorage?, solidityLeafLoc?_of_leaf hloc, hs,
+          EvalResult.ofOption, EvalResult.bind, bind, pure]
 
 /-- A scalar integer storage write collapses to a single `storageLocStore`. -/
 theorem assignStorageRef_storage_scalar {cfg : Config} {layout : StorageLayout}
@@ -1074,7 +1084,8 @@ theorem assignStorageRef_storage_scalar {cfg : Config} {layout : StorageLayout}
     (hbackend : cfg.storageBackend = solidityStorageBackend layout)
     (hloc : layout er = some (.leaf loc))
     (hleaf : (∃ t, ty = .elem t) ∨ (∃ name, ty = .contract name))
-    (hstore : storageLocStore evm loc (.int n) = some evm') :
+    (hstore : (storageLocStore (Stele.EVM.ownStorage evm) loc (.int n)).map
+      (Stele.EVM.setOwnStorage evm) = some evm') :
     assignStorageRef? cfg stele evm .storage slot (.int n) = .ok (stele, evm') := by
   exact assignStorageRef_storage_scalar_value hbase her hty hbackend hloc hleaf hstore
 
@@ -1493,7 +1504,8 @@ theorem assignStorageRef_storage_bool_word {cfg : Config} {layout : StorageLayou
     (hbackend : cfg.storageBackend = solidityStorageBackend layout)
     (hloc : layout er = some (.leaf loc))
     (hleaf : (∃ t, ty = .elem t) ∨ (∃ name, ty = .contract name))
-    (hstore : storageLocStore evm loc (wordToElem .bool word) = some evm') :
+    (hstore : (storageLocStore (Stele.EVM.ownStorage evm) loc (wordToElem .bool word)).map
+      (Stele.EVM.setOwnStorage evm) = some evm') :
     assignStorageRef? cfg stele evm .storage slot (wordToElem .bool word) =
       .ok (stele, evm') := by
   exact assignStorageRef_storage_scalar_value hbase her hty hbackend hloc hleaf hstore

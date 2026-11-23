@@ -27,8 +27,11 @@ here is proven yet. The intended Solidity instance is sketched at the end.
 * **Mappings cannot be cleared or read whole.** Clear laws only promise a default value for
   mapping-free parts, and leave everything reached through a mapping step unchanged. The same holds
   for a popped element: mapping contents survive `pop`/`delete` and can reappear after `push`.
-* Laws are stated in **partial-correctness form** (`op = .ok evm' → …`), with separate progress laws
+* Laws are stated in **partial-correctness form** (`op = .ok s' → …`), with separate progress laws
   where an operation must not get stuck.
+* Backends act on **one storage map**, so locality needs no law: an operation cannot see or touch
+  anything but the map the semantics hands it (the executing account's persistent or transient
+  storage).
 -/
 
 namespace Stele
@@ -135,33 +138,18 @@ def CanonicalSteps (decls : List StorageDecl) (er : EvaledStorageRef) : Prop :=
 def Ref (decls : List StorageDecl) (er : EvaledStorageRef) (ty : StorageType) : Prop :=
   storageTypeAt? decls er = some ty ∧ CanonicalSteps decls er
 
-/-- Every array/bytes index on the path is below the length of what it indexes, in state `evm`.
+/-- Every array/bytes index on the path is below the length of what it indexes, in storage `s`.
     Backend operations do not bounds-check (evaluation does), so some laws need this explicitly. -/
-def InBounds (decls : List StorageDecl) (B : StorageBackend) (evm : EVM.State)
+def InBounds (decls : List StorageDecl) (B : StorageBackend) (s : SlotMap)
     (er : EvaledStorageRef) : Prop :=
   ∀ pre (i : Int) post, er.steps = pre ++ .aindex (.int i) :: post →
     match storageTypeAt? decls { er with steps := pre } with
     | some (.array _ n) => i < n
-    | some ty => ∃ n : Nat, B.length { er with steps := pre } ty evm = .ok n ∧ i < n
+    | some ty => ∃ n : Nat, B.length { er with steps := pre } ty s = .ok n ∧ i < n
     | none => False
 
 /-- The element type of a byte of `bytes`/`string`, as given by `storageTypeStep?`. -/
 abbrev byteType : StorageType := .elem (.int (.uint ⟨8, by decide⟩))
-
-/-! ## State relations -/
-
-/-- Same executing contract, and its storage agrees everywhere. -/
-def SameOwnStorage (evm evm' : EVM.State) : Prop :=
-  evm.executionEnv.codeOwner = evm'.executionEnv.codeOwner ∧
-  ∀ slot, EVM.storageLoad evm evm.executionEnv.codeOwner slot =
-    EVM.storageLoad evm' evm'.executionEnv.codeOwner slot
-
-/-- `evm'` differs from `evm` at most in the storage of the executing contract. -/
-def OnlyOwnStorageChanged (evm evm' : EVM.State) : Prop :=
-  { evm with accountMap := evm'.accountMap } = evm' ∧
-  (∀ a, a ≠ evm.executionEnv.codeOwner → evm'.accountMap.get? a = evm.accountMap.get? a) ∧
-  ((evm'.accountMap.get? evm.executionEnv.codeOwner).map fun acc => { acc with storage := default }) =
-    ((evm.accountMap.get? evm.executionEnv.codeOwner).map fun acc => { acc with storage := default })
 
 /-! ## Mutations and separation -/
 
@@ -173,210 +161,199 @@ inductive Mutation where
   | pop
 
 def Mutation.run (B : StorageBackend) :
-    Mutation → EvaledStorageRef → StorageType → EVM.State → EvalResult EVM.State
-  | .write value, er, ty, evm => B.write er ty value evm
-  | .clear, er, ty, evm => B.clear er ty evm
-  | .push value, er, ty, evm => B.push er ty value evm
-  | .pop, er, ty, evm => B.pop er ty evm
+    Mutation → EvaledStorageRef → StorageType → SlotMap → EvalResult SlotMap
+  | .write value, er, ty, s => B.write er ty value s
+  | .clear, er, ty, s => B.clear er ty s
+  | .push value, er, ty, s => B.push er ty value s
+  | .pop, er, ty, s => B.pop er ty s
 
-/-- `Sep evm evm' r₁ t₁ r₂ t₂`: a mutation at `r₁` taking `evm` to `evm'` cannot physically touch
-    `r₂`. It sees both states because footprints of dynamic values depend on lengths, and a mutation
+/-- `Sep s s' r₁ t₁ r₂ t₂`: a mutation at `r₁` taking `s` to `s'` cannot physically touch
+    `r₂`. It sees both storage maps because footprints of dynamic values depend on lengths, and a mutation
     may change them (a write of a longer array touches more elements than were there before). -/
 abbrev Separation :=
-  (evm evm' : EVM.State) → EvaledStorageRef → StorageType → EvaledStorageRef → StorageType → Prop
+  (s s' : SlotMap) → EvaledStorageRef → StorageType → EvaledStorageRef → StorageType → Prop
 
 /-! ## Read decomposition helpers -/
 
 /-- Read every field of a struct stored at `er`. -/
-def readFields (B : StorageBackend) (er : EvaledStorageRef) (evm : EVM.State)
+def readFields (B : StorageBackend) (er : EvaledStorageRef) (s : SlotMap)
     (fields : List (Ident × StorageType)) : EvalResult (List (Ident × Value)) :=
   fields.mapM fun field => do
-    let value <- B.read (er.child (.field field.1)) field.2 evm
+    let value <- B.read (er.child (.field field.1)) field.2 s
     pure (field.1, value)
 
 /-- Read the first `n` elements of an array stored at `er`. -/
-def readElems (B : StorageBackend) (er : EvaledStorageRef) (evm : EVM.State)
+def readElems (B : StorageBackend) (er : EvaledStorageRef) (s : SlotMap)
     (elem : StorageType) (n : Nat) : EvalResult (List Value) :=
-  (List.range n).mapM fun i => B.read (er.child (.aindex (.int i))) elem evm
+  (List.range n).mapM fun i => B.read (er.child (.aindex (.int i))) elem s
 
 /-! ## The laws -/
 
 structure LawfulStorageBackend (decls : List StorageDecl) (B : StorageBackend)
     (Sep : Separation) : Prop where
 
-  -- ### Locality: storage operations only see and touch the contract's own storage
-
-  read_congr : ∀ {er ty evm evm'},
-    SameOwnStorage evm evm' → B.read er ty evm = B.read er ty evm'
-
-  length_congr : ∀ {er ty evm evm'},
-    SameOwnStorage evm evm' → B.length er ty evm = B.length er ty evm'
-
-  mutation_local : ∀ {m : Mutation} {er ty evm evm'},
-    m.run B er ty evm = .ok evm' → OnlyOwnStorageChanged evm evm'
-
   -- ### Frame: a mutation leaves disjoint, separated references unchanged
 
-  read_frame : ∀ {m : Mutation} {er₁ ty₁ er₂ ty₂ evm evm'},
+  read_frame : ∀ {m : Mutation} {er₁ ty₁ er₂ ty₂ s s'},
     Ref decls er₁ ty₁ → Ref decls er₂ ty₂ → Disjoint er₁ er₂ →
-    m.run B er₁ ty₁ evm = .ok evm' → Sep evm evm' er₁ ty₁ er₂ ty₂ →
-    B.read er₂ ty₂ evm' = B.read er₂ ty₂ evm
+    m.run B er₁ ty₁ s = .ok s' → Sep s s' er₁ ty₁ er₂ ty₂ →
+    B.read er₂ ty₂ s' = B.read er₂ ty₂ s
 
-  length_frame : ∀ {m : Mutation} {er₁ ty₁ er₂ ty₂ evm evm'},
+  length_frame : ∀ {m : Mutation} {er₁ ty₁ er₂ ty₂ s s'},
     Ref decls er₁ ty₁ → Ref decls er₂ ty₂ → Disjoint er₁ er₂ →
-    m.run B er₁ ty₁ evm = .ok evm' → Sep evm evm' er₁ ty₁ er₂ ty₂ →
-    B.length er₂ ty₂ evm' = B.length er₂ ty₂ evm
+    m.run B er₁ ty₁ s = .ok s' → Sep s s' er₁ ty₁ er₂ ty₂ →
+    B.length er₂ ty₂ s' = B.length er₂ ty₂ s
 
   -- ### Write
 
   /-- A written value reads back. -/
-  read_write : ∀ {er ty value evm evm'},
+  read_write : ∀ {er ty value s s'},
     Ref decls er ty → HasType ty value →
-    B.write er ty value evm = .ok evm' → B.read er ty evm' = .ok value
+    B.write er ty value s = .ok s' → B.read er ty s' = .ok value
 
   /-- Writing a well-typed value never gets stuck. (It may revert, e.g. on a corrupt bytes
       header in an arbitrary pre-state.) -/
-  write_progress : ∀ {er ty value evm e},
-    Ref decls er ty → HasType ty value → B.write er ty value evm ≠ .error e
+  write_progress : ∀ {er ty value s e},
+    Ref decls er ty → HasType ty value → B.write er ty value s ≠ .error e
 
   -- ### Read decomposition: aggregates read as their components
 
-  read_struct : ∀ {er name fields evm},
+  read_struct : ∀ {er name fields s},
     Ref decls er (.struct name fields) →
-    B.read er (.struct name fields) evm = (Value.struct name ·) <$> readFields B er evm fields
+    B.read er (.struct name fields) s = (Value.struct name ·) <$> readFields B er s fields
 
-  read_array : ∀ {er elem n evm},
+  read_array : ∀ {er elem n s},
     Ref decls er (.array elem n) →
-    B.read er (.array elem n) evm = Value.array <$> readElems B er evm elem n
+    B.read er (.array elem n) s = Value.array <$> readElems B er s elem n
 
-  read_dynamicArray : ∀ {er elem evm},
+  read_dynamicArray : ∀ {er elem s},
     Ref decls er (.dynamicArray elem) →
-    B.read er (.dynamicArray elem) evm = (do
-      let n <- B.length er (.dynamicArray elem) evm
-      Value.array <$> readElems B er evm elem n)
+    B.read er (.dynamicArray elem) s = (do
+      let n <- B.length er (.dynamicArray elem) s
+      Value.array <$> readElems B er s elem n)
 
-  length_array : ∀ {er elem n evm},
-    Ref decls er (.array elem n) → B.length er (.array elem n) evm = .ok n
+  length_array : ∀ {er elem n s},
+    Ref decls er (.array elem n) → B.length er (.array elem n) s = .ok n
 
-  length_bytes : ∀ {er ty b evm},
+  length_bytes : ∀ {er ty b s},
     Ref decls er ty → (ty = .bytes ∨ ty = .string) →
-    B.read er ty evm = .ok (.bytes b) → B.length er ty evm = .ok b.size
+    B.read er ty s = .ok (.bytes b) → B.length er ty s = .ok b.size
 
-  read_bytes_index : ∀ {er ty b evm} {i : Nat},
+  read_bytes_index : ∀ {er ty b s} {i : Nat},
     Ref decls er ty → (ty = .bytes ∨ ty = .string) →
-    B.read er ty evm = .ok (.bytes b) → i < b.size →
-    B.read (er.child (.aindex (.int i))) byteType evm = .ok (.int ((b.get! i).toNat : Int))
+    B.read er ty s = .ok (.bytes b) → i < b.size →
+    B.read (er.child (.aindex (.int i))) byteType s = .ok (.int ((b.get! i).toNat : Int))
 
   -- ### Clear (Solidity `delete`)
 
   /-- Everything reachable from a cleared reference without passing through a mapping reads as
       its default value. Indices are bounded by the lengths *before* the clear. -/
-  read_clear : ∀ {er ty evm evm' suffix ty'},
-    Ref decls er ty → B.clear er ty evm = .ok evm' →
+  read_clear : ∀ {er ty s s' suffix ty'},
+    Ref decls er ty → B.clear er ty s = .ok s' →
     Ref decls (er.extend suffix) ty' → ¬ ThroughMapping suffix → MappingFree ty' →
-    InBounds decls B evm (er.extend suffix) →
-    B.read (er.extend suffix) ty' evm' = defaultValue? ty'
+    InBounds decls B s (er.extend suffix) →
+    B.read (er.extend suffix) ty' s' = defaultValue? ty'
 
   /-- Mapping entries are not cleared. -/
-  read_clear_mapping : ∀ {er ty evm evm' suffix ty'},
-    Ref decls er ty → B.clear er ty evm = .ok evm' →
+  read_clear_mapping : ∀ {er ty s s' suffix ty'},
+    Ref decls er ty → B.clear er ty s = .ok s' →
     Ref decls (er.extend suffix) ty' → ThroughMapping suffix →
-    B.read (er.extend suffix) ty' evm' = B.read (er.extend suffix) ty' evm
+    B.read (er.extend suffix) ty' s' = B.read (er.extend suffix) ty' s
 
-  length_clear : ∀ {er ty evm evm'},
+  length_clear : ∀ {er ty s s'},
     Ref decls er ty → (ty = .bytes ∨ ty = .string ∨ ∃ elem, ty = .dynamicArray elem) →
-    B.clear er ty evm = .ok evm' → B.length er ty evm' = .ok 0
+    B.clear er ty s = .ok s' → B.length er ty s' = .ok 0
 
-  clear_progress : ∀ {er ty evm e},
-    Ref decls er ty → B.clear er ty evm ≠ .error e
+  clear_progress : ∀ {er ty s e},
+    Ref decls er ty → B.clear er ty s ≠ .error e
 
   -- ### Dynamic arrays: push and pop
 
-  length_push : ∀ {er elem value evm evm' n},
+  length_push : ∀ {er elem value s s' n},
     Ref decls er (.dynamicArray elem) →
-    B.length er (.dynamicArray elem) evm = .ok n →
-    B.push er (.dynamicArray elem) value evm = .ok evm' →
-    B.length er (.dynamicArray elem) evm' = .ok (n + 1)
+    B.length er (.dynamicArray elem) s = .ok n →
+    B.push er (.dynamicArray elem) value s = .ok s' →
+    B.length er (.dynamicArray elem) s' = .ok (n + 1)
 
-  read_push_value : ∀ {er elem value evm evm' n},
+  read_push_value : ∀ {er elem value s s' n},
     Ref decls er (.dynamicArray elem) → HasType elem value →
-    B.length er (.dynamicArray elem) evm = .ok n →
-    B.push er (.dynamicArray elem) (some value) evm = .ok evm' →
-    B.read (er.child (.aindex (.int n))) elem evm' = .ok value
+    B.length er (.dynamicArray elem) s = .ok n →
+    B.push er (.dynamicArray elem) (some value) s = .ok s' →
+    B.read (er.child (.aindex (.int n))) elem s' = .ok value
 
   /-- `push()` does not write the new element: it reads whatever was there. In reachable states
       that is the default value, because `pop` and `clear` reset removed elements (except their
       mapping contents). If the backend is changed to zero the new element, which I believe solc's
       IR code generator does, this becomes "`= defaultValue? elem`" for mapping-free `elem`. -/
-  read_push_none : ∀ {er elem evm evm' n},
+  read_push_none : ∀ {er elem s s' n},
     Ref decls er (.dynamicArray elem) →
-    B.length er (.dynamicArray elem) evm = .ok n →
-    B.push er (.dynamicArray elem) none evm = .ok evm' →
-    B.read (er.child (.aindex (.int n))) elem evm' =
-      B.read (er.child (.aindex (.int n))) elem evm
+    B.length er (.dynamicArray elem) s = .ok n →
+    B.push er (.dynamicArray elem) none s = .ok s' →
+    B.read (er.child (.aindex (.int n))) elem s' =
+      B.read (er.child (.aindex (.int n))) elem s
 
   /-- Existing elements, and everything below them, are unchanged by `push`. -/
-  read_push_old : ∀ {er elem value evm evm' n} {i : Nat} {suffix ty'},
+  read_push_old : ∀ {er elem value s s' n} {i : Nat} {suffix ty'},
     Ref decls er (.dynamicArray elem) →
-    B.length er (.dynamicArray elem) evm = .ok n → i < n →
-    B.push er (.dynamicArray elem) value evm = .ok evm' →
+    B.length er (.dynamicArray elem) s = .ok n → i < n →
+    B.push er (.dynamicArray elem) value s = .ok s' →
     Ref decls (er.extend (.aindex (.int i) :: suffix)) ty' →
-    B.read (er.extend (.aindex (.int i) :: suffix)) ty' evm' =
-      B.read (er.extend (.aindex (.int i) :: suffix)) ty' evm
+    B.read (er.extend (.aindex (.int i) :: suffix)) ty' s' =
+      B.read (er.extend (.aindex (.int i) :: suffix)) ty' s
 
-  pop_empty : ∀ {er elem evm},
+  pop_empty : ∀ {er elem s},
     Ref decls er (.dynamicArray elem) →
-    B.length er (.dynamicArray elem) evm = .ok 0 →
-    B.pop er (.dynamicArray elem) evm = .revert
+    B.length er (.dynamicArray elem) s = .ok 0 →
+    B.pop er (.dynamicArray elem) s = .revert
 
-  length_pop : ∀ {er elem evm evm' n},
+  length_pop : ∀ {er elem s s' n},
     Ref decls er (.dynamicArray elem) →
-    B.length er (.dynamicArray elem) evm = .ok (n + 1) →
-    B.pop er (.dynamicArray elem) evm = .ok evm' →
-    B.length er (.dynamicArray elem) evm' = .ok n
+    B.length er (.dynamicArray elem) s = .ok (n + 1) →
+    B.pop er (.dynamicArray elem) s = .ok s' →
+    B.length er (.dynamicArray elem) s' = .ok n
 
   /-- The removed element is cleared, with the same mapping exception as `clear`. -/
-  read_pop_removed : ∀ {er elem evm evm' n suffix ty'},
+  read_pop_removed : ∀ {er elem s s' n suffix ty'},
     Ref decls er (.dynamicArray elem) →
-    B.length er (.dynamicArray elem) evm = .ok (n + 1) →
-    B.pop er (.dynamicArray elem) evm = .ok evm' →
+    B.length er (.dynamicArray elem) s = .ok (n + 1) →
+    B.pop er (.dynamicArray elem) s = .ok s' →
     Ref decls (er.extend (.aindex (.int n) :: suffix)) ty' →
     ¬ ThroughMapping suffix → MappingFree ty' →
-    InBounds decls B evm (er.extend (.aindex (.int n) :: suffix)) →
-    B.read (er.extend (.aindex (.int n) :: suffix)) ty' evm' = defaultValue? ty'
+    InBounds decls B s (er.extend (.aindex (.int n) :: suffix)) →
+    B.read (er.extend (.aindex (.int n) :: suffix)) ty' s' = defaultValue? ty'
 
-  read_pop_old : ∀ {er elem evm evm' n} {i : Nat} {suffix ty'},
+  read_pop_old : ∀ {er elem s s' n} {i : Nat} {suffix ty'},
     Ref decls er (.dynamicArray elem) →
-    B.length er (.dynamicArray elem) evm = .ok (n + 1) → i < n →
-    B.pop er (.dynamicArray elem) evm = .ok evm' →
+    B.length er (.dynamicArray elem) s = .ok (n + 1) → i < n →
+    B.pop er (.dynamicArray elem) s = .ok s' →
     Ref decls (er.extend (.aindex (.int i) :: suffix)) ty' →
-    B.read (er.extend (.aindex (.int i) :: suffix)) ty' evm' =
-      B.read (er.extend (.aindex (.int i) :: suffix)) ty' evm
+    B.read (er.extend (.aindex (.int i) :: suffix)) ty' s' =
+      B.read (er.extend (.aindex (.int i) :: suffix)) ty' s
 
   -- ### Bytes and strings: push and pop, observed through the whole value
 
-  read_push_byte_none : ∀ {er ty b evm evm'},
+  read_push_byte_none : ∀ {er ty b s s'},
     Ref decls er ty → (ty = .bytes ∨ ty = .string) →
-    B.read er ty evm = .ok (.bytes b) →
-    B.push er ty none evm = .ok evm' →
-    B.read er ty evm' = .ok (.bytes (b.push 0))
+    B.read er ty s = .ok (.bytes b) →
+    B.push er ty none s = .ok s' →
+    B.read er ty s' = .ok (.bytes (b.push 0))
 
-  read_push_byte : ∀ {er ty b evm evm'} {x : UInt8},
+  read_push_byte : ∀ {er ty b s s'} {x : UInt8},
     Ref decls er ty → (ty = .bytes ∨ ty = .string) →
-    B.read er ty evm = .ok (.bytes b) →
-    B.push er ty (some (.fixedBytes 0 [x])) evm = .ok evm' →
-    B.read er ty evm' = .ok (.bytes (b.push x))
+    B.read er ty s = .ok (.bytes b) →
+    B.push er ty (some (.fixedBytes 0 [x])) s = .ok s' →
+    B.read er ty s' = .ok (.bytes (b.push x))
 
-  pop_byte_empty : ∀ {er ty evm},
+  pop_byte_empty : ∀ {er ty s},
     Ref decls er ty → (ty = .bytes ∨ ty = .string) →
-    B.read er ty evm = .ok (.bytes ByteArray.empty) →
-    B.pop er ty evm = .revert
+    B.read er ty s = .ok (.bytes ByteArray.empty) →
+    B.pop er ty s = .revert
 
-  read_pop_byte : ∀ {er ty b evm evm'},
+  read_pop_byte : ∀ {er ty b s s'},
     Ref decls er ty → (ty = .bytes ∨ ty = .string) →
-    B.read er ty evm = .ok (.bytes b) → 0 < b.size →
-    B.pop er ty evm = .ok evm' →
-    B.read er ty evm' = .ok (.bytes (b.extract 0 (b.size - 1)))
+    B.read er ty s = .ok (.bytes b) → 0 < b.size →
+    B.pop er ty s = .ok s' →
+    B.read er ty s' = .ok (.bytes (b.extract 0 (b.size - 1)))
 
 /-! ## Intended Solidity instance (not yet stated formally)
 
@@ -385,12 +362,12 @@ structure LawfulStorageBackend (decls : List StorageDecl) (B : StorageBackend)
     header slot and data words of a bytes/string, and for a dynamic array its length slot plus the
     footprints of the elements below its current length. -/
 def solidityFootprint (layout : StorageLayout) (er : EvaledStorageRef) (ty : StorageType)
-    (evm : EVM.State) : Set (EVM.Word × Fin 256)
+    (s : SlotMap) : Set (EVM.Word × Fin 256)
 
 def soliditySep (layout : StorageLayout) : Separation :=
-  fun evm evm' r₁ t₁ r₂ t₂ =>
-    Disjoint (solidityFootprint layout r₁ t₁ evm ∪ solidityFootprint layout r₁ t₁ evm')
-             (solidityFootprint layout r₂ t₂ evm)
+  fun s s' r₁ t₁ r₂ t₂ =>
+    Disjoint (solidityFootprint layout r₁ t₁ s ∪ solidityFootprint layout r₁ t₁ s')
+             (solidityFootprint layout r₂ t₂ s)
 
 /-- What the generic proof needs from a locator: well-typed leaves are located at their type with
     the right size, dynamically-sized values at an anchor, and bytes elements symbolically. -/

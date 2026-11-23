@@ -39,8 +39,12 @@ Transient state is declared with `uint256 transient flag;` and stored separately
 `solidityTransientStorage! [contract.structs] [contract.transient]` in
 `Config.transientBackend`; persistent state still uses `Config.storageBackend`.
 The two layouts each start at slot zero and use the current Solidity packing rules.
-The transient backend implements the same encoding and aggregate operations directly
-against the executing account's `tstorage` map.
+
+A `StorageBackend` acts on a single storage map (`SlotMap`), not on the EVM state: the
+semantics passes it the executing account's storage (`EVM.ownStorage`, or `EVM.ownTransient`
+for the transient backend) and writes the result back (`EVM.setOwnStorage` /
+`EVM.setOwnTransient`). A backend therefore cannot read or change anything else, and the
+Solidity transient backend is the persistent one applied to the `tstorage` map.
 
 Reads and assignments resolve the declared storage kind. `delete`, `push`, and `pop`
 also select the appropriate backend; local persistent-storage aliases take precedence.
@@ -84,7 +88,7 @@ Stele/
 ├── SolidityLayout.lean    solc's storage layout (slots, packing, keccak-derived
 │                          mapping/array locations, bytes/string representation)
 ├── SolidityStorage.lean   operations on Solidity storage through StorageBackend
-├── TransientStorage.lean  Solidity encoding over the executing account's transient map
+├── TransientStorage.lean  the Solidity backend, reused for the transient map
 ├── MetaSolidityLayout.lean generated layouts and persistent/transient backend macros
 ├── MetaVyperLayout.lean compile-time Vyper layouts, including bounded arrays and strings
 ├── VyperStorage.lean      Vyper storage backend with inline bytes and array bounds
