@@ -19,11 +19,15 @@ M=Benchmarks.Scaffolds.Foo        # its Lean module path
 scripts/scaffold.py compile --dir $D --solc /path/to/solc-0.8.20 --main contracts/Foo.sol \
     --contract Foo --runs 200 --evm-version shanghai --metadata-hash none
 
-# 2. Bytecode.lean (chunked bytes + JUMPDEST theorems), Selectors.lean (table + keccak facts),
+# 2. Bytecode.lean / CreationBytecode.lean: the runtime / creation bytecode as listings (a
+#    `listing_from_hex` command over runtime.hex / creation.hex, pinned by SHA-256, that decodes
+#    them into tables of instructions checked against the bytes in the kernel; they define
+#    fooBytecode and fooCreationBytecode), Selectors.lean (table + keccak facts),
 #    Immutables.lean / ImmutableCode.lean for contracts with immutables
 scripts/scaffold.py lean --dir $D --module $M
 
-# 3. proved block summaries for the runtime and the creation code
+# 3. proved block summaries for the runtime and the creation code, by runs over the listings
+#    (without native_decide)
 scripts/scaffold.py blocks --dir $D --module $M
 
 # 4. the bytecode report: census, dispatcher, source functions, routines, annotated blocks
@@ -117,17 +121,19 @@ for a complete Vyper proof and `Examples/VyperImmutable` for the immutable suffi
 | Script | Output | Notes |
 |---|---|---|
 | `scaffold.py compile` | `runtime.hex`, `creation.hex`, `<Name>.abi.json`, `<Name>.storage.json`, `<Name>.build.json`, `sources.sha256`; solc also emits `<Name>.sol.ast.json` and `<Name>.metadata.json` | `build.json` holds compiler settings and selectors. Solc includes AST and immutable patch sites; Vyper includes its source maps and code-layout immutables. |
-| `scaffold.py lean` | `Bytecode.lean`, `Selectors.lean`, `Immutables.lean`, `ImmutableCode.lean` | Selector table in `SpecSyntax.lean` order when that file exists, else by selector value. Selector facts are spec-independent keccak facts; the bridge to each transition is in the skeleton's `Common.lean`. |
-| `scaffold.py blocks` | `RuntimeBlocks_NNN.lean`, `CreationBlocks_NNN.lean`, `.index` files | `generate_rd_blocks.py` driven with the right code terms, immutable-aware when needed. |
-| `scaffold.py check` | report | Lean bytes vs hex, jump tables vs the EVM scan, selector table vs ABI and spec order, immutable offsets, source hashes. |
+| `scaffold.py lean` | `Bytecode.lean`, `CreationBytecode.lean`, `Selectors.lean`, `Immutables.lean`, `ImmutableCode.lean` | The two listings are written by `gen_listing.py`'s code (below). Selector table in `SpecSyntax.lean` order when that file exists, else by selector value. Selector facts are spec-independent keccak facts; the bridge to each transition is in the skeleton's `Common.lean`. |
+| `gen_listing.py` | `Bytecode.lean`, with `--creation` `CreationBytecode.lean` | What `scaffold.py lean` writes, as a command of its own (to regenerate a listing alone, or with `--layout`). The file is one `listing_from_hex` command (`Reasoning/Listing/FromHex.lean`) naming `runtime.hex` (`creation.hex`) and its SHA-256; when the module is built the command reads the file, checks the hash, and adds the listing: the bytes (solc immutable sites zeroed), the table of `(offset, section)` pairs of decoded instructions (sections cut at every `JUMPDEST`, immutable pushes as `.immutable i`), the kernel check of the table against the bytes, the proof that the code the summaries name is the listing's filled code, and `decodes_code` / `jumpdest_code`. `#print_listing <Module>.Listing.table` (after `import <Module>.Bytecode`) prints the instructions with their offsets. Runtime code with 32-byte solc immutables (`layout <term> … blocks <namespace>`: the sites are the layout's, the layout facts go in the blocks namespace; `names [...]` is written when the build JSON numbers the immutables otherwise than by first appearance) or none; a Vyper runtime (`template ++ suffix`) and, with `--creation`, creation code (`creationBytecode ++ tail`) are listed as fixed code followed by arbitrary data (`followed_by`). Without a build JSON, `--layout <term> --layout-import <module>` name the immutable layout (EAS Attester). The file defines the bytecode constant (`<prefix>Bytecode`, `<prefix>CreationBytecode`); its declarations are in the namespace `<Module>.Listing` (`<Module>.CreationListing`); `--constant-namespace` puts the constant elsewhere (`''`: the root). `--valid-jumps <name>` also states membership in the `JUMPDEST` set as a lookup in the listing's tree, the `@[valid_jumps]` theorem `<name>` (`(D_J <code> 0).contains t = …`, `Reasoning/Listing/JumpTable.lean`), which the `jump_dest` tactic rewrites with before `decide +kernel`; `--provenance <file>` adds prose (how the bytes were produced) to the module doc. Lake does not track the hex file: after changing it, regenerate the listing (new hash). |
+| `scaffold.py blocks` | `RuntimeBlocks_NNN.lean`, `CreationBlocks_NNN.lean`, `.index` files | `generate_rd_blocks.py` driven with the right code terms, immutable-aware when needed. When `Bytecode.lean` / `CreationBytecode.lean` are listings (by content; and `--no-listing` is not given) each runtime / creation summary is proved by `Reasoning.Listing.RDL.run` over the listing; a block with an instruction the run does not cover keeps its `RD.<opcode>` chain. Statements are unchanged except that a runtime block jumping to a literal target has no `hvalid` hypothesis: the run looks the target up in the listing (`jumpdest_code`). A jump through a stack word keeps it. |
+| `scaffold.py check` | report | Each listing's namespace, constant, hex file (`runtime.hex` / `creation.hex`) and its SHA-256 against the one in the listing, its mode (`followed_by`), and for solc immutables its layout's sites (evaluated in Lean when the layout module is built) against the build JSON; the table is checked by the kernel when the listing is built. `--constant-namespace` as for `lean`. Selector table vs ABI and spec order, immutable offsets, source hashes. |
 | `scaffold.py difftest` | `DiffTarget.lean`, `Tests/DiffTest/Generated.lean` | The contract's `Target` for the differential suite (spec, config, runtime, creation code, immutable plumbing when the contract has immutables) and the registry of every `DiffTarget.lean` in the repository, which `lake exe stele-difftest` runs. Delete a `DiffTarget.lean` and rerun to unregister. |
 | `bytecode_report.py` | Markdown | Opcode census, dispatcher, JUMPDEST set and annotated blocks. Solc reports AST function ranges and internal routines; Vyper reports source lines from `pc_pos_map`. |
 | `sol2stele.py` | `SpecSyntax.lean` draft, optional `.spec.json` | From the solc AST: storage (persistent and `transient`)/structs/events/immutables, constructor with base constructors and initialisers inlined, external functions (modifiers inlined, getters generated), reachable internal and library functions, checked arithmetic from static types, external calls bound with view flags and EXTCODESIZE guards, via-IR calldata guard. Holes for what it cannot translate. |
 | `vy2stele.py` | `SpecSyntax.lean` draft, optional `.spec.json` | From the Vyper annotated AST: storage in layout order (modules prefixed), structs/events/immutables, constructor, one transition per selector (default-argument variants, getters, module exports), reachable internal functions, checked arithmetic and `convert` from static types, the `@nonreentrant` lock protocol, external calls bound with view flags and Vyper's EXTCODESIZE guard, `send`/`raw_call` as low-level calls. Holes for what it cannot translate. |
-| `proof_skeleton.py` | `Spec.lean`, `Common.lean`, `Dispatch.lean`, `<Fn>.lean`, `Constructor.lean`, `Correct.lean` | solc: the compare-chain or binary-search dispatcher; Vyper: the jump-table dispatcher (`Reasoning/VyperDispatch.lean`), Vyper storage and ABI defaults in `Spec.lean` that need capacity review, the `deployed_of_fit` stub for immutables, and with `--wf <name>` the storage-precondition form of the runtime theorems. |
+| `proof_skeleton.py` | `Spec.lean`, `Common.lean`, `Dispatch.lean`, `<Fn>.lean`, `Constructor.lean`, `Correct.lean` | solc: the compare-chain or binary-search dispatcher; Vyper: the jump-table dispatcher (`Reasoning/VyperDispatch.lean`), Vyper storage and ABI defaults in `Spec.lean` that need capacity review, the `deployed_of_fit` stub for immutables, and with `--wf <name>` the storage-precondition form of the runtime theorems. Jump validity goes through `<prefix>Jumpdest` in `Common.lean` (the listing's `jumpdest_code`, `rfl rfl` for a literal target); the dispatcher chains pass no `hvalid` to a block whose generated statement has none. |
 | `check_sol2stele.py` | report | Translates every given directory (solc or Vyper, by the build JSON) and elaborates the drafts (holes as comments). |
 | `finish_check.py` | report | Build, differential suite on the contract (`--difftest-count`, `--skip-difftest`), `sorry`/`admit`/`axiom` grep, `#print axioms` against the accepted trusted base. |
-| `check_all_benchmark_blocks.py` | report | Check that benchmark block summaries compile, excluding temporary contracts under `Benchmarks/Scaffolds/`. CI selects `UniswapV3/Pool`. |
+| `check_all_benchmark_blocks.py` | report | Check that benchmark block summaries compile, excluding temporary contracts under `Benchmarks/Scaffolds/`. Finds a contract by its `Bytecode.lean` listing and generates with it (its constant, blocks namespace and immutable layout). CI selects `UniswapV3/Pool`. |
+| `check_listing_hashes.py` | report | Every `listing_from_hex` in the repository names an existing hex file whose SHA-256 is the one written in the listing (no Lean needed; CI runs it). Lake does not track hex files, so an edited hex file with stale `.olean`s would otherwise go unnoticed until a clean build. |
 
 ## Conventions the generators follow
 
@@ -161,6 +167,7 @@ for a complete Vyper proof and `Examples/VyperImmutable` for the immutable suffi
 ```bash
 python3 scripts/test_generate_rd_blocks.py
 python3 scripts/test_scaffold_tools.py
+python3 scripts/check_listing_hashes.py
 VYPER=/path/to/vyper-0.4.3 python3 -B -m unittest discover -s scripts -p test_vy2stele.py
 ```
 

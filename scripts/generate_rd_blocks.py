@@ -48,9 +48,10 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Iterable
 
-from bytecode_io import parse_bytecode_text, read_bytecode
+from bytecode_io import parse_bytecode_text, read_bytecode, read_listing
 
 
+ROOT = Path(__file__).resolve().parent.parent
 TERMINATORS = {0x00, 0x56, 0x57, 0xF3, 0xFD, 0xFE, 0xFF}
 MAX_SUMMARY_INSTRUCTIONS = 64
 
@@ -961,12 +962,236 @@ def simulate(block: list[Instruction], branch: str | None,
                    f"r{rno}", codecopies, mloads, word_writes, return_window)
 
 
+@dataclass(frozen=True)
+class Listing:
+    """Listing mode: block proofs are runs over the contract's checked listing.
+
+    ``module`` is the namespace of the listing (``gen_listing.py``: `<M>.Listing`,
+    `<M>.CreationListing`), ``import_module`` the Lean module that holds it (`<M>.Bytecode`,
+    `<M>.CreationBytecode`; the namespace when not given); ``where`` maps an instruction offset
+    to its section's offset and its index in that section.
+    """
+    module: str
+    where: dict[int, tuple[int, int]]
+    # Name of the arbitrary data the summaries append to the code (`tail` for creation code,
+    # `suffix` for a Vyper runtime); `None` when the code stands alone.
+    tail: str | None = None
+    # With a tail: sections from this offset on are not claimed (a final push cut short by the
+    # end of the code would read the appended bytes).
+    limit: int | None = None
+    # Whole instructions in the section at `limit` (the listing's `decodes_last` covers them).
+    last_count: int = 0
+    import_module: str | None = None
+
+    @property
+    def lean_import(self) -> str:
+        return self.import_module or self.module
+
+    @staticmethod
+    def of(module: str, code: bytes, tail: str | None = None,
+           import_module: str | None = None) -> "Listing":
+        where = listing_positions(code)
+        limit = None
+        last_count = 0
+        if tail is not None:
+            ends: dict[int, int] = {}
+            for pc, (section, _) in where.items():
+                op = code[pc]
+                ends[section] = pc + 1 + (op - 0x5F if 0x60 <= op <= 0x7F else 0)
+            limit = min((sec for sec, end in ends.items() if end > len(code)),
+                        default=len(code) + 1)
+            last_count = sum(1 for sec, _ in where.values() if sec == limit) - 1
+        return Listing(module, where, tail, limit, last_count, import_module)
+
+
+def lean_source(module: str) -> Path:
+    """The source file of a module of this package."""
+    return (ROOT / Path(*module.split("."))).with_suffix(".lean")
+
+
+def listing_of_module(import_module: str, code: bytes, tail: str | None = None) -> Listing:
+    """The listing held by the Lean module ``import_module``; its namespace is read from the
+    file (a module that is not a listing file of this package is taken as its own namespace)."""
+    found = read_listing(lean_source(import_module))
+    if found is not None and found.followed_by != tail:
+        raise ValueError(f"the listing {import_module} is followed by {found.followed_by!r}, "
+                         f"the code mode by {tail!r}")
+    return Listing.of(found.namespace if found else import_module, code, tail, import_module)
+
+
+def directory_listing(directory: Path, module: str, code: bytes, creation: bool = False,
+                      tail: str | None = None) -> Listing | None:
+    """The listing of a contract directory's runtime (`Bytecode.lean`) or creation code
+    (`CreationBytecode.lean`), when that file is a listing (a `listing_from_hex` command,
+    `gen_listing.py`); ``None`` otherwise (no file, or a file that is not a listing).  Creation
+    code is always followed by a `tail`; a Vyper runtime with immutables passes
+    ``tail="suffix"``.  The listing's own `followed_by` must agree."""
+    stem = "CreationBytecode" if creation else "Bytecode"
+    found = read_listing(directory / f"{stem}.lean")
+    if found is None:
+        return None
+    tail = "tail" if creation else tail
+    if found.followed_by != tail:
+        raise ValueError(f"{directory / stem}.lean is followed by {found.followed_by!r}, "
+                         f"the code mode by {tail!r}")
+    return Listing.of(found.namespace, code, tail, f"{module}.{stem}")
+
+
+def bytecode_imports(directory: Path, module: str, creation: bool = False) -> list[str]:
+    """The module that defines the directory's runtime (or creation) bytecode constant, the
+    listing `<M>.Bytecode` (`<M>.CreationBytecode`); nothing if the file does not exist.
+    (`render_module` imports a listing once, after `Reasoning.Listing.Run`.)"""
+    stem = "CreationBytecode" if creation else "Bytecode"
+    return [f"{module}.{stem}"] if (directory / f"{stem}.lean").exists() else []
+
+
+def listing_positions(code: bytes) -> dict[int, tuple[int, int]]:
+    """Offset -> (section offset, index in section); sections start at 0 and at each JUMPDEST."""
+    where: dict[int, tuple[int, int]] = {}
+    pc = start = index = 0
+    while pc < len(code):
+        op = code[pc]
+        if op == 0x5B and pc != 0:
+            start, index = pc, 0
+        where[pc] = (start, index)
+        index += 1
+        pc += 1 + (op - 0x5F if 0x60 <= op <= 0x7F else 0)
+    return where
+
+
+# The rules `Reasoning.Listing.step1`/`stepP` cover, by the name the chain proof uses.
+LISTING_RULES = (
+    {f"push{n}" for n in range(0, 33)} | {"pushConst"}
+    | {f"dup{n}" for n in range(1, 17)} | {f"swap{n}" for n in range(1, 17)}
+    | {"add", "mul", "sub", "div", "lt", "gt", "slt", "sgt", "eq", "and", "or", "xor", "shl",
+       "shr", "iszero", "calldatasize", "callvalue", "caller", "address", "codesize",
+       "returndatasize", "timestamp", "calldataload", "genMstore", "genMload", "genKeccak256",
+       "genCalldatacopy", "genCodecopy", "not", "chainid", "jumpdest", "pop", "sload",
+       "extcodesize", "sstore", "genLog1",
+       "genLog2", "genLog3", "genLog4", "genReturndatacopy", "genGas", "tload", "tstore",
+       "mod", "sdiv", "genMcopy", "byte", "sar", "signextend", "mulmod", "exp", "basefee",
+       "genMstore8"}
+)
+LISTING_ENDS = {"jump", "jumpiT", "jumpiNT", "genRev", "genRet", "stop", "invalid"}
+LISTING_PERM = {"sstore", "tstore", "genLog1", "genLog2", "genLog3", "genLog4"}
+
+
+def listing_proof(block: list[Instruction], summary: Summary, listing: Listing,
+                  immutables: bool) -> tuple[list[str], bool] | None:
+    """The block's proof as a run over the listing, or ``None`` to keep the rule chain.
+
+    The second component says that the proof shows by itself that the jump target is a jump
+    destination (a literal target, looked up in the listing): the statement then needs no
+    ``hvalid`` hypothesis.
+
+    The run (`Reasoning/Listing/Run.lean`) is told how many instructions to execute, the stack
+    bound of the statement, the gas spent before each `GAS` in the statement's own form, and
+    the hypotheses that discharge the side conditions it meets, in order.
+    """
+    if summary.existential_words or block[0].pc not in listing.where:
+        return None
+    rules: list[str] = []
+    side: list[str] = []
+    hints: list[str] = []
+    valid = "hvalid"
+    for step in summary.proof:
+        line = " ".join(step.split())
+        m = re.match(r"(?:have r\d+|obtain ⟨_, _, r\d+⟩|exact) (?::= )?"
+                     r"(?:RD\.(\w+) |r\d+\.(\w+))", line)
+        if m is None:
+            return None
+        rule = m.group(1) or m.group(2)
+        if rule not in LISTING_RULES and rule not in LISTING_ENDS:
+            return None
+        rules.append(rule)
+        if rule in ("jump", "jumpiT"):
+            # the chain's own proof that the target is a jump destination of the code
+            target = re.search(r"(\(j tail .* hvalid\)|hvalid) \(by evm_ov\)$", line)
+            if target is None:
+                return None
+            valid = target.group(1)
+        if rule in LISTING_PERM:
+            side.append("hperm")
+        elif rule == "genReturndatacopy":
+            guard = re.search(r" (hguard\d+) ", line)
+            if guard is not None:
+                side.append(guard.group(1))
+            elif "returnDataCopyFullGuard rdata" in line:
+                # `RETURNDATACOPY(0, 0, RETURNDATASIZE)`: the bound holds for any return data
+                side.append("(returnDataCopyFullGuard rdata)")
+            else:
+                return None
+        elif rule == "genGas":
+            hint = re.search(r"\(C' := (.*?)\) r\d+ \(by omega\)", line)
+            if hint is None:
+                return None
+            hints.append(hint.group(1))
+            side.append("(by omega)")
+    if not rules or any(rule in LISTING_ENDS for rule in rules[:-1]):
+        return None
+    last = rules[-1]
+    fuel = len(rules) - 1 if last in LISTING_ENDS else len(rules)
+    section, index = listing.where[block[0].pc]
+    words = f" {listing.tail}" if listing.tail else " immWords" if immutables else ""
+    proves_valid = False
+    stated = next((term for name, term in summary.extra_hypotheses if name == "hvalid"), "")
+    target = re.fullmatch(r"\(D_J .* 0\)\.contains \(UInt256\.ofNat (\d+)\) = true", stated)
+    if target is not None and listing.where.get(int(target.group(1)), (None, None))[1] == 0:
+        # a literal target that starts a section: the listing shows it begins with JUMPDEST
+        valid = f"({listing.module}.jumpdest_code{words} (t := {target.group(1)}) rfl rfl)"
+        proves_valid = True
+    decodes = f"{listing.module}.decodes_code{words} (t := {section}) rfl"
+    if listing.limit is not None and section >= listing.limit:
+        # the section whose last push is cut short: its whole instructions only
+        if section != listing.limit or index + len(block) > listing.last_count:
+            return None
+        decodes = f"{listing.module}.decodes_last{words}"
+    lines = [
+        f"  have e := Reasoning.Listing.RDL.enter ({decodes}) "
+        f"{index} {block[0].pc} rfl [{', '.join(summary.stack_in)}] h"
+    ]
+    if last == "invalid" and fuel == 0:
+        return lines + ["  exact e.invalid"], False
+    bound = summary.max_stack_prefix
+    pre = "trivial"
+    for hyp in side:
+        pre = f"⟨{pre}, {hyp}⟩"
+    lines.append(f"  have r := e.run {fuel} [{', '.join(hints)}] {bound} rfl rfl hstack {pre}")
+    existential = summary.existential_counters
+
+    def close(term: str) -> str:
+        if existential:
+            return f"  exact ({term}).some"
+        return f"  exact RD.normalizeCounters ({term}) (by omega) (by omega)"
+
+    if last == "jumpiT":
+        lines.append(close(f"r.jumpiTX hcond {valid} {bound} rfl hstack"))
+    elif last == "jumpiNT":
+        lines.append(close(f"r.jumpiNTX hcond {bound} rfl hstack"))
+    elif last == "jump":
+        lines.append(close(f"r.jumpX {valid} {bound} rfl hstack"))
+    elif last == "genRev":
+        lines.append(f"  exact r.rev {bound} rfl hstack")
+    elif last == "genRet":
+        lines.append(f"  exact r.ret {bound} rfl hstack")
+    elif last == "stop":
+        lines.append(f"  exact r.stop {bound} rfl hstack")
+    elif last == "invalid":
+        lines.append("  exact r.invalid")
+    elif existential:
+        lines.append("  exact r.rdX")
+    else:
+        lines.append("  exact RD.normalizeCounters r.rd (by omega) (by omega)")
+    return lines, proves_valid
+
+
 def render_summary(prefix: str, code_term: str, block: list[Instruction], summary: Summary,
                    creation_code: bool = False,
                    creation_code_size: int | None = None,
                    immutable_sites: dict[int, tuple[int, str]] | None = None,
                    layout_term: str | None = None,
-                   runtime_suffix: bool = False) -> str:
+                   runtime_suffix: bool = False,
+                   listing: Listing | None = None) -> str:
     name = summary_name(prefix, block, summary.branch)
     xs = " ".join(summary.stack_in)
     xbinder = f" {{{xs} : UInt256}}" if xs else ""
@@ -1022,6 +1247,17 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
             )
     result = result.replace("__CODE__", effective_code_term)
 
+    by_listing = None
+    if listing is not None:
+        found = listing_proof(block, summary, listing, immutable_sites is not None)
+        if found is not None:
+            by_listing, proves_valid = found
+            if proves_valid:
+                # the run looks the literal jump target up in the listing
+                assumptions = [a for a in assumptions if not a.startswith("(hvalid :")]
+                summary = replace(summary, extra_hypotheses=[
+                    (hyp, term) for hyp, term in summary.extra_hypotheses if hyp != "hvalid"])
+
     lines = []
     if final_defs is not None:
         lines.extend(final_defs.lines)
@@ -1033,6 +1269,17 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
     ])
     lines.extend(f"    {a}" for a in assumptions)
     lines.append(f"    : {result} := by")
+    if by_listing is not None:
+        lines.extend(line.replace("__CODE__", effective_code_term)
+                     .replace("__TEMPLATE__", code_term).replace("__LAYOUT__", layout_term or "")
+                     for line in by_listing)
+        if not summary.terminal:
+            lines.append("")
+            lines.extend(
+                render_packed_summary(name, params, assumptions, effective_code_term, summary,
+                                      final_defs)
+            )
+        return "\n".join(lines)
     lines.append("  let r0 := h")
     if creation_code:
         if creation_code_size is None:
@@ -1401,7 +1648,8 @@ def generate_unit_records(code: bytes, prefix: str, code_term: str,
                           runtime_suffix: bool = False,
                           vyper_scalar_slots: dict[int, str] | None = None,
                           vyper_layout_term: str | None = None,
-                          vyper_suffix_size: int | None = None) -> list[GeneratedUnit]:
+                          vyper_suffix_size: int | None = None,
+                          listing: Listing | None = None) -> list[GeneratedUnit]:
     """Generate theorem/comment units with index metadata and no module wrapper."""
     if runtime_suffix and (creation_code or immutable_sites is not None or layout_term is not None):
         raise ValueError("runtime suffix and other patch modes are separate")
@@ -1410,6 +1658,11 @@ def generate_unit_records(code: bytes, prefix: str, code_term: str,
     if (vyper_scalar_slots is not None or vyper_suffix_size is not None) and (
             not runtime_suffix or not vyper_layout_term):
         raise ValueError("Vyper immutable mode requires a runtime suffix and layout term")
+    if listing is not None and immutable_sites is not None and any(
+            w != 32 for w, _ in immutable_sites.values()):
+        raise ValueError("listing mode covers 32-byte immutables only")
+    if listing is not None and (listing.tail is None) != (not (creation_code or runtime_suffix)):
+        raise ValueError("listing mode: the listing's tail does not match the code mode")
     prefix = lean_ident(prefix)
     analyzed_code = code if keep_metadata else strip_solidity_metadata(code)
     discovered_blocks = blocks(disassemble(analyzed_code))
@@ -1462,7 +1715,7 @@ def generate_unit_records(code: bytes, prefix: str, code_term: str,
                                 vyper_scalar_slots, len(code)) if scalar_copy else
                             render_summary(prefix, code_term, piece, summary, creation_code,
                                            len(code) if creation_code else None, immutable_sites,
-                                           layout_term, runtime_suffix))
+                                           layout_term, runtime_suffix, listing))
                 units.append(GeneratedUnit(
                     rendered,
                     theorem_names,
@@ -1480,13 +1733,15 @@ def generate_units(code: bytes, prefix: str, code_term: str,
                    runtime_suffix: bool = False,
                    vyper_scalar_slots: dict[int, str] | None = None,
                    vyper_layout_term: str | None = None,
-                   vyper_suffix_size: int | None = None) -> list[str]:
+                   vyper_suffix_size: int | None = None,
+                   listing: Listing | None = None) -> list[str]:
     """Generate theorem/comment units without a Lean module wrapper."""
     return [
         unit.text for unit in generate_unit_records(
             code, prefix, code_term, fail_on_unsupported, keep_metadata,
             max_summary_instructions, creation_code, immutable_sites, layout_term,
-            runtime_suffix, vyper_scalar_slots, vyper_layout_term, vyper_suffix_size
+            runtime_suffix, vyper_scalar_slots, vyper_layout_term, vyper_suffix_size,
+            listing
         )
     ]
 
@@ -1613,7 +1868,8 @@ def render_module(prefix: str, imports: list[str], units: list[Unit],
                   layout_term: str | None = None,
                   runtime_suffix: bool = False,
                   max_rec_depth: int | None = None,
-                  namespace: str | None = None) -> str:
+                  namespace: str | None = None,
+                  listing: Listing | None = None) -> str:
     """Wrap generated units as an independently elaboratable Lean module."""
     prefix = lean_ident(prefix)
     namespace = namespace or f"{prefix}Blocks"
@@ -1622,20 +1878,33 @@ def render_module(prefix: str, imports: list[str], units: list[Unit],
         output.append("import Reasoning.Initcode")
     if immutable_sites is not None:
         output.append("import Reasoning.Immutables")
-    output.extend(f"import {module}" for module in imports)
+    # A listing that also defines the bytecode constant is imported once, after its runner.
+    output.extend(f"import {module}" for module in imports
+                  if listing is None or module != listing.lean_import)
+    if listing is not None:
+        output += ["import Reasoning.Listing.Run", f"import {listing.lean_import}"]
     output += ["", "open Stele ABI Ethereum Ethereum.EVM",
                "open Reasoning.Theory Reasoning.Reach", "",
                f"namespace {namespace}", ""]
     if max_rec_depth is not None:
         output += [f"set_option maxRecDepth {max_rec_depth}", ""]
-    elif runtime_suffix:
+    elif runtime_suffix or (listing is not None and immutable_sites is None):
+        # a run over the listing looks sections up in a tree and walks into them
         output += ["set_option maxRecDepth 10000", ""]
     if immutable_sites is not None:
         if code_term is None or code is None or not layout_term:
             raise ValueError("immutable mode requires template code and an imported Lean layout term")
         output += ["open Reasoning.Immutables", "set_option maxRecDepth 10000", ""]
-        output += render_immutable_helpers(code, code_term, layout_term, units,
+        helpers = render_immutable_helpers(code, code_term, layout_term, units,
                                            immutable_sites)
+        if listing is not None:
+            # The listing module states the layout facts once, in this namespace; only the
+            # decode lemmas of immutable pushes in blocks that kept their rule chain remain.
+            cut = next((i for i, line in enumerate(helpers)
+                        if line.startswith("theorem immutableDecode_")), len(helpers))
+            helpers = (helpers[cut:] if any("immutableDecode_" in unit_text(unit)
+                                            for unit in units) else [])
+        output += helpers
     if creation_code:
         if code_term is None:
             raise ValueError("code term is required in creation mode")
@@ -1757,12 +2026,13 @@ def write_outputs(output: Path, prefix: str, imports: list[str], units: list[Uni
                   layout_term: str | None = None,
                   runtime_suffix: bool = False,
                   max_rec_depth: int | None = None,
-                  namespace: str | None = None) -> list[Path]:
+                  namespace: str | None = None,
+                  listing: Listing | None = None) -> list[Path]:
     index_entries: list[IndexEntry] = []
     if shard_size is None:
         module_text = render_module(prefix, imports, units, creation_code,
                                     code_term, immutable_sites, code, layout_term,
-                                    runtime_suffix, max_rec_depth, namespace)
+                                    runtime_suffix, max_rec_depth, namespace, listing)
         output.write_text(module_text, encoding="utf-8")
         index_entries.extend(module_index_entries(output.name, module_text, units))
         (index_output or default_index_output(output)).write_text(
@@ -1778,7 +2048,7 @@ def write_outputs(output: Path, prefix: str, imports: list[str], units: list[Uni
         path = output.with_name(f"{output.stem}_{index:0{width}d}{suffix}")
         module_text = render_module(prefix, imports, shard, creation_code,
                                     code_term, immutable_sites, code, layout_term,
-                                    runtime_suffix, max_rec_depth, namespace)
+                                    runtime_suffix, max_rec_depth, namespace, listing)
         path.write_text(module_text, encoding="utf-8")
         index_entries.extend(module_index_entries(path.name, module_text, shard))
         paths.append(path)
@@ -1820,6 +2090,10 @@ def main(argv: list[str] | None = None) -> int:
                              "--code-term ++ tail, lifting decodes and jumps from --code-term")
     parser.add_argument("--layout-term",
                         help="imported Lean Layout term for immutable-aware runtime summaries")
+    parser.add_argument("--listing",
+                        help="Lean module of the code's listing (scripts/gen_listing.py), e.g. "
+                             "<M>.Bytecode: prove summaries by a run over it, without "
+                             "native_decide; its namespace is read from the file")
     parser.add_argument("--runtime-suffix", action="store_true",
                         help="summarize template ++ arbitrary appended runtime data")
     args = parser.parse_args(argv)
@@ -1836,15 +2110,20 @@ def main(argv: list[str] | None = None) -> int:
         layout_term = args.layout_term
         immutable_sites = (read_lean_layout(layout_term, imports, code)
                            if layout_term is not None else None)
+        listing = (listing_of_module(args.listing, code,
+                                     "tail" if args.creation_code else
+                                     "suffix" if args.runtime_suffix else None)
+                   if args.listing is not None else None)
         units = generate_unit_records(code, args.name, args.code_term,
                                       args.fail_on_unsupported, args.keep_metadata,
                                       args.max_summary_instructions,
                                       args.creation_code, immutable_sites,
-                                      layout_term, args.runtime_suffix)
+                                      layout_term, args.runtime_suffix, listing=listing)
         paths = write_outputs(args.output, args.name, imports, units,
                               args.shard_size, args.creation_code, args.code_term,
                               args.index_output, immutable_sites, code,
-                              layout_term, args.runtime_suffix, namespace=args.namespace)
+                              layout_term, args.runtime_suffix, namespace=args.namespace,
+                              listing=listing)
     except (OSError, ValueError) as error:
         parser.error(str(error))
     if args.shard_size is not None:

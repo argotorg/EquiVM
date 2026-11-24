@@ -31,11 +31,181 @@ class JumpDestTests(unittest.TestCase):
         # PUSH2 0x5b5b JUMPDEST: only the real JUMPDEST at pc 3 counts.
         self.assertEqual(et.jump_dests(bytes.fromhex("615b5b5b")), [3])
 
-    def test_matches_checked_in_table(self) -> None:
-        text = (ROOT / "Benchmarks/Dss/Pot/Bytecode.lean").read_text(encoding="utf-8")
+    def test_matches_checked_in_listing(self) -> None:
+        # the checked-in listing is the command over runtime.hex (SHA-256 pinned); the sections
+        # the Python side cuts (at the EVM scan's JUMPDESTs) are the ones the command cuts
+        from bytecode_io import listing_bytes, read_bytecode, read_listing
+        pot = ROOT / "Benchmarks/Dss/Pot"
+        listing = read_listing(pot / "Bytecode.lean")
+        code = read_bytecode(pot / "runtime.hex")
+        self.assertEqual(listing_bytes(listing), code)
+        starts = sorted({sec for sec, index in rd.listing_positions(code).values()
+                         if index == 0 and code[sec] == 0x5B})
+        self.assertEqual(starts, et.jump_dests(code))
+        self.assertEqual(listing.valid_jumps, "Benchmarks.Dss.Pot.validJumps")
+        self.assertNotIn("native_decide", (pot / "Bytecode.lean").read_text(encoding="utf-8"))
+
+
+class ListingTests(unittest.TestCase):
+    """`scaffold.py lean` writes the listings with `gen_listing.py`; `check` ties them to the hex."""
+
+    DIR = ROOT / "Tests/Pipeline/VyperRegistry"
+    MODULE = "Tests.Pipeline.VyperRegistry"
+
+    def test_lean_writes_the_listings(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            for name in ("runtime.hex", "creation.hex", "Registry.build.json", "Registry.abi.json",
+                         "Selectors.lean"):
+                if (self.DIR / name).exists():
+                    shutil.copy(self.DIR / name, d / name)
+            self.assertEqual(scaffold.main(["lean", "--dir", tmp, "--module", self.MODULE]), 0)
+            for name in ("Bytecode.lean", "CreationBytecode.lean"):
+                text = (d / name).read_text(encoding="utf-8")
+                self.assertEqual(text, (self.DIR / name).read_text(encoding="utf-8"))
+                self.assertNotIn("native_decide", text)
+                self.assertNotIn("validJumps", text)
+            # existing files are kept without --force
+            (d / "Bytecode.lean").write_text("-- edited\n")
+            self.assertEqual(scaffold.main(["lean", "--dir", tmp, "--module", self.MODULE]), 0)
+            self.assertEqual((d / "Bytecode.lean").read_text(), "-- edited\n")
+            self.assertEqual(scaffold.main(["lean", "--dir", tmp, "--module", self.MODULE,
+                                            "--force"]), 0)
+            self.assertIn("namespace Tests.Pipeline.VyperRegistry.Listing",
+                          (d / "Bytecode.lean").read_text())
+
+    def test_valid_jumps_and_constant_namespace(self) -> None:
+        import gen_listing
+        from bytecode_io import parse_listing, sha256_hex
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            code = bytes.fromhex("6005565b005b00")  # PUSH1 5 JUMP JUMPDEST STOP JUMPDEST STOP
+            (d / "runtime.hex").write_text(code.hex())
+            text = gen_listing.render_listing(d, "Examples.Foo", "Foo", "foo", None,
+                                              constant_namespace="",
+                                              valid_jumps="fooValidJumps",
+                                              provenance="Compiled by hand.")
+            self.assertIn("Compiled by hand.", text)
+            self.assertNotIn("native_decide", text)
+            self.assertNotIn("maxRecDepth", text)
+            listing = parse_listing(text, d / "Bytecode.lean")
+            self.assertEqual((listing.namespace, listing.file, listing.sha256, listing.bytecode,
+                              listing.valid_jumps, listing.followed_by, listing.layout,
+                              listing.imports),
+                             ("Examples.Foo.Listing", "runtime.hex", sha256_hex(d / "runtime.hex"),
+                              "fooBytecode", "fooValidJumps", None, None,
+                              ("Reasoning.Listing.FromHex",)))
+            # creation code is followed by its constructor arguments
+            (d / "creation.hex").write_text(code.hex())
+            ctor = parse_listing(gen_listing.render_listing(d, "Examples.Foo", "Foo", "foo", None,
+                                                            creation=True), d / "x.lean")
+            self.assertEqual((ctor.namespace, ctor.file, ctor.bytecode, ctor.creation,
+                              ctor.followed_by),
+                             ("Examples.Foo.CreationListing", "creation.hex",
+                              "Examples.Foo.fooCreationBytecode", True, "tail"))
+
+    def test_immutables_name_the_layout(self) -> None:
+        # solc immutables: the layout, its module, the blocks namespace; `names` only when the
+        # build JSON's order is not the order of first appearance among the sites
+        import gen_listing
+        from bytecode_io import parse_listing
+        build = {"compiler": {}, "immutables": [{"name": "a", "offsets": [10, 50]},
+                                                {"name": "b", "offsets": [30]}]}
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            (d / "runtime.hex").write_text("00")
+            listing = parse_listing(gen_listing.render_listing(d, "M", "Foo", "foo", build), d / "x")
+            self.assertEqual((listing.layout, listing.names, listing.blocks, listing.imports),
+                             ("M.immutableLayout", (), "fooBlocks",
+                              ("M.ImmutableCode", "Reasoning.Listing.FromHex")))
+            build["layoutSites"] = [(30, "b"), (10, "a"), (50, "a")]
+            listing = parse_listing(gen_listing.render_listing(d, "M", "Foo", "foo", build), d / "x")
+            self.assertEqual(listing.names, ("a", "b"))
+
+    def test_parse_listing(self) -> None:
+        from bytecode_io import listing_constants, listing_namespace, parse_listing
+        text = (ROOT / "Benchmarks/Morpho/MorphoBlue/Bytecode.lean").read_text(encoding="utf-8")
+        self.assertEqual(listing_namespace(text), "Benchmarks.Morpho.MorphoBlue.Listing")
+        self.assertEqual(listing_constants(text), ["Benchmarks.Morpho.MorphoBlue.morphoBytecode"])
+        listing = parse_listing(text)
+        self.assertEqual((listing.layout, listing.blocks, listing.imports[0]),
+                         ("Benchmarks.Morpho.MorphoBlue.immutableLayout", "morphoBlocks",
+                          "Benchmarks.Morpho.MorphoBlue.ImmutableCode"))
+        self.assertIsNone(parse_listing("namespace A.Listing\nend A.Listing\n"))
+        named = text.replace("blocks morphoBlocks", 'names ["X", "Y"] blocks morphoBlocks')
+        self.assertEqual(parse_listing(named).names, ("X", "Y"))
+        with self.assertRaises(ValueError):
+            parse_listing(text.replace("bytecode ", "bytes "))
+
+    def test_read_bytecode_of_a_listing(self) -> None:
+        from bytecode_io import is_listing_file, read_bytecode
+        self.assertTrue(is_listing_file(self.DIR / "Bytecode.lean"))
+        self.assertFalse(is_listing_file(ROOT / "Examples/TinyImmutable/runtime.hex"))
+        self.assertEqual(read_bytecode(self.DIR / "Bytecode.lean", "registryBytecode"),
+                         read_bytecode(self.DIR / "runtime.hex"))
+        self.assertEqual(read_bytecode(self.DIR / "CreationBytecode.lean", "registryCreationBytecode"),
+                         read_bytecode(self.DIR / "creation.hex"))
+        with self.assertRaises(ValueError):
+            read_bytecode(self.DIR / "Bytecode.lean", "registryCreationBytecode")
+        # a template with immutables: the sites (from the build JSON) are zeroed whatever the
+        # hex file holds (Morpho's runtime.hex is the mainnet code)
+        morpho = ROOT / "Benchmarks/Morpho/MorphoBlue"
+        self.assertEqual(read_bytecode(morpho / "Bytecode.lean", "morphoBytecode"),
+                         read_bytecode(morpho / "runtime.template.hex"))
+        self.assertNotEqual(read_bytecode(morpho / "runtime.hex"),
+                            read_bytecode(morpho / "runtime.template.hex"))
+
+    def test_hash_is_checked(self) -> None:
+        import check_listing_hashes
         from bytecode_io import read_bytecode
-        code = read_bytecode(ROOT / "Benchmarks/Dss/Pot/runtime.hex")
-        self.assertEqual(scaffold.lean_jump_table(text, "validJumps"), et.jump_dests(code))
+        self.assertEqual(check_listing_hashes.main([]), 0)
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            for name in ("Bytecode.lean", "runtime.hex"):
+                shutil.copy(self.DIR / name, d / name)
+            self.assertEqual(check_listing_hashes.check([d / "Bytecode.lean"]), [])
+            (d / "runtime.hex").write_text("00" + (d / "runtime.hex").read_text())
+            self.assertEqual(len(check_listing_hashes.check([d / "Bytecode.lean"])), 1)
+            with self.assertRaisesRegex(ValueError, "SHA-256"):
+                read_bytecode(d / "Bytecode.lean", "registryBytecode")
+            (d / "runtime.hex").unlink()
+            self.assertEqual(len(check_listing_hashes.check([d / "Bytecode.lean"])), 1)
+
+    def test_check_listing(self) -> None:
+        morpho = ROOT / "Benchmarks/Morpho/MorphoBlue"
+        build = json.loads((morpho / "Morpho.build.json").read_text())
+        ok: list[str] = []
+        failures: list[str] = []
+        scaffold.check_listing(morpho / "Bytecode.lean", "Benchmarks.Morpho.MorphoBlue.morphoBytecode",
+                               "Benchmarks.Morpho.MorphoBlue.Listing", "runtime.hex", build, ok,
+                               failures)
+        self.assertEqual(failures, [])
+        self.assertTrue(any("layout sites match the build JSON" in line
+                            or "layout sites not compared" in line for line in ok))
+        failures = []
+        scaffold.check_listing(morpho / "CreationBytecode.lean",
+                               "Benchmarks.Morpho.MorphoBlue.morphoCreationBytecode",
+                               "Benchmarks.Morpho.MorphoBlue.CreationListing", "creation.hex",
+                               build, [], failures)
+        self.assertEqual(failures, [])
+        # a hex file that is not the pinned one, a wrong constant, a missing tail
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            for name in ("Bytecode.lean", "runtime.hex"):
+                shutil.copy(self.DIR / name, d / name)
+            failures = []
+            scaffold.check_listing(d / "Bytecode.lean", "Tests.Pipeline.VyperRegistry.otherBytecode",
+                                   "Tests.Pipeline.VyperRegistry.Listing", "creation.hex", None, [],
+                                   failures)
+            self.assertTrue(any("otherBytecode" in line for line in failures))
+            self.assertTrue(any("expected creation.hex" in line for line in failures))
+            self.assertTrue(any("expected tail" in line for line in failures))
+            (d / "runtime.hex").write_text("00" + (d / "runtime.hex").read_text())
+            failures = []
+            scaffold.check_listing(d / "Bytecode.lean", "Tests.Pipeline.VyperRegistry.registryBytecode",
+                                   "Tests.Pipeline.VyperRegistry.Listing", "runtime.hex", None, [],
+                                   failures)
+            self.assertTrue(any("SHA-256" in line for line in failures))
 
 
 class SourceMapTests(unittest.TestCase):

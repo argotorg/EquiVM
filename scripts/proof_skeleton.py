@@ -2,7 +2,8 @@
 """Generate the proof skeleton of a contract directory.
 
 Inputs (all produced by the other scripts): ``SpecSyntax.lean`` (the specification; its external
-functions fix the transition order), ``Selectors.lean``, ``Bytecode.lean``, ``runtime.hex``,
+functions fix the transition order), ``Selectors.lean``, ``Bytecode.lean`` and
+``CreationBytecode.lean`` (the listings of ``scaffold.py lean``), ``runtime.hex``,
 ``<Name>.build.json`` (compiler version, immutables), optionally ``<Name>.spec.json`` (the
 translator's external-call facts) and the generated ``RuntimeBlocks_NNN.lean`` summaries.
 An optional ``def abiDecodeMode : ABI.DecodeMode`` in the specification's ``Syntax`` namespace
@@ -13,7 +14,8 @@ Outputs (existing files are kept unless ``--force``):
   Spec.lean         derived assembly: the contract, transition handles, storage backend from the
                     layout elaborator, the external-call ABI table, the Config.
   Common.lean       selector bridges (`selectorOf t = table entry`), selector-word facts, the
-                    immutables valuation plumbing, bytecode size facts.
+                    immutables valuation plumbing, bytecode size facts, and `<prefix>Jumpdest`:
+                    jump validity from the listing (`Listing.jumpdest_code`).
   Dispatch.lean     Stele dispatch facts (which transition a selector reaches) and the runtime
                     dispatcher reach lemmas composed from the block summaries: one per arm, the
                     short-calldata path, the no-match path, the non-payable path.  Proofs are
@@ -110,6 +112,7 @@ class Contract:
     has_decode_mode: bool = False
     abicoder_v2: bool = False
     compiler_kind: str = "solc"
+    block_hyps: dict[str, list[str]] | None = None
 
     @property
     def code_term(self) -> str:
@@ -130,6 +133,21 @@ class Contract:
     @property
     def imm_store_arg(self) -> str:
         return " (immStore v)" if self.immutables else ""
+
+
+def block_hypotheses(directory: Path) -> dict[str, list[str]] | None:
+    """Each runtime block theorem's explicit hypotheses, by name, from the generated
+    ``RuntimeBlocks_NNN.lean``; ``None`` before they are generated.  A block proved from the
+    listing has no ``hvalid`` when its jump target is a literal JUMPDEST."""
+    shards = sorted(directory.glob("RuntimeBlocks_*.lean"))
+    if not shards:
+        return None
+    out: dict[str, list[str]] = {}
+    for path in shards:
+        for m in re.finditer(r"(?m)^theorem (\S+) [^\n]*\n((?:    \([^\n]*\n)*)",
+                             path.read_text(encoding="utf-8")):
+            out[m.group(1)] = re.findall(r"(?m)^    \((\w+) :", m.group(2))
+    return out
 
 
 def spec_syntax_info(text: str) -> tuple[dict[str, bool], bool, bool]:
@@ -190,7 +208,7 @@ def load_contract(directory: Path, module: str | None, namespace: str | None, pr
         abicoder_v2 = '"abicoder", "v2"' in text or '"experimental", "ABIEncoderV2"' in text
     return Contract(directory, name, module, namespace, prefix, transitions, has_fallback, has_receive,
                     immutables, version, external_calls, runtime, has_transient, has_decode_mode, abicoder_v2,
-                    build.get("compiler", {}).get("kind", "solc"))
+                    build.get("compiler", {}).get("kind", "solc"), block_hypotheses(directory))
 
 
 # --------------------------------------------------------------------------------------------
@@ -340,6 +358,8 @@ def render_common(c: Contract) -> str:
     out += common_bridges(c)
     if c.immutables:
         out += render_immutable_plumbing(c)
+    else:
+        out += jumpdest_wrapper(c)
     out += [f"end {c.namespace}", ""]
     return "\n".join(out)
 
@@ -348,7 +368,7 @@ def common_bridges(c: Contract) -> list[str]:
     """The bytecode size, the transition list and the selector bridges shared by both compilers."""
     p = c.prefix
     out = [f"@[simp] theorem {p}Bytecode_size : {p}Bytecode.size = {len(c.runtime)} := by",
-           "  native_decide +revert", ""]
+           "  decide +kernel", ""]
     handles = ", ".join(t.handle for t in c.transitions)
     out += ["/-- The transition list as its handles. -/",
             f"theorem transitions_eq : contract.transitions = [{handles}] := by",
@@ -373,6 +393,29 @@ def common_bridges(c: Contract) -> list[str]:
                 f"      = if ({p}SelBytes {t.index} == cd.extract 0 4) then ⟨1⟩ else ⟨0⟩ :=",
                 f"  evmSelectorDecode hsz 0x{s[0]:02x} 0x{s[1]:02x} 0x{s[2]:02x} 0x{s[3]:02x} ⟨{v}⟩ (by decide)", ""]
     return out
+
+
+def jumpdest_wrapper(c: Contract) -> list[str]:
+    """`<prefix>Jumpdest`: a target is a valid jump destination of the code the block summaries
+    run over when the listing (`Bytecode.lean`) has a section there that starts with `JUMPDEST`;
+    `rfl rfl` proves both hypotheses for a literal target (the lookup, then the test)."""
+    p = c.prefix
+    doc = ["/-- A jump target is a valid jump destination when the listing has a section there that",
+           "starts with `JUMPDEST` (`rfl rfl` for a literal target: the lookup, then the test). -/"]
+    hyps = ["    (h : Listing.tree.get? pc.toNat = some s) (hjd : Reasoning.Listing.startsJD s = true) :"]
+    if c.immutables and c.compiler_kind != "vyper":
+        return [*doc, f"theorem {p}Jumpdest (v : {c.imm_struct}) {{pc : UInt256}} {{s : Reasoning.Listing.Section}}",
+                *hyps, "    (D_J (deployedRuntime v) 0).contains pc = true := by",
+                "  have hj := Listing.jumpdest_code (wordsOf (immStore v)) h hjd pc.val.isLt",
+                "  rw [u256_ofNat_toNat] at hj", "  exact hj", ""]
+    # A Vyper runtime with immutables is `template ++ suffix`; the wrapper is about the template
+    # (`D_J_contains_append_left` lifts it).
+    arg = " ByteArray.empty" if c.immutables else ""
+    extra = ", ByteArray.append_empty" if c.immutables else ""
+    return [*doc, f"theorem {p}Jumpdest {{pc : UInt256}} {{s : Reasoning.Listing.Section}}",
+            *hyps, f"    (D_J {p}Bytecode 0).contains pc = true := by",
+            f"  have hj := Listing.jumpdest_code{arg} h hjd pc.val.isLt",
+            f"  rw [u256_ofNat_toNat{extra}] at hj", "  exact hj", ""]
 
 
 def render_immutable_plumbing(c: Contract) -> list[str]:
@@ -408,16 +451,8 @@ def render_immutable_plumbing(c: Contract) -> list[str]:
             "/-- A well-typed immutables store runs as the store of some valuation. -/",
             "theorem restrictImmutables_of_fit {imms : Store} (h : immutablesFit contract imms) :",
             "    ∃ v, restrictImmutables contract imms = immStore v := by",
-            "  sorry  -- TODO: case on each immutable's value as in Examples/TinyImmutable/Common.lean", "",
-            "/-- The patched runtime has the template's jump destinations (patch sites are push payloads). -/",
-            f"theorem {p}PatchedValidJumps (v : {c.imm_struct}) :",
-            f"    D_J (deployedRuntime v) 0 = D_J {p}Bytecode 0 :=",
-            "  Layout.D_J_runtime (by native_decide) (by native_decide)", "",
-            "/-- The same fact in the form the block summaries state the code in. -/",
-            f"theorem {p}PatchedValidJumpsRuntime (v : {c.imm_struct}) :",
-            f"    D_J (immutableLayout.runtime {p}Bytecode (wordsOf (immStore v))) 0 = D_J {p}Bytecode 0 :=",
-            f"  {p}PatchedValidJumps v", ""]
-    return out
+            "  sorry  -- TODO: case on each immutable's value as in Examples/TinyImmutable/Common.lean", ""]
+    return out + jumpdest_wrapper(c)
 
 
 # --------------------------------------------------------------------------------------------
@@ -761,8 +796,14 @@ class ProofGen:
 
     def valid_proof(self) -> str:
         if self.c.immutables:
-            return f"(by rw [{self.c.prefix}PatchedValidJumpsRuntime v]; jump_dest)"
-        return "(by jump_dest)"
+            return f"(by exact {self.c.prefix}Jumpdest v rfl rfl)"
+        return f"(by exact {self.c.prefix}Jumpdest rfl rfl)"
+
+    def takes(self, name: str, hyp: str) -> bool:
+        """Whether the block theorem `name` has the hypothesis `hyp` (from the generated block
+        files; assumed when they are not there yet)."""
+        hyps = self.c.block_hyps
+        return hyps is None or name not in hyps or hyp in hyps[name]
 
     # --- chains --------------------------------------------------------------------------------
 
@@ -789,7 +830,8 @@ class ProofGen:
                 if hyp == "hcond":
                     args.append(self.cond_proof(subst(term, env), kind, extra))
                 elif hyp == "hvalid":
-                    args.append(self.valid_proof())
+                    if self.takes(name, "hvalid"):
+                        args.append(self.valid_proof())
                 elif hyp == "hperm":
                     args.append("hperm")
                 else:
@@ -1117,7 +1159,7 @@ def render_function(c: Contract, t: Transition, global_guard: bool, arm_pc: int 
 def render_constructor(c: Contract) -> str:
     p = c.prefix
     runtime_of = f"(immutableLayout.deployed {p}Bytecode)" if c.immutables else f"(fun _ => {p}Bytecode)"
-    out = [f"import {c.module}.Common", "",
+    out = [f"import {c.module}.Common", f"import {c.module}.CreationBytecode", "",
            "/-!", f"# {c.name} constructor correctness", "",
            "Creation-code equivalence: the constructor's EVM trace (argument decode, stores, runtime-code",
            "return) against the Stele constructor body, composed from the creation summaries.", "-/", "",
@@ -1381,8 +1423,8 @@ class VyperProofGen(ProofGen):
 
     def valid_proof(self) -> str:
         if self.suffix:
-            return "(by apply D_J_contains_append_left; jump_dest)"
-        return "(by jump_dest)"
+            return f"(by apply D_J_contains_append_left; exact {self.c.prefix}Jumpdest rfl rfl)"
+        return f"(by exact {self.c.prefix}Jumpdest rfl rfl)"
 
     def imm_args(self) -> str:
         return " (suffix := suffix)" if self.suffix else ""
@@ -1454,7 +1496,8 @@ class VyperProofGen(ProofGen):
                     f"    (hcode : I.code = {code}) (hm : (solcSelectorWord I).toNat % {n} = {m}) :",
                     f"    ∃ k C, RD {code} I g (initState σ σ₀ g A I) (UInt256.ofNat {entry})",
                     f"      [solcSelectorWord I] ({p}DispatchMem {m}) (UInt256.ofNat 1) ByteArray.empty σ k C :=",
-                    f"  {p}Bucket {m} (UInt256.ofNat {entry}) hcode hm (by native_decide) (by native_decide)", ""]
+                    f"  {p}Bucket {m} (UInt256.ofNat {entry}) hcode hm (by native_decide)",
+                    f"    (by exact {p}Jumpdest rfl rfl)", ""]
         return out
 
     def arm_lemma(self, t: Transition, arm_pc: int) -> str:
@@ -1530,6 +1573,7 @@ def render_common_vyper(c: Contract) -> str:
                 "it; record the final predicate in the hand-off. -/",
                 f"def {vyper_wf(c)} : StorageWF := fun _ _ => True", ""]
     out += common_bridges(c)
+    out += jumpdest_wrapper(c)
     if c.immutables:
         out += ["/-! ## Immutables: the deployed runtime is the template plus the words of the store -/", "",
                 "/-- A well-typed immutables store deploys the template with its words as the code suffix,",

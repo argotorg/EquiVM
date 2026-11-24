@@ -90,6 +90,157 @@ class GeneratorTests(unittest.TestCase):
         self.assertIn("(D_J (Contract.layout.runtime template immWords) 0)", rendered)
         self.assertIn("immutableRuntime_size", rendered)
 
+    def test_listing_mode_runs_over_the_listing(self) -> None:
+        code = bytes.fromhex("60806040525f3560e01c5b5033ff")
+        listing = rd.Listing("Sample.Listing", rd.listing_positions(code))
+        rendered = units(code.hex(), listing=listing)
+        # the first block: entered at instruction 0 of section 0, seven instructions
+        self.assertIn("Reasoning.Listing.RDL.enter (Sample.Listing.decodes_code (t := 0) rfl) 0 0 rfl [] h",
+                      rendered)
+        self.assertIn("have r := e.run 7 [] 2 rfl rfl hstack trivial", rendered)
+        self.assertNotIn("native_decide", rendered)
+        # the second block starts at the JUMPDEST at 10; POP is its instruction 1
+        self.assertIn("(t := 10) rfl) 0 10 rfl [x0] h", rendered)
+        self.assertEqual(rd.listing_positions(code)[11], (10, 1))
+
+    def test_listing_mode_covers_transient_storage(self) -> None:
+        # PUSH0; TLOAD; PUSH0; TSTORE; STOP
+        code = bytes.fromhex("5f5c5f5d00")
+        listing = rd.Listing.of("Sample.Listing", code)
+        rendered = units(code.hex(), listing=listing)
+        self.assertIn("Sample.Listing.decodes_code (t := 0) rfl", rendered)
+        self.assertIn("hperm", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_listing_mode_covers_mod_sdiv_mcopy(self) -> None:
+        # PUSH0; PUSH0; MOD; PUSH0; SDIV; PUSH0; PUSH0; PUSH0; MCOPY; STOP
+        code = bytes.fromhex("5f5f065f055f5f5f5e00")
+        listing = rd.Listing.of("Sample.Listing", code)
+        rendered = units(code.hex(), listing=listing)
+        self.assertIn("Sample.Listing.decodes_code (t := 0) rfl", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_listing_mode_covers_byte(self) -> None:
+        # PUSH0; PUSH0; BYTE; STOP
+        code = bytes.fromhex("5f5f1a00")
+        listing = rd.Listing.of("Sample.Listing", code)
+        rendered = units(code.hex(), listing=listing)
+        self.assertIn("Sample.Listing.decodes_code (t := 0) rfl", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_listing_mode_covers_sar_signextend_mulmod(self) -> None:
+        # PUSH0; PUSH0; SAR; PUSH0; SIGNEXTEND; PUSH0; PUSH0; MULMOD; STOP
+        code = bytes.fromhex("5f5f1d5f0b5f5f0900")
+        listing = rd.Listing.of("Sample.Listing", code)
+        rendered = units(code.hex(), listing=listing)
+        self.assertIn("Sample.Listing.decodes_code (t := 0) rfl", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_listing_mode_covers_exp(self) -> None:
+        # PUSH0; PUSH0; EXP; STOP
+        code = bytes.fromhex("5f5f0a00")
+        listing = rd.Listing.of("Sample.Listing", code)
+        rendered = units(code.hex(), listing=listing)
+        self.assertIn("Sample.Listing.decodes_code (t := 0) rfl", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_listing_mode_covers_basefee_and_mstore8(self) -> None:
+        # BASEFEE; PUSH0; MSTORE8; STOP
+        code = bytes.fromhex("485f5300")
+        listing = rd.Listing.of("Sample.Listing", code)
+        rendered = units(code.hex(), listing=listing)
+        self.assertIn("Sample.Listing.decodes_code (t := 0) rfl", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_listing_mode_copies_the_whole_return_data(self) -> None:
+        # RETURNDATASIZE; PUSH0; PUSH0; RETURNDATACOPY; RETURNDATASIZE; PUSH0; REVERT
+        code = bytes.fromhex("3d5f5f3e3d5ffd")
+        listing = rd.Listing.of("Sample.Listing", code)
+        rendered = units(code.hex(), listing=listing)
+        self.assertIn("⟨trivial, (returnDataCopyFullGuard rdata)⟩", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_listing_mode_keeps_the_statement(self) -> None:
+        code = "60806040525f3560e01c"
+        listing = rd.Listing("Sample.Listing", rd.listing_positions(bytes.fromhex(code)))
+        statement = lambda text: text.split(" := by")[0]
+        self.assertEqual(statement(units(code)), statement(units(code, listing=listing)))
+
+    def test_listing_mode_needs_a_tail_for_creation_code(self) -> None:
+        listing = rd.Listing("Sample.Listing", {})
+        with self.assertRaises(ValueError):
+            units("6000", creation_code=True, listing=listing)
+
+    def test_listing_mode_for_creation_code_passes_the_tail(self) -> None:
+        code = bytes.fromhex("5b600356")
+        listing = rd.Listing.of("Sample.CreationListing", code, "tail")
+        rendered = units(code.hex(), creation_code=True, listing=listing)
+        self.assertIn("Sample.CreationListing.decodes_code tail (t := 0) rfl", rendered)
+        # 3 is not the start of a section here, so the hypothesis stays and the chain's lifting
+        # of it to the code with its tail is reused
+        self.assertIn("r.jumpX (j tail (UInt256.ofNat 3) hvalid)", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_listing_mode_enters_a_cut_short_last_section_through_its_prefix(self) -> None:
+        # JUMPDEST, POP, then a PUSH2 with one data byte: the section's two whole instructions
+        code = bytes.fromhex("5b506100")
+        listing = rd.Listing.of("Sample.CreationListing", code, "tail")
+        self.assertEqual((listing.limit, listing.last_count), (0, 2))
+        rendered = units(code.hex(), creation_code=True, listing=listing)
+        self.assertIn("RDL.enter (Sample.CreationListing.decodes_last tail) 0 0 rfl [x0] h", rendered)
+        self.assertNotIn("native_decide", rendered)
+
+    def test_listing_mode_proves_literal_jump_targets(self) -> None:
+        # PUSH1 3; JUMP; JUMPDEST; then a jump through a stack word
+        code = bytes.fromhex("6003565b56")
+        listing = rd.Listing.of("Sample.Listing", code)
+        rendered = units(code.hex(), listing=listing)
+        first, second = rendered.split("theorem sample_block_3 ")
+        # the literal target is looked up in the listing: no hypothesis, neither in the packed form
+        self.assertNotIn("hvalid", first)
+        self.assertIn("r.jumpX (Sample.Listing.jumpdest_code (t := 3) rfl rfl)", first)
+        # a target taken from the stack still needs it
+        self.assertIn("(hvalid : (D_J sampleCode 0).contains x0 = true)", second)
+        self.assertIn("r.jumpX hvalid", second)
+        # without a listing the statement is as before
+        self.assertIn("(hvalid : (D_J sampleCode 0).contains (UInt256.ofNat 3) = true)", units(code.hex()))
+
+    def test_listing_file_is_imported_once_under_its_namespace(self) -> None:
+        # `Bytecode.lean` holds the listing `Sample.Listing` and defines the bytecode constant:
+        # the summaries name the namespace and import the file once, after the runner.
+        code = bytes.fromhex("6003565b00")
+        listing = rd.Listing.of("Sample.Listing", code, None, "Sample.Bytecode")
+        units_ = rd.generate_unit_records(code, "sample", "Sample.sampleBytecode", listing=listing)
+        text = rd.render_module("sample", ["Sample.Bytecode", "Other"], units_, listing=listing)
+        imports = [line for line in text.splitlines() if line.startswith("import ")]
+        self.assertEqual(imports, ["import Reasoning.Reach", "import Other",
+                                   "import Reasoning.Listing.Run", "import Sample.Bytecode"])
+        self.assertIn("Sample.Listing.jumpdest_code (t := 3) rfl rfl", text)
+        self.assertNotIn("Sample.Bytecode.jumpdest_code", text)
+
+    def test_directory_listing_by_content(self) -> None:
+        root = Path(__file__).resolve().parent.parent
+        morpho = root / "Benchmarks/Morpho/MorphoBlue"
+        module = "Benchmarks.Morpho.MorphoBlue"
+        runtime = bytes.fromhex((morpho / "runtime.hex").read_text().strip())
+        listing = rd.directory_listing(morpho, module, runtime)
+        self.assertEqual((listing.module, listing.lean_import, listing.tail),
+                         (f"{module}.Listing", f"{module}.Bytecode", None))
+        creation = bytes.fromhex((morpho / "creation.hex").read_text().strip())
+        ctor = rd.directory_listing(morpho, module, creation, creation=True)
+        self.assertEqual((ctor.module, ctor.lean_import, ctor.tail),
+                         (f"{module}.CreationListing", f"{module}.CreationBytecode", "tail"))
+        self.assertEqual(rd.bytecode_imports(morpho, module), [f"{module}.Bytecode"])
+        self.assertEqual(rd.bytecode_imports(morpho, module, creation=True),
+                         [f"{module}.CreationBytecode"])
+        # a directory without the file has no listing and nothing to import
+        empty = root / "Examples/CtorStore"
+        self.assertIsNone(rd.directory_listing(empty, "Examples.CtorStore", b"", creation=True))
+        self.assertEqual(rd.bytecode_imports(empty, "Examples.CtorStore", creation=True), [])
+        # the command line's `--listing <module>` reads the namespace from the file
+        self.assertEqual(rd.listing_of_module(f"{module}.Bytecode", runtime).module,
+                         f"{module}.Listing")
+
     def test_immutable_mode_requires_imported_layout_term(self) -> None:
         with self.assertRaisesRegex(ValueError, "imported Lean layout term"):
             rd.generate(bytes.fromhex("5b00"), "imm", "template", [],
@@ -242,6 +393,16 @@ class GeneratorTests(unittest.TestCase):
                         self.assertNotIn("namespace sampleBlocks\n", rendered)
 
 
+def minimal_listing(module: str, constant: str, layout: str | None = None,
+                    layout_import: str | None = None) -> str:
+    """Just enough of a listing (`gen_listing.py`) for the benchmark discovery."""
+    imports = f"import {layout_import}\n" if layout_import else ""
+    lay = f"\n  layout {layout} blocks sampleBlocks" if layout else ""
+    return (f"{imports}import Reasoning.Listing.FromHex\n\nnamespace {module}.Listing\n\n"
+            f'listing_from_hex "runtime.hex" sha256 "{"0" * 64}"\n'
+            f"  bytecode {constant}{lay}\n\nend {module}.Listing\n")
+
+
 class BenchmarkInputTests(unittest.TestCase):
     def test_discovery_is_independent_of_temporary_scaffolds(self) -> None:
         for with_scaffolds in (False, True):
@@ -253,28 +414,29 @@ class BenchmarkInputTests(unittest.TestCase):
                                     if with_scaffolds else [])
                 for path in reversed(paths):
                     path.parent.mkdir(parents=True)
-                    path.touch()
+                    path.write_text(minimal_listing("M", "M.mBytecode"), encoding="utf-8")
+                # a Bytecode.lean that is not a listing is not a benchmark
+                (root / "Other").mkdir()
+                (root / "Other/Bytecode.lean").write_text("-- not a listing\n")
                 self.assertEqual(benchmarks.benchmark_paths(root), expected)
 
-    def test_layout_module_supports_both_benchmark_formats(self) -> None:
-        for files, expected in (((), None),
-                                (("Immutables.lean",), "Immutables.lean"),
-                                (("Immutables.lean", "ImmutableCode.lean"), "ImmutableCode.lean")):
-            with self.subTest(files=files), tempfile.TemporaryDirectory() as tmp:
+    def test_inputs_come_from_the_listing(self) -> None:
+        # the constant, the blocks namespace and the layout (term and module) are the listing's
+        for layout, layout_import in ((None, None),
+                                      ("Sample.Immutables.immutableLayout", "Benchmarks.Sample.Immutables"),
+                                      ("Sample.immutableLayout", "Benchmarks.Sample.ImmutableCode")):
+            with self.subTest(layout=layout), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 path = root / "Benchmarks/Sample/Bytecode.lean"
                 path.parent.mkdir(parents=True)
-                path.write_text("namespace Sample\ndef sampleBytecode : ByteArray := ⟨#[0]⟩\n",
-                                encoding="utf-8")
-                for name in files:
-                    path.with_name(name).touch()
+                path.write_text(minimal_listing("Benchmarks.Sample", "Sample.sampleBytecode",
+                                                layout, layout_import), encoding="utf-8")
                 with patch.object(benchmarks, "ROOT", root):
-                    self.assertEqual(
-                        benchmarks.benchmark_inputs(path),
-                        ("Sample.sampleBytecode", "Benchmarks.Sample.Bytecode",
-                         path.with_name(expected) if expected else None),
-                    )
-
+                    listing, module, layout_module = benchmarks.benchmark_inputs(path)
+                self.assertEqual((listing.bytecode, module, layout_module, listing.layout,
+                                  listing.blocks),
+                                 ("Sample.sampleBytecode", "Benchmarks.Sample.Bytecode",
+                                  layout_import, layout, "sampleBlocks" if layout else None))
 
 if __name__ == "__main__":
     unittest.main()

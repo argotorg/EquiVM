@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Generate and compile supported runtime block summaries under Benchmarks/.
 
+A contract directory is found through its `Bytecode.lean`, a listing (a `listing_from_hex`
+command, as `scripts/gen_listing.py` / `scaffold.py lean` write it); the summaries are generated
+with the listing, as `scaffold.py blocks` does: the bytes are the listing's (its hex file, SHA-256
+checked, immutable sites zeroed), and the blocks namespace and immutable layout are the ones the
+listing names.
 Temporary contracts under Benchmarks/Scaffolds/ are excluded.
 The output and per-shard results live under /tmp/equivm-benchmark-blocks by
 default. Successful shards are cached by source hash, so a failed run can resume.
@@ -11,13 +16,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import re
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from bytecode_io import read_bytecode
+from bytecode_io import ListingCommand, check_listing_hash, is_listing_file, read_listing
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -29,21 +33,17 @@ def module_name(path: Path) -> str:
 
 
 def benchmark_paths(root: Path) -> list[Path]:
-    return sorted(path for path in root.rglob("Bytecode.lean")
-                  if "Scaffolds" not in path.relative_to(root).parts)
+    """Each contract's `Bytecode.lean`."""
+    paths = [path for path in root.rglob("Bytecode.lean") if is_listing_file(path)]
+    return sorted(path for path in paths if "Scaffolds" not in path.relative_to(root).parts)
 
 
-def benchmark_inputs(path: Path) -> tuple[str, str, Path | None]:
-    source = path.read_text(encoding="utf-8")
-    names = re.findall(r"^def (\w+Bytecode)\s*:\s*ByteArray", source, re.MULTILINE)
-    runtime = next(name for name in names if "Creation" not in name)
-    namespace = re.search(r"^namespace ([\w.]+)", source, re.MULTILINE)
-    code_term = f"{namespace.group(1)}.{runtime}" if namespace else runtime
-    # Generated layouts live in ImmutableCode; older benchmarks use Immutables.
-    layout = path.with_name("ImmutableCode.lean")
-    if not layout.exists():
-        layout = path.with_name("Immutables.lean")
-    return code_term, module_name(path), layout if layout.exists() else None
+def benchmark_inputs(path: Path) -> tuple[ListingCommand, str, str | None]:
+    """The listing, its module, and the module defining its immutable layout (if any)."""
+    listing = read_listing(path)
+    assert listing is not None
+    layout_imports = [m for m in listing.imports if not m.startswith("Reasoning.")]
+    return listing, module_name(path), layout_imports[0] if listing.layout else None
 
 
 def benchmark_uses_vyper_suffix(path: Path) -> bool:
@@ -106,11 +106,11 @@ def main() -> int:
 
     build_targets = []
     for path in paths:
-        _, bytecode_import, layout = benchmark_inputs(path)
-        vyper_suffix = benchmark_uses_vyper_suffix(path)
+        _, bytecode_import, layout_module = benchmark_inputs(path)
         build_targets.append(bytecode_import)
-        if layout and not vyper_suffix:
-            build_targets.append(module_name(layout))
+        build_targets.append("Reasoning.Listing.Run")  # imported by listing-mode summaries
+        if layout_module:
+            build_targets.append(layout_module)
     print(f"Building imports for {len(paths)} benchmark runtimes", flush=True)
     build = run(["lake", "build", *build_targets], timeout=3600)
     if build.returncode:
@@ -119,29 +119,30 @@ def main() -> int:
 
     shards: list[Path] = []
     for path in paths:
-        code_term, bytecode_import, layout = benchmark_inputs(path)
+        listing, bytecode_import, layout_module = benchmark_inputs(path)
         vyper_suffix = benchmark_uses_vyper_suffix(path)
-        hex_path = path.with_name("runtime.hex")
-        if read_bytecode(path, code_term) != read_bytecode(hex_path):
-            raise ValueError(f"Lean bytecode differs from runtime.hex: {path}")
+        if listing.file != "runtime.hex":
+            raise ValueError(f"{path} lists {listing.file}, not runtime.hex")
+        # Lake does not track the hex file: its hash in the listing pins it.
+        check_listing_hash(listing)
+        hex_path = listing.hex_path
         destination = args.output_dir / path.parent.relative_to(ROOT / "Benchmarks")
         destination.mkdir(parents=True, exist_ok=True)
         output = destination / "Blocks.lean"
         command = [sys.executable, str(GENERATOR), str(hex_path),
                    "--name", "check" + path.parent.name,
-                   "--code-term", code_term,
+                   "--code-term", listing.bytecode,
                    "--bytecode-import", bytecode_import,
                    "--shard-size", str(args.shard_size),
                    "--output", str(output)]
+        command += ["--listing", bytecode_import]
+        if listing.blocks:
+            # the listing states the layout facts the summaries cite in this namespace
+            command += ["--namespace", listing.blocks]
         if vyper_suffix:
             command.append("--runtime-suffix")
-        elif layout:
-            # The layout's declaration namespace can differ from its module path.
-            layout_source = layout.read_text(encoding="utf-8")
-            match = re.search(r"^namespace ([\w.]+)", layout_source, re.MULTILINE)
-            assert match is not None
-            command += ["--import", module_name(layout),
-                        "--layout-term", f"{match.group(1)}.immutableLayout"]
+        elif listing.layout:
+            command += ["--import", layout_module, "--layout-term", listing.layout]
         result = run(command, timeout=900)
         if result.returncode:
             sys.stderr.write(f"Generation failed for {path.parent}:\n"

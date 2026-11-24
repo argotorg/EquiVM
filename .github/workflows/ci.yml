@@ -17,6 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # A listing (`Bytecode.lean`) reads its hex file when built and pins it by SHA-256; Lake
+      # does not track the hex file, so check the pins directly (no Lean needed).
+      - name: Check listing hex hashes
+        run: python3 scripts/check_listing_hashes.py
+
       # Installs the toolchain from lean-toolchain, fetches the mathlib
       # olean cache, caches .lake in the GitHub cache, and builds the
       # library targets.

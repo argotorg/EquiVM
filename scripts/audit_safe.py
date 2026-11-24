@@ -20,8 +20,8 @@ from pathlib import Path
 
 from bytecode_io import read_bytecode
 from generate_rd_blocks import (
-    disassemble, generate_unit_records, instruction_is_supported,
-    strip_solidity_metadata, write_outputs,
+    bytecode_imports, directory_listing, disassemble, generate_unit_records,
+    instruction_is_supported, strip_solidity_metadata, write_outputs,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -77,8 +77,10 @@ def main() -> None:
     creation = read_bytecode(safe / "creation.hex")
     assert bytes.fromhex(artifact["bin-runtime"]) == runtime, "runtime compilation mismatch"
     assert bytes.fromhex(artifact["bin"]) == creation, "creation compilation mismatch"
+    # The listings `Bytecode.lean` / `CreationBytecode.lean` (scripts/gen_listing.py) define the
+    # bytecode constants from runtime.hex and creation.hex, pinned by their SHA-256 (checked here).
     assert read_bytecode(safe / "Bytecode.lean", "safeBytecode") == runtime
-    assert read_bytecode(safe / "Bytecode.lean", "safeCreationBytecode") == creation
+    assert read_bytecode(safe / "CreationBytecode.lean", "safeCreationBytecode") == creation
     assert artifact["abi"] == json.loads((safe / "Safe.abi.json").read_text())
     for row in (safe / "sources.sha256").read_text().splitlines():
         digest, name = row.split(None, 1)
@@ -121,12 +123,16 @@ def main() -> None:
                 arms[selector] = c.argument
     assert set(arms) == selectors, "ABI/dispatcher selector mismatch"
 
-    units = generate_unit_records(runtime, "safeRuntime", f"{module}.safeBytecode")
+    # When the bytecode files are listings the summaries are runs over them.
+    listing = directory_listing(safe, module, runtime)
+    ctor_listing = directory_listing(safe, module, creation, creation=True)
+    units = generate_unit_records(runtime, "safeRuntime", f"{module}.safeBytecode", listing=listing)
     runtime_offset = len(creation) - len(runtime)
     assert runtime_offset > 0 and creation[runtime_offset:] == runtime
     # Generate against the full creation bytes; select only the executable constructor prelude.
     ctor_units = [u for u in generate_unit_records(
-        creation, "safeCreation", f"{module}.safeCreationBytecode", creation_code=True)
+        creation, "safeCreation", f"{module}.safeCreationBytecode", creation_code=True,
+        listing=ctor_listing)
         if u.pcs and max(u.pcs) < runtime_offset]
     unsupported = [ins for ins in instructions if not instruction_is_supported(ins)]
     covered = {pc for unit in units for pc in unit.pcs}
@@ -138,13 +144,14 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="safe-blocks-") as directory:
         destination = Path(directory)
         shards = write_outputs(destination / "Runtime.lean", "safeRuntime",
-                               [f"{module}.Bytecode"], units, 20, code=runtime,
+                               bytecode_imports(safe, module), units, 20, code=runtime,
                                max_rec_depth=10000 if args.via_ir else None,
-                               namespace=f"{module}.RuntimeBlocks")
+                               namespace=f"{module}.RuntimeBlocks", listing=listing)
         ctor_files = write_outputs(destination / "Creation.lean", "safeCreation",
-                                   [f"{module}.Bytecode"], ctor_units, None,
+                                   bytecode_imports(safe, module, creation=True), ctor_units, None,
                                    creation_code=True, code_term=f"{module}.safeCreationBytecode",
-                                   code=creation, namespace=f"{module}.CreationBlocks")
+                                   code=creation, namespace=f"{module}.CreationBlocks",
+                                   listing=ctor_listing)
         outputs = sorted(destination.iterdir())
         for path in outputs:
             compare_or_write(safe / "Blocks" / path.name, path.read_text(), args.write)
