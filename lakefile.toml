@@ -15,9 +15,11 @@ name = "ABI"
 [[lean_lib]]
 name = "Stele"
 
+# `--tstack`: see `Benchmarks` below (the listing of `Examples/UniswapV2Pair` is 8.8 K bytes).
 [[lean_lib]]
 name = "Examples"
 globs = ["Examples.+"]
+weakLeanArgs = ["--tstack=32768"]
 
 [[lean_lib]]
 name = "Reasoning"
@@ -27,9 +29,13 @@ globs = ["Reasoning.+"]
 name = "Proofs"
 globs = ["Proofs.+"]
 
+# `--tstack`: a contract's listing (`Bytecode.lean`) checks its table against its bytecode in the kernel,
+# one deep recursion over the byte list (about 1.2 KB of C++ stack per byte); the default 8 MB
+# is not enough past roughly 6.5 K bytes. 32 MB covers the 24 KB EIP-170 limit.
 [[lean_lib]]
 name = "Benchmarks"
 globs = ["Benchmarks.*"]
+weakLeanArgs = ["--tstack=32768"]
 
 [[lean_lib]]
 name = "Tests"
