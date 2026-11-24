@@ -23,7 +23,7 @@ theorem pairArrayAllocate264 {words : String → UInt256} {I g s0 σ mem aw out 
     change n = 0 at hz'; omega
   have h' := attesterRuntime_block_264_taken (by omega)
     (by rw [ugt_zero (by rw [ulit_toNat' _ hnfit]; exact hcap)]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   obtain ⟨aw', k', C', h''⟩ := attesterRuntime_block_291_fallthrough_packed
     (by simp only [List.length_cons]; omega) (isZero_eq_zero_of_ne hnz) h'
   simp only [attesterRuntime_block_291_fallthrough_stack,
@@ -63,7 +63,7 @@ theorem pairArrayAllocate479 {words : String → UInt256} {I g s0 σ mem aw out 
     change n = 0 at hz'; omega
   have h' := attesterRuntime_block_479_taken (by omega)
     (by rw [ugt_zero (by rw [ulit_toNat' _ hnfit]; exact hcap)]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   obtain ⟨aw', k', C', h''⟩ := attesterRuntime_block_506_fallthrough_packed
     (by simp only [List.length_cons]; omega) (isZero_eq_zero_of_ne hnz) h'
   simp only [attesterRuntime_block_506_fallthrough_stack,
@@ -103,7 +103,7 @@ theorem pairArrayAllocate1006 {words : String → UInt256} {I g s0 σ mem aw out
     change n = 0 at hz'; omega
   have h' := attesterRuntime_block_1006_taken (by omega)
     (by rw [ugt_zero (by rw [ulit_toNat' _ hnfit]; exact hcap)]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   obtain ⟨aw', k', C', h''⟩ := attesterRuntime_block_1033_fallthrough_packed
     (by simp only [List.length_cons]; omega) (isZero_eq_zero_of_ne hnz) h'
   simp only [attesterRuntime_block_1033_fallthrough_stack,

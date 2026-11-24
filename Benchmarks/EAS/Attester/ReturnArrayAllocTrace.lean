@@ -51,7 +51,7 @@ theorem returnArrayAllocate {words : String → UInt256} {I g s0 σ mem out aw k
   · obtain ⟨aw', k', C', h'⟩ := attesterRuntime_block_3631_taken_packed hstack
       (by rw [hptr, wordArrayAllocRound hn, ofNat_add_words, hlt, u256_lor_zero,
           ugt_zero (by rw [ulit_toNat' _ hef]; exact hcap)]; decide)
-      (by rw [attesterRuntime_validJumps]; native_decide) h
+      h
     refine .inr ⟨hcap, aw', k', C', ?_⟩
     simp only [attesterRuntime_block_3631_taken_stack, hptr, wordArrayAllocRound hn] at h'
     simpa only [ofNat_add_words, show UInt256.ofNat 5 = (⟨5⟩ : UInt256) from rfl,
@@ -62,7 +62,7 @@ theorem returnArrayAllocate {words : String → UInt256} {I g s0 σ mem out aw k
                       exact Nat.lt_of_not_ge hcap)]; rfl) h
     have h'' := attesterRuntime_block_3699
       (by simp only [attesterRuntime_block_3631_fallthrough_stack, List.length_cons]; omega)
-      (by rw [attesterRuntime_validJumps]; native_decide) h'
+      h'
     exact .inl ⟨hcap, attesterRuntime_block_2696
       (by simp only [attesterRuntime_block_3699_stack,
         attesterRuntime_block_3631_fallthrough_stack, List.length_cons]; omega) h''⟩
@@ -107,7 +107,7 @@ theorem returnArrayDecodeStart {words : String → UInt256} {I g s0 σ mem out a
   · obtain ⟨aw3, k3, C3, h3⟩ := attesterRuntime_block_3706_taken_packed (by omega)
       (by rw [ofNat_add_words, ofNat_add_words, ugt_zero
             (by rw [ulit_toNat' _ hsrc, ulit_toNat' _ he]; omega)]; decide)
-      (by rw [attesterRuntime_validJumps]; native_decide) h2
+      h2
     simp only [attesterRuntime_block_3706_taken_stack] at h3
     have h4 := attesterRuntime_block_3736 (by simp only [List.length_cons]; omega) h3
     refine .inr ⟨⟨hhead, hoff, hword, hcount, hdata⟩, hcap, aw3, k3 + 6, C3 + 15, ?_⟩

@@ -32,9 +32,9 @@ theorem attesterMultiAttestReachDecode {words : String → UInt256} {σ σ₀ A 
   have rd102 := attesterRuntime_block_43_taken (by decide)
     (by change UInt256.eq ⟨0x54e1db35⟩ (solcSelectorWord I) ≠ ⟨0⟩
         rw [attesterMultiAttestEvmSelector hsz, hsel]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) rd43
+    rd43
   have rd2482 := attesterRuntime_block_102 (by simp)
-    (by rw [attesterRuntime_validJumps]; native_decide) rd102
+    rd102
   exact ⟨_, _, rd2482⟩
 
 theorem multiAttestRequire {words : String → UInt256} {I g s0 σ mem aw out k C R}
@@ -49,7 +49,7 @@ theorem multiAttestRequire {words : String → UInt256} {I g s0 σ mem aw out k 
   · subst n
     have h' := attesterRuntime_block_935_taken (R := schemaData :: R)
       (by simp only [List.length_cons]; omega) (by decide)
-      (by rw [attesterRuntime_validJumps]; native_decide) h
+      h
     have h'' := attesterRuntime_block_951_fallthrough
       (by simp only [List.length_cons]; omega) (by decide) h'
     exact .inl ⟨.inl rfl, attesterRuntime_block_957
@@ -61,7 +61,7 @@ theorem multiAttestRequire {words : String → UInt256} {I g s0 σ mem aw out k 
   · subst m
     have h''' := attesterRuntime_block_951_taken
       (by simp only [List.length_cons]; omega)
-      (by rw [u256_eq_refl]; decide) (by rw [attesterRuntime_validJumps]; native_decide) h''
+      (by rw [u256_eq_refl]; decide) h''
     exact .inr ⟨hn, rfl, _, _, h'''⟩
   · have h''' := attesterRuntime_block_951_fallthrough
       (by simp only [List.length_cons]; omega)
@@ -80,11 +80,11 @@ theorem multiAttestBodyView {words : String → UInt256} {I g s0 σ mem aw out k
             UInt256.ofNat (arrayCount I.calldata 4),
                 UInt256.ofNat (arrayDataNat I.calldata 4)] ++ R)
           mem aw out σ k' C') := by
-  rcases attesterMultiHeads h hstack (by rw [attesterRuntime_validJumps]; native_decide) with
+  rcases attesterMultiHeads h hstack (by exact attesterJumpdest _ rfl rfl) with
       hbad | ⟨hc, k', C', h'⟩
   · exact .inl hbad
   have h'' := attesterRuntime_block_116 (by simp only [List.length_cons]; omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h'
+    h'
   refine .inr ⟨hc, k' + 3, C' + 12, ?_⟩
   simpa only [arrayCount_word,
     arrayData_eq_ofNat (uint64Bound_of_isZero_gt hc.firstOffset),

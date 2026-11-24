@@ -88,7 +88,7 @@ theorem structInitStep1278 : StructInitStep 1278 1371 8 attestDefaultFields := b
       rw [ulit_toNat' _ (by omega)] at hz'
       change n - 1 = 0 at hz'; omega
     obtain ⟨aw', k', C', h'⟩ := attesterRuntime_block_1278_taken_packed hstack hnz
-      (by rw [attesterRuntime_validJumps]; native_decide) h
+      h
     refine ⟨aw', k', C', ?_⟩
     simpa only [if_neg hn1, attesterRuntime_block_1278_taken_stack,
       attesterRuntime_block_1278_taken_memory, hptr, hsub,
@@ -117,7 +117,7 @@ theorem structArrayAllocate1221 {words : String → UInt256} {I g s0 σ mem aw o
     change n = 0 at hz'; omega
   have h' := attesterRuntime_block_1221_taken (by omega)
     (by rw [ugt_zero (by rw [ulit_toNat' _ hnfit]; exact hcap)]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   obtain ⟨aw', k', C', h''⟩ := attesterRuntime_block_1248_fallthrough_packed
     (by simp only [List.length_cons]; omega) (isZero_eq_zero_of_ne hnz) h'
   simp only [attesterRuntime_block_1248_fallthrough_stack,

@@ -27,7 +27,7 @@ theorem multiRevokePrepare {words : String → UInt256} {I g s0 σ k C aw R}
   have heap := (multiRevokeBuiltMemory_heap hc hshape hrows).congr (mem' := pre)
     (by intro off hlo hhi; exact hp.load_preserved hlo hhi (by omega) (by omega))
   obtain ⟨aw', k', C', h'⟩ := attesterRuntime_block_762_packed (by omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   have hstart : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨2894⟩
       ([UInt256.ofNat (multiRevokeBuiltFree I.calldata + 4), ⟨128⟩, ⟨877⟩,
         ⟨1287121381⟩, UInt256.land (words "_eas") solcAddrMask, ⟨128⟩] ++ R)
@@ -41,7 +41,7 @@ theorem multiRevokePrepare {words : String → UInt256} {I g s0 σ k C aw R}
     hstart (by simp only [List.length_append, List.length_cons, List.length_nil]; omega)
     heap (by change multiRevokeBuiltFree I.calldata ≤ pre.size; have := hp.size; omega)
     (by omega) he.2
-    (by rw [attesterRuntime_validJumps]; native_decide)
+    (by exact attesterJumpdest _ rfl rfl)
 
 theorem multiRevokeNoCode {words : String → UInt256} {I g s0 σ k C mem aw out endptr sel target R}
     (h : RD (immutableLayout.runtime attesterBytecode words) I g s0 ⟨877⟩
@@ -73,7 +73,7 @@ theorem multiRevokeReachCall {words : String → UInt256} {I g s0 σ k C aw R}
   obtain ⟨k', C', h'⟩ := attesterRuntime_block_877_taken
     (R := ⟨128⟩ :: R) (by simp only [List.length_cons]; omega)
     (by rw [isZero_eq_zero_of_ne hne]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   simp only [attesterRuntime_block_877_taken_stack,
     multiRevokeEncodedMemory_freePtr hc hshape hrows,
     ofNat_sub_words (by omega : multiRevokeBuiltFree I.calldata ≤ multiRevokeEncodedEnd I.calldata)
@@ -95,9 +95,9 @@ theorem multiRevokeAfterCallSuccess {words : String → UInt256} {I g s0 σ k C 
       [⟨1⟩, x0, x1, x2, x3, x4, x5, x6, x7, x8, ⟨100⟩, sel] mem aw out σ k C) :
     RDret (immutableLayout.runtime attesterBytecode words) g s0 σ ByteArray.empty := by
   have h' := attesterRuntime_block_907_taken (by simp) (by decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   have h'' := attesterRuntime_block_923 (by simp)
-    (by rw [attesterRuntime_validJumps]; native_decide) h'
+    (by exact attesterJumpdest _ rfl rfl) h'
   exact attesterRuntime_block_100 (by simp [attesterRuntime_block_923_stack]) h''
 
 end Benchmarks.EAS.Attester

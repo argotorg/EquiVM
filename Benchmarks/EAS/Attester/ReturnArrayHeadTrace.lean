@@ -38,7 +38,7 @@ theorem returnArrayDecodeHeader {words : String → UInt256} {I g s0 σ mem out 
       slt_ofNat_lit_zero (by decide) hhead hsign
     have h1 := attesterRuntime_block_3547_taken (by omega)
       (by rw [hsub, hslt]; decide)
-      (by rw [attesterRuntime_validJumps]; native_decide) h
+      h
     have hload : memLoad (UInt256.ofNat base) (returnArrayInputMemory mem base out) =
         UInt256.ofNat (returnArrayOffset out) := by
       have hh := returnArrayInputMemory_load (off := 0) hlo hb (by omega) (by omega)
@@ -51,7 +51,7 @@ theorem returnArrayDecodeHeader {words : String → UInt256} {I g s0 σ mem out 
                 change (calldataWord out 0).toNat < UInt256.size
                 exact (calldataWord out 0).val.isLt)]
               exact hoff)]; decide)
-        (by rw [attesterRuntime_validJumps]; native_decide) h1
+        h1
       simp only [attesterRuntime_block_3565_taken_stack, hload,
         attesterRuntime_block_3547_taken_stack] at h2
       have ho : base + returnArrayOffset out + 31 < 2 ^ 255 := by
@@ -69,7 +69,7 @@ theorem returnArrayDecodeHeader {words : String → UInt256} {I g s0 σ mem out 
           (by rw [ulit_toNat' _ hfit]; omega) hend
         have h3 := attesterRuntime_block_3588_taken
           (by omega) (by rw [hgt, hsgt]; decide)
-          (by rw [attesterRuntime_validJumps]; native_decide) h2
+          h2
         simp only [attesterRuntime_block_3588_taken_stack, ofNat_add_words] at h3
         have hlen : memLoad (UInt256.ofNat (base + returnArrayOffset out))
             (returnArrayInputMemory mem base out) = UInt256.ofNat (returnArrayCount out) := by
@@ -84,7 +84,7 @@ theorem returnArrayDecodeHeader {words : String → UInt256} {I g s0 σ mem out 
                     change (calldataWord out (returnArrayOffset out)).toNat < UInt256.size
                     exact (calldataWord out (returnArrayOffset out)).val.isLt)]
                   exact hcount)]; decide)
-            (by rw [attesterRuntime_validJumps]; native_decide) h3
+            h3
           refine .inr ⟨⟨hhead, hoff, hword, hcount⟩, aw4, k4, C4, ?_⟩
           simpa only [attesterRuntime_block_3605_taken_stack, hlen] using h4
         · have h4 := attesterRuntime_block_3605_fallthrough
@@ -96,7 +96,7 @@ theorem returnArrayDecodeHeader {words : String → UInt256} {I g s0 σ mem out 
                   exact Nat.lt_of_not_ge hcount)]; rfl) h3
           have h5 := attesterRuntime_block_3624
             (by simp only [attesterRuntime_block_3605_fallthrough_stack, List.length_cons]; omega)
-            (by rw [attesterRuntime_validJumps]; native_decide) h4
+            h4
           refine .inl ⟨fun hc ↦ hcount hc.2.2.2, ?_⟩
           exact attesterRuntime_block_2696
             (by simp only [attesterRuntime_block_3624_stack,

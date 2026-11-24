@@ -37,7 +37,7 @@ theorem multiRevokeInnerStep {words : String → UInt256} {I g s0 σ mem aw out 
     (by rw [hlt]; rfl) h
   obtain ⟨aw', k', C', h''⟩ := attesterRuntime_block_590_taken_packed (R := R)
     (by omega)
-    (by rw [hlt]; decide) (by rw [attesterRuntime_validJumps]; native_decide) h'
+    (by rw [hlt]; decide) h'
   simp only [attesterRuntime_block_590_taken_stack, attesterRuntime_block_590_taken_memory,
     hptr, ofNat_add_words] at h''
   have hfields : attesterRuntime_block_618_taken_memory (ee := I)
@@ -64,11 +64,11 @@ theorem multiRevokeInnerStep {words : String → UInt256} {I g s0 σ mem aw out 
                 64).toNat 32)
             (x0 := UInt256.ofNat i) (x2 := UInt256.ofNat cdptr) (x3 := UInt256.ofNat free))) ≠ _
         rw [hfields, hload, hlt]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h''
+    h''
   simp only [attesterRuntime_block_618_taken_stack, hfields] at h'''
   obtain ⟨awf, kf, Cf, hf⟩ := attesterRuntime_block_653_packed
     (by simp only [List.length_cons]; omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h'''
+    h'''
   refine ⟨awf, kf, Cf, ?_⟩
   simp only [attesterRuntime_block_653_stack, attesterRuntime_block_653_memory,
     ofNat_mul_words, ofNat_add_words, ulit_toNat' _ hbifit] at hf
@@ -100,7 +100,7 @@ theorem multiRevokeInnerRun {words : String → UInt256} {I g s0 σ mem aw out k
         (R := UInt256.ofNat n :: UInt256.ofNat cdptr :: R)
         (by simp only [List.length_cons]; omega)
         (by rw [ult_zero (Nat.le_refl _)]; decide)
-        (by rw [attesterRuntime_validJumps]; native_decide) h
+        h
       exact ⟨aw', k', C', h'⟩
   | succ remaining ih =>
       obtain ⟨aw', k', C', h'⟩ := multiRevokeInnerStep h hstack hbase hin hspan hlen hptr

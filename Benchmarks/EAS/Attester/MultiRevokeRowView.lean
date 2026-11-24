@@ -30,12 +30,12 @@ theorem multiRevokeRowView {words : String → UInt256} {I g s0 σ mem aw out k 
   have h'' := attesterRuntime_block_376_taken
     (R := UInt256.ofNat n :: schemaData :: R)
     (by simp only [List.length_cons]; omega) (by rw [hlt]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h'
+    h'
   have h''' := attesterRuntime_block_396
     (by simp only [List.length_cons]; omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h''
+    h''
   rcases attesterNestedView h''' (by simp only [List.length_cons]; omega)
-      (by rw [attesterRuntime_validJumps]; native_decide) with ⟨hbad, hrev⟩ | ⟨hgood, k', C', hv⟩
+      (by exact attesterJumpdest _ rfl rfl) with ⟨hbad, hrev⟩ | ⟨hgood, k', C', hv⟩
   · exact .inl ⟨.inl hbad, hrev⟩
   by_cases hz : rowLength I.calldata secondData i = ⟨0⟩
   · have hr := attesterRuntime_block_414_fallthrough
@@ -45,7 +45,7 @@ theorem multiRevokeRowView {words : String → UInt256} {I g s0 σ mem aw out k 
       (by simp only [attesterRuntime_block_414_fallthrough_stack, List.length_cons]; omega) hr⟩
   have hr := attesterRuntime_block_414_taken (x0 := rowLength I.calldata secondData i)
     (by simp only [List.length_cons]; omega) (u256_zero_sub_ne_zero hz)
-    (by rw [attesterRuntime_validJumps]; native_decide) hv
+    hv
   exact .inr ⟨hgood, hz, _, _, _, hr⟩
 
 end Benchmarks.EAS.Attester

@@ -22,9 +22,9 @@ theorem attestReachDecodeReturn {words : String → UInt256} {I g s0 σ k C aw o
       [⟨448⟩, ⟨448⟩ + UInt256.ofNat out.size, ⟨2180⟩, ⟨0⟩, input, schema, ⟨162⟩, sel]
       (attestDecodedMemory schema input out) aw' out σ k' C' := by
   have h' := attesterRuntime_block_2128_taken (by simp) (by decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   obtain ⟨aw', k', C', h''⟩ := attesterRuntime_block_2144_packed
-    (by simp) (by rw [attesterRuntime_validJumps]; native_decide) h'
+    (by simp) h'
   simp only [attesterRuntime_block_2144_stack, attesterRuntime_block_2144_memory,
     attestOutputMemory_freePtr] at h''
   exact ⟨aw', k', C', h''⟩
@@ -54,14 +54,14 @@ theorem attestDecodeReturn {words : String → UInt256} {I g s0 σ k C aw out se
   change UInt256.slt (UInt256.sub (⟨448⟩ + UInt256.ofNat out.size) ⟨448⟩) (UInt256.ofNat 32) = ⟨0⟩
       at hcheck
   have h' := attesterRuntime_block_3827_taken (by simp) (by rw [hcheck]; decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   obtain ⟨aw', k', C', h''⟩ := attesterRuntime_block_3845_packed (by simp)
-    (by rw [attesterRuntime_validJumps]; native_decide) h'
+    (by exact attesterJumpdest _ rfl rfl) h'
   have hw := attestDecodedMemory_word (schema := schema) (input := input) hlen
   change memLoad ⟨448⟩ (attestDecodedMemory schema input out) = calldataWord out 0 at hw
   simp only [attesterRuntime_block_3845_stack, hw] at h''
   have h''' := attesterRuntime_block_2180 (by simp)
-    (by rw [attesterRuntime_validJumps]; native_decide) h''
+    (by exact attesterJumpdest _ rfl rfl) h''
   exact ⟨_, _, _, h'''⟩
 
 theorem attestReturnWord {words : String → UInt256} {I g s0 σ k C aw out mem R uid ptr}
@@ -71,7 +71,7 @@ theorem attestReturnWord {words : String → UInt256} {I g s0 σ k C aw out mem 
     (hptr : memLoad (UInt256.ofNat 64) mem = ptr) (hlo : 96 ≤ ptr.toNat) :
     RDret (immutableLayout.runtime attesterBytecode words) g s0 σ uid.toByteArray := by
   have h' := attesterRuntime_block_162 hstack
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   have hret := attesterRuntime_block_134 hstack h'
   simp only [attesterRuntime_block_162_memory, hptr] at hret
   have hp : memLoad (UInt256.ofNat 64) (uid.toByteArray.write 0 mem ptr.toNat 32) = ptr := by

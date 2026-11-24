@@ -1,4 +1,6 @@
-import Benchmarks.EAS.Attester.Bytecode
+import Benchmarks.EAS.Attester.Spec
+import Ethereum.Semantics
+import Reasoning.JumpDest
 import Reasoning.Dispatch
 
 /-!

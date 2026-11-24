@@ -116,7 +116,7 @@ theorem multiAttestExternalCorrect (imms : Store) (hfit : immutablesFit contract
         (by simp [multiAttestCallLocals]) (by omega)
       rcases returnArrayDecode h1 (by simp) (by omega)
           (by rw [multiAttestEncodedMemory_size hc hshape hrows]; omega)
-          (by omega) (by rw [attesterRuntime_validJumps]; native_decide) with
+          (by omega) (by exact attesterJumpdest _ rfl rfl) with
         ⟨hbad, hrev⟩ | ⟨hchecks, hcap, aw2, k2, C2, h2⟩
       · have hbody := ExecFuncBody.execBlockRevert (multiAttestSourceSuffix hp
           (multiAttestSourceCallSuccessPrefix hlocalEas hrequest hencode hcall (hsource.1 hbad)))
@@ -125,7 +125,7 @@ theorem multiAttestExternalCorrect (imms : Store) (hfit : immutablesFit contract
           (multiAttestSourceCallSuccessPrefix hlocalEas hrequest hencode hcall
             (hsource.2 hchecks hcap)))
         obtain ⟨aw3, k3, C3, h3⟩ := attesterRuntime_block_1873_packed (by simp)
-          (by rw [attesterRuntime_validJumps]; native_decide) h2
+          (by exact attesterJumpdest _ rfl rfl) h2
         have hret := multiAttestReturnDecoded h3 (by simp) (by omega) hchecks hcap
         exact hret.reEquivExecutionGen hcode hdispatch hdec hbody rfl
           (.returned rfl (wordArrayReturn_encoding (returnArrayWords out) (returnArrayCount out)))

@@ -35,7 +35,10 @@ so it did not reproduce upstream's effective build settings.
 
 `Attester.compiler.json` records settings, source and bytecode hashes, method IDs, immutable
 references, and compiler function PCs. `sources.sha256` covers the vendored sources and
-compiler JSON/hex artifacts. `Bytecode.lean` embeds the exact bytes and checks jump destinations.
+compiler JSON/hex artifacts. `Bytecode.lean` and `CreationBytecode.lean` (listings written by
+`scripts/gen_listing.py` from `runtime.hex` and `creation.hex`) define the bytecode constants and
+check them, in the kernel, against tables of decoded instructions; the block summaries and jump
+destinations are proved from those tables.
 A separate compile using all 27 sources in the upstream project's dependency closure,
 including its other examples and OpenZeppelin 5.0.2, produced identical Attester bytes.
 
@@ -106,6 +109,16 @@ printf '%s\n' 'import Benchmarks.EAS.Attester.Correct' \
 ```
 
 `lake build Benchmarks.EAS.Attester.Audit` runs the separate differential audit when desired.
+Regenerate the listings and summaries with
+
+```sh
+python3 scripts/gen_listing.py --dir Benchmarks/EAS/Attester --force \
+  --layout Benchmarks.EAS.Attester.Immutables.immutableLayout \
+  --layout-import Benchmarks.EAS.Attester.Immutables --blocks-namespace attesterRuntimeBlocks
+python3 scripts/gen_listing.py --dir Benchmarks/EAS/Attester --creation --force
+python3 Benchmarks/EAS/Attester/generate_blocks.py
+```
+
 Use `python3 Benchmarks/EAS/Attester/generate_blocks.py --check` to check summary reproducibility
 without rewriting them. The artifact refresh also passed `ABI.SignatureTests`,
 `Reasoning.ABIComposite`, and `Reasoning.ABIViews`.

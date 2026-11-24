@@ -30,7 +30,7 @@ theorem attestCellEncode3109 {words : String → UInt256} {I g s0 σ mem aw out 
   obtain ⟨aw3, k3, C3, h3⟩ := attesterRuntime_block_3211_packed
     (by first | omega | (simp only [List.append, List.length_cons, List.append_cons,
         List.nil_append]; omega))
-    (by rw [attesterRuntime_validJumps]; native_decide) h2
+    h2
   have hm3 : attesterRuntime_block_3211_memory (mem := attestCellEncodedHead mem dst)
       (x0 := UInt256.ofNat 0) (x2 := UInt256.ofNat data) (x5 := UInt256.ofNat dst) =
       attestCellEncodedPayload mem dst input := by
@@ -41,7 +41,7 @@ theorem attestCellEncode3109 {words : String → UInt256} {I g s0 σ mem aw out 
   have h4 := attesterRuntime_block_3202_taken
     (by first | omega | (simp only [List.append, List.length_cons, List.append_cons,
         List.nil_append]; omega)) (by decide)
-    (by rw [attesterRuntime_validJumps]; native_decide) h3
+    h3
   have hval := heap.2.2.choose_spec.2.2.2.2.2.2.2.1
   have hptr := heap.1
   have hptrhi := heap.2.1

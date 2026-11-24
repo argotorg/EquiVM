@@ -1,3 +1,4 @@
+import Benchmarks.EAS.Attester.Spec
 import Benchmarks.EAS.Attester.Bytecode
 
 open Stele ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Immutables
@@ -57,8 +58,12 @@ theorem deployedRuntime_eq_layout {imms : Store} (hfit : immutablesFit contract 
   obtain ⟨a, ha⟩ := eas_of_fit hfit
   exact deployedRuntime_eq_layout_of_word ha rfl
 
-theorem attesterRuntime_validJumps (words : String → UInt256) :
-    D_J (immutableLayout.runtime attesterBytecode words) 0 = D_J attesterBytecode 0 :=
-  Layout.D_J_runtime (by native_decide) (by native_decide)
+/-- An offset where the listing has a section that begins with `JUMPDEST` is a valid jump
+destination of the patched runtime (`rfl rfl` for a literal offset: the lookup, then the test). -/
+theorem attesterJumpdest (words : String → UInt256) {pc : UInt256} {s : Reasoning.Listing.Section}
+    (h : Listing.tree.get? pc.toNat = some s) (hjd : Reasoning.Listing.startsJD s = true) :
+    (D_J (immutableLayout.runtime attesterBytecode words) 0).contains pc = true := by
+  have hj := Listing.jumpdest_code words h hjd pc.val.isLt
+  rwa [u256_ofNat_toNat] at hj
 
 end Benchmarks.EAS.Attester

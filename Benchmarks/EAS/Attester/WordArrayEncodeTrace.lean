@@ -30,7 +30,7 @@ theorem wordArrayEncodeRun {words : String → UInt256} {I g s0 σ mem out aw k 
       obtain ⟨aw', k', C', h'⟩ := attesterRuntime_block_2621_taken_packed
         (by simp only [List.append, List.length_cons]; omega)
         (by rw [ult_zero (le_refl _)]; decide)
-        (by rw [attesterRuntime_validJumps]; native_decide) h
+        h
       exact ⟨aw', k', C', h'⟩
   | succ remaining ih =>
       have hlt : UInt256.lt (UInt256.ofNat i) (UInt256.ofNat n) = ⟨1⟩ :=
@@ -38,7 +38,7 @@ theorem wordArrayEncodeRun {words : String → UInt256} {I g s0 σ mem out aw k 
       have h1 := attesterRuntime_block_2621_fallthrough
         (by simp only [List.append, List.length_cons]; omega) (by rw [hlt]; rfl) h
       obtain ⟨aw2, k2, C2, h2⟩ := attesterRuntime_block_2630_packed (R := R) hstack
-        (by rw [attesterRuntime_validJumps]; native_decide) h1
+        h1
       have hload : memLoad (UInt256.ofNat src) mem = values i := by
         simpa only [Nat.mul_zero, Nat.add_zero] using hloads 0 (by omega)
       simp only [attesterRuntime_block_2630_stack, attesterRuntime_block_2630_memory, hload,
@@ -115,10 +115,10 @@ theorem wordArrayReturn {words : String → UInt256} {I g s0 σ mem out aw k C R
     RDret (immutableLayout.runtime attesterBytecode words) g s0 σ
       (wordBytes ([UInt256.ofNat 32, UInt256.ofNat n] ++ wordArrayWords values 0 n)) := by
   obtain ⟨aw1, k1, C1, h1⟩ := attesterRuntime_block_121_packed (by omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   simp only [attesterRuntime_block_121_stack, hptr] at h1
   obtain ⟨aw2, k2, C2, h2⟩ := wordArrayEncode h1 hstack hlo hin hdis hfit hlen hloads
-    (by rw [attesterRuntime_validJumps]; native_decide)
+    (by exact attesterJumpdest _ rfl rfl)
   have h3 := attesterRuntime_block_134 (by omega) h2
   have hfp : memLoad (UInt256.ofNat 64) (wordArrayEncodeMemory mem dst n values) =
       UInt256.ofNat dst := by

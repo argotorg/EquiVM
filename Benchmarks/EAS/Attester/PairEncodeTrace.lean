@@ -39,10 +39,10 @@ theorem pairEncodeStep3021 {words : String → UInt256} {I g s0 σ mem aw out k 
       (.inl (by rw [ulit_toNat' _ (by omega : ptr + 32 < UInt256.size)]; omega)), hsecond]
     rfl
   obtain ⟨aw', k', C', h''⟩ := attesterRuntime_block_3030_packed hstack
-    (by rw [attesterRuntime_validJumps]; native_decide) h'
+    h'
   rw [hm] at h''
   have h''' := attesterRuntime_block_3050 (by omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h''
+    h''
   refine ⟨aw', k' + 18, C' + 54, ?_⟩
   simpa only [attesterRuntime_block_3050_stack, ofNat_add_words,
     show base + 32 + 32 * i + 32 = base + 32 + 32 * (i + 1) by omega] using h'''
@@ -67,7 +67,7 @@ theorem pairEncodeRun3021 {words : String → UInt256} {I g s0 σ mem aw out k C
         (R := UInt256.ofNat (base + 32 + 32 * n) :: R)
         (by simp only [List.length_cons]; omega)
         (by rw [ult_zero (Nat.le_refl _)]; decide)
-        (by rw [attesterRuntime_validJumps]; native_decide) h
+        h
       exact ⟨aw, k + 7, C + 26, h'⟩
   | succ remaining ih =>
       obtain ⟨aw', k', C', h'⟩ := pairEncodeStep3021 h hstack heap hsize hsep (by omega) (by omega)

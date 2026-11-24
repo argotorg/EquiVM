@@ -21,7 +21,7 @@ theorem wordArrayCopyRun {words : String → UInt256} {I g s0 σ mem out aw k C 
   | zero =>
       obtain ⟨aw', k', C', h'⟩ := attesterRuntime_block_3743_taken_packed (R := R) (by omega)
         (by simp only [Nat.mul_zero, Nat.add_zero]; rw [ult_zero (le_refl _)]; decide)
-        (by rw [attesterRuntime_validJumps]; native_decide) h
+        h
       exact ⟨aw', k', C', junk, h'⟩
   | succ n ih =>
       have hf : src < UInt256.size := by omega
@@ -32,7 +32,7 @@ theorem wordArrayCopyRun {words : String → UInt256} {I g s0 σ mem out aw k C 
       have h1 := attesterRuntime_block_3743_fallthrough (R := R)
         (by omega) (by rw [hlt]; rfl) h
       obtain ⟨aw2, k2, C2, h2⟩ := attesterRuntime_block_3752_packed hstack
-        (by rw [attesterRuntime_validJumps]; native_decide) h1
+        h1
       have hload : memLoad (UInt256.ofNat src) mem = values i := by
         simpa only [Nat.mul_zero, Nat.add_zero] using hloads 0 (by omega)
       simp only [attesterRuntime_block_3752_stack, attesterRuntime_block_3752_memory,

@@ -37,7 +37,7 @@ theorem attesterArrayView {words : String → UInt256} {ee : ExecutionEnv}
     exact attesterRuntime_block_2420
       (by simp only [attesterRuntime_block_2406_fallthrough_stack, List.length_cons]; omega) h'
   have h' := attesterRuntime_block_2406_taken (by simp only [List.length_cons]; omega) hhead
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   by_cases hlen : UInt256.isZero (UInt256.gt (calldataWord ee.calldata head.toNat)
       (UInt256.ofNat 18446744073709551615)) = UInt256.ofNat 0
   · left
@@ -47,7 +47,7 @@ theorem attesterArrayView {words : String → UInt256} {ee : ExecutionEnv}
     exact attesterRuntime_block_2444
       (by simp only [attesterRuntime_block_2424_fallthrough_stack, List.length_cons]; omega) h''
   have h'' := attesterRuntime_block_2424_taken (by simp only [List.length_cons]; omega) hlen
-    (by rw [attesterRuntime_validJumps]; native_decide) h'
+    h'
   by_cases hend : UInt256.isZero (UInt256.gt
       ((head + UInt256.shiftLeft (calldataWord ee.calldata head.toNat) (UInt256.ofNat 5)) +
           UInt256.ofNat 32)
@@ -59,7 +59,7 @@ theorem attesterArrayView {words : String → UInt256} {ee : ExecutionEnv}
     exact attesterRuntime_block_2471
       (by simp only [attesterRuntime_block_2448_fallthrough_stack, List.length_cons]; omega) h'''
   have h''' := attesterRuntime_block_2448_taken (by simp only [List.length_cons]; omega) hend
-    (by rw [attesterRuntime_validJumps]; native_decide) h''
+    h''
   have hret := attesterRuntime_block_2475 (by omega) hvalid h'''
   exact .inr ⟨⟨hhead, hlen, hend⟩, _, _, hret⟩
 
@@ -100,7 +100,7 @@ theorem attesterMultiHeads {words : String → UInt256} {ee : ExecutionEnv}
     exact attesterRuntime_block_2500
       (by simp only [attesterRuntime_block_2482_fallthrough_stack, List.length_cons]; omega) h'
   have h' := attesterRuntime_block_2482_taken (by simp only [List.length_cons]; omega) htuple
-    (by rw [attesterRuntime_validJumps]; native_decide) h
+    h
   by_cases hoff0 : UInt256.isZero (UInt256.gt (calldataWord ee.calldata 4)
       (UInt256.ofNat 18446744073709551615)) = UInt256.ofNat 0
   · left
@@ -111,11 +111,11 @@ theorem attesterMultiHeads {words : String → UInt256} {ee : ExecutionEnv}
       (by simp only [attesterRuntime_block_2504_fallthrough_stack, List.length_cons]; omega) h''
   have h'' := attesterRuntime_block_2504_taken (x4 := ⟨4⟩) (by simp only [List.length_cons]; omega)
       hoff0
-    (by rw [attesterRuntime_validJumps]; native_decide) h'
+    h'
   have hview := attesterRuntime_block_2527 (by simp only [List.length_cons]; omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) h''
+    h''
   rcases attesterArrayView hview (by simp only [List.length_cons]; omega)
-      (by rw [attesterRuntime_validJumps]; native_decide) with hrev | ⟨hfirst, k', C', hfirstRD⟩
+      (by exact attesterJumpdest _ rfl rfl) with hrev | ⟨hfirst, k', C', hfirstRD⟩
   · exact .inl ⟨fun hc ↦ hrev.1 hc.first, hrev.2⟩
   by_cases hoff1 : UInt256.isZero (UInt256.gt (calldataWord ee.calldata 36)
       (UInt256.ofNat 18446744073709551615)) = UInt256.ofNat 0
@@ -128,11 +128,11 @@ theorem attesterMultiHeads {words : String → UInt256} {ee : ExecutionEnv}
       (by simp only [attesterRuntime_block_2539_fallthrough_stack, List.length_cons]; omega) hsecond
   have hsecond := attesterRuntime_block_2539_taken (x7 := ⟨4⟩)
     (by simp only [List.length_cons]; omega)
-    hoff1 (by rw [attesterRuntime_validJumps]; native_decide) hfirstRD
+    hoff1 hfirstRD
   have hview2 := attesterRuntime_block_2571 (by simp only [List.length_cons]; omega)
-    (by rw [attesterRuntime_validJumps]; native_decide) hsecond
+    hsecond
   rcases attesterArrayView hview2 (by simp only [List.length_cons]; omega)
-      (by rw [attesterRuntime_validJumps]; native_decide) with hrev | ⟨hsecond, k'', C'', hsecondRD⟩
+      (by exact attesterJumpdest _ rfl rfl) with hrev | ⟨hsecond, k'', C'', hsecondRD⟩
   · exact .inl ⟨fun hc ↦ hrev.1 hc.second, hrev.2⟩
   have hret := attesterRuntime_block_2583 (by omega) hvalid hsecondRD
   exact .inr ⟨⟨htuple, hoff0, hfirst, hoff1, hsecond⟩, _, _, hret⟩
